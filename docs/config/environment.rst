@@ -118,40 +118,15 @@ General
 
       Make sure there is enough disk space available for heap dumps.
 
-.. _garbage-collection:
-
-Garbage collection
-------------------
-
-Collector
-~~~~~~~~~
-
-CrateDB uses the `G1`_ garbage collector by default.
-
-Before CrateDB 4.1 it defaulted to use the `Concurrent Mark Sweep` garbage
-collector. If you'd like to continue using CMS, you can switch setting the
-following :ref:`CRATE_JAVA_OPTS <conf-env-java-opts>`::
-
-
-  export CRATE_JAVA_OPTS="-XX:-UseG1GC -XX:+UseCMSInitiatingOccupancyOnly -XX:+UseConcMarkSweepGC"
-
-
-Logging
-~~~~~~~
-
-CrateDB logs JVM garbage collection times using the built-in garbage collection
-logging of the JVM.
-
-.. SEEALSO::
-
-   The :ref:`logging configuration <conf-logging-gc>` documentation has
-   the complete list of garbage collection logging environment variables.
 
 .. _basic installations: https://crate.io/docs/crate/getting-started/en/latest/install-run/basic.html
 .. _a CrateDB Linux package: https://crate.io/docs/crate/getting-started/en/latest/install-run/special/linux.html
 .. _CrateDB on Docker: https://crate.io/docs/crate/getting-started/en/latest/install-run/special/docker.html
 .. _Java options: https://docs.oracle.com/javase/7/docs/technotes/tools/windows/java.html#CBBIJCHG
 .. _environment variables: https://en.wikipedia.org/wiki/Environment_variable
+<<<<<<< HEAD
 .. _expanded tarball: https://crate.io/docs/crate/getting-started/en/latest/install-run/basic.html
 .. _Concurrent Mark Sweep: https://docs.oracle.com/javase/10/gctuning/concurrent-mark-sweep-cms-collector.htm
 .. _G1: https://docs.oracle.com/javase/10/gctuning/garbage-first-garbage-collector.htm
+=======
+>>>>>>> b5b1c4ecb1... Remove reference to CMS GC
