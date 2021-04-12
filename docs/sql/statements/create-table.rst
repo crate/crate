@@ -51,6 +51,7 @@ where ``column_constraint`` is::
       NOT NULL |
       INDEX { OFF | USING { PLAIN |
                             FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  }
+      [ CONSTRAINT constraint_name ] CHECK (boolean_expression)
     }
 
 where ``storage_options`` is::
@@ -62,6 +63,7 @@ and ``table_constraint`` is::
     { PRIMARY KEY ( column_name [, ... ] ) |
       INDEX index_name USING FULLTEXT ( column_name [, ... ] )
            [ WITH ( analyzer = analyzer_name ) ]
+      [ CONSTRAINT constraint_name ] CHECK (boolean_expression)
     }
 
 
@@ -160,7 +162,8 @@ to the table as a whole.
 
 .. SEEALSO::
 
-    :ref:`General SQL: Table constraints <table_constraints>`
+    - :ref:`General SQL: Table constraints <table_constraints>`
+    - :ref:`CHECK constraint <check_constraint>`
 
 
 .. _sql-create-table-column-constraints:
@@ -173,7 +176,8 @@ separately.
 
 .. SEEALSO::
 
-    :ref:`General SQL: Column constraints <column_constraints>`
+    - :ref:`General SQL: Column constraints <column_constraints>`
+    - :ref:`CHECK constraint <check_constraint>`
 
 
 .. _sql-create-table-storage-options:
