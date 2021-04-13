@@ -23,9 +23,9 @@
 package io.crate.operation.aggregation;
 
 import com.carrotsearch.hppc.BitMixer;
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;

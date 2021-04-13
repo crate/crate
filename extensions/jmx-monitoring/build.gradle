@@ -7,6 +7,8 @@ description = 'CrateDB JMX monitoring plugin'
 dependencies {
     implementation project(':libs:dex')
     implementation project(':server')
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    implementation "com.google.guava:guava:${versions.guava}"
 
     testImplementation project(path: ':server', configuration: 'testOutput')
     testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
