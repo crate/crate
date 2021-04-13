@@ -61,6 +61,11 @@ public class CrateHttpsTransportTest extends ESTestCase {
     private static String defaultKeyStoreType = KeyStore.getDefaultType();
 
     @BeforeClass
+    public static void disableProcessorCheck() {
+        System.setProperty("es.set.netty.runtime.available.processors", "false");
+    }
+
+    @BeforeClass
     public static void beforeTests() throws IOException {
         trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
         keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
