@@ -18,18 +18,17 @@
  */
 package org.elasticsearch.index;
 
-import org.apache.lucene.index.AssertingDirectoryReader;
-import org.apache.lucene.index.FilterDirectoryReader;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.plugins.EnginePlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.engine.AssertingDirectoryReader;
 import org.elasticsearch.test.engine.MockEngineFactory;
 import org.elasticsearch.test.engine.MockEngineSupport;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * A plugin to use {@link MockEngineFactory}.
@@ -45,10 +44,6 @@ public class MockEngineFactoryPlugin extends Plugin implements EnginePlugin {
 
     @Override
     public Optional<EngineFactory> getEngineFactory(final IndexSettings indexSettings) {
-        return Optional.of(new MockEngineFactory(getReaderWrapperClass()));
-    }
-
-    protected Class<? extends FilterDirectoryReader> getReaderWrapperClass() {
-        return AssertingDirectoryReader.class;
+        return Optional.of(new MockEngineFactory(AssertingDirectoryReader.class));
     }
 }

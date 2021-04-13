@@ -34,7 +34,7 @@ import org.apache.lucene.util.automaton.CompiledAutomaton;
  * A {@link FilterLeafReader} that can be used to apply
  * additional checks for tests.
  */
-public class AssertingLeafReader extends FilterLeafReader {
+public class PatchedAssertingLeafReader extends FilterLeafReader {
 
     private static void assertThread(String object, Thread creationThread) {
         // CRATE PATCH: pause/resume logic in crate can cause thread switches
@@ -46,7 +46,7 @@ public class AssertingLeafReader extends FilterLeafReader {
          */
     }
 
-    public AssertingLeafReader(LeafReader in) {
+    public PatchedAssertingLeafReader(LeafReader in) {
         super(in);
         // check some basic reader sanity
         assert in.maxDoc() >= 0;
