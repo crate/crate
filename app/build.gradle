@@ -20,13 +20,6 @@ configurations {
     }
 }
 
-evaluationDependsOn(':server')
-evaluationDependsOn(':libs:guice')
-evaluationDependsOn(':libs:sql-parser')
-evaluationDependsOn(':libs:dex')
-evaluationDependsOn(':libs:shared')
-evaluationDependsOn(':plugins:dns-discovery')
-
 dependencies {
     compile project(':server')
     compile project(':plugins:azure-discovery')
