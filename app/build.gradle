@@ -41,6 +41,8 @@ dependencies {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
 
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+
     // include the extensions module in classpath to be able to use it with Crate launched from within intellij
     runtime project(':extensions:functions')
     runtime project(':extensions:lang-js')

@@ -1,3 +1,4 @@
+apply plugin: 'java-library'
 apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'crate-server'
@@ -8,77 +9,77 @@ configurations {
 }
 
 dependencies {
-    compile project(':libs:dex')
-    compile project(':libs:es-x-content')
-    compile project(':libs:pgwire')
-    compile project(':libs:shared')
-    compile project(':libs:cli')
-    compile project(':libs:sql-parser')
-    compile project(':libs:guice')
+    api project(':libs:dex')
+    api project(':libs:es-x-content')
+    api project(':libs:shared')
+    api project(':libs:cli')
+    api project(':libs:guice')
+    api project(':libs:sql-parser')
+    implementation project(':libs:pgwire')
 
     compileOnly project(':libs:es-plugin-classloader')
-    testRuntime project(':libs:es-plugin-classloader')
 
-    compile "io.netty:netty-buffer:${versions.netty4}"
-    compile "io.netty:netty-codec-http:${versions.netty4}"
-    compile "io.netty:netty-codec:${versions.netty4}"
-    compile "io.netty:netty-common:${versions.netty4}"
-    compile "io.netty:netty-handler:${versions.netty4}"
-    compile "io.netty:netty-resolver:${versions.netty4}"
-    compile "io.netty:netty-transport-native-epoll:${versions.netty4}:linux-x86_64"
-    compile "io.netty:netty-transport:${versions.netty4}"
+    api "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
+    api "org.apache.logging.log4j:log4j-core:${versions.log4j2}"
 
-    compile "org.apache.lucene:lucene-core:${versions.lucene}"
-    compile "org.apache.lucene:lucene-analyzers-common:${versions.lucene}"
-    compile "org.apache.lucene:lucene-backward-codecs:${versions.lucene}"
-    compile "org.apache.lucene:lucene-grouping:${versions.lucene}"
-    compile "org.apache.lucene:lucene-join:${versions.lucene}"
-    compile "org.apache.lucene:lucene-misc:${versions.lucene}"
-    compile "org.apache.lucene:lucene-queries:${versions.lucene}"
-    compile "org.apache.lucene:lucene-sandbox:${versions.lucene}"
-    compile "org.apache.lucene:lucene-spatial-extras:${versions.lucene}"
-    compile "org.apache.lucene:lucene-spatial3d:${versions.lucene}"
-    compile "org.apache.lucene:lucene-suggest:${versions.lucene}"
+    api "io.netty:netty-buffer:${versions.netty4}"
+    api "io.netty:netty-codec-http:${versions.netty4}"
+    implementation "io.netty:netty-codec:${versions.netty4}"
+    implementation "io.netty:netty-common:${versions.netty4}"
+    implementation "io.netty:netty-handler:${versions.netty4}"
+    implementation "io.netty:netty-resolver:${versions.netty4}"
+    implementation "io.netty:netty-transport-native-epoll:${versions.netty4}:linux-x86_64"
+    implementation "io.netty:netty-transport:${versions.netty4}"
+
+    api "org.apache.lucene:lucene-core:${versions.lucene}"
+    implementation "org.apache.lucene:lucene-analyzers-common:${versions.lucene}"
+    implementation "org.apache.lucene:lucene-backward-codecs:${versions.lucene}"
+    implementation "org.apache.lucene:lucene-grouping:${versions.lucene}"
+    implementation "org.apache.lucene:lucene-join:${versions.lucene}"
+    implementation "org.apache.lucene:lucene-misc:${versions.lucene}"
+    implementation "org.apache.lucene:lucene-queries:${versions.lucene}"
+    implementation "org.apache.lucene:lucene-sandbox:${versions.lucene}"
+    implementation "org.apache.lucene:lucene-spatial-extras:${versions.lucene}"
+    implementation "org.apache.lucene:lucene-spatial3d:${versions.lucene}"
+    implementation "org.apache.lucene:lucene-suggest:${versions.lucene}"
     // lucene spatial
-    compile "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
-    compile "org.locationtech.jts:jts-core:${versions.jts}"
+    implementation "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
+    implementation "org.locationtech.jts:jts-core:${versions.jts}"
 
-    compile "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
-    compile "org.apache.logging.log4j:log4j-core:${versions.log4j2}"
+    implementation "net.java.dev.jna:jna:${versions.jna}"
 
-    compile "net.java.dev.jna:jna:${versions.jna}"
+    implementation "com.tdunning:t-digest:3.2"
+    implementation "org.hdrhistogram:HdrHistogram:2.1.9"
+    implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
 
-    compile "com.tdunning:t-digest:3.2"
-    compile "org.hdrhistogram:HdrHistogram:2.1.9"
-    compile "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
-
-    compile "com.google.guava:guava:${versions.guava}"
-    compile "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
-    compile "org.apache.commons:commons-math3:${versions.commonsmath}"
-    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-csv:${versions.jackson}"
-    compile "com.fasterxml.jackson.core:jackson-databind:${versions.jackson}"
+    implementation "com.google.guava:guava:${versions.guava}"
+    implementation "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
+    implementation "org.apache.commons:commons-math3:${versions.commonsmath}"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-csv:${versions.jackson}"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson}"
     // Needed by aws-java-sdk-s3 in Java 9
-    compile "javax.xml.bind:jaxb-api:${versions.jaxb_api}"
+    runtimeOnly "javax.xml.bind:jaxb-api:${versions.jaxb_api}"
 
-    testCompile project(path: ':libs:dex', configuration: 'testOutput')
+    testRuntimeOnly project(':libs:es-plugin-classloader')
+    testImplementation project(path: ':libs:dex', configuration: 'testOutput')
 
-    testCompile "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
-    testCompile "org.apache.lucene:lucene-codecs:${versions.lucene}"
-    testCompile "org.apache.lucene:lucene-test-framework:${versions.lucene}"
-    testCompile "org.hamcrest:hamcrest:${versions.hamcrest}"
-    testCompile "org.mockito:mockito-core:${versions.mockito}"
-    testCompile "org.postgresql:postgresql:${versions.jdbc}"
-    testCompile 'com.pholser:junit-quickcheck-core:0.9'
-    testCompile 'com.pholser:junit-quickcheck-generators:0.9'
-    testCompile 'org.skyscreamer:jsonassert:1.3.0'
-    testCompile "junit:junit:${versions.junit}"
-    testCompile "org.junit.jupiter:junit-jupiter:${versions.junit5}"
-    testCompile ("org.junit.vintage:junit-vintage-engine") {
+    testImplementation "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
+    testRuntimeOnly "org.apache.lucene:lucene-codecs:${versions.lucene}"
+    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testImplementation "org.mockito:mockito-core:${versions.mockito}"
+    testImplementation "org.postgresql:postgresql:${versions.jdbc}"
+    testImplementation 'com.pholser:junit-quickcheck-core:0.9'
+    testImplementation 'com.pholser:junit-quickcheck-generators:0.9'
+    testImplementation 'org.skyscreamer:jsonassert:1.3.0'
+    testImplementation "junit:junit:${versions.junit}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testRuntimeOnly ("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
     }
 
     // Required to use SelfSignedCertificate from netty
-    testCompile "org.bouncycastle:bcpkix-jdk15on:1.68"
+    testRuntimeOnly "org.bouncycastle:bcpkix-jdk15on:1.68"
 }
 
 //noinspection GroovyAssignabilityCheck
