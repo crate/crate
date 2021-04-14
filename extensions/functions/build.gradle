@@ -10,16 +10,18 @@ configurations {
 }
 
 jar.dependsOn('writePropertiesFile')
-task writePropertiesFile {
+task writePropertiesFile(dependsOn: [':server:getVersion']) {
     doLast {
         copy {
             from "src/main/resources/"
             into "${buildDir}/tmp"
             include "plugin-descriptor.properties"
-            expand(version: project.version,
-                esVersion: versions.internalES,
+            expand(
+                version: project.version,
+                crateVersion: project(':server').getVersion.shortVersion,
                 jmvCompatibility: project.targetCompatibility,
-                name: project.name)
+                name: project.name
+            )
         }
     }
 }

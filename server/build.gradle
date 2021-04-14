@@ -95,7 +95,9 @@ task getVersion(dependsOn: 'classes', type: JavaExec) {
     standardOutput = stdout
 
     doLast {
-        ext.version = stdout.toString().trim().split(" ")[1].replace(',', '').trim()
+        def versionOutput = stdout.toString().trim().split(" ")[1].replace(',', '').trim()
+        ext.shortVersion = versionOutput.replace("-SNAPSHOT", "")
+        ext.version = versionOutput
         ext.gitTag = "git describe".execute().text.trim()
 
         ext.buildDate = new Date().format('yyyyMMddHHmm')
@@ -113,6 +115,7 @@ task getVersion(dependsOn: 'classes', type: JavaExec) {
 
         logger.quiet("gitTag:         " + gitTag)
         logger.quiet("version:        " + version)
+        logger.quiet("shortVersion:   " + shortVersion)
         logger.quiet("buildDate:      " + buildDate)
         logger.quiet("buildShortHash: " + buildShortHash)
     }
