@@ -60,6 +60,8 @@ Changes
   ``COPY FROM`` operations. This should lead to these queries utilizing more
   resources if the cluster can spare them.
 
+- Included the shard information for closed tables in ``sys.shards`` table.
+
 Fixes
 =====
 
