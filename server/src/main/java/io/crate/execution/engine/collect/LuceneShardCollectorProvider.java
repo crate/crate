@@ -61,7 +61,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
 
 public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
@@ -110,7 +109,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             fieldTypeLookup = mapperService::fullName;
         }
         var relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
-        this.table = schemas.getTableInfo(relationName, Operation.READ);
+        this.table = schemas.getTableInfo(relationName);
         this.docInputFactory = new DocInputFactory(
             nodeCtx,
             new LuceneReferenceResolver(
