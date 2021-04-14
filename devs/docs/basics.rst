@@ -13,7 +13,7 @@ to build documentation and run tests require Python_.
 
 To set up a minimal development environment, you will need:
 
-- Java_ (>= 11)
+- Java_ 15
 - Python_ (>= 3.7)
 
 Then, clone the repository and navigate into its directory::
