@@ -950,9 +950,7 @@ Aggregation
 ===========
 
 CrateDB provides built-in :ref:`aggregation functions <aggregation>` that allow
-you to calculate a single summary value for one or more columns.
-
-Some examples::
+you to calculate a single summary value for one or more columns::
 
     cr> select count(*) from locations;
     +----------+
@@ -961,111 +959,6 @@ Some examples::
     |       16 |
     +----------+
     SELECT 1 row in set (... sec)
-
-::
-
-    cr> select count(*) from locations where kind = 'Planet';
-    +----------+
-    | count(*) |
-    +----------+
-    |        5 |
-    +----------+
-    SELECT 1 row in set (... sec)
-
-::
-
-    cr> select count(name), count(*) from locations;
-    +-------------+----------+
-    | count(name) | count(*) |
-    +-------------+----------+
-    |          15 |       16 |
-    +-------------+----------+
-    SELECT 1 row in set (... sec)
-
-::
-
-    cr> select max(name) from locations;
-    +-------------------+
-    | max(name)         |
-    +-------------------+
-    | Outer Eastern Rim |
-    +-------------------+
-    SELECT 1 row in set (... sec)
-
-::
-
-    cr> select min(date) from locations;
-    +--------------+
-    | min(date)    |
-    +--------------+
-    | 308534400000 |
-    +--------------+
-    SELECT 1 row in set (... sec)
-
-::
-
-    cr> select count(*), kind from locations
-    ... group by kind order by kind asc;
-    +----------+-------------+
-    | count(*) | kind        |
-    +----------+-------------+
-    |        4 | Galaxy      |
-    |        5 | Planet      |
-    |        7 | Star System |
-    +----------+-------------+
-    SELECT 3 rows in set (... sec)
-
-::
-
-    cr> select max(position), kind from locations
-    ... group by kind order by max(position) desc;
-    +---------------+-------------+
-    | max(position) | kind        |
-    +---------------+-------------+
-    |             6 | Galaxy      |
-    |             5 | Planet      |
-    |             4 | Star System |
-    +---------------+-------------+
-    SELECT 3 rows in set (... sec)
-
-::
-
-    cr> select min(name), kind from locations
-    ... group by kind order by min(name) asc;
-    +------------------------------------+-------------+
-    | min(name)                          | kind        |
-    +------------------------------------+-------------+
-    |                                    | Planet      |
-    | Aldebaran                          | Star System |
-    | Galactic Sector QQ7 Active J Gamma | Galaxy      |
-    +------------------------------------+-------------+
-    SELECT 3 rows in set (... sec)
-
-::
-
-    cr> select count(*), min(name), kind from locations
-    ... group by kind order by kind;
-    +----------+------------------------------------+-------------+
-    | count(*) | min(name)                          | kind        |
-    +----------+------------------------------------+-------------+
-    |        4 | Galactic Sector QQ7 Active J Gamma | Galaxy      |
-    |        5 |                                    | Planet      |
-    |        7 | Aldebaran                          | Star System |
-    +----------+------------------------------------+-------------+
-    SELECT 3 rows in set (... sec)
-
-::
-
-    cr> select sum(position) as sum_positions, kind from locations
-    ... group by kind order by sum_positions;
-    +---------------+-------------+
-    | sum_positions | kind        |
-    +---------------+-------------+
-    |            13 | Galaxy      |
-    |            15 | Planet      |
-    |            20 | Star System |
-    +---------------+-------------+
-    SELECT 3 rows in set (... sec)
 
 
 Window functions
