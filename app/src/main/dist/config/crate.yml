@@ -2,8 +2,8 @@
 # CrateDB configuration
 # =============================================================================
 
-# The default configuration offers the ability to use CrateDB right away.
-# The purpose of this file is to give operators an overview of the various
+# The default configuration offers the ability to use CrateDB right away. The
+# purpose of this file is to give operators an overview of the various
 # different configuration settings. To read the full documentation go to
 # <https://crate.io/docs/>
 
@@ -45,9 +45,9 @@
 #    - host2
 
 # Bootstrap the cluster using an initial set of master-eligible nodes. All
-# master-eligible nodes must be set here for new (or upgraded from CrateDB < 4.x)
-# production (non loop-back bound) clusters otherwise the cluster is not able to
-# initially vote an initial master node:
+# master-eligible nodes must be set here for new (or upgraded from CrateDB <
+# 4.x) production (non loop-back bound) clusters otherwise the cluster is not
+# able to initially vote an initial master node:
 #
 #cluster.initial_master_nodes:
 #    - host1
@@ -57,8 +57,8 @@
 # Full settings
 # =============================================================================
 
-# The quick settings above should be sufficient for most situations.
-# However, below are listed all available configuration options.
+# The quick settings above should be sufficient for most situations. However,
+# below are listed all available configuration options.
 
 # Any element in the configuration can be replaced with environment variables
 # by placing them in ${...} notation. For example:
@@ -77,8 +77,8 @@
 # Database administration
 # -----------------------------------------------------------------------------
 
-# To allow authenticated access to CrateDB from specific hosts, you must
-# enable the host based authentication setting.
+# To allow authenticated access to CrateDB from specific hosts, you must enable
+# the host based authentication setting.
 # The default value is `false`.
 auth.host_based.enabled: true
 
@@ -102,9 +102,10 @@ auth:
 
 # When trust based authentication is used, the server just takes the username
 # provided by the client as is without further validation. The HTTP
-# implementation extracts the username from the standard HTTP Basic Authentication
-# (`Authorization: Basic ...`) request header. In case the `Authorization` header is not set,
-# a default username can be specified as follows:
+# implementation extracts the username from the standard HTTP Basic
+# Authentication (`Authorization: Basic ...`) request header. In case the
+# `Authorization` header is not set, a default username can be specified as
+# follows:
 #auth:
 #  trust:
 #    http_default_user: dustin
@@ -156,12 +157,12 @@ auth:
 # multiple clusters on the same network, make sure you're using unique names.
 #cluster.name: crate
 
-# The graceful_stop namespace defines settings for a graceful stop
-# procedure of nodes within the cluster.
+# The graceful_stop namespace defines settings for a graceful stop procedure of
+# nodes within the cluster.
 #
-# The minimum data availability the cluster needs to ensure when a certain
-# node is shut down. By default the cluster ensures availability of primary
-# shards but not replicas. Other options are "full" and "none".
+# The minimum data availability the cluster needs to ensure when a certain node
+# is shut down. By default the cluster ensures availability of primary shards
+# but not replicas. Other options are "full" and "none".
 #cluster.graceful_stop.min_availability: primaries
 #
 # The time to wait for the reallocation process to be finished.
@@ -174,16 +175,16 @@ auth:
 # In most cases you want to allow all kinds of shards allocations.
 #cluster.routing.allocation.enable = all
 #
-# However, you can limit shard allocations to certain kinds of shards,
-# for example if you perform a rolling cluster upgrade.
+# However, you can limit shard allocations to certain kinds of shards, for
+# example if you perform a rolling cluster upgrade.
 #cluster.routing.allocation.enable = new_primaries
 
 
 # Node settings
 # -----------------------------------------------------------------------------
 
-# Node names are generated dynamically on startup, so you're relieved
-# from configuring them manually. You can tie this node to a specific name:
+# Node names are generated dynamically on startup, so you're relieved from
+# configuring them manually. You can tie this node to a specific name:
 #node.name: "Piz Buin"
 
 # Every node can be configured to allow or deny being eligible as the master,
@@ -197,13 +198,13 @@ auth:
 
 # You can exploit these settings to design advanced cluster topologies.
 #
-# 1. You want this node to never become a master node, only to hold data.
-#    This will be the "workhorse" of your cluster.
+# 1. You want this node to never become a master node, only to hold data. This
+#    will be the "workhorse" of your cluster.
 #node.master: false
 #node.data: true
 #
-# 2. You want this node to only serve as a master: to not store any data and
-#    to have free resources. This will be the "coordinator" of your cluster.
+# 2. You want this node to only serve as a master: to not store any data and to
+#    have free resources. This will be the "coordinator" of your cluster.
 #node.master: true
 #node.data: false
 #
@@ -217,8 +218,8 @@ auth:
 # such as CrateDB Admin [http://localhost:4200/admin/].
 
 # A node can have generic attributes associated with it, which can later be
-# used for customized shard allocation filtering, or allocation awareness.
-# An attribute is a simple key value pair, similar to node.attr.key: value,
+# used for customized shard allocation filtering, or allocation awareness. An
+# attribute is a simple key value pair, similar to node.attr.key: value,
 # here is an example:
 #node.attr.rack: rack314
 
@@ -238,8 +239,7 @@ auth:
 # behavior.
 
 
-# Path to directory containing configuration (this file and
-# log4j2.properties):
+# Path to directory containing configuration (this file and log4j2.properties):
 #path.conf: config
 
 # Path to directory where to store table data allocated for this node.
@@ -267,22 +267,22 @@ auth:
 # Memory
 # -----------------------------------------------------------------------------
 
-# CrateDB performs poorly when JVM starts swapping: you should ensure that
-# it _never_ swaps.
+# CrateDB performs poorly when JVM starts swapping: you should ensure that it
+# _never_ swaps.
 #
 # Set this property to true to lock the memory:
 #bootstrap.memory_lock: true
 
-# Make sure that the machine has enough memory to allocate for CrateDB,
-# leaving enough memory for the operating system itself.
+# Make sure that the machine has enough memory to allocate for CrateDB, leaving
+# enough memory for the operating system itself.
 # You can allocate memory for CrateDB as follows:
 #  - Set CRATE_MIN_MEM and CRATE_MAX_MEM environment variables
 #    (We recommend to set MIN and MAX to the same value).
 #  - Set CRATE_HEAP_SIZE environment varaible. This sets MIN and MAX to the
 #    same value for you.
 #
-# You should also make sure that the CrateDB process is allowed to lock
-# the memory, eg. by using `ulimit -l unlimited`.
+# You should also make sure that the CrateDB process is allowed to lock the
+# memory, eg. by using `ulimit -l unlimited`.
 
 
 # Network and HTTP
@@ -312,8 +312,7 @@ auth:
 # Set a custom port for the node to node communication (4300 by default):
 #transport.tcp.port: 4300
 
-# Enable compression for all communication between nodes (disabled by
-# default):
+# Enable compression for all communication between nodes (disabled by default):
 #transport.tcp.compress: true
 
 # Set a custom port to listen for HTTP traffic:
@@ -327,20 +326,20 @@ auth:
 # -----------------------------------------------------------------------------
 
 # The gateway persists cluster meta data on disk every time the meta data
-# changes. This data is stored persistently across full cluster restarts
-# and recovered after nodes are started again.
+# changes. This data is stored persistently across full cluster restarts and
+# recovered after nodes are started again.
 
-# Defines the number of nodes that need to be started before any cluster
-# state recovery will start.
+# Defines the number of nodes that need to be started before any cluster state
+# recovery will start.
 #gateway.recover_after_nodes: 2
 
-# Defines the time to wait before starting the recovery once the number
-# of nodes defined in gateway.recover_after_nodes are started.
+# Defines the time to wait before starting the recovery once the number of
+# nodes defined in gateway.recover_after_nodes are started.
 #gateway.recover_after_time: 5m
 
 # Defines how many nodes should be waited for until the cluster state is
-# recovered immediately. The value should be equal to the number of nodes
-# in the cluster.
+# recovered immediately. The value should be equal to the number of nodes in
+# the cluster.
 #gateway.expected_nodes: 3
 
 
@@ -377,23 +376,23 @@ auth:
 # Specifies the timeout for internal requests made as part of the recovery.
 #indices.recovery.internal_action_timeout: 15m
 
-# Specifies the timeout for internal requests made as part of the recovery
-# that are expected to take a long time.
+# Specifies the timeout for internal requests made as part of the recovery that
+# are expected to take a long time.
 #indices.recovery.internal_long_action_timeout: 30m
 
-# Controls the number of file chunk requests that can be sent
-# in parallel per recovery.
+# Controls the number of file chunk requests that can be sent in parallel per
+# recovery.
 # indices.recovery.max_concurrent_file_chunks: 2
 
 
 # Discovery settings
 # -----------------------------------------------------------------------------
 
-# Discovery infrastructure ensures nodes can be found within a cluster
-# and a master node is elected. Unicast discovery is the default.
+# Discovery infrastructure ensures nodes can be found within a cluster and a
+# master node is elected. Unicast discovery is the default.
 #
-# Unicast discovery allows to explicitly control which nodes will be used
-# to discover the cluster by pinging them.
+# Unicast discovery allows to explicitly control which nodes will be used to
+# discover the cluster by pinging them.
 #discovery.seed_hosts:
 #  - host1:port
 #  - host2:port
@@ -402,9 +401,9 @@ auth:
 # 'config/log4j2.properties' to help you doing so.
 
 # Bootstrap the cluster using an initial set of master-eligible nodes. All
-# master-eligible nodes must be set here for new (or upgraded from CrateDB < 4.x)
-# production (non loop-back bound) clusters otherwise the cluster is not able to
-# initially vote an initial master node:
+# master-eligible nodes must be set here for new (or upgraded from CrateDB <
+# 4.x) production (non loop-back bound) clusters otherwise the cluster is not
+# able to initially vote an initial master node:
 #
 #cluster.initial_master_nodes: ["host1", "host2"]
 
@@ -418,8 +417,8 @@ auth:
 # To enable SRV discovery you need to set the discovery type to 'srv'.
 #discovery.seed_providers: srv
 
-# Service discovery requires a query that is used to look up SRV records,
-# this is usually in the format _service._protocol.fqdn
+# Service discovery requires a query that is used to look up SRV records, this
+# is usually in the format _service._protocol.fqdn
 #discovery.srv.query: _crate._srv.example.com
 
 
@@ -438,8 +437,8 @@ auth:
 # given group will be used for unicast host discovery.
 #discovery.ec2.groups: sg-example-1, sg-example-2
 #
-# Control whether all (`false`) or just any (`true`) security group must
-# be present for the instance to be used for discovery.
+# Control whether all (`false`) or just any (`true`) security group must be
+# present for the instance to be used for discovery.
 #discovery.ec2.any_group: true
 #
 # Filter by availability zones. Only instances within the given availability
@@ -463,16 +462,16 @@ auth:
 #discovery.ec2.tag.environment: dev
 #discovery.ec2.tag.<name>: <value>
 #
-# If you have your own compatible implementation of the EC2 API service you
-# can set the enpoint that should be used.
+# If you have your own compatible implementation of the EC2 API service you can
+# set the enpoint that should be used.
 #discovery.ec2.endpoind: http://example.com/endpoint
 
 
 # Azure discovery
 # """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-# Azure discovery allows CrateDB to look up hosts for unicast discovery via
-# the Azure API.
+# Azure discovery allows CrateDB to look up hosts for unicast discovery via the
+# Azure API.
 
 # To enable Azure discovery you need to set the discovery type to 'azure'.
 #discovery.seed_providers: azure
@@ -489,8 +488,8 @@ auth:
 
 # There are two methods of discovery. Discovery method ``vnet`` will discover
 # all VMs in the same virtual network.
-# The use of method ``subnet`` will add all virtual machines in the same
-# subnet to the cluster.
+# The use of method ``subnet`` will add all virtual machines in the same subnet
+# to the cluster.
 #discovery.azure.method: vnet
 
 
@@ -514,9 +513,9 @@ auth:
 #   node and reset it to `all` after starting the last updated node.
 #cluster.routing.allocation.enable: all
 
-# Allow to control when rebalancing will happen based on the total state of
-# all the indices shards in the cluster. Defaulting to `indices_all_active`
-# to reduce chatter during initial recovery.
+# Allow to control when rebalancing will happen based on the total state of all
+# the indices shards in the cluster. Defaulting to `indices_all_active` to
+# reduce chatter during initial recovery.
 # Options are: `always | indices_primary_active | indices_all_active`
 #cluster.routing.allocation.allow_rebalance: indices_all_active
 
@@ -524,8 +523,8 @@ auth:
 #cluster.routing.allocation.cluster_concurrent_rebalance: 2
 
 # Define the number of initial recoveries of primaries that are allowed per
-# node. Since most times local gateway is used, those should be fast and we
-# can handle more of those per node without creating load.
+# node. Since most times local gateway is used, those should be fast and we can
+# handle more of those per node without creating load.
 #cluster.routing.allocation.node_initial_primaries_recoveries: 4
 
 # How many concurrent recoveries are allowed to happen on a node.
@@ -546,11 +545,11 @@ auth:
 # The awareness attributes can hold several values
 #cluster.routing.allocation.awareness.attributes:
 
-# Node attributes on which shard allocation will be forced.
-# If you know in advance the number of values an awareness attribute
-# can have and you would like to never have more replicas then needed
-# allocated on a specific group of nodes with the same awareness attribute
-# value. For that, we can force awareness on specific attributes.
+# Node attributes on which shard allocation will be forced.  If you know in
+# advance the number of values an awareness attribute can have and you would
+# like to never have more replicas then needed allocated on a specific group of
+# nodes with the same awareness attribute value. For that, we can force
+# awareness on specific attributes.
 #cluster.routing.allocation.awareness.force.<attribute>.values:
 
 
@@ -580,14 +579,13 @@ auth:
 # attribute.
 #cluster.routing.allocation.include.<attribute>:
 
-# Place new shards only on nodes where none of the specified values matches
-# the attribute.
+# Place new shards only on nodes where none of the specified values matches the
+# attribute.
 #cluster.routing.allocation.exclude.<attribute>:
 
 # used to specify a number of rules, which all MUST match for a node in order
 # to allocate a shard on it.
-# This is in contrast to include which will include a node if ANY rule
-# matches.
+# This is in contrast to include which will include a node if ANY rule matches.
 #cluster.routing.allocation.require.<attribute>:
 
 
@@ -597,15 +595,15 @@ auth:
 # Prevent shard allocation on nodes depending on the disk usage.
 #cluster.routing.allocation.disk.threshold_enabled: true
 
-# Defines the lower disk threshold limit for shard allocations.
-# New shards will not be allocated on nodes with disk usage greater than this
-# value. It can also be set to an absolute bytes value (like e.g. `500mb`)
+# Defines the lower disk threshold limit for shard allocations.  New shards
+# will not be allocated on nodes with disk usage greater than this value. It
+# can also be set to an absolute bytes value (like e.g. `500mb`)
 #cluster.routing.allocation.disk.watermark.low: 85%
 
-# Defines the higher disk threshold limit for shard allocations.
-# The cluster will attempt to relocate existing shards to another node if the
-# disk usage on a node rises above this value. It can also be set to an
-# absolute bytes value (like e.g. `500mb`)
+# Defines the higher disk threshold limit for shard allocations.  The cluster
+# will attempt to relocate existing shards to another node if the disk usage on
+# a node rises above this value. It can also be set to an absolute bytes value
+# (like e.g. `500mb`)
 #cluster.routing.allocation.disk.watermark.high: 90%
 
 # Defines the threshold on which CrateDB enforces a read-only block on every
@@ -623,8 +621,8 @@ auth:
 # Specifies the limit for the field-data breaker.
 #indices.fielddata.breaker.limit: 60%
 
-# A constant that all field-data estimations are multiplied with to
-# determine a final estimation.
+# A constant that all field-data estimations are multiplied with to determine a
+# final estimation.
 #indices.fielddata.breaker.overhead: 1.0.3
 
 
@@ -641,8 +639,8 @@ auth:
 # Metadata
 # -----------------------------------------------------------------------------
 
-# Defines how often the cluster collection metadata information
-# (e.g. disk usages etc.) if no concrete  event is triggered.
+# Defines how often the cluster collection metadata information (e.g. disk
+# usages etc.) if no concrete event is triggered.
 #cluster.info.update.interval: 30s
 
 
@@ -665,10 +663,10 @@ auth:
 # allowed on this node.
 #node.sql.read_only: false
 
-# A SQL DML operation over a huge amount of rows (such as INSERT FROM
-# SUBQUERY, UPDATE or COPY FROM) can take an enormous amount of time and
-# resources of your cluster. To execute such queries more failsafe even with
-# slower hardware increase this timeout
+# A SQL DML operation over a huge amount of rows (such as INSERT FROM SUBQUERY,
+# UPDATE or COPY FROM) can take an enormous amount of time and resources of
+# your cluster. To execute such queries more failsafe even with slower hardware
+# increase this timeout
 #bulk.request_timeout: 1m
 
 
@@ -681,8 +679,8 @@ auth:
 # Specifies the limit for the query breaker.
 #indices.breaker.query.limit: 60%
 
-# A constant that all query data estimations are multiplied with to
-# determine a final estimation.
+# A constant that all query data estimations are multiplied with to determine a
+# final estimation.
 #indices.breaker.query.overhead: 1.09
 
 
@@ -715,8 +713,8 @@ auth:
 # Wildcards are supported in the host, path, query and fragment parts.
 #
 # Supported protocols are: "http", "https", "ftp", "file" and "jar"
-# While only "http", "https" and "ftp" need to be listed here for usage in
-# URL repsoitories.
+# While only "http", "https" and "ftp" need to be listed here for usage in URL
+# repsoitories.
 # "file" urls must be prefixed with an entry configured in ``path.repo``
 #repositories.url.allowed_urls: ["http://example.org/root/*", "https://*.mydomain.com/*?*#*"]
 
