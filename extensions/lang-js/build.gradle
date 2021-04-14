@@ -4,14 +4,15 @@ archivesBaseName = 'crate-lang-js'
 group = 'io.crate'
 description = 'CrateDB JavaScript Language for UDF'
 
-task writePropertiesFile {
+task writePropertiesFile(dependsOn: [':server:getVersion']) {
     doLast {
         copy {
             from "src/main/resources/"
             into "${buildDir}/tmp"
             include "plugin-descriptor.properties"
-            expand(version: project.version,
-                esVersion: versions.internalES,
+            expand(
+                version: project.version,
+                crateVersion: project(':server').getVersion.shortVersion,
                 jmvCompatibility: project.targetCompatibility,
                 name: project.name)
         }

@@ -4,16 +4,18 @@ archivesBaseName = 'jmx-monitoring'
 group = 'io.crate'
 description = 'CrateDB JMX monitoring plugin'
 
-task writePropertiesFile {
+task writePropertiesFile(dependsOn: [':server:getVersion']) {
     doLast {
         copy {
             from "src/main/resources/"
             into "${buildDir}/tmp"
             include "plugin-descriptor.properties"
-            expand(version: project.version,
-                    esVersion: versions.internalES,
-                    jmvCompatibility: project.targetCompatibility,
-                    name: project.name)
+            expand(
+                version: project.version,
+                crateVersion: project(':server').getVersion.shortVersion,
+                jmvCompatibility: project.targetCompatibility,
+                name: project.name
+            )
         }
     }
 }

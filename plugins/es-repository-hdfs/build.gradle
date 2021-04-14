@@ -115,7 +115,7 @@ dependencies {
 jar {dependsOn(['writePropertiesFileRepositoryHSFS', 'copyRequiredLibs'])}
 task blackBoxTestJar {dependsOn([jar, 'copyExtraLibs'])}
 
-task writePropertiesFileRepositoryHSFS {
+task writePropertiesFileRepositoryHSFS(dependsOn: [':server:getVersion']) {
     doLast {
         def file = new File(buildDir.path + '/plugin-descriptor.properties')
         def parentDir = new File(file.parent)
@@ -126,7 +126,7 @@ task writePropertiesFileRepositoryHSFS {
             ant.entry(key: 'name', value: project.name)
             ant.entry(key: 'description', value: project.description)
             ant.entry(key: 'version', value: plugin_repositoryhdfs_version)
-            ant.entry(key: 'elasticsearch.version', value: "${versions.internalES}")
+            ant.entry(key: 'cratedb.version', value: project(':server').getVersion.shortVersion)
             ant.entry(key: 'java.version', value: project.targetCompatibility)
             ant.entry(key: 'classname', value: classname)
         }
