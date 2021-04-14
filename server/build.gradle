@@ -19,6 +19,11 @@ dependencies {
 
     compileOnly project(':libs:es-plugin-classloader')
 
+    // server itself doesn't need graal/truffle, but we want UDF plugins
+    // to be able to add languages without pulling in their own sdks
+    api "org.graalvm.sdk:graal-sdk:${versions.graalvm}"
+    api "org.graalvm.truffle:truffle-api:${versions.graalvm}"
+
     api "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
     api "org.apache.logging.log4j:log4j-core:${versions.log4j2}"
 

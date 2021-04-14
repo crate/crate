@@ -44,8 +44,8 @@ dependencies {
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
 
     // include the extensions module in classpath to be able to use it with Crate launched from within intellij
-    runtime project(':extensions:functions')
-    runtime project(':extensions:lang-js')
+    runtimeOnly project(':extensions:functions')
+    runtimeOnly project(':extensions:lang-js')
 
     testCompile project(path: ':server', configuration: 'testOutput')
     testCompile("org.postgresql:postgresql:${versions.jdbc}")
@@ -298,6 +298,7 @@ task downloadPlugins(
         }
         copy {
             from(project(':extensions:lang-js').tasks.jar.archivePath)
+            from(project(':extensions:lang-js').configurations.extraRuntime)
             from(project(':extensions:lang-js').buildDir.path + '/tmp/plugin-descriptor.properties')
             into 'plugins/crate-lang-js'
         }
