@@ -2,94 +2,145 @@
 # CrateDB configuration
 # =============================================================================
 
-# The default configuration offers the ability to use CrateDB right away. The
-# purpose of this file is to give operators an overview of the various
-# different configuration settings. To read the full documentation go to
-# <https://crate.io/docs/>
+# This file provides a stock configuration (with brief explanations) that
+# allows you to start CrateDB right away.
 
-# Use this file to fine-tune your CrateDB cluster. If you have any questions
-# you are welcome to contact us on Github
-# <https://github.com/crate/crate/discussions>.
+# Commented settings have no effect. Some commented settings are provided your
+# convenience. To uncomment a setting, remove the leading "#" character.
+
+# For help modifying this configuration file, see
+# <https://crate.io/docs/crate/reference/en/latest/config/>
 
 
-# Quick settings
+# Basic setup
 # =============================================================================
 
-# Recommended memory settings:
-# - set the environment variable CRATE_HEAP_SIZE to 25% of your memory
-#   (e.g. 16G, but not more than ~30G to benefit from CompressedOops).
-#   Depending on the OS update '/etc/default/crate' or '/etc/sysconfig/crate'
-#
-#   See https://crate.io/docs/crate/howtos/en/latest/performance/memory.html
-#   for more details.
-#
-# - disable swapping
-# bootstrap.memory_lock : true
 
-# Storage: CrateDB can utilize multiple volumes in parallel, make sure to set
-# the owner to 'crate:crate'
+# Memory
+# -----------------------------------------------------------------------------
+s
+# Recommended configuration:
+#
+# - Disable swapping (see below).
+#
+# - Set the environment variable `CRATE_HEAP_SIZE` to 25% of your memory
+#   (e.g. 16G, but not more than ~30G to benefit from `CompressedOops`).
+
+# Disable swapping
+# bootstrap.memory_lock: true
+
+# For more information, see
+# <https://crate.io/docs/crate/howtos/en/latest/performance/memory.html>
+
+
+# Persistence
+# -----------------------------------------------------------------------------
+
+# List of paths used for persistent data storage
 # path.data: /path/to/data1,/path/to/data2
 
-# Clustering: To avoid split-brain situations and data loss on recovery
-# gateway.expected_nodes: 5              # Total amount of nodes
-# gateway.recover_after_nodes: 3         # More than half of the nodes
+# CrateDB can utilize multiple volumes in parallel. Multiple paths must be
+# separated by commas (see example above).
 
-# Networking: Bind to an IP address or interface other than localhost.
-# Be careful! Never expose an unprotected node to the internet.
-# Choose from [IP Address], _local_, _site_, _global_ or _[networkInterface]_
+# Make sure to set the ownership of configured data paths to `crate:crate` so
+# that CrateDB can write to them.
+
+# For more information, see
+# <https://crate.io/docs/crate/reference/en/latest/config/node.html#paths>
+
+
+# Networking
+# -----------------------------------------------------------------------------
+
+# WANRING: Never expose an unprotected node to the internet
+
+# Bind to an IP address or some network interface
 # network.host: _site_
 
-# Cluster discovery: Specify the hosts which will form the CrateDB cluster
+# Options for `network.host` (above):
+#
+#     - [IP ADDRESS]
+#     - _local_
+#     - _site_
+#     - _global_
+#     - _[INTERFACE]_
+
+# For more information, see
+# <https://crate.io/docs/crate/reference/en/4.5/config/node.html#hosts>
+
+
+# Clustering
+# -----------------------------------------------------------------------------
+
+# Total amount of nodes
+# gateway.expected_nodes: 5
+
+# Minimum nodes necessary for recovery (should be more than half of the nodes)
+# gateway.recover_after_nodes: 3
+
+# When configuring clustering, be careful to choose values that prevent
+# split-brain scenarios and data loss on recovery.
+
+# For more information, see
+# <https://crate.io/docs/crate/reference/en/latest/concepts/clustering.html>
+
+# The hosts that will initially form the cluster
 # discovery.seed_hosts:
 #     - host1
 #     - host2
 
-# Bootstrap the cluster using an initial set of master-eligible nodes. All
-# master-eligible nodes must be set here for new (or upgraded from CrateDB <
-# 4.x) production (non loop-back bound) clusters otherwise the cluster is not
-# able to initially vote an initial master node:
-#
+# The initial set of master-eligible nodes
 # cluster.initial_master_nodes:
 #     - host1
 #     - host2
 
+# WARNING: For production clusters (i.e., not bound to the loopback address),
+# the `initial_master_nodes` setting must list all master-eligible nodes (for
+# CrateDB versions 4.0 and higher). If this is not done, the cluster will not
+# be able to vote for an initial master node.
 
-# Full settings
+# For reference information, see
+# <https://crate.io/docs/crate/reference/en/latest/config/cluster.html>
+
+# For how-to guides, see
+# <https://crate.io/docs/crate/howtos/en/latest/clustering/>
+
+
+# Advanced settings
 # =============================================================================
 
-# The quick settings above should be sufficient for most situations. However,
-# below are listed all available configuration options.
-
-# Any element in the configuration can be replaced with environment variables
-# by placing them in ${...} notation. For example:
+# TIP: Arbitrary environment variables <conf-env-app>` can be used as values in
+# a configuration file using the ``${VARIABLE_NAME}`` notation.
 #
-# node.attr.rack: ${RACK_ENV_VAR}
+# For example, if ``RACK_ENV_VAR`` was set as an environment variable before
+# running CrateDB, you could specify the following:
+#
+#     node.attr.rack: ${RACK_ENV_VAR}
 
 
 # JMX monitoring plugin
 # -----------------------------------------------------------------------------
 
-# Enables the `sys.jobs`, `sys.operations`, `sys.jobs_log` and
+# Enables the `sys.jobs`, `sys.operations`, `sys.jobs_log`, and
 # `sys.operations_log` tables
 # stats.enabled: true
 
+# For more information, see
+# <https://crate.io/docs/crate/reference/en/latest/admin/monitoring.html>
 
-# Database administration
+
+# Authentication
 # -----------------------------------------------------------------------------
 
-# To allow authenticated access to CrateDB from specific hosts, you must enable
-# the host based authentication setting.
-# The default value is `false`.
+
+# Host-based access
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# Allow authenticated access from specific named hosts (default value: `false`)
 auth.host_based.enabled: true
 
-# Client access and authentication is then configured via the host based
-# config, a map of remote client access entries.
-# The following example is a sane configuration that covers a common use case:
-# * The predefined superuser `crate` has trusted access from localhost.
-# * All other users require username/password authentication from anywhere.
-#   Note that this authentication method is only available via Postgres
-#   Protocol, meaning that with this configuration, connecting from non-local
-#   hosts via HTTP would not be possible!
+# Host-based access is configured with a config map specifying users,
+# addresses, and authentication methods.
 auth:
   host_based:
     config:
@@ -100,32 +151,58 @@ auth:
       99:
         method: password
 
-# When trust based authentication is used, the server just takes the username
-# provided by the client as is without further validation. The HTTP
-# implementation extracts the username from the standard HTTP Basic
-# Authentication (`Authorization: Basic ...`) request header. In case the
-# `Authorization` header is not set, a default username can be specified as
-# follows:
+# The stock configuration (above) works for a common use case:
+#
+# - The superuser (`crate`) has trusted access from `localhost` (here specified
+#   by the named interface `_local`).
+#
+# - All other users require a username and password combination to authenticate
+#   from anywhere (no configured `address` effectively allows all addresses).
+#
+# NOTE: Host-based authentication is only possible via the PostgreSQL wire
+# protocol. Using the stock configuration, it is not possible to connect from
+# any address except `localhost`.
+
+# For more information, see
+# <https://crate.io/docs/crate/reference/en/latest/admin/auth/hba.html>
+
+
+# Trust-based authentication
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# When trust based authentication is used, the server takes the username
+# provided by the client as is without further validation.
+#
+# The HTTP implementation extracts the username from the HTTP Basic
+# Authentication (`Authorization: Basic ...`) request header. If the
+# `Authorization` header is not set, a default username can be specified with
+# the following configuration:
+#
 # auth:
 #   trust:
 #     http_default_user: dustin
+
+# For more information, see
+# <https://crate.io/docs/crate/reference/en/latest/admin/auth/methods.html>
 
 
 # User-defined functions (UDFs)
 # -----------------------------------------------------------------------------
 
-# To disable Javascript language for user-defined functions, you can set it as
-# follows. Default is enabled:
+# Disable JavaScript user-defined functions
 # lang.js.enabled: false
+
+# For more information, see
+# <https://crate.io/docs/crate/reference/en/latest/general/user-defined-functions.html>
 
 
 # Secured communications (SSL/TLS)
 # -----------------------------------------------------------------------------
 
-# Enable encrypted communication for the HTTP endpoints:
+# Enable encrypted communication for the HTTP endpoints
 # ssl.http.enabled: true
 
-# Enable encrypted communication for the PostgreSQL wire protocol:
+# Enable encrypted communication for the PostgreSQL wire protocol
 # ssl.psql.enabled: true
 
 # The full path to the node keystore file
@@ -134,11 +211,13 @@ auth:
 # The password used to decrypt the keystore_file.jks
 # ssl.keystore_password: myKeyStorePasswd
 
-# The password entered at the end of the keytool -genkey command if different
-# than the keystore_password.
+# The password entered when running the `keytool -genkey` command (if
+# different from `keystore_password`)
 # ssl.keystore_key_password: myKeyStorePasswd
 
-# Optional configuration for truststore
+
+# Optional configuration for the truststore
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # The full path to the node truststore file
 # ssl.truststore_filepath: /path/to/truststore_file.jks
