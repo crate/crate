@@ -22,27 +22,17 @@
 
 package io.crate.plugin;
 
-import io.crate.Plugin;
-import io.crate.module.EnterpriseFunctionsModule;
+import io.crate.module.ExtraFunctionsModule;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.plugins.Plugin;
 
 import java.util.Collection;
 import java.util.Collections;
 
-public class EnterpriseFunctionsPlugin implements Plugin {
-
-    @Override
-    public String name() {
-        return "enterpriseFunctions";
-    }
-
-    @Override
-    public String description() {
-        return "CrateDB Enterprise Functions Plugin";
-    }
+public class ExtraFunctionsPlugin extends Plugin {
 
     @Override
     public Collection<Module> createGuiceModules() {
-        return Collections.singletonList(new EnterpriseFunctionsModule());
+        return Collections.singletonList(new ExtraFunctionsModule());
     }
 }

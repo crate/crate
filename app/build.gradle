@@ -134,9 +134,6 @@ ext {
 }
 
 def rootDir = project.parent.projectDir
-def libs = project.configurations.runtime.filter {
-    !it.toPath().startsWith(Paths.get(rootDir.toString(), "extensions"))
-}
 
 // For releases choose the file under the release_notes structure
 // and for all other builds choose CHANGES.txt which contains the unreleased changes
@@ -217,19 +214,13 @@ distributions {
                 from(project.buildDir.path + "/bin")
             }
             into("lib") {
-                from libs
+                from project.configurations.runtime
                 exclude 'crate-*.jar'
                 exclude 'es.jar'
                 exclude 'es-*.jar'
             }
             into("lib") {
                 from jar
-            }
-            into("lib") {
-                from("oss_modules")
-            }
-            into("lib") {
-                from("extensions")
             }
             into('plugins') {
                 from('plugins') {
@@ -284,40 +275,36 @@ task downloadPlugins(
                 ':extensions:lang-js:jar',
                 ':extensions:functions:jar']) {
     doLast {
-        // copy es-repository-hdfs plugin
+        copy {
+            from("${buildDir}/crate-admin/")
+            into 'adminui'
+        }
+
         copy {
             from(project(':plugins:es-repository-hdfs').buildDir.path + '/libs')
-            into 'plugins/es-repository-hdfs'
-        }
-        copy {
             from(project(':plugins:es-repository-hdfs').buildDir.path + '/plugin-descriptor.properties')
             into 'plugins/es-repository-hdfs'
         }
 
         copy {
-            // jar file
             from(project(':plugins:azure-discovery').tasks.jar.archivePath)
-            // generated plugin-descriptor.properties
             from(project(':plugins:azure-discovery').buildDir.path + '/tmp/plugin-descriptor.properties')
             into 'plugins/crate-azure-discovery'
         }
-
-        copy {
-            from("${buildDir}/crate-admin/")
-            into 'adminui'
-        }
         copy {
             from(project(':extensions:jmx-monitoring').tasks.jar.archivePath)
-            into 'plugins/extensions/jmx-monitoring'
+            from(project(':extensions:jmx-monitoring').buildDir.path + '/tmp//plugin-descriptor.properties')
+            into 'plugins/crate-jmx-monitoring'
         }
         copy {
             from(project(':extensions:lang-js').tasks.jar.archivePath)
             from(project(':extensions:lang-js').buildDir.path + '/tmp/plugin-descriptor.properties')
-            into 'plugins/extensions/lang-js'
+            into 'plugins/crate-lang-js'
         }
         copy {
             from(project(':extensions:functions').tasks.jar.archivePath)
-            into 'plugins/extensions/functions'
+            from(project(':extensions:functions').buildDir.path + '/tmp/plugin-descriptor.properties')
+            into 'plugins/crate-functions'
         }
     }
 }

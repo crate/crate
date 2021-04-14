@@ -245,7 +245,7 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     /**
      * Returns the version given its string representation, current version if the argument is null or empty
      */
-    public static Version fromInternalString(String version) {
+    public static Version fromString(String version) {
         if (!Strings.hasLength(version)) {
             return Version.CURRENT;
         }
@@ -261,10 +261,10 @@ public class Version implements Comparable<Version>, ToXContentFragment {
 
         try {
             final int rawMajor = Integer.parseInt(parts[0]);
-            if (rawMajor >= 5 && snapshot) { // we don't support snapshot as part of the version here anymore
+            if (rawMajor >= 2 && snapshot) { // we don't support snapshot as part of the version here anymore
                 throw new IllegalArgumentException("illegal version format - snapshots are only supported until version 2.x");
             }
-            final int betaOffset = rawMajor < 5 ? 0 : 25;
+            final int betaOffset = rawMajor < 2 ? 0 : 25;
             //we reverse the version id calculation based on some assumption as we can't reliably reverse the modulo
             final int major = rawMajor * 1000000;
             final int minor = Integer.parseInt(parts[1]) * 10000;
@@ -288,7 +288,7 @@ public class Version implements Comparable<Version>, ToXContentFragment {
                 }
             }
 
-            return fromId(major + minor + revision + build);
+            return fromId(major + minor + revision + build + INTERNAL_OFFSET);
 
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("unable to parse version " + version, e);
