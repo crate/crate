@@ -396,7 +396,7 @@ task createCrateNodeScripts(type: CreateStartScripts) {
             if \${darwin}; then
                 JAVACMD="\${APP_HOME}/jdk/Contents/Home/bin/java"
             else
-                JAVACMD="\${APP_HOME}/jdk"
+                JAVACMD="\${APP_HOME}/jdk/bin/java"
             fi
         """)
         unixScript.text = unixScript.text.replace('which java', 'which ${JAVACMD}')
