@@ -18,14 +18,18 @@ task writePropertiesFile {
     }
 }
 
+configurations {
+    exposedRuntime {
+        transitive = false
+    }
+}
+
 jar.dependsOn('writePropertiesFile')
 dependencies {
     implementation project(':server')
 
+    exposedRuntime "org.graalvm.js:js:${versions.graalvm}"
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
-    implementation "org.graalvm.js:js:${versions.graalvm}"
-    implementation "org.graalvm.sdk:graal-sdk:${versions.graalvm}"
-    implementation "org.graalvm.truffle:truffle-api:${versions.graalvm}"
     implementation "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
 
     testImplementation project(path: ':server', configuration: 'testOutput')
