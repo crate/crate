@@ -1,10 +1,10 @@
 .. _usage_data_collector:
 
 ====================
-Usage Data Collector
+Usage-Data Collector
 ====================
 
-The CrateDB Usage Data Collector (UDC) is a sub-system that gathers usage data,
+The CrateDB Usage-Data Collector (UDC) is a sub-system that gathers usage data,
 reporting it to the UDC server at https://udc.crate.io. It is easy to disable,
 and does not collect any data that is confidential. For more information about
 what is being sent, see below.
@@ -65,7 +65,7 @@ know how many active users are currently using CrateDB.
 Configuration
 =============
 
-The Usage Data Collector can be configured by adapting the ``crate.yml``
+The Usage-Data Collector can be configured by adapting the ``crate.yml``
 configuration file or adding a system property setting. Refer to
 :ref:`conf_usage_data_collector` to see how these settings can be accessed and
 how they are configured.

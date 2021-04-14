@@ -1,4 +1,6 @@
-######################## CrateDB Configuration File ##########################
+# =============================================================================
+# CrateDB configuration
+# =============================================================================
 
 # The default configuration offers the ability to use CrateDB right away.
 # The purpose of this file is to give operators an overview of the various
@@ -10,7 +12,8 @@
 # <https://github.com/crate/crate/discussions>.
 
 
-################################ Quick Settings ##############################
+# Quick settings
+# =============================================================================
 
 # Recommended memory settings:
 # - set the environment variable CRATE_HEAP_SIZE to 25% of your memory
@@ -51,7 +54,8 @@
 #    - host2
 
 
-################################# Full Settings ##############################
+# Full settings
+# =============================================================================
 
 # The quick settings above should be sufficient for most situations.
 # However, below are listed all available configuration options.
@@ -62,13 +66,16 @@
 #node.attr.rack: ${RACK_ENV_VAR}
 
 
-#/////////////////////////// JMX Monitoring Plugin ///////////////////////////
+# JMX monitoring plugin
+# -----------------------------------------------------------------------------
 
 # Enables the `sys.jobs`, `sys.operations`, `sys.jobs_log` and
 # `sys.operations_log` tables
 #stats.enabled: true
 
-#//////////////////////// Database Administration ////////////////////////////
+
+# Database administration
+# -----------------------------------------------------------------------------
 
 # To allow authenticated access to CrateDB from specific hosts, you must
 # enable the host based authentication setting.
@@ -102,13 +109,17 @@ auth:
 #  trust:
 #    http_default_user: dustin
 
-#///////////////////////// User Defined Functions ////////////////////////////
 
-# To disable Javascript language for user defined functions, you can set it as
+# User-defined functions (UDFs)
+# -----------------------------------------------------------------------------
+
+# To disable Javascript language for user-defined functions, you can set it as
 # follows. Default is enabled:
 #lang.js.enabled: false
 
-#/////////////////////////////////  SSL //////////////////////////////////////
+
+# Secured communications (SSL/TLS)
+# -----------------------------------------------------------------------------
 
 # Enable encrypted communication for the HTTP endpoints:
 #ssl.http.enabled: true
@@ -137,7 +148,9 @@ auth:
 # The frequency at which SSL files are monitored for changes
 #ssl.resource_poll_interval: 5s
 
-################################### Cluster ##################################
+
+# Cluster settings
+# -----------------------------------------------------------------------------
 
 # Cluster name identifies your cluster for auto-discovery. If you're running
 # multiple clusters on the same network, make sure you're using unique names.
@@ -165,7 +178,9 @@ auth:
 # for example if you perform a rolling cluster upgrade.
 #cluster.routing.allocation.enable = new_primaries
 
-#################################### Node ####################################
+
+# Node settings
+# -----------------------------------------------------------------------------
 
 # Node names are generated dynamically on startup, so you're relieved
 # from configuring them manually. You can tie this node to a specific name:
@@ -215,7 +230,9 @@ auth:
 # The default value is `true`.
 #node.store.allow_mmap: true
 
-#################################### Paths ###################################
+
+# Paths
+# -----------------------------------------------------------------------------
 
 # Relative paths are relative to CRATE_HOME. Absolute paths override this
 # behavior.
@@ -246,7 +263,9 @@ auth:
 
 # See also: path.repo (further down)
 
-################################### Memory ###################################
+
+# Memory
+# -----------------------------------------------------------------------------
 
 # CrateDB performs poorly when JVM starts swapping: you should ensure that
 # it _never_ swaps.
@@ -266,7 +285,8 @@ auth:
 # the memory, eg. by using `ulimit -l unlimited`.
 
 
-############################## Network And HTTP ###############################
+# Network and HTTP
+# -----------------------------------------------------------------------------
 
 # CrateDB, by default, binds itself to the loopback addresses on the system,
 # and listens on port [4200-4300] for HTTP traffic and on port [4300-4400] for
@@ -302,7 +322,9 @@ auth:
 # Set a custom allowed content length:
 #http.max_content_length: 100mb
 
-################################### Gateway ##################################
+
+# Metadata gateway
+# -----------------------------------------------------------------------------
 
 # The gateway persists cluster meta data on disk every time the meta data
 # changes. This data is stored persistently across full cluster restarts
@@ -322,7 +344,8 @@ auth:
 #gateway.expected_nodes: 3
 
 
-############################ Recovery Throttling #############################
+# Recovery throttling
+# -----------------------------------------------------------------------------
 
 # These settings allow to control the process of shards allocation between
 # nodes during initial recovery, replica allocation, rebalancing, or when
@@ -363,7 +386,8 @@ auth:
 # indices.recovery.max_concurrent_file_chunks: 2
 
 
-################################# Discovery ##################################
+# Discovery settings
+# -----------------------------------------------------------------------------
 
 # Discovery infrastructure ensures nodes can be found within a cluster
 # and a master node is elected. Unicast discovery is the default.
@@ -384,7 +408,9 @@ auth:
 #
 #cluster.initial_master_nodes: ["host1", "host2"]
 
-#/////////////////////////// Discovery via DNS ///////////////////////////////
+
+# Discovery via DNS
+# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 # Service discovery allows CrateDB to look up hosts for unicast discovery via
 # SRV DNS records.
@@ -396,7 +422,9 @@ auth:
 # this is usually in the format _service._protocol.fqdn
 #discovery.srv.query: _crate._srv.example.com
 
-#////////////////////////////// EC2 Discovery ////////////////////////////////
+
+# EC2 discovery
+# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 # EC2 discovery allows CrateDB to look up hosts for unicast discovery via the
 # AWS EC2 API.
@@ -439,7 +467,9 @@ auth:
 # can set the enpoint that should be used.
 #discovery.ec2.endpoind: http://example.com/endpoint
 
-#/////////////////////////////// Azure Discovery /////////////////////////////
+
+# Azure discovery
+# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 # Azure discovery allows CrateDB to look up hosts for unicast discovery via
 # the Azure API.
@@ -464,7 +494,12 @@ auth:
 #discovery.azure.method: vnet
 
 
-############################# Routing Allocation #############################
+# Sharding
+# -----------------------------------------------------------------------------
+
+
+# Routing allocation
+# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 # Allows to control shard allocation.
 # Options are: `all | new_primaries`
@@ -497,7 +532,8 @@ auth:
 #cluster.routing.allocation.node_concurrent_recoveries: 2
 
 
-################################## Awareness #################################
+# Allocation awareness
+# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 # Cluster allocation awareness allows to configure shard and replicas
 # allocation across generic attributes associated with nodes.
@@ -518,7 +554,8 @@ auth:
 #cluster.routing.allocation.awareness.force.<attribute>.values:
 
 
-############################### Balanced Shards ##############################
+# Shard balancing
+# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 # Defines the weight factor for shards allocated on a node (float).
 #cluster.routing.allocation.balance.shard: 0.45f
@@ -536,7 +573,8 @@ auth:
 #cluster.routing.allocation.balance.threshold: 1.0f
 
 
-####################### Cluster-Wide Allocation Filtering ####################
+# Cluster-wide allocation filtering
+# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 # Place new shards only on nodes where one of the specified values matches the
 # attribute.
@@ -553,7 +591,8 @@ auth:
 #cluster.routing.allocation.require.<attribute>:
 
 
-########################## Disk-based Shard Allocation #######################
+# Disk-based shard allocation
+# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 # Prevent shard allocation on nodes depending on the disk usage.
 #cluster.routing.allocation.disk.threshold_enabled: true
@@ -575,20 +614,22 @@ auth:
 #cluster.routing.allocation.disk.watermark.flood_stage: 95%
 
 
-########################## Field Data Circuit Breaker #########################
+# Field-data circuit breaker
+# -----------------------------------------------------------------------------
 
-# The field data circuit breaker allows estimation of needed memory required
+# The field-data circuit breaker allows estimation of needed memory required
 # for loading field data into memory.
 
-# Specifies the limit for the fielddata breaker.
+# Specifies the limit for the field-data breaker.
 #indices.fielddata.breaker.limit: 60%
 
-# A constant that all field data estimations are multiplied with to
+# A constant that all field-data estimations are multiplied with to
 # determine a final estimation.
 #indices.fielddata.breaker.overhead: 1.0.3
 
 
-################################# Threadpools ################################
+# Threadpools
+# -----------------------------------------------------------------------------
 
 # Every node holds several thread pools to improve how threads are managed
 # within a node. There are several pools, but the important ones include:
@@ -597,14 +638,16 @@ auth:
 #thread_pool.index.queue_size: 200
 
 
-################################## Metadata ##################################
+# Metadata
+# -----------------------------------------------------------------------------
 
 # Defines how often the cluster collection metadata information
 # (e.g. disk usages etc.) if no concrete  event is triggered.
 #cluster.info.update.interval: 30s
 
 
-################################## GC Logging ################################
+# Garbage collection (GC) logging
+# -----------------------------------------------------------------------------
 
 #monitor.jvm.gc.collector.young.warn: 1000ms
 #monitor.jvm.gc.collector.young.info: 700ms
@@ -615,7 +658,8 @@ auth:
 #monitor.jvm.gc.collector.old.debug: 2s
 
 
-###################################### SQL ####################################
+# SQL
+# -----------------------------------------------------------------------------
 
 # Defines whether SQL statements resulting in modification operations are
 # allowed on this node.
@@ -628,10 +672,11 @@ auth:
 #bulk.request_timeout: 1m
 
 
-######################### SQL Query Circuit Breaker ##########################
+# Query circuit breaker
+# -----------------------------------------------------------------------------
 
-# The query circuit breaker allows estimation of needed memory required by
-# a query.
+# The circuit breaker allows estimation of needed memory required by an SQL
+# query.
 
 # Specifies the limit for the query breaker.
 #indices.breaker.query.limit: 60%
@@ -641,14 +686,13 @@ auth:
 #indices.breaker.query.overhead: 1.09
 
 
-##################################### UDC ####################################
+# Usage-data collector (UDC)
+# -----------------------------------------------------------------------------
 
-# Usage Data Collection
-#
 # If enabled CrateDB will send usage data to the url stored in setting
 # `udc.url`. The sent usage data doesn't contain any confidential information.
 
-# enable/disable usage data collection at all
+# enable/disable usage-data collection at all
 #udc.enabled: true
 
 # The delay for first ping after start-up.
@@ -661,7 +705,8 @@ auth:
 #udc.url: https://udc.crate.io/
 
 
-############################# BACKUP / RESTORE ###############################
+# Backup and restore (aka snapshots)
+# -----------------------------------------------------------------------------
 
 # Paths where Repositories of type fs may be created:
 #path.repo: /path/to/shared/fs,/other/shared/fs
@@ -675,7 +720,9 @@ auth:
 # "file" urls must be prefixed with an entry configured in ``path.repo``
 #repositories.url.allowed_urls: ["http://example.org/root/*", "https://*.mydomain.com/*?*#*"]
 
-###################### POSTGRES WIRE PROTOCOL SUPPORT ########################
+
+# PostgreSQL wire transport
+# -----------------------------------------------------------------------------
 
 # CrateDB supports the PostgreSQL wire protocol v3 and emulates a PostgreSQL
 # server v10.5. For further information read our documentation:

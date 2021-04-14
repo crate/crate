@@ -207,10 +207,10 @@ Shard limits
 
 .. _conf_usage_data_collector:
 
-Usage data collector
+Usage-Data Collector
 --------------------
 
-The settings of the Usage Data Collector are read-only and cannot be set during
+The settings of the Usage-Data-Collector are read-only and cannot be set during
 runtime. Please refer to :ref:`usage_data_collector` to get further information
 about its usage.
 
@@ -220,9 +220,9 @@ about its usage.
   | *Default:*  ``true``
   | *Runtime:*  ``no``
 
-  ``true``: Enables the Usage Data Collector.
+  ``true``: Enables the Usage-Data Collector.
 
-  ``false``: Disables the Usage Data Collector.
+  ``false``: Disables the Usage-Data Collector.
 
 .. _udc.initial_delay:
 
@@ -1081,7 +1081,7 @@ keeps working.
       This setting is deprecated and has no effect.
 
 
-Field data circuit breaker
+Field-data circuit breaker
 --------------------------
 
 These settings are deprecated and will be removed in CrateDB 5.0. They don't
