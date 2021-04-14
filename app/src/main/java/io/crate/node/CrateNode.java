@@ -23,7 +23,7 @@
 package io.crate.node;
 
 import io.crate.plugin.BlobPlugin;
-import io.crate.plugin.PluginLoaderPlugin;
+import io.crate.plugin.SQLPlugin;
 import io.crate.plugin.SrvPlugin;
 import io.crate.udc.plugin.UDCPlugin;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
@@ -43,7 +43,7 @@ import java.util.List;
 public class CrateNode extends Node {
 
     private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = List.of(
-        PluginLoaderPlugin.class,
+        SQLPlugin.class,
         BlobPlugin.class,
         SrvPlugin.class,
         UDCPlugin.class,

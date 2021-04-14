@@ -39,7 +39,7 @@ import io.crate.execution.engine.window.WindowFunction;
 import io.crate.execution.engine.window.WindowFunctionBatchIterator;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.EnterpriseFunctionsModule;
+import io.crate.module.ExtraFunctionsModule;
 import io.crate.testing.RowGenerator;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -88,7 +88,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Setup
     public void setup() {
-        Functions functions = new ModulesBuilder().add(new EnterpriseFunctionsModule())
+        Functions functions = new ModulesBuilder().add(new ExtraFunctionsModule())
             .createInjector().getInstance(Functions.class);
         lastValueIntFunction = (WindowFunction) functions.getQualified(
             Signature.window(
