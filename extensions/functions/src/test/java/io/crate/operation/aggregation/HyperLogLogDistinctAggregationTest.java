@@ -28,7 +28,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.EnterpriseFunctionsModule;
+import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -46,7 +46,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
 
     @Before
     public void prepareFunctions() throws Exception {
-        nodeCtx = createNodeContext(new EnterpriseFunctionsModule());
+        nodeCtx = createNodeContext(new ExtraFunctionsModule());
     }
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {

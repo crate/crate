@@ -1,12 +1,27 @@
 apply from: "$rootDir/extensions/extensionModule.gradle"
 
-archivesBaseName = 'functions'
+archivesBaseName = 'crate-functions'
 group = 'io.crate'
 description = 'Enterprise functions for CrateDB'
 
 configurations {
     // export the main and test output so benchmarks (which are run as tests) can test the main output of this module
     testOutput
+}
+
+jar.dependsOn('writePropertiesFile')
+task writePropertiesFile {
+    doLast {
+        copy {
+            from "src/main/resources/"
+            into "${buildDir}/tmp"
+            include "plugin-descriptor.properties"
+            expand(version: project.version,
+                esVersion: versions.internalES,
+                jmvCompatibility: project.targetCompatibility,
+                name: project.name)
+        }
+    }
 }
 
 dependencies {

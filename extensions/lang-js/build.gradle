@@ -1,6 +1,6 @@
 apply from: "$rootDir/extensions/extensionModule.gradle"
 
-archivesBaseName = 'lang-js'
+archivesBaseName = 'crate-lang-js'
 group = 'io.crate'
 description = 'CrateDB JavaScript Language for UDF'
 
