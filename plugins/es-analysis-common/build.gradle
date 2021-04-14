@@ -24,6 +24,7 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 
 dependencies {
     implementation project(':server')
+    implementation "org.apache.lucene:lucene-analyzers-common:${versions.lucene}"
 
     testImplementation project(path: ':server', configuration: 'testOutput')
     testImplementation project(path: ':libs:dex', configuration: 'testOutput')

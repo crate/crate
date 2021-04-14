@@ -11,6 +11,8 @@ configurations {
 
 dependencies {
     implementation project(':server')
+    implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
 
     testImplementation project(path: ':server', configuration: 'testOutput')
     testImplementation project(path: ':libs:dex', configuration: 'testOutput')

@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
@@ -52,6 +51,7 @@ import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.shard.ShardId;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -120,7 +120,8 @@ public class OrderedLuceneBatchIteratorBenchmark {
         BatchIterator<Row> it = OrderedLuceneBatchIteratorFactory.newInstance(
             Collections.singletonList(createOrderedCollector(indexSearcher, columnName)),
             OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
-            ROW_ACCOUNTING, MoreExecutors.directExecutor(),
+            ROW_ACCOUNTING,
+            EsExecutors.directExecutor(),
             () -> 1,
             false
         );

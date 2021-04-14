@@ -45,8 +45,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Joiner;
-
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.settings.Settings;
@@ -310,7 +308,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     public void testBuiltInAnalyzers() throws Exception {
         List<String> analyzers = new ArrayList<>(fulltextAnalyzerResolver.getBuiltInAnalyzers());
         Collections.sort(analyzers);
-        assertThat(Joiner.on(", ").join(analyzers),
+        assertThat(String.join(", ", analyzers),
             is("arabic, armenian, basque, bengali, brazilian, bulgarian, catalan, chinese, cjk, " +
                "czech, danish, default, dutch, english, fingerprint, finnish, french, " +
                "galician, german, greek, hindi, hungarian, indonesian, irish, " +
@@ -346,7 +344,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     public void testBuiltInTokenFilters() throws Exception {
         List<String> tokenFilters = new ArrayList<>(fulltextAnalyzerResolver.getBuiltInTokenFilters());
         Collections.sort(tokenFilters);
-        assertThat(Joiner.on(", ").join(tokenFilters),
+        assertThat(String.join(", ", tokenFilters),
             is("apostrophe, arabic_normalization, arabic_stem, asciifolding, bengali_normalization, brazilian_stem, " +
                "cjk_bigram, cjk_width, classic, common_grams, czech_stem, decimal_digit, delimited_payload, " +
                "delimited_payload_filter, dictionary_decompounder, dutch_stem, " +
@@ -365,7 +363,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     public void testBuiltInCharFilters() throws Exception {
         List<String> charFilters = new ArrayList<>(fulltextAnalyzerResolver.getBuiltInCharFilters());
         Collections.sort(charFilters);
-        assertThat(Joiner.on(", ").join(charFilters),
+        assertThat(String.join(", ", charFilters),
             is("html_strip, mapping, pattern_replace"));
     }
 
