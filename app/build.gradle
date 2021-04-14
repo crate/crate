@@ -380,12 +380,23 @@ task createCrateNodeScripts(type: CreateStartScripts) {
         // Unix: Prevent using the system-wide Java installation.
         unixScript.text = insertAfter(unixScript.text, '#!/usr/bin/env sh\n', 'unset JAVA_HOME\n');
 
-        // Unix: Use the bundled Java runtime.
+        // Unix: Use either JAVA_BIN or the bundled Java runtime.
         unixScript.text = unixScript.text.replace('JAVACMD="java"', """
-            if \${darwin}; then
-                JAVACMD="\${APP_HOME}/jdk/Contents/Home/bin/java"
+            # Find Java VM
+            if [ ! -z "\$JAVA_BIN" ]; then
+                JAVACMD="\$JAVA_BIN"
             else
-                JAVACMD="\${APP_HOME}/jdk/bin/java"
+                if \${darwin}; then
+                    JAVACMD="\${APP_HOME}/jdk/Contents/Home/bin/java"
+                else
+                    JAVACMD="\${APP_HOME}/jdk/bin/java"
+                fi
+            fi
+
+            # Sanity checks
+            if [ ! -f "\$JAVACMD" ]; then
+                echo "Java VM not found, please set JAVA_BIN environment variable"
+                exit 1
             fi
         """)
         unixScript.text = unixScript.text.replace('which java', 'which ${JAVACMD}')

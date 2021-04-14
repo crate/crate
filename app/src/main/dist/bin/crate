@@ -89,12 +89,22 @@ elif [ -r "$CRATE_INCLUDE" ]; then
     . "$CRATE_INCLUDE"
 fi
 
-if [ "$(uname -s)" = "Darwin" ]; then
-    JAVA="$CRATE_HOME/jdk/Contents/Home/bin/java"
+# Find Java VM
+if [ ! -z "$JAVA_BIN" ]; then
+    JAVA="$JAVA_BIN"
 else
-    JAVA="$CRATE_HOME/jdk/bin/java"
+    if [ "$(uname -s)" = "Darwin" ]; then
+        JAVA="$CRATE_HOME/jdk/Contents/Home/bin/java"
+    else
+        JAVA="$CRATE_HOME/jdk/bin/java"
+    fi
 fi
 
+# Sanity checks
+if [ ! -f "$JAVA" ]; then
+    echo "Java VM not found, please set JAVA_BIN environment variable"
+    exit 1
+fi
 if [ -z "$CRATE_CLASSPATH" ]; then
     echo "CRATE_CLASSPATH should've been initialized via crate.in.sh" >&2
     exit 1
