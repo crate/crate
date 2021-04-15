@@ -62,6 +62,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -75,17 +76,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
-
-    private ClusterState noIndexClusterState(boolean masterEligible) {
-        Metadata metadata = Metadata.builder().build();
-        RoutingTable routingTable = RoutingTable.builder().build();
-
-        return ClusterState.builder(org.elasticsearch.cluster.ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY))
-            .metadata(metadata)
-            .routingTable(routingTable)
-            .nodes(generateDiscoveryNodes(masterEligible))
-            .build();
-    }
 
     private ClusterState clusterStateWithUnassignedIndex(IndexMetadata indexMetadata, boolean masterEligible) {
         Metadata metadata = Metadata.builder()
@@ -122,45 +112,50 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             .metadata(metadataNewClusterState).version(oldClusterState.getVersion() + 1).build();
     }
 
-    private ClusterState clusterStateWithClosedIndex(IndexMetadata indexMetadata, boolean masterEligible) {
+    private ClusterState clusterStateWithNonReplicatedClosedIndex(IndexMetadata indexMetadata, boolean masterEligible) {
         ClusterState oldClusterState = clusterStateWithAssignedIndex(indexMetadata, masterEligible);
 
         Metadata metadataNewClusterState = Metadata.builder()
-            .put(
-                IndexMetadata.builder("test").settings(settings(Version.CURRENT)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, false)
-                    .put(IndexMetadata.SETTING_INDEX_UUID, indexMetadata.getIndexUUID())
-                )
-                .state(IndexMetadata.State.CLOSE)
-                .numberOfShards(5)
-                .numberOfReplicas(2)
-            )
+            .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).state(IndexMetadata.State.CLOSE)
+                .numberOfShards(5).numberOfReplicas(2))
             .version(oldClusterState.metadata().version() + 1)
             .build();
         RoutingTable routingTable = RoutingTable.builder()
-            .addAsNew(metadataNewClusterState.index("test"))
+            .addAsRecovery(metadataNewClusterState.index("test"))
             .build();
 
         return ClusterState.builder(oldClusterState).routingTable(routingTable)
             .metadata(metadataNewClusterState).version(oldClusterState.getVersion() + 1).build();
     }
 
-    private ClusterState clusterStateWithJustOpenedIndex(IndexMetadata indexMetadata, boolean masterEligible) {
-        ClusterState oldClusterState = clusterStateWithClosedIndex(indexMetadata, masterEligible);
+    private ClusterState clusterStateWithReplicatedClosedIndex(IndexMetadata indexMetadata, boolean masterEligible, boolean assigned) {
+        ClusterState oldClusterState = clusterStateWithAssignedIndex(indexMetadata, masterEligible);
 
         Metadata metadataNewClusterState = Metadata.builder()
-            .put(
-                IndexMetadata.builder("test").settings(settings(Version.CURRENT)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, false)
-                    .put(IndexMetadata.SETTING_INDEX_UUID, indexMetadata.getIndexUUID())
-                )
-                .state(IndexMetadata.State.OPEN)
-                .numberOfShards(5)
-                .numberOfReplicas(2))
+            .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)
+                .put(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey(), true))
+                .state(IndexMetadata.State.CLOSE)
+                .numberOfShards(5).numberOfReplicas(2))
             .version(oldClusterState.metadata().version() + 1)
             .build();
+        RoutingTable routingTable = RoutingTable.builder()
+            .addAsRecovery(metadataNewClusterState.index("test"))
+            .build();
 
-        return ClusterState.builder(oldClusterState)
+        oldClusterState = ClusterState.builder(oldClusterState).routingTable(routingTable)
+            .metadata(metadataNewClusterState).build();
+        if (assigned) {
+            AllocationService strategy = createAllocationService(Settings.builder()
+                .put("cluster.routing.allocation.node_concurrent_recoveries", 100)
+                .put(ClusterRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ALLOW_REBALANCE_SETTING.getKey(), "always")
+                .put("cluster.routing.allocation.cluster_concurrent_rebalance", 100)
+                .put("cluster.routing.allocation.node_initial_primaries_recoveries", 100)
+                .build());
+
+            routingTable = strategy.reroute(oldClusterState, "reroute").routingTable();
+        }
+
+        return ClusterState.builder(oldClusterState).routingTable(routingTable)
             .metadata(metadataNewClusterState).version(oldClusterState.getVersion() + 1).build();
     }
 
@@ -170,77 +165,51 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             .add(newNode("master_node", MASTER_DATA_ROLES)).localNodeId("node1").masterNodeId(masterEligible ? "node1" : "master_node");
     }
 
-    private Set<Index> randomPrevWrittenIndices(IndexMetadata indexMetadata) {
-        if (randomBoolean()) {
-            return Collections.singleton(indexMetadata.getIndex());
-        } else {
-            return Collections.emptySet();
-        }
-    }
-
     private IndexMetadata createIndexMetadata(String name) {
         return IndexMetadata.builder(name).
-            settings(settings(Version.CURRENT)
-                .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, false)
-                .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
-            )
-            .numberOfShards(5)
-            .numberOfReplicas(2)
-            .build();
+            settings(settings(Version.CURRENT).put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID(random()))).
+            numberOfShards(5).
+            numberOfReplicas(2).
+            build();
     }
 
     public void testGetRelevantIndicesWithUnassignedShardsOnMasterEligibleNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
-        Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
-            clusterStateWithUnassignedIndex(indexMetadata, true),
-            noIndexClusterState(true),
-            randomPrevWrittenIndices(indexMetadata));
+        Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, true));
         assertThat(indices.size(), equalTo(1));
     }
 
     public void testGetRelevantIndicesWithUnassignedShardsOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
-        Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
-            clusterStateWithUnassignedIndex(indexMetadata, false),
-            noIndexClusterState(false),
-            randomPrevWrittenIndices(indexMetadata));
+        Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, false));
         assertThat(indices.size(), equalTo(0));
     }
 
     public void testGetRelevantIndicesWithAssignedShards() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         boolean masterEligible = randomBoolean();
-        Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
-            clusterStateWithAssignedIndex(indexMetadata, masterEligible),
-            clusterStateWithUnassignedIndex(indexMetadata, masterEligible),
-            randomPrevWrittenIndices(indexMetadata));
+        Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithAssignedIndex(indexMetadata, masterEligible));
         assertThat(indices.size(), equalTo(1));
     }
 
-    public void testGetRelevantIndicesForClosedPrevWrittenIndexOnDataOnlyNode() {
+    public void testGetRelevantIndicesForNonReplicatedClosedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
-            clusterStateWithClosedIndex(indexMetadata, false),
-            clusterStateWithAssignedIndex(indexMetadata, false),
-            Collections.singleton(indexMetadata.getIndex()));
-        assertThat(indices.size(), equalTo(1));
-    }
-
-    public void testGetRelevantIndicesForClosedPrevNotWrittenIndexOnDataOnlyNode() {
-        IndexMetadata indexMetadata = createIndexMetadata("test");
-        Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
-            clusterStateWithJustOpenedIndex(indexMetadata, false),
-            clusterStateWithClosedIndex(indexMetadata, false),
-            Collections.emptySet());
+            clusterStateWithNonReplicatedClosedIndex(indexMetadata, false));
         assertThat(indices.size(), equalTo(0));
     }
 
-    public void testGetRelevantIndicesForWasClosedPrevWrittenIndexOnDataOnlyNode() {
+    public void testGetRelevantIndicesForReplicatedClosedButUnassignedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
-            clusterStateWithJustOpenedIndex(indexMetadata, false),
-            clusterStateWithClosedIndex(indexMetadata, false),
-            Collections.singleton(indexMetadata.getIndex()));
+            clusterStateWithReplicatedClosedIndex(indexMetadata, false, false));
+        assertThat(indices.size(), equalTo(0));
+    }
+
+    public void testGetRelevantIndicesForReplicatedClosedAndAssignedIndexOnDataOnlyNode() {
+        IndexMetadata indexMetadata = createIndexMetadata("test");
+        Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
+            clusterStateWithReplicatedClosedIndex(indexMetadata, false, true));
         assertThat(indices.size(), equalTo(1));
     }
 
@@ -405,7 +374,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             int indexNo = randomIntBetween(0, 50);
             IndexMetadata indexMetadata = IndexMetadata.builder("index" + indexNo).settings(
                 Settings.builder()
-                    .put(IndexMetadata.SETTING_INDEX_UUID, "index" + indexNo)
+                    .put(SETTING_INDEX_UUID, "index" + indexNo)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
