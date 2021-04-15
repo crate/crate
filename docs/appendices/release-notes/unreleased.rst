@@ -71,3 +71,6 @@ Fixes
   avoid that the JDBC client triggers queries against ``pg_catalog`` schema
   tables each time information from the ``MetaData`` of a ``ResultSet`` is
   accessed.
+
+- Fixed ``crate-node`` auxiliary program to use the bundled Java runtime on
+  Linux.
