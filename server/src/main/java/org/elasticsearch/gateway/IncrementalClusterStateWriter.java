@@ -140,7 +140,7 @@ public class IncrementalClusterStateWriter {
     private Map<Index, Long> writeIndicesMetadata(AtomicClusterStateWriter writer, ClusterState newState)
         throws WriteStateException {
         Map<Index, Long> previouslyWrittenIndices = previousManifest.getIndexGenerations();
-        Set<Index> relevantIndices = getRelevantIndices(newState, previousState, previouslyWrittenIndices.keySet());
+        Set<Index> relevantIndices = getRelevantIndices(newState);
 
         Map<Index, Long> newIndices = new HashMap<>();
 
@@ -208,8 +208,7 @@ public class IncrementalClusterStateWriter {
         return actions;
     }
 
-    private static Set<Index> getRelevantIndicesOnDataOnlyNode(ClusterState state, ClusterState previousState, Set<Index>
-        previouslyWrittenIndices) {
+    private static Set<Index> getRelevantIndicesOnDataOnlyNode(ClusterState state) {
         RoutingNode newRoutingNode = state.getRoutingNodes().node(state.nodes().getLocalNodeId());
         if (newRoutingNode == null) {
             throw new IllegalStateException("cluster state does not contain this node - cannot write index meta state");
@@ -217,20 +216,6 @@ public class IncrementalClusterStateWriter {
         Set<Index> indices = new HashSet<>();
         for (ShardRouting routing : newRoutingNode) {
             indices.add(routing.index());
-        }
-        // we have to check the meta data also: closed indices will not appear in the routing table, but we must still write the state if
-        // we have it written on disk previously
-        for (IndexMetadata indexMetadata : state.metadata()) {
-            boolean isOrWasClosed = indexMetadata.getState().equals(IndexMetadata.State.CLOSE);
-            // if the index is open we might still have to write the state if it just transitioned from closed to open
-            // so we have to check for that as well.
-            IndexMetadata previousMetadata = previousState.metadata().index(indexMetadata.getIndex());
-            if (previousMetadata != null) {
-                isOrWasClosed = isOrWasClosed || previousMetadata.getState().equals(IndexMetadata.State.CLOSE);
-            }
-            if (previouslyWrittenIndices.contains(indexMetadata.getIndex()) && isOrWasClosed) {
-                indices.add(indexMetadata.getIndex());
-            }
         }
         return indices;
     }
@@ -245,20 +230,14 @@ public class IncrementalClusterStateWriter {
     }
 
     // exposed for tests
-    static Set<Index> getRelevantIndices(ClusterState state, ClusterState previousState, Set<Index> previouslyWrittenIndices) {
-        Set<Index> relevantIndices;
-        if (isDataOnlyNode(state)) {
-            relevantIndices = getRelevantIndicesOnDataOnlyNode(state, previousState, previouslyWrittenIndices);
-        } else if (state.nodes().getLocalNode().isMasterNode()) {
-            relevantIndices = getRelevantIndicesForMasterEligibleNode(state);
+    static Set<Index> getRelevantIndices(ClusterState state) {
+        if (state.nodes().getLocalNode().isMasterNode()) {
+            return getRelevantIndicesForMasterEligibleNode(state);
+        } else if (state.nodes().getLocalNode().isDataNode()) {
+            return getRelevantIndicesOnDataOnlyNode(state);
         } else {
-            relevantIndices = Collections.emptySet();
+            return Collections.emptySet();
         }
-        return relevantIndices;
-    }
-
-    private static boolean isDataOnlyNode(ClusterState state) {
-        return state.nodes().getLocalNode().isMasterNode() == false && state.nodes().getLocalNode().isDataNode();
     }
 
     /**
