@@ -29,6 +29,7 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 
 import javax.annotation.Nullable;
 
@@ -45,8 +46,8 @@ public class Privileges {
         assert user != null : "User must not be null when trying to validate privileges";
         assert type != null : "Privilege type must not be null";
 
-        // information_schema should not be protected
-        if (isInformationSchema(clazz, ident)) {
+        // information_schema and pg_catalog should not be protected
+        if (isInformationSchema(clazz, ident) || isPgCatalogSchema(clazz, ident)) {
             return;
         }
         //noinspection PointlessBooleanExpression
@@ -85,8 +86,8 @@ public class Privileges {
                                               User user) throws MissingPrivilegeException {
         assert user != null : "User must not be null when trying to validate privileges";
 
-        // information_schema should not be protected
-        if (isInformationSchema(clazz, ident)) {
+        // information_schema and pg_catalog should not be protected
+        if (isInformationSchema(clazz, ident) || isPgCatalogSchema(clazz, ident)) {
             return;
         }
         //noinspection PointlessBooleanExpression
@@ -114,17 +115,27 @@ public class Privileges {
         }
     }
 
-    private static boolean isInformationSchema(Privilege.Clazz clazz, @Nullable String ident) {
+    private static String getTargetSchema(Privilege.Clazz clazz, @Nullable String ident) {
+        String schemaName = null;
         if (Privilege.Clazz.CLUSTER.equals(clazz)) {
-            return false;
+            return schemaName;
         }
         assert ident != null : "ident must not be null if privilege class is not 'CLUSTER'";
-        String schemaName;
         if (Privilege.Clazz.TABLE.equals(clazz)) {
             schemaName = new IndexParts(ident).getSchema();
         } else {
             schemaName = ident;
         }
-        return InformationSchemaInfo.NAME.equals(schemaName);
+        return schemaName;
+    }
+
+    private static boolean isInformationSchema(Privilege.Clazz clazz, String ident) {
+        String targetSchema = getTargetSchema(clazz, ident);
+        return InformationSchemaInfo.NAME.equals(targetSchema);
+    }
+
+    private static boolean isPgCatalogSchema(Privilege.Clazz clazz, String ident) {
+        String targetSchema = getTargetSchema(clazz, ident);
+        return PgCatalogSchemaInfo.NAME.equals(targetSchema);
     }
 }
