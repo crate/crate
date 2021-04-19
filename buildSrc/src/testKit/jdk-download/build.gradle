@@ -9,6 +9,7 @@ allprojects { p ->
     p.repositories.all { repo ->
         if (repo.name == "jdk_repo_${fakeJdkVendor}_${fakeJdkVersion}") {
             repo.setUrl("${fakeJdkRepo}")
+            repo.allowInsecureProtocol = true
         }
     }
 }
