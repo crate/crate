@@ -20,7 +20,8 @@
  * agreement.
  */
 
-apply from: "$rootDir/gradle/javaModule.gradle"
+apply from: "$rootDir/extensions/extensionModule.gradle"
+
 
 dependencies {
     implementation project(':server')

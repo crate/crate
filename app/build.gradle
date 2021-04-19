@@ -14,41 +14,58 @@ archivesBaseName = 'crate-app'
 group = "io.crate"
 
 
+// Runtime dependencies, added into `/plugins`
+// Make sure these have plugin-descriptor files so they are discovered and loaded
+def plugins = [
+    project(':extensions:functions'),
+    project(':extensions:lang-js'),
+    project(':extensions:jmx-monitoring'),
+    project(':plugins:es-analysis-common'),
+    project(':plugins:es-analysis-phonetic'),
+    project(':plugins:azure-discovery'),
+    project(':plugins:es-repository-hdfs'),
+]
+
+
 configurations {
-    compileNotTransitive {
-        transitive = false
+    impl {
+        transitive = true
     }
+    compileClasspath.extendsFrom(impl)
+    runtimeClasspath.extendsFrom(impl)
+    testImplementation.extendsFrom(impl)
 }
 
-evaluationDependsOn(':server')
-evaluationDependsOn(':libs:guice')
-evaluationDependsOn(':libs:sql-parser')
-evaluationDependsOn(':libs:dex')
-evaluationDependsOn(':libs:shared')
-evaluationDependsOn(':plugins:dns-discovery')
-
 dependencies {
-    compile project(':server')
-    compile project(':plugins:azure-discovery')
-    compile project(':plugins:dns-discovery')
-    compile project(':plugins:es-discovery-ec2')
-    compile project(':plugins:es-repository-url')
-    compile project(':plugins:es-repository-s3')
-    compile project(':plugins:es-repository-azure')
-    compile project(':plugins:es-analysis-common')
-    compile project(':plugins:es-analysis-phonetic')
-    compile('org.apache.xbean:xbean-finder:4.5') {
+    impl project(':server')
+
+    // `CrateNode` currently references these
+    // We should eventually change that and make these plugin dependencies
+    impl project(':plugins:dns-discovery')
+    impl project(':plugins:es-discovery-ec2')
+    impl project(':plugins:es-repository-url')
+    impl project(':plugins:es-repository-s3')
+    impl project(':plugins:es-repository-azure')
+
+    // We need to ensure that all graal languages are loaded with the root class-loader
+    // that runs the CrateNode.
+    // The graal Engine only looks for languages in the classloader in which the `Engine` itself
+    // is being loaded. It cannot load languages that are loaded with a isolated plugin classloader
+    impl "org.graalvm.js:js:${versions.graalvm}"
+    impl "org.graalvm.sdk:graal-sdk:${versions.graalvm}"
+    impl "org.graalvm.truffle:truffle-api:${versions.graalvm}"
+
+    impl('org.apache.xbean:xbean-finder:4.5') {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
+    impl "com.google.code.findbugs:jsr305:${versions.jsr305}"
 
-    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    plugins.each { pluginProject ->
+        runtimeOnly pluginProject
+    }
 
-    // include the extensions module in classpath to be able to use it with Crate launched from within intellij
-    runtime project(':extensions:functions')
-    runtime project(':extensions:lang-js')
-
-    testCompile project(path: ':server', configuration: 'testOutput')
-    testCompile("org.postgresql:postgresql:${versions.jdbc}")
+    testImplementation project(path: ':server', configuration: 'testOutput')
+    testImplementation("org.postgresql:postgresql:${versions.jdbc}")
     testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
     testImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
     testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
@@ -59,23 +76,6 @@ dependencies {
         because 'allows JUnit 3 and JUnit 4 tests to run'
     }
     testImplementation project(path: ':libs:dex', configuration: 'testOutput')
-
-    compileNotTransitive project(':server')
-    compileNotTransitive project(':libs:sql-parser')
-    compileNotTransitive project(':libs:pgwire')
-    compileNotTransitive project(':libs:dex')
-    compileNotTransitive project(':libs:shared')
-    compileNotTransitive project(':libs:cli')
-    compileNotTransitive project(':libs:guice')
-    compileNotTransitive project(':libs:es-x-content')
-    compileNotTransitive project(':libs:es-plugin-classloader')
-    compileNotTransitive project(':plugins:dns-discovery')
-    compileNotTransitive project(':plugins:es-discovery-ec2')
-    compileNotTransitive project(':plugins:es-repository-url')
-    compileNotTransitive project(':plugins:es-repository-s3')
-    compileNotTransitive project(':plugins:es-repository-azure')
-    compileNotTransitive project(':plugins:es-analysis-common')
-    compileNotTransitive project(':plugins:es-analysis-phonetic')
 }
 
 task release(dependsOn: 'distTar') {
@@ -214,17 +214,15 @@ distributions {
                 from(project.buildDir.path + "/bin")
             }
             into("lib") {
-                from project.configurations.runtime
-                exclude 'crate-*.jar'
-                exclude 'es.jar'
-                exclude 'es-*.jar'
-            }
-            into("lib") {
                 from jar
             }
-            into('plugins') {
-                from('plugins') {
-                    includeEmptyDirs = true
+            into("lib") {
+                from configurations.impl
+            }
+            plugins.each { plugin ->
+                into("plugins/$plugin.name") {
+                    from(plugin.buildDir.path + '/libs')
+                    from(plugin.buildDir.path + '/tmp/plugin-descriptor.properties')
                 }
             }
             into('lib/site') {
@@ -249,62 +247,20 @@ jar {
         def serviceDir = file("$buildDir/META-INF/services")
         serviceDir.deleteDir()
         serviceDir.mkdirs()
-
-        // copy all service files from deps to buildDir
-        for (file in configurations.compileNotTransitive) {
-            zipTree(file).matching { include 'META-INF/services/*' }.each { f ->
-                new File(serviceDir, f.name) << f.getText("UTF-8") << "\n"
-            }
-        }
     }
 
     archiveFileName = 'crate-app.jar'
-    from(configurations.compileNotTransitive.collect { it.isDirectory() ? it : zipTree(it) }) {
-        exclude 'META-INF/**' // Don't let Gradle merge service files
-    }
 
     // include service files from the buildDir
     from fileTree(buildDir).matching { include 'META-INF/services/*' }
 }
 
 task downloadPlugins(
-    dependsOn: ['downloadAdminUI',
-                ':plugins:es-repository-hdfs:jar',
-                ':plugins:azure-discovery:jar',
-                ':extensions:jmx-monitoring:jar',
-                ':extensions:lang-js:jar',
-                ':extensions:functions:jar']) {
+    dependsOn: ['downloadAdminUI']) {
     doLast {
         copy {
             from("${buildDir}/crate-admin/")
             into 'adminui'
-        }
-
-        copy {
-            from(project(':plugins:es-repository-hdfs').buildDir.path + '/libs')
-            from(project(':plugins:es-repository-hdfs').buildDir.path + '/plugin-descriptor.properties')
-            into 'plugins/es-repository-hdfs'
-        }
-
-        copy {
-            from(project(':plugins:azure-discovery').tasks.jar.archivePath)
-            from(project(':plugins:azure-discovery').buildDir.path + '/tmp/plugin-descriptor.properties')
-            into 'plugins/crate-azure-discovery'
-        }
-        copy {
-            from(project(':extensions:jmx-monitoring').tasks.jar.archivePath)
-            from(project(':extensions:jmx-monitoring').buildDir.path + '/tmp//plugin-descriptor.properties')
-            into 'plugins/crate-jmx-monitoring'
-        }
-        copy {
-            from(project(':extensions:lang-js').tasks.jar.archivePath)
-            from(project(':extensions:lang-js').buildDir.path + '/tmp/plugin-descriptor.properties')
-            into 'plugins/crate-lang-js'
-        }
-        copy {
-            from(project(':extensions:functions').tasks.jar.archivePath)
-            from(project(':extensions:functions').buildDir.path + '/tmp/plugin-descriptor.properties')
-            into 'plugins/crate-functions'
         }
     }
 }

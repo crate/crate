@@ -9,23 +9,6 @@ configurations {
     testOutput
 }
 
-jar.dependsOn('writePropertiesFile')
-task writePropertiesFile(dependsOn: [':server:getVersion']) {
-    doLast {
-        copy {
-            from "src/main/resources/"
-            into "${buildDir}/tmp"
-            include "plugin-descriptor.properties"
-            expand(
-                version: project.version,
-                crateVersion: project(':server').getVersion.shortVersion,
-                jmvCompatibility: project.targetCompatibility,
-                name: project.name
-            )
-        }
-    }
-}
-
 dependencies {
     implementation project(':server')
     implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
