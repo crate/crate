@@ -257,5 +257,5 @@ idea {
 }
 
 wrapper {
-    gradleVersion = '6.8.0'
+    gradleVersion = '7.0'
 }
