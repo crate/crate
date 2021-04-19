@@ -31,7 +31,7 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.EnterpriseFunctionsModule;
+import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -63,7 +63,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         DataTypes.register(HllStateType.ID, in -> HllStateType.INSTANCE);
     }
 
-    public static void register(EnterpriseFunctionsModule mod) {
+    public static void register(ExtraFunctionsModule mod) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             mod.register(
                 Signature.aggregate(

@@ -113,12 +113,12 @@ public class PluginInfo implements ToXContentObject {
                     "property [version] is missing for plugin [" + name + "]");
         }
 
-        final String esVersionString = propsMap.remove("elasticsearch.version");
-        if (esVersionString == null) {
+        final String crateVersionString = propsMap.remove("cratedb.version");
+        if (crateVersionString == null) {
             throw new IllegalArgumentException(
-                    "property [elasticsearch.version] is missing for plugin [" + name + "]");
+                    "property [cratedb.version] is missing for plugin [" + name + "]");
         }
-        final Version esVersion = Version.fromInternalString(esVersionString);
+        final Version crateVersion = Version.fromString(crateVersionString);
         final String javaVersionString = propsMap.remove("java.version");
         if (javaVersionString == null) {
             throw new IllegalArgumentException(
@@ -163,7 +163,7 @@ public class PluginInfo implements ToXContentObject {
             }
         }
 
-        if (esVersion.before(Version.V_3_2_0)) {
+        if (crateVersion.before(Version.V_3_2_0)) {
             propsMap.remove("requires.keystore");
         }
 
@@ -171,7 +171,7 @@ public class PluginInfo implements ToXContentObject {
             throw new IllegalArgumentException("Unknown properties in plugin descriptor: " + propsMap.keySet());
         }
 
-        return new PluginInfo(name, description, version, esVersion, javaVersionString,
+        return new PluginInfo(name, description, version, crateVersion, javaVersionString,
                               classname, extendedPlugins, hasNativeController);
     }
 
