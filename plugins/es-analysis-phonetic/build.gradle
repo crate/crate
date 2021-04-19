@@ -17,13 +17,13 @@
  * under the License.
  */
 
-apply from: "$rootDir/gradle/javaModule.gradle"
+apply from: "$rootDir/extensions/extensionModule.gradle"
+
 
 dependencies {
     implementation project(':libs:shared')
     implementation project(':server')
-    implementation "org.apache.lucene:lucene-analyzers-phonetic:${versions.lucene}"
-    implementation "commons-codec:commons-codec:${versions.commonscodec}"
+    pluginDependency "org.apache.lucene:lucene-analyzers-phonetic:${versions.lucene}"
 
     testImplementation project(path: ':server', configuration: 'testOutput')
     testImplementation "org.mockito:mockito-core:${versions.mockito}"
