@@ -9,7 +9,7 @@
 # convenience. To uncomment a setting, remove the leading "#" character.
 
 # For help modifying this configuration file, see
-# <https://crate.io/docs/crate/reference/en/latest/config/>
+# <https://crate.io/reference/config/>
 
 
 # Basic setup
@@ -30,7 +30,7 @@ s
 # bootstrap.memory_lock: true
 
 # For more information, see
-# <https://crate.io/docs/crate/howtos/en/latest/performance/memory.html>
+# <https://crate.io/howtos/performance/memory.html>
 
 
 # Persistence
@@ -46,7 +46,7 @@ s
 # that CrateDB can write to them.
 
 # For more information, see
-# <https://crate.io/docs/crate/reference/en/latest/config/node.html#paths>
+# <https://crate.io/reference/config/node.html#paths>
 
 
 # Networking
@@ -66,7 +66,7 @@ s
 #     - _[INTERFACE]_
 
 # For more information, see
-# <https://crate.io/docs/crate/reference/en/4.5/config/node.html#hosts>
+# <https://crate.io/reference/config/node.html#hosts>
 
 
 # Clustering
@@ -82,7 +82,7 @@ s
 # split-brain scenarios and data loss on recovery.
 
 # For more information, see
-# <https://crate.io/docs/crate/reference/en/latest/concepts/clustering.html>
+# <https://crate.io/reference/concepts/clustering.html>
 
 # The hosts that will initially form the cluster
 # discovery.seed_hosts:
@@ -100,10 +100,10 @@ s
 # be able to vote for an initial master node.
 
 # For reference information, see
-# <https://crate.io/docs/crate/reference/en/latest/config/cluster.html>
+# <https://crate.io/reference/config/cluster.html>
 
 # For how-to guides, see
-# <https://crate.io/docs/crate/howtos/en/latest/clustering/>
+# <https://crate.io/howtos/clustering/>
 
 
 # Advanced settings
@@ -126,7 +126,7 @@ s
 # stats.enabled: true
 
 # For more information, see
-# <https://crate.io/docs/crate/reference/en/latest/admin/monitoring.html>
+# <https://crate.io/reference/admin/monitoring.html>
 
 
 # Authentication
@@ -164,7 +164,7 @@ auth:
 # any address except `localhost`.
 
 # For more information, see
-# <https://crate.io/docs/crate/reference/en/latest/admin/auth/hba.html>
+# <https://crate.io/reference/admin/auth/hba.html>
 
 
 # Trust-based authentication
@@ -183,7 +183,7 @@ auth:
 #     http_default_user: dustin
 
 # For more information, see
-# <https://crate.io/docs/crate/reference/en/latest/admin/auth/methods.html>
+# <https://crate.io/reference/admin/auth/methods.html#trust-method>
 
 
 # User-defined functions (UDFs)
@@ -193,7 +193,7 @@ auth:
 # lang.js.enabled: false
 
 # For more information, see
-# <https://crate.io/docs/crate/reference/en/latest/general/user-defined-functions.html>
+# <https://crate.io/reference/general/user-defined-functions.html>
 
 
 # Secured communications (SSL/TLS)
@@ -803,7 +803,7 @@ auth:
 
 # CrateDB supports the PostgreSQL wire protocol v3 and emulates a PostgreSQL
 # server v10.5. For further information read our documentation:
-# https://crate.io/docs/reference/en/latest/protocols/postgres.html
+# https://crate.io/reference/protocols/postgres.html
 #
 # This allows you to connect to CrateDB using one of the many Postgres tools
 # and libraries
