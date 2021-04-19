@@ -166,7 +166,7 @@ tasks.withType(Tar) {
     dependsOn 'chooseReleaseNotes'
     dependsOn 'createCrateNodeScripts'
     compression = Compression.GZIP
-    extension = 'tar.gz'
+    archiveExtension = 'tar.gz'
 }
 
 tasks.withType(Zip) {
@@ -190,7 +190,7 @@ def jdkCopySpec = copySpec {
 
 distributions {
     main {
-        baseName = 'crate'
+        distributionBaseName = 'crate'
         contents {
             into("") {
                 from("$rootDir") {
@@ -198,7 +198,6 @@ distributions {
                     include 'NOTICE'
                     include 'README.rst'
                 }
-                from("src/main/dist")
                 from(project.buildDir.path + "/releaseNotes") {
                     include 'CHANGES.txt'
                 }
