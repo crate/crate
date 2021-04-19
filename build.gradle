@@ -28,7 +28,6 @@ def download(File downloadDir, String url, String name) {
 }
 
 apply from: 'gradle/dependencies.gradle'
-apply from: 'gradle/jdkRuntime.gradle'
 apply plugin: 'base'
 
 repositories {

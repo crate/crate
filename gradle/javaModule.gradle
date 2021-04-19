@@ -1,7 +1,35 @@
+import io.crate.gradle.OS
+
 apply plugin: 'java'
 apply plugin: 'de.thetaphi.forbiddenapis'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'checkstyle'
+apply plugin: 'jdk-download'
+
+
+def getJdkBundleOSFromPropertiesOrDefault = {
+    System.getProperty(
+        "bundled_jdk_os",
+        versions['bundled_jdk_os'] != null
+            ? "${versions['bundled_jdk_os']}"
+            : OS.current().name().toLowerCase())
+}
+
+def getJdkBundleArchFromPropertiesOrDefault = {
+    System.getProperty(
+        "bundled_jdk_arch",
+        versions['bundled_jdk_arch'] != null ? "${versions['bundled_jdk_arch']}" : "x64")
+}
+
+jdks {
+    runtime {
+        vendor = "${System.getProperty("bundled_jdk_vendor", versions['bundled_jdk_vendor'])}"
+        version = "${System.getProperty("bundled_jdk_version", versions['bundled_jdk_version'])}"
+        os = getJdkBundleOSFromPropertiesOrDefault()
+        arch = getJdkBundleArchFromPropertiesOrDefault()
+    }
+}
+
 
 repositories {
     mavenCentral()
@@ -9,10 +37,26 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 
-compileJava {
+
+tasks.withType(JavaCompile) {
+    doFirst {
+        if (System.getProperty('useSystemJdk') == null) {
+            options.fork = true
+            options.forkOptions.javaHome = jdks.runtime.getJavaHome()
+            options.forkOptions.executable = jdks.runtime.getBinJavaPath()
+        }
+    }
     options.warnings = false
     options.deprecation = false
     options.compilerArgs << '-XDignore.symbol.file'
+    options.encoding = 'UTF-8'
+    sourceCompatibility = jdks.runtime.major()
+    targetCompatibility = jdks.runtime.major()
+}
+tasks.withType(JavaExec) {
+    if (System.getProperty('useSystemJdk') == null) {
+        executable = jdks.runtime.getBinJavaPath()
+    }
 }
 
 
@@ -59,7 +103,12 @@ checkstyle {
     checkstyleTest.enabled = false
 }
 
-test {
+tasks.withType(Test) {
+    if (System.getProperty('useSystemJdk') == null) {
+        test.dependsOn jdks.runtime
+        test.executable = jdks.runtime.getBinJavaPath()
+    }
+
     // by default `-D` arguments are "caught" in the gradle process
     // and not passed-through to the test process.
     // this enables test options like '-Dtests.iters=20'
