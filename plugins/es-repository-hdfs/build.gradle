@@ -100,11 +100,7 @@ dependencies {
     extraLibs "org.tukaani:xz:1.0"
     extraLibs "org.apache.zookeeper:zookeeper:3.4.6"
 
-    testImplementation project(path: ':server', configuration: 'testOutput')
-    testImplementation "org.mockito:mockito-core:${versions.mockito}"
-    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
-    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
-    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testImplementation(testFixtures(project(':server')))
     testImplementation "junit:junit:${versions.junit}"
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
