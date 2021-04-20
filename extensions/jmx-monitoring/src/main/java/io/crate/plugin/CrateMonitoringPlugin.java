@@ -22,24 +22,14 @@
 
 package io.crate.plugin;
 
-import io.crate.Plugin;
 import io.crate.module.CrateMonitoringModule;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.plugins.Plugin;
 
 import java.util.Collection;
 import java.util.List;
 
-public class CrateMonitoringPlugin implements Plugin {
-
-    @Override
-    public String name() {
-        return "jmx-monitoring";
-    }
-
-    @Override
-    public String description() {
-        return "The CrateDB JMX monitoring plugin";
-    }
+public class CrateMonitoringPlugin extends Plugin {
 
     @Override
     public Collection<Module> createGuiceModules() {

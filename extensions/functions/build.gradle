@@ -1,36 +1,18 @@
 apply from: "$rootDir/extensions/extensionModule.gradle"
 
-archivesBaseName = 'functions'
+archivesBaseName = 'crate-functions'
 group = 'io.crate'
 description = 'Enterprise functions for CrateDB'
 
-configurations {
-    // export the main and test output so benchmarks (which are run as tests) can test the main output of this module
-    testOutput
-}
-
 dependencies {
     implementation project(':server')
+    implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
 
-    testImplementation project(path: ':server', configuration: 'testOutput')
-    testImplementation project(path: ':libs:dex', configuration: 'testOutput')
-    testImplementation "org.postgresql:postgresql:${versions.jdbc}"
-    testImplementation "org.mockito:mockito-core:${versions.mockito}"
-    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
-    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
-    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testImplementation(testFixtures(project(path: ':server')))
+    testImplementation(testFixtures(project(path: ':libs:dex')))
     testImplementation "junit:junit:${versions.junit}"
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
     }
-}
-
-task jarTest (type: Jar) {
-    from sourceSets.main.output
-    from sourceSets.test.output
-    classifier = 'enterprise-functions-main-and-tests'
-}
-
-artifacts {
-    testOutput jarTest
 }

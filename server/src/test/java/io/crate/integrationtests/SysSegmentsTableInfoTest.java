@@ -23,6 +23,7 @@
 package io.crate.integrationtests;
 
 import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
@@ -57,7 +58,7 @@ public class SysSegmentsTableInfoTest extends SQLTransportIntegrationTest {
     private void validateResponse(Object[] result, boolean primary) {
         assertThat(result[0], is("t1"));
         assertThat(result[1], is(0));
-        assertThat(result[2], is("_0"));
+        assertThat(result[2], is(notNullValue()));
         assertThat(result[3], is(0L));
         assertThat(result[4], is(1));
         assertThat(result[5], is(0));

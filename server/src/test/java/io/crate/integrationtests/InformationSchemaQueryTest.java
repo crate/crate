@@ -45,9 +45,6 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
         assertEquals(2L, response.rowCount());
         execute("select * from information_schema.columns where table_name = 't3'");
         assertEquals(2, response.rowCount());
-
-        execute("select * from sys.shards");
-        assertEquals(5L, response.rowCount()); // t3 isn't included, as it is closed.
     }
 
     @Test

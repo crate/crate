@@ -30,6 +30,7 @@ Synopsis
         | CLOSE
         | RENAME TO table_ident
         | REROUTE reroute_option
+        | DROP CONSTRAINT constraint_name
       }
 
 where ``column_constraint`` is::
@@ -38,7 +39,7 @@ where ``column_constraint`` is::
       NOT NULL |
       INDEX { OFF | USING { PLAIN |
                             FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  } |
-      [ CONSTRAINT check_constraint_name ] CHECK (boolean_expression)
+      [ CONSTRAINT constraint_name ] CHECK (boolean_expression)
     }
 
 
@@ -264,3 +265,26 @@ where ``reroute_option`` is::
   This cancels the allocation or :ref:`recovery <gloss-shard-recovery>` of a
   ``shard_id`` of a ``table_ident`` on a given ``node``. The ``allow_primary``
   flag indicates if it is allowed to cancel the allocation of a primary shard.
+
+
+.. _sql-alter-drop-constraint:
+
+``DROP CONSTRAINT``
+-------------------
+
+Removes a :ref:`check_constraint` constraint from a table.
+
+.. code-block:: sql
+
+    ALTER TABLE table_ident DROP CONSTRAINT check_name
+
+:table_ident:
+  The name (optionally schema-qualified) of the table.
+
+:check_name:
+  The name of the check constraint to be removed.
+
+
+.. WARNING::
+
+    A removed CHECK constraints cannot be re-added to a table once dropped.

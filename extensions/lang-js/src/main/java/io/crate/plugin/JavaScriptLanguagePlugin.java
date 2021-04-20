@@ -22,32 +22,22 @@
 
 package io.crate.plugin;
 
-import io.crate.Plugin;
 import io.crate.module.JavaScriptLanguageModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.Plugin;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class JavaScriptLanguagePlugin implements Plugin {
+public class JavaScriptLanguagePlugin extends Plugin {
 
     private final boolean isEnabled;
 
     public JavaScriptLanguagePlugin(Settings settings) {
         isEnabled = JavaScriptLanguageModule.LANG_JS_ENABLED.get(settings);
-    }
-
-    @Override
-    public String name() {
-        return "lang-js";
-    }
-
-    @Override
-    public String description() {
-        return "CrateDB JavaScript Language Plugin";
     }
 
     @Override

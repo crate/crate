@@ -60,8 +60,14 @@ Changes
   ``COPY FROM`` operations. This should lead to these queries utilizing more
   resources if the cluster can spare them.
 
+- Included the shard information for closed tables in ``sys.shards`` table.
+
 Fixes
 =====
+
+- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statements to remove
+  constraints like analyzers or ``NOT NULL`` from existing columns in the same
+  table.
 
 - Allow executing ``CREATE TABEL .. AS`` as a regular user with ``DDL``
   permission on the target schema, and ``DQL`` permission on the source
@@ -71,3 +77,6 @@ Fixes
   avoid that the JDBC client triggers queries against ``pg_catalog`` schema
   tables each time information from the ``MetaData`` of a ``ResultSet`` is
   accessed.
+
+- Fixed ``crate-node`` auxiliary program to use the bundled Java runtime on
+  Linux.

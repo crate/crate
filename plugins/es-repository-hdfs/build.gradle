@@ -100,11 +100,7 @@ dependencies {
     extraLibs "org.tukaani:xz:1.0"
     extraLibs "org.apache.zookeeper:zookeeper:3.4.6"
 
-    testImplementation project(path: ':server', configuration: 'testOutput')
-    testImplementation "org.mockito:mockito-core:${versions.mockito}"
-    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
-    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
-    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testImplementation(testFixtures(project(':server')))
     testImplementation "junit:junit:${versions.junit}"
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
@@ -115,9 +111,9 @@ dependencies {
 jar {dependsOn(['writePropertiesFileRepositoryHSFS', 'copyRequiredLibs'])}
 task blackBoxTestJar {dependsOn([jar, 'copyExtraLibs'])}
 
-task writePropertiesFileRepositoryHSFS {
+task writePropertiesFileRepositoryHSFS(dependsOn: [':server:getVersion']) {
     doLast {
-        def file = new File(buildDir.path + '/plugin-descriptor.properties')
+        def file = new File(buildDir.path + '/tmp/plugin-descriptor.properties')
         def parentDir = new File(file.parent)
         parentDir.mkdirs()
         file.createNewFile()
@@ -126,7 +122,7 @@ task writePropertiesFileRepositoryHSFS {
             ant.entry(key: 'name', value: project.name)
             ant.entry(key: 'description', value: project.description)
             ant.entry(key: 'version', value: plugin_repositoryhdfs_version)
-            ant.entry(key: 'elasticsearch.version', value: "${versions.internalES}")
+            ant.entry(key: 'cratedb.version', value: project(':server').getVersion.shortVersion)
             ant.entry(key: 'java.version', value: project.targetCompatibility)
             ant.entry(key: 'classname', value: classname)
         }

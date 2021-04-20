@@ -3,11 +3,11 @@ plugins {
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
-    implementation 'org.apache.commons:commons-compress:1.19'
+    implementation 'org.apache.commons:commons-compress:1.20'
     testImplementation "junit:junit:4.12"
     testImplementation "com.github.tomakehurst:wiremock-jre8:2.27.0"
 }

@@ -64,6 +64,16 @@ public class ShardCollectorProviderTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testClosedIndicesHaveNoShardEntriesAfterSelectFromSysShards() throws Exception {
+        execute("create table t(i int) with (number_of_replicas='0-all')");
+        ensureGreen();
+        execute("alter table t close");
+        execute("select * from sys.shards where table_name = 't'");
+        waitUntilShardOperationsFinished();
+        assertNoShardEntriesLeftInShardCollectSource();
+    }
+
+    @Test
     public void testDeletedIndicesHaveNoShardEntries() throws Exception {
         execute("create table tt(i int) with (number_of_replicas='0-all')");
         ensureGreen();

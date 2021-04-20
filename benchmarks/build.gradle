@@ -10,19 +10,23 @@ archivesBaseName = 'crate-benchmarks'
 test.enabled = false
 
 dependencies {
-    compile project(':server')
-    compile project(path: ':server', configuration: 'testOutput')
-    compile project(path: ':libs:dex', configuration: 'testOutput')
-    compile project(path: ':extensions:functions', configuration: 'testOutput')
+    implementation project(':server')
+    implementation(testFixtures(project(':server')))
+    implementation(testFixtures(project(':libs:dex')))
+    implementation(project(':extensions:functions'))
     implementation project(':libs:sql-parser')
 
-    compile 'org.openjdk.jmh:jmh-core:1.25'
+    implementation "joda-time:joda-time:${versions.jodatime}"
+    implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
+    implementation "com.google.guava:guava:${versions.guava}"
+
+    implementation 'org.openjdk.jmh:jmh-core:1.25'
     implementation 'org.openjdk.jmh:jmh-generator-annprocess:1.25'
     annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.25'
 
     // Dependencies of JMH
-    runtime 'net.sf.jopt-simple:jopt-simple:4.6'
-    runtime 'org.apache.commons:commons-math3:3.2'
+    runtimeOnly 'net.sf.jopt-simple:jopt-simple:4.6'
+    runtimeOnly 'org.apache.commons:commons-math3:3.2'
 }
 
 compileTestJava {

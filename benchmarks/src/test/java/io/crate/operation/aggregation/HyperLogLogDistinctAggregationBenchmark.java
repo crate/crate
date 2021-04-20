@@ -36,7 +36,7 @@ import io.crate.memory.OffHeapMemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.EnterpriseFunctionsModule;
+import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.hash.MurmurHash3;
@@ -82,7 +82,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
         hash = new MurmurHash3.Hash128();
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
         Functions functions = new ModulesBuilder()
-            .add(new EnterpriseFunctionsModule())
+            .add(new ExtraFunctionsModule())
             .createInjector().getInstance(Functions.class);
         HyperLogLogDistinctAggregation hllAggregation = (HyperLogLogDistinctAggregation) functions.getQualified(
             Signature.aggregate(

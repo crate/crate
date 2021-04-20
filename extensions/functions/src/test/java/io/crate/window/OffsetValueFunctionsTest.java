@@ -24,7 +24,7 @@ package io.crate.window;
 
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
-import io.crate.module.EnterpriseFunctionsModule;
+import io.crate.module.ExtraFunctionsModule;
 import org.junit.Test;
 
 import java.util.List;
@@ -34,7 +34,7 @@ import static org.hamcrest.Matchers.contains;
 public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
 
     public OffsetValueFunctionsTest() {
-        super(new EnterpriseFunctionsModule());
+        super(new ExtraFunctionsModule());
     }
 
     @Test

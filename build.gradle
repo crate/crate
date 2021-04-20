@@ -28,7 +28,6 @@ def download(File downloadDir, String url, String name) {
 }
 
 apply from: 'gradle/dependencies.gradle'
-apply from: 'gradle/jdkRuntime.gradle'
 apply plugin: 'base'
 
 repositories {
@@ -258,5 +257,5 @@ idea {
 }
 
 wrapper {
-    gradleVersion = '6.8.0'
+    gradleVersion = '7.0'
 }

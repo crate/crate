@@ -21,9 +21,11 @@
 
 package io.crate.integrationtests;
 
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -54,6 +56,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
@@ -418,5 +421,37 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         assertThrows(() -> execute(
             "select 1/0 from sys.shards"),
                      isSQLError(is("/ by zero"), INTERNAL_ERROR, BAD_REQUEST, 4000));
+    }
+
+    @Test
+    public void testSelectFromSysShardsForClosedTables() throws Exception {
+        execute("create table tbl (x int)");
+        execute("insert into tbl values(1)");
+        execute("alter table tbl close");
+        execute("select min_lucene_version, node, path, recovery, retention_leases, seq_no_stats, translog_stats " +
+                "from sys.shards where table_name = 'tbl' and primary = 'true'");
+        assertThat(TestingHelpers.printedTable(response.rows()), not(containsString("NULL")));
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void testSelectFromClosedTableNotAllowed() throws Exception {
+        execute("create table doc.tbl (x int)");
+        execute("insert into doc.tbl values(1)");
+        execute("alter table doc.tbl close");
+        assertThrows(() -> execute("select * from doc.tbl"),
+                     OperationOnInaccessibleRelationException.class,
+                     "The relation \"doc.tbl\" doesn't support or allow READ operations, as it is currently closed.");
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void testInsertFromClosedTableNotAllowed() throws Exception {
+        execute("create table doc.tbl (x int)");
+        execute("insert into doc.tbl values(1)");
+        execute("alter table doc.tbl close");
+        assertThrows(() -> execute("insert into doc.tbl values(2)"),
+                     OperationOnInaccessibleRelationException.class,
+                     "The relation \"doc.tbl\" doesn't support or allow INSERT operations, as it is currently closed.");
     }
 }

@@ -32,6 +32,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
@@ -420,15 +421,17 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             "where table_name='t'" +
             "order by constraint_name";
         execute(selectCheckConstraintsStmt);
-        assertEquals("doc| t| CHECK| check_id_ge_zero\n" +
-                     "doc| t| CHECK| check_qty_gt_zero\n" +
-                     "doc| t| PRIMARY KEY| t_pk\n",
-                     printedTable(response.rows()));
+        assertThat(printedTable(response.rows()), is(
+            "doc| t| CHECK| check_id_ge_zero\n" +
+            "doc| t| CHECK| check_qty_gt_zero\n" +
+            "doc| t| PRIMARY KEY| t_pk\n"
+        ));
         execute("alter table t drop constraint check_id_ge_zero");
         execute(selectCheckConstraintsStmt);
-        assertEquals("doc| t| CHECK| check_qty_gt_zero\n" +
-                     "doc| t| PRIMARY KEY| t_pk\n",
-                     printedTable(response.rows()));
+        assertThat(printedTable(response.rows()), is(
+            "doc| t| CHECK| check_qty_gt_zero\n" +
+            "doc| t| PRIMARY KEY| t_pk\n"
+        ));
         execute("insert into t(id, qty) values(-42, 100)");
         assertThrows(() -> execute("insert into t(id, qty) values(0, 0)"),
                      isSQLError(is("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {qty=0, id=0}"),
@@ -878,5 +881,29 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 4000
             )
         );
+    }
+
+    @Test
+    public void test_alter_table_add_column_keeps_existing_meta_information() throws Exception {
+        execute("""
+            CREATE TABLE tbl (
+                author TEXT NOT NULL,
+                INDEX author_ft USING FULLTEXT (author) WITH (analyzer = 'standard')
+            )
+        """);
+
+        execute("ALTER TABLE tbl ADD COLUMN dummy text NOT NULL");
+
+        execute("show create table tbl");
+        assertThat((String) response.rows()[0][0], startsWith("""
+            CREATE TABLE IF NOT EXISTS "doc"."tbl" (
+               "author" TEXT NOT NULL,
+               "dummy" TEXT NOT NULL,
+               INDEX "author_ft" USING FULLTEXT ("author") WITH (
+                  analyzer = 'standard'
+               )
+            )
+            """.stripIndent()
+        ));
     }
 }

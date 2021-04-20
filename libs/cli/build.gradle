@@ -1,6 +1,7 @@
+apply plugin: 'java-library'
 apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-cli'
 
 dependencies {
-    compile "net.sf.jopt-simple:jopt-simple:${versions.jopt_simple}"
+    api "net.sf.jopt-simple:jopt-simple:${versions.jopt_simple}"
 }

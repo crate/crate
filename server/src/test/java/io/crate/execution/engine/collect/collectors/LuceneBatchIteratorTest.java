@@ -22,10 +22,10 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LongColumnReference;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.BatchIteratorTester;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -38,15 +38,16 @@ import org.apache.lucene.store.ByteBuffersDirectory;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LongColumnReference;
+import io.crate.testing.BatchIteratorTester;
 
-public class LuceneBatchIteratorTest extends ESTestCase {
+public class LuceneBatchIteratorTest {
 
     private List<LongColumnReference> columnRefs;
     private IndexSearcher indexSearcher;
     private ArrayList<Object[]> expectedResult;
+
 
     @Before
     public void prepareSearcher() throws Exception {

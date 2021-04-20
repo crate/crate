@@ -29,7 +29,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.EnterpriseFunctionsModule;
+import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
 
 import java.util.List;
@@ -125,7 +125,7 @@ public class OffsetValueFunctions implements WindowFunction {
         }
     }
 
-    public static void register(EnterpriseFunctionsModule module) {
+    public static void register(ExtraFunctionsModule module) {
         module.register(
             Signature.window(
                 LEAD_NAME,

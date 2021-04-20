@@ -1,23 +1,8 @@
-apply from: "$rootDir/gradle/javaModule.gradle"
+apply from: "$rootDir/extensions/extensionModule.gradle"
 
 archivesBaseName = 'crate-azure-discovery'
 group = 'io.crate'
 
-task writePropertiesFile {
-    doLast {
-        copy {
-            from "src/main/resources/"
-            into "${buildDir}/tmp"
-            include "plugin-descriptor.properties"
-            expand(version: project.version,
-                    esVersion: versions.internalES,
-                    jmvCompatibility: project.targetCompatibility,
-                    name: project.name)
-        }
-    }
-}
-
-jar.dependsOn('writePropertiesFile')
 
 dependencies {
     implementation project(':libs:shared')
@@ -34,7 +19,7 @@ dependencies {
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
     testImplementation project(':server')
-    testImplementation project(path: ':server', configuration: 'testOutput')
+    testImplementation(testFixtures(project(':server')))
     testImplementation('com.microsoft.azure:azure-mgmt-utility:0.9.8') {
         exclude group: 'stax', module: 'stax-api'
         exclude group: 'javax.mail', module: 'mail'
@@ -43,10 +28,6 @@ dependencies {
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
-    testImplementation "org.mockito:mockito-core:${versions.mockito}"
-    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
-    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
-    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
     testImplementation "junit:junit:${versions.junit}"
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
