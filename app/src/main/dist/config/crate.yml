@@ -8,8 +8,7 @@
 # Commented settings have no effect. Some commented settings are provided your
 # convenience. To uncomment a setting, remove the leading "#" character.
 
-# For help modifying this configuration file, see
-# <https://crate.io/reference/config/>
+# For more info, see <https://crate.io/reference/config/>
 
 
 # Basic setup
@@ -18,7 +17,7 @@
 
 # Memory
 # -----------------------------------------------------------------------------
-s
+
 # Recommended configuration:
 #
 # - Disable swapping (see below).
@@ -29,8 +28,7 @@ s
 # Disable swapping
 # bootstrap.memory_lock: true
 
-# For more information, see
-# <https://crate.io/howtos/performance/memory.html>
+# For more info, see <https://crate.io/howtos/performance/memory.html>
 
 
 # Persistence
@@ -45,8 +43,7 @@ s
 # Make sure to set the ownership of configured data paths to `crate:crate` so
 # that CrateDB can write to them.
 
-# For more information, see
-# <https://crate.io/reference/config/node.html#paths>
+# For more info, see <https://crate.io/reference/config/node.html#paths>
 
 
 # Networking
@@ -65,8 +62,7 @@ s
 #     - _global_
 #     - _[INTERFACE]_
 
-# For more information, see
-# <https://crate.io/reference/config/node.html#hosts>
+# For more info, see <https://crate.io/reference/config/node.html#hosts>
 
 
 # Clustering
@@ -99,11 +95,8 @@ s
 # CrateDB versions 4.0 and higher). If this is not done, the cluster will not
 # be able to vote for an initial master node.
 
-# For reference information, see
-# <https://crate.io/reference/config/cluster.html>
-
-# For how-to guides, see
-# <https://crate.io/howtos/clustering/>
+# For more info, see <https://crate.io/reference/config/cluster.html>
+# or <https://crate.io/howtos/clustering/>
 
 
 # Advanced settings
@@ -125,8 +118,7 @@ s
 # `sys.operations_log` tables
 # stats.enabled: true
 
-# For more information, see
-# <https://crate.io/reference/admin/monitoring.html>
+# For more info, see <https://crate.io/reference/admin/monitoring.html>
 
 
 # Authentication
@@ -163,8 +155,7 @@ auth:
 # protocol. Using the stock configuration, it is not possible to connect from
 # any address except `localhost`.
 
-# For more information, see
-# <https://crate.io/reference/admin/auth/hba.html>
+# For more info, see <https://crate.io/reference/admin/auth/hba.html>
 
 
 # Trust-based authentication
@@ -182,7 +173,7 @@ auth:
 #   trust:
 #     http_default_user: dustin
 
-# For more information, see
+# For more info, see
 # <https://crate.io/reference/admin/auth/methods.html#trust-method>
 
 
@@ -192,7 +183,7 @@ auth:
 # Disable JavaScript user-defined functions
 # lang.js.enabled: false
 
-# For more information, see
+# For more info, see
 # <https://crate.io/reference/general/user-defined-functions.html>
 
 
@@ -215,6 +206,8 @@ auth:
 # different from `keystore_password`)
 # ssl.keystore_key_password: myKeyStorePasswd
 
+# For more info, see <https://crate.io/reference/admin/ssl.html>
+
 
 # Optional configuration for the truststore
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -232,31 +225,47 @@ auth:
 # Cluster settings
 # -----------------------------------------------------------------------------
 
-# Cluster name identifies your cluster for auto-discovery. If you're running
-# multiple clusters on the same network, make sure you're using unique names.
+# The cluster name identifies your cluster for auto-discovery. If you're
+# running multiple clusters on the same network, make sure to use a unique name
+# for each cluster.
 # cluster.name: crate
 
-# The graceful_stop namespace defines settings for a graceful stop procedure of
-# nodes within the cluster.
-#
-# The minimum data availability the cluster needs to ensure when a certain node
-# is shut down. By default the cluster ensures availability of primary shards
-# but not replicas. Other options are "full" and "none".
+
+# Graceful stop
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# The `graceful_stop` namespace (see below) allows you to configure how
+# individual nodes perform the graceful stop procedure.
+
+# For more info, see
+# <https://crate.io/reference/config/cluster.html##graceful-stop>
+
+# The minimum amount of cluster data available before nodes will perform a
+# graceful stop
 # cluster.graceful_stop.min_availability: primaries
-#
-# The time to wait for the reallocation process to be finished.
+
+# The time to wait for the reallocation process to be finished
 # cluster.graceful_stop.timeout: 2h
-#
-# The force setting allows you to force a shutdown of a node when the graceful
-# shutdown process runs into the cluster.graceful_stop.timeout.
+
+# Force a shutdown if the graceful stop timeout limit has been exceeded
 # cluster.graceful_stop.force: false
-#
-# In most cases you want to allow all kinds of shards allocations.
+
+
+# Routing allocation
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# The `routing` namespace (the settings below) allows you to configure how
+# shards are allocated (routed) to specific nodes.
+
+# Enable routing for all shards, no shards, all primary shards, or new primary
+# shards only
 # cluster.routing.allocation.enable = all
-#
-# However, you can limit shard allocations to certain kinds of shards, for
-# example if you perform a rolling cluster upgrade.
-# cluster.routing.allocation.enable = new_primaries
+
+# There are more routing settings than the one listed here that allow you to
+# fine tune your setup.
+
+# For more info, see
+# <https://crate.io/reference//config/cluster.html#routing-allocation>
 
 
 # Node settings
@@ -795,7 +804,9 @@ auth:
 # While only "http", "https" and "ftp" need to be listed here for usage in URL
 # repsoitories.
 # "file" urls must be prefixed with an entry configured in ``path.repo``
-# repositories.url.allowed_urls: ["http://example.org/root/*", "https://*.mydomain.com/*?*#*"]
+# repositories.url.allowed_urls:
+#   - http://example.org/root/*
+#   - https://*.mydomain.com/*?*#*
 
 
 # PostgreSQL wire transport

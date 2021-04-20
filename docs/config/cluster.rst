@@ -1,6 +1,6 @@
 .. highlight:: sh
 
-.. _conf-cluster-settings:
+.. _conf-cluster:
 
 =====================
 Cluster-wide settings
@@ -16,10 +16,11 @@ cluster settings can be :ref:`changed at runtime
 .. contents::
    :local:
 
-.. _applying-cluster-settings:
+
+.. _conf-cluster-runtime:
 
 Non-runtime cluster-wide settings
----------------------------------
+=================================
 
 Cluster wide settings which cannot be changed at runtime need to be specified
 in the configuration of each node in the cluster.
@@ -30,10 +31,11 @@ in the configuration of each node in the cluster.
    exactly the same on every node in the cluster for proper operation of the
    cluster.
 
-.. _conf_collecting_stats:
+
+.. _conf-cluster-stats:
 
 Collecting stats
-----------------
+================
 
 .. _stats.enabled:
 
@@ -180,8 +182,10 @@ Collecting stats
     Using a very small value can cause a high load on the cluster.
 
 
+.. _conf-cluster-shard-limits:
+
 Shard limits
-------------
+============
 
 .. _cluster.max_shards_per_node:
 
@@ -205,10 +209,10 @@ Shard limits
   stability and it is therefore discouraged to raise the limit above 1000.
 
 
-.. _conf_usage_data_collector:
+.. _conf-cluster-udc:
 
 Usage-Data Collector
---------------------
+====================
 
 The settings of the Usage-Data-Collector are read-only and cannot be set during
 runtime. Please refer to :ref:`usage_data_collector` to get further information
@@ -256,10 +260,11 @@ about its usage.
 
   The URL the ping is sent to.
 
-.. _conf_graceful_stop:
+
+.. _conf-cluster-graceful-stop:
 
 Graceful stop
--------------
+=============
 
 By default, when the CrateDB process stops it simply shuts down, possibly
 making some shards unavailable which leads to a *red* cluster state and lets
@@ -313,10 +318,11 @@ nodes of the cluster:
   runs into the timeout which is specified with the
   `cluster.graceful_stop.timeout`_ setting.
 
-.. _conf_bulk_operations:
+
+.. _conf-cluster-bulk:
 
 Bulk operations
----------------
+===============
 
 SQL DML Statements involving a huge amount of rows like :ref:`sql-copy-from`,
 :ref:`ref-insert` or :ref:`ref-update` can take an enormous amount of time and
@@ -331,10 +337,11 @@ resources. The following settings change the behaviour of those queries.
   Defines the timeout of internal shard-based requests involved in the
   execution of SQL DML Statements over a huge amount of rows.
 
-.. _conf_discovery:
+
+.. _conf-cluster-discovery:
 
 Discovery
----------
+=========
 
 Data sharding and work splitting are at the core of CrateDB. This is how we
 manage to execute very fast queries over incredibly large datasets. In order
@@ -410,10 +417,10 @@ new master node is elected.
     result in data loss.
 
 
-.. _conf_host_discovery:
+.. _conf-cluster-discovery-unicast:
 
 Unicast host discovery
-......................
+----------------------
 
 As described above, CrateDB has built-in support for statically specifying a
 list of addresses that will act as the seed nodes in the discovery process
@@ -440,10 +447,11 @@ is re-elected (see `Cluster Meta Data`).
 
 See also: `Discovery`_.
 
-.. _conf_dns_discovery:
+
+.. _conf-cluster-discovery-unicast-dns:
 
 Discovery via DNS
-`````````````````
+'''''''''''''''''
 
 Crate has built-in support for discovery via DNS. To enable DNS discovery the
 ``discovery.seed_providers`` setting needs to be set to ``srv``.
@@ -479,10 +487,11 @@ would result in a list of discovery nodes ordered like::
 
   Optionally a custom port can be specified using the format ``hostname:port``.
 
-.. _conf_ec2_discovery:
+
+.. _conf-cluster-discovery-unicast-aws:
 
 Discovery on Amazon EC2
-```````````````````````
+'''''''''''''''''''''''
 
 CrateDB has built-in support for discovery via the EC2 API. To enable EC2
 discovery the ``discovery.seed_providers`` settings needs to be set to
@@ -557,10 +566,11 @@ Following settings control the discovery:
   If you have your own compatible implementation of the EC2 API service you can
   set the endpoint that should be used.
 
-.. _conf_azure_discovery:
+
+.. _conf-cluster-discovery-unicast-azure:
 
 Discovery on Microsoft Azure
-````````````````````````````
+''''''''''''''''''''''''''''
 
 CrateDB has built-in support for discovery via the Azure Virtual Machine API.
 To enable Azure discovery set the ``discovery.seed_providers`` setting to
@@ -617,10 +627,10 @@ To enable Azure discovery set the ``discovery.seed_providers`` setting to
   same subnet of the CrateDB instance.
 
 
-.. _conf_routing:
+.. _conf-cluster-allocation:
 
 Routing allocation
-------------------
+==================
 
 .. _cluster.routing.allocation.enable:
 
@@ -708,10 +718,11 @@ Routing allocation
 
   Defines how many concurrent recoveries are allowed on a node.
 
-.. _conf-routing-allocation-awareness:
+
+.. _conf-cluster-allocation-awareness:
 
 Awareness
-.........
+---------
 
 Cluster allocation awareness allows to configure :ref:`shard allocation
 <gloss-shard-allocation>` across generic attributes associated with nodes.
@@ -762,10 +773,10 @@ Cluster allocation awareness allows to configure :ref:`shard allocation
     `multi-zone setup how-to guide`_.
 
 
-.. _conf-routing-allocation-balance:
+.. _conf-cluster-allocation-balance:
 
 Balanced shards
-...............
+---------------
 
 CrateDB will attempt to balance a cluster using the weights described in this
 subsection. The cluster is considered balanced when no further allowed action
@@ -774,9 +785,9 @@ can bring the respective properties of each node closer together.
 .. NOTE::
 
     Balancing may be restricted by other settings (e.g., forced :ref:`awareness
-    <conf-routing-allocation-awareness>`, :ref:`allocation filtering
-    <conf-routing-allocation-filtering>`, and :ref:`disk-based allocation
-    <cluster.routing.allocation.disk>`).
+    <conf-cluster-allocation-awareness>`, :ref:`allocation filtering
+    <conf-cluster-allocation-filtering>`, and :ref:`disk-based allocation
+    <conf-cluster-allocation-disk>`).
 
 .. _cluster.routing.allocation.balance.shard:
 
@@ -810,10 +821,10 @@ can bring the respective properties of each node closer together.
   aggressive about optimising the shard balance.
 
 
-.. _conf-routing-allocation-filtering:
+.. _conf-cluster-allocation-filtering:
 
 Cluster-wide allocation filtering
-.................................
+---------------------------------
 
 Control which shards are :ref:`allocated <gloss-shard-allocation>` to which
 nodes.
@@ -859,10 +870,10 @@ addresses.
   contrast to include which will include a node if ANY rule matches.
 
 
-.. _cluster.routing.allocation.disk:
+.. _conf-cluster-allocation-disk:
 
 Disk-based shard allocation
-...........................
+---------------------------
 
 .. _cluster.routing.allocation.disk.threshold_enabled:
 
@@ -947,10 +958,11 @@ nodes every 30 seconds. This can also be changed by setting the
    from allocation decisions and CrateDB would attempt to allocate shards to
    other nodes, or leave shards unassigned if no suitable node can be found.
 
-.. _indices.recovery:
+
+.. _conf-cluster-recovery:
 
 Recovery
---------
+========
 
 .. _indices.recovery.max_bytes_per_sec:
 
@@ -1030,8 +1042,11 @@ Recovery
   <indices.recovery.max_bytes_per_sec>`, but is CPU-bound instead, typically
   when using transport-level security or compression.
 
+
+.. _conf-cluster-memory:
+
 Memory management
------------------
+=================
 
 .. _memory.allocation.type:
 
@@ -1050,6 +1065,14 @@ be allowed to utilize off heap buffers.
 
     Using ``off-heap`` is considered **experimental**.
 
+
+.. _conf-cluster-breakers:
+
+Circuit breakers
+================
+
+
+.. _conf-cluster-breakers-query:
 
 Query circuit breaker
 ---------------------
@@ -1081,6 +1104,8 @@ keeps working.
       This setting is deprecated and has no effect.
 
 
+.. _conf-cluster-breakers-fielddata:
+
 Field-data circuit breaker
 --------------------------
 
@@ -1100,6 +1125,8 @@ have any effect anymore.
   | *Default:*   ``1.03``
   | *Runtime:*  ``yes``
 
+
+.. _conf-cluster-breakers-request:
 
 Request circuit breaker
 -----------------------
@@ -1126,6 +1153,9 @@ exception is raised.
 
       This setting is deprecated and has no effect.
 
+
+.. _conf-cluster-breakers-accounting:
+
 Accounting circuit breaker
 --------------------------
 
@@ -1150,7 +1180,8 @@ memory used by Lucene for segments.
 
       This setting is deprecated and has no effect.
 
-.. _stats.breaker.log:
+
+.. _conf-cluster-breakers-stats:
 
 Stats circuit breakers
 ----------------------
@@ -1187,6 +1218,8 @@ each of them, the breaker limit can be set.
   completely.
 
 
+.. _conf-cluster-breakers-total:
+
 Total circuit breaker
 ---------------------
 
@@ -1203,8 +1236,11 @@ Total circuit breaker
   queries might still get aborted if several circuit breakers together would
   hit the memory limit configured in ``indices.breaker.total.limit``.
 
+
+.. _conf-cluster-thread-pools:
+
 Thread pools
-------------
+============
 
 Every node holds several thread pools to improve how threads are managed within
 a node. There are several pools, but the important ones include:
@@ -1226,8 +1262,11 @@ a node. There are several pools, but the important ones include:
   ``scaling`` ensures that a thread pool holds a dynamic number of threads that
   are proportional to the workload.
 
+
+.. _conf-cluster-thread-pools-fixed:
+
 Settings for fixed thread pools
-...............................
+-------------------------------
 
 If the type of a thread pool is set to ``fixed`` there are a few optional
 settings.
@@ -1251,8 +1290,11 @@ settings.
   Size of the queue for pending requests. A value of ``-1`` sets it to
   unbounded.
 
+
+.. _conf-cluster-metadata:
+
 Metadata
---------
+========
 
 .. _cluster.info.update.interval:
 
@@ -1263,10 +1305,11 @@ Metadata
   Defines how often the cluster collect metadata information (e.g. disk usages
   etc.) if no concrete  event is triggered.
 
-.. _metadata_gateway:
+
+.. _conf-cluster-metadata-gateway:
 
 Metadata gateway
-................
+----------------
 
 The following settings can be used to configure the behavior of the
 :ref:`metadata gateway <gloss-metadata-gateway>`.
@@ -1308,7 +1351,7 @@ The following settings can be used to configure the behavior of the
   number of nodes in the cluster.
 
 
-.. _`Active Directory application`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/
-.. _`Azure Portal`: https://portal.azure.com
+.. _Active Directory application: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/
+.. _Azure Portal: https://portal.azure.com
 .. _bootstrap checks: https://crate.io/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
 .. _multi-zone setup how-to guide: https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html
