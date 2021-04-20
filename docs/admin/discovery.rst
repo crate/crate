@@ -83,10 +83,6 @@ You can download the libraries using a simple ``build.gradle`` file:
 
     apply plugin: "java"
 
-    repositories {
-      jcenter()
-    }
-
     dependencies {
         compile('com.microsoft.azure:azure-mgmt-utility:0.9.3') {
             exclude group: 'stax', module: 'stax-api'
