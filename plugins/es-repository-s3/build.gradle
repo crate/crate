@@ -15,13 +15,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-annotations:2.6.0'
     implementation 'javax.xml.bind:jaxb-api:2.2.2'
 
-    testImplementation project(path: ':libs:dex', configuration: 'testOutput')
-    testImplementation project(path: ':server', configuration: 'testOutput')
-    testImplementation "org.mockito:mockito-core:${versions.mockito}"
-    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
-    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
-    testImplementation("org.postgresql:postgresql:${versions.jdbc}")
-    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testImplementation(testFixtures(project(':server')))
     testImplementation "junit:junit:${versions.junit}"
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'

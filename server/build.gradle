@@ -1,4 +1,5 @@
 apply plugin: 'java-library'
+apply plugin: 'java-test-fixtures'
 apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'crate-server'
@@ -52,6 +53,7 @@ dependencies {
     implementation "org.hdrhistogram:HdrHistogram:2.1.9"
     implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
 
+    implementation "joda-time:joda-time:${versions.jodatime}"
     implementation "com.google.guava:guava:${versions.guava}"
     implementation "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
     implementation "org.apache.commons:commons-math3:${versions.commonsmath}"
@@ -61,25 +63,32 @@ dependencies {
     runtimeOnly "javax.xml.bind:jaxb-api:${versions.jaxb_api}"
 
     testRuntimeOnly project(':libs:es-plugin-classloader')
-    testImplementation project(path: ':libs:dex', configuration: 'testOutput')
-
     testImplementation "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
+
     testRuntimeOnly "org.apache.lucene:lucene-codecs:${versions.lucene}"
-    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
-    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
-    testImplementation "org.mockito:mockito-core:${versions.mockito}"
-    testImplementation "org.postgresql:postgresql:${versions.jdbc}"
     testImplementation 'com.pholser:junit-quickcheck-core:0.9'
     testImplementation 'com.pholser:junit-quickcheck-generators:0.9'
     testImplementation 'org.skyscreamer:jsonassert:1.3.0'
     testImplementation "junit:junit:${versions.junit}"
-    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testFixturesApi "org.junit.jupiter:junit-jupiter:${versions.junit5}"
     testRuntimeOnly ("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
     }
 
     // Required to use SelfSignedCertificate from netty
     testRuntimeOnly "org.bouncycastle:bcpkix-jdk15on:1.68"
+
+    testFixturesApi(testFixtures(project(':libs:dex')))
+    testFixturesApi "org.apache.lucene:lucene-test-framework:${versions.lucene}"
+    testFixturesApi "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testFixturesApi "org.mockito:mockito-core:${versions.mockito}"
+    testFixturesApi "org.postgresql:postgresql:${versions.jdbc}"
+    testFixturesImplementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    testFixturesImplementation "joda-time:joda-time:${versions.jodatime}"
+    testFixturesImplementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
+    testFixturesImplementation "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
+    testFixturesImplementation "com.google.guava:guava:${versions.guava}"
+    testFixturesImplementation "org.apache.lucene:lucene-analyzers-common:${versions.lucene}"
 }
 
 //noinspection GroovyAssignabilityCheck
