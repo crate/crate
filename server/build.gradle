@@ -4,10 +4,7 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'crate-server'
 
-configurations {
-    // export of test so that other modules can use the utilities there as well.
-    testOutput
-}
+idea.module.testSourceDirs += sourceSets.testFixtures.java.srcDirs
 
 dependencies {
     api project(':libs:dex')
@@ -91,12 +88,6 @@ dependencies {
     testFixturesImplementation "org.apache.lucene:lucene-analyzers-common:${versions.lucene}"
 }
 
-//noinspection GroovyAssignabilityCheck
-task testOutputJar (type: Jar) {
-    classifier = 'server-testing'
-    from sourceSets.test.output
-}
-
 task getVersion(dependsOn: 'classes', type: JavaExec) {
     def stdout = new ByteArrayOutputStream()
     classpath = sourceSets.main.runtimeClasspath
@@ -128,10 +119,6 @@ task getVersion(dependsOn: 'classes', type: JavaExec) {
         logger.quiet("buildDate:      " + buildDate)
         logger.quiet("buildShortHash: " + buildShortHash)
     }
-}
-
-artifacts {
-    testOutput testOutputJar
 }
 
 test {

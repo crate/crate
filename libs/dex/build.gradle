@@ -3,6 +3,8 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'crate-dex'
 
+idea.module.testSourceDirs += sourceSets.testFixtures.java.srcDirs
+
 dependencies {
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     implementation project(':libs:shared')
