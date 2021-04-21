@@ -111,164 +111,7 @@
 #     node.attr.rack: ${RACK_ENV_VAR}
 
 
-# JMX monitoring plugin
-# -----------------------------------------------------------------------------
-
-# Enables the `sys.jobs`, `sys.operations`, `sys.jobs_log`, and
-# `sys.operations_log` tables
-# stats.enabled: true
-
-# For more info, see <https://crate.io/reference/admin/monitoring.html>
-
-
-# Authentication
-# -----------------------------------------------------------------------------
-
-
-# Host-based access
-# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-# Allow authenticated access from specific named hosts (default value: `false`)
-auth.host_based.enabled: true
-
-# Host-based access is configured with a config map specifying users,
-# addresses, and authentication methods.
-auth:
-  host_based:
-    config:
-      0:
-        user: crate
-        address: _local_
-        method: trust
-      99:
-        method: password
-
-# The stock configuration (above) works for a common use case:
-#
-# - The superuser (`crate`) has trusted access from `localhost` (here specified
-#   by the named interface `_local`).
-#
-# - All other users require a username and password combination to authenticate
-#   from anywhere (no configured `address` effectively allows all addresses).
-#
-# NOTE: Host-based authentication is only possible via the PostgreSQL wire
-# protocol. Using the stock configuration, it is not possible to connect from
-# any address except `localhost`.
-
-# For more info, see <https://crate.io/reference/admin/auth/hba.html>
-
-
-# Trust-based authentication
-# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-# When trust based authentication is used, the server takes the username
-# provided by the client as is without further validation.
-#
-# The HTTP implementation extracts the username from the HTTP Basic
-# Authentication (`Authorization: Basic ...`) request header. If the
-# `Authorization` header is not set, a default username can be specified with
-# the following configuration:
-#
-# auth:
-#   trust:
-#     http_default_user: dustin
-
-# For more info, see
-# <https://crate.io/reference/admin/auth/methods.html#trust-method>
-
-
-# User-defined functions (UDFs)
-# -----------------------------------------------------------------------------
-
-# Disable JavaScript user-defined functions
-# lang.js.enabled: false
-
-# For more info, see
-# <https://crate.io/reference/general/user-defined-functions.html>
-
-
-# Secured communications (SSL/TLS)
-# -----------------------------------------------------------------------------
-
-# Enable encrypted communication for the HTTP endpoints
-# ssl.http.enabled: true
-
-# Enable encrypted communication for the PostgreSQL wire protocol
-# ssl.psql.enabled: true
-
-# The full path to the node keystore file
-# ssl.keystore_filepath: /path/to/keystore_file.jks
-
-# The password used to decrypt the keystore_file.jks
-# ssl.keystore_password: myKeyStorePasswd
-
-# The password entered when running the `keytool -genkey` command (if
-# different from `keystore_password`)
-# ssl.keystore_key_password: myKeyStorePasswd
-
-# For more info, see <https://crate.io/reference/admin/ssl.html>
-
-
-# Optional configuration for the truststore
-# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-# The full path to the node truststore file
-# ssl.truststore_filepath: /path/to/truststore_file.jks
-
-# The password used to decrypt the truststore_file.jks
-# ssl.truststore_password: myTrustStorePasswd
-
-# The frequency at which SSL files are monitored for changes
-# ssl.resource_poll_interval: 5s
-
-
-# Cluster settings
-# -----------------------------------------------------------------------------
-
-# The cluster name identifies your cluster for auto-discovery. If you're
-# running multiple clusters on the same network, make sure to use a unique name
-# for each cluster.
-# cluster.name: crate
-
-
-# Graceful stop
-# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-# The `graceful_stop` namespace (see below) allows you to configure how
-# individual nodes perform the graceful stop procedure.
-
-# For more info, see
-# <https://crate.io/reference/config/cluster.html##graceful-stop>
-
-# The minimum amount of cluster data available before nodes will perform a
-# graceful stop
-# cluster.graceful_stop.min_availability: primaries
-
-# The time to wait for the reallocation process to be finished
-# cluster.graceful_stop.timeout: 2h
-
-# Force a shutdown if the graceful stop timeout limit has been exceeded
-# cluster.graceful_stop.force: false
-
-
-# Routing allocation
-# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-# The `routing` namespace (the settings below) allows you to configure how
-# shards are allocated (routed) to specific nodes.
-
-# Enable routing for all shards, no shards, all primary shards, or new primary
-# shards only
-# cluster.routing.allocation.enable = all
-
-# There are more routing settings than the one listed here that allow you to
-# fine tune your setup.
-
-# For more info, see
-# <https://crate.io/reference//config/cluster.html#routing-allocation>
-
-
-# Node settings
+# Node-specific settings
 # -----------------------------------------------------------------------------
 
 # Node names are generated dynamically on startup, so you're relieved from
@@ -320,61 +163,8 @@ auth:
 # node.store.allow_mmap: true
 
 
-# Paths
-# -----------------------------------------------------------------------------
-
-# Relative paths are relative to CRATE_HOME. Absolute paths override this
-# behavior.
-
-
-# Path to directory containing configuration (this file and log4j2.properties):
-# path.conf: config
-
-# Path to directory where to store table data allocated for this node.
-# path.data: data
-#
-# Can optionally include more than one location, causing data to be striped
-# across the locations (a la RAID 0) on a file level, favouring locations with
-# most free space on creation. For example:
-# path.data: /path/to/data1,/path/to/data2
-
-# Path to log files:
-# path.logs: logs
-
-# Alternative syntax for configuring path settings
-# path:
-#   logs: /var/log/crate
-#   data: /var/lib/crate
-
-# Path to directory where to store blob data allocated for this node.
-# blobs.path: blobs
-
-# See also: path.repo (further down)
-
-
-# Memory
-# -----------------------------------------------------------------------------
-
-# CrateDB performs poorly when JVM starts swapping: you should ensure that it
-# _never_ swaps.
-#
-# Set this property to true to lock the memory:
-# bootstrap.memory_lock: true
-
-# Make sure that the machine has enough memory to allocate for CrateDB, leaving
-# enough memory for the operating system itself.
-# You can allocate memory for CrateDB as follows:
-#  - Set CRATE_MIN_MEM and CRATE_MAX_MEM environment variables
-#    (We recommend to set MIN and MAX to the same value).
-#  - Set CRATE_HEAP_SIZE environment varaible. This sets MIN and MAX to the
-#    same value for you.
-#
-# You should also make sure that the CrateDB process is allowed to lock the
-# memory, eg. by using `ulimit -l unlimited`.
-
-
-# Network and HTTP
-# -----------------------------------------------------------------------------
+# Network and HTTP -> broken up into Hosts and Ports
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # CrateDB, by default, binds itself to the loopback addresses on the system,
 # and listens on port [4200-4300] for HTTP traffic and on port [4300-4400] for
@@ -410,71 +200,271 @@ auth:
 # http.max_content_length: 100mb
 
 
-# Metadata gateway
+# PostgreSQL wire transport --> merge into above
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# CrateDB supports the PostgreSQL wire protocol v3 and emulates a PostgreSQL
+# server v10.5. For further information read our documentation:
+# https://crate.io/reference/protocols/postgres.html
+#
+# This allows you to connect to CrateDB using one of the many Postgres tools
+# and libraries
+# psql.enabled: true
+# psql.port: 5432
+
+
+# Paths
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# Relative paths are relative to CRATE_HOME. Absolute paths override this
+# behavior.
+
+
+# Path to directory containing configuration (this file and log4j2.properties):
+# path.conf: config
+
+# Path to directory where to store table data allocated for this node.
+# path.data: data
+#
+# Can optionally include more than one location, causing data to be striped
+# across the locations (a la RAID 0) on a file level, favouring locations with
+# most free space on creation. For example:
+# path.data: /path/to/data1,/path/to/data2
+
+# Path to log files:
+# path.logs: logs
+
+# Alternative syntax for configuring path settings
+# path:
+#   logs: /var/log/crate
+#   data: /var/lib/crate
+
+# Path to directory where to store blob data allocated for this node.
+# blobs.path: blobs
+
+# See also: path.repo (further down)
+
+
+# Memory
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# CrateDB performs poorly when JVM starts swapping: you should ensure that it
+# _never_ swaps.
+#
+# Set this property to true to lock the memory:
+# bootstrap.memory_lock: true
+
+# Make sure that the machine has enough memory to allocate for CrateDB, leaving
+# enough memory for the operating system itself.
+# You can allocate memory for CrateDB as follows:
+#  - Set CRATE_MIN_MEM and CRATE_MAX_MEM environment variables
+#    (We recommend to set MIN and MAX to the same value).
+#  - Set CRATE_HEAP_SIZE environment varaible. This sets MIN and MAX to the
+#    same value for you.
+#
+# You should also make sure that the CrateDB process is allowed to lock the
+# memory, eg. by using `ulimit -l unlimited`.
+
+
+# Garbage collection (GC) logging
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# monitor.jvm.gc.collector.young.warn: 1000ms
+# monitor.jvm.gc.collector.young.info: 700ms
+# monitor.jvm.gc.collector.young.debug: 400ms
+
+# monitor.jvm.gc.collector.old.warn: 10s
+# monitor.jvm.gc.collector.old.info: 5s
+# monitor.jvm.gc.collector.old.debug: 2s
+
+
+# Authentication
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+# Host-based access
+# .............................................................................
+
+# Allow authenticated access from specific named hosts (default value: `false`)
+auth.host_based.enabled: true
+
+# Host-based access is configured with a config map specifying users,
+# addresses, and authentication methods.
+auth:
+  host_based:
+    config:
+      0:
+        user: crate
+        address: _local_
+        method: trust
+      99:
+        method: password
+
+# The stock configuration (above) works for a common use case:
+#
+# - The superuser (`crate`) has trusted access from `localhost` (here specified
+#   by the named interface `_local`).
+#
+# - All other users require a username and password combination to authenticate
+#   from anywhere (no configured `address` effectively allows all addresses).
+#
+# NOTE: Host-based authentication is only possible via the PostgreSQL wire
+# protocol. Using the stock configuration, it is not possible to connect from
+# any address except `localhost`.
+
+# For more info, see <https://crate.io/reference/admin/auth/hba.html>
+
+
+# Trust-based authentication
+# .............................................................................
+
+# When trust based authentication is used, the server takes the username
+# provided by the client as is without further validation.
+#
+# The HTTP implementation extracts the username from the HTTP Basic
+# Authentication (`Authorization: Basic ...`) request header. If the
+# `Authorization` header is not set, a default username can be specified with
+# the following configuration:
+#
+# auth:
+#   trust:
+#     http_default_user: dustin
+
+# For more info, see
+# <https://crate.io/reference/admin/auth/methods.html#trust-method>
+
+
+# Secured communications (SSL/TLS)
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# Enable encrypted communication for the HTTP endpoints
+# ssl.http.enabled: true
+
+# Enable encrypted communication for the PostgreSQL wire protocol
+# ssl.psql.enabled: true
+
+# The full path to the node keystore file
+# ssl.keystore_filepath: /path/to/keystore_file.jks
+
+# The password used to decrypt the keystore_file.jks
+# ssl.keystore_password: myKeyStorePasswd
+
+# The password entered when running the `keytool -genkey` command (if
+# different from `keystore_password`)
+# ssl.keystore_key_password: myKeyStorePasswd
+
+# For more info, see <https://crate.io/reference/admin/ssl.html>
+
+
+# Optional configuration for the truststore
+# .............................................................................
+
+# The full path to the node truststore file
+# ssl.truststore_filepath: /path/to/truststore_file.jks
+
+# The password used to decrypt the truststore_file.jks
+# ssl.truststore_password: myTrustStorePasswd
+
+# The frequency at which SSL files are monitored for changes
+# ssl.resource_poll_interval: 5s
+
+
+# Backup and restore (aka snapshots) -> Repositories
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# Paths where Repositories of type fs may be created:
+# path.repo: /path/to/shared/fs,/other/shared/fs
+
+# List of urls that can be used with the url repository type
+# Wildcards are supported in the host, path, query and fragment parts.
+#
+# Supported protocols are: "http", "https", "ftp", "file" and "jar"
+# While only "http", "https" and "ftp" need to be listed here for usage in URL
+# repsoitories.
+# "file" urls must be prefixed with an entry configured in ``path.repo``
+# repositories.url.allowed_urls:
+#   - http://example.org/root/*
+#   - https://*.mydomain.com/*?*#*
+
+
+# User-defined functions (UDFs)
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# Disable JavaScript user-defined functions
+# lang.js.enabled: false
+
+# For more info, see
+# <https://crate.io/reference/general/user-defined-functions.html>
+
+
+# Cluster settings -> Cluster-specific settings
 # -----------------------------------------------------------------------------
 
-# The gateway persists cluster meta data on disk every time the meta data
-# changes. This data is stored persistently across full cluster restarts and
-# recovered after nodes are started again.
-
-# Defines the number of nodes that need to be started before any cluster state
-# recovery will start.
-# gateway.recover_after_nodes: 2
-
-# Defines the time to wait before starting the recovery once the number of
-# nodes defined in gateway.recover_after_nodes are started.
-# gateway.recover_after_time: 5m
-
-# Defines how many nodes should be waited for until the cluster state is
-# recovered immediately. The value should be equal to the number of nodes in
-# the cluster.
-# gateway.expected_nodes: 3
+# The cluster name identifies your cluster for auto-discovery. If you're
+# running multiple clusters on the same network, make sure to use a unique name
+# for each cluster.
+# cluster.name: crate
 
 
-# Recovery throttling
-# -----------------------------------------------------------------------------
+# Shard limits
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-# These settings allow to control the process of shards allocation between
-# nodes during initial recovery, replica allocation, rebalancing, or when
-# adding and removing nodes.
 
-# Set the number of concurrent recoveries happening on a node:
-#
-# 1. During the initial recovery
-# cluster.routing.allocation.node_initial_primaries_recoveries: 4
-#
-# 2. During adding/removing nodes, rebalancing, etc
-# cluster.routing.allocation.node_concurrent_recoveries: 2
+# Usage-data collector (UDC)
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-# Specifies the maximum number of bytes that can be transferred during shard
-# recovery per seconds. (by default 40mb):
-# indices.recovery.max_bytes_per_sec: 40mb
+# If enabled CrateDB will send usage data to the url stored in setting
+# `udc.url`. The sent usage data doesn't contain any confidential information.
 
-# Specifies the time to wait after an issue caused by cluster state syncing
-# before retrying to recover.
-# indices.recovery.retry_delay_state_sync: 500ms
+# enable/disable usage-data collection at all
+# udc.enabled: true
 
-# Specifies the time to wait after an issue caused by the network before
-# retrying to recover.
-# indices.recovery.retry_delay_network: 5s
+# The delay for first ping after start-up.
+# udc.initial_delay: 10m
 
-# Specifies the interval after which idle recoveries will be failed.
-# indices.recovery.recovery_activity_timeout: 15m
+# The interval a ping is sent.
+# udc.interval: 24h
 
-# Specifies the timeout for internal requests made as part of the recovery.
-# indices.recovery.internal_action_timeout: 15m
+# The url the ping is sent to.
+# udc.url: https://udc.crate.io/
 
-# Specifies the timeout for internal requests made as part of the recovery that
-# are expected to take a long time.
-# indices.recovery.internal_long_action_timeout: 30m
 
-# Controls the number of file chunk requests that can be sent in parallel per
-# recovery.
-# indices.recovery.max_concurrent_file_chunks: 2
+# Graceful stop
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# The `graceful_stop` namespace (see below) allows you to configure how
+# individual nodes perform the graceful stop procedure.
+
+# For more info, see
+# <https://crate.io/reference/config/cluster.html##graceful-stop>
+
+# The minimum amount of cluster data available before nodes will perform a
+# graceful stop
+# cluster.graceful_stop.min_availability: primaries
+
+# The time to wait for the reallocation process to be finished
+# cluster.graceful_stop.timeout: 2h
+
+# Force a shutdown if the graceful stop timeout limit has been exceeded
+# cluster.graceful_stop.force: false
+
+
+# SQL -> Bulk
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# Defines whether SQL statements resulting in modification operations are
+# allowed on this node.
+# node.sql.read_only: false
+
+# A SQL DML operation over a huge amount of rows (such as INSERT FROM SUBQUERY,
+# UPDATE or COPY FROM) can take an enormous amount of time and resources of
+# your cluster. To execute such queries more failsafe even with slower hardware
+# increase this timeout
+# bulk.request_timeout: 1m
 
 
 # Discovery settings
-# -----------------------------------------------------------------------------
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # Discovery infrastructure ensures nodes can be found within a cluster and a
 # master node is elected. Unicast discovery is the default.
@@ -497,7 +487,7 @@ auth:
 
 
 # Discovery via DNS
-# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+# .............................................................................
 
 # Service discovery allows CrateDB to look up hosts for unicast discovery via
 # SRV DNS records.
@@ -511,7 +501,8 @@ auth:
 
 
 # EC2 discovery
-# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+# .............................................................................
+
 
 # EC2 discovery allows CrateDB to look up hosts for unicast discovery via the
 # AWS EC2 API.
@@ -556,7 +547,7 @@ auth:
 
 
 # Azure discovery
-# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+# .............................................................................
 
 # Azure discovery allows CrateDB to look up hosts for unicast discovery via the
 # Azure API.
@@ -581,12 +572,25 @@ auth:
 # discovery.azure.method: vnet
 
 
-# Sharding
-# -----------------------------------------------------------------------------
-
-
 # Routing allocation
-# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# The `routing` namespace (the settings below) allows you to configure how
+# shards are allocated (routed) to specific nodes.
+
+# Enable routing for all shards, no shards, all primary shards, or new primary
+# shards only
+# cluster.routing.allocation.enable = all
+
+# There are more routing settings than the one listed here that allow you to
+# fine tune your setup.
+
+# For more info, see
+# <https://crate.io/reference//config/cluster.html#routing-allocation>
+
+
+# Routing allocation -> merged into above
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # Allows to control shard allocation.
 # Options are: `all | new_primaries`
@@ -620,7 +624,7 @@ auth:
 
 
 # Allocation awareness
-# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+# .............................................................................
 
 # Cluster allocation awareness allows to configure shard and replicas
 # allocation across generic attributes associated with nodes.
@@ -642,7 +646,7 @@ auth:
 
 
 # Shard balancing
-# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+# .............................................................................
 
 # Defines the weight factor for shards allocated on a node (float).
 # cluster.routing.allocation.balance.shard: 0.45f
@@ -661,7 +665,7 @@ auth:
 
 
 # Cluster-wide allocation filtering
-# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+# .............................................................................
 
 # Place new shards only on nodes where one of the specified values matches the
 # attribute.
@@ -678,7 +682,7 @@ auth:
 
 
 # Disk-based shard allocation
-# """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+# .............................................................................
 
 # Prevent shard allocation on nodes depending on the disk usage.
 # cluster.routing.allocation.disk.threshold_enabled: true
@@ -700,8 +704,64 @@ auth:
 # cluster.routing.allocation.disk.watermark.flood_stage: 95%
 
 
+# Recovery throttling -> Recovery
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# These settings allow to control the process of shards allocation between
+# nodes during initial recovery, replica allocation, rebalancing, or when
+# adding and removing nodes.
+
+# Set the number of concurrent recoveries happening on a node:
+#
+# 1. During the initial recovery
+# cluster.routing.allocation.node_initial_primaries_recoveries: 4
+#
+# 2. During adding/removing nodes, rebalancing, etc
+# cluster.routing.allocation.node_concurrent_recoveries: 2
+
+# Specifies the maximum number of bytes that can be transferred during shard
+# recovery per seconds. (by default 40mb):
+# indices.recovery.max_bytes_per_sec: 40mb
+
+# Specifies the time to wait after an issue caused by cluster state syncing
+# before retrying to recover.
+# indices.recovery.retry_delay_state_sync: 500ms
+
+# Specifies the time to wait after an issue caused by the network before
+# retrying to recover.
+# indices.recovery.retry_delay_network: 5s
+
+# Specifies the interval after which idle recoveries will be failed.
+# indices.recovery.recovery_activity_timeout: 15m
+
+# Specifies the timeout for internal requests made as part of the recovery.
+# indices.recovery.internal_action_timeout: 15m
+
+# Specifies the timeout for internal requests made as part of the recovery that
+# are expected to take a long time.
+# indices.recovery.internal_long_action_timeout: 30m
+
+# Controls the number of file chunk requests that can be sent in parallel per
+# recovery.
+# indices.recovery.max_concurrent_file_chunks: 2
+
+
+# Query circuit breaker
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+# The circuit breaker allows estimation of needed memory required by an SQL
+# query.
+
+# Specifies the limit for the query breaker.
+# indices.breaker.query.limit: 60%
+
+# A constant that all query data estimations are multiplied with to determine a
+# final estimation.
+# indices.breaker.query.overhead: 1.09
+
+
 # Field-data circuit breaker
-# -----------------------------------------------------------------------------
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # The field-data circuit breaker allows estimation of needed memory required
 # for loading field data into memory.
@@ -715,7 +775,7 @@ auth:
 
 
 # Threadpools
-# -----------------------------------------------------------------------------
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # Every node holds several thread pools to improve how threads are managed
 # within a node. There are several pools, but the important ones include:
@@ -725,98 +785,55 @@ auth:
 
 
 # Metadata
-# -----------------------------------------------------------------------------
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # Defines how often the cluster collection metadata information (e.g. disk
 # usages etc.) if no concrete event is triggered.
 # cluster.info.update.interval: 30s
 
 
-# Garbage collection (GC) logging
+# Metadata gateway
+# .............................................................................
+
+# The gateway persists cluster meta data on disk every time the meta data
+# changes. This data is stored persistently across full cluster restarts and
+# recovered after nodes are started again.
+
+# Defines the number of nodes that need to be started before any cluster state
+# recovery will start.
+# gateway.recover_after_nodes: 2
+
+# Defines the time to wait before starting the recovery once the number of
+# nodes defined in gateway.recover_after_nodes are started.
+# gateway.recover_after_time: 5m
+
+# Defines how many nodes should be waited for until the cluster state is
+# recovered immediately. The value should be equal to the number of nodes in
+# the cluster.
+# gateway.expected_nodes: 3
+
+
+# Session settings (new)
 # -----------------------------------------------------------------------------
 
-# monitor.jvm.gc.collector.young.warn: 1000ms
-# monitor.jvm.gc.collector.young.info: 700ms
-# monitor.jvm.gc.collector.young.debug: 400ms
 
-# monitor.jvm.gc.collector.old.warn: 10s
-# monitor.jvm.gc.collector.old.info: 5s
-# monitor.jvm.gc.collector.old.debug: 2s
-
-
-# SQL
+# Logging (new)
 # -----------------------------------------------------------------------------
 
-# Defines whether SQL statements resulting in modification operations are
-# allowed on this node.
-# node.sql.read_only: false
 
-# A SQL DML operation over a huge amount of rows (such as INSERT FROM SUBQUERY,
-# UPDATE or COPY FROM) can take an enormous amount of time and resources of
-# your cluster. To execute such queries more failsafe even with slower hardware
-# increase this timeout
-# bulk.request_timeout: 1m
-
-
-# Query circuit breaker
+# Environment variables (new)
 # -----------------------------------------------------------------------------
 
-# The circuit breaker allows estimation of needed memory required by an SQL
-# query.
 
-# Specifies the limit for the query breaker.
-# indices.breaker.query.limit: 60%
-
-# A constant that all query data estimations are multiplied with to determine a
-# final estimation.
-# indices.breaker.query.overhead: 1.09
-
-
-# Usage-data collector (UDC)
+# Plugins
 # -----------------------------------------------------------------------------
 
-# If enabled CrateDB will send usage data to the url stored in setting
-# `udc.url`. The sent usage data doesn't contain any confidential information.
 
-# enable/disable usage-data collection at all
-# udc.enabled: true
+# JMX monitoring plugin
+# ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-# The delay for first ping after start-up.
-# udc.initial_delay: 10m
+# Enables the `sys.jobs`, `sys.operations`, `sys.jobs_log`, and
+# `sys.operations_log` tables
+# stats.enabled: true
 
-# The interval a ping is sent.
-# udc.interval: 24h
-
-# The url the ping is sent to.
-# udc.url: https://udc.crate.io/
-
-
-# Backup and restore (aka snapshots)
-# -----------------------------------------------------------------------------
-
-# Paths where Repositories of type fs may be created:
-# path.repo: /path/to/shared/fs,/other/shared/fs
-
-# List of urls that can be used with the url repository type
-# Wildcards are supported in the host, path, query and fragment parts.
-#
-# Supported protocols are: "http", "https", "ftp", "file" and "jar"
-# While only "http", "https" and "ftp" need to be listed here for usage in URL
-# repsoitories.
-# "file" urls must be prefixed with an entry configured in ``path.repo``
-# repositories.url.allowed_urls:
-#   - http://example.org/root/*
-#   - https://*.mydomain.com/*?*#*
-
-
-# PostgreSQL wire transport
-# -----------------------------------------------------------------------------
-
-# CrateDB supports the PostgreSQL wire protocol v3 and emulates a PostgreSQL
-# server v10.5. For further information read our documentation:
-# https://crate.io/reference/protocols/postgres.html
-#
-# This allows you to connect to CrateDB using one of the many Postgres tools
-# and libraries
-# psql.enabled: true
-# psql.port: 5432
+# For more info, see <https://crate.io/reference/admin/monitoring.html>
