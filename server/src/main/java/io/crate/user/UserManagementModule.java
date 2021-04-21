@@ -33,6 +33,5 @@ public class UserManagementModule extends AbstractModule {
         bind(TransportAlterUserAction.class).asEagerSingleton();
         bind(TransportPrivilegesAction.class).asEagerSingleton();
         bind(UserManager.class).to(UserManagerService.class).asEagerSingleton();
-        bind(UserLookup.class).to(UserLookupService.class).asEagerSingleton();
     }
 }

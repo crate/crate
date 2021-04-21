@@ -81,10 +81,10 @@ import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.metadata.TemplateUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.BatchedRerouteService;
 import org.elasticsearch.cluster.routing.LazilyInitializedRerouteService;
 import org.elasticsearch.cluster.routing.RerouteService;
-import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdMonitor;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.StopWatch;
@@ -159,6 +159,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.auth.AuthSettings;
+import io.crate.auth.Authentication;
+import io.crate.auth.HostBasedAuthentication;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
@@ -167,8 +171,10 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.netty.EventLoopGroups;
-import io.crate.types.DataTypes;
 import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.types.DataTypes;
+import io.crate.user.UserLookup;
+import io.crate.user.UserLookupService;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used
@@ -449,6 +455,11 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(ActionPlugin.class));
             modules.add(actionModule);
 
+            UserLookup userLookup = new UserLookupService(clusterService);
+            var authentication = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)
+                ? new HostBasedAuthentication(settings, userLookup)
+                : new AlwaysOKAuthentication(userLookup);
+
             final SslContextProvider sslContextProvider = new SslContextProvider(settings);
             final EventLoopGroups eventLoopGroups = new EventLoopGroups();
             final NetworkModule networkModule = new NetworkModule(
@@ -462,6 +473,7 @@ public class Node implements Closeable {
                 xContentRegistry,
                 networkService,
                 eventLoopGroups,
+                authentication,
                 sslContextProvider,
                 client);
             Collection<UnaryOperator<Map<String, Metadata.Custom>>> customMetadataUpgraders =
@@ -565,6 +577,8 @@ public class Node implements Closeable {
                     b.bind(EventLoopGroups.class).toInstance(eventLoopGroups);
                     b.bind(SslContextProvider.class).toInstance(sslContextProvider);
                     b.bind(RerouteService.class).toInstance(rerouteService);
+                    b.bind(UserLookup.class).toInstance(userLookup);
+                    b.bind(Authentication.class).toInstance(authentication);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                 }
             );

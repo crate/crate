@@ -46,6 +46,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.TransportSettings;
 
+import io.crate.auth.AuthSettings;
+import io.crate.auth.Authentication;
+import io.crate.auth.Protocol;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.BorrowedItem;
 import io.crate.netty.EventLoopGroups;
@@ -112,8 +115,10 @@ public class Netty4Transport extends TcpTransport {
     private final Map<String, ServerBootstrap> serverBootstraps = newConcurrentMap();
     private final EventLoopGroups eventLoopGroups;
     private final SslContextProvider sslContextProvider;
+    private final Authentication authentication;
 
     private BorrowedItem<EventLoopGroup> eventLoopGroup;
+
 
 
     public Netty4Transport(Settings settings,
@@ -124,9 +129,11 @@ public class Netty4Transport extends TcpTransport {
                            NamedWriteableRegistry namedWriteableRegistry,
                            CircuitBreakerService circuitBreakerService,
                            EventLoopGroups eventLoopGroups,
+                           Authentication authentication,
                            SslContextProvider sslContextProvider) {
         super(settings, version, threadPool, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService);
         Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
+        this.authentication = authentication;
         this.eventLoopGroups = eventLoopGroups;
         this.sslContextProvider = sslContextProvider;
 
@@ -363,13 +370,17 @@ public class Netty4Transport extends TcpTransport {
                     break;
 
                 case ON: {
-                    SslContext sslContext = sslContextProvider.getServerContext();
+                    SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
                     SslHandler sslHandler = sslContext.newHandler(ch.alloc());
                     ch.pipeline().addLast(sslHandler);
                     break;
                 }
                 default:
                     throw new AssertionError("Unexpected SSLMode: " + sslMode);
+            }
+
+            if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)) {
+                ch.pipeline().addLast("hba", new HostBasedAuthHandler(authentication));
             }
             addClosedExceptionLogger(ch);
             Netty4TcpChannel nettyTcpChannel = new Netty4TcpChannel(ch, true, name, ch.newSucceededFuture());
@@ -379,6 +390,7 @@ public class Netty4Transport extends TcpTransport {
             ch.pipeline().addLast("size", new Netty4SizeHeaderFrameDecoder());
             ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(Netty4Transport.this));
         }
+
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {

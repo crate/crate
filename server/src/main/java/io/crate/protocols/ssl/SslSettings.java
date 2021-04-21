@@ -69,8 +69,11 @@ public final class SslSettings {
 
         static SSLMode parse(String value) {
             return switch (value.toLowerCase(Locale.ENGLISH)) {
+                // allow true/false as well because YAML `on` is interpreted as true
                 case "on" -> ON;
+                case "true" -> ON;
                 case "off" -> OFF;
+                case "false" -> OFF;
                 case "dual" -> DUAL;
                 default -> throw new IllegalArgumentException(value + " is not a valid SSL mode setting");
             };
