@@ -35,6 +35,7 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 
+import io.crate.auth.Authentication;
 import io.crate.netty.EventLoopGroups;
 import io.crate.protocols.ssl.SslContextProvider;
 
@@ -56,6 +57,7 @@ public interface NetworkPlugin {
                                                            NamedWriteableRegistry namedWriteableRegistry,
                                                            NetworkService networkService,
                                                            EventLoopGroups eventLoopGroups,
+                                                           Authentication authentication,
                                                            SslContextProvider sslContextProvider) {
         return Collections.emptyMap();
     }

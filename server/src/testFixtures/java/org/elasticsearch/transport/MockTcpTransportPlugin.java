@@ -28,6 +28,7 @@ import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.auth.Authentication;
 import io.crate.netty.EventLoopGroups;
 import io.crate.protocols.ssl.SslContextProvider;
 
@@ -48,6 +49,7 @@ public class MockTcpTransportPlugin extends Plugin implements NetworkPlugin {
                                                           NamedWriteableRegistry namedWriteableRegistry,
                                                           NetworkService networkService,
                                                           EventLoopGroups eventLoopGroups,
+                                                          Authentication authentication,
                                                           SslContextProvider sslContextProvider) {
         return Collections.singletonMap(MOCK_TCP_TRANSPORT_NAME,
             () -> new MockTcpTransport(settings, threadPool, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService));

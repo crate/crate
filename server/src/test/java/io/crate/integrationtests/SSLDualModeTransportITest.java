@@ -67,32 +67,32 @@ public class SSLDualModeTransportITest extends SQLIntegrationTestCase {
             .put(super.nodeSettings(nodeOrdinal))
             .put(sslSettings);
 
-        if (nodeOrdinal == 1) {
+        if (nodeOrdinal > 0) {
             builder.put(SslSettings.SSL_TRANSPORT_MODE.getKey(), "off");
         }
         return builder.build();
     }
 
     @Test
-    public void test_dual_mode_on_first_node_allows_cluster_to_form_if_second_node_has_no_ssl() throws Exception {
+    public void test_dual_mode_on_first_node_allows_cluster_to_form_if_other_nodes_have_no_ssl() throws Exception {
         execute("select count(*) from sys.nodes");
         assertThat(response.rows()[0][0], is(2L));
 
         SslContextProvider sslContextProvider = new SslContextProvider(sslSettings);
         SSLContext sslContext = sslContextProvider.jdkSSLContext();
         String[] nodeNames = internalCluster().getNodeNames();
-        String node1 = nodeNames[0];
+        String nodeName1 = nodeNames[0];
         {
-            var transport = internalCluster().getInstance(Transport.class, node1);
+            var transport = internalCluster().getInstance(Transport.class, nodeName1);
             var publishAddress = transport.boundAddress().publishAddress();
             var address = publishAddress.address();
             ProbeResult probeResult = ConnectionTest.probeSSL(sslContext, address);
             assertThat(probeResult, is(ProbeResult.SSL_AVAILABLE));
         }
 
-        String node2 = nodeNames[1];
+        String nodeName2 = nodeNames[1];
         {
-            var transport = internalCluster().getInstance(Transport.class, node2);
+            var transport = internalCluster().getInstance(Transport.class, nodeName2);
             var publishAddress = transport.boundAddress().publishAddress();
             var address = publishAddress.address();
             ProbeResult probeResult = ConnectionTest.probeSSL(sslContext, address);
