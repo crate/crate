@@ -79,6 +79,13 @@ public class SSLDualModeTransportITest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         Builder builder = Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
+            .put("auth.host_based.enabled", true)
+            .put("auth.host_based.config.a.method", "cert")
+            .put("auth.host_based.config.a.protocol", "transport")
+            .put("auth.host_based.config.b.method", "trust")
+            .put("auth.host_based.config.b.protocol", "http")
+            .put("auth.host_based.config.c.method", "trust")
+            .put("auth.host_based.config.c.protocol", "pg")
             .put(sslSettings);
 
         if (nodeOrdinal == 1) {

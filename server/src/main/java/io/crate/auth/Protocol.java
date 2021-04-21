@@ -24,7 +24,8 @@ package io.crate.auth;
 public enum Protocol {
 
     POSTGRES("pg"),
-    HTTP("http");
+    HTTP("http"),
+    TRANSPORT("transport");
 
     private final String protocolName;
 

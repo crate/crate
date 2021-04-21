@@ -46,6 +46,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.TransportSettings;
 
+import io.crate.auth.Protocol;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.BorrowedItem;
 import io.crate.netty.EventLoopGroups;
@@ -313,7 +314,7 @@ public class Netty4Transport extends TcpTransport {
                     var probeResult = ConnectionTest.probeDualMode(address);
                     switch (probeResult) {
                         case SSL_AVAILABLE:
-                            SslContext sslContext = sslContextProvider.clientContext();
+                            SslContext sslContext = sslContextProvider.clientContext(Protocol.TRANSPORT);
                             SslHandler sslHandler = sslContext.newHandler(ch.alloc());
                             ch.pipeline().addLast(sslHandler);
                             break;
@@ -331,7 +332,7 @@ public class Netty4Transport extends TcpTransport {
                 }
 
                 case ON: {
-                    SslContext sslContext = sslContextProvider.clientContext();
+                    SslContext sslContext = sslContextProvider.clientContext(Protocol.TRANSPORT);
                     SslHandler sslHandler = sslContext.newHandler(ch.alloc());
                     ch.pipeline().addLast(sslHandler);
                     break;
@@ -363,7 +364,7 @@ public class Netty4Transport extends TcpTransport {
                     break;
 
                 case ON: {
-                    SslContext sslContext = sslContextProvider.getServerContext();
+                    SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
                     SslHandler sslHandler = sslContext.newHandler(ch.alloc());
                     ch.pipeline().addLast(sslHandler);
                     break;
