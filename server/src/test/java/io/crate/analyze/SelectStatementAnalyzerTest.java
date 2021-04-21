@@ -65,10 +65,12 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.SymbolMatchers;
 import io.crate.testing.T3;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 import io.crate.types.TimeTZ;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -519,6 +521,16 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         assertThat(collectSet.arguments().size(), is(1));
         assertThat(collectSet.arguments().get(0), isReference("load['1']"));
+    }
+
+    @Test
+    public void test_count_distinct_on_length_limited_varchar_preserves_varchar_type() throws Exception {
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (name varchar(10))")
+            .build();
+
+        Symbol symbol = executor.asSymbol("count(distinct name)");
+        assertThat(symbol, SymbolMatchers.isFunction("collection_count", List.of(new ArrayType<>(DataTypes.STRING))));
     }
 
     @Test
