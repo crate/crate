@@ -65,6 +65,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that would cause columns of type ``varchar`` with a length
+  limited to be incorrectly casted to another type if used as argument in a
+  function that has several type overloads.
+
 - Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statements to remove
   constraints like analyzers or ``NOT NULL`` from existing columns in the same
   table.
