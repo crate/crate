@@ -68,6 +68,17 @@ public class SignatureBinder {
     private final CoercionType coercionType;
     private final Map<String, TypeVariableConstraint> typeVariableConstraints;
 
+    /**
+     * Types where we should ignore precision details while signature matching.
+     * This is done because functions are registered without precision details.
+     *
+     * E.g.  `foo(text)` should also match on `foo(x)` where `x` has `varchar(10)`
+     **/
+    private static final Set<String> ALLOW_BASENAME_MATCH = Set.of(
+        DataTypes.NUMERIC.getName(),
+        DataTypes.STRING.getName()
+    );
+
     public SignatureBinder(Signature declaredSignature, CoercionType coercionType) {
         this.declaredSignature = declaredSignature;
         this.coercionType = coercionType;
@@ -458,10 +469,12 @@ public class SignatureBinder {
             case NONE:
             default:
                 var fromTypeSignature = fromType.getTypeSignature();
-                // We always register numeric arguments without precision and scale thus the parameters
+
+                // We always register numeric and text arguments without precision and scale thus the parameters
                 // should not be checked while signature matching.
-                if (fromTypeSignature.getBaseTypeName().equals(DataTypes.NUMERIC.getName())
-                    && toTypeSignature.getBaseTypeName().equals(DataTypes.NUMERIC.getName())) {
+
+                String baseTypeName = fromTypeSignature.getBaseTypeName();
+                if (ALLOW_BASENAME_MATCH.contains(baseTypeName) && baseTypeName.equals(toTypeSignature.getBaseTypeName())) {
                     return true;
                 }
                 return fromTypeSignature.equals(toTypeSignature);
