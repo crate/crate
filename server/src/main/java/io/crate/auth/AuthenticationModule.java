@@ -23,23 +23,14 @@
 package io.crate.auth;
 
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.settings.Settings;
 
 public class AuthenticationModule extends AbstractModule {
 
-    private final Settings settings;
-
-    public AuthenticationModule(Settings settings) {
-        this.settings = settings;
+    public AuthenticationModule() {
     }
 
     @Override
     protected void configure() {
-        if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)) {
-            bind(Authentication.class).to(HostBasedAuthentication.class);
-        } else {
-            bind(Authentication.class).to(AlwaysOKAuthentication.class);
-        }
         bind(AuthenticationHttpAuthHandlerRegistry.class).asEagerSingleton();
     }
 }

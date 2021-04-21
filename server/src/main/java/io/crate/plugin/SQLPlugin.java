@@ -178,7 +178,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new SysChecksModule());
         modules.add(new SysNodeChecksModule());
         modules.add(new UserManagementModule());
-        modules.add(new AuthenticationModule(settings));
+        modules.add(new AuthenticationModule());
         modules.add(new UsersScalarFunctionModule());
         return modules;
     }

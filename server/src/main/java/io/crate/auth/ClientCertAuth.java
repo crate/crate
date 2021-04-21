@@ -47,7 +47,7 @@ public class ClientCertAuth implements AuthenticationMethod {
         Certificate clientCert = connProperties.clientCert();
         if (clientCert != null) {
             String commonName = SSL.extractCN(clientCert);
-            if (Objects.equals(userName, commonName)) {
+            if (Objects.equals(userName, commonName) || connProperties.protocol() == Protocol.TRANSPORT) {
                 User user = userLookup.findUser(userName);
                 if (user != null) {
                     return user;

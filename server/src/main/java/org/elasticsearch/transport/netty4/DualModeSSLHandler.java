@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.logging.log4j.Logger;
 
+import io.crate.auth.Protocol;
 import io.crate.protocols.ssl.ConnectionTest;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.netty.buffer.ByteBuf;
@@ -65,9 +66,10 @@ public final class DualModeSSLHandler extends ByteToMessageDecoder {
             return;
         }
 
-        if (ConnectionTest.isTLS(in)) {
+        boolean tls = ConnectionTest.isTLS(in);
+        if (tls) {
             logger.debug("Identified request as SSL request");
-            SslContext sslContext = sslContextProvider.getServerContext();
+            SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
             SslHandler sslHandler = sslContext.newHandler(ctx.alloc());
             ctx.pipeline().replace(NAME, "ssl_handler", sslHandler);
             logger.debug("Replaced DualModeSSLHandler with SSLHandler");

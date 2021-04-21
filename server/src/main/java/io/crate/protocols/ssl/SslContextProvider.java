@@ -30,18 +30,19 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -50,6 +51,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.auth.AuthSettings;
+import io.crate.auth.Protocol;
 import io.crate.common.Optionals;
 import io.crate.common.annotations.VisibleForTesting;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
@@ -60,6 +62,7 @@ import io.netty.handler.ssl.SslProvider;
 @Singleton
 public class SslContextProvider {
 
+    private static final String TLS_VERSION = "TLSv1.2";
     private static final Logger LOGGER = LogManager.getLogger(SslContextProvider.class);
 
     private volatile SslContext sslContext;
@@ -85,12 +88,16 @@ public class SslContextProvider {
     }
 
     public SslContext getServerContext() {
+        return getServerContext(null);
+    }
+
+    public SslContext getServerContext(@Nullable Protocol protocol) {
         var localRef = sslContext;
         if (localRef == null) {
             synchronized (this) {
                 localRef = sslContext;
                 if (localRef == null) {
-                    sslContext = localRef = serverContext();
+                    sslContext = localRef = serverContext(protocol);
                 }
             }
         }
@@ -99,7 +106,7 @@ public class SslContextProvider {
 
     public void reloadSslContext() {
         synchronized (this) {
-            sslContext = serverContext();
+            sslContext = serverContext(null);
             LOGGER.info("SSL configuration is reloaded.");
         }
     }
@@ -112,9 +119,7 @@ public class SslContextProvider {
         var trustStore = Optionals.of(() -> loadKeyStore(trustStorePath, trustStorePass)).orElse(keyStore);
         var trustManagers = createTrustManagers(trustStore);
 
-        // Use the newest SSL standard which is (at the time of writing) TLSv1.2
-        // If we just specify "TLS" here, it depends on the JVM implementation which version we'll get.
-        SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+        SSLContext sslContext = SSLContext.getInstance(TLS_VERSION);
         sslContext.init(keyManagers, trustManagers, null);
         return sslContext;
     }
@@ -129,9 +134,7 @@ public class SslContextProvider {
                 .map(SslContextProvider::createTrustManagers)
                 .orElseGet(() -> new TrustManager[0]);
 
-            // Use the newest SSL standard which is (at the time of writing) TLSv1.2
-            // If we just specify "TLS" here, it depends on the JVM implementation which version we'll get.
-            SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+            SSLContext sslContext = SSLContext.getInstance(TLS_VERSION);
             sslContext.init(keyManagers, trustManagers, null);
 
             var keyStoreRootCerts = getRootCertificates(keyStore);
@@ -140,9 +143,9 @@ public class SslContextProvider {
                 .orElseGet(() -> new X509Certificate[0]);
             return SslContextBuilder
                 .forClient()
+                .keyManager(getKey(keyStore, keystoreKeyPass), getCertificateChain(keyStore))
                 .ciphers(List.of(sslContext.createSSLEngine().getEnabledCipherSuites()))
                 .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
-                .clientAuth(AuthSettings.resolveClientAuth(settings))
                 .trustManager(concat(keyStoreRootCerts, trustStoreRootCerts))
                 .sessionCacheSize(0)
                 .sessionTimeout(0)
@@ -156,7 +159,20 @@ public class SslContextProvider {
         }
     }
 
-    private SslContext serverContext() {
+    @Nullable
+    private PrivateKey getKey(KeyStore keyStore, char[] password) throws Exception {
+        Enumeration<String> aliases = keyStore.aliases();
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            Key key = keyStore.getKey(alias, password);
+            if (key instanceof PrivateKey privateKey) {
+                return privateKey;
+            }
+        }
+        return null;
+    }
+
+    private SslContext serverContext(@Nullable Protocol protocol) {
         try {
             var keyStore = loadKeyStore(keystorePath, keystorePass);
             var keyManagers = createKeyManagers(keyStore, keystoreKeyPass);
@@ -166,12 +182,9 @@ public class SslContextProvider {
                 .map(SslContextProvider::createTrustManagers)
                 .orElseGet(() -> new TrustManager[0]);
 
-            // Use the newest SSL standard which is (at the time of writing) TLSv1.2
-            // If we just specify "TLS" here, it depends on the JVM implementation which version we'll get.
-            SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+            SSLContext sslContext = SSLContext.getInstance(TLS_VERSION);
             sslContext.init(keyManagers, trustManagers, null);
 
-            var keyStoreRootCerts = getRootCertificates(keyStore);
             var keyStoreCertChain = getCertificateChain(keyStore);
             var trustStoreRootCerts = trustStore
                 .map(SslContextProvider::getRootCertificates)
@@ -181,8 +194,8 @@ public class SslContextProvider {
                 .forServer(privateKey, keyStoreCertChain)
                 .ciphers(List.of(sslContext.createSSLEngine().getEnabledCipherSuites()))
                 .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
-                .clientAuth(AuthSettings.resolveClientAuth(settings))
-                .trustManager(concat(keyStoreRootCerts, trustStoreRootCerts))
+                .clientAuth(AuthSettings.resolveClientAuth(settings, protocol))
+                .trustManager(concat(keyStoreCertChain, trustStoreRootCerts))
                 .sessionCacheSize(0)
                 .sessionTimeout(0)
                 .startTls(false)
