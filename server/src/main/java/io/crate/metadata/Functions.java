@@ -191,67 +191,73 @@ public class Functions {
                                                                      List<Symbol> arguments,
                                                                      SearchPath searchPath,
                                                                      Map<FunctionName, List<FunctionProvider>> candidatesByName) {
+        var candidates = getCandidates(name, searchPath, candidatesByName);
+        if (candidates == null) {
+            return null;
+        }
+
+        assert candidates.stream().allMatch(f -> f.getSignature().getBindingInfo() != null) :
+            "Resolving/Matching of signatures can only be done with non-null signature's binding info";
+
+        // First lets try exact candidates, no generic type variables, no coercion allowed.
+        Iterable<FunctionProvider> exactCandidates = () -> candidates.stream()
+            .filter(function -> function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
+            .iterator();
+        var match = matchFunctionCandidates(exactCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
+        if (match != null) {
+            return match;
+        }
+
+        // Second, try candidates with generic type variables, still no coercion allowed.
+        Iterable<FunctionProvider> genericCandidates = () -> candidates.stream()
+            .filter(function -> !function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
+            .iterator();
+        match = matchFunctionCandidates(genericCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
+        if (match != null) {
+            return match;
+        }
+
+        // Third, try all candidates which allow coercion with precedence based coercion.
+        Iterable<FunctionProvider> candidatesAllowingCoercion = () -> candidates.stream()
+            .filter(function -> function.getSignature().getBindingInfo().isCoercionAllowed())
+            .iterator();
+        match = matchFunctionCandidates(
+            candidatesAllowingCoercion,
+            argumentTypes,
+            SignatureBinder.CoercionType.PRECEDENCE_ONLY
+        );
+        if (match != null) {
+            return match;
+        }
+
+        // Last, try all candidates which allow coercion with full coercion.
+        match = matchFunctionCandidates(candidatesAllowingCoercion, argumentTypes, SignatureBinder.CoercionType.FULL);
+
+        if (match == null) {
+            raiseUnknownFunction(name.schema(), name.name(), arguments, candidates);
+        }
+        return match;
+    }
+
+    @Nullable
+    private static List<FunctionProvider> getCandidates(FunctionName name,
+                                                        SearchPath searchPath,
+                                                        Map<FunctionName, List<FunctionProvider>> candidatesByName) {
         var candidates = candidatesByName.get(name);
         if (candidates == null && name.schema() == null) {
             for (String pathSchema : searchPath) {
                 FunctionName searchPathFunctionName = new FunctionName(pathSchema, name.name());
                 candidates = candidatesByName.get(searchPathFunctionName);
                 if (candidates != null) {
-                    break;
+                    return candidates;
                 }
             }
         }
-        if (candidates != null) {
-            assert candidates.stream().allMatch(f -> f.getSignature().getBindingInfo() != null) :
-                "Resolving/Matching of signatures can only be done with non-null signature's binding info";
-
-            @SuppressWarnings("ConstantConditions")
-            // First lets try exact candidates, no generic type variables, no coercion allowed.
-            var exactCandidates = candidates.stream()
-                .filter(function -> function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
-                .collect(Collectors.toList());
-            var match = matchFunctionCandidates(exactCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
-            if (match != null) {
-                return match;
-            }
-
-            @SuppressWarnings("ConstantConditions")
-            // Second, try candidates with generic type variables, still no coercion allowed.
-            var genericCandidates = candidates.stream()
-                .filter(function -> !function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
-                .collect(Collectors.toList());
-            match = matchFunctionCandidates(genericCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
-            if (match != null) {
-                return match;
-            }
-
-            @SuppressWarnings("ConstantConditions")
-            // Third, try all candidates which allow coercion with precedence based coercion.
-            var candidatesAllowingCoercion = candidates.stream()
-                .filter(function -> function.getSignature().getBindingInfo().isCoercionAllowed())
-                .collect(Collectors.toList());
-            match = matchFunctionCandidates(
-                candidatesAllowingCoercion,
-                argumentTypes,
-                SignatureBinder.CoercionType.PRECEDENCE_ONLY
-            );
-            if (match != null) {
-                return match;
-            }
-
-            // Last, try all candidates which allow coercion with full coercion.
-            match = matchFunctionCandidates(candidatesAllowingCoercion, argumentTypes, SignatureBinder.CoercionType.FULL);
-
-            if (match == null) {
-                raiseUnknownFunction(name.schema(), name.name(), arguments, candidates);
-            }
-            return match;
-        }
-        return null;
+        return candidates;
     }
 
     @Nullable
-    private static FunctionImplementation matchFunctionCandidates(List<FunctionProvider> candidates,
+    private static FunctionImplementation matchFunctionCandidates(Iterable<FunctionProvider> candidates,
                                                                   List<DataType<?>> arguments,
                                                                   SignatureBinder.CoercionType coercionType) {
         List<ApplicableFunction> applicableFunctions = new ArrayList<>();
