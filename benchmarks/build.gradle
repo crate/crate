@@ -11,9 +11,9 @@ test.enabled = false
 
 dependencies {
     implementation project(':server')
-    implementation project(path: ':server', configuration: 'testOutput')
-    implementation project(path: ':libs:dex', configuration: 'testOutput')
-    implementation project(path: ':extensions:functions', configuration: 'testOutput')
+    implementation(testFixtures(project(':server')))
+    implementation(testFixtures(project(':libs:dex')))
+    implementation(project(':extensions:functions'))
     implementation project(':libs:sql-parser')
 
     implementation "joda-time:joda-time:${versions.jodatime}"

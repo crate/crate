@@ -100,11 +100,6 @@ schema, the current session schema is used::
    read-only :ref:`system-information` and :ref:`information_schema` schemas is
    prohibited.
 
-.. WARNING::
-
-   :ref:`snapshot-restore` can't be used to backup functions, because snapshots
-   contain table data only.
-
 
 .. _udf-supported-types:
 

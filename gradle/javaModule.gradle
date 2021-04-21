@@ -33,7 +33,6 @@ jdks {
 
 repositories {
     mavenCentral()
-    jcenter()
     maven { url "https://jitpack.io" }
 }
 
@@ -46,6 +45,11 @@ tasks.withType(JavaCompile) {
             options.forkOptions.executable = jdks.runtime.getBinJavaPath()
         }
     }
+    // See https://github.com/eclipse/buildship/issues/1072
+    // Prevents `The package org.joda.time.format conflicts with a package accessible from another module: org.joda.time` errors
+    modularity.inferModulePath = false
+
+
     options.warnings = false
     options.deprecation = false
     options.compilerArgs << '-XDignore.symbol.file'

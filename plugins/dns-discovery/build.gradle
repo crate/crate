@@ -8,7 +8,7 @@ dependencies {
     implementation project(':server')
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     implementation "io.netty:netty-resolver-dns:${versions.netty4}"
-    testImplementation project(path: ':server', configuration: 'testOutput')
+    testImplementation(testFixtures(project(':server')))
     testImplementation "org.mockito:mockito-core:${versions.mockito}"
     testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
     testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"

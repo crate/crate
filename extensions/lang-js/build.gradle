@@ -13,14 +13,9 @@ dependencies {
     implementation "org.graalvm.truffle:truffle-api:${versions.graalvm}"
     implementation "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
 
-    testImplementation project(path: ':server', configuration: 'testOutput')
-    testImplementation project(path: ':libs:dex', configuration: 'testOutput')
-    testImplementation "org.mockito:mockito-core:${versions.mockito}"
+    testImplementation(testFixtures(project(':server')))
+    testImplementation(testFixtures(project(':libs:dex')))
     testImplementation 'org.skyscreamer:jsonassert:1.3.0'
-    testImplementation "org.postgresql:postgresql:${versions.jdbc}"
-    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
-    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
-    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
     testImplementation "junit:junit:${versions.junit}"
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
