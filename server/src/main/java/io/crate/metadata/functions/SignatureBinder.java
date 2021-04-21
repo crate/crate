@@ -488,24 +488,8 @@ public class SignatureBinder {
         private SolverReturnStatus current = SolverReturnStatus.UNCHANGED_SATISFIED;
 
         public void add(SolverReturnStatus newStatus) {
-            switch (newStatus) {
-                case UNCHANGED_SATISFIED:
-                    break;
-                case UNCHANGED_NOT_SATISFIED:
-                    if (current == SolverReturnStatus.UNCHANGED_SATISFIED) {
-                        current = SolverReturnStatus.UNCHANGED_NOT_SATISFIED;
-                    }
-                    break;
-                case CHANGED:
-                    if (current == SolverReturnStatus.UNCHANGED_SATISFIED ||
-                        current == SolverReturnStatus.UNCHANGED_NOT_SATISFIED) {
-                        current = SolverReturnStatus.CHANGED;
-                    }
-                    break;
-                case UNSOLVABLE:
-                default:
-                    current = SolverReturnStatus.UNSOLVABLE;
-                    break;
+            if (newStatus.ordinal() > current.ordinal()) {
+                current = newStatus;
             }
         }
 
