@@ -54,6 +54,10 @@ None
 Changes
 =======
 
+- Added :ref:`array_to_string <scalar-array-to-string>` scalar function
+  that concatenates array elements into a single string using a separator and
+  an optional null-string.
+
 - Added support for reading ``cgroup`` information in the ``cgroup v2`` format.
 
 - Improved the internal throttling mechanism used for ``INSERT FROM QUERY`` and
