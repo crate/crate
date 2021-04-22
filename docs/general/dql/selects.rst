@@ -362,16 +362,6 @@ false       true
 null        null
 ==========  ======
 
-.. WARNING::
-
-   CrateDB handles the case of ``NOT (NULL)`` inconsistently. The above is only
-   true when the ``NOT`` appears in a ``SELECT`` clause or a ``WHERE`` clause
-   that operates on system tables. The result of ``NOT (NULL)`` in a ``WHERE``
-   clause that operates on user tables will produce inconsistent but
-   deterministic results (``NULL`` or ``TRUE``) depending on the specifics of
-   the clause. This does not adhere to standard SQL three-valued-logic and will
-   be fixed in a future release.
-
 
 .. _sql_dql_is_null:
 
