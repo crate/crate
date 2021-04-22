@@ -163,7 +163,23 @@
 # node.store.allow_mmap: true
 
 
-# Network and HTTP -> broken up into Hosts and Ports
+# Basics
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+# Node types
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+# Read-only node
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+# Hosts
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+# Ports
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # CrateDB, by default, binds itself to the loopback addresses on the system,
@@ -198,10 +214,6 @@
 
 # Set a custom allowed content length:
 # http.max_content_length: 100mb
-
-
-# PostgreSQL wire transport --> merge into above
-# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # CrateDB supports the PostgreSQL wire protocol v3 and emulates a PostgreSQL
 # server v10.5. For further information read our documentation:
@@ -245,6 +257,14 @@
 # See also: path.repo (further down)
 
 
+# Plug-ins
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+# CPU
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
 # Memory
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -266,7 +286,7 @@
 # memory, eg. by using `ulimit -l unlimited`.
 
 
-# Garbage collection (GC) logging
+# Garbage collection
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # monitor.jvm.gc.collector.young.warn: 1000ms
@@ -282,7 +302,26 @@
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 
-# Host-based access
+# Trust authentication
+# .............................................................................
+
+# When trust based authentication is used, the server takes the username
+# provided by the client as is without further validation.
+#
+# The HTTP implementation extracts the username from the HTTP Basic
+# Authentication (`Authorization: Basic ...`) request header. If the
+# `Authorization` header is not set, a default username can be specified with
+# the following configuration:
+#
+# auth:
+#   trust:
+#     http_default_user: dustin
+
+# For more info, see
+# <https://crate.io/reference/admin/auth/methods.html#trust-method>
+
+
+# Host-based authentication
 # .............................................................................
 
 # Allow authenticated access from specific named hosts (default value: `false`)
@@ -300,6 +339,11 @@ auth:
       99:
         method: password
 
+
+# HBA entries
+# `````````````````````````````````````````````````````````````````````````````
+
+
 # The stock configuration (above) works for a common use case:
 #
 # - The superuser (`crate`) has trusted access from `localhost` (here specified
@@ -313,25 +357,6 @@ auth:
 # any address except `localhost`.
 
 # For more info, see <https://crate.io/reference/admin/auth/hba.html>
-
-
-# Trust-based authentication
-# .............................................................................
-
-# When trust based authentication is used, the server takes the username
-# provided by the client as is without further validation.
-#
-# The HTTP implementation extracts the username from the HTTP Basic
-# Authentication (`Authorization: Basic ...`) request header. If the
-# `Authorization` header is not set, a default username can be specified with
-# the following configuration:
-#
-# auth:
-#   trust:
-#     http_default_user: dustin
-
-# For more info, see
-# <https://crate.io/reference/admin/auth/methods.html#trust-method>
 
 
 # Secured communications (SSL/TLS)
@@ -355,10 +380,6 @@ auth:
 
 # For more info, see <https://crate.io/reference/admin/ssl.html>
 
-
-# Optional configuration for the truststore
-# .............................................................................
-
 # The full path to the node truststore file
 # ssl.truststore_filepath: /path/to/truststore_file.jks
 
@@ -369,7 +390,15 @@ auth:
 # ssl.resource_poll_interval: 5s
 
 
-# Backup and restore (aka snapshots) -> Repositories
+# Cross-origin resource sharing (CORS)
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+# Blobs
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+# Repositories
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # Paths where Repositories of type fs may be created:
@@ -387,6 +416,10 @@ auth:
 #   - https://*.mydomain.com/*?*#*
 
 
+# Queries
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
 # User-defined functions (UDFs)
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -397,13 +430,25 @@ auth:
 # <https://crate.io/reference/general/user-defined-functions.html>
 
 
-# Cluster settings -> Cluster-specific settings
+# Custom attributes
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+# Cluster-specific settings
 # -----------------------------------------------------------------------------
 
 # The cluster name identifies your cluster for auto-discovery. If you're
 # running multiple clusters on the same network, make sure to use a unique name
 # for each cluster.
 # cluster.name: crate
+
+
+# Non-runtime cluster-wide settings
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+# Collecting stats
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 
 # Shard limits
@@ -449,7 +494,7 @@ auth:
 # cluster.graceful_stop.force: false
 
 
-# SQL -> Bulk
+# Bulk operations
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # Defines whether SQL statements resulting in modification operations are
@@ -463,7 +508,7 @@ auth:
 # bulk.request_timeout: 1m
 
 
-# Discovery settings
+# Discovery
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # Discovery infrastructure ensures nodes can be found within a cluster and a
@@ -485,9 +530,12 @@ auth:
 #
 # cluster.initial_master_nodes: ["host1", "host2"]
 
+# Unicast host discovery
+# .............................................................................
+
 
 # Discovery via DNS
-# .............................................................................
+# `````````````````````````````````````````````````````````````````````````````
 
 # Service discovery allows CrateDB to look up hosts for unicast discovery via
 # SRV DNS records.
@@ -500,8 +548,8 @@ auth:
 # discovery.srv.query: _crate._srv.example.com
 
 
-# EC2 discovery
-# .............................................................................
+# Discovery on Amazon EC2
+# `````````````````````````````````````````````````````````````````````````````
 
 
 # EC2 discovery allows CrateDB to look up hosts for unicast discovery via the
@@ -546,8 +594,8 @@ auth:
 # discovery.ec2.endpoind: http://example.com/endpoint
 
 
-# Azure discovery
-# .............................................................................
+# Discovery on Microsoft Azure
+# `````````````````````````````````````````````````````````````````````````````
 
 # Azure discovery allows CrateDB to look up hosts for unicast discovery via the
 # Azure API.
@@ -588,10 +636,6 @@ auth:
 # For more info, see
 # <https://crate.io/reference//config/cluster.html#routing-allocation>
 
-
-# Routing allocation -> merged into above
-# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
 # Allows to control shard allocation.
 # Options are: `all | new_primaries`
 #
@@ -623,7 +667,7 @@ auth:
 # cluster.routing.allocation.node_concurrent_recoveries: 2
 
 
-# Allocation awareness
+# Awareness
 # .............................................................................
 
 # Cluster allocation awareness allows to configure shard and replicas
@@ -704,7 +748,7 @@ auth:
 # cluster.routing.allocation.disk.watermark.flood_stage: 95%
 
 
-# Recovery throttling -> Recovery
+# Recovery
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # These settings allow to control the process of shards allocation between
@@ -745,9 +789,16 @@ auth:
 # recovery.
 # indices.recovery.max_concurrent_file_chunks: 2
 
+# Memory management
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+# Circuit breakers
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 
 # Query circuit breaker
-# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# .............................................................................
 
 # The circuit breaker allows estimation of needed memory required by an SQL
 # query.
@@ -761,7 +812,7 @@ auth:
 
 
 # Field-data circuit breaker
-# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# .............................................................................
 
 # The field-data circuit breaker allows estimation of needed memory required
 # for loading field data into memory.
@@ -774,7 +825,23 @@ auth:
 # indices.fielddata.breaker.overhead: 1.0.3
 
 
-# Threadpools
+# Request circuit breaker
+# .............................................................................
+
+
+# Accounting circuit breaker
+# .............................................................................
+
+
+# Stats circuit breakers
+# .............................................................................
+
+
+# Total circuit breaker
+# .............................................................................
+
+
+# Thread pools
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # Every node holds several thread pools to improve how threads are managed
@@ -782,6 +849,9 @@ auth:
 # index, search, bulk, refresh
 # thread_pool.index.type: fixed
 # thread_pool.index.queue_size: 200
+
+# Settings for fixed thread pools
+# .............................................................................
 
 
 # Metadata

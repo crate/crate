@@ -211,8 +211,8 @@ Shard limits
 
 .. _conf-cluster-udc:
 
-Usage-Data Collector
-====================
+Usage-data collector (UDC)
+==========================
 
 The settings of the Usage-Data-Collector are read-only and cannot be set during
 runtime. Please refer to :ref:`usage_data_collector` to get further information
@@ -775,7 +775,7 @@ Cluster allocation awareness allows to configure :ref:`shard allocation
 
 .. _conf-cluster-allocation-balance:
 
-Balanced shards
+Shard balancing
 ---------------
 
 CrateDB will attempt to balance a cluster using the weights described in this

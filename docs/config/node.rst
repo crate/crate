@@ -427,7 +427,7 @@ nodes may have different authentication settings.
   by default.
 
 HBA entries
-...........
+'''''''''''
 
 The ``auth.host_based.config.`` setting is a group setting that can have zero,
 one or multiple groups that are defined by their group key (``${order}``) and
@@ -742,10 +742,11 @@ Queries
     ``ANY`` operators on arrays of that length can lead to heavy memory,
     consumption which could cause nodes to crash with OutOfMemory exceptions.
 
-.. _conf-node-lang-js:
 
-JavaScript language
-===================
+.. _conf-node-udf:
+
+User-defined functions (UDFs)
+=============================
 
 .. _lang.js.enabled:
 
