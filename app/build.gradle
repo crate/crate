@@ -18,6 +18,7 @@ def plugins = [
     project(':plugins:es-analysis-phonetic'),
     project(':plugins:azure-discovery'),
     project(':plugins:es-repository-hdfs'),
+    project(':plugins:es-repository-azure')
 ]
 
 
@@ -39,7 +40,6 @@ dependencies {
     impl project(':plugins:es-discovery-ec2')
     impl project(':plugins:es-repository-url')
     impl project(':plugins:es-repository-s3')
-    impl project(':plugins:es-repository-azure')
 
     // We need to ensure that all graal languages are loaded with the root class-loader
     // that runs the CrateNode.

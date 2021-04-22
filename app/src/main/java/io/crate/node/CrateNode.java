@@ -30,7 +30,6 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.repositories.azure.AzureRepositoryPlugin;
 import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
@@ -48,7 +47,6 @@ public class CrateNode extends Node {
         UDCPlugin.class,
         URLRepositoryPlugin.class,
         S3RepositoryPlugin.class,
-        AzureRepositoryPlugin.class,
         Ec2DiscoveryPlugin.class,
         Netty4Plugin.class);
 

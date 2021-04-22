@@ -1,10 +1,9 @@
-apply from: "$rootDir/gradle/javaModule.gradle"
+apply from: "$rootDir/extensions/extensionModule.gradle"
 
 dependencies {
-    implementation project(':libs:shared')
     implementation project(':server')
-    implementation "com.microsoft.azure:azure-storage:${versions.azure_storage}"
-    implementation "com.microsoft.azure:azure-keyvault-core:${versions.azure_keyvault}"
+    pluginDependency "com.microsoft.azure:azure-storage:${versions.azure_storage}"
+    pluginDependency "com.microsoft.azure:azure-keyvault-core:${versions.azure_keyvault}"
 
     testImplementation(testFixtures(project(':server')))
     testImplementation "junit:junit:${versions.junit}"
