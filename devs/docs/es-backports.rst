@@ -573,6 +573,8 @@ should be crossed out as well.
 - [x] 4b16d50cd4b Fix typo when assigning null_value in GeoPointFieldMapper  (#49645)
 - [x] 93dc8941d44 Strengthen validateClusterFormed check (#49248)
 - [x] ba5b4f14131 ESIntegTestCase always cleans up static fields (#49105)
+- [x] 8360248a43a Always use last properly persisted metadata as previous state (#47779)
+- [x] 38f02217f00 Omit writing index metadata for non-replicated closed indices on data-only node (#47285)
 - [x] 5ba4f5fb3c9 Use dynamic port ranges for ExternalTestCluster (#45601)
 - [x] 29235a637f7 Wait for events in waitForRelocation (#45074)
 - [x] 42a331c59ba Remove Unused Features Field on StreamOutput (#44667)
