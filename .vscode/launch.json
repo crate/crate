@@ -10,6 +10,14 @@
             "mainClass": "io.crate.bootstrap.CrateDB",
             "projectName": "app",
             "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "request": "attach",
+            "name": "Attach to CrateDB",
+            "hostName": "127.0.0.1",
+            "port": 5005,
+            "projectName": "app"
         }
     ]
 }
