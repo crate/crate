@@ -94,8 +94,4 @@ public final class FunctionName implements Writeable {
         }
         return schema + "." + name;
     }
-
-    public boolean isBuiltin() {
-        return schema == null || Schemas.isSystemSchema(schema);
-    }
 }

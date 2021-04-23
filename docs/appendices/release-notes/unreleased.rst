@@ -66,9 +66,6 @@ Changes
 
 - Included the shard information for closed tables in ``sys.shards`` table.
 
-- Users can now read tables within the ``pg_catalog`` schema without explicit
-  ``DQL`` permission. They will only see records the user has privileges on.
-
 Fixes
 =====
 

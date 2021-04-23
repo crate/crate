@@ -77,7 +77,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
     private static final Logger LOGGER = LogManager.getLogger(Schemas.class);
 
-    public static final Collection<String> READ_ONLY_SYSTEM_SCHEMAS = Set.of(
+    public static final Collection<String> READ_ONLY_SCHEMAS = Set.of(
         SysSchemaInfo.NAME,
         InformationSchemaInfo.NAME,
         PgCatalogSchemaInfo.NAME
@@ -401,15 +401,10 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         if (schemaName.equalsIgnoreCase(InformationSchemaInfo.NAME)
             || schemaName.equalsIgnoreCase(SysSchemaInfo.NAME)
             || schemaName.equalsIgnoreCase(BlobSchemaInfo.NAME)
-            || schemaName.equalsIgnoreCase(PgCatalogSchemaInfo.NAME)
             ) {
             return false;
         }
         return true;
-    }
-
-    public static boolean isSystemSchema(@Nullable String schemaName) {
-        return !isDefaultOrCustomSchema(schemaName) && !BlobSchemaInfo.NAME.equals(schemaName);
     }
 
     public boolean tableExists(RelationName relationName) {

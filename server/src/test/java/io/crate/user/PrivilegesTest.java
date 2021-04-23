@@ -58,12 +58,4 @@ public class PrivilegesTest extends ESTestCase {
         Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "information_schema.table", user);
         Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "information_schema.views", user);
     }
-
-    @Test
-    public void testUserWithNoPrivilegesCanAccessPgCatalogSchema() throws Exception {
-        //ensureUserHasPrivilege will not throw an exception if the schema is `pg_catalog`
-        Privileges.ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, "pg_catalog", user);
-        Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "pg_catalog.pg_am", user);
-        Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "pg_catalog.pg_database", user);
-    }
 }

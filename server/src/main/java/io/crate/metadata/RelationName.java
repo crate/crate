@@ -154,7 +154,7 @@ public final class RelationName implements Writeable {
         if (!isValidRelationOrSchemaName(name)) {
             throw new InvalidRelationName(this);
         }
-        if (Schemas.READ_ONLY_SYSTEM_SCHEMAS.contains(schema)) {
+        if (Schemas.READ_ONLY_SCHEMAS.contains(schema)) {
             throw new IllegalArgumentException("Cannot create relation in read-only schema: " + schema);
         }
     }
