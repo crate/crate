@@ -42,6 +42,11 @@ public class ArrayToStringFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void test_null_array_results_in_null() {
+        assertEvaluate("array_to_string(null::text[], ',')", null);
+    }
+
+    @Test
     public void testEmptyArray() {
         assertEvaluate("array_to_string(cast([] as array(integer)), '')", "");
         assertEvaluate("array_to_string(cast([] as array(integer)), ',')", "");

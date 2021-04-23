@@ -82,11 +82,14 @@ class ArrayToStringFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public String evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>[] args) {
+    @SafeVarargs
+    public final String evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>... args) {
         @SuppressWarnings("unchecked")
         List<Object> values = (List<Object>) args[0].value();
+        if (values == null) {
+            return null;
+        }
         String separator = (String) args[1].value();
-
         if (separator == null) {
             return null;
         }
