@@ -173,7 +173,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableInSystemSchemasIsProhibited() {
-        for (String schema : Schemas.READ_ONLY_SCHEMAS) {
+        for (String schema : Schemas.READ_ONLY_SYSTEM_SCHEMAS) {
             try {
                 analyze(String.format("CREATE TABLE %s.%s (ordinal INTEGER, name STRING)", schema, "my_table"));
                 fail("create table in read-only schema must fail");
