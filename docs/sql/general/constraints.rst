@@ -165,6 +165,11 @@ The supported column constraints are:
 
 - :ref:`check_constraint`
 
+.. NOTE::
+
+    CrateDB does not support the ``UNIQUE`` column constraint because it is
+    impossible to enforce with an :ref:`eventually-consistent
+    <concept-consistency>` consistency model.
 
 .. _not_null_constraint:
 
