@@ -1,6 +1,6 @@
 .. highlight:: sh
 
-.. _conf-node-settings:
+.. _conf-node:
 
 ======================
 Node-specific settings
@@ -10,6 +10,9 @@ Node-specific settings
 
 .. contents::
    :local:
+
+
+.. _conf-node-basics:
 
 Basics
 ======
@@ -51,170 +54,10 @@ Basics
 
   The setting indicates whether or not memory-mapping is allowed.
 
-Node types
-==========
 
-CrateDB supports different types of nodes.
-
-The following settings can be used to differentiate nodes upon startup:
-
-.. _node.master:
-
-**node.master**
-  | *Default:* ``true``
-  | *Runtime:* ``no``
-
-  Whether or not this node is able to get elected as *master* node in the
-  cluster.
-
-.. _node.data:
-
-**node.data**
-  | *Default:* ``true``
-  | *Runtime:* ``no``
-
-  Whether or not this node will store data.
-
-Using different combinations of these two settings, you can create four
-different types of node. Each type of node is differentiated by what types of
-load it will handle.
-
-Tabulating the truth values for ``node.master`` and ``node.data`` produces a
-truth table outlining the four different types of node:
-
-+---------------+-----------------------------+------------------------------+
-|               | **Master**                  | **No master**                |
-+---------------+-----------------------------+------------------------------+
-| **Data**      | Handle all loads.           | Handles client requests and  |
-|               |                             | query execution.             |
-+---------------+-----------------------------+------------------------------+
-| **No data**   | Handles cluster management. | Handles client requests.     |
-+---------------+-----------------------------+------------------------------+
-
-Nodes marked as ``node.master`` will only handle cluster management if they are
-elected as the cluster master. All other loads are shared equally.
-
-Read-only node
-==============
-
-.. _node.sql.read_only:
-
-**node.sql.read_only**
-  | *Default:* ``false``
-  | *Runtime:* ``no``
-
-  If set to ``true``, the node will only allow SQL statements which are
-  resulting in read operations.
-
-.. _conf_hosts:
-
-Hosts
-=====
-
-.. _network.host:
-
-**network.host**
-  | *Default:*   ``_local_``
-  | *Runtime:*   ``no``
-
-  The IP address CrateDB will bind itself to. This setting sets both the
-  `network.bind_host`_ and `network.publish_host`_ values.
-
-.. _network.bind_host:
-
-**network.bind_host**
-  | *Default:*   ``_local_``
-  | *Runtime:*   ``no``
-
-  This setting determines to which address CrateDB should bind itself to.
-
-.. _network.publish_host:
-
-**network.publish_host**
-  | *Default:*   ``_local_``
-  | *Runtime:*   ``no``
-
-  This setting is used by a CrateDB node to publish its own address to the rest
-  of the cluster.
-
-.. TIP::
-
-    Apart from IPv4 and IPv6 addresses there are some special values that can
-    be used for all above settings:
-
-    =========================  =================================================
-    ``_local_``                Any loopback addresses on the system, for example
-                               ``127.0.0.1``.
-    ``_site_``                 Any site-local addresses on the system, for
-                               example ``192.168.0.1``.
-    ``_global_``               Any globally-scoped addresses on the system, for
-                               example ``8.8.8.8``.
-    ``_[INTERFACE]_``          Addresses of a network interface, for example
-                               ``_en0_``.
-    =========================  =================================================
-
-.. _conf_ports:
-
-Ports
-=====
-
-.. _http.port:
-
-**http.port**
-  | *Runtime:*   ``no``
-
-  This defines the TCP port range to which the CrateDB HTTP service will be
-  bound to. It defaults to ``4200-4300``. Always the first free port in this
-  range is used. If this is set to an integer value it is considered as an
-  explicit single port.
-
-  The HTTP protocol is used for the REST endpoint which is used by all clients
-  except the Java client.
-
-.. _http.publish_port:
-
-**http.publish_port**
-  | *Runtime:*   ``no``
-
-  The port HTTP clients should use to communicate with the node. It is
-  necessary to define this setting if the bound HTTP port (``http.port``) of
-  the node is not directly reachable from outside, e.g. running it behind a
-  firewall or inside a Docker container.
-
-.. _transport.tcp.port:
-
-**transport.tcp.port**
-  | *Runtime:*   ``no``
-
-  This defines the TCP port range to which the CrateDB transport service will
-  be bound to. It defaults to ``4300-4400``. Always the first free port in this
-  range is used. If this is set to an integer value it is considered as an
-  explicit single port.
-
-  The transport protocol is used for internal node-to-node communication.
-
-.. _transport.publish_port:
-
-**transport.publish_port**
-  | *Runtime:*   ``no``
-
-  The port that the node publishes to the cluster for its own discovery. It is
-  necessary to define this setting when the bound tranport port
-  (``transport.tcp.port``) of the node is not directly reachable from outside,
-  e.g. running it behind a firewall or inside a Docker container.
-
-.. _psql.port:
-
-**psql.port**
-  | *Runtime:*   ``no``
-
-  This defines the TCP port range to which the CrateDB Postgres service will be
-  bound to. It defaults to ``5432-5532``. Always the first free port in this
-  range is used. If this is set to an integer value it is considered as an
-  explicit single port.
 
 Paths
-=====
+-----
 
 .. NOTE::
 
@@ -284,112 +127,344 @@ Paths
   See also :ref:`location <ref-create-repository-types-fs-location>` setting of
   repository type ``fs``.
 
-.. SEEALSO::
 
-    :ref:`blobs.path <blobs.path>`
+.. _blobs.path:
 
-Plug-ins
+**blobs.path**
+  | *Runtime:* ``no``
+
+  Path to a filesystem directory where to store blob data allocated for this
+  node.
+
+  By default blobs will be stored under the same path as normal data. A
+  relative path value is interpreted as relative to ``CRATE_HOME``.
+
+.. _conf-node-types:
+
+Node types
+----------
+
+CrateDB supports different types of nodes.
+
+The following settings can be used to differentiate nodes upon startup:
+
+.. _node.master:
+
+**node.master**
+  | *Default:* ``true``
+  | *Runtime:* ``no``
+
+  Whether or not this node is able to get elected as *master* node in the
+  cluster.
+
+.. _node.data:
+
+**node.data**
+  | *Default:* ``true``
+  | *Runtime:* ``no``
+
+  Whether or not this node will store data.
+
+Using different combinations of these two settings, you can create four
+different types of node. Each type of node is differentiated by what types of
+load it will handle.
+
+Tabulating the truth values for ``node.master`` and ``node.data`` produces a
+truth table outlining the four different types of node:
+
++---------------+-----------------------------+------------------------------+
+|               | **Master**                  | **No master**                |
++---------------+-----------------------------+------------------------------+
+| **Data**      | Handle all loads.           | Handles client requests and  |
+|               |                             | query execution.             |
++---------------+-----------------------------+------------------------------+
+| **No data**   | Handles cluster management. | Handles client requests.     |
++---------------+-----------------------------+------------------------------+
+
+Nodes marked as ``node.master`` will only handle cluster management if they are
+elected as the cluster master. All other loads are shared equally.
+
+
+
+
+.. _conf-node-attributes:
+
+Shard alllocation
+=================
+
+The ``node.attr`` namespace is a bag of custom attributes. Custom attributes
+can be :ref:`used to control shard allocation
+<conf-routing-allocation-awareness>`.
+
+You can create any attribute you want under this namespace, like
+``node.attr.key: value``. These attributes use the ``node.attr`` namespace to
+distinguish them from core node attribute like ``node.name``.
+
+Custom attributes are not validated by CrateDB, unlike core node attributes.
+
+.. _`same-origin policy`: https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy
+.. _`cross-origin resource sharing`: https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
+
+
+
+
+.. _conf-node-network:
+
+Network
+=======
+
+
+.. _conf-node-network-hosts:
+
+Hosts
+-----
+
+.. _network.host:
+
+**network.host**
+  | *Default:*   ``_local_``
+  | *Runtime:*   ``no``
+
+  The IP address CrateDB will bind itself to. This setting sets both the
+  `network.bind_host`_ and `network.publish_host`_ values.
+
+.. _network.bind_host:
+
+**network.bind_host**
+  | *Default:*   ``_local_``
+  | *Runtime:*   ``no``
+
+  This setting determines to which address CrateDB should bind itself to.
+
+.. _network.publish_host:
+
+**network.publish_host**
+  | *Default:*   ``_local_``
+  | *Runtime:*   ``no``
+
+  This setting is used by a CrateDB node to publish its own address to the rest
+  of the cluster.
+
+.. TIP::
+
+    Apart from IPv4 and IPv6 addresses there are some special values that can
+    be used for all above settings:
+
+    =========================  =================================================
+    ``_local_``                Any loopback addresses on the system, for example
+                               ``127.0.0.1``.
+    ``_site_``                 Any site-local addresses on the system, for
+                               example ``192.168.0.1``.
+    ``_global_``               Any globally-scoped addresses on the system, for
+                               example ``8.8.8.8``.
+    ``_[INTERFACE]_``          Addresses of a network interface, for example
+                               ``_en0_``.
+    =========================  =================================================
+
+
+.. _conf-node-network-ports:
+
+Ports
+-----
+
+.. _http.port:
+
+**http.port**
+  | *Runtime:*   ``no``
+
+  This defines the TCP port range to which the CrateDB HTTP service will be
+  bound to. It defaults to ``4200-4300``. Always the first free port in this
+  range is used. If this is set to an integer value it is considered as an
+  explicit single port.
+
+  The HTTP protocol is used for the REST endpoint which is used by all clients
+  except the Java client.
+
+.. _http.publish_port:
+
+**http.publish_port**
+  | *Runtime:*   ``no``
+
+  The port HTTP clients should use to communicate with the node. It is
+  necessary to define this setting if the bound HTTP port (``http.port``) of
+  the node is not directly reachable from outside, e.g. running it behind a
+  firewall or inside a Docker container.
+
+.. _transport.tcp.port:
+
+**transport.tcp.port**
+  | *Runtime:*   ``no``
+
+  This defines the TCP port range to which the CrateDB transport service will
+  be bound to. It defaults to ``4300-4400``. Always the first free port in this
+  range is used. If this is set to an integer value it is considered as an
+  explicit single port.
+
+  The transport protocol is used for internal node-to-node communication.
+
+.. _transport.publish_port:
+
+**transport.publish_port**
+  | *Runtime:*   ``no``
+
+  The port that the node publishes to the cluster for its own discovery. It is
+  necessary to define this setting when the bound tranport port
+  (``transport.tcp.port``) of the node is not directly reachable from outside,
+  e.g. running it behind a firewall or inside a Docker container.
+
+.. _psql.port:
+
+**psql.port**
+  | *Runtime:*   ``no``
+
+  This defines the TCP port range to which the CrateDB Postgres service will be
+  bound to. It defaults to ``5432-5532``. Always the first free port in this
+  range is used. If this is set to an integer value it is considered as an
+  explicit single port.
+
+
+Security
 ========
 
-.. _plugin.mandatory:
+.. _ssl_config:
 
-**plugin.mandatory**
+Secured communications (SSL/TLS)
+--------------------------------
+
+Secured communications via SSL allows you to encrypt traffic between CrateDB
+nodes and clients connecting to them. Connections are secured using Transport
+Layer Security (TLS).
+
+.. _ssl.http.enabled:
+
+**ssl.http.enabled**
+  | *Default:* ``false``
+  | *Runtime:*  ``no``
+
+  Set this to true to enable secure communication between the CrateDB node
+  and the client through SSL via the HTTPS protocol.
+
+.. _ssl.psql.enabled:
+
+**ssl.psql.enabled**
+  | *Default:* ``false``
+  | *Runtime:*  ``no``
+
+  Set this to true to enable secure communication between the CrateDB node
+  and the client through SSL via the PostgreSQL wire protocol.
+
+.. _ssl.keystore_filepath:
+
+**ssl.keystore_filepath**
   | *Runtime:* ``no``
 
-  A list of plug-ins that are required for a node to startup.
+  The full path to the node keystore file.
 
-  If any plug-in listed here is missing, the CrateDB node will fail to start.
+.. _ssl.keystore_password:
 
-CPU
-===
-
-.. _processors:
-
-**processors**
+**ssl.keystore_password**
   | *Runtime:* ``no``
 
-  The number of processors is used to set the size of the thread pools CrateDB
-  is using appropriately. If not set explicitly, CrateDB will infer the number
-  from the available processors on the system.
+  The password used to decrypt the keystore file defined with
+  ``ssl.keystore_filepath``.
 
-  In environments where the CPU amount can be restricted (like Docker) or when
-  multiple CrateDB instances are running on the same hardware, the inferred
-  number might be too high. In such a case, it is recommended to set the value
-  explicitly.
+.. _ssl.keystore_key_password:
 
-Memory
-======
+**ssl.keystore_key_password**
+  | *Runtime:* ``no``
 
-.. _bootstrap.memory_lock:
+  The password entered at the end of the ``keytool -genkey command``.
 
-**bootstrap.memory_lock**
+.. NOTE::
+
+    Optionally trusted CA certificates can be stored separately from the
+    node's keystore into a truststore for CA certificates.
+
+.. _ssl.truststore_filepath:
+
+**ssl.truststore_filepath**
+  | *Runtime:* ``no``
+
+  The full path to the node truststore file. If not defined, then only a
+  keystore will be used.
+
+.. _ssl.truststore_password:
+
+**ssl.truststore_password**
+  | *Runtime:* ``no``
+
+  The password used to decrypt the truststore file defined with
+  ``ssl.truststore_filepath``.
+
+.. _ssl.resource_poll_interval:
+
+**ssl.resource_poll_interval**
+  | *Default:* ``5m``
+  | *Runtime:* ``no``
+
+  The frequency at which SSL files such as keystore and truststore are polled
+  for changes.
+
+Cross-origin resource sharing (CORS)
+------------------------------------
+
+Many browsers support the `same-origin policy`_ which requires web applications
+to explicitly allow requests across origins. The `cross-origin resource
+sharing`_ settings in CrateDB allow for configuring these.
+
+.. _http.cors.enabled:
+
+**http.cors.enabled**
   | *Default:* ``false``
   | *Runtime:* ``no``
 
-  CrateDB performs poorly when the JVM starts swapping: you should ensure that
-  it *never* swaps. If set to ``true``, CrateDB will use the ``mlockall``
-  system call on startup to ensure that the memory pages of the CrateDB process
-  are locked into RAM.
+  Enable or disable `cross-origin resource sharing`_.
 
-Garbage collection
-==================
+.. _http.cors.allow-origin:
 
-CrateDB logs if JVM garbage collection on different memory pools takes too
-long. The following settings can be used to adjust these timeouts:
-
-.. _monitor.jvm.gc.collector.young.warn:
-
-**monitor.jvm.gc.collector.young.warn**
-  | *Default:* ``1000ms``
+**http.cors.allow-origin**
+  | *Default:* ``<empty>``
   | *Runtime:* ``no``
 
-  CrateDB will log a warning message if it takes more than the configured
-  timespan to collect the *Eden Space* (heap).
+  Define allowed origins of a request. ``*`` allows *any* origin (which can be
+  a substantial security risk) and by prepending a ``/`` the string will be
+  treated as a :ref:`regular expression <gloss-regular-expression>`. For
+  example ``/https?:\/\/crate.io/`` will allow requests from
+  ``https://crate.io`` and ``https://crate.io``. This setting disallows any
+  origin by default.
 
-.. _monitor.jvm.gc.collector.young.info:
+.. _http.cors.max-age:
 
-**monitor.jvm.gc.collector.young.info**
-  | *Default:* ``700ms``
+**http.cors.max-age**
+  | *Default:* ``1728000`` (20 days)
   | *Runtime:* ``no``
 
-  CrateDB will log an info message if it takes more than the configured
-  timespan to collect the *Eden Space* (heap).
+  Max cache age of a preflight request in seconds.
 
-.. _monitor.jvm.gc.collector.young.debug:
+.. _http.cors.allow-methods:
 
-**monitor.jvm.gc.collector.young.debug**
-  | *Default:* ``400ms``
+**http.cors.allow-methods**
+  | *Default:* ``OPTIONS, HEAD, GET, POST, PUT, DELETE``
   | *Runtime:* ``no``
 
-  CrateDB will log a debug message if it takes more than the configured
-  timespan to collect the *Eden Space* (heap).
+  Allowed HTTP methods.
 
-.. _monitor.jvm.gc.collector.old.warn:
+.. _http.cors.allow-headers:
 
-**monitor.jvm.gc.collector.old.warn**
-  | *Default:* ``10000ms``
+**http.cors.allow-headers**
+  | *Default:* ``X-Requested-With, Content-Type, Content-Length``
   | *Runtime:* ``no``
 
-  CrateDB will log a warning message if it takes more than the configured
-  timespan to collect the *Old Gen* / *Tenured Gen* (heap).
+  Allowed HTTP headers.
 
-.. _monitor.jvm.gc.collector.old.info:
+.. _http.cors.allow-credentials:
 
-**monitor.jvm.gc.collector.old.info**
-  | *Default:* ``5000ms``
+**http.cors.allow-credentials**
+  | *Default:* ``false``
   | *Runtime:* ``no``
 
-  CrateDB will log an info message if it takes more than the configured
-  timespan to collect the *Old Gen* / *Tenured Gen* (heap).
+  Add the ``Access-Control-Allow-Credentials`` header to responses.
 
-.. _monitor.jvm.gc.collector.old.debug:
-
-**monitor.jvm.gc.collector.old.debug**
-  | *Default:* ``2000ms``
-  | *Runtime:* ``no``
-
-  CrateDB will log a debug message if it takes more than the configured
-  timespan to collect the *Old Gen* / *Tenured Gen* (heap).
 
 Authentication
 ==============
@@ -525,166 +600,112 @@ Example of config groups:
         ssl: on
 
 
-.. _ssl_config:
 
-Secured communications (SSL/TLS)
-================================
+.. _conf-node-process:
 
-Secured communications via SSL allows you to encrypt traffic between CrateDB
-nodes and clients connecting to them. Connections are secured using Transport
-Layer Security (TLS).
+Resource management
+===================
 
-.. _ssl.http.enabled:
 
-**ssl.http.enabled**
-  | *Default:* ``false``
-  | *Runtime:*  ``no``
+CPU
+---
 
-  Set this to true to enable secure communication between the CrateDB node
-  and the client through SSL via the HTTPS protocol.
+.. _processors:
 
-.. _ssl.psql.enabled:
-
-**ssl.psql.enabled**
-  | *Default:* ``false``
-  | *Runtime:*  ``no``
-
-  Set this to true to enable secure communication between the CrateDB node
-  and the client through SSL via the PostgreSQL wire protocol.
-
-.. _ssl.keystore_filepath:
-
-**ssl.keystore_filepath**
+**processors**
   | *Runtime:* ``no``
 
-  The full path to the node keystore file.
+  The number of processors is used to set the size of the thread pools CrateDB
+  is using appropriately. If not set explicitly, CrateDB will infer the number
+  from the available processors on the system.
 
-.. _ssl.keystore_password:
+  In environments where the CPU amount can be restricted (like Docker) or when
+  multiple CrateDB instances are running on the same hardware, the inferred
+  number might be too high. In such a case, it is recommended to set the value
+  explicitly.
 
-**ssl.keystore_password**
-  | *Runtime:* ``no``
+Memory
+------
 
-  The password used to decrypt the keystore file defined with
-  ``ssl.keystore_filepath``.
+.. _bootstrap.memory_lock:
 
-.. _ssl.keystore_key_password:
-
-**ssl.keystore_key_password**
-  | *Runtime:* ``no``
-
-  The password entered at the end of the ``keytool -genkey command``.
-
-.. NOTE::
-
-    Optionally trusted CA certificates can be stored separately from the
-    node's keystore into a truststore for CA certificates.
-
-.. _ssl.truststore_filepath:
-
-**ssl.truststore_filepath**
-  | *Runtime:* ``no``
-
-  The full path to the node truststore file. If not defined, then only a
-  keystore will be used.
-
-.. _ssl.truststore_password:
-
-**ssl.truststore_password**
-  | *Runtime:* ``no``
-
-  The password used to decrypt the truststore file defined with
-  ``ssl.truststore_filepath``.
-
-.. _ssl.resource_poll_interval:
-
-**ssl.resource_poll_interval**
-  | *Default:* ``5m``
-  | *Runtime:* ``no``
-
-  The frequency at which SSL files such as keystore and truststore are polled
-  for changes.
-
-Cross-origin resource sharing (CORS)
-====================================
-
-Many browsers support the `same-origin policy`_ which requires web applications
-to explicitly allow requests across origins. The `cross-origin resource
-sharing`_ settings in CrateDB allow for configuring these.
-
-.. _http.cors.enabled:
-
-**http.cors.enabled**
+**bootstrap.memory_lock**
   | *Default:* ``false``
   | *Runtime:* ``no``
 
-  Enable or disable `cross-origin resource sharing`_.
+  CrateDB performs poorly when the JVM starts swapping: you should ensure that
+  it *never* swaps. If set to ``true``, CrateDB will use the ``mlockall``
+  system call on startup to ensure that the memory pages of the CrateDB process
+  are locked into RAM.
 
-.. _http.cors.allow-origin:
 
-**http.cors.allow-origin**
-  | *Default:* ``<empty>``
+Garbage collection
+''''''''''''''''''
+
+CrateDB logs if JVM garbage collection on different memory pools takes too
+long. The following settings can be used to adjust these timeouts:
+
+.. _monitor.jvm.gc.collector.young.warn:
+
+**monitor.jvm.gc.collector.young.warn**
+  | *Default:* ``1000ms``
   | *Runtime:* ``no``
 
-  Define allowed origins of a request. ``*`` allows *any* origin (which can be
-  a substantial security risk) and by prepending a ``/`` the string will be
-  treated as a :ref:`regular expression <gloss-regular-expression>`. For
-  example ``/https?:\/\/crate.io/`` will allow requests from
-  ``https://crate.io`` and ``https://crate.io``. This setting disallows any
-  origin by default.
+  CrateDB will log a warning message if it takes more than the configured
+  timespan to collect the *Eden Space* (heap).
 
-.. _http.cors.max-age:
+.. _monitor.jvm.gc.collector.young.info:
 
-**http.cors.max-age**
-  | *Default:* ``1728000`` (20 days)
+**monitor.jvm.gc.collector.young.info**
+  | *Default:* ``700ms``
   | *Runtime:* ``no``
 
-  Max cache age of a preflight request in seconds.
+  CrateDB will log an info message if it takes more than the configured
+  timespan to collect the *Eden Space* (heap).
 
-.. _http.cors.allow-methods:
+.. _monitor.jvm.gc.collector.young.debug:
 
-**http.cors.allow-methods**
-  | *Default:* ``OPTIONS, HEAD, GET, POST, PUT, DELETE``
+**monitor.jvm.gc.collector.young.debug**
+  | *Default:* ``400ms``
   | *Runtime:* ``no``
 
-  Allowed HTTP methods.
+  CrateDB will log a debug message if it takes more than the configured
+  timespan to collect the *Eden Space* (heap).
 
-.. _http.cors.allow-headers:
+.. _monitor.jvm.gc.collector.old.warn:
 
-**http.cors.allow-headers**
-  | *Default:* ``X-Requested-With, Content-Type, Content-Length``
+**monitor.jvm.gc.collector.old.warn**
+  | *Default:* ``10000ms``
   | *Runtime:* ``no``
 
-  Allowed HTTP headers.
+  CrateDB will log a warning message if it takes more than the configured
+  timespan to collect the *Old Gen* / *Tenured Gen* (heap).
 
-.. _http.cors.allow-credentials:
+.. _monitor.jvm.gc.collector.old.info:
 
-**http.cors.allow-credentials**
-  | *Default:* ``false``
+**monitor.jvm.gc.collector.old.info**
+  | *Default:* ``5000ms``
   | *Runtime:* ``no``
 
-  Add the ``Access-Control-Allow-Credentials`` header to responses.
+  CrateDB will log an info message if it takes more than the configured
+  timespan to collect the *Old Gen* / *Tenured Gen* (heap).
 
-.. _`same-origin policy`: https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy
-.. _`cross-origin resource sharing`: https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
+.. _monitor.jvm.gc.collector.old.debug:
 
-Blobs
-=====
-
-.. _blobs.path:
-
-**blobs.path**
+**monitor.jvm.gc.collector.old.debug**
+  | *Default:* ``2000ms``
   | *Runtime:* ``no``
 
-  Path to a filesystem directory where to store blob data allocated for this
-  node.
+  CrateDB will log a debug message if it takes more than the configured
+  timespan to collect the *Old Gen* / *Tenured Gen* (heap).
 
-  By default blobs will be stored under the same path as normal data. A
-  relative path value is interpreted as relative to ``CRATE_HOME``.
+
+
 
 .. _ref-configuration-repositories:
 
-Repositories
-============
+Backup and restore
+==================
 
 Repositories are used to :ref:`backup <snapshot-restore>` a CrateDB cluster.
 
@@ -723,8 +744,20 @@ See also the :ref:`path.repo <path.repo>` Setting.
 
 .. _`JarURLConnection documentation`: https://docs.oracle.com/javase/8/docs/api/java/net/JarURLConnection.html
 
-Queries
-=======
+
+
+Query limitations
+=================
+
+.. _node.sql.read_only:
+
+**node.sql.read_only**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  If set to ``true``, the node will only allow SQL statements which are
+  resulting in read operations.
+
 
 .. _indices.query.bool.max_clause_count:
 
@@ -742,11 +775,10 @@ Queries
     ``ANY`` operators on arrays of that length can lead to heavy memory,
     consumption which could cause nodes to crash with OutOfMemory exceptions.
 
-
 .. _conf-node-udf:
 
-User-defined functions (UDFs)
-=============================
+User-defined functions (UDF)
+============================
 
 .. _lang.js.enabled:
 
@@ -757,20 +789,18 @@ User-defined functions (UDFs)
   Setting to enable or disable :ref:`JavaScript UDF <udf-js>` support.
 
 
-.. _conf-node-attributes:
 
-Custom attributes
-=================
+Plug-ins
+========
 
-The ``node.attr`` namespace is a bag of custom attributes. Custom attributes
-can be :ref:`used to control shard allocation
-<conf-routing-allocation-awareness>`.
+.. _plugin.mandatory:
 
-You can create any attribute you want under this namespace, like
-``node.attr.key: value``. These attributes use the ``node.attr`` namespace to
-distinguish them from core node attribute like ``node.name``.
+**plugin.mandatory**
+  | *Runtime:* ``no``
 
-Custom attributes are not validated by CrateDB, unlike core node attributes.
+  A list of plug-ins that are required for a node to startup.
+
+  If any plug-in listed here is missing, the CrateDB node will fail to start.
 
 
 .. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst

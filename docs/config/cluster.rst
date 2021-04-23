@@ -6,10 +6,17 @@
 Cluster-wide settings
 =====================
 
-All current applied cluster settings can be read by querying the
-:ref:`sys.cluster.settings <sys-cluster-settings>` column. Most
-cluster settings can be :ref:`changed at runtime
-<administration-runtime-config>`. This is documented at each setting.
+Most cluster settings can be :ref:`changed at runtime
+<administration-runtime-config>`. Cluster-wide settings which cannot be changed
+at runtime need to be configured at startup. At any point, the current cluster
+settings can be retrieved by querying the :ref:`sys.cluster.settings
+<sys-cluster-settings>` column.
+
+
+.. CAUTION::
+
+   Cluster settings configured at startup have to be the same on every node in
+   the cluster for proper operation of the cluster.
 
 .. rubric:: Table of contents
 
@@ -17,331 +24,10 @@ cluster settings can be :ref:`changed at runtime
    :local:
 
 
-.. _conf-cluster-runtime:
-
-Non-runtime cluster-wide settings
-=================================
-
-Cluster wide settings which cannot be changed at runtime need to be specified
-in the configuration of each node in the cluster.
-
-.. CAUTION::
-
-   Cluster settings specified via node configurations are required to be
-   exactly the same on every node in the cluster for proper operation of the
-   cluster.
-
-
-.. _conf-cluster-stats:
-
-Collecting stats
-================
-
-.. _stats.enabled:
-
-**stats.enabled**
-  | *Default:*    ``true``
-  | *Runtime:*   ``yes``
-
-  A boolean indicating whether or not to collect statistical information about
-  the cluster.
-
-  .. CAUTION::
-
-     The collection of statistical information incurs a slight performance
-     penalty, as details about every job and operation across the cluster will
-     cause data to be inserted into the corresponding system tables.
-
-.. _stats.jobs_log_size:
-
-**stats.jobs_log_size**
-  | *Default:*   ``10000``
-  | *Runtime:*  ``yes``
-
-  The maximum number of job records kept to be kept in the :ref:`sys.jobs_log
-  <sys-logs>` table on each node.
-
-  A job record corresponds to a single SQL statement to be executed on the
-  cluster. These records are used for performance analytics. A larger job log
-  produces more comprehensive stats, but uses more RAM.
-
-  Older job records are deleted as newer records are added, once the limit is
-  reached.
-
-  Setting this value to ``0`` disables collecting job information.
-
-.. _stats.jobs_log_expiration:
-
-**stats.jobs_log_expiration**
-  | *Default:*  ``0s`` (disabled)
-  | *Runtime:*  ``yes``
-
-  The job record expiry time in seconds.
-
-  Job records in the :ref:`sys.jobs_log <sys-logs>` table are periodically
-  cleared if they are older than the expiry time. This setting overrides
-  :ref:`stats.jobs_log_size <stats.jobs_log_size>`.
-
-  If the value is set to ``0``, time based log entry eviction is disabled.
-
-  .. NOTE::
-
-     If both the :ref:`stats.operations_log_size <stats.operations_log_size>`
-     and
-     :ref:`stats.operations_log_expiration <stats.operations_log_expiration>`
-     settings are disabled, jobs will not be recorded.
-
-.. _stats.jobs_log_filter:
-
-**stats.jobs_log_filter**
-  | *Default:* ``true`` (Include everything)
-  | *Runtime:* ``yes``
-
-  An :ref:expression <gloss-expression>` to determine if a job should be
-  recorded into ``sys.jobs_log``.  The expression must :ref:`evaluate
-  <gloss-evaluation>` to a boolean. If it evaluates to ``true`` the statement
-  will show up in ``sys.jobs_log`` until it's evicted due to one of the other
-  rules. (expiration or size limit reached).
-
-  The expression may reference all columns contained in ``sys.jobs_log``. A
-  common use case is to include only jobs that took a certain amount of time to
-  execute::
-
-    cr> SET GLOBAL "stats.jobs_log_filter" = 'ended - started > 100';
-
-.. _stats.jobs_log_persistent_filter:
-
-**stats.jobs_log_persistent_filter**
-  | *Default:* ``false`` (Include nothing)
-  | *Runtime:* ``yes``
-
-  An expression to determine if a job should also be recorded to the regular
-  ``CrateDB`` log. Entries that match this filter will be logged under the
-  ``StatementLog`` logger with the ``INFO`` level.
-
-  This is similar to ``stats.jobs_log_filter`` except that these entries are
-  persisted to the log file. This should be used with caution and shouldn't be
-  set to an expression that matches many queries as the logging operation will
-  block on IO and can therefore affect performance.
-
-  A common use case is to use this for slow query logging.
-
-.. _stats.operations_log_size:
-
-**stats.operations_log_size**
-  | *Default:*   ``10000``
-  | *Runtime:*  ``yes``
-
-  The maximum number of operations records to be kept in the
-  :ref:`sys.operations_log <sys-logs>` table on each node.
-
-  A job consists of one or more individual operations. Operations records are
-  used for performance analytics. A larger operations log produces more
-  comprehensive stats, but uses more RAM.
-
-  Older operations records are deleted as newer records are added, once the
-  limit is reached.
-
-  Setting this value to ``0`` disables collecting operations information.
-
-.. _stats.operations_log_expiration:
-
-**stats.operations_log_expiration**
-  | *Default:*  ``0s`` (disabled)
-  | *Runtime:*  ``yes``
-
-  Entries of :ref:`sys.operations_log <sys-logs>` are cleared by a periodically
-  job when they are older than the specified expire time. This setting
-  overrides :ref:`stats.operations_log_size <stats.operations_log_size>`. If
-  the value is set to ``0`` the time based log entry eviction is disabled.
-
-  .. NOTE::
-
-    If both setttings :ref:`stats.operations_log_size
-    <stats.operations_log_size>` and :ref:`stats.operations_log_expiration
-    <stats.operations_log_expiration>` are disabled, no job information will be
-    collected.
-
-.. _stats.service.interval:
-
-**stats.service.interval**
-  | *Default:*    ``24h``
-  | *Runtime:*   ``yes``
-
-  Defines the refresh interval to refresh tables statistics used to produce
-  optimal query execution plans.
-
-  This field expects a time value either as a ``bigint`` or
-  ``double precision`` or alternatively as a string literal with a time suffix
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
-
-  If the value provided is ``0`` then the refresh is disabled.
-
-  .. CAUTION::
-
-    Using a very small value can cause a high load on the cluster.
-
-
-.. _conf-cluster-shard-limits:
-
-Shard limits
-============
-
-.. _cluster.max_shards_per_node:
-
-**cluster.max_shards_per_node**
-  | *Default:* 1000
-  | *Runtime:* ``yes``
-
-  The maximum amount of shards per node.
-
-  Any operations that would result in the creation of additional shard copies
-  that would exceed this limit are rejected.
-
-  For example. If you have 999 shards in the current cluster and you try to
-  create a new table, the create table operation will fail.
-
-  Similarly, if a write operation would lead to the creation of a new
-  partition, the statement will fail.
-
-  Each shard on a node requires some memory and increases the size of the
-  cluster state. Having too many shards per node will impact the clusters
-  stability and it is therefore discouraged to raise the limit above 1000.
-
-
-.. _conf-cluster-udc:
-
-Usage-data collector (UDC)
-==========================
-
-The settings of the Usage-Data-Collector are read-only and cannot be set during
-runtime. Please refer to :ref:`usage_data_collector` to get further information
-about its usage.
-
-.. _udc.enabled:
-
-**udc.enabled**
-  | *Default:*  ``true``
-  | *Runtime:*  ``no``
-
-  ``true``: Enables the Usage-Data Collector.
-
-  ``false``: Disables the Usage-Data Collector.
-
-.. _udc.initial_delay:
-
-**udc.initial_delay**
-  | *Default:*  ``10m``
-  | *Runtime:*  ``no``
-
-  The delay for first ping after start-up.
-
-  This field expects a time value either as a ``bigint`` or
-  ``double precision`` or alternatively as a string literal with a time suffix
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
-
-.. _udc.interval:
-
-**udc.interval**
-  | *Default:*  ``24h``
-  | *Runtime:*  ``no``
-
-  The interval a UDC ping is sent.
-
- This field expects a time value either as a ``bigint`` or
-  ``double precision`` or alternatively as a string literal with a time suffix
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
-
-.. _udc.url:
-
-**udc.url**
-  | *Default:*  ``https://udc.crate.io``
-  | *Runtime:*  ``no``
-
-  The URL the ping is sent to.
-
-
-.. _conf-cluster-graceful-stop:
-
-Graceful stop
-=============
-
-By default, when the CrateDB process stops it simply shuts down, possibly
-making some shards unavailable which leads to a *red* cluster state and lets
-some queries fail that required the now unavailable shards. In order to
-*safely* shutdown a CrateDB node, the graceful stop procedure can be used.
-
-The following cluster settings can be used to change the shutdown behaviour of
-nodes of the cluster:
-
-.. _cluster.graceful_stop.min_availability:
-
-**cluster.graceful_stop.min_availability**
-  | *Default:*   ``primaries``
-  | *Runtime:*  ``yes``
-  | *Allowed values:*   ``none | primaries | full``
-
-  ``none``: No minimum data availability is required. The node may shut down
-  even if records are missing after shutdown.
-
-  ``primaries``: At least all primary shards need to be available after the node
-  has shut down. Replicas may be missing.
-
-  ``full``: All records and all replicas need to be available after the node
-  has shut down. Data availability is full.
-
-  .. NOTE::
-
-     This option is ignored if there is only 1 node in a cluster!
-
-.. _cluster.graceful_stop.timeout:
-
-**cluster.graceful_stop.timeout**
-  | *Default:*   ``2h``
-  | *Runtime:*  ``yes``
-
-  Defines the maximum waiting time in milliseconds for the :ref:`reallocation
-  <gloss-shard-allocation>` process to finish. The ``force`` setting will
-  define the behaviour when the shutdown process runs into this timeout.
-
-  The timeout expects a time value either as a ``bigint`` or
-  ``double precision`` or alternatively as a string literal with a time suffix
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
-
-.. _cluster.graceful_stop.force:
-
-**cluster.graceful_stop.force**
-  | *Default:*   ``false``
-  | *Runtime:*  ``yes``
-
-  Defines whether ``graceful stop`` should force stopping of the node if it
-  runs into the timeout which is specified with the
-  `cluster.graceful_stop.timeout`_ setting.
-
-
-.. _conf-cluster-bulk:
-
-Bulk operations
-===============
-
-SQL DML Statements involving a huge amount of rows like :ref:`sql-copy-from`,
-:ref:`ref-insert` or :ref:`ref-update` can take an enormous amount of time and
-resources. The following settings change the behaviour of those queries.
-
-.. _bulk.request_timeout:
-
-**bulk.request_timeout**
-  | *Default:* ``1m``
-  | *Runtime:* ``yes``
-
-  Defines the timeout of internal shard-based requests involved in the
-  execution of SQL DML Statements over a huge amount of rows.
-
-
 .. _conf-cluster-discovery:
 
-Discovery
-=========
+Node discovery
+==============
 
 Data sharding and work splitting are at the core of CrateDB. This is how we
 manage to execute very fast queries over incredibly large datasets. In order
@@ -627,10 +313,14 @@ To enable Azure discovery set the ``discovery.seed_providers`` setting to
   same subnet of the CrateDB instance.
 
 
+
+Sharding
+========
+
 .. _conf-cluster-allocation:
 
 Routing allocation
-==================
+------------------
 
 .. _cluster.routing.allocation.enable:
 
@@ -661,20 +351,6 @@ Routing allocation
    <gloss-shard-recovery>` of primary shards! Even when
    ``cluster.routing.allocation.enable`` is set to ``none``, nodes will recover
    their unassigned local primary shards immediatelly after restart.
-
-.. _cluster.routing.rebalance.enable:
-
-**cluster.routing.rebalance.enable**
-  | *Default:*   ``all``
-  | *Runtime:*  ``yes``
-  | *Allowed values:* ``all | none | primaries | replicas``
-
-  Enables or disables rebalancing for different types of shards:
-
-  - ``all`` allows shard rebalancing for all types of shards.
-  - ``none`` disables shard rebalancing for any types.
-  - ``primaries`` allows shard rebalancing only for primary shards.
-  - ``replicas`` allows shard rebalancing only for replica shards.
 
 .. _cluster.routing.allocation.allow_rebalance:
 
@@ -722,7 +398,7 @@ Routing allocation
 .. _conf-cluster-allocation-awareness:
 
 Awareness
----------
+'''''''''
 
 Cluster allocation awareness allows to configure :ref:`shard allocation
 <gloss-shard-allocation>` across generic attributes associated with nodes.
@@ -773,52 +449,6 @@ Cluster allocation awareness allows to configure :ref:`shard allocation
     `multi-zone setup how-to guide`_.
 
 
-.. _conf-cluster-allocation-balance:
-
-Shard balancing
----------------
-
-CrateDB will attempt to balance a cluster using the weights described in this
-subsection. The cluster is considered balanced when no further allowed action
-can bring the respective properties of each node closer together.
-
-.. NOTE::
-
-    Balancing may be restricted by other settings (e.g., forced :ref:`awareness
-    <conf-cluster-allocation-awareness>`, :ref:`allocation filtering
-    <conf-cluster-allocation-filtering>`, and :ref:`disk-based allocation
-    <conf-cluster-allocation-disk>`).
-
-.. _cluster.routing.allocation.balance.shard:
-
-**cluster.routing.allocation.balance.shard**
-  | *Default:*   ``0.45f``
-  | *Runtime:*  ``yes``
-
-  Defines the weight factor for shards :ref:`allocated
-  <gloss-shard-allocation>` on a node (float). Raising this raises the tendency
-  to equalize the number of shards across all nodes in the cluster.
-
-.. _cluster.routing.allocation.balance.index:
-
-**cluster.routing.allocation.balance.index**
-  | *Default:*   ``0.55f``
-  | *Runtime:*  ``yes``
-
-  Defines a factor to the number of shards per index :ref:`allocated
-  <gloss-shard-allocation>` on a specific node (float). Increasing this value
-  raises the tendency to equalize the number of shards per index across all
-  nodes in the cluster.
-
-.. _cluster.routing.allocation.balance.threshold:
-
-**cluster.routing.allocation.balance.threshold**
-  | *Default:*   ``1.0f``
-  | *Runtime:*  ``yes``
-
-  Minimal optimization value of operations that should be performed (non
-  negative float). Increasing this value will cause the cluster to be less
-  aggressive about optimising the shard balance.
 
 
 .. _conf-cluster-allocation-filtering:
@@ -959,10 +589,71 @@ nodes every 30 seconds. This can also be changed by setting the
    other nodes, or leave shards unassigned if no suitable node can be found.
 
 
+.. _conf-cluster-allocation-balance:
+
+Shard balancing
+---------------
+
+CrateDB will attempt to balance a cluster using the weights described in this
+subsection. The cluster is considered balanced when no further allowed action
+can bring the respective properties of each node closer together.
+
+.. NOTE::
+
+    Balancing may be restricted by other settings (e.g., forced :ref:`awareness
+    <conf-cluster-allocation-awareness>`, :ref:`allocation filtering
+    <conf-cluster-allocation-filtering>`, and :ref:`disk-based allocation
+    <conf-cluster-allocation-disk>`).
+
+.. _cluster.routing.rebalance.enable:
+
+**cluster.routing.rebalance.enable**
+  | *Default:*   ``all``
+  | *Runtime:*  ``yes``
+  | *Allowed values:* ``all | none | primaries | replicas``
+
+  Enables or disables rebalancing for different types of shards:
+
+  - ``all`` allows shard rebalancing for all types of shards.
+  - ``none`` disables shard rebalancing for any types.
+  - ``primaries`` allows shard rebalancing only for primary shards.
+  - ``replicas`` allows shard rebalancing only for replica shards.
+
+.. _cluster.routing.allocation.balance.shard:
+
+**cluster.routing.allocation.balance.shard**
+  | *Default:*   ``0.45f``
+  | *Runtime:*  ``yes``
+
+  Defines the weight factor for shards :ref:`allocated
+  <gloss-shard-allocation>` on a node (float). Raising this raises the tendency
+  to equalize the number of shards across all nodes in the cluster.
+
+.. _cluster.routing.allocation.balance.index:
+
+**cluster.routing.allocation.balance.index**
+  | *Default:*   ``0.55f``
+  | *Runtime:*  ``yes``
+
+  Defines a factor to the number of shards per index :ref:`allocated
+  <gloss-shard-allocation>` on a specific node (float). Increasing this value
+  raises the tendency to equalize the number of shards per index across all
+  nodes in the cluster.
+
+.. _cluster.routing.allocation.balance.threshold:
+
+**cluster.routing.allocation.balance.threshold**
+  | *Default:*   ``1.0f``
+  | *Runtime:*  ``yes``
+
+  Minimal optimization value of operations that should be performed (non
+  negative float). Increasing this value will cause the cluster to be less
+  aggressive about optimising the shard balance.
+
 .. _conf-cluster-recovery:
 
-Recovery
-========
+Shard recovery
+--------------
 
 .. _indices.recovery.max_bytes_per_sec:
 
@@ -1043,10 +734,117 @@ Recovery
   when using transport-level security or compression.
 
 
+.. _conf-cluster-shard-limits:
+
+Shard limits
+------------
+
+.. _cluster.max_shards_per_node:
+
+**cluster.max_shards_per_node**
+  | *Default:* 1000
+  | *Runtime:* ``yes``
+
+  The maximum amount of shards per node.
+
+  Any operations that would result in the creation of additional shard copies
+  that would exceed this limit are rejected.
+
+  For example. If you have 999 shards in the current cluster and you try to
+  create a new table, the create table operation will fail.
+
+  Similarly, if a write operation would lead to the creation of a new
+  partition, the statement will fail.
+
+  Each shard on a node requires some memory and increases the size of the
+  cluster state. Having too many shards per node will impact the clusters
+  stability and it is therefore discouraged to raise the limit above 1000.
+
+
+.. _conf-cluster-bulk:
+
+Bulk operations
+===============
+
+SQL DML Statements involving a huge amount of rows like :ref:`sql-copy-from`,
+:ref:`ref-insert` or :ref:`ref-update` can take an enormous amount of time and
+resources. The following settings change the behaviour of those queries.
+
+.. _bulk.request_timeout:
+
+**bulk.request_timeout**
+  | *Default:* ``1m``
+  | *Runtime:* ``yes``
+
+  Defines the timeout of internal shard-based requests involved in the
+  execution of SQL DML Statements over a huge amount of rows.
+
+
+
+
+
+Resource management
+===================
+
+.. _conf-cluster-thread-pools:
+
+Thread pools
+------------
+
+Every node holds several thread pools to improve how threads are managed within
+a node. There are several pools, but the important ones include:
+
+* ``write``: For index, update and delete operations, defaults to fixed
+* ``search``: For count/search operations, defaults to fixed
+* ``get``: For queries on ``sys.shards`` and ``sys.nodes``, defaults to fixed.
+* ``refresh``: For refresh operations, defaults to cache
+
+.. _thread_pool.<name>.type:
+
+**thread_pool.<name>.type**
+  | *Runtime:*  ``no``
+  | *Allowed values:* ``fixed | scaling``
+
+  ``fixed`` holds a fixed size of threads to handle the requests. It also has a
+  queue for pending requests if no threads are available.
+
+  ``scaling`` ensures that a thread pool holds a dynamic number of threads that
+  are proportional to the workload.
+
+
+.. _conf-cluster-thread-pools-fixed:
+
+Settings for fixed thread pools
+'''''''''''''''''''''''''''''''
+
+If the type of a thread pool is set to ``fixed`` there are a few optional
+settings.
+
+.. _thread_pool.<name>.size:
+
+**thread_pool.<name>.size**
+  | *Runtime:*  ``no``
+
+  Number of threads. The default size of the different thread pools depend on
+  the number of available CPU cores.
+
+.. _thread_pool.<name>.queue_size:
+
+**thread_pool.<name>.queue_size**
+  | *Default write:*  ``200``
+  | *Default search:* ``1000``
+  | *Default get:* ``100``
+  | *Runtime:*  ``no``
+
+  Size of the queue for pending requests. A value of ``-1`` sets it to
+  unbounded.
+
+
+
 .. _conf-cluster-memory:
 
-Memory management
-=================
+Memory
+------
 
 .. _memory.allocation.type:
 
@@ -1069,13 +867,13 @@ be allowed to utilize off heap buffers.
 .. _conf-cluster-breakers:
 
 Circuit breakers
-================
+----------------
 
 
 .. _conf-cluster-breakers-query:
 
 Query circuit breaker
----------------------
+'''''''''''''''''''''
 
 The Query circuit breaker will keep track of the used memory during the
 execution of a query. If a query consumes too much memory or if the cluster is
@@ -1107,7 +905,7 @@ keeps working.
 .. _conf-cluster-breakers-fielddata:
 
 Field-data circuit breaker
---------------------------
+''''''''''''''''''''''''''
 
 These settings are deprecated and will be removed in CrateDB 5.0. They don't
 have any effect anymore.
@@ -1129,7 +927,7 @@ have any effect anymore.
 .. _conf-cluster-breakers-request:
 
 Request circuit breaker
------------------------
+'''''''''''''''''''''''
 
 The request circuit breaker allows an estimation of required heap memory per
 request. If a single request exceeds the specified amount of memory, an
@@ -1157,7 +955,7 @@ exception is raised.
 .. _conf-cluster-breakers-accounting:
 
 Accounting circuit breaker
---------------------------
+''''''''''''''''''''''''''
 
 Tracks things that are held in memory independent of queries. For example the
 memory used by Lucene for segments.
@@ -1184,7 +982,7 @@ memory used by Lucene for segments.
 .. _conf-cluster-breakers-stats:
 
 Stats circuit breakers
-----------------------
+''''''''''''''''''''''
 
 Settings that control the behaviour of the stats circuit breaker. There are two
 breakers in place, one for the jobs log and one for the operations log. For
@@ -1221,7 +1019,7 @@ each of them, the breaker limit can be set.
 .. _conf-cluster-breakers-total:
 
 Total circuit breaker
----------------------
+'''''''''''''''''''''
 
 .. _indices.breaker.total.limit:
 
@@ -1237,64 +1035,162 @@ Total circuit breaker
   hit the memory limit configured in ``indices.breaker.total.limit``.
 
 
-.. _conf-cluster-thread-pools:
 
-Thread pools
-============
+.. _conf-cluster-stats:
 
-Every node holds several thread pools to improve how threads are managed within
-a node. There are several pools, but the important ones include:
+Statistics collection
+=====================
 
-* ``write``: For index, update and delete operations, defaults to fixed
-* ``search``: For count/search operations, defaults to fixed
-* ``get``: For queries on ``sys.shards`` and ``sys.nodes``, defaults to fixed.
-* ``refresh``: For refresh operations, defaults to cache
+.. _stats.enabled:
 
-.. _thread_pool.<name>.type:
+**stats.enabled**
+  | *Default:*    ``true``
+  | *Runtime:*   ``yes``
 
-**thread_pool.<name>.type**
-  | *Runtime:*  ``no``
-  | *Allowed values:* ``fixed | scaling``
+  A boolean indicating whether or not to collect statistical information about
+  the cluster.
 
-  ``fixed`` holds a fixed size of threads to handle the requests. It also has a
-  queue for pending requests if no threads are available.
+  .. CAUTION::
 
-  ``scaling`` ensures that a thread pool holds a dynamic number of threads that
-  are proportional to the workload.
+     The collection of statistical information incurs a slight performance
+     penalty, as details about every job and operation across the cluster will
+     cause data to be inserted into the corresponding system tables.
 
+.. _stats.jobs_log_size:
 
-.. _conf-cluster-thread-pools-fixed:
+**stats.jobs_log_size**
+  | *Default:*   ``10000``
+  | *Runtime:*  ``yes``
 
-Settings for fixed thread pools
--------------------------------
+  The maximum number of job records kept to be kept in the :ref:`sys.jobs_log
+  <sys-logs>` table on each node.
 
-If the type of a thread pool is set to ``fixed`` there are a few optional
-settings.
+  A job record corresponds to a single SQL statement to be executed on the
+  cluster. These records are used for performance analytics. A larger job log
+  produces more comprehensive stats, but uses more RAM.
 
-.. _thread_pool.<name>.size:
+  Older job records are deleted as newer records are added, once the limit is
+  reached.
 
-**thread_pool.<name>.size**
-  | *Runtime:*  ``no``
+  Setting this value to ``0`` disables collecting job information.
 
-  Number of threads. The default size of the different thread pools depend on
-  the number of available CPU cores.
+.. _stats.jobs_log_expiration:
 
-.. _thread_pool.<name>.queue_size:
+**stats.jobs_log_expiration**
+  | *Default:*  ``0s`` (disabled)
+  | *Runtime:*  ``yes``
 
-**thread_pool.<name>.queue_size**
-  | *Default write:*  ``200``
-  | *Default search:* ``1000``
-  | *Default get:* ``100``
-  | *Runtime:*  ``no``
+  The job record expiry time in seconds.
 
-  Size of the queue for pending requests. A value of ``-1`` sets it to
-  unbounded.
+  Job records in the :ref:`sys.jobs_log <sys-logs>` table are periodically
+  cleared if they are older than the expiry time. This setting overrides
+  :ref:`stats.jobs_log_size <stats.jobs_log_size>`.
+
+  If the value is set to ``0``, time based log entry eviction is disabled.
+
+  .. NOTE::
+
+     If both the :ref:`stats.operations_log_size <stats.operations_log_size>`
+     and
+     :ref:`stats.operations_log_expiration <stats.operations_log_expiration>`
+     settings are disabled, jobs will not be recorded.
+
+.. _stats.jobs_log_filter:
+
+**stats.jobs_log_filter**
+  | *Default:* ``true`` (Include everything)
+  | *Runtime:* ``yes``
+
+  An :ref:expression <gloss-expression>` to determine if a job should be
+  recorded into ``sys.jobs_log``.  The expression must :ref:`evaluate
+  <gloss-evaluation>` to a boolean. If it evaluates to ``true`` the statement
+  will show up in ``sys.jobs_log`` until it's evicted due to one of the other
+  rules. (expiration or size limit reached).
+
+  The expression may reference all columns contained in ``sys.jobs_log``. A
+  common use case is to include only jobs that took a certain amount of time to
+  execute::
+
+    cr> SET GLOBAL "stats.jobs_log_filter" = 'ended - started > 100';
+
+.. _stats.jobs_log_persistent_filter:
+
+**stats.jobs_log_persistent_filter**
+  | *Default:* ``false`` (Include nothing)
+  | *Runtime:* ``yes``
+
+  An expression to determine if a job should also be recorded to the regular
+  ``CrateDB`` log. Entries that match this filter will be logged under the
+  ``StatementLog`` logger with the ``INFO`` level.
+
+  This is similar to ``stats.jobs_log_filter`` except that these entries are
+  persisted to the log file. This should be used with caution and shouldn't be
+  set to an expression that matches many queries as the logging operation will
+  block on IO and can therefore affect performance.
+
+  A common use case is to use this for slow query logging.
+
+.. _stats.operations_log_size:
+
+**stats.operations_log_size**
+  | *Default:*   ``10000``
+  | *Runtime:*  ``yes``
+
+  The maximum number of operations records to be kept in the
+  :ref:`sys.operations_log <sys-logs>` table on each node.
+
+  A job consists of one or more individual operations. Operations records are
+  used for performance analytics. A larger operations log produces more
+  comprehensive stats, but uses more RAM.
+
+  Older operations records are deleted as newer records are added, once the
+  limit is reached.
+
+  Setting this value to ``0`` disables collecting operations information.
+
+.. _stats.operations_log_expiration:
+
+**stats.operations_log_expiration**
+  | *Default:*  ``0s`` (disabled)
+  | *Runtime:*  ``yes``
+
+  Entries of :ref:`sys.operations_log <sys-logs>` are cleared by a periodically
+  job when they are older than the specified expire time. This setting
+  overrides :ref:`stats.operations_log_size <stats.operations_log_size>`. If
+  the value is set to ``0`` the time based log entry eviction is disabled.
+
+  .. NOTE::
+
+    If both setttings :ref:`stats.operations_log_size
+    <stats.operations_log_size>` and :ref:`stats.operations_log_expiration
+    <stats.operations_log_expiration>` are disabled, no job information will be
+    collected.
+
+.. _stats.service.interval:
+
+**stats.service.interval**
+  | *Default:*    ``24h``
+  | *Runtime:*   ``yes``
+
+  Defines the refresh interval to refresh tables statistics used to produce
+  optimal query execution plans.
+
+  This field expects a time value either as a ``bigint`` or
+  ``double precision`` or alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
+
+  If the value provided is ``0`` then the refresh is disabled.
+
+  .. CAUTION::
+
+    Using a very small value can cause a high load on the cluster.
+
 
 
 .. _conf-cluster-metadata:
 
-Metadata
-========
+Cluster state
+=============
 
 .. _cluster.info.update.interval:
 
@@ -1308,8 +1204,8 @@ Metadata
 
 .. _conf-cluster-metadata-gateway:
 
-Metadata gateway
-----------------
+State recovery
+--------------
 
 The following settings can be used to configure the behavior of the
 :ref:`metadata gateway <gloss-metadata-gateway>`.
@@ -1349,6 +1245,117 @@ The following settings can be used to configure the behavior of the
   because you only want the cluster state to be recovered once all nodes are
   started. However, the value must be bigger than the half of the expected
   number of nodes in the cluster.
+
+
+.. _conf-cluster-graceful-stop:
+
+Graceful stop
+=============
+
+By default, when the CrateDB process stops it simply shuts down, possibly
+making some shards unavailable which leads to a *red* cluster state and lets
+some queries fail that required the now unavailable shards. In order to
+*safely* shutdown a CrateDB node, the graceful stop procedure can be used.
+
+The following cluster settings can be used to change the shutdown behaviour of
+nodes of the cluster:
+
+.. _cluster.graceful_stop.min_availability:
+
+**cluster.graceful_stop.min_availability**
+  | *Default:*   ``primaries``
+  | *Runtime:*  ``yes``
+  | *Allowed values:*   ``none | primaries | full``
+
+  ``none``: No minimum data availability is required. The node may shut down
+  even if records are missing after shutdown.
+
+  ``primaries``: At least all primary shards need to be available after the node
+  has shut down. Replicas may be missing.
+
+  ``full``: All records and all replicas need to be available after the node
+  has shut down. Data availability is full.
+
+  .. NOTE::
+
+     This option is ignored if there is only 1 node in a cluster!
+
+.. _cluster.graceful_stop.timeout:
+
+**cluster.graceful_stop.timeout**
+  | *Default:*   ``2h``
+  | *Runtime:*  ``yes``
+
+  Defines the maximum waiting time in milliseconds for the :ref:`reallocation
+  <gloss-shard-allocation>` process to finish. The ``force`` setting will
+  define the behaviour when the shutdown process runs into this timeout.
+
+  The timeout expects a time value either as a ``bigint`` or
+  ``double precision`` or alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
+
+.. _cluster.graceful_stop.force:
+
+**cluster.graceful_stop.force**
+  | *Default:*   ``false``
+  | *Runtime:*  ``yes``
+
+  Defines whether ``graceful stop`` should force stopping of the node if it
+  runs into the timeout which is specified with the
+  `cluster.graceful_stop.timeout`_ setting.
+
+
+
+.. _conf-cluster-udc:
+
+Usage data
+==========
+
+The settings of the Usage-Data-Collector are read-only and cannot be set during
+runtime. Please refer to :ref:`usage_data_collector` to get further information
+about its usage.
+
+.. _udc.enabled:
+
+**udc.enabled**
+  | *Default:*  ``true``
+  | *Runtime:*  ``no``
+
+  ``true``: Enables the Usage-Data Collector.
+
+  ``false``: Disables the Usage-Data Collector.
+
+.. _udc.initial_delay:
+
+**udc.initial_delay**
+  | *Default:*  ``10m``
+  | *Runtime:*  ``no``
+
+  The delay for first ping after start-up.
+
+  This field expects a time value either as a ``bigint`` or
+  ``double precision`` or alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
+
+.. _udc.interval:
+
+**udc.interval**
+  | *Default:*  ``24h``
+  | *Runtime:*  ``no``
+
+  The interval a UDC ping is sent.
+
+ This field expects a time value either as a ``bigint`` or
+  ``double precision`` or alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
+
+.. _udc.url:
+
+**udc.url**
+  | *Default:*  ``https://udc.crate.io``
+  | *Runtime:*  ``no``
+
+  The URL the ping is sent to.
 
 
 .. _Active Directory application: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/
