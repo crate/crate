@@ -174,6 +174,10 @@ public class ShardRowContext {
         }
     }
 
+    public boolean isClosed() {
+        return indexShard.mapperService() == null;
+    }
+
     @Nullable
     public String minLuceneVersion() {
         long numDocs;

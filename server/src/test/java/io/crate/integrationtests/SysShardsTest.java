@@ -172,9 +172,10 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = execute("select * from sys.shards");
         assertEquals(26L, response.rowCount());
-        assertEquals(19, response.cols().length);
+        assertEquals(20, response.cols().length);
         assertThat(response.cols(), arrayContaining(
             "blob_path",
+            "closed",
             "id",
             "min_lucene_version",
             "node",
@@ -424,13 +425,16 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectFromSysShardsForClosedTables() throws Exception {
-        execute("create table tbl (x int)");
-        execute("insert into tbl values(1)");
-        execute("alter table tbl close");
-        execute("select min_lucene_version, node, path, recovery, retention_leases, seq_no_stats, translog_stats " +
-                "from sys.shards where table_name = 'tbl' and primary = 'true'");
-        assertThat(TestingHelpers.printedTable(response.rows()), not(containsString("NULL")));
+    public void test_state_for_shards_of_closed_table() throws Exception {
+        execute("create table doc.tbl (x int) clustered into 2 shards with(number_of_replicas=0)");
+        execute("insert into doc.tbl values(1)");
+        logger.info("---> Closing table doc.tbl");
+        execute("alter table doc.tbl close");
+        execute("select id, closed from sys.shards where table_name = 'tbl' order by id asc");
+        assertThat(response.rows()[0][0], is(0));
+        assertThat(response.rows()[0][1], is(true));
+        assertThat(response.rows()[1][0], is(1));
+        assertThat(response.rows()[1][1], is(true));
     }
 
     @UseJdbc(0)
