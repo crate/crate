@@ -25,6 +25,7 @@ package io.crate.execution.engine.collect;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -35,9 +36,10 @@ import java.util.stream.StreamSupport;
 
 import static org.hamcrest.Matchers.is;
 
+@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 1, supportsDedicatedMasters = false)
 public class ShardCollectorProviderTest extends SQLTransportIntegrationTest {
 
-    public void assertNoShardEntriesLeftInShardCollectSource() throws Exception {
+    public void assertNumberOfShardEntriesInShardCollectSource(int numberOfShards) throws Exception {
         final Field shards = ShardCollectSource.class.getDeclaredField("shards");
         shards.setAccessible(true);
         final List<ShardCollectSource> shardCollectSources = StreamSupport.stream(
@@ -47,7 +49,7 @@ public class ShardCollectorProviderTest extends SQLTransportIntegrationTest {
             try {
                 //noinspection unchecked
                 Map<ShardId, ShardCollectorProvider> shardMap = (Map<ShardId, ShardCollectorProvider>) shards.get(shardCollectSource);
-                assertThat(shardMap.size(), is(0));
+                assertThat(shardMap.size(), is(numberOfShards));
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
@@ -55,22 +57,13 @@ public class ShardCollectorProviderTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testClosedIndicesHaveNoShardEntries() throws Exception {
-        execute("create table t(i int) with (number_of_replicas='0-all')");
+    public void testClosedIndicesHaveShardEntries() throws Exception {
+        var numberOfShards = randomIntBetween(1, 4);
+        execute("create table t(i int) clustered into ? shards with (number_of_replicas='0-all')", new Object[]{numberOfShards});
         ensureGreen();
         execute("alter table t close");
         waitUntilShardOperationsFinished();
-        assertNoShardEntriesLeftInShardCollectSource();
-    }
-
-    @Test
-    public void testClosedIndicesHaveNoShardEntriesAfterSelectFromSysShards() throws Exception {
-        execute("create table t(i int) with (number_of_replicas='0-all')");
-        ensureGreen();
-        execute("alter table t close");
-        execute("select * from sys.shards where table_name = 't'");
-        waitUntilShardOperationsFinished();
-        assertNoShardEntriesLeftInShardCollectSource();
+        assertNumberOfShardEntriesInShardCollectSource(numberOfShards);
     }
 
     @Test
@@ -79,7 +72,7 @@ public class ShardCollectorProviderTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("drop table tt");
         waitUntilShardOperationsFinished();
-        assertNoShardEntriesLeftInShardCollectSource();
+        assertNumberOfShardEntriesInShardCollectSource(0);
     }
 
     @Test
