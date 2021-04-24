@@ -81,6 +81,7 @@ public class SysShardsTableInfo {
         static final ColumnIdent RELOCATING_NODE = new ColumnIdent("relocating_node");
         public static final ColumnIdent SIZE = new ColumnIdent("size");
         static final ColumnIdent STATE = new ColumnIdent("state");
+        static final ColumnIdent CLOSED = new ColumnIdent("closed");
         static final ColumnIdent ROUTING_STATE = new ColumnIdent("routing_state");
         static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
 
@@ -107,6 +108,7 @@ public class SysShardsTableInfo {
             entry(Columns.RELOCATING_NODE, () -> constant(null)),
             entry(Columns.SIZE, () -> constant(0L)),
             entry(Columns.STATE, () -> forFunction(UnassignedShard::state)),
+            entry(Columns.CLOSED, () -> constant(null)),
             entry(Columns.ROUTING_STATE, () -> forFunction(UnassignedShard::state)),
             entry(Columns.ORPHAN_PARTITION, () -> forFunction(UnassignedShard::orphanedPartition)),
             entry(Columns.RECOVERY, NestedNullObjectExpression::new),
@@ -131,6 +133,7 @@ public class SysShardsTableInfo {
             .add("relocating_node", STRING, r -> r.indexShard().routingEntry().relocatingNodeId())
             .add("size", LONG, ShardRowContext::size)
             .add("state", STRING, r -> r.indexShard().state().toString())
+            .add("closed", BOOLEAN, ShardRowContext::isClosed)
             .add("routing_state", STRING,r -> r.indexShard().routingEntry().state().toString())
             .add("orphan_partition", BOOLEAN, ShardRowContext::isOrphanedPartition)
 

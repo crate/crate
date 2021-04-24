@@ -54,6 +54,9 @@ None
 Changes
 =======
 
+- Added a ``closed`` column to :ref:`sys-shards <sys-shards>` exposing
+  the state of the table associated with the shard.
+
 - Added :ref:`array_to_string <scalar-array-to-string>` scalar function
   that concatenates array elements into a single string using a separator and
   an optional null-string.

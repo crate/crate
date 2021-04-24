@@ -278,10 +278,11 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                 "and tables.table_schema = columns.table_schema " +
                 "and tables.table_name = columns.table_name " +
                 "order by columns.column_name " +
-                "limit 4");
-        assertThat(response.rowCount(), is(4L));
+                "limit 5");
+        assertThat(response.rowCount(), is(5L));
         assertThat(printedTable(response.rows()),
             is("strict| blob_path\n" +
+               "strict| closed\n" +
                "strict| id\n" +
                "strict| min_lucene_version\n" +
                "strict| node\n"));
