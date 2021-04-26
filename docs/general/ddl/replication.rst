@@ -1,30 +1,35 @@
-.. _replication:
+.. _ddl-replication:
 
 ===========
 Replication
 ===========
 
-Replication of a table in CrateDB means that each primary shard of a table is
-stored additionally on so called secondary shards. This can be useful for
-better read performance and high availability.
+You can configure CrateDB to *replicate* tables. When a table is replicated,
+table data is stored on multiple primary shards, with each primary shard having
+one or more replica shards.
 
-If not specified, CrateDB creates zero to one replica depending on the number
-of available nodes at the cluster. At a single-node cluster, replicas are set
-to zero to allow fast write operations with the default setting of
-:ref:`sql-create-table-write-wait-for-active-shards`.
+When a primary shard is lost (e.g., due to node failure), CrateDB will promote
+a replica shard to primary. Hence, more table replicas mean a smaller chance of
+permanent data loss (through increased `data redundancy`) in exchange for more
+disk space utilization and intra-cluster network traffic.
 
-.. rubric:: Table of contents
+Replica shards can also improve read performance because more copies of the
+data spread across more nodes. Having more copies of the data on more nodes can
+also increases the opportunities for CrateDB to `parallelize`_ query
+execution.
 
-.. contents::
-    :local:
+.. TIP::
 
-Configuration
-=============
+    The `CrateDB Admin UI`_ provides visual indicators of cluster health that
+    take replication status into account. Alternatively, you can query health
+    information for yourself directly from the :ref:`sys.health <sys-health>`
+    table.
 
-Defining the number of replicas is done using the
-:ref:`sql-create-table-number-of-replicas` property.
+You can configure the number of per-shard replicas :ref:`WITH
+<sql-create-table-with>` the :ref:`sql-create-table-number-of-replicas` table
+setting.
 
-Example::
+For example::
 
     cr> create table my_table10 (
     ...   first_column integer,
@@ -32,42 +37,49 @@ Example::
     ... ) with (number_of_replicas = 0);
     CREATE OK, 1 row affected (... sec)
 
-The ``number_of_replicas`` property also accepts an string as parameter that
-contains a ``range``.
+As well as configuring a single fixed number of pre-replica shards, you can use
+a string to configure a range by specifying a minimum and a maximum (dependent
+on the number of nodes in the cluster).
 
-A range is a definition of minimum number of replicas to maximum number of
-replicas depending on the number of nodes in the cluster. The table below shows
-some examples.
+Here are some examples of replica ranges:
 
-===== =========================================================================
-Range Explanation
-===== =========================================================================
-0-1   Will create no replicas if only one node. This will result in a yellow
-      cluster health.
+========= =====================================================================
+Range     Explanation
+========= =====================================================================
+``0-1``   If you only have one node, CrateDB will not create any replicas.
+          Having no replicas will result in a *yellow* cluster health. If you
+          have more than one node, CreateDB will create one replica per shard.
+--------- ---------------------------------------------------------------------
+``2-4``   Each table will require at least two replicas for CrateDB to consider
+          it fully replicated (i.e., a *green status*).
 
-      One replica if more than one node.
------ -------------------------------------------------------------------------
-2-4   Table requires at least two replicas to be fully replicated.
+          If the cluster has four nodes, CrateDB will create four replicas,
+          with each replica located on a different node from its respective
+          primary to improve :ref:`resiliency <concept-resiliency>` (e.g., due
+          to node failure).
 
-      Will create up to four replicas if nodes are added.
+          If a cluster has three or fewer nodes, CreateDB will have to locate one
+          or more  replica shards will be on the same node as the respective
+          primary shard. If this happens, your cluster will have a *yellow*
+          cluster health.
+--------- ---------------------------------------------------------------------
+``0-all`` CrateDB will create as many replicas as you have nodes available.
+========= =====================================================================
 
-      If you have less than three nodes, one or more replica shards will be
-      located on the same node as the primary shard. This will result in a
-      yellow cluster health.
------ -------------------------------------------------------------------------
-0-all Will expand the number of replicas to the available number of nodes.
-===== =========================================================================
+If you do not specify a ``number_of_replicas``, CrateDB will create one or zero
+replicas, depending on the number of available nodes at the cluster (e.g., on a
+single-node cluster, ``number_of_replicas`` will be set to zero to allow fast
+write operations with the default setting of
+:ref:`sql-create-table-write-wait-for-active-shards`).
 
-For details of the range syntax refer to :ref:`the CREATE TABLE
-documentation <sql-create-table-number-of-replicas>`.
-
-.. NOTE::
-
-    The number of replicas can be changed at any time.
+You can change the :ref:`sql-create-table-number-of-replicas` setting at any
+time.
 
 .. SEEALSO::
 
-    The `Admin UI`_ indicates the health of your data.  This information call
-    also be queried via the :ref:`sys.health <sys-health>` table.
+    :ref:`CREATE TABLE: WITH clause <sql-create-table-number-of-replicas>`
 
-.. _Admin UI: https://crate.io/docs/clients/admin-ui/en/latest/
+
+.. _CrateDB Admin UI: https://crate.io/docs/clients/admin-ui/en/latest/
+.. _data redundancy: https://en.wikipedia.org/wiki/Data_redundancy
+.. _parallelize: https://en.wikipedia.org/wiki/Distributed_computing

@@ -1,47 +1,73 @@
-.. _sql_ddl_create:
+.. _ddl-create-table:
 
 ===============
 Creating tables
 ===============
+
+Tables are the basic building blocks of a relational database. A table can hold
+multiple rows (i.e., records), with each row having multiple columns and each
+column holding a single data element (i.e., value). You can :ref:`query <dql>`
+tables to :ref:`insert data <inserting_data>`, :ref:`select <sql_dql_queries>`
+(i.e., retrieve) data, and :ref:`delete data <dml_deleting_data>`.
 
 .. rubric:: Table of contents
 
 .. contents::
    :local:
 
-Basics
-======
 
-To create a table use the :ref:`sql-create-table` command. You must at least
-specify a name for the table and names and types of the columns.
+.. _ddl-create-table-definition:
 
-See :ref:`data-types` for information about the supported data types.
+Table definition
+================
 
-This query creates a simple table with two columns of type ``integer`` and
-``text``::
+To create a table, use the :ref:`sql-create-table` :ref:`statement
+<gloss-statement>`.
 
-    cr> create table my_table (
+At a minimum, you must specify a table name and one or more column
+definitions. A column definition must specify a column name and a corresponding
+:ref:`data type <data-types>`.
+
+Here's an example statement::
+
+    cr> CREATE TABLE my_table (
     ...   first_column integer,
     ...   second_column text
     ... );
     CREATE OK, 1 row affected (... sec)
 
-A table can be removed by using the :ref:`drop-table` command::
+This statement creates a table named ``my_table`` with two columns named
+``first_column`` and ``second_column`` with types :ref:`integer
+<data-type-numeric>` and :ref:`text <data-type-text>`.
 
-    cr> drop table my_table;
+A table can be dropped (i.e., deleted) by using the :ref:`drop-table`
+statement::
+
+    cr> DROP TABLE my_table;
     DROP OK, 1 row affected (... sec)
 
-The :ref:`drop-table` command takes the optional clause ``IF EXISTS`` which
-prevents the generation of an error if the specified table does not exist::
+If the ``my_table`` table did not exist, the ``DROP TABLE`` statement above
+would return an error message. If you specify the ``IF EXISTS`` clause, the
+instruction is conditional on the table's existence and would not return an
+error message::
 
-    cr> drop table if exists my_table;
+    cr> DROP TABLE IF EXISTS my_table;
     DROP OK, 0 rows affected (... sec)
 
+.. TIP::
 
-.. _sql_ddl_schemas:
+    By default, CrateDB will enforce the column definitions you specified with
+    the ``CREATE TABLE`` statement (what's known as a *strict* :ref:`column
+    policy <column_policy>`). However, you can configure the
+    :ref:`column_policy table parameter <column_policy>` to allow the dynamic
+    creation of new columns at query-time (what's known as a *dynamic* column
+    policy).
+
+
+.. _ddl-create-table-schemas:
 
 Schemas
-=======
+-------
 
 Tables can be created in different schemas. These are created implicitly on
 table creation and cannot be created explicitly. If a schema did not exist yet,
@@ -71,16 +97,16 @@ We can confirm this by looking up this table in the
 
 The following schema names are reserved and may not be used:
 
- - blob
- - information_schema
- - sys
+- ``blob``
+- ``information_schema``
+- ``sys``
 
 .. TIP::
 
    Schemas are primarily namespaces for tables. You can use :ref:`privileges
    <administration-privileges>` to control access to schemas.
 
-A user created schema exists as long as there are tables with the same schema
+A user-created schema exists as long as there are tables with the same schema
 name. If the last table with that schema is dropped, the schema is gone (except
 for the ``blob`` and ``doc`` schema)::
 
@@ -112,10 +138,11 @@ the ``doc`` schema::
     cr> drop table my_doc_table;
     DROP OK, 1 row affected (... sec)
 
-.. _sql_ddl_naming_restrictions:
+
+.. _ddl-create-table-naming:
 
 Naming restrictions
-===================
+-------------------
 
 Table, schema and column identifiers cannot have the same names as reserved key
 words. Please refer to the :ref:`sql_lexical` section for more information
@@ -147,15 +174,78 @@ Column names are restricted in terms of patterns:
     :ref:`subscript notation <sql_dql_object_arrays>` (e.g. ``col['id']``) are
     not allowed.
 
-Advanced use
-============
 
-Tables can be:
+.. _ddl-create-table-configuration:
 
-- :ref:`Clustered <sql-create-table-clustered>` into multiple :ref:`shards
-  <ddl-sharding>`
-- :ref:`sql-create-table-partitioned-by` one or more columns (to create
-  :ref:`partitioned tables <partitioned-tables>`)
-- Fine-tuned with :ref:`table paramaters <sql-create-table-with>` (e.g., to
-  configure :ref:`replication <replication>`)
+Table configuration
+===================
 
+You can configure tables in many different ways to take advantage of the range
+of functionality that CrateDB supports. For example:
+
+.. rst-class:: open
+
+- You can :ref:`partition <partitioned-tables>` a table into one or more
+  partitions with the :ref:`PARTITIONED BY <sql-create-table-partitioned-by>`
+  clause. You control how tables are partitioned by specifying one or more
+  :ref:`partition columns <gloss-partition-column>`. Each unique combination of
+  partition column values results in a new partition.
+
+  By partitioning a table, you can segment some :ref:`SQL statements
+  <gloss-statement>` (e.g., those used for :ref:`table optimization
+  <optimize>`, :ref:`import and export <importing_data>`, and :ref:`backup and
+  restore <snapshot-restore>`) by constraining them to one or more partitions.
+
+  .. SEEALSO::
+
+      `How-to guides: Tuning partitions for insert performance`_
+
+- You can split partitions into one or more :ref:`shards <ddl-sharding>` with
+  the :ref:`CLUSTERED BY <sql-create-table-clustered>` clause. You control how
+  CrateDB routes table rows to shards by specifying a :ref:`routing column
+  <gloss-routing-column>`.
+
+  You can use :ref:`cluster settings <conf_routing>` to configure how shards
+  are :ref:`balanced <conf-routing-allocation-balance>` across a cluster and
+  :ref:`allocated <ddl_shard_allocation>` to nodes (with :ref:`attribute-based
+  allocation <conf-routing-allocation-attributes>`, :ref:`disk-based allocation
+  <conf-routing-allocation-disk>`, or both).
+
+  By :ref:`distributing shards <concept-clustering>` across the cluster, you
+  can increase both `data availability`_ and `service resilience`_. With
+  distributed shards, CrateDB can `parallelize`_ query execution across the
+  multiple nodes in the cluster, increasing query performance.
+
+  .. SEEALSO::
+
+      `How-to guides: Tuning sharding performance`_
+
+- You can :ref:`replicate <ddl-replication>` shards :ref:`WITH
+  <sql-create-table-with>` the :ref:`number_of_replicas
+  <sql-create-table-number-of-replicas>` table setting. CrateDB will split
+  replicated partitions into primary shards, with each primary shard having one
+  or more replica shards.
+
+  When you lose a primary shard (e.g., due to node failure), CrateDB will
+  promote a replica shard to primary. More table replicas mean a smaller chance
+  of permanent data loss (through increased `data redundancy`_) in exchange for
+  more disk space utilization and intra-cluster network traffic.
+
+  Replica shards can also improve read performance and overall `data
+  availability`_ due to more copies of the data spread across more nodes.
+
+- You can fine-tune table operation by setting table parameters using the
+  :ref:`WITH <sql-create-table-with>` clause. Available parameters include
+  those used to configure replication, sharding, :ref:`refresh interval
+  <sql-create-table-refresh-interval>`, read and write operations, soft
+  deletes, :ref:`durability <concept-durability>`, :ref:`column policy
+  <column_policy>`, and more.
+
+
+.. _data availability: https://en.wikipedia.org/wiki/High_availability
+.. _data redundancy: https://en.wikipedia.org/wiki/Data_redundancy
+.. _disaster recovery: https://en.wikipedia.org/wiki/Disaster_recovery
+.. _How-to guides\: Tuning partitions for insert performance: https://crate.io/docs/crate/howtos/en/latest/performance/inserts/bulk.html#split-your-tables-into-partitions
+.. _How-to guides\: Tuning sharding performance: https://crate.io/docs/crate/howtos/en/latest/performance/sharding.html
+.. _parallelize: https://en.wikipedia.org/wiki/Distributed_computing
+.. _service resilience: https://en.wikipedia.org/wiki/Resilience_(network)

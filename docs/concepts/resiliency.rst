@@ -58,9 +58,9 @@ CrateDB does not support ACID transactions, but instead has :ref:`atomic
 operations <concept-atomicity>` and :ref:`eventual consistency
 <concept-consistency>` at the row level. See also :ref:`concept-clustering`.
 
-Eventual consistency is the trade-off that CrateDB makes in exchange for high-
-availability that can tolerate most hardware and network failures. So you may
-observe data from different cluster nodes temporarily falling very briefly
+Eventual consistency is the trade-off that CrateDB makes in exchange for
+high-availability that can tolerate most hardware and network failures. So you
+may observe data from different cluster nodes temporarily falling very briefly
 out-of-sync with each other, although over time they will become consistent.
 
 For example, you know a row has been written as soon as you get the ``INSERT
