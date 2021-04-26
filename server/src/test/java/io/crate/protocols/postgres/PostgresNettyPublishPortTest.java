@@ -27,6 +27,7 @@ import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.netty.EventLoopGroups;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.user.StubUserManager;
+import io.crate.user.User;
 
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.network.NetworkService;
@@ -159,7 +160,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             mock(SQLOperations.class),
             userManager,
             networkService,
-            new AlwaysOKAuthentication(userManager),
+            new AlwaysOKAuthentication(userName -> User.CRATE_USER),
             new EventLoopGroups(),
             mock(SslContextProvider.class));
         try {

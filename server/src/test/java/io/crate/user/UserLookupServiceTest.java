@@ -22,33 +22,34 @@
 
 package io.crate.user;
 
-import io.crate.user.metadata.UserDefinitions;
-import io.crate.user.metadata.UsersMetadata;
-import io.crate.user.metadata.UsersPrivilegesMetadata;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.junit.Test;
-
-import java.util.Set;
-
 import static io.crate.user.User.CRATE_USER;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 
-public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
+import java.util.Set;
+
+import org.junit.Test;
+
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.user.metadata.UserDefinitions;
+import io.crate.user.metadata.UsersMetadata;
+import io.crate.user.metadata.UsersPrivilegesMetadata;
+
+public class UserLookupServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNullAndEmptyMetadata() {
         // the users list will always contain a crate user
-        Set<User> users = UserManagerService.getUsers(null, null);
+        Set<User> users = UserLookupService.getUsers(null, null);
         assertThat(users, contains(CRATE_USER));
 
-        users = UserManagerService.getUsers(new UsersMetadata(), new UsersPrivilegesMetadata());
+        users = UserLookupService.getUsers(new UsersMetadata(), new UsersPrivilegesMetadata());
         assertThat(users, contains(CRATE_USER));
     }
 
     @Test
     public void testNewUser() {
-        Set<User> users = UserManagerService.getUsers(new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY), new UsersPrivilegesMetadata());
+        Set<User> users = UserLookupService.getUsers(new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY), new UsersPrivilegesMetadata());
         assertThat(users, containsInAnyOrder(User.of("Arthur"), CRATE_USER));
     }
 }
