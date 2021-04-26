@@ -238,16 +238,8 @@ public class ShardCollectSource implements CollectSource {
              *
              * So we wrap the creation in a supplier to create the providers lazy
              */
-
-            // MapperService is null for closed indices
-            if (indexShard.mapperService() == null) {
-                LOGGER.warn("Index {} appears to be closed, skipping collector provider creation", indexShard.shardId().getIndexName());
-            } else {
-                Supplier<ShardCollectorProvider> providerSupplier = Suppliers.memoize(() ->
-                    shardCollectorProviderFactory.create(indexShard)
-                );
-                shards.put(indexShard.shardId(), providerSupplier);
-            }
+            Supplier<ShardCollectorProvider> providerSupplier = Suppliers.memoize(() -> shardCollectorProviderFactory.create(indexShard));
+            shards.put(indexShard.shardId(), providerSupplier);
         }
 
         @Override
@@ -489,20 +481,8 @@ public class ShardCollectSource implements CollectSource {
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     shardRowContexts.add(shardCollectorProvider.shardRowContext());
-                } catch (IllegalIndexShardStateException e) {
+                } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     unassignedShards.add(toUnassignedShard(index.getName(), shard.value));
-                } catch (ShardNotFoundException e) {
-                    // MapperService is null for closed indices
-                    if (indicesService.indexService(shardId.getIndex()).mapperService() == null) {
-                        IndexShard indexShard = indicesService.getShardOrNull(shardId);
-                        if (indexShard != null) {
-                            ShardCollectorProvider shardCollectorProvider = shardCollectorProviderFactory.create(
-                                indexShard);
-                            shardRowContexts.add(shardCollectorProvider.shardRowContext());
-                        }
-                    } else {
-                        unassignedShards.add(toUnassignedShard(index.getName(), shard.value));
-                    }
                 }
             }
         }

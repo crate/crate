@@ -2319,6 +2319,66 @@ Returns: ``integer``
     +------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-array-to-string:
+
+``array_to_string(anyarray, separator, [ null_string ])``
+---------------------------------------------------------
+
+The ``array_to_string`` function concatenates elements of the given array
+into a single string using the ``separator``.
+
+Returns: ``text``
+
+::
+
+    cr> select array_to_string(['Arthur', 'Ford', 'Trillian'], ',') AS str;
+    +----------------------+
+    | str                  |
+    +----------------------+
+    | Arthur,Ford,Trillian |
+    +----------------------+
+    SELECT 1 row in set (... sec)
+
+If the ``separator`` argument is ``NULL``, the result is ``NULL``::
+
+    cr> select array_to_string(['Arthur', 'Ford', 'Trillian'], NULL) AS str;
+    +------+
+    |  str |
+    +------+
+    | NULL |
+    +------+
+    SELECT 1 row in set (... sec)
+
+If ``null_string`` is provided and is not ``NULL``, then ``NULL`` elements of
+the array are replaced by that string, otherwise they are omitted::
+
+    cr> select array_to_string(['Arthur', NULL, 'Trillian'], ',', 'Ford') AS str;
+    +----------------------+
+    | str                  |
+    +----------------------+
+    | Arthur,Ford,Trillian |
+    +----------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select array_to_string(['Arthur', NULL, 'Trillian'], ',') AS str;
+    +-----------------+
+    | str             |
+    +-----------------+
+    | Arthur,Trillian |
+    +-----------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select array_to_string(['Arthur', NULL, 'Trillian'], ',', NULL) AS str;
+    +-----------------+
+    | str             |
+    +-----------------+
+    | Arthur,Trillian |
+    +-----------------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-string-to-array:
 

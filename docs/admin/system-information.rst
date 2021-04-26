@@ -993,6 +993,9 @@ Table schema
         * INITIALIZING
         * UNASSIGNED
       - ``TEXT``
+    * - ``closed``
+      - The state of the table associated with the shard.
+      - ``BOOLEAN``
     * - ``table_name``
       - The name of the table this shard belongs to
       - ``TEXT``
