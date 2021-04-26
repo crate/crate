@@ -68,6 +68,9 @@ Changes
   <scalar-array-max>` scalar functions returning the minimal and maximal
   element in array respectively.
 
+- Added the :ref:`array_sum <scalar-array-sum>` scalar function
+  that returns the sum of all elements in an array.
+
 - Added support for reading ``cgroup`` information in the ``cgroup v2`` format.
 
 - Improved the internal throttling mechanism used for ``INSERT FROM QUERY`` and

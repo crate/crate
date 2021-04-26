@@ -23,10 +23,10 @@ public class ArrayMinFunctionTest extends ScalarTestCase {
         for(DataType type: typesToTest) {
             var valuesToTest = TestingHelpers.getRandomsOfType(2, 10, type);
 
-            var expected = valuesToTest.stream()
+            var optional = valuesToTest.stream()
                 .filter(o -> o != null)
-                .min((o1, o2) -> type.compare(o1, o2))
-                .get();
+                .min((o1, o2) -> type.compare(o1, o2));
+            var expected = optional.orElse(null);
 
             String expression = String.format(Locale.ENGLISH, "array_min(?::%s[])", type.getName());
             assertEvaluate(expression, expected, Literal.of(valuesToTest, new ArrayType<>(type)));

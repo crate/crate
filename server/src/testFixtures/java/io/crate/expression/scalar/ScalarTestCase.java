@@ -181,21 +181,20 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
         }
         LinkedList<Literal<?>> unusedLiterals = new LinkedList<>(Arrays.asList(literals));
         Function function = (Function) RefReplacer.replaceRefs(functionSymbol, r -> {
-            Literal<?> literal = unusedLiterals.pollFirst();
-            if (literal == null) {
+            if (unusedLiterals.isEmpty()) {
                 throw new IllegalArgumentException("No value literal for reference=" + r + ", please add more literals");
             }
+            Literal<?> literal = unusedLiterals.pollFirst(); //Can be null.
             return literal;
         });
-
         if(unusedLiterals.size() == literals.length) {
             // Currently it's supposed that literals will be either references or parameters.
             // One of replaceRefs and bindParameters does nothing and doesn't consume unusedLiterals.
             function = (Function) ParameterBinder.bindParameters(function, p -> {
-                Literal<?> literal = unusedLiterals.pollFirst();
-                if (literal == null) {
+                if (unusedLiterals.isEmpty()) {
                     throw new IllegalArgumentException("No value literal for parameter=" + p + ", please add more literals");
                 }
+                Literal<?> literal = unusedLiterals.pollFirst(); //Can be null.
                 return literal;
             });
         }
@@ -237,7 +236,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
      */
     public void assertEvaluate(String functionExpression, Object expectedValue, Literal<?>... literals) {
         if (expectedValue == null) {
-            assertEvaluate(functionExpression, nullValue());
+            assertEvaluate(functionExpression, nullValue(), literals);
         } else {
             assertEvaluate(functionExpression, is(expectedValue), literals);
         }
