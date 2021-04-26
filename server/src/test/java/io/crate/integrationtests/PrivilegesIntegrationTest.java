@@ -22,16 +22,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import io.crate.user.User;
-import io.crate.user.UserManager;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.testing.SQLResponse;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -44,13 +34,24 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.testing.SQLResponse;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
+
 public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     private static final String TEST_USERNAME = "privileges_test_user";
 
     private final UserDefinedFunctionsIntegrationTest.DummyLang dummyLang = new UserDefinedFunctionsIntegrationTest.DummyLang();
     private SQLOperations sqlOperations;
-    private UserManager userManager;
+    private UserLookup userLookup;
 
     private void assertPrivilegeIsGranted(String privilege) {
         SQLResponse response = executeAsSuperuser("select count(*) from sys.privileges where grantee = ? and type = ?",
@@ -69,7 +70,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     private Session testUserSession(String defaultSchema) {
-        User user = userManager.findUser(TEST_USERNAME);
+        User user = userLookup.findUser(TEST_USERNAME);
         assertThat(user, notNullValue());
         return sqlOperations.createSession(defaultSchema, user);
     }
@@ -81,7 +82,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         for (UserDefinedFunctionService udfService : udfServices) {
             udfService.registerLanguage(dummyLang);
         }
-        userManager = internalCluster().getInstance(UserManager.class);
+        userLookup = internalCluster().getInstance(UserLookup.class);
         sqlOperations = internalCluster().getInstance(SQLOperations.class, null);
         executeAsSuperuser("create user " + TEST_USERNAME);
     }

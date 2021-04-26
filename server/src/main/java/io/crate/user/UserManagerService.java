@@ -22,22 +22,13 @@
 
 package io.crate.user;
 
-import static io.crate.user.User.CRATE_USER;
-
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -52,11 +43,9 @@ import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.user.metadata.SysPrivilegesTableInfo;
 import io.crate.user.metadata.SysUsersTableInfo;
-import io.crate.user.metadata.UsersMetadata;
-import io.crate.user.metadata.UsersPrivilegesMetadata;
 
 @Singleton
-public class UserManagerService implements UserManager, ClusterStateListener {
+public class UserManagerService implements UserManager {
 
     private static final Consumer<User> ENSURE_DROP_USER_NOT_SUPERUSER = user -> {
         if (user != null && user.isSuperUser()) {
@@ -78,7 +67,8 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     private final TransportDropUserAction transportDropUserAction;
     private final TransportAlterUserAction transportAlterUserAction;
     private final TransportPrivilegesAction transportPrivilegesAction;
-    private volatile Set<User> users = Set.of(CRATE_USER);
+
+    private final UserLookup userLookup;
 
     @Inject
     public UserManagerService(TransportCreateUserAction transportCreateUserAction,
@@ -87,16 +77,17 @@ public class UserManagerService implements UserManager, ClusterStateListener {
                               TransportPrivilegesAction transportPrivilegesAction,
                               SysTableRegistry sysTableRegistry,
                               ClusterService clusterService,
+                              UserLookup userLookup,
                               DDLClusterStateService ddlClusterStateService) {
         this.transportCreateUserAction = transportCreateUserAction;
         this.transportDropUserAction = transportDropUserAction;
         this.transportAlterUserAction = transportAlterUserAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
-        clusterService.addListener(this);
+        this.userLookup = userLookup;
         var userTable = SysUsersTableInfo.create();
         sysTableRegistry.registerSysTable(
             userTable,
-            () -> CompletableFuture.completedFuture(users()),
+            () -> CompletableFuture.completedFuture(userLookup.users()),
             userTable.expressions(),
             false
         );
@@ -104,7 +95,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         var privilegesTable = SysPrivilegesTableInfo.create();
         sysTableRegistry.registerSysTable(
             privilegesTable,
-            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(users())),
+            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(userLookup.users())),
             privilegesTable.expressions(),
             false
         );
@@ -112,27 +103,6 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         ddlClusterStateService.addModifier(DDL_MODIFIER);
     }
 
-    static Set<User> getUsers(@Nullable UsersMetadata metadata,
-                              @Nullable UsersPrivilegesMetadata privilegesMetadata) {
-        HashSet<User> users = new HashSet<User>();
-        users.add(CRATE_USER);
-        if (metadata != null) {
-            for (Map.Entry<String, SecureHash> user: metadata.users().entrySet()) {
-                String userName = user.getKey();
-                SecureHash password = user.getValue();
-                Set<Privilege> privileges = null;
-                if (privilegesMetadata != null) {
-                    privileges = privilegesMetadata.getUserPrivileges(userName);
-                    if (privileges == null) {
-                        // create empty set
-                        privilegesMetadata.createPrivileges(userName, Set.of());
-                    }
-                }
-                users.add(User.of(userName, privileges, password));
-            }
-        }
-        return Collections.unmodifiableSet(users);
-    }
 
     @Override
     public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw) {
@@ -148,7 +118,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     @Override
     public CompletableFuture<Long> dropUser(String userName, boolean suppressNotFoundError) {
-        ENSURE_DROP_USER_NOT_SUPERUSER.accept(findUser(userName));
+        ENSURE_DROP_USER_NOT_SUPERUSER.accept(userLookup.findUser(userName));
         FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
             if (r.doesUserExist() == false) {
                 if (suppressNotFoundError) {
@@ -176,7 +146,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     @Override
     public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
-        userNames.forEach(s -> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER.accept(findUser(s)));
+        userNames.forEach(s -> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER.accept(userLookup.findUser(s)));
         FutureActionListener<PrivilegesResponse, Long> listener = new FutureActionListener<>(r -> {
             //noinspection PointlessBooleanExpression
             if (r.unknownUserNames().isEmpty() == false) {
@@ -188,44 +158,24 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         return listener;
     }
 
-    public Iterable<User> users() {
-        return users;
-    }
 
     @Override
     public AccessControl getAccessControl(SessionContext sessionContext) {
-        return new AccessControlImpl(this, sessionContext);
+        return new AccessControlImpl(userLookup, sessionContext);
     }
 
-    @Override
-    public void clusterChanged(ClusterChangedEvent event) {
-        Metadata prevMetadata = event.previousState().metadata();
-        Metadata newMetadata = event.state().metadata();
-
-        UsersMetadata prevUsers = prevMetadata.custom(UsersMetadata.TYPE);
-        UsersMetadata newUsers = newMetadata.custom(UsersMetadata.TYPE);
-
-        UsersPrivilegesMetadata prevUsersPrivileges = prevMetadata.custom(UsersPrivilegesMetadata.TYPE);
-        UsersPrivilegesMetadata newUsersPrivileges = newMetadata.custom(UsersPrivilegesMetadata.TYPE);
-
-        if (prevUsers != newUsers || prevUsersPrivileges != newUsersPrivileges) {
-            users = getUsers(newUsers, newUsersPrivileges);
-        }
-    }
-
-
-    @Nullable
-    public User findUser(String userName) {
-        for (User user : users()) {
-            if (userName.equals(user.name())) {
-                return user;
-            }
-        }
-        return null;
-    }
 
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    public User findUser(String userName) {
+        return userLookup.findUser(userName);
+    }
+
+
+    public Iterable<User> users() {
+        return userLookup.users();
     }
 }

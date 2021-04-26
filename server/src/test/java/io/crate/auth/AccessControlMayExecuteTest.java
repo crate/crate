@@ -27,6 +27,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.user.Privilege;
 import io.crate.user.User;
+import io.crate.user.UserLookupService;
 import io.crate.user.UserManager;
 import io.crate.user.UserManagerService;
 import io.crate.exceptions.UnauthorizedException;
@@ -97,8 +98,8 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                 return true;
             }
         };
-        userManager = new UserManagerService(null, null,
-            null, null, mock(SysTableRegistry.class), clusterService, new DDLClusterStateService()) {
+        UserLookupService userLookupService = new UserLookupService(clusterService) {
+
             @Nullable
             @Override
             public User findUser(String userName) {
@@ -108,6 +109,15 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                 return super.findUser(userName);
             }
         };
+        userManager = new UserManagerService(
+            null,
+            null,
+            null,
+            null,
+            mock(SysTableRegistry.class),
+            clusterService,
+            userLookupService,
+            new DDLClusterStateService());
 
         e = SQLExecutor.builder(clusterService)
             .addBlobTable("create blob table blobs")
