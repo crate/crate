@@ -111,7 +111,7 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCreatingAViewInReadOnlySchemaIsProhibited() {
-        for (String schema : Schemas.READ_ONLY_SCHEMAS) {
+        for (String schema : Schemas.READ_ONLY_SYSTEM_SCHEMAS) {
             try {
                 e.analyze(String.format(Locale.ENGLISH, "create view %s.v1 as select 1", schema));
                 fail("creating a view in read-only schema must fail");

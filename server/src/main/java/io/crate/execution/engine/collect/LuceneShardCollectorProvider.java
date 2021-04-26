@@ -25,6 +25,8 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.SentinelRow;
 import io.crate.metadata.NodeContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -69,7 +71,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     private final Supplier<String> localNodeId;
     private final LuceneQueryBuilder luceneQueryBuilder;
     private final NodeContext nodeCtx;
-    private final IndexShard indexShard;
     private final DocInputFactory docInputFactory;
     private final BigArrays bigArrays;
     private final FieldTypeLookup fieldTypeLookup;
@@ -100,7 +101,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         );
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.nodeCtx = nodeCtx;
-        this.indexShard = indexShard;
         this.localNodeId = () -> clusterService.localNode().getId();
         var mapperService = indexShard.mapperService();
         if (mapperService == null) {
@@ -129,13 +129,19 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         var searcher = sharedShardContext.acquireSearcher("unordered-iterator: " + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
-        IndexShard indexShard = sharedShardContext.indexShard();
+        IndexShard sharedShardContextShard = sharedShardContext.indexShard();
+        // A closed shard has no mapper service and cannot be queried with lucene,
+        // therefore skip it
+        boolean isClosed = sharedShardContextShard.mapperService() == null;
+        if (isClosed) {
+            return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
+        }
         QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            indexShard.mapperService(),
-            indexShard.shardId().getIndexName(),
+            sharedShardContextShard.mapperService(),
+            sharedShardContextShard.shardId().getIndexName(),
             queryShardContext,
             table,
             sharedShardContext.indexService().cache()

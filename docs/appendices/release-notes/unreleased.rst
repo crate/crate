@@ -54,6 +54,13 @@ None
 Changes
 =======
 
+- Added a ``closed`` column to :ref:`sys-shards <sys-shards>` exposing
+  the state of the table associated with the shard.
+
+- Added :ref:`array_to_string <scalar-array-to-string>` scalar function
+  that concatenates array elements into a single string using a separator and
+  an optional null-string.
+
 - Added support for reading ``cgroup`` information in the ``cgroup v2`` format.
 
 - Improved the internal throttling mechanism used for ``INSERT FROM QUERY`` and
@@ -61,6 +68,9 @@ Changes
   resources if the cluster can spare them.
 
 - Included the shard information for closed tables in ``sys.shards`` table.
+
+- Users can now read tables within the ``pg_catalog`` schema without explicit
+  ``DQL`` permission. They will only see records the user has privileges on.
 
 Fixes
 =====
