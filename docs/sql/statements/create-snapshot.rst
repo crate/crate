@@ -44,8 +44,8 @@ must be unique per repository.
 
 .. NOTE::
 
-   For snapshot names the same :ref:`restrictions
-   <sql_ddl_naming_restrictions>` as for table names apply.
+   For snapshot names the same :ref:`restrictions <ddl-create-table-naming>` as
+   for table names apply.
 
    This is mainly because snapshot names will likely become stored as file or
    directory on disc and hence must be valid filenames.

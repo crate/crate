@@ -708,13 +708,82 @@ Routing allocation
 
   Defines how many concurrent recoveries are allowed on a node.
 
+
+.. _conf-routing-allocation-balance:
+
+Shard balancing
+...............
+
+You can configure how CrateDB attempts to balance shards across a cluster by
+specifying one or more property *weights*. CrateDB will consider a cluster to
+be balanced when no further allowed action can bring the weighted properties of
+each node closer together.
+
+.. NOTE::
+
+    Balancing may be restricted by other settings (e.g., :ref:`attribute-based
+    <conf-routing-allocation-awareness>` and :ref:`disk-based
+    <conf-routing-allocation-disk>` shard allocation).
+
+.. _cluster.routing.allocation.balance.shard:
+
+**cluster.routing.allocation.balance.shard**
+  | *Default:*   ``0.45f``
+  | *Runtime:*  ``yes``
+
+  Defines the weight factor for shards :ref:`allocated
+  <gloss-shard-allocation>` on a node (float). Raising this raises the tendency
+  to equalize the number of shards across all nodes in the cluster.
+
+.. _cluster.routing.allocation.balance.index:
+
+**cluster.routing.allocation.balance.index**
+  | *Default:*   ``0.55f``
+  | *Runtime:*  ``yes``
+
+  Defines a factor to the number of shards per index :ref:`allocated
+  <gloss-shard-allocation>` on a specific node (float). Increasing this value
+  raises the tendency to equalize the number of shards per index across all
+  nodes in the cluster.
+
+.. _cluster.routing.allocation.balance.threshold:
+
+**cluster.routing.allocation.balance.threshold**
+  | *Default:*   ``1.0f``
+  | *Runtime:*  ``yes``
+
+  Minimal optimization value of operations that should be performed (non
+  negative float). Increasing this value will cause the cluster to be less
+  aggressive about optimising the shard balance.
+
+
+.. _conf-routing-allocation-attributes:
+
+Attribute-based shard allocation
+................................
+
+You can control how shards are allocated to specific nodes by setting
+:ref:`custom attributes <conf-node-attributes>` on each node (e.g., server rack
+ID or node availability zone). After doing this, you can define
+:ref:`cluster-wide attribute awareness <conf-routing-allocation-awareness>` and
+then configure :ref:`cluster-wide attribute filtering
+<conf-routing-allocation-filtering>`.
+
+.. SEEALSO::
+
+    For an in-depth example of using custom node attributes, check out the
+    `multi-zone setup how-to guide`_.
+
+
 .. _conf-routing-allocation-awareness:
 
-Awareness
-.........
+Cluster-wide attribute awareness
+`````````````````````````````````
 
-Cluster allocation awareness allows to configure :ref:`shard allocation
-<gloss-shard-allocation>` across generic attributes associated with nodes.
+To make use of :ref:`custom attributes <conf-node-attributes>` for
+:ref:`attribute-based <conf-routing-allocation-attributes>` :ref:`shard
+allocation <gloss-shard-allocation>`, you must configure *cluster-wide
+attribute awareness*.
 
 .. _cluster.routing.allocation.awareness.attributes:
 
@@ -756,74 +825,22 @@ Cluster allocation awareness allows to configure :ref:`shard allocation
   when when we start one or more nodes with ``node.attr.zone`` set to
   ``zone2``.
 
-.. SEEALSO::
-
-    For a more in-depth example that uses custom node attributes, check out the
-    `multi-zone setup how-to guide`_.
-
-
-.. _conf-routing-allocation-balance:
-
-Balanced shards
-...............
-
-CrateDB will attempt to balance a cluster using the weights described in this
-subsection. The cluster is considered balanced when no further allowed action
-can bring the respective properties of each node closer together.
-
-.. NOTE::
-
-    Balancing may be restricted by other settings (e.g., forced :ref:`awareness
-    <conf-routing-allocation-awareness>`, :ref:`allocation filtering
-    <conf-routing-allocation-filtering>`, and :ref:`disk-based allocation
-    <cluster.routing.allocation.disk>`).
-
-.. _cluster.routing.allocation.balance.shard:
-
-**cluster.routing.allocation.balance.shard**
-  | *Default:*   ``0.45f``
-  | *Runtime:*  ``yes``
-
-  Defines the weight factor for shards :ref:`allocated
-  <gloss-shard-allocation>` on a node (float). Raising this raises the tendency
-  to equalize the number of shards across all nodes in the cluster.
-
-.. _cluster.routing.allocation.balance.index:
-
-**cluster.routing.allocation.balance.index**
-  | *Default:*   ``0.55f``
-  | *Runtime:*  ``yes``
-
-  Defines a factor to the number of shards per index :ref:`allocated
-  <gloss-shard-allocation>` on a specific node (float). Increasing this value
-  raises the tendency to equalize the number of shards per index across all
-  nodes in the cluster.
-
-.. _cluster.routing.allocation.balance.threshold:
-
-**cluster.routing.allocation.balance.threshold**
-  | *Default:*   ``1.0f``
-  | *Runtime:*  ``yes``
-
-  Minimal optimization value of operations that should be performed (non
-  negative float). Increasing this value will cause the cluster to be less
-  aggressive about optimising the shard balance.
-
 
 .. _conf-routing-allocation-filtering:
 
-Cluster-wide allocation filtering
-.................................
+Cluster-wide attribute filtering
+````````````````````````````````
 
-Control which shards are :ref:`allocated <gloss-shard-allocation>` to which
-nodes.
+To control how CrateDB uses :ref:`custom attributes <conf-node-attributes>` for
+:ref:`attribute-based <conf-routing-allocation-attributes>` :ref:`shard
+allocation <gloss-shard-allocation>`, you must configure *cluster-wide
+attribute filtering*.
 
-Filter definitions are retroactively enforced. If a filter prevents matching
-shards from being newly allocated to a node, existing matching shards will also
-be moved away.
+.. NOTE::
 
-E.g., this could be used to only allocate shards on nodes with specific IP
-addresses.
+    CrateDB will retroactively enforce filter definitions. If a new filter
+    would prevent newly created matching shards from being allocated to a node,
+    CrateDB would also move any *existing* matching shards away from that node.
 
 .. _cluster.routing.allocation.include.*:
 
@@ -859,7 +876,7 @@ addresses.
   contrast to include which will include a node if ANY rule matches.
 
 
-.. _cluster.routing.allocation.disk:
+.. _conf-routing-allocation-disk:
 
 Disk-based shard allocation
 ...........................

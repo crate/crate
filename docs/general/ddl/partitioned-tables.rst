@@ -97,7 +97,7 @@ Partitioned tables have the following disadvantages:
     - An internal overhead of 14 bytes
 
     Altogether, the table name length must not exceed the :ref:`255 bytes
-    length limitation <sql_ddl_naming_restrictions>`.
+    length limitation <ddl-create-table-naming>`.
 
 .. CAUTION::
 

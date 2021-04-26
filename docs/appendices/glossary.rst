@@ -349,7 +349,6 @@ S
 
         :ref:`sql_ddl_datatypes_primitives`
 
-
 .. _gloss-shard-allocation:
 
 **Shard allocation**
@@ -380,9 +379,9 @@ S
     shard.
 
     Shard recovery can happen during node startup, after node failure, when
-    :ref:`replicating <replication>` a primary shard, when moving a shard to
-    another node (i.e., when rebalancing the cluster), or during :ref:`snapshot
-    restoration <snapshot-restore>`.
+    :ref:`replicating <ddl-replication>` a primary shard, when moving a shard
+    to another node (i.e., when rebalancing the cluster), or during
+    :ref:`snapshot restoration <snapshot-restore>`.
 
     A shard that is being recovered cannot be queried until the recovery
     process is complete.
