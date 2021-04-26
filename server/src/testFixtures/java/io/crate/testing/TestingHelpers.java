@@ -441,16 +441,16 @@ public class TestingHelpers {
 
     public static <T> List<T> getRandomsOfType(int minLength, int maxLength, DataType<T> dataType) {
         var values = new ArrayList<T>();
-
-        boolean addNull = RandomizedTest.randomBoolean();
         int length  = RandomizedTest.randomIntBetween(minLength, maxLength);
-        if (addNull) {
-            length = length - 1;
-            values.add(null);
-        }
         var generator = DataTypeTesting.getDataGenerator(dataType);
+
         for (int i = 0; i < length; i++) {
-            values.add(dataType.sanitizeValue(generator.get()));
+            // 1/length chance
+            if (RandomizedTest.randomIntBetween(0, length-1) == 0) {
+                values.add(null);
+            } else {
+                values.add(dataType.sanitizeValue(generator.get()));
+            }
         }
         return values;
     }

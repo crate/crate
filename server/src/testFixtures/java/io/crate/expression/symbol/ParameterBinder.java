@@ -43,6 +43,6 @@ public final class ParameterBinder extends FunctionCopyVisitor<Function<? super 
 
     @Override
     public Symbol visitParameterSymbol(ParameterSymbol parameter, Function<? super ParameterSymbol, ? extends Symbol> mapper) {
-        return requireNonNull(mapper.apply(parameter), "mapper function used in ParameterBinder must not return null values");
+        return mapper.apply(parameter);
     }
 }

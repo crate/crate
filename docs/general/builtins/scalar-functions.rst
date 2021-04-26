@@ -2486,6 +2486,49 @@ function supports arrays of any of the :ref:`primitive types
     +-----+
     SELECT 1 row in set (... sec)
 
+.. _scalar-array-sum:
+
+``array_sum(array)``
+--------------------
+
+Returns the sum of array elements that are not ``NULL``.
+Depending on the argument type a suitable return type is chosen. For ``real``
+and ``double precison`` argument types the return type is equal to the argument
+type. For ``char``, ``smallint``, ``integer`` and ``bigint`` the return type
+changes to ``bigint``. If the range of ``bigint`` values (-2^64 to 2^64-1) gets
+exceeded an ``ArithmeticException`` will be raised.
+
+::
+
+    cr> SELECT array_sum([1,2,3]) AS sum;
+    +-----+
+    | sum |
+    +-----+
+    |   6 |
+    +-----+
+    SELECT 1 row in set (... sec)
+
+The sum on the bigint array will result in an overflow in the following query:
+
+::
+
+    cr> SELECT array_sum([9223372036854775807,9223372036854775807]) as sum;
+    ArithmeticException[long overflow]
+
+To address the overflow of the sum of the given array elements,
+we cast the array to the numeric data type:
+
+::
+
+    cr>  SELECT array_sum([9223372036854775807,9223372036854775807] :: numeric[])
+    ... as sum;
+    +----------------------+
+    |                  sum |
+    +----------------------+
+    | 18446744073709551614 |
+    +----------------------+
+    SELECT 1 row in set (... sec)
+
 .. _scalar-conditional-functions-expressions:
 
 Conditional functions and expressions
