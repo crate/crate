@@ -61,6 +61,10 @@ Changes
   that concatenates array elements into a single string using a separator and
   an optional null-string.
 
+- Added :ref:`array_min <scalar-array-min>` and :ref:`array_max
+  <scalar-array-max>` scalar functions returning the minimal and maximal
+  element in array respectively.
+
 - Added support for reading ``cgroup`` information in the ``cgroup v2`` format.
 
 - Improved the internal throttling mechanism used for ``INSERT FROM QUERY`` and

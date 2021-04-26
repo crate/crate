@@ -31,6 +31,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ParameterBinder;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -186,6 +187,19 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             }
             return literal;
         });
+
+        if(unusedLiterals.size() == literals.length) {
+            // Currently it's supposed that literals will be either references or parameters.
+            // One of replaceRefs and bindParameters does nothing and doesn't consume unusedLiterals.
+            function = (Function) ParameterBinder.bindParameters(function, p -> {
+                Literal<?> literal = unusedLiterals.pollFirst();
+                if (literal == null) {
+                    throw new IllegalArgumentException("No value literal for parameter=" + p + ", please add more literals");
+                }
+                return literal;
+            });
+        }
+
         Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
 
