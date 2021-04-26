@@ -40,6 +40,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
@@ -447,12 +448,50 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testAccessesToPgClassEntriesWithRespectToPrivileges() throws Exception {
-        //make sure a new user (without privileges) can access generic (unprivileged) system information
-        executeAsSuperuser("select * from pg_catalog.pg_class order by relname");
-        String superUserResult = printedTable(response.rows());
-        execute("select * from pg_catalog.pg_class order by relname", null, testUserSession());
-        String newUserResult = printedTable(response.rows());
-        assertThat(newUserResult, is(superUserResult));
+        //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
+        execute("select relname from pg_catalog.pg_class order by relname", null, testUserSession());
+        assertThat(response.rowCount(), is(37L));
+        assertThat(printedTable(response.rows()), is(
+            """
+                character_sets
+                columns
+                columns_pkey
+                key_column_usage
+                key_column_usage_pkey
+                pg_am
+                pg_attrdef
+                pg_attribute
+                pg_class
+                pg_constraint
+                pg_database
+                pg_description
+                pg_enum
+                pg_index
+                pg_namespace
+                pg_proc
+                pg_range
+                pg_roles
+                pg_settings
+                pg_stats
+                pg_tablespace
+                pg_type
+                referential_constraints
+                referential_constraints_pkey
+                routines
+                schemata
+                schemata_pkey
+                sql_features
+                sql_features_pkey
+                table_constraints
+                table_constraints_pkey
+                table_partitions
+                table_partitions_pkey
+                tables
+                tables_pkey
+                views
+                views_pkey
+                """
+        ));
 
         //create table that a new user is not privileged to access
         executeAsSuperuser("create table test_schema.my_table (my_col int)");
@@ -470,18 +509,15 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         //values are identical
         String newUserWithPrivilegesResult = printedTable(response.rows());
         executeAsSuperuser("select * from pg_catalog.pg_class where relname = 'my_table' order by relname");
-        superUserResult = printedTable(response.rows());
+        String superUserResult = printedTable(response.rows());
         assertThat(newUserWithPrivilegesResult, is(superUserResult));
     }
 
     @Test
     public void testAccessesToPgProcEntriesWithRespectToPrivileges() throws Exception {
-        //make sure a new user (without privileges) can access generic (unprivileged) system information
-        executeAsSuperuser("select * from pg_catalog.pg_proc order by proname");
-        String superUserResult = printedTable(response.rows());
-        execute("select * from pg_catalog.pg_proc order by proname", null, testUserSession());
-        String newUserResult = printedTable(response.rows());
-        assertThat(newUserResult, is(superUserResult));
+        //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
+        execute("select proname from pg_catalog.pg_proc order by proname", null, testUserSession());
+        assertThat(response.rowCount(), not(0L));
 
         //create a table and a function that a new user is not privileged to access
         executeAsSuperuser("create table test_schema.my_table (my_col int)");
@@ -500,7 +536,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         //values are identical
         String newUserWithPrivilegesResult = printedTable(response.rows());
         executeAsSuperuser("select * from pg_catalog.pg_proc where proname = 'bar' order by proname");
-        superUserResult = printedTable(response.rows());
+        String superUserResult = printedTable(response.rows());
         assertThat(newUserWithPrivilegesResult, is(superUserResult));
 
         executeAsSuperuser("drop function test_schema.bar(bigint)");
@@ -508,14 +544,13 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testAccessesToPgNamespaceEntriesWithRespectToPrivileges() throws Exception {
-        //make sure a new user (without privileges) can access generic (unprivileged) system information
+        //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         execute("select nspname from pg_catalog.pg_namespace " +
                 "where nspname='information_schema' or nspname='pg_catalog' or nspname='sys' order by nspname",
                 null, testUserSession());
         assertThat(printedTable(response.rows()), is("""
                                                          information_schema
                                                          pg_catalog
-                                                         sys
                                                          """));
         execute("select * from pg_catalog.pg_namespace " +
                 "where nspname='blob' or nspname='doc'", null, testUserSession());
@@ -543,12 +578,9 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testAccessesToPgAttributeEntriesWithRespectToPrivileges() throws Exception {
-        //make sure a new user (without privileges) can access generic (unprivileged) system information
-        executeAsSuperuser("select * from pg_catalog.pg_attribute order by attname");
-        String superUserResult = printedTable(response.rows());
+        //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         execute("select * from pg_catalog.pg_attribute order by attname", null, testUserSession());
-        String newUserResult = printedTable(response.rows());
-        assertThat(newUserResult, is(superUserResult));
+        assertThat(response.rowCount(), is(427L));
 
         //create a table with an attribute that a new user is not privileged to access
         executeAsSuperuser("create table test_schema.my_table (my_col int)");
@@ -566,18 +598,36 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         //values are identical
         String newUserWithPrivilegesResult = printedTable(response.rows());
         executeAsSuperuser("select * from pg_catalog.pg_attribute where attname = 'my_col' order by attname");
-        superUserResult = printedTable(response.rows());
+        String superUserResult = printedTable(response.rows());
         assertThat(newUserWithPrivilegesResult, is(superUserResult));
     }
 
     @Test
     public void testAccessesToPgConstraintEntriesWithRespectToPrivileges() throws Exception {
-        //make sure a new user (without privileges) can access generic (unprivileged) system information
-        executeAsSuperuser("select * from pg_catalog.pg_constraint order by conname");
-        String superUserResult = printedTable(response.rows());
-        execute("select * from pg_catalog.pg_constraint order by conname", null, testUserSession());
+        //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
+        execute("select conname from pg_catalog.pg_constraint order by conname", null, testUserSession());
         String newUserResult = printedTable(response.rows());
-        assertThat(newUserResult, is(superUserResult));
+        assertThat(newUserResult, is(
+            """
+                columns_pk
+                information_schema_columns_column_name_not_null
+                information_schema_columns_data_type_not_null
+                information_schema_columns_is_generated_not_null
+                information_schema_columns_is_nullable_not_null
+                information_schema_columns_ordinal_position_not_null
+                information_schema_columns_table_catalog_not_null
+                information_schema_columns_table_name_not_null
+                information_schema_columns_table_schema_not_null
+                key_column_usage_pk
+                referential_constraints_pk
+                schemata_pk
+                sql_features_pk
+                table_constraints_pk
+                table_partitions_pk
+                tables_pk
+                views_pk
+                """
+        ));
 
         //create a table with constraints that a new user is not privileged to access
         executeAsSuperuser("create table test_schema.my_table (my_pk int primary key, my_col int check (my_col > 0))");
@@ -600,7 +650,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         String newUserWithPrivilegesResult = printedTable(response.rows());
         executeAsSuperuser("select * from pg_catalog.pg_constraint" +
                            " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname");
-        superUserResult = printedTable(response.rows());
+        String superUserResult = printedTable(response.rows());
         assertThat(newUserWithPrivilegesResult, is(superUserResult));
     }
 }
