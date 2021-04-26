@@ -408,10 +408,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return true;
     }
 
-    public static boolean isSystemSchema(@Nullable String schemaName) {
-        return !isDefaultOrCustomSchema(schemaName) && !BlobSchemaInfo.NAME.equals(schemaName);
-    }
-
     public boolean tableExists(RelationName relationName) {
         SchemaInfo schemaInfo = schemas.get(relationName.schema());
         if (schemaInfo == null) {
