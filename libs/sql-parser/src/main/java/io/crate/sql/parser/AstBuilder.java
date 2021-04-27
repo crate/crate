@@ -238,6 +238,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitStartTransaction(SqlBaseParser.StartTransactionContext context) {
+        return new BeginStatement();
+    }
+
+    @Override
     public Node visitAnalyze(SqlBaseParser.AnalyzeContext ctx) {
         return new AnalyzeStatement();
     }

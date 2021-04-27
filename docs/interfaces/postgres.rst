@@ -251,13 +251,13 @@ is implemented::
     +-----------------------+
     SHOW 1 row in set (... sec)
 
-BEGIN/COMMIT statements
------------------------
+BEGIN/START/COMMIT statements
+-----------------------------
 
-For compatibility with clients that use the Postgres wire protocol, such as the
-Golang lib/pq and pgx drivers, the full PostgreSQL syntax of the
-:ref:`BEGIN <ref-begin>` and :ref:`COMMIT <ref-commit>` statements is
-implemented, for example::
+For compatibility with clients that use the PostgresSQL wire protocol (e.g.,
+the Golang lib/pq and pgx drivers), CrateDB will accept the :ref:`BEGIN
+<ref-begin>`, :ref:`COMMIT <ref-commit>`, and :ref:`START TRASNACTION
+<sql-start-transaction>` statements. For example::
 
     cr> BEGIN TRANSACTION ISOLATION LEVEL READ UNCOMMITTED,
     ...                   READ ONLY,
@@ -267,8 +267,8 @@ implemented, for example::
     cr> COMMIT
     COMMIT OK, 0 rows affected  (... sec)
 
-Since CrateDB does not support transactions, both the ``COMMIT`` and ``BEGIN``
-statement and any of its parameters are ignored.
+CrateDB will silently ignore the ``COMMIT``, ``BEGIN``, and ``START`` TRANSACTION
+statements and all respective parameters.
 
 Client compatibility
 ====================

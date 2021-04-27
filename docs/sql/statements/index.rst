@@ -14,6 +14,7 @@ SQL Statements
     alter-user
     analyze
     begin
+    start-transaction
     commit
     copy-from
     copy-to
