@@ -30,7 +30,7 @@ import java.util.List;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-public class CastIntegrationTest extends SQLTransportIntegrationTest {
+public class CastIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testTryCastValidLiteralCasting() {

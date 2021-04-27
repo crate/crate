@@ -26,7 +26,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
-import io.crate.operation.aggregation.AggregationTest;
+import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -38,7 +38,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
-public class SumAggregationTest extends AggregationTest {
+public class SumAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType,
                                       DataType<?> returnType,

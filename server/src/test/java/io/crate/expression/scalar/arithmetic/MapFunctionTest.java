@@ -22,14 +22,14 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MapFunctionTest extends AbstractScalarFunctionsTest {
+public class MapFunctionTest extends ScalarTestCase {
 
     @Test
     public void testMapWithWrongNumOfArguments() {

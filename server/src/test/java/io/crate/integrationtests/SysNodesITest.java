@@ -34,7 +34,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, supportsDedicatedMasters = false)
-public class SysNodesITest extends SQLTransportIntegrationTest {
+public class SysNodesITest extends SQLIntegrationTestCase {
 
     @Override
     protected boolean addMockHttpTransport() {

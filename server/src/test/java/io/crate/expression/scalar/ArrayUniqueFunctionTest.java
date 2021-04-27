@@ -37,7 +37,7 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
 
-public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
+public class ArrayUniqueFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeWithValueSymbols() throws Exception {

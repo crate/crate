@@ -28,7 +28,7 @@ import org.junit.Test;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
-public class UnassignedShardsTest extends SQLTransportIntegrationTest {
+public class UnassignedShardsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testUnassignedReplicasAreVisibleAsUnassignedInSysShards() throws Exception {

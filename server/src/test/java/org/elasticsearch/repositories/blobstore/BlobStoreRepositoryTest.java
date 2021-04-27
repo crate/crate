@@ -22,7 +22,7 @@
 
 package org.elasticsearch.repositories.blobstore;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.common.Strings;
@@ -60,7 +60,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-public class BlobStoreRepositoryTest extends SQLTransportIntegrationTest {
+public class BlobStoreRepositoryTest extends SQLIntegrationTestCase {
 
     private static final String REPOSITORY_NAME = "my_repo";
 

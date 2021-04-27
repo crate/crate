@@ -23,13 +23,13 @@ package io.crate.expression.predicate;
 
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class NotPredicateTest extends AbstractScalarFunctionsTest {
+public class NotPredicateTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeSymbolNull() throws Exception {

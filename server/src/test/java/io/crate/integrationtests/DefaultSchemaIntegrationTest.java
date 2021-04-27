@@ -31,7 +31,7 @@ import java.nio.file.Paths;
 
 import static org.hamcrest.core.Is.is;
 
-public class DefaultSchemaIntegrationTest extends SQLTransportIntegrationTest {
+public class DefaultSchemaIntegrationTest extends SQLIntegrationTestCase {
 
 
     @Rule

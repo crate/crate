@@ -31,7 +31,7 @@ import org.junit.Before;
 
 import java.util.Objects;
 
-public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTest {
+public abstract class BaseUsersIntegrationTest extends SQLIntegrationTestCase {
 
     private Session superUserSession;
     private Session normalUserSession;

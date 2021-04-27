@@ -20,7 +20,7 @@ package io.crate.integrationtests.disruption.discovery;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.testing.UseRandomizedSchema;
 
 import org.apache.lucene.mockfile.FilterFileSystemProvider;
@@ -50,7 +50,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
-@SQLTransportIntegrationTest.Slow
+@SQLIntegrationTestCase.Slow
 public class DiskDisruptionIT extends AbstractDisruptionTestCase {
 
     private static DisruptTranslogFileSystemProvider disruptTranslogFileSystemProvider;

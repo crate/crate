@@ -36,7 +36,7 @@ import io.crate.execution.engine.pipeline.TableSettingsResolver;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
@@ -67,7 +67,7 @@ import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 
-public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
+public class IndexWriterProjectorTest extends SQLIntegrationTestCase {
 
     private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
 

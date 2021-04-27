@@ -22,13 +22,13 @@
 package io.crate.expression.scalar.arithmetic;
 
 import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 
 
-public class RoundFunctionTest extends AbstractScalarFunctionsTest {
+public class RoundFunctionTest extends ScalarTestCase {
 
     @Test
     public void testRound() throws Exception {

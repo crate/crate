@@ -34,9 +34,9 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
-public class RetentionLeaseBackgroundSyncIT extends SQLTransportIntegrationTest {
+public class RetentionLeaseBackgroundSyncIT extends SQLIntegrationTestCase {
 
     @Test
     public void testBackgroundRetentionLeaseSync() throws Exception {

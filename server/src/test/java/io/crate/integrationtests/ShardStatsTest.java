@@ -29,7 +29,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
-public class ShardStatsTest extends SQLTransportIntegrationTest {
+public class ShardStatsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSelectZeroLimit() throws Exception {

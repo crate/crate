@@ -37,7 +37,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
-public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
+public class ArrayDifferenceFunctionTest extends ScalarTestCase {
 
     private static final ArrayType<Integer> INTEGER_ARRAY_TYPE = new ArrayType<>(DataTypes.INTEGER);
 

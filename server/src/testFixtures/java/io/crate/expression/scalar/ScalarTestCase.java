@@ -61,7 +61,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
-public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServiceUnitTest {
+public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
 
     protected SqlExpressions sqlExpressions;
     protected Map<RelationName, AnalyzedRelation> tableSources;

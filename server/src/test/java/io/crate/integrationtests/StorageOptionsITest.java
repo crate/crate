@@ -29,7 +29,7 @@ import org.junit.Test;
 import static org.apache.lucene.index.IndexWriter.MAX_TERM_LENGTH;
 import static org.hamcrest.Matchers.is;
 
-public class StorageOptionsITest extends SQLTransportIntegrationTest {
+public class StorageOptionsITest extends SQLIntegrationTestCase {
 
     @Test
     public void testInsertStringGreaterThanDocValuesLimit() throws Exception {

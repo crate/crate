@@ -43,7 +43,7 @@ import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVE
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope
-public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
+public class SysClusterSettingsTest extends SQLIntegrationTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

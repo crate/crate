@@ -22,10 +22,10 @@
 
 package io.crate.expression.operator;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
-public class AllOperatorTest extends AbstractScalarFunctionsTest {
+public class AllOperatorTest extends ScalarTestCase {
 
     @Test
     public void test_value_eq_all_array_is_false_if_no_item_matches() {

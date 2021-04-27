@@ -21,14 +21,14 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class FloorFunctionTest extends AbstractScalarFunctionsTest {
+public class FloorFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateOnDouble() throws Exception {

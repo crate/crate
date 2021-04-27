@@ -22,12 +22,12 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 
-public class NumericArithmeticTest extends AbstractScalarFunctionsTest {
+public class NumericArithmeticTest extends ScalarTestCase {
 
     @Test
     public void test_numeric_add() {

@@ -22,10 +22,10 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
-public class PowerFunctionTest extends AbstractScalarFunctionsTest {
+public class PowerFunctionTest extends ScalarTestCase {
 
     @Test
     public void testPowerWithIntegers() {

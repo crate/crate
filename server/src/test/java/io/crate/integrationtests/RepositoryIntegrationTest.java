@@ -36,7 +36,7 @@ import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static org.hamcrest.Matchers.is;
 
-public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
+public class RepositoryIntegrationTest extends SQLIntegrationTestCase {
 
     @ClassRule
     public static TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();

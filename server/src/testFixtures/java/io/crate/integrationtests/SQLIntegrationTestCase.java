@@ -146,9 +146,9 @@ import io.crate.user.UserLookup;
 @UseJdbc
 @UseHashJoins
 @UseRandomizedSchema
-public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
+public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
 
-    private static final Logger LOGGER = LogManager.getLogger(SQLTransportIntegrationTest.class);
+    private static final Logger LOGGER = LogManager.getLogger(SQLIntegrationTestCase.class);
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
 
     protected static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
@@ -198,11 +198,11 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     protected SQLResponse response;
 
-    public SQLTransportIntegrationTest() {
+    public SQLIntegrationTestCase() {
         this(false);
     }
 
-    public SQLTransportIntegrationTest(boolean useSSL) {
+    public SQLIntegrationTestCase(boolean useSSL) {
         this(new SQLTransportExecutor(
             new SQLTransportExecutor.ClientProvider() {
                 @Override
@@ -251,7 +251,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         Paging.PAGE_SIZE = ORIGINAL_PAGE_SIZE;
     }
 
-    public SQLTransportIntegrationTest(SQLTransportExecutor sqlExecutor) {
+    public SQLIntegrationTestCase(SQLTransportExecutor sqlExecutor) {
         this.sqlExecutor = sqlExecutor;
     }
 

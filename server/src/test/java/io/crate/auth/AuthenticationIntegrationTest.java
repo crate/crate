@@ -22,7 +22,7 @@
 
 package io.crate.auth;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.testing.UseJdbc;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -50,7 +50,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 @UseJdbc(value = 1)
-public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
+public class AuthenticationIntegrationTest extends SQLIntegrationTestCase {
 
     @Override
     protected boolean addMockHttpTransport() {

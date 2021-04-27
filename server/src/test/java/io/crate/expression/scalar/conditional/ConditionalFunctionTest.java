@@ -23,11 +23,11 @@
 package io.crate.expression.scalar.conditional;
 
 import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import org.junit.Test;
 
-public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
+public class ConditionalFunctionTest extends ScalarTestCase {
 
     @Test
     public void testCoalesce() throws Exception {

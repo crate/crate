@@ -60,7 +60,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
-public class SysShardsTest extends SQLTransportIntegrationTest {
+public class SysShardsTest extends SQLIntegrationTestCase {
 
     @Before
     public void initTestData() throws Exception {

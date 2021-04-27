@@ -31,7 +31,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
-public class SysHealthITest extends SQLTransportIntegrationTest {
+public class SysHealthITest extends SQLIntegrationTestCase {
 
     @Test
     public void testTablesHealth() throws IOException {

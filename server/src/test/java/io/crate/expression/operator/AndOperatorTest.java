@@ -1,6 +1,6 @@
 package io.crate.expression.operator;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Symbol;
 import org.junit.Test;
 
@@ -11,7 +11,7 @@ import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 
-public class AndOperatorTest extends AbstractScalarFunctionsTest {
+public class AndOperatorTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeBooleanTrueAndNonLiteral() throws Exception {

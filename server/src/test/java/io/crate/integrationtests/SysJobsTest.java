@@ -28,7 +28,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SysJobsTest extends SQLTransportIntegrationTest {
+public class SysJobsTest extends SQLIntegrationTestCase {
 
     @After
     public void resetStatsEnabled() throws Exception {

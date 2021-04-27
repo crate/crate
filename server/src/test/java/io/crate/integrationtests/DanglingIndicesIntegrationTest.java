@@ -29,7 +29,7 @@ import org.junit.Test;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
-public class DanglingIndicesIntegrationTest extends SQLTransportIntegrationTest {
+public class DanglingIndicesIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testDanglingIndicesAreFilteredOutFromDBCatalog() throws Exception {

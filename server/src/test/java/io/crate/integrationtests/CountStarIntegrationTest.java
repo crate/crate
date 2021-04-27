@@ -29,7 +29,7 @@ import static org.hamcrest.core.Is.is;
 
 import org.junit.Test;
 
-public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
+public class CountStarIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testCountWithPartitionFilter() throws Exception {

@@ -23,7 +23,7 @@
 package io.crate.operation.language;
 
 import io.crate.analyze.FunctionArgumentDefinition;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
@@ -55,7 +55,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 
-public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTest {
+public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
 
     private static final String JS = JavaScriptLanguage.NAME;
 

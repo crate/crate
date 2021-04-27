@@ -29,7 +29,7 @@ import org.junit.Test;
 import java.sql.PreparedStatement;
 
 @UseJdbc(value = 1)
-public class PostgresCompatIntegrationTest extends SQLTransportIntegrationTest {
+public class PostgresCompatIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testBeginStatement() {

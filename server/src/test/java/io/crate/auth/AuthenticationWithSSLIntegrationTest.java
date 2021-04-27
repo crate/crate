@@ -22,7 +22,7 @@
 
 package io.crate.auth;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
@@ -55,7 +55,7 @@ import static org.hamcrest.Matchers.is;
  * support is disabled. In this test we have SSL support.
  */
 @UseJdbc(value = 1)
-public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegrationTest {
+public class AuthenticationWithSSLIntegrationTest extends SQLIntegrationTestCase {
 
     private static File trustStoreFile;
     private static File keyStoreFile;

@@ -25,7 +25,7 @@ package io.crate.integrationtests;
 import org.junit.Test;
 
 
-public class SeqNoBasedOCCIntegrationTest extends SQLTransportIntegrationTest {
+public class SeqNoBasedOCCIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testDeleteWhereSeqNoAndTermThatMatch() throws Exception {

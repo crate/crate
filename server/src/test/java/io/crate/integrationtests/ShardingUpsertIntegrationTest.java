@@ -31,7 +31,7 @@ import java.nio.file.Paths;
 
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
-public class ShardingUpsertIntegrationTest extends SQLTransportIntegrationTest {
+public class ShardingUpsertIntegrationTest extends SQLIntegrationTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

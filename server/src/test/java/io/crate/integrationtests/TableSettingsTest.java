@@ -37,7 +37,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
-public class TableSettingsTest extends SQLTransportIntegrationTest {
+public class TableSettingsTest extends SQLIntegrationTestCase {
 
     @Before
     public void prepare() throws Exception {

@@ -23,12 +23,12 @@
 package io.crate.expression.scalar.postgres;
 
 import io.crate.user.User;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class PgGetUserByIdFunctionTest extends AbstractScalarFunctionsTest {
+public class PgGetUserByIdFunctionTest extends ScalarTestCase {
 
     @Test
     public void testPgGetUserById() {

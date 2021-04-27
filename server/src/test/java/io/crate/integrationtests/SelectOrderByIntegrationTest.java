@@ -30,7 +30,7 @@ import org.junit.Test;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
-public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
+public class SelectOrderByIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSelectOrderByNullSortingASC() throws Exception {

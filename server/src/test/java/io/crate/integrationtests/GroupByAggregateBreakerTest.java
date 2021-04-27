@@ -31,7 +31,7 @@ import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.is;
 
-public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
+public class GroupByAggregateBreakerTest extends SQLIntegrationTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

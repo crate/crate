@@ -25,7 +25,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Symbol;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CheckConstraint;
@@ -46,7 +46,7 @@ import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
-public class SchemasITest extends SQLTransportIntegrationTest {
+public class SchemasITest extends SQLIntegrationTestCase {
 
     private Schemas schemas;
     private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());

@@ -24,7 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import io.crate.common.MutableLong;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.SearchPath;
-import io.crate.operation.aggregation.AggregationTest;
+import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -37,7 +37,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.CoreMatchers.is;
 
 
-public class CountAggregationTest extends AggregationTest {
+public class CountAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(

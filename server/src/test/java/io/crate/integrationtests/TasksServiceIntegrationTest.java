@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
 
-public class TasksServiceIntegrationTest extends SQLTransportIntegrationTest {
+public class TasksServiceIntegrationTest extends SQLIntegrationTestCase {
 
     Setup setup = new Setup(sqlExecutor);
 

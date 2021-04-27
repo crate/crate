@@ -29,7 +29,7 @@ import org.junit.Test;
 
 import java.util.List;
 
-public class CollectionAvgFunctionTest extends AbstractScalarFunctionsTest {
+public class CollectionAvgFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluate() throws Exception {

@@ -39,7 +39,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
-public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTest {
+public class TransportSQLActionSingleNodeTest extends SQLIntegrationTestCase {
 
     @Test
     public void testUnassignedShards() throws Exception {

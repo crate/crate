@@ -27,7 +27,7 @@ import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
-public class FormatFunctionTest extends AbstractScalarFunctionsTest {
+public class FormatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeSymbol() {

@@ -27,7 +27,7 @@ import org.junit.Test;
 
 import java.util.List;
 
-public class ArrayMapperITest extends SQLTransportIntegrationTest {
+public class ArrayMapperITest extends SQLIntegrationTestCase {
 
     @Test
     public void testInsertGetArray() throws Exception {

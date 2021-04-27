@@ -22,11 +22,11 @@
 
 package io.crate.expression.operator;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import org.junit.Test;
 
-public class CIDROperatorTest extends AbstractScalarFunctionsTest {
+public class CIDROperatorTest extends ScalarTestCase {
 
     @Test
     public void test_ipv4_operands_in_wrong_order() {

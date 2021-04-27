@@ -28,7 +28,7 @@ import org.junit.Test;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
 
-public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
+public class RenameTableIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testRenameTable() {

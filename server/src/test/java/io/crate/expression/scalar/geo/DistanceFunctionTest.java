@@ -22,7 +22,7 @@
 package io.crate.expression.scalar.geo;
 
 import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -32,7 +32,7 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.nullValue;
 
-public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
+public class DistanceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testResolveWithTooManyArguments() throws Exception {

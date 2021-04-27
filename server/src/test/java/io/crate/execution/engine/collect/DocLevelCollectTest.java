@@ -38,7 +38,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -80,7 +80,7 @@ import static org.mockito.Mockito.mock;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
 @UseRandomizedSchema(random = false)
-public class DocLevelCollectTest extends SQLTransportIntegrationTest {
+public class DocLevelCollectTest extends SQLIntegrationTestCase {
 
     private static final String TEST_TABLE_NAME = "test_table";
     private static final Reference testDocLevelReference = new Reference(

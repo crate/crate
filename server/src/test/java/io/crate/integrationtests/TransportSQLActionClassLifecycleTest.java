@@ -70,7 +70,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
-public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegrationTest {
+public class TransportSQLActionClassLifecycleTest extends SQLIntegrationTestCase {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();

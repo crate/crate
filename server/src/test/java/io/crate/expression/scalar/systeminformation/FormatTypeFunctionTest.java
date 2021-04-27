@@ -2,9 +2,9 @@ package io.crate.expression.scalar.systeminformation;
 
 import org.junit.Test;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 
-public class FormatTypeFunctionTest extends AbstractScalarFunctionsTest {
+public class FormatTypeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_format_type_null_oid_returns_null() throws Exception {

@@ -33,7 +33,7 @@ import java.util.List;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.core.Is.is;
 
-public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
+public class WherePKIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testWherePkColInWithLimit() throws Exception {

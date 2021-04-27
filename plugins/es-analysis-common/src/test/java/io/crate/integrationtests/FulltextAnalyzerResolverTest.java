@@ -57,7 +57,7 @@ import org.junit.Test;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.testing.SQLResponse;
 
-public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
+public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
 
     private static FulltextAnalyzerResolver fulltextAnalyzerResolver;
 

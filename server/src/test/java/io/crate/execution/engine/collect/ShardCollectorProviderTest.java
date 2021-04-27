@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect;
 
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -37,7 +37,7 @@ import java.util.stream.StreamSupport;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 1, supportsDedicatedMasters = false)
-public class ShardCollectorProviderTest extends SQLTransportIntegrationTest {
+public class ShardCollectorProviderTest extends SQLIntegrationTestCase {
 
     public void assertNumberOfShardEntriesInShardCollectSource(int numberOfShards) throws Exception {
         final Field shards = ShardCollectSource.class.getDeclaredField("shards");

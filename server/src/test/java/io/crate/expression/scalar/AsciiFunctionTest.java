@@ -24,7 +24,7 @@ package io.crate.expression.scalar;
 
 import org.junit.Test;
 
-public class AsciiFunctionTest extends AbstractScalarFunctionsTest {
+public class AsciiFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_ascii_returns_code_of_first_character() throws Exception {

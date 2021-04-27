@@ -79,7 +79,7 @@ import io.crate.types.DataTypes;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
-public class PostgresITest extends SQLTransportIntegrationTest {
+public class PostgresITest extends SQLIntegrationTestCase {
 
     private static final String NO_IPV6 = "CRATE_TESTS_NO_IPV6";
     private static final String RO = "node_s0";

@@ -23,7 +23,7 @@
 package io.crate.user.scalar;
 
 import io.crate.user.User;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Symbol;
 import io.crate.testing.SqlExpressions;
 import org.junit.Before;
@@ -32,7 +32,7 @@ import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
 
-public class UserFunctionTest extends AbstractScalarFunctionsTest {
+public class UserFunctionTest extends ScalarTestCase {
 
     private static final User TEST_USER = User.of("testUser");
 

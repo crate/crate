@@ -72,7 +72,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
-public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest {
+public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
 
     private static final String REPOSITORY_NAME = "my_repo";
     private static final String SNAPSHOT_NAME = "my_snapshot";

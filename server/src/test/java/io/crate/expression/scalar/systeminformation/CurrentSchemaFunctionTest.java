@@ -22,14 +22,14 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.testing.SqlExpressions;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
-public class CurrentSchemaFunctionTest extends AbstractScalarFunctionsTest {
+public class CurrentSchemaFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeCurrentSchemaDefaultSchema() throws Exception {

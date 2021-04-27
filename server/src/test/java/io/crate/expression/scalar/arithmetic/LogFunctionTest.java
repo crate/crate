@@ -22,14 +22,14 @@
 package io.crate.expression.scalar.arithmetic;
 
 import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class LogFunctionTest extends AbstractScalarFunctionsTest {
+public class LogFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeValueSymbol() throws Exception {

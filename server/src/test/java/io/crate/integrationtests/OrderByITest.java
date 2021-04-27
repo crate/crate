@@ -28,7 +28,7 @@ import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-public class OrderByITest extends SQLTransportIntegrationTest {
+public class OrderByITest extends SQLIntegrationTestCase {
 
     @Test
     public void testOrderByIpType() throws Exception {

@@ -22,11 +22,11 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import org.junit.Test;
 
-public class EncodeDecodeFunctionTest extends AbstractScalarFunctionsTest {
+public class EncodeDecodeFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidBytea() {

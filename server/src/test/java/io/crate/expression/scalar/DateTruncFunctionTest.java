@@ -28,7 +28,7 @@ import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.not;
 
-public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
+public class DateTruncFunctionTest extends ScalarTestCase {
 
     // timestamp for Do Feb 25 12:38:01.123 UTC 1999
     private static final Literal TIMESTAMP = Literal.of(DataTypes.TIMESTAMPZ, 919946281123L);

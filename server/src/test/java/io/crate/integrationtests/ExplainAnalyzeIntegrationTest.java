@@ -42,7 +42,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
-public class ExplainAnalyzeIntegrationTest extends SQLTransportIntegrationTest {
+public class ExplainAnalyzeIntegrationTest extends SQLIntegrationTestCase {
 
     @Before
     public void initTestData() throws Exception {

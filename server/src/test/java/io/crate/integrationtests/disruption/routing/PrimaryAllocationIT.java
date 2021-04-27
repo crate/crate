@@ -22,7 +22,7 @@
 
 package io.crate.integrationtests.disruption.routing;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.IndexParts;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -61,8 +61,8 @@ import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.not;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
-@SQLTransportIntegrationTest.Slow
-public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
+@SQLIntegrationTestCase.Slow
+public class PrimaryAllocationIT extends SQLIntegrationTestCase {
 
     private String schema;
     private String indexName;

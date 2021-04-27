@@ -19,7 +19,7 @@
 
 package org.elasticsearch.cluster;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
@@ -36,7 +36,7 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcke
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
-public class ClusterHealthIT extends SQLTransportIntegrationTest {
+public class ClusterHealthIT extends SQLIntegrationTestCase {
 
     @Test
     public void testSimpleLocalHealth() {

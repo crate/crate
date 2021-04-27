@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 
 
-public class CurrentDateFunctionTest extends AbstractScalarFunctionsTest {
+public class CurrentDateFunctionTest extends ScalarTestCase {
 
     private static final long CURRENT_TIMESTAMP = 1422294644581L;
 

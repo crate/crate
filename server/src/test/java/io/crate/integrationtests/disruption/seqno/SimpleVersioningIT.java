@@ -18,13 +18,13 @@
  */
 package io.crate.integrationtests.disruption.seqno;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.junit.Test;
 
 
 import static org.hamcrest.Matchers.equalTo;
 
-public class SimpleVersioningIT extends SQLTransportIntegrationTest {
+public class SimpleVersioningIT extends SQLIntegrationTestCase {
 
     @Test
     public void test_compare_and_set() {

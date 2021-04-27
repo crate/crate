@@ -22,14 +22,14 @@
 package io.crate.expression.scalar.arithmetic;
 
 import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
-public class AbsFunctionTest extends AbstractScalarFunctionsTest {
+public class AbsFunctionTest extends ScalarTestCase {
 
     @Test
     public void testAbs() throws Exception {

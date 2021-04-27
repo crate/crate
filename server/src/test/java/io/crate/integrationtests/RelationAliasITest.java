@@ -27,7 +27,7 @@ import org.junit.Test;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
-public class RelationAliasITest extends SQLTransportIntegrationTest {
+public class RelationAliasITest extends SQLIntegrationTestCase {
 
     @Test
     public void testRelationAliasWithColumnAliases() {

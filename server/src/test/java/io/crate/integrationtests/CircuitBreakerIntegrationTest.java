@@ -38,7 +38,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false, numClientNodes = 0)
-public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
+public class CircuitBreakerIntegrationTest extends SQLIntegrationTestCase {
 
     @After
     public void resetBreakerLimit() {

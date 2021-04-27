@@ -24,7 +24,7 @@ package io.crate.expression.scalar;
 
 import org.junit.Test;
 
-public class CurrentDatabaseFunctionTest extends AbstractScalarFunctionsTest {
+public class CurrentDatabaseFunctionTest extends ScalarTestCase {
 
 
     @Test
