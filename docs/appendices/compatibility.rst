@@ -82,8 +82,8 @@ OBJECT``. With CrateDB, Binary Data is instead stored in separate BLOB Tables
 (see :ref:`blob_support`) which can be sharded and replicated.
 
 
-Transactions (``BEGIN``, ``COMMIT``, and ``ROLLBACK``)
-------------------------------------------------------
+Transactions (``BEGIN``, ``START``, ``COMMIT``, and ``ROLLBACK``)
+-----------------------------------------------------------------
 
 CrateDB is focused on providing analytical capabilities over supporting
 traditional transactional use cases, and thus it does not provide transaction
