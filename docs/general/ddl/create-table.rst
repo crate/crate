@@ -58,10 +58,13 @@ error message::
 
     By default, CrateDB will enforce the column definitions you specified with
     the ``CREATE TABLE`` statement (what's known as a *strict* :ref:`column
-    policy <column_policy>`). However, you can configure the
-    :ref:`column_policy table parameter <column_policy>` to allow the dynamic
-    creation of new columns at query-time (what's known as a *dynamic* column
-    policy).
+    policy <column_policy>`).
+
+    However, you can configure the :ref:`column_policy <column_policy>` table
+    parameter so that the :ref:`INSERT <ref-insert>`, :ref:`UPDATE
+    <ref-update>`, and :ref:`COPY FROM <sql-copy-from>` statements can
+    arbitrarily create new columns as needed (what's known as a *dynamic*
+    column policy).
 
 
 .. _ddl-create-table-schemas:
@@ -185,25 +188,11 @@ of functionality that CrateDB supports. For example:
 
 .. rst-class:: open
 
-- You can :ref:`partition <partitioned-tables>` a table into one or more
-  partitions with the :ref:`PARTITIONED BY <sql-create-table-partitioned-by>`
-  clause. You control how tables are partitioned by specifying one or more
-  :ref:`partition columns <gloss-partition-column>`. Each unique combination of
-  partition column values results in a new partition.
-
-  By partitioning a table, you can segment some :ref:`SQL statements
-  <gloss-statement>` (e.g., those used for :ref:`table optimization
-  <optimize>`, :ref:`import and export <importing_data>`, and :ref:`backup and
-  restore <snapshot-restore>`) by constraining them to one or more partitions.
-
-  .. SEEALSO::
-
-      `How-to guides: Tuning partitions for insert performance`_
-
-- You can split partitions into one or more :ref:`shards <ddl-sharding>` with
-  the :ref:`CLUSTERED BY <sql-create-table-clustered>` clause. You control how
-  CrateDB routes table rows to shards by specifying a :ref:`routing column
-  <gloss-routing-column>`.
+- CrateDB transparently segments the underlying storage of table data into
+  :ref:`shards <ddl-sharding>` (four by default). You can configure the number
+  of shards with the :ref:`CLUSTERED BY <sql-create-table-clustered>`
+  clause. You control how CrateDB routes table rows to shards by specifying a
+  :ref:`routing column <gloss-routing-column>`.
 
   You can use :ref:`cluster settings <conf_routing>` to configure how shards
   are :ref:`balanced <conf-routing-allocation-balance>` across a cluster and
@@ -219,6 +208,21 @@ of functionality that CrateDB supports. For example:
   .. SEEALSO::
 
       `How-to guides: Tuning sharding performance`_
+
+- You can :ref:`partition <partitioned-tables>` a table into one or more
+  partitions with the :ref:`PARTITIONED BY <sql-create-table-partitioned-by>`
+  clause. You control how tables are partitioned by specifying one or more
+  :ref:`partition columns <gloss-partition-column>`. Each unique combination of
+  partition column values results in a new partition.
+
+  By partitioning a table, you can segment some :ref:`SQL statements
+  <gloss-statement>` (e.g., those used for :ref:`table optimization
+  <optimize>`, :ref:`import and export <importing_data>`, and :ref:`backup and
+  restore <snapshot-restore>`) by constraining them to one or more partitions.
+
+  .. SEEALSO::
+
+      `How-to guides: Tuning partitions for insert performance`_
 
 - You can :ref:`replicate <ddl-replication>` shards :ref:`WITH
   <sql-create-table-with>` the :ref:`number_of_replicas
