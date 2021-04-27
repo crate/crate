@@ -33,7 +33,7 @@ import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
 
-public class CreateTableAsIntegrationTest extends SQLTransportIntegrationTest {
+public class CreateTableAsIntegrationTest extends SQLIntegrationTestCase {
 
     /*
      * Testing re-creation of ColumnDefinitions is covered by SymbolToColumnDefinitionConverterTest

@@ -22,7 +22,7 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import org.junit.Test;
 
@@ -31,7 +31,7 @@ import java.util.List;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
-public class CurrentSchemasFunctionTest extends AbstractScalarFunctionsTest {
+public class CurrentSchemasFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeWithDefaultSchemas() {

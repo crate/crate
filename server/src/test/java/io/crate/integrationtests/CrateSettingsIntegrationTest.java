@@ -5,7 +5,7 @@ import org.junit.Test;
 
 import java.util.Locale;
 
-public class CrateSettingsIntegrationTest extends SQLTransportIntegrationTest {
+public class CrateSettingsIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testAllSettingsAreSelectable() throws Exception {

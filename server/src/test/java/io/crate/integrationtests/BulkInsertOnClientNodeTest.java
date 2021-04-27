@@ -38,7 +38,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 1)
-public class BulkInsertOnClientNodeTest extends SQLTransportIntegrationTest {
+public class BulkInsertOnClientNodeTest extends SQLIntegrationTestCase {
 
     public BulkInsertOnClientNodeTest() {
         super(new SQLTransportExecutor(

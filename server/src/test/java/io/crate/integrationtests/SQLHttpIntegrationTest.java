@@ -44,7 +44,7 @@ import java.util.Locale;
 
 import static org.hamcrest.Matchers.is;
 
-public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest {
+public abstract class SQLHttpIntegrationTest extends SQLIntegrationTestCase {
 
     private HttpPost httpPost;
     private InetSocketAddress address;

@@ -22,10 +22,10 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
-public class StringRepeatFunctionTest extends AbstractScalarFunctionsTest {
+public class StringRepeatFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_repeat_zero_times_returns_empty_string() {

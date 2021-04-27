@@ -57,7 +57,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
-public class JoinIntegrationTest extends SQLTransportIntegrationTest {
+public class JoinIntegrationTest extends SQLIntegrationTestCase {
 
     @After
     public void resetStatsAndBreakerSettings() {

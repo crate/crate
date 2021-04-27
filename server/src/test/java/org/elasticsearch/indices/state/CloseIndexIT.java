@@ -19,7 +19,7 @@
 package org.elasticsearch.indices.state;
 
 import io.crate.execution.ddl.tables.TransportCloseTable;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
@@ -34,7 +34,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class CloseIndexIT extends SQLTransportIntegrationTest {
+public class CloseIndexIT extends SQLIntegrationTestCase {
 
     @Override
     public Settings indexSettings() {

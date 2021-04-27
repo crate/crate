@@ -25,7 +25,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -47,7 +47,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
-public class InternalCountOperationTest extends SQLTransportIntegrationTest {
+public class InternalCountOperationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testCount() throws Exception {

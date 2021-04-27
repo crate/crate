@@ -33,7 +33,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
-public class SwapTableITest extends SQLTransportIntegrationTest {
+public class SwapTableITest extends SQLIntegrationTestCase {
 
     @Test
     public void testSwapTwoTablesWithDropSource() {

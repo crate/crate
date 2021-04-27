@@ -21,7 +21,7 @@ package org.elasticsearch.gateway;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.SQLTransportExecutor;
 import org.apache.logging.log4j.LogManager;
@@ -75,7 +75,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
-public class GatewayIndexStateIT extends SQLTransportIntegrationTest {
+public class GatewayIndexStateIT extends SQLIntegrationTestCase {
 
     private final Logger logger = LogManager.getLogger(GatewayIndexStateIT.class);
 

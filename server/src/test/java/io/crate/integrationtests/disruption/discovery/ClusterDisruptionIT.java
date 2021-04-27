@@ -23,7 +23,7 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import io.crate.exceptions.DuplicateKeyException;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.CorruptIndexException;
 import org.elasticsearch.ElasticsearchException;
@@ -78,7 +78,7 @@ import static org.hamcrest.Matchers.not;
  */
 @TestLogging("_root:DEBUG,org.elasticsearch.cluster.service:TRACE")
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
-@SQLTransportIntegrationTest.Slow
+@SQLIntegrationTestCase.Slow
 public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
 
     @Override

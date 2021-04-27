@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import io.crate.testing.MoreMatchers;
 
-public class GenRandomTextUUIDFunctionTest extends AbstractScalarFunctionsTest {
+public class GenRandomTextUUIDFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_gen_random_text_uuid_returns_a_uuid() throws Exception {

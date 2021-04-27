@@ -47,7 +47,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
-public class ViewsITest extends SQLTransportIntegrationTest {
+public class ViewsITest extends SQLIntegrationTestCase {
 
     @After
     public void dropViews() {

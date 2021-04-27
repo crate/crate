@@ -27,7 +27,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.expression.reference.StaticTableReferenceResolver;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -54,7 +54,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
-public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
+public class SystemCollectSourceTest extends SQLIntegrationTestCase {
 
     @Test
     public void testOrderBySymbolsDoNotAppearTwiceInRows() throws Exception {

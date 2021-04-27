@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class CreateTableIntegrationTest extends SQLTransportIntegrationTest {
+public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testCreateTableIfNotExistsConcurrently() throws Throwable {

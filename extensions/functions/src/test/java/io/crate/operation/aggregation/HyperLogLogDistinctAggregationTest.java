@@ -42,7 +42,7 @@ import java.util.List;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.is;
 
-public class HyperLogLogDistinctAggregationTest extends AggregationTest {
+public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
 
     @Before
     public void prepareFunctions() throws Exception {

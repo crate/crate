@@ -31,7 +31,7 @@ import static org.hamcrest.Matchers.is;
 
 import org.junit.Test;
 
-public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
+public class FulltextIntegrationTest extends SQLIntegrationTestCase  {
 
     @Test
     public void testSelectMatch() throws Exception {

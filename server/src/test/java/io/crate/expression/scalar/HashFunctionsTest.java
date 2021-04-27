@@ -29,7 +29,7 @@ import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class HashFunctionsTest extends AbstractScalarFunctionsTest {
+public class HashFunctionsTest extends ScalarTestCase {
 
     @Test
     public void testEvaluate() throws Exception {

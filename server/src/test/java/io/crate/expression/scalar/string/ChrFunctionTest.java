@@ -24,9 +24,9 @@ package io.crate.expression.scalar.string;
 
 import org.junit.Test;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 
-public class ChrFunctionTest extends AbstractScalarFunctionsTest {
+public class ChrFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_null_value_returns_null() throws Exception {

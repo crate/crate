@@ -30,7 +30,7 @@ import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.core.Is.is;
 
-public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTest {
+public class StaticInformationSchemaQueryTest extends SQLIntegrationTestCase {
 
     @Before
     public void tableCreation() throws Exception {

@@ -22,14 +22,14 @@ package io.crate.expression.operator;
 
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.operator.any.AnyOperator;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class InOperatorTest extends AbstractScalarFunctionsTest {
+public class InOperatorTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeSymbolSetLiteralIntegerIncluded() {

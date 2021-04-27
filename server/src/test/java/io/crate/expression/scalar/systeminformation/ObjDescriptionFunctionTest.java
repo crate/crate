@@ -22,10 +22,10 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
-public class ObjDescriptionFunctionTest extends AbstractScalarFunctionsTest {
+public class ObjDescriptionFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_obj_description_always_returns_null() {

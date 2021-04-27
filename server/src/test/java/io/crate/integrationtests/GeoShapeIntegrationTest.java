@@ -36,7 +36,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 
-public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
+public class GeoShapeIntegrationTest extends SQLIntegrationTestCase {
 
     private static final Map<String, Object> GEO_SHAPE1 = Map.of(
         "coordinates", new double[][]{

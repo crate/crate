@@ -22,7 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.metadata.functions.Signature;
-import io.crate.operation.aggregation.AggregationTest;
+import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -31,7 +31,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 
-public class MinimumAggregationTest extends AggregationTest {
+public class MinimumAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(

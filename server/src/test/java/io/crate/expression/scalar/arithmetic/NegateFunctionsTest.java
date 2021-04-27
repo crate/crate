@@ -22,7 +22,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import org.junit.Test;
 
@@ -32,7 +32,7 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static org.hamcrest.Matchers.nullValue;
 
 
-public class NegateFunctionsTest extends AbstractScalarFunctionsTest {
+public class NegateFunctionsTest extends ScalarTestCase {
 
     @Test
     public void testNegateReference() throws Exception {

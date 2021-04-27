@@ -27,7 +27,7 @@ import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
+public class CustomSchemaIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     @UseRandomizedSchema(random = false)

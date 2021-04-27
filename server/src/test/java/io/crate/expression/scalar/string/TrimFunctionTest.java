@@ -22,7 +22,7 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.hamcrest.core.IsSame;
@@ -31,7 +31,7 @@ import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.not;
 
-public class TrimFunctionTest extends AbstractScalarFunctionsTest {
+public class TrimFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeTrim() {

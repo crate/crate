@@ -35,7 +35,7 @@ import java.nio.file.Path;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
-public class TablesNeedUpgradeSysCheckTest extends SQLTransportIntegrationTest {
+public class TablesNeedUpgradeSysCheckTest extends SQLIntegrationTestCase {
 
     private void startUpNodeWithDataDir(String dataPath) throws Exception {
         Path indexDir = createTempDir();

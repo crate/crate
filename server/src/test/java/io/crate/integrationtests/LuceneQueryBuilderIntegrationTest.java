@@ -41,7 +41,7 @@ import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST)
 @Seed("54904E791E52DEFD")
-public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTest {
+public class LuceneQueryBuilderIntegrationTest extends SQLIntegrationTestCase {
 
     private static final int NUMBER_OF_BOOLEAN_CLAUSES = 10_000;
 

@@ -49,7 +49,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
-public class NodeStatsTest extends SQLTransportIntegrationTest {
+public class NodeStatsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSysNodesMem() throws Exception {

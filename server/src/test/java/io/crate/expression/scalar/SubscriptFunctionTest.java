@@ -33,7 +33,7 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
-public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
+public class SubscriptFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_long_can_be_used_as_array_index() {

@@ -22,7 +22,7 @@
 
 package org.elasticsearch.repositories.s3;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.plugins.Plugin;
 import org.junit.Test;
 
@@ -35,7 +35,7 @@ import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.startsWith;
 
-public class S3RepositoryIntegrationTest extends SQLTransportIntegrationTest {
+public class S3RepositoryIntegrationTest extends SQLIntegrationTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

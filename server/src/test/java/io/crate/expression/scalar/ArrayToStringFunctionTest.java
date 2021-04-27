@@ -24,7 +24,7 @@ package io.crate.expression.scalar;
 
 import org.junit.Test;
 
-public class ArrayToStringFunctionTest extends AbstractScalarFunctionsTest {
+public class ArrayToStringFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() {

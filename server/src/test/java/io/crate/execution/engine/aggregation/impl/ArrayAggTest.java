@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import io.crate.operation.aggregation.AggregationTest;
+import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -32,7 +32,7 @@ import org.junit.Test;
 import java.util.List;
 
 
-public class ArrayAggTest extends AggregationTest {
+public class ArrayAggTest extends AggregationTestCase {
 
     @Test
     public void test_array_agg_adds_all_items_to_array() throws Exception {

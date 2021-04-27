@@ -22,10 +22,10 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
-public class StringSplitPartFunctionTest extends AbstractScalarFunctionsTest {
+public class StringSplitPartFunctionTest extends ScalarTestCase {
 
     @Test
     public void split_part_mid() {

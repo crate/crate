@@ -22,11 +22,11 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import org.junit.Test;
 
-public class StringPaddingFunctionTest extends AbstractScalarFunctionsTest {
+public class StringPaddingFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_lpad_parameter_len_too_big() throws Exception {

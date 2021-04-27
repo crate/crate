@@ -25,7 +25,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.functions.Signature;
-import io.crate.operation.aggregation.AggregationTest;
+import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -41,7 +41,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-public class PercentileAggregationTest extends AggregationTest {
+public class PercentileAggregationTest extends AggregationTestCase {
 
     private Object execSingleFractionPercentile(DataType<?> argumentType, Object[][] rows) throws Exception {
         return executeAggregation(

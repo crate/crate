@@ -60,7 +60,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLette
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
-public class PartitionedTableConcurrentIntegrationTest extends SQLTransportIntegrationTest {
+public class PartitionedTableConcurrentIntegrationTest extends SQLIntegrationTestCase {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(10, TimeUnit.SECONDS);
 

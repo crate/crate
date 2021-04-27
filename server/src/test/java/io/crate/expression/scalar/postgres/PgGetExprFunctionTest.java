@@ -22,12 +22,12 @@
 
 package io.crate.expression.scalar.postgres;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class PgGetExprFunctionTest extends AbstractScalarFunctionsTest {
+public class PgGetExprFunctionTest extends ScalarTestCase {
 
     @Test
     public void testPgGetExpr() throws Exception {

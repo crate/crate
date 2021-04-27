@@ -29,7 +29,7 @@ import io.crate.testing.TestingHelpers;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.is;
 
-public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationTest {
+public class AggregateExpressionIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void test_sum_int() throws Exception {

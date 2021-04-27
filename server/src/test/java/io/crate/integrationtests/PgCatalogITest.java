@@ -37,7 +37,7 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
-public class PgCatalogITest extends SQLTransportIntegrationTest {
+public class PgCatalogITest extends SQLIntegrationTestCase {
 
     @Before
     public void createRelations() {

@@ -22,7 +22,7 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -31,7 +31,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Map;
 
-public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
+public class PgTypeofFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_sample_case_with_qualified_function_name() {

@@ -55,7 +55,7 @@ import io.crate.types.TimestampType;
 
 @ESIntegTestCase.ClusterScope()
 @UseJdbc(0) // missing column types
-public class SysSnapshotsTest extends SQLTransportIntegrationTest {
+public class SysSnapshotsTest extends SQLIntegrationTestCase {
 
     @ClassRule
     public static TemporaryFolder TEMP_FOLDER = new TemporaryFolder();

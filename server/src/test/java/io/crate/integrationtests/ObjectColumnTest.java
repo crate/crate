@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
-public class ObjectColumnTest extends SQLTransportIntegrationTest {
+public class ObjectColumnTest extends SQLIntegrationTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

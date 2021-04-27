@@ -21,12 +21,12 @@
 
 package io.crate.expression.operator.any;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
+public class AnyEqOperatorTest extends ScalarTestCase {
 
     @Test
     public void testEvaluate() throws Exception {

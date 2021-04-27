@@ -22,7 +22,7 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.OidHash;
@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import java.util.List;
 
-public class PgGetFunctionResultFunctionTest extends AbstractScalarFunctionsTest {
+public class PgGetFunctionResultFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_null_oid_results_in_null() {

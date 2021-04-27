@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -31,7 +31,7 @@ import java.util.List;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class TruncFunctionTest extends AbstractScalarFunctionsTest {
+public class TruncFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeOnDouble() throws Exception {

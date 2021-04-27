@@ -22,7 +22,7 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.JoinHelper;
 import org.elasticsearch.cluster.coordination.PublicationTransportHandler;
@@ -52,7 +52,7 @@ import static io.crate.metadata.IndexParts.toIndexName;
  */
 @TestLogging("_root:DEBUG,org.elasticsearch.cluster.service:TRACE")
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
-@SQLTransportIntegrationTest.Slow
+@SQLIntegrationTestCase.Slow
 public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
 
     /**

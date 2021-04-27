@@ -21,7 +21,7 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 
-public class TransportCreatePartitionsActionTest extends SQLTransportIntegrationTest {
+public class TransportCreatePartitionsActionTest extends SQLIntegrationTestCase {
 
     TransportCreatePartitionsAction action;
 

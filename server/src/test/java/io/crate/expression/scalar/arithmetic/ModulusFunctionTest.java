@@ -22,12 +22,12 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class ModulusFunctionTest extends AbstractScalarFunctionsTest {
+public class ModulusFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_modulus_scalar() {

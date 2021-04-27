@@ -33,7 +33,7 @@ import io.crate.testing.SQLErrorMatcher;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 @ClusterScope(numDataNodes = 2, supportsDedicatedMasters = false, numClientNodes = 0)
-public class ShardLimitsIT extends SQLTransportIntegrationTest {
+public class ShardLimitsIT extends SQLIntegrationTestCase {
 
     @After
     public void reset_settings() {

@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
+public class DeleteIntegrationTest extends SQLIntegrationTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

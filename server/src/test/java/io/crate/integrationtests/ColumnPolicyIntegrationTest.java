@@ -58,7 +58,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
-public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
+public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
 
     private String copyFilePath = Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();
 

@@ -23,7 +23,7 @@
 package org.elasticsearch.repositories.azure;
 
 import com.sun.net.httpserver.HttpServer;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.plugins.Plugin;
 import org.junit.After;
@@ -41,7 +41,7 @@ import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.is;
 
-public class AzureSnapshotIntegrationTest extends SQLTransportIntegrationTest {
+public class AzureSnapshotIntegrationTest extends SQLIntegrationTestCase {
 
     private static final String CONTAINER_NAME = "crate_snapshots";
 

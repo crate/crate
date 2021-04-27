@@ -34,7 +34,7 @@ import static org.elasticsearch.env.Environment.PATH_DATA_SETTING;
 import static org.hamcrest.CoreMatchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
-public class PromoteStaleReplicaITest extends SQLTransportIntegrationTest {
+public class PromoteStaleReplicaITest extends SQLIntegrationTestCase {
 
     @Test
     public void test_stale_replica_can_manually_be_promoted() throws Exception {

@@ -31,7 +31,7 @@ import static org.hamcrest.core.Is.is;
 // ensure that only data nodes are picked for rerouting
 @ESIntegTestCase.ClusterScope(supportsDedicatedMasters = false, numDataNodes = 2, numClientNodes = 0)
 @UseRandomizedSchema(random = false)
-public class AlterTableRerouteIntegrationTest extends SQLTransportIntegrationTest {
+public class AlterTableRerouteIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testAlterTableRerouteMoveShard() throws Exception {

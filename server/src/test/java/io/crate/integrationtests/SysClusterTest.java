@@ -33,7 +33,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.is;
 
-public class SysClusterTest extends SQLTransportIntegrationTest {
+public class SysClusterTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSysCluster() throws Exception {

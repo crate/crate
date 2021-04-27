@@ -36,7 +36,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 
 @UseRandomizedSchema(random = false)
-public class ShowIntegrationTest extends SQLTransportIntegrationTest {
+public class ShowIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testShowCrateSystemTable() throws Exception {

@@ -32,7 +32,7 @@ import java.util.List;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
-public class SysOperationsTest extends SQLTransportIntegrationTest {
+public class SysOperationsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testDistinctSysOperations() throws Exception {

@@ -22,12 +22,12 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.hamcrest.Matchers;
 import org.joda.time.Period;
 import org.junit.Test;
 
-public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
+public class IntervalFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_interval_to_interval() {

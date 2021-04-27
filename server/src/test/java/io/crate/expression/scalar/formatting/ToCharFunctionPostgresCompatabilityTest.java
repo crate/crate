@@ -22,11 +22,11 @@
 
 package io.crate.expression.scalar.formatting;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 
-public class ToCharFunctionPostgresCompatabilityTest extends AbstractScalarFunctionsTest {
+public class ToCharFunctionPostgresCompatabilityTest extends ScalarTestCase {
 
     @Test
     public void testPostgresHourOfDayCompatibilityTimestamp() {

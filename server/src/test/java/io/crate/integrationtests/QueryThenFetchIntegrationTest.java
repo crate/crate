@@ -32,7 +32,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
-public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
+public class QueryThenFetchIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testCrateSearchServiceSupportsOrderByOnFunctionWithBooleanReturnType() throws Exception {

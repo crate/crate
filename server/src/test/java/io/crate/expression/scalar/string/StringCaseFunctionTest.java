@@ -23,13 +23,13 @@
 package io.crate.expression.scalar.string;
 
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class StringCaseFunctionTest extends AbstractScalarFunctionsTest {
+public class StringCaseFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeLowerFunc() throws Exception {

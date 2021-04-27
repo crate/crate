@@ -30,7 +30,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
-public class ResizeShardsITest extends SQLTransportIntegrationTest {
+public class ResizeShardsITest extends SQLIntegrationTestCase {
 
     private String getADataNodeName(ClusterState state) {
         assertThat(state.nodes().getDataNodes().isEmpty(), is(false));

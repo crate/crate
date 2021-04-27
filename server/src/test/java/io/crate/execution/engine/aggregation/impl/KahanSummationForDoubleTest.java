@@ -21,10 +21,10 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import io.crate.operation.aggregation.AggregationTest;
+import io.crate.operation.aggregation.AggregationTestCase;
 import org.junit.Test;
 
-public class KahanSummationForDoubleTest extends AggregationTest {
+public class KahanSummationForDoubleTest extends AggregationTestCase {
 
     @Test
     public void shouldSumTwoValues() {
