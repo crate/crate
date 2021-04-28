@@ -187,7 +187,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
     public void testGetRelevantIndicesWithUnassignedShardsOnMasterEligibleNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, true));
-        assertThat(indices.size(), equalTo(1));
+        assertThat(indices.size(), equalTo(0));
     }
 
     public void testGetRelevantIndicesWithUnassignedShardsOnDataOnlyNode() {

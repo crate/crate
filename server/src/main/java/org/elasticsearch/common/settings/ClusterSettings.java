@@ -74,6 +74,7 @@ import org.elasticsearch.http.HttpTransportSettings;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.indices.IndexingMemoryController;
 import org.elasticsearch.indices.IndicesQueryCache;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.analysis.HunspellService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
@@ -190,6 +191,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         IndicesQueryCache.INDICES_CACHE_QUERY_SIZE_SETTING,
         IndicesQueryCache.INDICES_CACHE_QUERY_COUNT_SETTING,
         IndicesQueryCache.INDICES_QUERIES_CACHE_ALL_SEGMENTS_SETTING,
+        IndicesService.WRITE_DANGLING_INDICES_INFO_SETTING,
         MappingUpdatedAction.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING,
         Metadata.SETTING_READ_ONLY_SETTING,
         Metadata.SETTING_READ_ONLY_ALLOW_DELETE_SETTING,

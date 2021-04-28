@@ -229,7 +229,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                                                        (tmpImd.getNumberOfReplicas() + 1) + "]");
                 }
                 // create the index here (on the master) to validate it can be created, as well as adding the mapping
-                IndexService indexService = indicesService.createIndex(tmpImd, Collections.emptyList());
+                IndexService indexService = indicesService.createIndex(tmpImd, Collections.emptyList(), false);
                 createdIndices.add(indexService.index());
 
                 // now add the mappings

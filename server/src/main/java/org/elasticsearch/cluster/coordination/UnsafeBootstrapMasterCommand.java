@@ -17,21 +17,20 @@
  * under the License.
  */
 
+
 package org.elasticsearch.cluster.coordination;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import io.crate.common.collections.Tuple;
+import joptsimple.OptionSet;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cli.Terminal;
-import org.elasticsearch.cluster.metadata.Manifest;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.NodeMetadata;
+import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.node.Node;
 
 import java.io.IOException;
@@ -40,8 +39,6 @@ import java.util.Collections;
 import java.util.Locale;
 
 public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
-
-    private static final Logger LOGGER = LogManager.getLogger(UnsafeBootstrapMasterCommand.class);
 
     public static final String CLUSTER_STATE_TERM_VERSION_MSG_FORMAT =
             "Current node cluster state (term, version) pair is (%s, %s)";
@@ -59,10 +56,8 @@ public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
 
     static final String NOT_MASTER_NODE_MSG = "unsafe-bootstrap tool can only be run on master eligible node";
 
-    static final String NO_NODE_METADATA_FOUND_MSG = "no node meta data is found, node has not been started yet?";
-
-    static final String EMPTY_LAST_COMMITTED_VOTING_CONFIG_MSG =
-            "last committed voting voting configuration is empty, cluster has never been bootstrapped?";
+    public static final String EMPTY_LAST_COMMITTED_VOTING_CONFIG_MSG =
+        "last committed voting voting configuration is empty, cluster has never been bootstrapped?";
 
     public static final String MASTER_NODE_BOOTSTRAPPED_MSG = "Master node was successfully bootstrapped";
     public static final Setting<String> UNSAFE_BOOTSTRAP =
@@ -84,19 +79,14 @@ public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
         return true;
     }
 
-    protected void processNodePaths(Terminal terminal, Path[] dataPaths, Environment env) throws IOException {
-        terminal.println(Terminal.Verbosity.VERBOSE, "Loading node metadata");
-        final NodeMetadata nodeMetadata = NodeMetadata.FORMAT.loadLatestState(LOGGER, NamedXContentRegistry.EMPTY, dataPaths);
-        if (nodeMetadata == null) {
-            throw new ElasticsearchException(NO_NODE_METADATA_FOUND_MSG);
-        }
+    protected void processNodePaths(Terminal terminal, Path[] dataPaths, OptionSet options, Environment env) throws IOException {
+        final PersistedClusterStateService persistedClusterStateService = createPersistedClusterStateService(dataPaths);
 
-        String nodeId = nodeMetadata.nodeId();
-        terminal.println(Terminal.Verbosity.VERBOSE, "Current nodeId is " + nodeId);
+        final Tuple<Long, ClusterState> state = loadTermAndClusterState(persistedClusterStateService, env);
+        final ClusterState oldClusterState = state.v2();
 
-        final Tuple<Manifest, Metadata> manifestMetadataTuple = loadMetadata(terminal, dataPaths);
-        final Manifest manifest = manifestMetadataTuple.v1();
-        final Metadata metadata = manifestMetadataTuple.v2();
+        final Metadata metadata = oldClusterState.metadata();
+
         final CoordinationMetadata coordinationMetadata = metadata.coordinationMetadata();
         if (coordinationMetadata == null ||
                 coordinationMetadata.getLastCommittedConfiguration() == null ||
@@ -106,13 +96,11 @@ public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
         terminal.println(String.format(Locale.ROOT, CLUSTER_STATE_TERM_VERSION_MSG_FORMAT, coordinationMetadata.term(),
                 metadata.version()));
 
-        confirm(terminal, CONFIRMATION_MSG);
-
         CoordinationMetadata newCoordinationMetadata = CoordinationMetadata.builder(coordinationMetadata)
-                .clearVotingConfigExclusions()
-                .lastAcceptedConfiguration(new CoordinationMetadata.VotingConfiguration(Collections.singleton(nodeId)))
-                .lastCommittedConfiguration(new CoordinationMetadata.VotingConfiguration(Collections.singleton(nodeId)))
-                .build();
+            .clearVotingConfigExclusions()
+            .lastAcceptedConfiguration(new CoordinationMetadata.VotingConfiguration(Collections.singleton(persistedClusterStateService.getNodeId())))
+            .lastCommittedConfiguration(new CoordinationMetadata.VotingConfiguration(Collections.singleton(persistedClusterStateService.getNodeId())))
+            .build();
 
         Settings persistentSettings = Settings.builder()
                 .put(metadata.persistentSettings())
@@ -126,7 +114,17 @@ public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
                 .coordinationMetadata(newCoordinationMetadata)
                 .build();
 
-        writeNewMetadata(terminal, manifest, manifest.getCurrentTerm(), metadata, newMetadata, dataPaths);
+        final ClusterState newClusterState = ClusterState.builder(oldClusterState)
+            .metadata(newMetadata).build();
+
+        terminal.println(Terminal.Verbosity.VERBOSE,
+                         "[old cluster state = " + oldClusterState + ", new cluster state = " + newClusterState + "]");
+
+        confirm(terminal, CONFIRMATION_MSG);
+
+        try (PersistedClusterStateService.Writer writer = persistedClusterStateService.createWriter()) {
+            writer.writeFullStateAndCommit(state.v1(), newClusterState);
+        }
 
         terminal.println(MASTER_NODE_BOOTSTRAPPED_MSG);
     }

@@ -35,7 +35,6 @@ import org.elasticsearch.index.Index;
 import io.crate.common.unit.TimeValue;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -55,9 +54,7 @@ public class IncrementalClusterStateWriter {
 
     private final MetaStateService metaStateService;
 
-    // On master-eligible nodes we call updateClusterState under the Coordinator's mutex; on master-ineligible data nodes we call
-    // updateClusterState on the (unique) cluster applier thread; on other nodes we never call updateClusterState. In all cases there's
-    // no need to synchronize access to these fields.
+    // We call updateClusterState on the (unique) cluster applier thread so there's no need to synchronize access to these fields.
     private Manifest previousManifest;
     private ClusterState previousClusterState;
     private final LongSupplier relativeTimeMillisSupplier;
@@ -89,10 +86,6 @@ public class IncrementalClusterStateWriter {
 
     Manifest getPreviousManifest() {
         return previousManifest;
-    }
-
-    ClusterState getPreviousClusterState() {
-        return previousClusterState;
     }
 
     void setIncrementalWrite(boolean incrementalWrite) {
@@ -208,36 +201,17 @@ public class IncrementalClusterStateWriter {
         return actions;
     }
 
-    private static Set<Index> getRelevantIndicesOnDataOnlyNode(ClusterState state) {
-        RoutingNode newRoutingNode = state.getRoutingNodes().node(state.nodes().getLocalNodeId());
+    static Set<Index> getRelevantIndices(ClusterState state) {
+        assert state.nodes().getLocalNode().isDataNode();
+        final RoutingNode newRoutingNode = state.getRoutingNodes().node(state.nodes().getLocalNodeId());
         if (newRoutingNode == null) {
             throw new IllegalStateException("cluster state does not contain this node - cannot write index meta state");
         }
-        Set<Index> indices = new HashSet<>();
-        for (ShardRouting routing : newRoutingNode) {
+        final Set<Index> indices = new HashSet<>();
+        for (final ShardRouting routing : newRoutingNode) {
             indices.add(routing.index());
         }
         return indices;
-    }
-
-    private static Set<Index> getRelevantIndicesForMasterEligibleNode(ClusterState state) {
-        Set<Index> relevantIndices = new HashSet<>();
-        // we have to iterate over the metadata to make sure we also capture closed indices
-        for (IndexMetadata indexMetadata : state.metadata()) {
-            relevantIndices.add(indexMetadata.getIndex());
-        }
-        return relevantIndices;
-    }
-
-    // exposed for tests
-    static Set<Index> getRelevantIndices(ClusterState state) {
-        if (state.nodes().getLocalNode().isMasterNode()) {
-            return getRelevantIndicesForMasterEligibleNode(state);
-        } else if (state.nodes().getLocalNode().isDataNode()) {
-            return getRelevantIndicesOnDataOnlyNode(state);
-        } else {
-            return Collections.emptySet();
-        }
     }
 
     /**

@@ -49,6 +49,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.gateway.MetadataStateFormat;
+import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
@@ -60,6 +61,7 @@ import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.Node;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -70,6 +72,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -299,7 +302,6 @@ public final class NodeEnvironment implements Closeable {
             this.locks = nodeLock.locks;
             this.nodePaths = nodeLock.nodePaths;
             this.nodeLockId = nodeLock.nodeId;
-            this.nodeMetadata = loadOrCreateNodeMetadata(settings, logger, nodePaths);
 
             if (logger.isDebugEnabled()) {
                 logger.debug("using node location [{}], local_lock_id [{}]", nodePaths, nodeLockId);
@@ -323,6 +325,7 @@ public final class NodeEnvironment implements Closeable {
                 ensureNoShardData(nodePaths);
             }
 
+            this.nodeMetadata = loadNodeMetadata(settings, logger, nodePaths);
             success = true;
         } finally {
             if (success == false) {
@@ -339,7 +342,14 @@ public final class NodeEnvironment implements Closeable {
      * @return the resolved path
      */
     public static Path resolveNodePath(final Path path, final int nodeLockId) {
-        return path.resolve(NODES_FOLDER).resolve(Integer.toString(nodeLockId));
+        // This makes sure when the path for the node lock using the 'node/$nodeLockId' path already
+        // exists it is not recreated again.
+        var id = Integer.toString(nodeLockId);
+        if (path.toString().endsWith(NODES_FOLDER + File.separator + id)) {
+            return path;
+        } else {
+            return path.resolve(NODES_FOLDER).resolve(id);
+        }
     }
 
     private void maybeLogPathDetails() throws IOException {
@@ -400,15 +410,38 @@ public final class NodeEnvironment implements Closeable {
      * scans the node paths and loads existing metadata file. If not found a new meta data will be generated
      * and persisted into the nodePaths
      */
-    private static NodeMetadata loadOrCreateNodeMetadata(Settings settings, Logger logger,
-                                                         NodePath... nodePaths) throws IOException {
+    private static NodeMetadata loadNodeMetadata(Settings settings, Logger logger,
+                                                 NodePath... nodePaths) throws IOException {
         final Path[] paths = Arrays.stream(nodePaths).map(np -> np.path).toArray(Path[]::new);
-        NodeMetadata metadata = NodeMetadata.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, paths);
+        NodeMetadata metadata = PersistedClusterStateService.nodeMetadata(paths);
         if (metadata == null) {
-            metadata = new NodeMetadata(generateNodeId(settings));
+            // load legacy metadata
+            final Set<String> nodeIds = new HashSet<>();
+            for (final Path path : paths) {
+                final NodeMetadata oldStyleMetadata = NodeMetadata.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, path);
+                if (oldStyleMetadata != null) {
+                    nodeIds.add(oldStyleMetadata.nodeId());
+                }
+            }
+
+            if (nodeIds.size() > 1) {
+                // Technically this can never happen with our our current state because the path will always be prefixed with 'node/$nodeid'
+                // and therefore will be never multiple metadata files within this folder. However, i would still keep this for consistency
+                // reasons
+                throw new IllegalStateException(
+                    "data paths " + Arrays.toString(paths) + " belong to multiple nodes with IDs " + nodeIds);
+            }
+            // load legacy metadata
+            final NodeMetadata legacyMetadata = NodeMetadata.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, paths);
+            if (legacyMetadata == null) {
+                assert nodeIds.isEmpty() : nodeIds;
+                metadata = new NodeMetadata(generateNodeId(settings));
+            } else {
+                assert nodeIds.equals(Collections.singleton(legacyMetadata.nodeId())) : nodeIds + " doesn't match " + legacyMetadata;
+                metadata = legacyMetadata;
+            }
         }
-        // we write again to make sure all paths have the latest state file
-        NodeMetadata.FORMAT.writeAndCleanup(metadata, paths);
+
         return metadata;
     }
 
@@ -1130,11 +1163,11 @@ public final class NodeEnvironment implements Closeable {
     /**
      * Resolve the custom path for a index's shard.
      */
-    public static Path resolveBaseCustomLocation(String customDataPath, Path sharedDataPath) {
+    public static Path resolveBaseCustomLocation(String customDataPath, Path sharedDataPath, int nodeLockId) {
         if (Strings.isNotEmpty(customDataPath)) {
-            // This assert is because this should be caught by MetaDataCreateIndexService
+            // This assert is because this should be caught by MetadataCreateIndexService
             assert sharedDataPath != null;
-            return sharedDataPath.resolve(customDataPath).resolve("0");
+            return sharedDataPath.resolve(customDataPath).resolve(Integer.toString(nodeLockId));
         } else {
             throw new IllegalArgumentException("no custom " + IndexMetadata.SETTING_DATA_PATH + " setting available");
         }
@@ -1148,11 +1181,11 @@ public final class NodeEnvironment implements Closeable {
      * @param customDataPath the custom data path
      */
     private Path resolveIndexCustomLocation(String customDataPath, String indexUUID) {
-        return resolveIndexCustomLocation(customDataPath, indexUUID, sharedDataPath);
+        return resolveIndexCustomLocation(customDataPath, indexUUID, sharedDataPath, nodeLockId);
     }
 
-    private static Path resolveIndexCustomLocation(String customDataPath, String indexUUID, Path sharedDataPath) {
-        return resolveBaseCustomLocation(customDataPath, sharedDataPath).resolve(indexUUID);
+    private static Path resolveIndexCustomLocation(String customDataPath, String indexUUID, Path sharedDataPath, int nodeLockId) {
+        return resolveBaseCustomLocation(customDataPath, sharedDataPath, nodeLockId).resolve(indexUUID);
     }
 
     /**
@@ -1164,12 +1197,12 @@ public final class NodeEnvironment implements Closeable {
      * @param shardId shard to resolve the path to
      */
     public Path resolveCustomLocation(String customDataPath, final ShardId shardId) {
-        return resolveCustomLocation(customDataPath, shardId, sharedDataPath);
+        return resolveCustomLocation(customDataPath, shardId, sharedDataPath, nodeLockId);
     }
 
-    public static Path resolveCustomLocation(String customDataPath, final ShardId shardId, Path sharedDataPath) {
+    public static Path resolveCustomLocation(String customDataPath, final ShardId shardId, Path sharedDataPath, int nodeLockId) {
         return resolveIndexCustomLocation(customDataPath, shardId.getIndex().getUUID(),
-            sharedDataPath).resolve(Integer.toString(shardId.id()));
+            sharedDataPath, nodeLockId).resolve(Integer.toString(shardId.id()));
     }
 
     /**

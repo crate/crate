@@ -187,6 +187,10 @@ Commands
 | ``detach-cluster``   | Detach a node from a cluster so that it can join a   |
 |                      | new one.                                             |
 +----------------------+------------------------------------------------------+
+| ``remove-settings``  | Remove persistent settings from the cluster state in |
+|                      | case where it contains incompatible settings that    |
+|                      | prevent the cluster from forming.                    |
++----------------------+------------------------------------------------------+
 
 
 .. _cli-crate-node-options:
