@@ -85,7 +85,7 @@ public class FutureUtils {
         }
     }
 
-    static RuntimeException rethrowExecutionException(ExecutionException e) {
+    public static RuntimeException rethrowExecutionException(ExecutionException e) {
         if (e.getCause() instanceof ElasticsearchException) {
             ElasticsearchException esEx = (ElasticsearchException) e.getCause();
             return unwrapEsException(esEx);

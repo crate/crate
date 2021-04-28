@@ -21,6 +21,7 @@ package org.elasticsearch.indices.recovery;
 
 import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
 import org.elasticsearch.test.InternalTestCluster;
@@ -34,11 +35,12 @@ import static org.hamcrest.Matchers.is;
 @ClusterScope(numDataNodes = 0, scope = ESIntegTestCase.Scope.TEST)
 public class DanglingIndicesIT extends SQLIntegrationTestCase {
 
-    private Settings buildSettings(boolean importDanglingIndices) {
+    private Settings buildSettings(boolean writeDanglingIndices, boolean importDanglingIndices) {
         return Settings.builder()
             // Don't keep any indices in the graveyard, so that when we delete an index,
             // it's definitely considered to be dangling.
             .put(SETTING_MAX_TOMBSTONES.getKey(), 0)
+            .put(IndicesService.WRITE_DANGLING_INDICES_INFO_SETTING.getKey(), writeDanglingIndices)
             .put(AUTO_IMPORT_DANGLING_INDICES_SETTING.getKey(), importDanglingIndices)
             .build();
     }
@@ -48,17 +50,28 @@ public class DanglingIndicesIT extends SQLIntegrationTestCase {
      * the cluster, so long as the recovery setting is enabled.
      */
     public void testDanglingIndicesAreRecoveredWhenSettingIsEnabled() throws Exception {
-        final Settings settings = buildSettings(true);
+        final Settings settings = buildSettings(true, true);
         internalCluster().startNodes(3, settings);
 
         execute("create table doc.test(id integer) clustered into 2 shards with(number_of_replicas = 2)");
         ensureGreen("test");
+        assertBusy(() -> internalCluster().getInstances(IndicesService.class).forEach(
+            indicesService -> assertTrue(indicesService.allPendingDanglingIndicesWritten())));
+
+        boolean refreshIntervalChanged = randomBoolean();
+        if (refreshIntervalChanged) {
+            client().admin().indices().prepareUpdateSettings("test").setSettings(
+                Settings.builder().put("index.refresh_interval", "42s").build()).get();
+            assertBusy(() -> internalCluster().getInstances(IndicesService.class).forEach(
+                indicesService -> assertTrue(indicesService.allPendingDanglingIndicesWritten())));
+        }
 
         // Restart node, deleting the index in its absence, so that there is a dangling index to recover
         internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback() {
 
             @Override
             public Settings onNodeStopped(String nodeName) throws Exception {
+                ensureClusterSizeConsistency();
                 execute("drop table doc.test");
                 return super.onNodeStopped(nodeName);
             }
@@ -75,16 +88,21 @@ public class DanglingIndicesIT extends SQLIntegrationTestCase {
      * the cluster when the recovery setting is disabled.
      */
     public void testDanglingIndicesAreNotRecoveredWhenSettingIsDisabled() throws Exception {
-        internalCluster().startNodes(3, buildSettings(false));
+        internalCluster().startNodes(3, buildSettings(false, true));
 
-        execute("create table test(id integer) clustered into 2 shards with(number_of_replicas = 2)");
+        execute("create table doc.test(id integer) clustered into 2 shards with(number_of_replicas = 2)");
+        ensureGreen("test");
+
+        assertBusy(() -> internalCluster().getInstances(IndicesService.class).forEach(
+            indicesService -> assertTrue(indicesService.allPendingDanglingIndicesWritten())));
 
         // Restart node, deleting the index in its absence, so that there is a dangling index to recover
         internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback() {
 
             @Override
             public Settings onNodeStopped(String nodeName) throws Exception {
-                execute("drop table test");
+                ensureClusterSizeConsistency();
+                execute("drop table doc.test");
                 return super.onNodeStopped(nodeName);
             }
         });
