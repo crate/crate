@@ -4,19 +4,27 @@
 Secured communications (SSL/TLS)
 ================================
 
-Secured communication allows you to encrypt traffic between the CrateDB node
-and a client. This applies to connections using HTTP (i.e. `Admin UI
-<https://crate.io/docs/crate/tutorials/en/latest/first-use.html#introducing-the-admin-ui>`_,
-`Crash <https://crate.io/docs/crate/crash/en/latest/>`_,
-:ref:`sql_http_endpoint`) and the :ref:`postgres_wire_protocol` (i.e. JDBC,
-psql).
+CrateDB allows to encrypt the communication between multiple CrateDB nodes, or
+to encrypt the communication between a HTTTP or PostgreSQL client and a CrateDB
+node.
 
-Connections are secured using Transport Layer Security (TLS).
+If enabled, connections are secured using Transport Layer Security (TLS).
 
-Note that once SSL is enabled for HTTP connections, only connections using
-HTTPS are allowed. This is in contrast to the PostgreSQL Wire Protocol, which
-still allows non-encrypted connections when SSL is enabled. If you want to
-enforce SSL usage, please consult the :ref:`admin_hba`.
+SSL can be enabled on a per protocol basis:
+
+- If enabled for HTTP, all connections will require HTTPS.
+
+- If enabled for PostgreSQL, clients can negotiate on a per connection basis if
+  the connection should be secured. You can enforce SSL usage via the
+  :ref:`Host Based Authentication feature <admin_hba>`.
+
+- If enabled for the transport protocol, a node can either only accept SSL
+  connections, or it can operate in a ``DUAL`` mode, in which it accepts both
+  SSL and non-SSL connections. The latter mode can be useful in multi-zone
+  setups where a part of the cluster communicates via SSL, while another part
+  doesn't. More fine granular control is possible via the :ref:`Host Based
+  Authentication <admin_hba>` feature.
+
 
 .. rubric:: Table of contents
 
@@ -37,6 +45,7 @@ Once the ``keystore`` (and optional ``truststore``) is created, continue with
 the following steps:
 
  - Set ``ssl.psql.enabled`` or ``ssl.http.enabled`` to ``true``.
+ - Set ``ssl.transport.mode`` to ``dual`` or ``on``.
  - :ref:`ssl_configure_keystore`
  - (Optional) :ref:`ssl_configure_truststore`
 

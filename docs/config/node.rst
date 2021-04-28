@@ -556,6 +556,14 @@ Layer Security (TLS).
   Set this to true to enable secure communication between the CrateDB node
   and the client through SSL via the PostgreSQL wire protocol.
 
+
+**ssl.transport.mode**
+  | *Default:* ``off``
+  | *Runtime:* ``no``
+
+  Set to ``dual`` or ``on`` to enable secure communication between two or more
+  CrateDB nodes.
+
 .. _ssl.keystore_filepath:
 
 **ssl.keystore_filepath**
