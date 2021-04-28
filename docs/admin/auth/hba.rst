@@ -191,3 +191,34 @@ For more information, consult the :ref:`privileges section
 
     cr> DROP USER admin;
     DROP OK, 1 row affected (... sec)
+
+
+
+Node to Node communication
+==========================
+
+The :ref:`Host Based Authentication <admin_hba>` mechanism can also be used to
+control node to node communication. This is useful if you're building a multi
+zone setup where the communication with the nodes in another zone should happen
+via SSL and the communication with the nodes in the same zone should happen
+without SSL.
+
+.. code-block:: yaml
+
+    auth:
+      host_based:
+        enabled: true
+        config:
+          0:
+            address: 192.168.0.0/24
+            method: trust
+            protocol: transport
+          1:
+            method: cert
+            protocol: transport
+            ssl: on
+
+
+Node to node communication only supports the ``trust`` and ``cert``
+authorization methods. Any other authorization methods that are available for
+user client connections are not available.
