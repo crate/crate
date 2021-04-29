@@ -200,7 +200,7 @@ of functionality that CrateDB supports. For example:
   allocation <conf-routing-allocation-attributes>`, :ref:`disk-based allocation
   <conf-routing-allocation-disk>`, or both).
 
-  By :ref:`distributing shards <concept-clustering>` across the cluster, you
+  By :ref:`distributing shards <concept-clustering>` across a cluster, you
   can increase both `data availability`_ and `service resilience`_. With
   distributed shards, CrateDB can `parallelize`_ query execution across the
   multiple nodes in the cluster, increasing query performance.
@@ -208,6 +208,20 @@ of functionality that CrateDB supports. For example:
   .. SEEALSO::
 
       `How-to guides: Tuning sharding performance`_
+
+- You can :ref:`replicate <ddl-replication>` shards :ref:`WITH
+  <sql-create-table-with>` the :ref:`number_of_replicas
+  <sql-create-table-number-of-replicas>` table setting. CrateDB will split
+  replicated partitions into primary shards, with each primary shard having one
+  or more replica shards.
+
+  When you lose a primary shard (e.g., due to node failure), CrateDB will
+  promote a replica shard to primary. More table replicas mean a smaller chance
+  of permanent data loss (through increased `data redundancy`_) in exchange for
+  more disk space utilization and intra-cluster network traffic.
+
+  Replica shards can also improve read performance and overall `data
+  availability`_ due to more copies of the data spread across more nodes.
 
 - You can :ref:`partition <partitioned-tables>` a table into one or more
   partitions with the :ref:`PARTITIONED BY <sql-create-table-partitioned-by>`
@@ -223,20 +237,6 @@ of functionality that CrateDB supports. For example:
   .. SEEALSO::
 
       `How-to guides: Tuning partitions for insert performance`_
-
-- You can :ref:`replicate <ddl-replication>` shards :ref:`WITH
-  <sql-create-table-with>` the :ref:`number_of_replicas
-  <sql-create-table-number-of-replicas>` table setting. CrateDB will split
-  replicated partitions into primary shards, with each primary shard having one
-  or more replica shards.
-
-  When you lose a primary shard (e.g., due to node failure), CrateDB will
-  promote a replica shard to primary. More table replicas mean a smaller chance
-  of permanent data loss (through increased `data redundancy`_) in exchange for
-  more disk space utilization and intra-cluster network traffic.
-
-  Replica shards can also improve read performance and overall `data
-  availability`_ due to more copies of the data spread across more nodes.
 
 - You can fine-tune table operation by setting table parameters using the
   :ref:`WITH <sql-create-table-with>` clause. Available parameters include
