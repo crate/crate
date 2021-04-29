@@ -59,6 +59,8 @@ None
 Fixes
 =====
 
+- Updated the bundled JDK to 16.0.1+9
+
 - Fixed an issue that would cause columns of type ``varchar`` with a length
   limited to be incorrectly casted to another type if used as argument in a
   function that has several type overloads.
