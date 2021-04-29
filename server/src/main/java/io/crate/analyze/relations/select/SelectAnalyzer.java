@@ -24,7 +24,9 @@ package io.crate.analyze.relations.select;
 import io.crate.analyze.OutputNameFormatter;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.validator.SelectSymbolValidator;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -34,12 +36,14 @@ import io.crate.metadata.RelationName;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SingleColumn;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class SelectAnalyzer {
 
@@ -49,11 +53,48 @@ public class SelectAnalyzer {
                                                     Map<RelationName, AnalyzedRelation> sources,
                                                     ExpressionAnalyzer expressionAnalyzer,
                                                     ExpressionAnalysisContext expressionAnalysisContext) {
+        selectItems = adjustSelectItemsFromAliasedTableFunctions(selectItems, sources);
         SelectAnalysis selectAnalysis = new SelectAnalysis(
             selectItems.size(), sources, expressionAnalyzer, expressionAnalysisContext);
         selectItems.forEach(x -> x.accept(INSTANCE, selectAnalysis));
         SelectSymbolValidator.validate(selectAnalysis.outputSymbols());
         return selectAnalysis;
+    }
+
+    private static List<SelectItem> adjustSelectItemsFromAliasedTableFunctions(List<SelectItem> selectItems,
+                                                                               Map<RelationName, AnalyzedRelation> sources) {
+        if (sources.values().stream()
+            .filter(x -> x instanceof AliasedAnalyzedRelation)
+            .noneMatch(y -> ((AliasedAnalyzedRelation) y).relation() instanceof TableFunctionRelation))
+            return selectItems;
+
+        var relNames = sources.keySet().stream().map(RelationName::name).collect(Collectors.toList());
+
+        return selectItems.stream()
+            .map(
+                item -> {
+                    if (item instanceof SingleColumn) {
+                        var col = (SingleColumn) item;
+                        String alias = col.toString().substring(1, col.toString().length() - 1);
+                        if (col.getAlias() == null && relNames.contains(alias)) {
+                            return new SingleColumn(
+                                new QualifiedNameReference(
+                                    new QualifiedName("col1")),
+                                alias
+                            );
+                        }
+                    }
+                    if (item instanceof AllColumns) {
+                        if (relNames.size() == 1)
+                            return new SingleColumn(
+                                new QualifiedNameReference(
+                                    new QualifiedName("col1")),
+                                relNames.get(0)
+                            );
+                    }
+                    return item;
+                }
+            ).collect(Collectors.toList());
     }
 
     private static class InnerVisitor extends DefaultTraversalVisitor<Void, SelectAnalysis> {
