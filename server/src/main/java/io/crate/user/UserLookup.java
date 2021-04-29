@@ -22,6 +22,8 @@
 
 package io.crate.user;
 
+import java.util.Collections;
+
 import javax.annotation.Nullable;
 
 public interface UserLookup {
@@ -31,4 +33,8 @@ public interface UserLookup {
      */
     @Nullable
     User findUser(String userName);
+
+    default Iterable<User> users() {
+        return Collections.emptyList();
+    }
 }
