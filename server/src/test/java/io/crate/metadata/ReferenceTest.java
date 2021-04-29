@@ -24,6 +24,7 @@ package io.crate.metadata;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.ColumnPolicy;
+import org.elasticsearch.Version;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -71,6 +72,33 @@ public class ReferenceTest extends ESTestCase {
         Reference.toStream(reference, out);
 
         StreamInput in = out.bytes().streamInput();
+        Reference reference2 = Reference.fromStream(in);
+
+        assertThat(reference2, is(reference));
+    }
+
+    @Test
+    public void test_streaming_of_reference_position_before_4_6_0() throws Exception {
+        RelationName relationName = new RelationName("doc", "test");
+        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
+        Reference reference = new Reference(
+            referenceIdent,
+            RowGranularity.DOC,
+            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            ColumnPolicy.STRICT,
+            Reference.IndexType.ANALYZED,
+            false,
+            0,
+            Literal.of(Map.of("f", 10)
+            )
+        );
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_4_5_0);
+        Reference.toStream(reference, out);
+
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_4_5_0);
         Reference reference2 = Reference.fromStream(in);
 
         assertThat(reference2, is(reference));
