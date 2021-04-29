@@ -40,10 +40,12 @@ import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SingleColumn;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SelectAnalyzer {
 
@@ -53,7 +55,7 @@ public class SelectAnalyzer {
                                                     Map<RelationName, AnalyzedRelation> sources,
                                                     ExpressionAnalyzer expressionAnalyzer,
                                                     ExpressionAnalysisContext expressionAnalysisContext) {
-        selectItems = adjustSelectItemsFromAliasedTableFunctions(selectItems, sources);
+        selectItems = adjustSelectItemsForAliasedTableFunctions(selectItems, sources);
         SelectAnalysis selectAnalysis = new SelectAnalysis(
             selectItems.size(), sources, expressionAnalyzer, expressionAnalysisContext);
         selectItems.forEach(x -> x.accept(INSTANCE, selectAnalysis));
@@ -61,40 +63,47 @@ public class SelectAnalyzer {
         return selectAnalysis;
     }
 
-    private static List<SelectItem> adjustSelectItemsFromAliasedTableFunctions(List<SelectItem> selectItems,
+    private static List<SelectItem> adjustAllColumns(AllColumns allColumns, List<String> aliasNamesOfTableFunctions) {
+        return aliasNamesOfTableFunctions.stream()
+            .map(alias -> new SingleColumn(
+                new QualifiedNameReference(new QualifiedName("col1")), alias))
+            .collect(Collectors.toList());
+    }
+
+    private static SelectItem adjustSingleColumn(SingleColumn singleColumn, List<String> aliasNamesOfTableFunctions) {
+        String alias = singleColumn.toString().substring(1, singleColumn.toString().length() - 1);
+        if (singleColumn.getAlias() == null && aliasNamesOfTableFunctions.contains(alias)) {
+            return new SingleColumn(
+                new QualifiedNameReference(new QualifiedName("col1")), alias);
+        }
+        return singleColumn;
+    }
+
+    private static List<SelectItem> adjustSelectItems(SelectItem selectItem, List<String> aliasNamesOfTableFunctions) {
+        List<SelectItem> adjustedSelectItems = new ArrayList<>();
+        if (selectItem instanceof SingleColumn) {
+            adjustedSelectItems.add(adjustSingleColumn((SingleColumn) selectItem, aliasNamesOfTableFunctions));
+        }
+        if (selectItem instanceof AllColumns) {
+            adjustedSelectItems.addAll(adjustAllColumns((AllColumns) selectItem, aliasNamesOfTableFunctions));
+        }
+        return adjustedSelectItems;
+    }
+
+    private static List<SelectItem> adjustSelectItemsForAliasedTableFunctions(List<SelectItem> selectItems,
                                                                                Map<RelationName, AnalyzedRelation> sources) {
-        if (sources.values().stream()
-            .filter(x -> x instanceof AliasedAnalyzedRelation)
-            .noneMatch(y -> ((AliasedAnalyzedRelation) y).relation() instanceof TableFunctionRelation))
-            return selectItems;
+        List<String> aliasNamesOfTableFunctions = sources.values().stream()
+            .filter(x -> x instanceof  AliasedAnalyzedRelation)
+            .map(x -> (AliasedAnalyzedRelation) x)
+            .filter(x -> x.relation() instanceof TableFunctionRelation)
+            .map(x -> x.relationName().name())
+            .collect(Collectors.toList());
+        //none of the sources are aliased TableFunctions
+        if (aliasNamesOfTableFunctions.size() == 0) return selectItems;
 
-        var relNames = sources.keySet().stream().map(RelationName::name).collect(Collectors.toList());
-
-        return selectItems.stream()
-            .map(
-                item -> {
-                    if (item instanceof SingleColumn) {
-                        var col = (SingleColumn) item;
-                        String alias = col.toString().substring(1, col.toString().length() - 1);
-                        if (col.getAlias() == null && relNames.contains(alias)) {
-                            return new SingleColumn(
-                                new QualifiedNameReference(
-                                    new QualifiedName("col1")),
-                                alias
-                            );
-                        }
-                    }
-                    if (item instanceof AllColumns) {
-                        if (relNames.size() == 1)
-                            return new SingleColumn(
-                                new QualifiedNameReference(
-                                    new QualifiedName("col1")),
-                                relNames.get(0)
-                            );
-                    }
-                    return item;
-                }
-            ).collect(Collectors.toList());
+        return selectItems
+            .stream()
+            .flatMap((x -> adjustSelectItems(x, aliasNamesOfTableFunctions).stream())).collect(Collectors.toList());
     }
 
     private static class InnerVisitor extends DefaultTraversalVisitor<Void, SelectAnalysis> {
