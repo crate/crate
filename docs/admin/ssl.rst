@@ -4,27 +4,37 @@
 Secured communications (SSL/TLS)
 ================================
 
-CrateDB allows to encrypt the communication between multiple CrateDB nodes, or
-to encrypt the communication between a HTTTP or PostgreSQL client and a CrateDB
-node.
+You can encrypt the internal communication between CrateDB nodes and the
+external communication with HTTP and PostgreSQL clients. When you configure
+encryption, CrateDB secures connections using *Transport Layer Security* (TLS).
 
-If enabled, connections are secured using Transport Layer Security (TLS).
+You can enable SSL on a per-protocol basis:
 
-SSL can be enabled on a per protocol basis:
+.. rst-class:: open
 
-- If enabled for HTTP, all connections will require HTTPS.
+- If you enable SSL for :ref:`HTTP <sql_http_endpoint>`, all connections will
+  require HTTPS.
 
-- If enabled for PostgreSQL, clients can negotiate on a per connection basis if
-  the connection should be secured. You can enforce SSL usage via the
-  :ref:`Host Based Authentication feature <admin_hba>`.
+- By default, if you enable SSL for the :ref:`PostgreSQL wire protocol
+  <postgres_wire_protocol>`, clients can negotiate on a per-connection basis
+  whether to use SSL. However, you can enforce SSL via :ref:`Host-Based
+  Authentication <admin_hba>`.
 
-- If enabled for the transport protocol, a node can either only accept SSL
-  connections, or it can operate in a ``DUAL`` mode, in which it accepts both
-  SSL and non-SSL connections. The latter mode can be useful in multi-zone
-  setups where a part of the cluster communicates via SSL, while another part
-  doesn't. More fine granular control is possible via the :ref:`Host Based
-  Authentication <admin_hba>` feature.
+- If you enable SSL for the CrateDB transport protocol (used for intra-node
+  communication), nodes can operate in two modes:
 
+  1. Only accept SSL connections (:ref:`ssl.transport.mode
+     <ssl.transport.mode>` set to ``on``)
+
+  2. Accept SSL and non-SSL connections (:ref:`ssl.transport.mode
+     <ssl.transport.mode>` set to ``dual``)
+
+.. TIP::
+
+   You can use ``dual`` SSL mode and :ref:`Host-Based Authentication
+   <admin_hba_node>` to configure a multi-zone cluster that allows
+   non-encrypted traffic between nodes in the same zone but enforces encryption
+   for nodes communicating between zones.
 
 .. rubric:: Table of contents
 
