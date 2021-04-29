@@ -30,6 +30,7 @@ import java.util.List;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.core.Is.is;
 
 public class TableFunctionITest extends SQLIntegrationTestCase {
@@ -199,4 +200,27 @@ public class TableFunctionITest extends SQLIntegrationTestCase {
             "4.3.1\n"
         ));
     }
+
+    @Test
+    public void testColumnNameWhenTableAliasPresent() throws Exception {
+        execute("SELECT * FROM unnest([1, 2]) AS my_func");
+        assertThat(response.cols()[0], is("my_func"));
+        assertThat(response.cols().length, is(1));
+    }
+
+    @Test
+    public void testColumnNameWhenBothTableAliasAndColumnAliasPresent() throws Exception {
+        execute("SELECT * FROM unnest([1, 2]) AS my_func (col_alias, col_alias2)");
+        assertThat(response.cols()[0], is("col_alias"));
+        assertThat(response.cols().length, is(1));
+    }
+
+    @Test
+    public void TestColumnNameWhenTableFunctionReturnMoreThanOneOutput() throws Exception {
+        //if the table function returns more than one output, table alias will not be used
+        execute("SELECT * FROM unnest([1, 2],['a','b']) AS my_func(col_alias1)");
+        assertThat(response.cols(), is(arrayContaining("col_alias1", "col2")));
+        assertThat(response.cols().length, is(2));
+    }
+
 }

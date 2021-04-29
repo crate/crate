@@ -438,8 +438,8 @@ public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void testGlobalAggOnJoinSubQueryWithScalarSubQueries() throws Exception {
         execute("select sum(x) from (" +
-                "   select t1.col1 as x from unnest([1, 1]) t1, unnest([1, 1]) t2 " +
-                "       where t1.col1 = (select 1) " +
+                "   select t1.t1 as x from unnest([1, 1]) t1, unnest([1, 1]) t2 " +
+                "       where t1.t1 = (select 1) " +
                 "       order by x limit 3" +
                 ") t");
         assertThat(printedTable(response.rows()), is("3\n"));
@@ -701,9 +701,9 @@ public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
         execute(
             "select * from unnest([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) t1 " +
             "where " +
-            "   col1 in (select col1 from unnest([1, 2, 4, 5, 6])) " +
-            "   and col1 in (select col1 from unnest([4, 5, 6])) " +
-            "order by col1 "
+            "   t1 in (select col1 from unnest([1, 2, 4, 5, 6])) " +
+            "   and t1 in (select col1 from unnest([4, 5, 6])) " +
+            "order by t1 "
         );
         assertThat(
             printedTable(response.rows()),

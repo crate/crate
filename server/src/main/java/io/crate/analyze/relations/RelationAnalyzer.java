@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -589,10 +590,22 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitAliasedRelation(AliasedRelation node, StatementAnalysisContext context) {
         context.startRelation(true);
         AnalyzedRelation childRelation = node.getRelation().accept(this, context);
+        List<String> columnAliases = node.getColumnNames();
+        if (node.getColumnNames().isEmpty()) {
+            if (childRelation instanceof TableFunctionRelation tableFunctionRelation) {
+                // Values function is not a table function so it should not use the table alias
+                // see https://github.com/crate/crate/pull/11348
+                if (!Objects.equals(tableFunctionRelation.function().signature(), ValuesFunction.SIGNATURE)) {
+                    if (tableFunctionRelation.outputs().size() == 1) {
+                        columnAliases = List.of(node.getAlias());
+                    }
+                }
+            }
+        }
         AnalyzedRelation aliasedRelation = new AliasedAnalyzedRelation(
             childRelation,
             new RelationName(null, node.getAlias()),
-            node.getColumnNames()
+            columnAliases
         );
         context.endRelation();
         context.currentRelationContext().addSourceRelation(aliasedRelation);

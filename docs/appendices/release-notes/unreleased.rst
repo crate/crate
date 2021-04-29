@@ -57,6 +57,10 @@ Breaking Changes
   9.0.0. Refer to :ref:`store types <sql-create-table-store-type>` for
   alternatives.
 
+- Renamed column names returned from ``Table Functions``. If the table function
+  is aliased and is returning a base data type (scalar type), the table alias
+  is used as the column name.
+
 Deprecations
 ============
 
