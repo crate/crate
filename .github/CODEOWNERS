@@ -1,4 +1,0 @@
-*.rst @crate/tech-writing
-docs/ @crate/tech-writing
-docs/appendices/release-notes/unreleased.rst
-devs/docs/es-backports.rst
