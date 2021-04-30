@@ -31,12 +31,11 @@ Table health
 ============
 
 CrateDB :ref:`allocates <gloss-shard-allocation>` each shard to a specific
-node. Normally, CrateDB dynamically allocates shards to continually satisfy
-the requirement that the primary shard and replica shards must all reside
-on different nodes. This requirement means that for *one* shard and *n*
-replicas, you must have *n + 1* nodes. If CrateDB is unable to satisfy this
-requirement, it will give the table a *yellow* :ref:`health status
-<sys-health>`.
+node. Normally, CrateDB dynamically allocates shards to satisfy the requirement
+that the primary shard and replica shards must all reside on different
+nodes. This requirement means that for *one* shard and *n* replicas, you must
+have *n + 1* nodes. If CrateDB is unable to satisfy this requirement, it will
+give the table a *yellow* :ref:`health status <sys-health>`.
 
 .. TIP::
 
