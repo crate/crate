@@ -262,7 +262,11 @@ public class Reference extends Symbol {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         ident.writeTo(out);
-        out.writeVInt(position);
+        if (out.getVersion().before(Version.V_4_6_0)) {
+            out.writeOptionalVInt(position);
+        } else {
+            out.writeVInt(position);
+        }
         DataTypes.toStream(type, out);
         RowGranularity.toStream(granularity, out);
 
