@@ -24,7 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
-import io.crate.operation.aggregation.AggregationTest;
+import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -34,7 +34,7 @@ import java.util.List;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.oneOf;
 
-public class ArbitraryAggregationTest extends AggregationTest {
+public class ArbitraryAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(

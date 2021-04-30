@@ -38,7 +38,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
-public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
+public class TableBlocksIntegrationTest extends SQLIntegrationTestCase {
 
     @ClassRule
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();

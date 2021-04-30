@@ -21,13 +21,13 @@
 package io.crate.expression.operator;
 
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import static io.crate.expression.operator.LikeOperators.DEFAULT_ESCAPE;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class LikeOperatorTest extends AbstractScalarFunctionsTest {
+public class LikeOperatorTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeSymbolEqual() {

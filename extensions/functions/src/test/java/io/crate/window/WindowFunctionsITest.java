@@ -28,9 +28,9 @@ import java.util.Collection;
 import org.elasticsearch.plugins.Plugin;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
-public class WindowFunctionsITest extends SQLTransportIntegrationTest {
+public class WindowFunctionsITest extends SQLIntegrationTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

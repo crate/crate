@@ -22,9 +22,9 @@
 
 package io.crate.planner.statement;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
 import io.crate.analyze.AnalyzedSetSessionAuthorizationStatement;
-import io.crate.user.User;
-import io.crate.user.UserManager;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -32,18 +32,18 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-
-import static io.crate.data.SentinelRow.SENTINEL;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
 
 public class SetSessionAuthorizationPlan implements Plan {
 
     private final AnalyzedSetSessionAuthorizationStatement setSessionAuthorization;
-    private final UserManager userManager;
+    private final UserLookup userLookup;
 
     public SetSessionAuthorizationPlan(AnalyzedSetSessionAuthorizationStatement setSessionAuthorization,
-                                       UserManager userManager) {
+                                       UserLookup userLookup) {
         this.setSessionAuthorization = setSessionAuthorization;
-        this.userManager = userManager;
+        this.userLookup = userLookup;
     }
 
     @Override
@@ -61,7 +61,7 @@ public class SetSessionAuthorizationPlan implements Plan {
         String userName = setSessionAuthorization.user();
         User user;
         if (userName != null) {
-            user = userManager.findUser(userName);
+            user = userLookup.findUser(userName);
             if (user == null) {
                 throw new IllegalArgumentException("User '" + userName + "' does not exist.");
             }

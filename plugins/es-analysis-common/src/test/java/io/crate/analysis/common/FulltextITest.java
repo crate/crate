@@ -35,11 +35,11 @@ import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.integrationtests.Setup;
 import io.crate.testing.TestingHelpers;
 
-public class FulltextITest extends SQLTransportIntegrationTest{
+public class FulltextITest extends SQLIntegrationTestCase{
 
     private Setup setup = new Setup(sqlExecutor);
 

@@ -27,7 +27,7 @@ import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-public class GCDanglingArtifactsITest extends SQLTransportIntegrationTest {
+public class GCDanglingArtifactsITest extends SQLIntegrationTestCase {
 
 
     @Test

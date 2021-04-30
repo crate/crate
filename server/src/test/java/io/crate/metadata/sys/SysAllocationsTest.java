@@ -22,7 +22,7 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
@@ -38,7 +38,7 @@ import static org.hamcrest.Matchers.startsWith;
 
 @UseJdbc(0)
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
-public class SysAllocationsTest extends SQLTransportIntegrationTest {
+public class SysAllocationsTest extends SQLIntegrationTestCase {
 
     @Before
     public void initTestData() throws Exception {

@@ -29,6 +29,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.user.UserLookup;
 import io.crate.user.UserManager;
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -40,6 +41,7 @@ public class RestSQLAction {
     public RestSQLAction(Settings settings,
                          SQLOperations sqlOperations,
                          PipelineRegistry pipelineRegistry,
+                         UserLookup userLookup,
                          Provider<UserManager> userManagerProvider,
                          CircuitBreakerService breakerService,
                          SslContextProvider sslContextProvider) {
@@ -51,7 +53,7 @@ public class RestSQLAction {
                 settings,
                 sqlOperations,
                 breakerService::getBreaker,
-                userManager,
+                userLookup,
                 userManager::getAccessControl,
                 corsConfig
             )

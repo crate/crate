@@ -134,7 +134,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public abstract class AggregationTest extends ESTestCase {
+public abstract class AggregationTestCase extends ESTestCase {
 
     protected static final RamAccounting RAM_ACCOUNTING = RamAccounting.NO_ACCOUNTING;
 

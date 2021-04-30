@@ -31,7 +31,7 @@ import org.junit.Test;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 2, supportsDedicatedMasters = false)
-public class ClientNodeIntegrationTest extends SQLTransportIntegrationTest {
+public class ClientNodeIntegrationTest extends SQLIntegrationTestCase {
 
     public ClientNodeIntegrationTest() {
         super(new SQLTransportExecutor(

@@ -46,7 +46,7 @@ import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1)
 @UseRandomizedSchema(random = false)
-public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
+public class ReadOnlyNodeIntegrationTest extends SQLIntegrationTestCase {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();

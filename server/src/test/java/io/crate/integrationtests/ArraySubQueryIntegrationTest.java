@@ -27,7 +27,7 @@ import org.junit.Test;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
-public class ArraySubQueryIntegrationTest extends SQLTransportIntegrationTest {
+public class ArraySubQueryIntegrationTest extends SQLIntegrationTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

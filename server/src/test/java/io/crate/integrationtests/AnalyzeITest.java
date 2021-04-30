@@ -30,7 +30,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 
-public class AnalyzeITest extends SQLTransportIntegrationTest{
+public class AnalyzeITest extends SQLIntegrationTestCase{
 
     @Test
     public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class_and_pg_stats() {

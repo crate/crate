@@ -23,14 +23,14 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.expression.symbol.Literal;
-import io.crate.operation.aggregation.AggregationTest;
+import io.crate.operation.aggregation.AggregationTestCase;
 import org.elasticsearch.Version;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-public class StringAggTest extends AggregationTest {
+public class StringAggTest extends AggregationTestCase {
 
     @Test
     public void testAllValuesAreNull() throws Exception {

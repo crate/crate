@@ -18,7 +18,7 @@
  */
 package org.elasticsearch.indices;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
@@ -37,7 +37,7 @@ import java.util.Optional;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
-public class IndexingMemoryControllerIT extends SQLTransportIntegrationTest {
+public class IndexingMemoryControllerIT extends SQLIntegrationTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

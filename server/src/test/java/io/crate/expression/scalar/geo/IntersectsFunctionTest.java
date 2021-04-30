@@ -25,7 +25,7 @@ package io.crate.expression.scalar.geo;
 import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.ConversionException;
 import io.crate.geo.GeoJSONUtils;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -35,7 +35,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.jsonMap;
 import static org.hamcrest.Matchers.stringContainsInOrder;
 
-public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
+public class IntersectsFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeFromStringLiterals() throws Exception {

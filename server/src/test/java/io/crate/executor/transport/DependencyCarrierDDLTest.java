@@ -26,7 +26,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -46,7 +46,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
+public class DependencyCarrierDDLTest extends SQLIntegrationTestCase {
 
     private DependencyCarrier executor;
 

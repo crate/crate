@@ -28,7 +28,7 @@ import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 
-public class LengthFunctionTest extends AbstractScalarFunctionsTest {
+public class LengthFunctionTest extends ScalarTestCase {
 
     @Test
     public void testOctetLengthEvaluateOnString() throws Exception {

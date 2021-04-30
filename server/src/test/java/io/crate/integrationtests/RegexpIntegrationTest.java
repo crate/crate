@@ -30,7 +30,7 @@ import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
-public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
+public class RegexpIntegrationTest extends SQLIntegrationTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

@@ -22,14 +22,14 @@
 
 package io.crate.expression.scalar.formatting;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.not;
 
 
-public class ToCharFunctionTest extends AbstractScalarFunctionsTest {
+public class ToCharFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateTimestamp() {

@@ -32,7 +32,7 @@ import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 1)
-public class UnionIntegrationTest extends SQLTransportIntegrationTest {
+public class UnionIntegrationTest extends SQLIntegrationTestCase {
 
     @Before
     public void beforeTest() {

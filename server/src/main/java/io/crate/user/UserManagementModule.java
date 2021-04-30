@@ -24,14 +24,6 @@ package io.crate.user;
 
 import org.elasticsearch.common.inject.AbstractModule;
 
-import io.crate.user.UserLookup;
-import io.crate.user.UserManager;
-import io.crate.user.TransportAlterUserAction;
-import io.crate.user.TransportCreateUserAction;
-import io.crate.user.TransportDropUserAction;
-import io.crate.user.TransportPrivilegesAction;
-import io.crate.user.UserManagerService;
-
 public class UserManagementModule extends AbstractModule {
 
     @Override
@@ -41,6 +33,6 @@ public class UserManagementModule extends AbstractModule {
         bind(TransportAlterUserAction.class).asEagerSingleton();
         bind(TransportPrivilegesAction.class).asEagerSingleton();
         bind(UserManager.class).to(UserManagerService.class).asEagerSingleton();
-        bind(UserLookup.class).to(UserManagerService.class).asEagerSingleton();
+        bind(UserLookup.class).to(UserLookupService.class).asEagerSingleton();
     }
 }

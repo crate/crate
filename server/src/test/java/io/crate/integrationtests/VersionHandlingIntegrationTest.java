@@ -35,7 +35,7 @@ import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
-public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest {
+public class VersionHandlingIntegrationTest extends SQLIntegrationTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

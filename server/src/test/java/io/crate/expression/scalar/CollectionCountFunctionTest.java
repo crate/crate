@@ -28,7 +28,7 @@ import org.junit.Test;
 
 import java.util.List;
 
-public class CollectionCountFunctionTest extends AbstractScalarFunctionsTest {
+public class CollectionCountFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluate() throws Exception {

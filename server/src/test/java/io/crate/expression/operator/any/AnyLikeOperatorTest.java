@@ -21,12 +21,12 @@
 
 package io.crate.expression.operator.any;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class AnyLikeOperatorTest extends AbstractScalarFunctionsTest  {
+public class AnyLikeOperatorTest extends ScalarTestCase  {
 
     @Test
     public void testNormalizeSingleSymbolEqual() {

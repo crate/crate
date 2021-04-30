@@ -22,7 +22,7 @@
 package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
@@ -39,7 +39,7 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.sameInstance;
 
 
-public class RandomFunctionTest extends AbstractScalarFunctionsTest {
+public class RandomFunctionTest extends ScalarTestCase {
 
     private RandomFunction random;
     private TransactionContext txnCtx = TransactionContext.of(DUMMY_SESSION_INFO);

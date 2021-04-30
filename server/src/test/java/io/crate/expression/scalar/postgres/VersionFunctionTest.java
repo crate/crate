@@ -22,13 +22,13 @@
 
 package io.crate.expression.scalar.postgres;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.startsWith;
 
-public class VersionFunctionTest extends AbstractScalarFunctionsTest {
+public class VersionFunctionTest extends ScalarTestCase {
 
     @Test
     public void testVersion() {

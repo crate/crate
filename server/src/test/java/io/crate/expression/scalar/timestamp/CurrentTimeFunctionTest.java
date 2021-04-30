@@ -22,7 +22,7 @@
 
 package io.crate.expression.scalar.timestamp;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.SystemClock;
 import io.crate.types.TimeTZ;
@@ -35,7 +35,7 @@ import java.time.temporal.ChronoUnit;
 
 import static org.hamcrest.Matchers.instanceOf;
 
-public class CurrentTimeFunctionTest extends AbstractScalarFunctionsTest {
+public class CurrentTimeFunctionTest extends ScalarTestCase {
 
     private static final long CURRENT_TIME_MILLIS = (10 * 3600 + 57 * 60 + 12) * 1000L; // 10:57:12 UTC
 

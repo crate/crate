@@ -28,7 +28,7 @@ import org.junit.Test;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
-public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
+public class OuterJoinIntegrationTest extends SQLIntegrationTestCase {
 
     @Before
     public void setupTestData() {

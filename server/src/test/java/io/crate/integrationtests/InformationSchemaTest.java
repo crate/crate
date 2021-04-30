@@ -47,7 +47,7 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
-public class InformationSchemaTest extends SQLTransportIntegrationTest {
+public class InformationSchemaTest extends SQLIntegrationTestCase {
 
     @After
     public void dropLeftoverViews() {

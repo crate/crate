@@ -23,7 +23,7 @@
 package io.crate.expression.scalar.cast;
 
 import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
@@ -55,7 +55,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
 // cast is just a wrapper around  DataType.value(val) which is why here are just a few tests
-public class CastFunctionTest extends AbstractScalarFunctionsTest {
+public class CastFunctionTest extends ScalarTestCase {
 
     private static String timezone;
 

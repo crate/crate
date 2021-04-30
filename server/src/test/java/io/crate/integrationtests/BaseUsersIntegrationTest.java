@@ -22,16 +22,17 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import io.crate.user.User;
-import io.crate.user.UserManager;
-import io.crate.testing.SQLResponse;
-import org.junit.Before;
-
 import java.util.Objects;
 
-public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTest {
+import org.junit.Before;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
+import io.crate.testing.SQLResponse;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
+
+public abstract class BaseUsersIntegrationTest extends SQLIntegrationTestCase {
 
     private Session superUserSession;
     private Session normalUserSession;
@@ -70,8 +71,8 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
 
     public SQLResponse executeAs(String stmt, String userName) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        UserManager userManager = internalCluster().getInstance(UserManager.class);
-        User user = Objects.requireNonNull(userManager.findUser(userName), "User " + userName + " must exist");
+        UserLookup userLookup = internalCluster().getInstance(UserLookup.class);
+        User user = Objects.requireNonNull(userLookup.findUser(userName), "User " + userName + " must exist");
         Session session = sqlOperations.createSession(null, user);
         return execute(stmt, null, session);
     }

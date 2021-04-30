@@ -22,14 +22,14 @@
 package io.crate.expression.scalar.regex;
 
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
-public class RegexpReplaceFunctionTest extends AbstractScalarFunctionsTest {
+public class RegexpReplaceFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_replace_no_match() throws Exception {

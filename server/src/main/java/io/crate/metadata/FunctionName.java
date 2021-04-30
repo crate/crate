@@ -27,6 +27,8 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -96,6 +98,6 @@ public final class FunctionName implements Writeable {
     }
 
     public boolean isBuiltin() {
-        return schema == null || Schemas.isSystemSchema(schema);
+        return schema == null || InformationSchemaInfo.NAME.equals(schema) || PgCatalogSchemaInfo.NAME.equals(schema);
     }
 }

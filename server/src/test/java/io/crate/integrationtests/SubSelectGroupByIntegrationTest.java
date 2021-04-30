@@ -28,7 +28,7 @@ import org.junit.Test;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
-public class SubSelectGroupByIntegrationTest extends SQLTransportIntegrationTest {
+public class SubSelectGroupByIntegrationTest extends SQLIntegrationTestCase {
 
     @Before
     public void initTestData() throws Exception {

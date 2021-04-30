@@ -28,7 +28,7 @@ import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-public class AnyIntegrationTest extends SQLTransportIntegrationTest {
+public class AnyIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testAnyOnArrayLiteralDeleteUpdateSelect() throws Exception {

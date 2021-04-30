@@ -22,7 +22,7 @@
 
 package io.crate.operation.language;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.module.JavaScriptLanguageModule;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
@@ -40,7 +40,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
-public class JavaScriptUDFIntegrationTest extends SQLTransportIntegrationTest {
+public class JavaScriptUDFIntegrationTest extends SQLIntegrationTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

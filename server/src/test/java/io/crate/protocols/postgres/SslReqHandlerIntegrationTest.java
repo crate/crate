@@ -22,7 +22,7 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 @UseJdbc(value = 1)
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
-public class SslReqHandlerIntegrationTest extends SQLTransportIntegrationTest {
+public class SslReqHandlerIntegrationTest extends SQLIntegrationTestCase {
 
     private final static char[] EMPTY_PASS = new char[]{};
 

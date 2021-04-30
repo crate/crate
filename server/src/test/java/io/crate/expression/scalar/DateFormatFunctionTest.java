@@ -32,7 +32,7 @@ import java.util.Map;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
-public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
+public class DateFormatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeDefault() throws Exception {

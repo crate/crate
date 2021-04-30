@@ -36,7 +36,7 @@ import org.junit.Test;
 
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
-public class SysSegmentsTableInfoTest extends SQLTransportIntegrationTest {
+public class SysSegmentsTableInfoTest extends SQLIntegrationTestCase {
 
     @Test
     public void test_retrieve_segment_information() {

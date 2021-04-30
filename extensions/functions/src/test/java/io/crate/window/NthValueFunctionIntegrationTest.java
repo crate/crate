@@ -22,7 +22,7 @@
 
 package io.crate.window;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.plugins.Plugin;
 import org.junit.Test;
 
@@ -32,7 +32,7 @@ import java.util.Collection;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
-public class NthValueFunctionIntegrationTest extends SQLTransportIntegrationTest {
+public class NthValueFunctionIntegrationTest extends SQLIntegrationTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

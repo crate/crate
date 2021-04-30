@@ -1,7 +1,7 @@
 package io.crate.expression.scalar.timestamp;
 
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.metadata.SystemClock;
 import org.junit.After;
 import org.junit.Before;
@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
 
-public class CurrentTimestampFunctionTest extends AbstractScalarFunctionsTest {
+public class CurrentTimestampFunctionTest extends ScalarTestCase {
 
     private static final long EXPECTED_TIMESTAMP = 1422294644581L;
 

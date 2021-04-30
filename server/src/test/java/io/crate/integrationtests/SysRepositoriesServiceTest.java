@@ -45,7 +45,7 @@ import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope()
 @UseJdbc(0) // missing column types
-public class SysRepositoriesServiceTest extends SQLTransportIntegrationTest {
+public class SysRepositoriesServiceTest extends SQLIntegrationTestCase {
 
     @ClassRule
     public static TemporaryFolder TEMP_FOLDER = new TemporaryFolder();

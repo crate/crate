@@ -25,15 +25,26 @@ package io.crate.integrationtests;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.junit.Test;
+import org.postgresql.util.PSQLException;
 
 import java.sql.PreparedStatement;
 
+import static io.crate.testing.Asserts.assertThrows;
+
 @UseJdbc(value = 1)
-public class PostgresCompatIntegrationTest extends SQLTransportIntegrationTest {
+public class PostgresCompatIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testBeginStatement() {
         execute("BEGIN");
+        assertNoErrorResponse(response);
+    }
+
+    @Test
+    public void testStartTransactionStatement() {
+        assertThrows(() -> execute("START"), PSQLException.class, "ERROR: line 1:6: missing 'TRANSACTION'");
+
+        execute("START TRANSACTION");
         assertNoErrorResponse(response);
     }
 
@@ -64,8 +75,34 @@ public class PostgresCompatIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testStartTransactionStatementWithTransactionMode() {
+        String[] statements = new String[]{
+            "START TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+            "START TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+            "START TRANSACTION ISOLATION LEVEL READ COMMITTED",
+            "START TRANSACTION ISOLATION LEVEL READ UNCOMMITTED",
+            "START TRANSACTION READ WRITE",
+            "START TRANSACTION READ ONLY",
+            "START TRANSACTION DEFERRABLE",
+            "START TRANSACTION NOT DEFERRABLE"
+        };
+        for (String statement : statements) {
+            execute(statement);
+            assertNoErrorResponse(response);
+        }
+    }
+
+    @Test
     public void testBeginStatementWithMultipleTransactionModes() {
         execute("BEGIN ISOLATION LEVEL SERIALIZABLE, " +
+                "      READ WRITE, " +
+                "      DEFERRABLE");
+        assertNoErrorResponse(response);
+    }
+
+    @Test
+    public void testStartTransactionStatementWithMultipleTransactionModes() {
+        execute("START TRANSACTION ISOLATION LEVEL SERIALIZABLE, " +
                 "      READ WRITE, " +
                 "      DEFERRABLE");
         assertNoErrorResponse(response);

@@ -22,7 +22,7 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.cluster.ClusterState;
@@ -57,7 +57,7 @@ import static org.hamcrest.Matchers.not;
  * Tests relating to the loss of the master.
  */
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
-@SQLTransportIntegrationTest.Slow
+@SQLIntegrationTestCase.Slow
 public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
     /**

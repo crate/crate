@@ -33,6 +33,7 @@ singleExpression
 statement
     : query                                                                          #default
     | BEGIN (WORK | TRANSACTION)? (transactionMode (',' transactionMode)*)?          #begin
+    | START TRANSACTION (transactionMode (',' transactionMode)*)?                    #startTransaction
     | COMMIT                                                                         #commit
     | EXPLAIN (ANALYZE)? statement                                                   #explain
     | OPTIMIZE TABLE tableWithPartitions withProperties?                             #optimize
@@ -675,7 +676,7 @@ nonReserved
     | PARTITIONS | PLAIN | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
     | SHARDS | SHOW | STORAGE | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME | ZONE | WITHOUT
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
-    | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN | COMMIT
+    | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN | START | COMMIT
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
     | PRIVILEGES | SCHEMA | PREPARE
     | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED | FILTER
@@ -831,6 +832,7 @@ LOCAL : 'LOCAL';
 LICENSE : 'LICENSE';
 
 BEGIN: 'BEGIN';
+START: 'START';
 COMMIT: 'COMMIT';
 WORK: 'WORK';
 TRANSACTION: 'TRANSACTION';

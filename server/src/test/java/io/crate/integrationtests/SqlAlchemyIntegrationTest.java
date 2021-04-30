@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import org.junit.Test;
 
-public class SqlAlchemyIntegrationTest extends SQLTransportIntegrationTest {
+public class SqlAlchemyIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSqlAlchemyGeneratedCountWithStar() throws Exception {

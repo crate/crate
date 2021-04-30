@@ -29,7 +29,7 @@ import java.util.List;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.instanceOf;
 
-public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
+public class ConcatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testOneArgument() {

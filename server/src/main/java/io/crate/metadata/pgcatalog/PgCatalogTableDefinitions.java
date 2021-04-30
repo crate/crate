@@ -30,7 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.crate.metadata.Schemas;
+import io.crate.metadata.information.InformationSchemaInfo;
 import org.elasticsearch.common.inject.Inject;
 
 import io.crate.user.Privilege;
@@ -67,7 +67,7 @@ public class PgCatalogTableDefinitions {
             (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident.fqn())
                          // we also need to check for views which have privileges set
                          || user.hasAnyPrivilege(Privilege.Clazz.VIEW, t.ident.fqn())
-                         || Schemas.isSystemSchema(t.ident.schema()),
+                         || isPgCatalogOrInformationSchema(t.ident.schema()),
             pgCatalogSchemaInfo.pgClassTable().expressions()
         ));
         tableDefinitions.put(PgProcTable.IDENT, new StaticTableDefinition<>(
@@ -83,7 +83,7 @@ public class PgCatalogTableDefinitions {
         tableDefinitions.put(PgNamespaceTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::schemas,
             (user, s) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, s.name())
-                         || Schemas.isSystemSchema(s.name()),
+                         || isPgCatalogOrInformationSchema(s.name()),
             PgNamespaceTable.create().expressions()
         ));
         tableDefinitions.put(PgAttrDefTable.IDENT, new StaticTableDefinition<>(
@@ -94,7 +94,7 @@ public class PgCatalogTableDefinitions {
             informationSchemaIterables::columns,
             (user, c) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, c.tableInfo.ident().fqn())
                          || user.hasAnyPrivilege(Privilege.Clazz.VIEW, c.tableInfo.ident().fqn())
-                         || Schemas.isSystemSchema(c.tableInfo.ident().schema()),
+                         || isPgCatalogOrInformationSchema(c.tableInfo.ident().schema()),
             PgAttributeTable.create().expressions()
         ));
         tableDefinitions.put(PgIndexTable.IDENT, new StaticTableDefinition<>(
@@ -104,7 +104,7 @@ public class PgCatalogTableDefinitions {
         tableDefinitions.put(PgConstraintTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::constraints,
             (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.relationName().fqn())
-                         || Schemas.isSystemSchema(t.relationName().schema()),
+                         || isPgCatalogOrInformationSchema(t.relationName().schema()),
             PgConstraintTable.create().expressions()
         ));
         tableDefinitions.put(PgDescriptionTable.NAME, new StaticTableDefinition<>(
@@ -151,5 +151,9 @@ public class PgCatalogTableDefinitions {
 
     public StaticTableDefinition<?> get(RelationName relationName) {
         return tableDefinitions.get(relationName);
+    }
+
+    public static boolean isPgCatalogOrInformationSchema(String schemaName) {
+        return InformationSchemaInfo.NAME.equals(schemaName) || PgCatalogSchemaInfo.NAME.equals(schemaName);
     }
 }

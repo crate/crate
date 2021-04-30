@@ -35,7 +35,7 @@ import static org.hamcrest.Matchers.is;
 
 
 @ESIntegTestCase.ClusterScope(supportsDedicatedMasters = false, numDataNodes = 2, numClientNodes = 0)
-public class TableStatsServiceIntegrationTest extends SQLTransportIntegrationTest {
+public class TableStatsServiceIntegrationTest extends SQLIntegrationTestCase {
 
     @Before
     public void setRefreshInterval() {

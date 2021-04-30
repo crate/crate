@@ -29,7 +29,7 @@ import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class SubscriptObjectFunctionTest extends AbstractScalarFunctionsTest {
+public class SubscriptObjectFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluate() throws Exception {

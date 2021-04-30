@@ -29,7 +29,7 @@ import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.core.Is.is;
 
-public class SubstrFunctionTest extends AbstractScalarFunctionsTest {
+public class SubstrFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeSymbol() throws Exception {

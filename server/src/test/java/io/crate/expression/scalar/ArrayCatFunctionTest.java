@@ -32,7 +32,7 @@ import java.util.Arrays;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
+public class ArrayCatFunctionTest extends ScalarTestCase {
 
     private static final ArrayType<Integer> INTEGER_ARRAY_TYPE = new ArrayType<>(DataTypes.INTEGER);
 

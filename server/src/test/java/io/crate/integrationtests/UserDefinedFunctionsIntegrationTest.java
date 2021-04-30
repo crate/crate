@@ -68,7 +68,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.containsString;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
-public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegrationTest {
+public class UserDefinedFunctionsIntegrationTest extends SQLIntegrationTestCase {
 
     public static class DummyFunction<InputType> extends Scalar<String, InputType>  {
 

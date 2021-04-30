@@ -25,7 +25,7 @@ package io.crate.expression.scalar;
 import io.crate.exceptions.ConversionException;
 import org.junit.Test;
 
-public class TypeInferenceTest extends AbstractScalarFunctionsTest {
+public class TypeInferenceTest extends ScalarTestCase {
 
     @Test
     public void testComparison() {

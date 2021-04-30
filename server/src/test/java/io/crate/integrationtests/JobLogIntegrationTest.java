@@ -43,7 +43,7 @@ import static org.hamcrest.core.Is.is;
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 @UseRandomizedSchema(random = false) // Avoid set session stmt to interfere with tests
 @UseHashJoins(1) // Avoid set session stmt to interfere with tests
-public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
+public class JobLogIntegrationTest extends SQLIntegrationTestCase {
 
     @After
     public void resetSettings() {

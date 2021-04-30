@@ -45,7 +45,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERR
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 
-public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
+public class UpdateIntegrationTest extends SQLIntegrationTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

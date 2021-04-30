@@ -20,7 +20,7 @@
 package org.elasticsearch.index.seqno;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -48,7 +48,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
-public class GlobalCheckpointSyncIT extends SQLTransportIntegrationTest {
+public class GlobalCheckpointSyncIT extends SQLIntegrationTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

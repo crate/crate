@@ -63,7 +63,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 
 @ESIntegTestCase.ClusterScope()
 @UseRandomizedSchema(random = false)
-public class DDLIntegrationTest extends SQLTransportIntegrationTest {
+public class DDLIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testCreateTable() throws Exception {

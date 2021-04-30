@@ -27,7 +27,7 @@ import org.junit.Test;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
-public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest {
+public class WindowFunctionsIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testAvgOnEmptyOver() {

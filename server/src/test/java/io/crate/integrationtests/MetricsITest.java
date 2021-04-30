@@ -32,7 +32,7 @@ import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class MetricsITest extends SQLTransportIntegrationTest {
+public class MetricsITest extends SQLIntegrationTestCase {
 
     @Before
     public void clearStats() {

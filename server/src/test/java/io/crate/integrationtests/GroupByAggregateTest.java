@@ -41,7 +41,7 @@ import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.not;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
-public class GroupByAggregateTest extends SQLTransportIntegrationTest {
+public class GroupByAggregateTest extends SQLIntegrationTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

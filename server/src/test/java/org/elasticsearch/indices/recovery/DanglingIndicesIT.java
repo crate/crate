@@ -19,7 +19,7 @@
 
 package org.elasticsearch.indices.recovery;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
@@ -32,7 +32,7 @@ import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLIN
 import static org.hamcrest.Matchers.is;
 
 @ClusterScope(numDataNodes = 0, scope = ESIntegTestCase.Scope.TEST)
-public class DanglingIndicesIT extends SQLTransportIntegrationTest {
+public class DanglingIndicesIT extends SQLIntegrationTestCase {
 
     private Settings buildSettings(boolean importDanglingIndices) {
         return Settings.builder()

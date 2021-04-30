@@ -36,7 +36,7 @@ import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(
     numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
-public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
+public class SysCheckerIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {

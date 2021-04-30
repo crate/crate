@@ -25,7 +25,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
+public class ExtractFunctionsTest extends ScalarTestCase {
 
     private static final String D_2014_02_15___21_33_23 = "2014-02-15T21:33:23";
 

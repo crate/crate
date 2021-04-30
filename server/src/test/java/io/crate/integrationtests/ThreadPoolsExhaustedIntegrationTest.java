@@ -39,7 +39,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, maxNumDataNodes = 2)
-public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegrationTest {
+public class ThreadPoolsExhaustedIntegrationTest extends SQLIntegrationTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

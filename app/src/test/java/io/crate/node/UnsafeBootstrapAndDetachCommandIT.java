@@ -22,7 +22,7 @@
 
 package io.crate.node;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.testing.UseJdbc;
 import joptsimple.OptionSet;
 import org.elasticsearch.ElasticsearchException;
@@ -49,7 +49,7 @@ import java.util.Locale;
 import static org.hamcrest.Matchers.containsString;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numClientNodes = 0, numDataNodes = 0, autoManageMasterNodes = false)
-public class UnsafeBootstrapAndDetachCommandIT extends SQLTransportIntegrationTest {
+public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
 
     private MockTerminal executeCommand(ElasticsearchNodeCommand command,
                                         Environment environment,

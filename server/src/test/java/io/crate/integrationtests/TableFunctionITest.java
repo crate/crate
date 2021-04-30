@@ -33,7 +33,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
-public class TableFunctionITest extends SQLTransportIntegrationTest {
+public class TableFunctionITest extends SQLIntegrationTestCase {
 
     @Test
     public void testSelectFromUnnest() {

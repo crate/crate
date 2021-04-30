@@ -29,7 +29,7 @@ import org.junit.Test;
 import static org.hamcrest.Matchers.is;
 
 @UseJdbc(0) // data types needed
-public class ScalarIntegrationTest extends SQLTransportIntegrationTest {
+public class ScalarIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testExtractFunctionReturnTypes() {

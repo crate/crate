@@ -28,7 +28,7 @@ import org.junit.Test;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
+public class InformationSchemaQueryTest extends SQLIntegrationTestCase {
 
     @Test
     public void testDoNotIgnoreClosedTables() throws Exception {

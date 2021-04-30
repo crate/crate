@@ -19,9 +19,9 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
-public class URLRepositoryITest extends SQLTransportIntegrationTest {
+public class URLRepositoryITest extends SQLIntegrationTestCase {
 
     @ClassRule
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();

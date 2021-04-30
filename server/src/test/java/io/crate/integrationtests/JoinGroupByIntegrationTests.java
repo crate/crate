@@ -33,7 +33,7 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
-public class JoinGroupByIntegrationTests extends SQLTransportIntegrationTest {
+public class JoinGroupByIntegrationTests extends SQLIntegrationTestCase {
 
     @Before
     public void initTestData() throws Exception {

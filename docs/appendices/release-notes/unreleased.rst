@@ -72,8 +72,14 @@ Changes
 - Users can now read tables within the ``pg_catalog`` schema without explicit
   ``DQL`` permission. They will only see records the user has privileges on.
 
+- CrateDB now accepts the ``START TRANSACTION`` statement for :ref:`PostgreSQL
+  wire protocol <postgres_wire_protocol>` compatibility. However, CrateDB does
+  not support transactions and will silently ignore this statement.
+
 Fixes
 =====
+
+- Updated the bundled JDK to 16.0.1+9
 
 - Fixed an issue that would cause columns of type ``varchar`` with a length
   limited to be incorrectly casted to another type if used as argument in a

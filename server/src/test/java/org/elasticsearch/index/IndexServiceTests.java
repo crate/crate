@@ -20,7 +20,7 @@
 package org.elasticsearch.index;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.TopDocs;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -54,7 +54,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
-public class IndexServiceTests extends SQLTransportIntegrationTest {
+public class IndexServiceTests extends SQLIntegrationTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

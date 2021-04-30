@@ -25,10 +25,10 @@ package io.crate.expression.scalar.postgres;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.metadata.SystemClock;
 
-public class PgPostmasterStartTimeTest extends AbstractScalarFunctionsTest {
+public class PgPostmasterStartTimeTest extends ScalarTestCase {
 
     @Test
     public void test_pg_postmaster_start_time_returns_timestamp() {

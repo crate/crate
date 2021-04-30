@@ -22,7 +22,7 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -32,7 +32,7 @@ import java.util.List;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
-public class QuoteIdentFunctionTest extends AbstractScalarFunctionsTest {
+public class QuoteIdentFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() {

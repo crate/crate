@@ -33,7 +33,7 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
-public class StringToArrayFunctionTest extends AbstractScalarFunctionsTest {
+public class StringToArrayFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() {
