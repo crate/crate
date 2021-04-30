@@ -200,11 +200,6 @@ of functionality that CrateDB supports. For example:
   allocation <conf-routing-allocation-attributes>`, :ref:`disk-based allocation
   <conf-routing-allocation-disk>`, or both).
 
-  By :ref:`distributing shards <concept-clustering>` across a cluster, you
-  can increase both `data availability`_ and `service resilience`_. With
-  distributed shards, CrateDB can `parallelize`_ query execution across the
-  multiple nodes in the cluster, increasing query performance.
-
   .. SEEALSO::
 
       `How-to guides: Tuning sharding performance`_
@@ -220,8 +215,10 @@ of functionality that CrateDB supports. For example:
   of permanent data loss (through increased `data redundancy`_) in exchange for
   more disk space utilization and intra-cluster network traffic.
 
-  Replica shards can also improve read performance and overall `data
-  availability`_ due to more copies of the data spread across more nodes.
+  Replication can also improve read performance because any increase in the
+  number of shards distributed across a cluster also increases the
+  opportunities for CrateDB to `parallelize`_ query execution across multiple
+  nodes.
 
 - You can :ref:`partition <partitioned-tables>` a table into one or more
   partitions with the :ref:`PARTITIONED BY <sql-create-table-partitioned-by>`
