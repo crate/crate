@@ -143,20 +143,18 @@ public class ProjectSet extends ForwardingLogicalPlan {
     public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         HashSet<Symbol> toKeep = new HashSet<>();
         LinkedHashSet<Symbol> newStandalone = new LinkedHashSet<>();
-        LinkedHashSet<Function> newTableFunctions = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, standalone, newStandalone::add);
-            SymbolVisitors.intersection(outputToKeep, tableFunctions, newTableFunctions::add);
         }
-        for (Function newTableFunction : newTableFunctions) {
-            SymbolVisitors.intersection(newTableFunction, source.outputs(), toKeep::add);
+        for (Function tableFunction : tableFunctions) {
+            SymbolVisitors.intersection(tableFunction, source.outputs(), toKeep::add);
         }
         toKeep.addAll(newStandalone);
         LogicalPlan newSource = source.pruneOutputsExcept(tableStats, toKeep);
         if (newSource == source) {
             return this;
         }
-        return new ProjectSet(newSource, List.copyOf(newTableFunctions), List.copyOf(newStandalone));
+        return new ProjectSet(newSource, tableFunctions, List.copyOf(newStandalone));
     }
 
     @Override
