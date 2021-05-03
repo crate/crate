@@ -59,31 +59,4 @@ None
 Fixes
 =====
 
-- Fixed an issue that could cause queries on virtual tables to return an
-  incorrect result if a table function is used in the select-list of a
-  sub-query, but not used in the outputs of the parent relation. An example:
-
-      SELECT name FROM (SELECT name, unnest(tags) FROM metrics) m;
-
-
-- Updated the bundled JDK to 16.0.1+9
-
-- Fixed an issue that would cause columns of type ``varchar`` with a length
-  limited to be incorrectly casted to another type if used as argument in a
-  function that has several type overloads.
-
-- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statements to remove
-  constraints like analyzers or ``NOT NULL`` from existing columns in the same
-  table.
-
-- Allow executing ``CREATE TABEL .. AS`` as a regular user with ``DDL``
-  permission on the target schema, and ``DQL`` permission on the source
-  relations.
-
-- Changed the ``RowDescription`` message that is sent to PostgreSQL clients to
-  avoid that the JDBC client triggers queries against ``pg_catalog`` schema
-  tables each time information from the ``MetaData`` of a ``ResultSet`` is
-  accessed.
-
-- Fixed ``crate-node`` auxiliary program to use the bundled Java runtime on
-  Linux.
+None

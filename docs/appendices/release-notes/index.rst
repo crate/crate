@@ -32,6 +32,7 @@ Versions
     :maxdepth: 1
 
 
+    4.5.1
     4.5.0
 
 4.4.x
