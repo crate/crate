@@ -59,6 +59,13 @@ None
 Fixes
 =====
 
+- Fixed an issue that could cause queries on virtual tables to return an
+  incorrect result if a table function is used in the select-list of a
+  sub-query, but not used in the outputs of the parent relation. An example:
+
+      SELECT name FROM (SELECT name, unnest(tags) FROM metrics) m;
+
+
 - Updated the bundled JDK to 16.0.1+9
 
 - Fixed an issue that would cause columns of type ``varchar`` with a length
