@@ -28,7 +28,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Locale;
-import java.util.Optional;
 
 @Singleton
 public class NumberOfShards {
@@ -42,19 +41,22 @@ public class NumberOfShards {
         this.clusterService = clusterService;
     }
 
+    public int fromNumberOfShards(Object numberOfShards) {
+        if (!(numberOfShards instanceof Number)) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "invalid number '%s'", numberOfShards));
+        }
+        var numShards = DataTypes.INTEGER.sanitizeValue(numberOfShards);
+        if (numShards < 1) {
+            throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
+        }
+        return numShards;
+    }
+
     public int fromClusteredByClause(ClusteredBy<Object> clusteredBy) {
-        Optional<Object> numberOfShards = clusteredBy.numberOfShards();
-        return numberOfShards.map(rawNumOfShards -> {
-            if (!(rawNumOfShards instanceof Number)) {
-                throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "invalid number '%s'", rawNumOfShards));
-            }
-            var numShards = DataTypes.INTEGER.sanitizeValue(rawNumOfShards);
-            if (numShards < 1) {
-                throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
-            }
-            return numShards;
-        }).orElse(defaultNumberOfShards());
+        return clusteredBy.numberOfShards()
+            .map(this::fromNumberOfShards)
+            .orElseGet(this::defaultNumberOfShards);
     }
 
     public int defaultNumberOfShards() {
