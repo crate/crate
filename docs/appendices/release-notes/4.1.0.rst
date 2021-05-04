@@ -34,6 +34,16 @@ Breaking Changes
   types ``integer`` and ``bigint`` to throw an exception instead of rolling
   over from positive to negative or the other way around.
 
+- Remap CrateDB :ref:`object_data_type` array data type from the PostgreSQL
+  JSON to JSON array type. That might effect some drivers that use the
+  PostgreSQL wire protocol to insert data into tables with object array typed
+  columns. For instance, when using the ``Npgsql`` driver, it is not longer
+  possible to insert an array of objects into a column of the object array data
+  type by using the parameter of a SQL statement that has the JSON data type
+  and an array of CLR as its value. Instead, use a string array with JSON
+  strings that represent the objects. See the ``Npgsql`` documentation for more
+  details.
+
 - Changed how columns of type :ref:`geo_point_data_type` are being communicated
   to PostgreSQL clients.
 

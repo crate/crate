@@ -61,6 +61,10 @@ Changes
   that concatenates array elements into a single string using a separator and
   an optional null-string.
 
+- Added :ref:`array_min <scalar-array-min>` and :ref:`array_max
+  <scalar-array-max>` scalar functions returning the minimal and maximal
+  element in array respectively.
+
 - Added support for reading ``cgroup`` information in the ``cgroup v2`` format.
 
 - Improved the internal throttling mechanism used for ``INSERT FROM QUERY`` and
@@ -79,22 +83,4 @@ Changes
 Fixes
 =====
 
-- Fixed an issue that would cause columns of type ``varchar`` with a length
-  limited to be incorrectly casted to another type if used as argument in a
-  function that has several type overloads.
-
-- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statements to remove
-  constraints like analyzers or ``NOT NULL`` from existing columns in the same
-  table.
-
-- Allow executing ``CREATE TABEL .. AS`` as a regular user with ``DDL``
-  permission on the target schema, and ``DQL`` permission on the source
-  relations.
-
-- Changed the ``RowDescription`` message that is sent to PostgreSQL clients to
-  avoid that the JDBC client triggers queries against ``pg_catalog`` schema
-  tables each time information from the ``MetaData`` of a ``ResultSet`` is
-  accessed.
-
-- Fixed ``crate-node`` auxiliary program to use the bundled Java runtime on
-  Linux.
+None
