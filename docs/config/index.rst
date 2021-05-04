@@ -22,8 +22,23 @@ Here, replace ``<CUSTOM_CONFIG_DIR>`` with the path to your custom
 configuration directory.
 
 The primary configuration file is named ``crate.yml``. The default version of
-this file has a commented out listing of every available setting. (Some
-features, such as :ref:`logging <conf-logging>`, use feature-specific files.)
+this file provides a stock configuration (with brief explanations) that
+allows you to start CrateDB right away.
+
+Some features, such as :ref:`logging <conf-logging>`, use feature-specific
+files.
+
+.. TIP::
+
+    Arbitrary :ref:`environment variables <conf-env-app>` can be used as values
+    in a configuration file using the ``${VARIABLE_NAME}`` notation.
+
+    For example, if ``RACK_ENV_VAR`` was set as an environment variable before
+    running CrateDB, you could specify the following:
+
+    .. code-block:: yaml
+
+        node.attr.rack: ${RACK_ENV_VAR}
 
 Settings can be configured via the config file or via the ``-C`` option at
 startup. So, for example, you can set the cluster name at startup, like so:
