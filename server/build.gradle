@@ -6,6 +6,21 @@ archivesBaseName = 'crate-server'
 
 idea.module.testSourceDirs += sourceSets.testFixtures.java.srcDirs
 
+// .pcks12 isn't picked up with eclipse by default and `+=` is a lie.
+// If only `.pcks12` is added, none of the other extensions are picked up.
+sourceSets.test.resources.includes += [
+    '**/*.pcks12',
+    '**/*.jks',
+    '**/*.properties',
+    '**/*.zip',
+    '**/*.json',
+    '**/*.gz',
+    '**/*.csv',
+    '**/*.ext',
+    '**/*.yml',
+]
+
+
 dependencies {
     api project(':libs:dex')
     api project(':libs:es-x-content')

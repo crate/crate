@@ -21,6 +21,7 @@ def getJdkBundleArchFromPropertiesOrDefault = {
         versions['bundled_jdk_arch'] != null ? "${versions['bundled_jdk_arch']}" : "x64")
 }
 
+
 jdks {
     runtime {
         vendor = "${System.getProperty("bundled_jdk_vendor", versions['bundled_jdk_vendor'])}"
