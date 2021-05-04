@@ -1321,14 +1321,19 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testNumberOfRoutingShardsCanBeSetAtCreateTable() {
-        BoundCreateTable stmt = analyze("create table t (x int) with (number_of_routing_shards = 10)");
+        BoundCreateTable stmt = analyze("""
+            create table t (x int)
+            clustered into 2 shards
+            with (number_of_routing_shards = 10)
+        """);
         assertThat(stmt.tableParameter().settings().get("index.number_of_routing_shards"), is("10"));
     }
 
     @Test
     public void testNumberOfRoutingShardsCanBeSetAtCreateTableForPartitionedTables() {
-        BoundCreateTable stmt = analyze("create table t (p int, x int) partitioned by (p) " +
-                                        "with (number_of_routing_shards = 10)");
+        BoundCreateTable stmt = analyze(
+            "create table t (p int, x int) clustered into 2 shards partitioned by (p) " +
+            "with (number_of_routing_shards = 10)");
         assertThat(stmt.tableParameter().settings().get("index.number_of_routing_shards"), is("10"));
     }
 

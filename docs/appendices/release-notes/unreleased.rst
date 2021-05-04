@@ -59,4 +59,7 @@ None
 Fixes
 =====
 
-None
+- Fixed an issue that caused valid values for ``number_of_routing_shards`` in
+  ``CREATE TABLE`` statements to be rejected because the validation always used
+  a fixed value of ``5`` instead of the actual number of shards declared within
+  the ``CREATE TABLE`` statement.
