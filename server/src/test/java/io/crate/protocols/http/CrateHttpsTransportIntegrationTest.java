@@ -36,8 +36,6 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.KeyStore;
-import java.security.Security;
 
 import static com.google.common.base.Strings.repeat;
 import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
@@ -54,7 +52,6 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
 
     private static File trustStoreFile;
     private static File keyStoreFile;
-    private static String defaultKeyStoreType = KeyStore.getDefaultType();
 
     public CrateHttpsTransportIntegrationTest() {
         super(true);
@@ -62,18 +59,16 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
 
     @BeforeClass
     public static void beforeIntegrationTest() throws IOException {
-        keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
-        trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
-        System.setProperty("javax.net.ssl.trustStore", trustStoreFile.getAbsolutePath());
-        System.setProperty("javax.net.ssl.trustStorePassword", "truststorePassword");
-        Security.setProperty("keystore.type", "jks");
+        keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.pcks12");
+        trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.pcks12");
+        System.setProperty("javax.net.ssl.trustStore", getAbsoluteFilePathFromClassPath("truststore.jks").getAbsolutePath());
+        System.setProperty("javax.net.ssl.trustStorePassword", "keystorePassword");
     }
 
     @AfterClass
     public static void afterIntegrationTest() {
         System.clearProperty("javax.net.ssl.trustStore");
         System.clearProperty("javax.net.ssl.trustStorePassword");
-        Security.setProperty("keystore.type", defaultKeyStoreType);
     }
 
     @Override
@@ -83,9 +78,9 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
             .put(SslSettings.SSL_HTTP_ENABLED.getKey(), true)
             .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
             .put(SslSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
-            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
+            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "keystorePassword")
             .put(SslSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
-            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
+            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "keystorePassword")
             .build();
     }
 

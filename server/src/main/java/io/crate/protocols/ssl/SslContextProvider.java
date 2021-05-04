@@ -173,11 +173,9 @@ public class SslContextProvider {
             Enumeration<String> aliases = keyStore.aliases();
             while (aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();
-                if (keyStore.isCertificateEntry(alias)) {
-                    var cert = (X509Certificate) keyStore.getCertificate(alias);
-                    if (cert != null) {
-                        certs.add(cert);
-                    }
+                Certificate certificate = keyStore.getCertificate(alias);
+                if (certificate instanceof X509Certificate x509Cert) {
+                    certs.add(x509Cert);
                 }
             }
         } catch (Exception e) {
