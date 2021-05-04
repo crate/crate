@@ -132,7 +132,14 @@ public class CreateTablePlan implements Plan {
         CreateTable<Symbol> table = createTable.createTable();
         RelationName relationName = createTable.relationName();
         GenericProperties<Object> properties = table.properties().map(eval);
+        AnalyzedTableElements<Object> tableElements = createTable.analyzedTableElements().map(eval);
         TableParameter tableParameter = new TableParameter();
+        Optional<ClusteredBy<Object>> mappedClusteredBy = table.clusteredBy().map(x -> x.map(eval));
+        Integer numShards = mappedClusteredBy
+            .flatMap(ClusteredBy::numberOfShards)
+            .map(numberOfShards::fromNumberOfShards)
+            .orElseGet(numberOfShards::defaultNumberOfShards);
+        tableParameter.settingsBuilder().put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards);
 
         // apply default in case it is not specified in the properties,
         // if it is it will get overwritten afterwards.
@@ -142,7 +149,7 @@ public class CreateTablePlan implements Plan {
             properties,
             true
         );
-        AnalyzedTableElements<Object> tableElements = createTable.analyzedTableElements().map(eval);
+
         AnalyzedTableElements<Symbol> tableElementsWithExpressions =
             createTable.analyzedTableElementsWithExpressions().map(x -> SubQueryAndParamBinder.convert(x, params, subQueryResults));
 
@@ -157,29 +164,17 @@ public class CreateTablePlan implements Plan {
         Settings tableSettings = AnalyzedTableElements.validateAndBuildSettings(
             tableElements, fulltextAnalyzerResolver);
         tableParameter.settingsBuilder().put(tableSettings);
-        tableParameter.settingsBuilder().put(
-                IndexMetadata.SETTING_NUMBER_OF_SHARDS, numberOfShards.defaultNumberOfShards());
 
-        ColumnIdent routingColumn = null;
-        if (table.clusteredBy().isPresent()) {
-            Optional<ClusteredBy<Object>> clusteredByOptional = table.clusteredBy().map(x -> x.map(eval));
-            ClusteredBy<Object> clusteredBy = clusteredByOptional.get();
-            routingColumn = resolveRoutingFromClusteredBy(clusteredBy, tableElements);
-            if (clusteredBy.numberOfShards().isPresent()) {
-                tableParameter.settingsBuilder().put(
-                    IndexMetadata.SETTING_NUMBER_OF_SHARDS,
-                    numberOfShards.fromClusteredByClause(clusteredBy)
-                );
-            }
-        }
-        final ColumnIdent finalRouting = routingColumn;
-
+        ColumnIdent routingColumn = mappedClusteredBy
+            .map(clusteredBy -> resolveRoutingFromClusteredBy(clusteredBy, tableElements))
+            .orElse(null);
         Optional<PartitionedBy<Object>> partitionedByOptional = table.partitionedBy().map(x -> x.map(eval));
-        partitionedByOptional.ifPresent(partitionedBy -> processPartitionedBy(partitionedByOptional.get(),
-                                                                              tableElements,
-                                                                              relationName,
-                                                                              finalRouting));
-
+        partitionedByOptional.ifPresent(partitionedBy -> processPartitionedBy(
+            partitionedByOptional.get(),
+            tableElements,
+            relationName,
+            routingColumn)
+        );
         return new BoundCreateTable(
             relationName,
             tableElements,
