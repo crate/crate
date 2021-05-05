@@ -80,6 +80,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -1412,5 +1413,21 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             exception.getMessage(),
             Matchers.startsWith("Aggregation functions are not allowed in generated columns: max(x)")
         );
+    }
+
+    @Test
+    public void test_can_use_bit_type_in_create_table_statement() throws Exception {
+        BoundCreateTable stmt = analyze("CREATE TABLE tbl (xs bit(20))");
+        assertThat(mapToSortedString(stmt.mappingProperties()), is(
+            "xs={length=20, position=1, type=bit}"
+        ));
+    }
+
+    @Test
+    public void test_bit_type_defaults_to_length_1() throws Exception {
+        BoundCreateTable stmt = analyze("CREATE TABLE tbl (xs bit)");
+        assertThat(mapToSortedString(stmt.mappingProperties()), is(
+            "xs={length=1, position=1, type=bit}"
+        ));
     }
 }

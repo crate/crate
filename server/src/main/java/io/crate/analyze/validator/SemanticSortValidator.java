@@ -30,6 +30,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.types.BitStringType;
 import io.crate.types.DataTypes;
 
 /**
@@ -44,7 +45,8 @@ public class SemanticSortValidator {
         DataTypes.PRIMITIVE_TYPES.stream(),
         Stream.of(
             DataTypes.REGCLASS,
-            DataTypes.REGPROC
+            DataTypes.REGPROC,
+            BitStringType.INSTANCE_ONE
         )
     ).map(x -> x.id()).collect(Collectors.toSet());
 

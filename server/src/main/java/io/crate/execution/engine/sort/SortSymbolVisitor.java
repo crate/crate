@@ -51,6 +51,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -143,7 +144,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 columnIdent.fqn(),
                 fieldComparatorSource,
                 context.reverseFlag);
-        } else if (symbol.valueType().equals(DataTypes.IP)) {
+        } else if (symbol.valueType().equals(DataTypes.IP) || symbol.valueType().id() == BitStringType.ID) {
             return customSortField(symbol.toString(), symbol, context);
         } else {
             return mappedSortField(

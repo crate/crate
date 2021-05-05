@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

@@ -21,22 +21,34 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentFactory;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentBuilder.Writer;
+import org.elasticsearch.common.xcontent.XContentFactory;
+
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.BitString;
+
 public interface InsertSourceGen {
 
+    public static final Map<Class<?>, Writer> SOURCE_WRITERS = Map.ofEntries(
+        Map.entry(BitString.class, (b, v) -> {
+            BitString bs = (BitString) v;
+            byte[] byteArray = bs.bitSet().toByteArray();
+            b.value(byteArray);
+        })
+    );
+
+
     default BytesReference generateSourceAndCheckConstraintsAsBytesReference(Object[] values) throws IOException {
-        return BytesReference.bytes(XContentFactory.jsonBuilder().map(generateSourceAndCheckConstraints(values)));
+        return BytesReference.bytes(XContentFactory.jsonBuilder().map(generateSourceAndCheckConstraints(values), SOURCE_WRITERS));
     }
 
     Map<String, Object> generateSourceAndCheckConstraints(Object[] values) throws IOException;

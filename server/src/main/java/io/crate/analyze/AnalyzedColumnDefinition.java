@@ -30,6 +30,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.GenericProperties;
+import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
@@ -251,7 +252,6 @@ public class AnalyzedColumnDefinition<T> {
     private void analyzerSettings(Settings settings) {
         this.analyzerSettings = settings;
     }
-
 
     void geoTree(String geoTree) {
         this.geoTree = geoTree;
@@ -479,6 +479,7 @@ public class AnalyzedColumnDefinition<T> {
                     GeoSettingsApplier.applySettings(mapping, definition.geoProperties, definition.geoTree);
                 }
                 break;
+
             case StringType.ID:
                 if (definition.analyzer != null) {
                     mapping.put("analyzer", DataTypes.STRING.sanitizeValue(definition.analyzer));
@@ -488,6 +489,12 @@ public class AnalyzedColumnDefinition<T> {
                     mapping.put("length_limit", stringType.lengthLimit());
                 }
                 break;
+
+            case BitStringType.ID:
+                int length = ((BitStringType) definition.dataType).length();
+                mapping.put("length", length);
+                break;
+
             default:
                 // noop
                 break;

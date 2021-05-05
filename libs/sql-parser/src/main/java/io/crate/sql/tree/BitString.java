@@ -23,10 +23,24 @@ package io.crate.sql.tree;
 
 import java.util.BitSet;
 
-public class BitString extends Literal {
+public class BitString extends Literal implements Comparable<BitString> {
 
-    public static BitString of(String text) {
-        int length = text.length();
+    public static BitString ofBitString(String bitString) {
+        assert bitString.startsWith("B'") : "Bitstring must start with B'";
+        assert bitString.endsWith("'") : "Bitstrign must end with '";
+        return ofRawBits(bitString.substring(2, bitString.length() - 1));
+    }
+
+    public static BitString ofRawBits(String bits) {
+        return ofRawBits(bits, bits.length());
+    }
+
+    public static BitString ofRawBits(String bits, int length) {
+        BitSet bitSet = toBitSet(bits, length);
+        return new BitString(bitSet, length);
+    }
+
+    private static BitSet toBitSet(String text, int length) {
         BitSet bitSet = new BitSet(length);
         for (int i = 0; i < length; i++) {
             char c = text.charAt(i);
@@ -39,7 +53,7 @@ public class BitString extends Literal {
             };
             bitSet.set(i, value);
         }
-        return new BitString(bitSet, text.length());
+        return bitSet;
     }
 
     private final BitSet bitSet;
@@ -52,6 +66,10 @@ public class BitString extends Literal {
 
     public BitSet bitSet() {
         return bitSet;
+    }
+
+    public int length() {
+        return length;
     }
 
     public String asBitString() {
@@ -90,5 +108,23 @@ public class BitString extends Literal {
         }
         BitString other = (BitString) obj;
         return bitSet.equals(other.bitSet) && length == other.length;
+    }
+
+    @Override
+    public int compareTo(BitString o) {
+        // This is basically a lexicographically comparison on the bit string
+        // This matches the PostgreSQL behavior (See `bit_cmp` implementation in PostgreSQL)
+
+        int smallerLength = Math.min(length, o.length);
+        for (int i = 0; i < smallerLength; i++) {
+            boolean thisSet = bitSet.get(i);
+            boolean otherSet = o.bitSet.get(i);
+            int compare = Boolean.compare(thisSet, otherSet);
+            if (compare == 0) {
+                continue;
+            }
+            return compare;
+        }
+        return Integer.compare(length, o.length);
     }
 }
