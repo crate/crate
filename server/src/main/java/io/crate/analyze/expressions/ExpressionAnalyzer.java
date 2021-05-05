@@ -21,7 +21,30 @@
 
 package io.crate.analyze.expressions;
 
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.HOUR;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
+import static java.util.stream.Collectors.toList;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.google.common.collect.Lists;
+
+import org.joda.time.Period;
+
 import io.crate.analyze.DataTypeAnalyzer;
 import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.NegateLiterals;
@@ -86,6 +109,7 @@ import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.ArraySubQueryExpression;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BetweenPredicate;
+import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.ComparisonExpression;
@@ -127,29 +151,10 @@ import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
-import org.joda.time.Period;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.HOUR;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
-import static java.util.stream.Collectors.toList;
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -883,6 +888,12 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitStringLiteral(StringLiteral node, ExpressionAnalysisContext context) {
             return Literal.of(node.getValue());
+        }
+
+        @Override
+        public Symbol visitBitString(BitString bitString, ExpressionAnalysisContext context) {
+            BitStringType bitStringType = new BitStringType(bitString.length());
+            return Literal.of(bitStringType, bitString);
         }
 
         @Override

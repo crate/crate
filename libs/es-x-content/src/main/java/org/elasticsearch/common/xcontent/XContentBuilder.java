@@ -801,16 +801,21 @@ public final class XContentBuilder implements Closeable, Flushable {
     }
 
     public XContentBuilder value(Object value) throws IOException {
-        unknownValue(value);
+        unknownValue(value, Map.of());
         return this;
     }
 
-    private void unknownValue(Object value) throws IOException {
+    private void unknownValue(Object value, Map<Class<?>, Writer> writerOverrides) throws IOException {
         if (value == null) {
             nullValue();
             return;
         }
-        Writer writer = WRITERS.get(value.getClass());
+        Class<? extends Object> clazz = value.getClass();
+        Writer writer;
+        writer = writerOverrides.get(clazz);
+        if (writer == null) {
+            writer = WRITERS.get(clazz);
+        }
         if (writer != null) {
             writer.write(this, value);
         } else if (value instanceof Path) {
@@ -867,14 +872,18 @@ public final class XContentBuilder implements Closeable, Flushable {
     }
 
     public XContentBuilder map(Map<String, ?> values) throws IOException {
-        return mapContents(values, true);
+        return mapContents(values, true, Map.of());
+    }
+
+    public XContentBuilder map(Map<String, ?> values, Map<Class<?>, Writer> writerOverrides) throws IOException {
+        return mapContents(values, true, writerOverrides);
     }
 
     public XContentBuilder mapContents(Map<String, ?> values) throws IOException {
-        return mapContents(values, false);
+        return mapContents(values, false, Map.of());
     }
 
-    private XContentBuilder mapContents(Map<String, ?> values, boolean writeStartAndEndHeaders) throws IOException {
+    private XContentBuilder mapContents(Map<String, ?> values, boolean writeStartAndEndHeaders, Map<Class<?>, Writer> writerOverrides) throws IOException {
         if (values == null) {
             return nullValue();
         }
@@ -884,7 +893,7 @@ public final class XContentBuilder implements Closeable, Flushable {
         }
         for (Map.Entry<String, ?> value : values.entrySet()) {
             field(value.getKey());
-            unknownValue(value.getValue());
+            unknownValue(value.getValue(), writerOverrides);
         }
         if (writeStartAndEndHeaders) {
             endObject();
@@ -907,7 +916,7 @@ public final class XContentBuilder implements Closeable, Flushable {
         } else {
             startArray();
             for (Object value : values) {
-                unknownValue(value);
+                unknownValue(value, Map.of());
             }
             endArray();
         }

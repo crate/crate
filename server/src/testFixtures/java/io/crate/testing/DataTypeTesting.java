@@ -21,11 +21,28 @@
 
 package io.crate.testing;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.function.Supplier;
+
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.generators.BiasedNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+
+import org.joda.time.Period;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
+
+import io.crate.sql.tree.BitString;
+import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -48,6 +65,18 @@ import io.crate.types.StringType;
 import io.crate.types.TimestampType;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkAddress;
+import org.joda.time.Period;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.function.Supplier;
 import org.joda.time.Period;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
@@ -158,6 +187,16 @@ public class DataTypeTesting {
             case NumericType.ID:
                 return () -> {
                     return (T) new BigDecimal(random.nextDouble());
+                };
+
+            case BitStringType.ID:
+                return () -> {
+                    int length = ((BitStringType) type).length();
+                    var bitSet = new BitSet(length);
+                    for (int i = 0; i < length; i++) {
+                        bitSet.set(i, random.nextBoolean());
+                    }
+                    return (T) new BitString(bitSet, length);
                 };
 
         }

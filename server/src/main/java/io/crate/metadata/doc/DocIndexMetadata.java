@@ -49,6 +49,7 @@ import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -57,6 +58,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.mapper.BitStringFieldMapper;
 import org.elasticsearch.index.mapper.DateFieldMapper;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 
@@ -316,6 +318,12 @@ public class DocIndexMetadata {
                     return lengthLimit != null
                         ? StringType.of(lengthLimit)
                         : DataTypes.STRING;
+
+                case BitStringFieldMapper.CONTENT_TYPE:
+                    Integer length = (Integer) columnProperties.get("length");
+                    assert length != null : "Length is required for bit string type";
+                    return new BitStringType(length);
+
                 default:
                     type = Objects.requireNonNullElse(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
             }

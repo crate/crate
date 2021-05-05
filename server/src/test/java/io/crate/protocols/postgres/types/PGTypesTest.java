@@ -21,9 +21,30 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.crate.data.Row1;
+import static io.crate.types.DataTypes.GEO_POINT;
+import static io.crate.types.DataTypes.GEO_SHAPE;
+import static io.crate.types.DataTypes.PRIMITIVE_TYPES;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.joda.time.Period;
+import org.junit.Test;
+
+import io.crate.data.Row1;
+import io.crate.sql.tree.BitString;
+import io.crate.testing.DataTypeTesting;
 import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatType;
@@ -34,23 +55,6 @@ import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-
-import org.hamcrest.Matchers;
-import org.joda.time.Period;
-import org.junit.Test;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static io.crate.types.DataTypes.GEO_POINT;
-import static io.crate.types.DataTypes.GEO_SHAPE;
-import static io.crate.types.DataTypes.PRIMITIVE_TYPES;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
 
 public class PGTypesTest extends ESTestCase {
 
@@ -238,12 +242,25 @@ public class PGTypesTest extends ESTestCase {
         }
     }
 
+    @Test
+    public void test_bit_binary_round_trip_streaming() {
+        int bitLength = randomIntBetween(1, 40);
+        BitStringType type = new BitStringType(bitLength);
+        Supplier<BitString> dataGenerator = DataTypeTesting.getDataGenerator(type);
+        PGType<?> bitType = PGTypes.get(type);
+        Entry entry = new Entry(type, dataGenerator.get());
+        assertThat(writeAndReadBinary(entry, bitType), is(entry.value));
+    }
+
+
     private Object writeAndReadBinary(Entry entry, PGType pgType) {
         ByteBuf buffer = Unpooled.buffer();
         try {
             pgType.writeAsBinary(buffer, entry.value);
             int length = buffer.readInt();
-            return pgType.readBinaryValue(buffer, length);
+            Object result = pgType.readBinaryValue(buffer, length);
+            assertThat(buffer.readableBytes(), is(0));
+            return result;
         } finally {
             buffer.release();
         }

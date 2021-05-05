@@ -100,8 +100,8 @@ dependencies {
     testImplementation "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
 
     testRuntimeOnly "org.apache.lucene:lucene-codecs:${versions.lucene}"
-    testImplementation 'com.pholser:junit-quickcheck-core:0.9'
-    testImplementation 'com.pholser:junit-quickcheck-generators:0.9'
+    testImplementation "com.pholser:junit-quickcheck-core:${versions.quickcheck}"
+    testImplementation "com.pholser:junit-quickcheck-generators:${versions.quickcheck}"
     testImplementation 'org.skyscreamer:jsonassert:1.3.0'
     testImplementation "junit:junit:${versions.junit}"
     testFixturesApi "org.junit.jupiter:junit-jupiter:${versions.junit5}"

@@ -57,6 +57,7 @@ public class PGArray extends PGType<List<Object>> {
     static final PGArray EMPTY_RECORD_ARRAY = new PGArray(2287, RecordType.EMPTY_RECORD);
     static final PGArray REGPROC_ARRAY = new PGArray(1008, RegprocType.INSTANCE);
     static final PGArray REGCLASS_ARRAY = new PGArray(2210, RegclassType.INSTANCE);
+    static final PGArray BIT_ARRAY = new PGArray(1561, BitType.INSTANCE);
     public static final PGArray ANY_ARRAY = new PGArray(
         2277,
         AnyType.INSTANCE.typName() + "array",
@@ -67,6 +68,7 @@ public class PGArray extends PGType<List<Object>> {
             return TypeCategory.PSEUDO.code();
         }
     };
+
 
     private static final byte[] NULL_BYTES = new byte[]{'N', 'U', 'L', 'L'};
 

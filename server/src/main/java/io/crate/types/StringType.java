@@ -23,6 +23,8 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
+import io.crate.sql.tree.BitString;
+
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.Strings;
@@ -160,6 +162,8 @@ public class StringType extends DataType<String> implements Streamer<String> {
             return ((Regproc) value).name();
         } else if (value instanceof Regclass) {
             return ((Regclass) value).name();
+        } else if (value instanceof BitString bitString) {
+            return bitString.asBitString();
         } else {
             return value.toString();
         }

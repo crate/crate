@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.IntObjectMap;
 import com.google.common.collect.ImmutableMap;
 import io.crate.common.collections.Lists2;
 import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -63,6 +64,7 @@ public class PGTypes {
         .put(DataTypes.INTERVAL, IntervalType.INSTANCE)
         .put(DataTypes.REGPROC, RegprocType.INSTANCE)
         .put(DataTypes.REGCLASS, RegclassType.INSTANCE)
+        .put(BitStringType.INSTANCE_ONE, BitType.INSTANCE)
         .put(new ArrayType<>(DataTypes.BYTE), PGArray.CHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.SHORT), PGArray.INT2_ARRAY)
         .put(new ArrayType<>(DataTypes.INTEGER), PGArray.INT4_ARRAY)
@@ -84,6 +86,7 @@ public class PGTypes {
         .put(new ArrayType<>(RowType.EMPTY), PGArray.EMPTY_RECORD_ARRAY)
         .put(new ArrayType<>(DataTypes.REGPROC), PGArray.REGPROC_ARRAY)
         .put(new ArrayType<>(DataTypes.REGCLASS), PGArray.REGCLASS_ARRAY)
+        .put(new ArrayType<>(BitStringType.INSTANCE_ONE), PGArray.BIT_ARRAY)
         .put(DataTypes.OIDVECTOR, PgOidVectorType.INSTANCE)
         .build();
 
@@ -163,6 +166,9 @@ public class PGTypes {
 
             case io.crate.types.NumericType.ID:
                 return NumericType.INSTANCE;
+
+            case BitStringType.ID:
+                return new BitType(((BitStringType) type).length());
 
             default: {
                 PGType pgType = CRATE_TO_PG_TYPES.get(type);

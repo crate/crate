@@ -60,6 +60,7 @@ import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.data.RowN;
+import io.crate.sql.tree.BitString;
 import io.crate.types.IntervalType;
 import io.crate.types.Regclass;
 import io.crate.types.Regproc;
@@ -152,6 +153,10 @@ public class ServerXContentExtension implements XContentBuilderExtension {
             b.value(timetz.getMicrosFromMidnight());
             b.value(timetz.getSecondsFromUTC());
             b.endArray();
+        });
+        writers.put(BitString.class, (b, v) -> {
+            BitString bitString = (BitString) v;
+            b.value(bitString.asBitString());
         });
         return writers;
     }

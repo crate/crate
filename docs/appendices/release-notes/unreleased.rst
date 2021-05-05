@@ -55,6 +55,8 @@ Deprecations
 Changes
 =======
 
+- Added the :ref:`bit(n) <data-type-bit>` data type.
+
 - Added support for encrypting node-to-node communication.
 
 - Added a ``closed`` column to :ref:`sys-shards <sys-shards>` exposing

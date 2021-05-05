@@ -21,26 +21,20 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.Constants;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.Exceptions;
-import io.crate.execution.ddl.SchemaUpdateClient;
-import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.dml.TransportShardAction;
-import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
-import io.crate.execution.engine.collect.PKLookupOperation;
-import io.crate.execution.jobs.TasksService;
-import io.crate.expression.reference.Doc;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
+import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
+import static io.crate.execution.dml.upsert.InsertSourceGen.SOURCE_WRITERS;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -67,17 +61,26 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
+import io.crate.Constants;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.Exceptions;
+import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.TransportShardAction;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
+import io.crate.execution.engine.collect.PKLookupOperation;
+import io.crate.execution.jobs.TasksService;
+import io.crate.expression.reference.Doc;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 
 /**
  * Realizes Upserts of tables which either results in an Insert or an Update.
@@ -90,6 +93,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     private final Schemas schemas;
     private final NodeContext nodeCtx;
+
 
     @Inject
     public TransportShardUpsertAction(ThreadPool threadPool,
@@ -317,7 +321,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 rawSource = insertSourceGen.generateSourceAndCheckConstraintsAsBytesReference(item.insertValues());
             } else {
                 source = insertSourceGen.generateSourceAndCheckConstraints(item.insertValues());
-                rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
+                rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source, SOURCE_WRITERS));
             }
         } catch (IOException e) {
             throw ExceptionsHelper.convertToElastic(e);
@@ -369,7 +373,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             item.updateAssignments(),
             item.insertValues()
         );
-        BytesReference rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
+        BytesReference rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source, SOURCE_WRITERS));
         item.source(rawSource);
         long seqNo = item.seqNo();
         long primaryTerm = item.primaryTerm();

@@ -1791,8 +1791,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitBitString(BitStringContext ctx) {
         String text = ctx.BIT_STRING().getText();
-        // exclude B' prefix
-        return BitString.of(text.substring(2, text.length() - 1));
+        return BitString.ofBitString(text);
     }
 
     @Override

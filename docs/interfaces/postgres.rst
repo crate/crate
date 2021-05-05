@@ -193,6 +193,8 @@ table available in CrateDB::
     | 1231 | _numeric                     |        0 |    1700 |     -1 | b       | A           |
     | 1266 | timetz                       |     1270 |       0 |     12 | b       | D           |
     | 1270 | _timetz                      |        0 |    1266 |     -1 | b       | A           |
+    | 1560 | bit                          |     1561 |       0 |     -1 | b       | V           |
+    | 1561 | _bit                         |        0 |    1560 |     -1 | b       | A           |
     | 1700 | numeric                      |     1231 |       0 |     -1 | b       | N           |
     | 2205 | regclass                     |     2210 |       0 |      4 | b       | N           |
     | 2210 | _regclass                    |        0 |    2205 |     -1 | b       | A           |
@@ -201,7 +203,7 @@ table available in CrateDB::
     | 2277 | anyarray                     |        0 |    2276 |     -1 | p       | P           |
     | 2287 | _record                      |        0 |    2249 |     -1 | p       | A           |
     +------+------------------------------+----------+---------+--------+---------+-------------+
-    SELECT 45 rows in set (... sec)
+    SELECT 47 rows in set (... sec)
 
 .. NOTE::
 
