@@ -54,6 +54,8 @@ None
 Changes
 =======
 
+- Added support for encrypting node-to-node communication.
+
 - Added a ``closed`` column to :ref:`sys-shards <sys-shards>` exposing
   the state of the table associated with the shard.
 
