@@ -207,10 +207,6 @@ auth:
 # here is an example:
 #node.attr.rack: rack314
 
-# By default, multiple nodes are not allowed to start from the same
-# installation location. To allow it, set the following to a higher value:
-#node.max_local_storage_nodes: 1
-
 # The setting indicates whether or not memory-mapping is allowed.
 # The default value is `true`.
 #node.store.allow_mmap: true

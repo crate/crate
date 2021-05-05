@@ -48,7 +48,8 @@ None
 Deprecations
 ============
 
-None
+- Deprecated the :ref:`node.max_local_storage_nodes
+  <node.max_local_storage_nodes>` setting.
 
 
 Changes
