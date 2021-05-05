@@ -932,6 +932,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testBitString() {
+        printStatement("select B'0010'");
+    }
+
+    @Test
     public void testThatEscapedStringLiteralContainingDoubleBackSlashAndSingleQuoteThrowsException() {
         assertThrows(IllegalArgumentException.class,
                      () -> printStatement("select e'aa\\\\\'bb' as col1"),

@@ -26,6 +26,7 @@ import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.BitStringContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.ConflictTargetContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.DiscardContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.IsolationLevelContext;
@@ -52,6 +53,7 @@ import io.crate.sql.tree.ArraySubQueryExpression;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.BetweenPredicate;
+import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.CharFilters;
@@ -1784,6 +1786,13 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitNullLiteral(SqlBaseParser.NullLiteralContext context) {
         return NullLiteral.INSTANCE;
+    }
+
+    @Override
+    public Node visitBitString(BitStringContext ctx) {
+        String text = ctx.BIT_STRING().getText();
+        // exclude B' prefix
+        return BitString.of(text.substring(2, text.length() - 1));
     }
 
     @Override
