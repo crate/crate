@@ -39,6 +39,7 @@ sourceSets.test.resources.includes += [
     '**/*.csv',
     '**/*.ext',
     '**/*.yml',
+    '**/*.binary'
 ]
 
 

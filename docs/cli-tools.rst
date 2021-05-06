@@ -191,6 +191,10 @@ Commands
 |                      | case where it contains incompatible settings that    |
 |                      | prevent the cluster from forming.                    |
 +----------------------+------------------------------------------------------+
+| ``override-version`` | Override the version number stored in the data path  |
+|                      | to be able to force a node to startup even when the  |
+|                      | node version is not compatible with the meta data.   |
++----------------------+------------------------------------------------------+
 
 
 .. _cli-crate-node-options:

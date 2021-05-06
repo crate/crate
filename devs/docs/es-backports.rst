@@ -516,6 +516,7 @@ should be crossed out as well.
 - [x] fe1674174f6 Remove some leftover refs to minimum_master_nodes (#42700)
 - [x] 1b6dc178388 Remove transport client from tests (#42457)
 - [x] c1de8c29db2 Cluster state from API should always have a master (#42454)
+- [x] 749135b37c9 Prevent in-place downgrades and invalid upgrades (#41731)
 - [x] 328ba09f84b Omit non-masters in ClusterFormationFailureHelper (#41344)
 - [x] 2f41b1b64de Remove `Tracer` from `MockTransportService` (#40237)
 - [x] 7624734f14b Added wait_for_metadata_version parameter to cluster state api (#35535)

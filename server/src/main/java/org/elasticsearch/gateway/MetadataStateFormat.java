@@ -385,7 +385,7 @@ public abstract class MetadataStateFormat<T> {
         return files;
     }
 
-    private String getStateFileName(long generation) {
+    public String getStateFileName(long generation) {
         return prefix + generation + STATE_FILE_EXTENSION;
     }
 
@@ -471,7 +471,7 @@ public abstract class MetadataStateFormat<T> {
         IOUtils.rm(stateDirectories);
     }
 
-    String getPrefix() {
+    public String getPrefix() {
         return prefix;
     }
 }

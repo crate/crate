@@ -743,6 +743,7 @@ public class Node implements Closeable {
                 final NodeMetadata nodeMetaData = NodeMetadata.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY,
                                                                                       nodeEnvironment.nodeDataPaths());
                 assert nodeMetaData != null;
+                assert nodeMetaData.nodeVersion().equals(Version.CURRENT);
                 assert nodeMetaData.nodeId().equals(localNodeFactory.getNode().getId());
             } catch (IOException e) {
                 assert false : e;
