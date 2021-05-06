@@ -26,11 +26,11 @@ unlikely to experience resiliency issues with CrateDB.
 .. contents::
    :local:
 
-Overview
-========
+
+.. _concept-resiliency-monitoring:
 
 Monitoring cluster status
--------------------------
+=========================
 
 .. figure:: resilience-status.png
    :alt:
@@ -47,8 +47,11 @@ The status is updated every few seconds (variable on your cluster `ping
 configuration
 <https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-discovery-zen.html>`_).
 
+
+.. _concept-resiliency-consistency:
+
 Storage and consistency
------------------------
+=======================
 
 Code that expects the behavior of an `ACID
 <https://en.wikipedia.org/wiki/ACID>`_ compliant database like MySQL may not
@@ -58,9 +61,9 @@ CrateDB does not support ACID transactions, but instead has :ref:`atomic
 operations <concept-atomicity>` and :ref:`eventual consistency
 <concept-consistency>` at the row level. See also :ref:`concept-clustering`.
 
-Eventual consistency is the trade-off that CrateDB makes in exchange for high-
-availability that can tolerate most hardware and network failures. So you may
-observe data from different cluster nodes temporarily falling very briefly
+Eventual consistency is the trade-off that CrateDB makes in exchange for
+high-availability that can tolerate most hardware and network failures. So you
+may observe data from different cluster nodes temporarily falling very briefly
 out-of-sync with each other, although over time they will become consistent.
 
 For example, you know a row has been written as soon as you get the ``INSERT
@@ -70,8 +73,11 @@ typically occurs within one second).
 
 Your applications should be designed to work this storage and consistency model.
 
+
+.. _concept-resiliency-deployment:
+
 Deployment strategies
----------------------
+=====================
 
 When deploying CrateDB you should carefully weigh your need for
 high-availability and disaster recovery against operational complexity and

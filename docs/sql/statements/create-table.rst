@@ -95,7 +95,7 @@ use when the constraint only affects one column.
 
 .. SEEALSO::
 
-    :ref:`Data definition: Creating tables <sql_ddl_create>`
+    :ref:`Data definition: Creating tables <ddl-create-table>`
 
 
 .. _sql-create-table-elements:
@@ -356,7 +356,7 @@ The number of replicas is defined like this::
 
 .. SEEALSO::
 
-    :ref:`replication`
+    :ref:`ddl-replication`
 
 
 .. _sql-create-table-number-of-routing-shards:
@@ -479,7 +479,7 @@ Allows to have a read only table that additionally can be deleted.
 .. SEEALSO::
 
     :ref:`Cluster-wide settings: Disk-based shard allocation
-    <cluster.routing.allocation.disk>`
+    <conf-routing-allocation-disk>`
 
 
 .. _sql-create-table-blocks-read:
@@ -853,8 +853,6 @@ The column policy is defined like this::
 .. SEEALSO::
 
     :ref:`Data definition: Column policy <column_policy>`
-
-    :ref:`config`
 
 
 .. _sql-create-table-max-ngram-diff:
