@@ -38,7 +38,7 @@ public class OverflowAwareMutableLongTest {
 
         assertThat(value.hasValue(), is(true));
         assertThat(value.primitiveSum(), is(10L));
-        assertThat(value.bigDecimalSum(), is(nullValue()));
+        assertThat(value.bigDecimalSum(), is(BigDecimal.ZERO));
         assertThat(value.value(), is(BigDecimal.TEN));
     }
 
@@ -61,8 +61,12 @@ public class OverflowAwareMutableLongTest {
         value.add(5L);
 
         var expected = BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.TEN);
+        //Last 5 summand is added after the overflow, it's kept in primitive
+        var expectedBigDecimal = BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.valueOf(5));
+
         assertThat(value.hasValue(), is(true));
-        assertThat(value.bigDecimalSum(), is(expected));
+        assertThat(value.bigDecimalSum(), is(expectedBigDecimal));
+        assertThat(value.primitiveSum(), is(5L));
         assertThat(value.value(), is(expected));
     }
 }
