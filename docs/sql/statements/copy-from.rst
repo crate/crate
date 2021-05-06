@@ -16,6 +16,7 @@ Copy data from files into a table.
 
 .. _sql-copy-from-synopsis:
 
+
 Synopsis
 ========
 
@@ -34,6 +35,7 @@ Here, ``option`` can be one of:
 
 
 .. _sql-copy-from-description:
+
 
 Description
 ===========
@@ -114,6 +116,30 @@ URI
 A string literal or array of string literals containing URIs. Each URI must be
 formatted according to the `URI Scheme`_.
 
+You can use `globbed`_ pathnames (specifically, ``*`` wildcards) with the ``COPY
+FROM`` statement to construct URIs that can match multiple directories and
+files.
+Suppose you used ``file:///tmp/import_data/*/*.json`` as the URI. This URI
+would match all JSON files located in subdirectories of the
+``/tmp/import_data`` directory.
+So, for example, these files would match:
+
+- ``/tmp/import_data/foo/1.json``
+- ``/tmp/import_data/bar/2.json``
+- ``/tmp/import_data/1/boz.json``
+
+.. CAUTION::
+
+    A file named ``/tmp/import_data/foo/.json`` would also match the
+    ``file:///tmp/import_data/*/*.json`` URI. The ``*`` wildcard matches any
+    number of characters, including none.
+
+However, these files would not match:
+
+- ``/tmp/import_data/1.json`` (two few subdirectories)
+- ``/tmp/import_data/foo/bar/2.json`` (too many subdirectories)
+- ``/tmp/import_data/1/boz.js`` (file extension mismatch)
+
 In case the URI scheme is missing the value is assumed to be a file path and
 will be converted to a ``file://`` URI implicitly.
 
@@ -141,15 +167,11 @@ Supported schemes
 ``file``
 ........
 
-You can use the ``file://`` schema to specify an absolute path to one or more
+You can use the ``file://`` scheme to specify an absolute path to one or more
 files accessible via the local filesystem of one or more CrateDB nodes.
 
 The files must be accessible on at least one node and the system user running
 the ``crate`` process must have read access to every file specified.
-
-The ``file://`` schema supports wildcard expansion using the ``*`` character.
-So, ``file:///tmp/import_data/*.json`` would expand to include every JSON file
-in the ``/tmp/import_data`` directory.
 
 By default, every node will attempt to import every file. If the file is
 accessible on multiple nodes, you can set the `shared`_ option to true in
@@ -183,7 +205,7 @@ were performed on each node.
 ``s3``
 ......
 
-The ``s3://`` schema can be used to access buckets on the Amazon AWS S3 Service:
+The ``s3://`` scheme can be used to access buckets on the Amazon AWS S3 Service:
 
 .. code-block:: text
 
@@ -192,7 +214,7 @@ The ``s3://`` schema can be used to access buckets on the Amazon AWS S3 Service:
 If no credentials are set the s3 client will operate in anonymous mode, see
 `AWS Java Documentation`_.
 
-Using the ``s3://`` schema automatically sets the `shared`_ to true.
+Using the ``s3://`` scheme automatically sets the `shared`_ to true.
 
 .. TIP::
 
@@ -238,8 +260,8 @@ Parameters
 :uri:
   An :ref:`expression <gloss-expression>` which :ref:`evaluates
   <gloss-evaluation>` to a URI as defined in `RFC2396`_. The supported schemes
-  are listed above. The last part of the path may also contain ``*`` wildcards
-  to match multiple files.
+  are listed above. The path may also contain ``*`` wildcards to match multiple
+  files.
 
 
 .. _sql-copy-from-clauses:
@@ -455,8 +477,6 @@ inserted records.
 
     [ RETURN SUMMARY ]
 
-.. rubric:: Schema
-
 +---------------------------------------+------------------------------------------------+---------------+
 | Column Name                           | Description                                    |  Return Type  |
 +=======================================+================================================+===============+
@@ -503,3 +523,4 @@ inserted records.
 .. _URL: https://docs.oracle.com/javase/8/docs/api/java/net/URL.html
 .. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text
+.. _globbed: https://en.wikipedia.org/wiki/Glob_(programming)
