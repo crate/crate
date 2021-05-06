@@ -78,30 +78,4 @@ public class Iterables {
                     .flatMap(s -> StreamSupport.stream(s.spliterator(), false)).iterator();
         }
     }
-
-    public static <T> T get(Iterable<T> iterable, int position) {
-        Objects.requireNonNull(iterable);
-        if (position < 0) {
-            throw new IllegalArgumentException("position >= 0");
-        }
-        if (iterable instanceof List) {
-            List<T> list = (List<T>)iterable;
-            if (position >= list.size()) {
-                throw new IndexOutOfBoundsException(Integer.toString(position));
-            }
-            return list.get(position);
-        } else {
-            Iterator<T> it = iterable.iterator();
-            for (int index = 0; index < position; index++) {
-                if (!it.hasNext()) {
-                    throw new IndexOutOfBoundsException(Integer.toString(position));
-                }
-                it.next();
-            }
-            if (!it.hasNext()) {
-                throw new IndexOutOfBoundsException(Integer.toString(position));
-            }
-            return it.next();
-        }
-    }
 }
