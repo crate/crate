@@ -55,10 +55,14 @@ This can happen either in master during the feature freeze, or after the switch
 to a release branch.
 
 
-Tagging a release
-=================
+Creating a new release
+======================
 
-Before creating a new distribution, a new version and tag should be created:
+Before creating a new distribution, some maintenance steps should get executed
+and a new version and tag should be created.
+
+- Invoke ``./gradlew generateLicenseNotes`` in order to update the
+  ``NOTICE.md`` file, including licenses of all third-party dependencies.
 
 - Update ``CURRENT`` in ``org.elasticsearch.Version``
 
