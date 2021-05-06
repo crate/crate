@@ -24,27 +24,10 @@ Replication can also improve read performance because any increase in the
 number of shards distributed across a cluster also increases the opportunities
 for CrateDB to `parallelize`_ query execution across multiple nodes.
 
+.. rubric:: Table of contents
 
-.. _ddl-replication-health:
-
-Table health
-============
-
-CrateDB :ref:`allocates <gloss-shard-allocation>` each shard to a specific
-node. Normally, CrateDB dynamically allocates shards to satisfy the requirement
-that the primary shard and replica shards must all reside on different
-nodes. This requirement means that for *one* shard and *n* replicas, you must
-have *n + 1* nodes. If CrateDB is unable to satisfy this requirement, it will
-give the table a *yellow* :ref:`health status <sys-health>`.
-
-.. TIP::
-
-    The `CrateDB Admin UI`_ provides visual indicators of cluster health that
-    take replication status into account. Alternatively, you can query health
-    information for yourself directly from the :ref:`sys.health <sys-health>`
-    table. You can query detailed replication information from the
-    :ref:`sys.shards <sys-shards>` and :ref:`sys.allocations <sys-allocations>`
-    tables.
+.. contents::
+   :local:
 
 
 .. _ddl-replication-config:
@@ -80,17 +63,19 @@ Range     Explanation
           This range is the default value.
 --------- ---------------------------------------------------------------------
 ``2-4``   Each table will require at least two replicas for CrateDB to consider
-          it fully replicated (i.e., a *green* :ref:`health status
-          <ddl-replication-health>`).
+          it fully replicated (i.e., a *green* replication :ref:`health status
+          <sys-health-def>`).
 
-          If the cluster has five nodes, CrateDB will create four replicas,
-          with each replica located on a different node from its respective
+          If the cluster has five nodes, CrateDB will create four replicas and
+          allocate each one to a node that does not hold the corresponding
           primary.
 
-          If a cluster has four nodes or fewer, CrateDB would have to locate
-          one or more replica shards on the same node as the respective primary
-          shard. As a result, the table would have a *yellow* :ref:`health
-          status <ddl-replication-health>`.
+          Suppose a cluster has four nodes or fewer. In that case, CrateDB will
+          be unable to allocate every replica to a node that does not hold the
+          corresponding primary, putting the table into :ref:`underreplication
+          <ddl-replication-underreplication>`. As a result, CrateDB will give
+          the table a *yellow* replication :ref:`health status
+          <sys-health-def>`.
 --------- ---------------------------------------------------------------------
 ``0-all`` CrateDB will create one replica shard for every node that is
           available in addition to the node that holds the primary shard.
@@ -110,6 +95,86 @@ time.
     :ref:`CREATE TABLE: WITH clause <sql-create-table-number-of-replicas>`
 
 
+.. _ddl-replication-recovery:
+
+Shard recovery
+==============
+
+CrateDB :ref:`allocates <gloss-shard-allocation>` each primary and replica
+shard to a specific node. You can control this behavior by configuring the
+:ref:`allocation <conf_routing>` settings.
+
+If one or more nodes become unavailable (e.g., due to hardware failure or
+network issues), CrateDB will try to recover a replicated table by doing the
+following:
+
+.. rst-class:: open
+
+- For every lost primary shard, locate a replica and promote it to primary.
+
+  When CrateDB promotes a replica to primary, it can no longer function as a
+  replica, and so the total number of replicas decreases by one. Because each
+  primary requires a fixed :ref:`sql-create-table-number-of-replicas`, a new
+  replica has to be created (see next item).
+
+- For every primary with too few replicas (due to node loss or replica
+  promotion), use the primary shard to :ref:`recover <gloss-shard-recovery>`
+  the required number of replicas.
+
+Shard recovery is one of the features that allows CrateDB to provide continuous
+`availability`_ and `partition tolerance`_ in exchange for some
+:ref:`consistency trade-offs <concept-resiliency-consistency>`.
+
+.. SEEALSO::
+
+    `Wikipedia: CAP theorem`_
+
+.. _ddl-replication-underreplication:
+
+Underreplication
+================
+
+Having more replicas per primary and distributing shards as thinly as possible
+(i.e., fewer shards per node) can both increase chances of a :ref:`successful
+recovery <ddl-replication-recovery>` in the event of node loss.
+
+Although not ideal, a single node can hold multiple shards belonging to the
+same table. For example, suppose a table has more shards (primaries and
+replicas) than nodes available in the cluster. In that case, CrateDB
+will determine the safest way to allocate all shards to the nodes available.
+
+However, there is one restriction. Suppose a single node held the primary and a
+replica of the same shard. If that node were lost, CrateDB would be unable to
+use either copy of the shard for :ref:`recovery <ddl-replication-recovery>`,
+effectively nullifying the purpose of the replica. In addition, if the shard
+had no other replicas and no :ref:`backups <snapshot-restore>` exist, the data
+contained in that shard may be permanently lost.
+
+For this reason, CrateDB will never allocate the primary and a replica of the
+same shard to a single node.
+
+The above rule means that for *one* shard and *n* replicas, a cluster must have
+at least *n + 1* available nodes for CrateDB to fully replicate all
+shards. When CrateDB cannot fully replicate all shards, the table enters a state
+known as *underreplication*.
+
+CrateDB gives underreplicated tables a *yellow* :ref:`health status
+<sys-health-def>`.
+
+.. TIP::
+
+    The `CrateDB Admin UI`_ provides visual indicators of cluster health that
+    take replication status into account.
+
+    Alternatively, you can query health information directly from the
+    :ref:`sys.health <sys-health>` table and replication information from the
+    :ref:`sys.shards <sys-shards>` and :ref:`sys.allocations <sys-allocations>`
+    tables.
+
+
+.. _availability: https://en.wikipedia.org/wiki/Availability
 .. _CrateDB Admin UI: https://crate.io/docs/clients/admin-ui/en/latest/
 .. _data redundancy: https://en.wikipedia.org/wiki/Data_redundancy
 .. _parallelize: https://en.wikipedia.org/wiki/Distributed_computing
+.. _partition tolerance: https://en.wikipedia.org/wiki/Network_partitioning
+.. _Wikipedia\: CAP theorem: https://en.wikipedia.org/wiki/CAP_theorem
