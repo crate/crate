@@ -259,6 +259,7 @@ public class PersistedClusterStateService {
     @Nullable
     public static NodeMetadata nodeMetadata(Path... dataPaths) throws IOException {
         String nodeId = null;
+        Version version = null;
         for (final Path dataPath : dataPaths) {
             final Path indexPath = dataPath.resolve(METADATA_DIRECTORY_NAME);
             if (Files.exists(indexPath)) {
@@ -272,6 +273,7 @@ public class PersistedClusterStateService {
                         //Do nothing, because the metadata does not belong to this node
                     } else if (nodeId == null) {
                         nodeId = thisNodeId;
+                        version = Version.fromId(Integer.parseInt(userData.get(NODE_VERSION_KEY)));
                     }
                 } catch (IndexNotFoundException e) {
                     LOGGER.debug(new ParameterizedMessage("no on-disk state at {}", indexPath), e);
@@ -281,7 +283,32 @@ public class PersistedClusterStateService {
         if (nodeId == null) {
             return null;
         }
-        return new NodeMetadata(nodeId);
+        return new NodeMetadata(nodeId, version);
+    }
+
+    /**
+     * Overrides the version field for the metadata in the given data path
+     */
+    public static void overrideVersion(Version newVersion, Path... dataPaths) throws IOException {
+        for (final Path dataPath : dataPaths) {
+            final Path indexPath = dataPath.resolve(METADATA_DIRECTORY_NAME);
+            if (Files.exists(indexPath)) {
+                try (DirectoryReader reader = DirectoryReader.open(new SimpleFSDirectory(dataPath.resolve(METADATA_DIRECTORY_NAME)))) {
+                    final Map<String, String> userData = reader.getIndexCommit().getUserData();
+                    assert userData.get(NODE_VERSION_KEY) != null;
+
+                    try (IndexWriter indexWriter =
+                             createIndexWriter(new SimpleFSDirectory(dataPath.resolve(METADATA_DIRECTORY_NAME)), true)) {
+                        final Map<String, String> commitData = new HashMap<>(userData);
+                        commitData.put(NODE_VERSION_KEY, Integer.toString(newVersion.internalId));
+                        indexWriter.setLiveCommitData(commitData.entrySet());
+                        indexWriter.commit();
+                    }
+                } catch (IndexNotFoundException e) {
+                    LOGGER.debug(new ParameterizedMessage("no on-disk state at {}", indexPath), e);
+                }
+            }
+        }
     }
 
     /**

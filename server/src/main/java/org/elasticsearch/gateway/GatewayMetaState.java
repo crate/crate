@@ -132,7 +132,7 @@ public class GatewayMetaState implements Closeable {
                         metaStateService.deleteAll(); // delete legacy files
                     }
                     // write legacy node metadata to prevent accidental downgrades from spawning empty cluster state
-                    NodeMetadata.FORMAT.writeAndCleanup(new NodeMetadata(persistedClusterStateService.getNodeId()), persistedClusterStateService.getDataPaths());
+                    NodeMetadata.FORMAT.writeAndCleanup(new NodeMetadata(persistedClusterStateService.getNodeId(), Version.CURRENT), persistedClusterStateService.getDataPaths());
                     success = true;
                 } finally {
                     if (success == false) {
@@ -159,7 +159,7 @@ public class GatewayMetaState implements Closeable {
                     // delete legacy cluster state files
                     metaStateService.deleteAll();
                     // write legacy node metadata to prevent downgrades from spawning empty cluster state
-                    NodeMetadata.FORMAT.writeAndCleanup(new NodeMetadata(persistedClusterStateService.getNodeId()), persistedClusterStateService.getDataPaths());
+                    NodeMetadata.FORMAT.writeAndCleanup(new NodeMetadata(persistedClusterStateService.getNodeId(), Version.CURRENT), persistedClusterStateService.getDataPaths());
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }
