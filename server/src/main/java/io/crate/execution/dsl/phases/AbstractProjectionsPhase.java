@@ -28,7 +28,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.util.iterable.Iterables;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -56,7 +55,7 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
         if (projections.isEmpty()) {
             return Symbols.typeView(outputs);
         } else {
-            var lastProjection = Iterables.get(projections, projections.size() - 1);
+            var lastProjection = projections.get(projections.size() - 1);
             return Symbols.typeView(lastProjection.outputs());
         }
     }
@@ -69,8 +68,6 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
     public UUID jobId() {
         return jobId;
     }
-
-
 
     @Override
     public int phaseId() {
