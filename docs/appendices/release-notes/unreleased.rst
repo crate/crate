@@ -89,6 +89,15 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that resulted in a non-executable plan if a windows function
+  result from a sub-select is used inside a query filter. An example::
+
+      SELECT * FROM (
+        SELECT ROW_NUMBER() OVER(PARTITION by col1) as row_num
+        FROM (VALUES('x')) t1
+      ) t2
+      WHERE row_num = 2;
+
 - Fixed an issue that caused valid values for ``number_of_routing_shards`` in
   ``CREATE TABLE`` statements to be rejected because the validation always used
   a fixed value of ``5`` instead of the actual number of shards declared within

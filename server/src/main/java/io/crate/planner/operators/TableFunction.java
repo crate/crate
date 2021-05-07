@@ -170,4 +170,13 @@ public final class TableFunction implements LogicalPlan {
             .text(where.queryOrFallback().toString())
             .text("]");
     }
+
+    @Override
+    public String toString() {
+        return "TableFunction{" +
+            "relation=" + relation +
+            ", toCollect=" + toCollect +
+            ", where=" + where +
+            '}';
+    }
 }
