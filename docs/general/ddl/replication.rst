@@ -16,9 +16,9 @@ replica shards (through a process known as :ref:`shard recovery
 <gloss-shard-recovery>`).
 
 When a primary shard is lost (e.g., due to node failure), CrateDB will promote
-a replica shard to primary. Hence, more table replicas mean a smaller chance of
-permanent data loss (through increased `data redundancy`) in exchange for more
-disk space utilization and intra-cluster network traffic.
+a replica shard to a primary. Hence, more table replicas mean a smaller chance
+of permanent data loss (through increased `data redundancy`) in exchange for
+more disk space utilization and intra-cluster network traffic.
 
 Replication can also improve read performance because any increase in the
 number of shards distributed across a cluster also increases the opportunities
@@ -110,7 +110,7 @@ following:
 
 .. rst-class:: open
 
-- For every lost primary shard, locate a replica and promote it to primary.
+- For every lost primary shard, locate a replica and promote it to a primary.
 
   When CrateDB promotes a replica to primary, it can no longer function as a
   replica, and so the total number of replicas decreases by one. Because each
@@ -138,25 +138,38 @@ Having more replicas per primary and distributing shards as thinly as possible
 (i.e., fewer shards per node) can both increase chances of a :ref:`successful
 recovery <ddl-replication-recovery>` in the event of node loss.
 
-Although not ideal, a single node can hold multiple shards belonging to the
-same table. For example, suppose a table has more shards (primaries and
-replicas) than nodes available in the cluster. In that case, CrateDB
-will determine the safest way to allocate all shards to the nodes available.
+A single node can hold multiple shards belonging to the same table. For
+example, suppose a table has more shards (primaries and replicas) than nodes
+available in the cluster. In that case, CrateDB will determine the best way to
+allocate shards to the nodes available.
 
-However, there is one restriction. Suppose a single node held the primary and a
-replica of the same shard. If that node were lost, CrateDB would be unable to
-use either copy of the shard for :ref:`recovery <ddl-replication-recovery>`,
-effectively nullifying the purpose of the replica. In addition, if the shard
-had no other replicas and no :ref:`backups <snapshot-restore>` exist, the data
-contained in that shard may be permanently lost.
+However, there is never a benefit to allocating multiple copies of the same
+shard to a single node (e.g., the primary and a replica of the same shard or
+two replicas of the same shard).
 
-For this reason, CrateDB will never allocate the primary and a replica of the
-same shard to a single node.
+For example:
 
-The above rule means that for *one* shard and *n* replicas, a cluster must have
-at least *n + 1* available nodes for CrateDB to fully replicate all
-shards. When CrateDB cannot fully replicate all shards, the table enters a state
-known as *underreplication*.
+.. rst-class:: open
+
+- Suppose a single node held the primary and a replica of the same
+  shard. If that node were lost, CrateDB would be unable to use either copy of
+  the shard for :ref:`recovery <ddl-replication-recovery>` (because both were
+  lost), effectively making the replica useless.
+
+- Suppose a single node held two replicas of the same shard. If the primary
+  shard were lost (on a different node), CrateDB would only need one of the
+  replica shards on this node to promote a new primary, effectively making the
+  second replica useless.
+
+In both cases, the second copy of the shard serves no purpose.
+
+For this reason, CrateDB will never allocate multiple copies of the same shard
+to a single node.
+
+The above rule means that for *one* primary shard and *n* replicas, a cluster
+must have at least *n + 1* available nodes for CrateDB to fully replicate all
+shards. When CrateDB cannot fully replicate all shards, the table enters a
+state known as *underreplication*.
 
 CrateDB gives underreplicated tables a *yellow* :ref:`health status
 <sys-health-def>`.
