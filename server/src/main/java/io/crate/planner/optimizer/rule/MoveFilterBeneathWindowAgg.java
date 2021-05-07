@@ -23,9 +23,12 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.analyze.WindowDefinition;
+import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.WindowAgg;
@@ -33,6 +36,11 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
@@ -56,16 +64,84 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
     }
 
     @Override
-    public LogicalPlan apply(Filter plan,
+    public LogicalPlan apply(Filter filter,
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx) {
         WindowAgg windowAgg = captures.get(windowAggCapture);
         WindowDefinition windowDefinition = windowAgg.windowDefinition();
-        if (windowDefinition.partitions().containsAll(extractColumns(plan.query()))) {
-            return transpose(plan, windowAgg);
+        List<WindowFunction> windowFunctions = windowAgg.windowFunctions();
+
+        Predicate<Symbol> containsWindowFunction =
+            symbol -> symbol instanceof WindowFunction && windowFunctions.contains(symbol);
+
+        Symbol predicate = filter.query();
+        List<Symbol> filterParts = AndOperator.split(predicate);
+
+        ArrayList<Symbol> remainingFilterSymbols = new ArrayList<>();
+        ArrayList<Symbol> windowPartitionedBasedFilters = new ArrayList<>();
+
+        for (Symbol part : filterParts) {
+            if (SymbolVisitors.any(containsWindowFunction, part) == false
+                && windowDefinition.partitions().containsAll(extractColumns(part))) {
+                windowPartitionedBasedFilters.add(part);
+            } else {
+                remainingFilterSymbols.add(part);
+            }
         }
-        return null;
+        assert remainingFilterSymbols.size() > 0 || windowPartitionedBasedFilters.size() > 0 :
+            "Splitting the filter symbol must result in at least one group";
+
+        /* SELECT ROW_NUMBER() OVER(PARTITION BY id)
+         * WHERE `x = 1`
+         *
+         * `x` is not the window partition column.
+         * We cannot push down the filter as it would change the window aggregation value
+         *
+         */
+        if (windowPartitionedBasedFilters.isEmpty()) {
+            return null;
+        }
+
+        /* SELECT ROW_NUMBER() OVER(PARTITION BY id)
+         * WHERE `id = 1`
+         * remainingFilterSymbols:                  []
+         * windowPartitionedBasedFilters:           [id = 1]
+         *
+         * Filter
+         *  |
+         * WindowsAgg
+         *
+         * transforms to
+         *
+         * WindowAgg
+         *  |
+         * Filter (id = 1)
+         */
+        if (remainingFilterSymbols.isEmpty()) {
+            return transpose(filter, windowAgg);
+        }
+
+        /* WHERE `ROW_NUMBER() OVER(PARTITION BY id) = 2 AND id = 1`
+         * remainingFilterSymbols:                  [ROW_NUMBER() OVER(PARTITION BY id) = 2]
+         * windowPartitionedBasedFilters:           [id = 1]
+         *
+         * Filter
+         *  |
+         * WindowsAgg
+         *
+         * transforms to
+         *
+         * Filter (ROW_NUMBER() OVER(PARTITION BY id) = 2)
+         *  |
+         * WindowAgg
+         *  |
+         * Filter (id = 1)
+         */
+        LogicalPlan newWindowAgg = windowAgg.replaceSources(
+            List.of(new Filter(windowAgg.source(), AndOperator.join(windowPartitionedBasedFilters))));
+
+        return new Filter(newWindowAgg, AndOperator.join(remainingFilterSymbols));
     }
 }
