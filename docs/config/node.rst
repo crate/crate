@@ -468,9 +468,11 @@ The meaning of the fields of the are as follows:
   | The client machine addresses that the client matches, and which are allowed
   | to authenticate. This field may contain an IPv4 address, an IPv6 address or
   | an IPv4 CIDR mask. For example: ``127.0.0.1`` or ``127.0.0.1/32``. It also
-  | may contain the special ``_local_`` notation which will match both IPv4 and
-  | IPv6 connections from localhost. If no address is specified in the entry,
-  | then access to CrateDB is open for all hosts.
+  | may contain a hostname or the special ``_local_`` notation which will match
+  | both IPv4 and IPv6 connections from localhost. A hostname specification
+  | that starts with a dot (.) matches a suffix of the actual hostname.
+  | So .crate.io would match foo.crate.io but not just crate.io. If no address
+  | is specified in the entry, then access to CrateDB is open for all hosts.
 
 .. _auth.host_based.config.${order}.method:
 
