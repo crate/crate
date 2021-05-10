@@ -86,6 +86,8 @@ Changes
   wire protocol <postgres_wire_protocol>` compatibility. However, CrateDB does
   not support transactions and will silently ignore this statement.
 
+- Added support of hostnames in HBA configuration.
+
 Fixes
 =====
 

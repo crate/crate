@@ -21,6 +21,7 @@
 
 package io.crate.auth;
 
+import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.elasticsearch.test.ESTestCase;
 
 import io.crate.user.User;
@@ -59,7 +60,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         .build();
 
     // UserLookup always returns null, so there are no users (even no default crate superuser)
-    private final Authentication authService = new HostBasedAuthentication(hbaEnabled, userName -> null);
+    private final Authentication authService = new HostBasedAuthentication(hbaEnabled, userName -> null, SystemDefaultDnsResolver.INSTANCE);
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
         assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
