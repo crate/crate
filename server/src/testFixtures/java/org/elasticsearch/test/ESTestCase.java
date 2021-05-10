@@ -398,6 +398,9 @@ public abstract class ESTestCase extends LuceneTestCase {
                     ),
                     hasItem(
                         containsString(IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING.getKey())
+                    ),
+                    hasItem(
+                        containsString(NodeEnvironment.MAX_LOCAL_STORAGE_NODES_SETTING.getKey())
                     )
                 )
             );

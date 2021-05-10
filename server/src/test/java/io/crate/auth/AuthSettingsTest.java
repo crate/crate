@@ -1,23 +1,22 @@
 /*
- * Licensed to Crate under one or more contributor license agreements.
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.  Crate licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.  You may
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied.  See the License for the specific language governing
- * permissions and limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
 package io.crate.auth;
@@ -42,7 +41,7 @@ public class AuthSettingsTest {
             .put("auth.host_based.config.2.ssl", "password")
             .build();
 
-        assertThat(AuthSettings.resolveClientAuth(settings), is(ClientAuth.NONE));
+        assertThat(AuthSettings.resolveClientAuth(settings, null), is(ClientAuth.NONE));
     }
 
     @Test
@@ -52,7 +51,7 @@ public class AuthSettingsTest {
             .put("auth.host_based.config.2.method", "cert")
             .build();
 
-        assertThat(AuthSettings.resolveClientAuth(settings), is(ClientAuth.REQUIRE));
+        assertThat(AuthSettings.resolveClientAuth(settings, null), is(ClientAuth.REQUIRE));
     }
 
     @Test
@@ -61,6 +60,18 @@ public class AuthSettingsTest {
             .put("auth.host_based.config.1.method", "cert")
             .put("auth.host_based.config.2.method", "password")
             .build();
-        assertThat(AuthSettings.resolveClientAuth(settings), is(ClientAuth.OPTIONAL));
+        assertThat(AuthSettings.resolveClientAuth(settings, null), is(ClientAuth.OPTIONAL));
+    }
+
+    @Test
+    public void test_client_auth_only_counts_entries_matching_protocol_or_no_protocol() throws Exception {
+        Settings settings = Settings.builder()
+            .put("auth.host_based.config.1.method", "cert")
+            .put("auth.host_based.config.1.protocol", "transport")
+            .put("auth.host_based.config.2.method", "password")
+            .build();
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT), is(ClientAuth.REQUIRE));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP), is(ClientAuth.NONE));
+        assertThat(AuthSettings.resolveClientAuth(settings, null), is(ClientAuth.OPTIONAL));
     }
 }

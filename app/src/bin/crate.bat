@@ -1,3 +1,22 @@
+REM Licensed to Crate.io GmbH ("Crate") under one or more contributor
+REM license agreements.  See the NOTICE file distributed with this work for
+REM additional information regarding copyright ownership.  Crate licenses
+REM this file to you under the Apache License, Version 2.0 (the "License");
+REM you may not use this file except in compliance with the License.  You may
+REM obtain a copy of the License at
+REM
+REM   http://www.apache.org/licenses/LICENSE-2.0
+REM
+REM Unless required by applicable law or agreed to in writing, software
+REM distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+REM WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+REM License for the specific language governing permissions and limitations
+REM under the License.
+REM
+REM However, if you have executed another commercial license agreement
+REM with Crate these terms will supersede the license and you may use the
+REM software solely pursuant to the terms of the relevant commercial agreement.
+
 @ECHO OFF
 
 SETLOCAL EnableDelayedExpansion

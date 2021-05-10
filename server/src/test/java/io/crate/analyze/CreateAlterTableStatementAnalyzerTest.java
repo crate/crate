@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -1322,14 +1322,19 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testNumberOfRoutingShardsCanBeSetAtCreateTable() {
-        BoundCreateTable stmt = analyze("create table t (x int) with (number_of_routing_shards = 10)");
+        BoundCreateTable stmt = analyze("""
+            create table t (x int)
+            clustered into 2 shards
+            with (number_of_routing_shards = 10)
+        """);
         assertThat(stmt.tableParameter().settings().get("index.number_of_routing_shards"), is("10"));
     }
 
     @Test
     public void testNumberOfRoutingShardsCanBeSetAtCreateTableForPartitionedTables() {
-        BoundCreateTable stmt = analyze("create table t (p int, x int) partitioned by (p) " +
-                                        "with (number_of_routing_shards = 10)");
+        BoundCreateTable stmt = analyze(
+            "create table t (p int, x int) clustered into 2 shards partitioned by (p) " +
+            "with (number_of_routing_shards = 10)");
         assertThat(stmt.tableParameter().settings().get("index.number_of_routing_shards"), is("10"));
     }
 

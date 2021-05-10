@@ -1,7 +1,7 @@
 .. _admin_hba:
 
 ===============================
-Host Based Authentication (HBA)
+Host-Based Authentication (HBA)
 ===============================
 
 This section explains how to configure CrateDB client connection and
@@ -27,6 +27,9 @@ authentication.
 
 .. contents::
    :local:
+
+
+.. _admin_hba_cratedb:
 
 Authentication against CrateDB
 ==============================
@@ -143,6 +146,9 @@ superuser) can authenticate to CrateDB from any IP address using the
 
    For general help managing users, see :ref:`administration_user_management`.
 
+
+.. _admin_hba_user:
+
 Authenticating as a superuser
 =============================
 
@@ -160,6 +166,9 @@ the the ``auth.host_based`` setting, like this:
         config:
           0:
             user: crate
+
+
+.. _admin_hba_admin_ui:
 
 Authenticating to Admin UI
 ==========================
@@ -191,3 +200,46 @@ For more information, consult the :ref:`privileges section
 
     cr> DROP USER admin;
     DROP OK, 1 row affected (... sec)
+
+
+.. _admin_hba_node:
+
+Node-to-node communication
+==========================
+
+You can use the :ref:`Host-Based Authentication <admin_hba>` mechanism for
+node-to-node communication.
+
+For example, if you wanted to configure a `multi-zone cluster`_, you could do
+this:
+
+.. code-block:: yaml
+
+    auth:
+      host_based:
+        enabled: true
+        config:
+          0:
+            address: 192.168.0.0/24
+            protocol: transport
+            method: trust
+          1:
+            protocol: transport
+            ssl: on
+            method: cert
+
+Here, communication between nodes in the same zone (i.e., matching the
+``192.168.0.0/24`` netmask) can happen without SSL. In contrast, communication
+between nodes in different zones (i.e., any non-matching network address) must
+happen via :ref:`SSL <admin_ssl>`.
+
+This example would require that you set :ref:`ssl.transport.mode
+<ssl.transport.mode>` to ``dual``.
+
+.. NOTE::
+
+    CrateDB only supports the :ref:`trust <auth_trust>` and :ref:`cert
+    <auth_cert>` authentication methods for node-to-node communication.
+
+
+.. _multi-zone cluster: https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html

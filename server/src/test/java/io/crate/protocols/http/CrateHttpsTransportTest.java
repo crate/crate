@@ -1,23 +1,22 @@
 /*
- * Licensed to Crate under one or more contributor license agreements.
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.  Crate licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.  You may
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied.  See the License for the specific language governing
- * permissions and limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
 package io.crate.protocols.http;
@@ -30,8 +29,6 @@ import static org.mockito.Mockito.mock;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.security.KeyStore;
-import java.security.Security;
 import java.util.Collections;
 
 import org.elasticsearch.client.node.NodeClient;
@@ -43,7 +40,6 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -58,7 +54,6 @@ public class CrateHttpsTransportTest extends ESTestCase {
 
     private static File trustStoreFile;
     private static File keyStoreFile;
-    private static String defaultKeyStoreType = KeyStore.getDefaultType();
 
     @BeforeClass
     public static void disableProcessorCheck() {
@@ -67,14 +62,8 @@ public class CrateHttpsTransportTest extends ESTestCase {
 
     @BeforeClass
     public static void beforeTests() throws IOException {
-        trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
-        keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
-        Security.setProperty("keystore.type", "jks");
-    }
-
-    @AfterClass
-    public static void resetKeyStoreType() {
-        Security.setProperty("keystore.type", defaultKeyStoreType);
+        trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.pcks12");
+        keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.pcks12");
     }
 
     @Test
@@ -83,10 +72,10 @@ public class CrateHttpsTransportTest extends ESTestCase {
             .put(PATH_HOME_SETTING.getKey(), "/tmp")
             .put(SslSettings.SSL_HTTP_ENABLED.getKey(), true)
             .put(SslSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
-            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
+            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "keystorePassword")
             .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
             .put(SslSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
-            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
+            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "keystorePassword")
             .build();
 
         NetworkService networkService = new NetworkService(Collections.singletonList(new NetworkService.CustomNameResolver() {

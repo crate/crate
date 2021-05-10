@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-# Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+# Licensed to Crate.io GmbH ("Crate") under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
 # additional information regarding copyright ownership.  Crate licenses
 # this file to you under the Apache License, Version 2.0 (the "License");

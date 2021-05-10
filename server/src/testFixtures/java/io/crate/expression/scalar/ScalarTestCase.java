@@ -1,12 +1,12 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -31,6 +31,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ParameterBinder;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -180,12 +181,24 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
         }
         LinkedList<Literal<?>> unusedLiterals = new LinkedList<>(Arrays.asList(literals));
         Function function = (Function) RefReplacer.replaceRefs(functionSymbol, r -> {
-            Literal<?> literal = unusedLiterals.pollFirst();
-            if (literal == null) {
+            if (unusedLiterals.isEmpty()) {
                 throw new IllegalArgumentException("No value literal for reference=" + r + ", please add more literals");
             }
+            Literal<?> literal = unusedLiterals.pollFirst(); //Can be null.
             return literal;
         });
+        if(unusedLiterals.size() == literals.length) {
+            // Currently it's supposed that literals will be either references or parameters.
+            // One of replaceRefs and bindParameters does nothing and doesn't consume unusedLiterals.
+            function = (Function) ParameterBinder.bindParameters(function, p -> {
+                if (unusedLiterals.isEmpty()) {
+                    throw new IllegalArgumentException("No value literal for parameter=" + p + ", please add more literals");
+                }
+                Literal<?> literal = unusedLiterals.pollFirst(); //Can be null.
+                return literal;
+            });
+        }
+
         Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
 
@@ -223,7 +236,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
      */
     public void assertEvaluate(String functionExpression, Object expectedValue, Literal<?>... literals) {
         if (expectedValue == null) {
-            assertEvaluate(functionExpression, nullValue());
+            assertEvaluate(functionExpression, nullValue(), literals);
         } else {
             assertEvaluate(functionExpression, is(expectedValue), literals);
         }

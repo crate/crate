@@ -26,8 +26,11 @@ import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimary
 import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
+
+import io.crate.auth.Authentication;
 import io.crate.common.CheckedFunction;
 import io.crate.netty.EventLoopGroups;
+import io.crate.protocols.ssl.SslContextProvider;
 
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -104,6 +107,8 @@ public final class NetworkModule {
                          NamedXContentRegistry xContentRegistry,
                          NetworkService networkService,
                          EventLoopGroups eventLoopGroups,
+                         Authentication authentication,
+                         SslContextProvider sslContextProvider,
                          NodeClient nodeClient) {
         this.settings = settings;
         for (NetworkPlugin plugin : plugins) {
@@ -129,7 +134,9 @@ public final class NetworkModule {
                 circuitBreakerService,
                 namedWriteableRegistry,
                 networkService,
-                eventLoopGroups
+                eventLoopGroups,
+                authentication,
+                sslContextProvider
             );
             for (Map.Entry<String, Supplier<Transport>> entry : transportFactory.entrySet()) {
                 registerTransport(entry.getKey(), entry.getValue());

@@ -1,23 +1,22 @@
 /*
- * Licensed to Crate under one or more contributor license agreements.
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.  Crate licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.  You may
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied.  See the License for the specific language governing
- * permissions and limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
 package io.crate.auth;
@@ -29,6 +28,8 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.function.Function;
+
+import javax.annotation.Nullable;
 
 
 public final class AuthSettings {
@@ -57,12 +58,16 @@ public final class AuthSettings {
 
     public static final String HTTP_HEADER_REAL_IP = "X-Real-Ip";
 
-    public static ClientAuth resolveClientAuth(Settings settings) {
+    public static ClientAuth resolveClientAuth(Settings settings, @Nullable Protocol protocol) {
         Settings hbaSettings = AUTH_HOST_BASED_CONFIG_SETTING.get(settings);
         int numMethods = 0;
         int numCertMethods = 0;
         for (var entry : hbaSettings.getAsGroups().entrySet()) {
             Settings entrySettings = entry.getValue();
+            String protocolEntry = entrySettings.get("protocol");
+            if (protocol != null && !protocol.name().equalsIgnoreCase(protocolEntry)) {
+                continue;
+            }
             String method = entrySettings.get("method", "trust");
             numMethods++;
             if (method.equals("cert")) {

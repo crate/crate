@@ -43,6 +43,10 @@ Basics
   Defines how many nodes are allowed to be started on the same machine using
   the same configured data path defined via `path.data`_.
 
+  This setting is deprecated and will be removed with CrateDB 5.0.  You should
+  instead set different `path.data`_ values if you intend to run multiple
+  CrateDB processes on the same machine.
+
 .. _node.store_allow_mmap:
 
 **node.store.allow_mmap**
@@ -551,6 +555,26 @@ Layer Security (TLS).
 
   Set this to true to enable secure communication between the CrateDB node
   and the client through SSL via the PostgreSQL wire protocol.
+
+.. _ssl.transport.mode:
+
+**ssl.transport.mode**
+  | *Default:* ``off``
+  | *Runtime:* ``no``
+
+  For communication between nodes, choose:
+
+  ``off``
+    SSL cannot be used
+  ``off``
+    SSL must be used
+  ``dual``
+    SSL may be used
+
+  .. SEEALSO::
+
+      :ref:`Host-Based Authentication: Node-to-node communication
+      <admin_hba_node>`
 
 .. _ssl.keystore_filepath:
 

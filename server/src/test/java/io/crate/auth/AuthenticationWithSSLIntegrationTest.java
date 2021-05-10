@@ -1,54 +1,51 @@
 /*
- * Licensed to Crate under one or more contributor license agreements.
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.  Crate licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.  You may
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied.  See the License for the specific language governing
- * permissions and limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
 package io.crate.auth;
-
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import io.crate.protocols.ssl.SslSettings;
-import io.crate.testing.UseJdbc;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.postgresql.util.PSQLException;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.security.KeyStore;
-import java.security.Security;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION;
 import static io.crate.testing.Asserts.assertThrows;
 import static io.crate.testing.SQLErrorMatcher.isPGError;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Properties;
+
+import org.elasticsearch.common.settings.Settings;
+import org.junit.After;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.postgresql.util.PSQLException;
+
+import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.protocols.ssl.SslSettings;
+import io.crate.testing.UseJdbc;
 
 /**
  * Additional tests to the SSL tests in {@link AuthenticationIntegrationTest} where SSL
@@ -59,7 +56,6 @@ public class AuthenticationWithSSLIntegrationTest extends SQLIntegrationTestCase
 
     private static File trustStoreFile;
     private static File keyStoreFile;
-    private static String defaultKeyStoreType = KeyStore.getDefaultType();
 
     public AuthenticationWithSSLIntegrationTest() {
         super(true);
@@ -67,14 +63,8 @@ public class AuthenticationWithSSLIntegrationTest extends SQLIntegrationTestCase
 
     @BeforeClass
     public static void beforeIntegrationTest() throws IOException {
-        keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
-        trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
-        Security.setProperty("keystore.type", "jks");
-    }
-
-    @AfterClass
-    public static void resetKeyStoreType() {
-        Security.setProperty("keystore.type", defaultKeyStoreType);
+        keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.pcks12");
+        trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.pcks12");
     }
 
     @Override
@@ -84,9 +74,9 @@ public class AuthenticationWithSSLIntegrationTest extends SQLIntegrationTestCase
             .put(SslSettings.SSL_PSQL_ENABLED.getKey(), true)
             .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
             .put(SslSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
-            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
+            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "keystorePassword")
             .put(SslSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
-            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
+            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "keystorePassword")
             .put("network.host", "127.0.0.1")
             .put("auth.host_based.enabled", true)
             .put("auth.host_based.config",
@@ -164,7 +154,7 @@ public class AuthenticationWithSSLIntegrationTest extends SQLIntegrationTestCase
         }
     }
 
-    private static File getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) throws IOException {
+    static File getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) throws IOException {
         final URL fileUrl = AuthenticationWithSSLIntegrationTest.class.getClassLoader().getResource(fileNameFromClasspath);
         if (fileUrl == null) {
             throw new FileNotFoundException("Resource was not found: " + fileNameFromClasspath);

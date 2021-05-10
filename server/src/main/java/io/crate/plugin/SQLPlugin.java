@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -125,6 +125,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER);
 
         // Settings for SSL
+        settings.add(SslSettings.SSL_TRANSPORT_MODE);
         settings.add(SslSettings.SSL_HTTP_ENABLED);
         settings.add(SslSettings.SSL_PSQL_ENABLED);
         settings.add(SslSettings.SSL_TRUSTSTORE_FILEPATH);
@@ -177,7 +178,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new SysChecksModule());
         modules.add(new SysNodeChecksModule());
         modules.add(new UserManagementModule());
-        modules.add(new AuthenticationModule(settings));
+        modules.add(new AuthenticationModule());
         modules.add(new UsersScalarFunctionModule());
         return modules;
     }

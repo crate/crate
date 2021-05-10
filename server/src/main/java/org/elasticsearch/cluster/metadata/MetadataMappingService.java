@@ -143,7 +143,7 @@ public class MetadataMappingService {
             IndexService indexService = indicesService.indexService(indexMetadata.getIndex());
             if (indexService == null) {
                 // we need to create the index here, and add the current mapping to it, so we can merge
-                indexService = indicesService.createIndex(indexMetadata, Collections.emptyList());
+                indexService = indicesService.createIndex(indexMetadata, Collections.emptyList(), false);
                 removeIndex = true;
                 indexService.mapperService().merge(indexMetadata, MergeReason.MAPPING_RECOVERY);
             }

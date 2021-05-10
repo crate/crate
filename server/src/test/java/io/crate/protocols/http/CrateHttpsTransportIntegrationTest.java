@@ -1,23 +1,22 @@
 /*
- * Licensed to Crate under one or more contributor license agreements.
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.  Crate licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.  You may
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied.  See the License for the specific language governing
- * permissions and limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
 package io.crate.protocols.http;
@@ -36,8 +35,6 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.KeyStore;
-import java.security.Security;
 
 import static com.google.common.base.Strings.repeat;
 import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
@@ -54,7 +51,6 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
 
     private static File trustStoreFile;
     private static File keyStoreFile;
-    private static String defaultKeyStoreType = KeyStore.getDefaultType();
 
     public CrateHttpsTransportIntegrationTest() {
         super(true);
@@ -62,18 +58,16 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
 
     @BeforeClass
     public static void beforeIntegrationTest() throws IOException {
-        keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
-        trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
-        System.setProperty("javax.net.ssl.trustStore", trustStoreFile.getAbsolutePath());
-        System.setProperty("javax.net.ssl.trustStorePassword", "truststorePassword");
-        Security.setProperty("keystore.type", "jks");
+        keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.pcks12");
+        trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.pcks12");
+        System.setProperty("javax.net.ssl.trustStore", getAbsoluteFilePathFromClassPath("truststore.jks").getAbsolutePath());
+        System.setProperty("javax.net.ssl.trustStorePassword", "keystorePassword");
     }
 
     @AfterClass
     public static void afterIntegrationTest() {
         System.clearProperty("javax.net.ssl.trustStore");
         System.clearProperty("javax.net.ssl.trustStorePassword");
-        Security.setProperty("keystore.type", defaultKeyStoreType);
     }
 
     @Override
@@ -83,9 +77,9 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
             .put(SslSettings.SSL_HTTP_ENABLED.getKey(), true)
             .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
             .put(SslSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
-            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
+            .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "keystorePassword")
             .put(SslSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
-            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
+            .put(SslSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "keystorePassword")
             .build();
     }
 

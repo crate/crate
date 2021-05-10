@@ -48,11 +48,14 @@ None
 Deprecations
 ============
 
-None
+- Deprecated the :ref:`node.max_local_storage_nodes
+  <node.max_local_storage_nodes>` setting.
 
 
 Changes
 =======
+
+- Added support for encrypting node-to-node communication.
 
 - Added a ``closed`` column to :ref:`sys-shards <sys-shards>` exposing
   the state of the table associated with the shard.
@@ -60,6 +63,13 @@ Changes
 - Added :ref:`array_to_string <scalar-array-to-string>` scalar function
   that concatenates array elements into a single string using a separator and
   an optional null-string.
+
+- Added :ref:`array_min <scalar-array-min>` and :ref:`array_max
+  <scalar-array-max>` scalar functions returning the minimal and maximal
+  element in array respectively.
+
+- Added the :ref:`array_sum <scalar-array-sum>` scalar function
+  that returns the sum of all elements in an array.
 
 - Added support for reading ``cgroup`` information in the ``cgroup v2`` format.
 
@@ -79,24 +89,16 @@ Changes
 Fixes
 =====
 
-- Updated the bundled JDK to 16.0.1+9
+- Fixed an issue that resulted in a non-executable plan if a windows function
+  result from a sub-select is used inside a query filter. An example::
 
-- Fixed an issue that would cause columns of type ``varchar`` with a length
-  limited to be incorrectly casted to another type if used as argument in a
-  function that has several type overloads.
+      SELECT * FROM (
+        SELECT ROW_NUMBER() OVER(PARTITION by col1) as row_num
+        FROM (VALUES('x')) t1
+      ) t2
+      WHERE row_num = 2;
 
-- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statements to remove
-  constraints like analyzers or ``NOT NULL`` from existing columns in the same
-  table.
-
-- Allow executing ``CREATE TABEL .. AS`` as a regular user with ``DDL``
-  permission on the target schema, and ``DQL`` permission on the source
-  relations.
-
-- Changed the ``RowDescription`` message that is sent to PostgreSQL clients to
-  avoid that the JDBC client triggers queries against ``pg_catalog`` schema
-  tables each time information from the ``MetaData`` of a ``ResultSet`` is
-  accessed.
-
-- Fixed ``crate-node`` auxiliary program to use the bundled Java runtime on
-  Linux.
+- Fixed an issue that caused valid values for ``number_of_routing_shards`` in
+  ``CREATE TABLE`` statements to be rejected because the validation always used
+  a fixed value of ``5`` instead of the actual number of shards declared within
+  the ``CREATE TABLE`` statement.

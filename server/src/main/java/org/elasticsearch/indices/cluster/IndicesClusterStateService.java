@@ -499,7 +499,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
 
             AllocatedIndex<? extends Shard> indexService = null;
             try {
-                indexService = indicesService.createIndex(indexMetadata, buildInIndexListener);
+                indexService = indicesService.createIndex(indexMetadata, buildInIndexListener, true);
                 if (indexService.updateMapping(null, indexMetadata) && sendRefreshMapping) {
                     nodeMappingRefreshAction.nodeMappingRefresh(state.nodes().getMasterNode(),
                         new NodeMappingRefreshAction.NodeMappingRefreshRequest(indexMetadata.getIndex().getName(),
@@ -863,7 +863,8 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
          * @throws ResourceAlreadyExistsException if the index already exists.
          */
         U createIndex(IndexMetadata indexMetadata,
-                      List<IndexEventListener> builtInIndexListener) throws IOException;
+                      List<IndexEventListener> builtInIndexListener,
+                      boolean writeDanglingIndices) throws IOException;
 
         /**
          * Verify that the contents on disk for the given index is deleted; if not, delete the contents.

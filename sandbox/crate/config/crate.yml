@@ -6,9 +6,9 @@ node.max_local_storage_nodes: 3
 
 ssl.psql.enabled: false
 ssl.http.enabled: false
-ssl.keystore_filepath: ./server/src/test/resources/keystore.jks
+ssl.keystore_filepath: ./server/src/test/resources/keystore.pcks12
 ssl.keystore_password: keystorePassword
-ssl.keystore_key_password: serverKeyPassword
+ssl.keystore_key_password: keystorePassword
 
 path.repo: ./sandbox/crate/repo
 

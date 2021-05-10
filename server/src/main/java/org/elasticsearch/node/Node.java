@@ -55,6 +55,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.SetOnce;
+import org.elasticsearch.Assertions;
 import org.elasticsearch.Build;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
@@ -81,10 +82,10 @@ import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.metadata.TemplateUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.BatchedRerouteService;
 import org.elasticsearch.cluster.routing.LazilyInitializedRerouteService;
 import org.elasticsearch.cluster.routing.RerouteService;
-import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdMonitor;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.StopWatch;
@@ -116,10 +117,12 @@ import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.env.NodeMetadata;
 import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.gateway.GatewayMetaState;
 import org.elasticsearch.gateway.GatewayModule;
 import org.elasticsearch.gateway.GatewayService;
+import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.gateway.MetaStateService;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.index.IndexSettings;
@@ -159,6 +162,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.auth.AuthSettings;
+import io.crate.auth.Authentication;
+import io.crate.auth.HostBasedAuthentication;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
@@ -167,7 +174,10 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.netty.EventLoopGroups;
+import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.types.DataTypes;
+import io.crate.user.UserLookup;
+import io.crate.user.UserLookupService;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used
@@ -386,6 +396,8 @@ public class Node implements Closeable {
                 ClusterModule.getNamedXWriteables().stream())
                 .flatMap(Function.identity()).collect(toList()));
             final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, xContentRegistry);
+            final PersistedClusterStateService persistedClusterStateService
+                = new PersistedClusterStateService(nodeEnvironment, xContentRegistry, bigArrays);
 
             // collect engine factory providers from server and from plugins
             final Collection<EnginePlugin> enginePlugins = pluginsService.filterPlugins(EnginePlugin.class);
@@ -448,6 +460,12 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(ActionPlugin.class));
             modules.add(actionModule);
 
+            UserLookup userLookup = new UserLookupService(clusterService);
+            var authentication = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)
+                ? new HostBasedAuthentication(settings, userLookup)
+                : new AlwaysOKAuthentication(userLookup);
+
+            final SslContextProvider sslContextProvider = new SslContextProvider(settings);
             final EventLoopGroups eventLoopGroups = new EventLoopGroups();
             final NetworkModule networkModule = new NetworkModule(
                 settings,
@@ -460,6 +478,8 @@ public class Node implements Closeable {
                 xContentRegistry,
                 networkService,
                 eventLoopGroups,
+                authentication,
+                sslContextProvider,
                 client);
             Collection<UnaryOperator<Map<String, Metadata.Custom>>> customMetadataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
@@ -535,6 +555,7 @@ public class Node implements Closeable {
                     b.bind(NamedWriteableRegistry.class).toInstance(namedWriteableRegistry);
                     b.bind(MetadataUpgrader.class).toInstance(metadataUpgrader);
                     b.bind(MetaStateService.class).toInstance(metaStateService);
+                    b.bind(PersistedClusterStateService.class).toInstance(persistedClusterStateService);
                     b.bind(IndicesService.class).toInstance(indicesService);
                     b.bind(AliasValidator.class).toInstance(aliasValidator);
                     b.bind(MetadataCreateIndexService.class).toInstance(metadataCreateIndexService);
@@ -560,7 +581,10 @@ public class Node implements Closeable {
                     b.bind(HttpServerTransport.class).toInstance(httpServerTransport);
                     b.bind(ShardLimitValidator.class).toInstance(shardLimitValidator);
                     b.bind(EventLoopGroups.class).toInstance(eventLoopGroups);
+                    b.bind(SslContextProvider.class).toInstance(sslContextProvider);
                     b.bind(RerouteService.class).toInstance(rerouteService);
+                    b.bind(UserLookup.class).toInstance(userLookup);
+                    b.bind(Authentication.class).toInstance(authentication);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                 }
             );
@@ -708,8 +732,20 @@ public class Node implements Closeable {
             clusterService,
             injector.getInstance(MetaStateService.class),
             injector.getInstance(MetadataIndexUpgradeService.class),
-            injector.getInstance(MetadataUpgrader.class)
+            injector.getInstance(MetadataUpgrader.class),
+            injector.getInstance(PersistedClusterStateService.class)
         );
+        if (Assertions.ENABLED) {
+            try {
+                assert injector.getInstance(MetaStateService.class).loadFullState().v1().isEmpty();
+                final NodeMetadata nodeMetaData = NodeMetadata.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY,
+                                                                                      nodeEnvironment.nodeDataPaths());
+                assert nodeMetaData != null;
+                assert nodeMetaData.nodeId().equals(localNodeFactory.getNode().getId());
+            } catch (IOException e) {
+                assert false : e;
+            }
+        }
         // we load the global state here (the persistent part of the cluster state stored on disk) to
         // pass it to the bootstrap checks to allow plugins to enforce certain preconditions based on the recovered state.
         final Metadata onDiskMetadata = gatewayMetaState.getPersistedState().getLastAcceptedState().metadata();
@@ -865,6 +901,12 @@ public class Node implements Closeable {
         toClose.add(() -> stopWatch.stop().start("transport"));
         toClose.add(injector.getInstance(TransportService.class));
 
+        toClose.add(() -> stopWatch.stop().start("gateway_meta_state"));
+        toClose.add(injector.getInstance(GatewayMetaState.class));
+
+        toClose.add(() -> stopWatch.stop().start("node_environment"));
+        toClose.add(injector.getInstance(NodeEnvironment.class));
+
         for (LifecycleComponent plugin : pluginLifecycleComponents) {
             toClose.add(() -> stopWatch.stop().start("plugin(" + plugin.getClass().getName() + ")"));
             toClose.add(plugin);
@@ -878,7 +920,7 @@ public class Node implements Closeable {
         // awaitClose if the node doesn't finish closing within the specified time.
         toClose.add(() -> stopWatch.stop());
 
-        toClose.add(injector.getInstance(NodeEnvironment.class));
+
 
         if (logger.isTraceEnabled()) {
             logger.trace("Close times for each service:\n{}", stopWatch.prettyPrint());

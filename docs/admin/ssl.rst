@@ -4,19 +4,37 @@
 Secured communications (SSL/TLS)
 ================================
 
-Secured communication allows you to encrypt traffic between the CrateDB node
-and a client. This applies to connections using HTTP (i.e. `Admin UI
-<https://crate.io/docs/crate/tutorials/en/latest/first-use.html#introducing-the-admin-ui>`_,
-`Crash <https://crate.io/docs/crate/crash/en/latest/>`_,
-:ref:`sql_http_endpoint`) and the :ref:`postgres_wire_protocol` (i.e. JDBC,
-psql).
+You can encrypt the internal communication between CrateDB nodes and the
+external communication with HTTP and PostgreSQL clients. When you configure
+encryption, CrateDB secures connections using *Transport Layer Security* (TLS).
 
-Connections are secured using Transport Layer Security (TLS).
+You can enable SSL on a per-protocol basis:
 
-Note that once SSL is enabled for HTTP connections, only connections using
-HTTPS are allowed. This is in contrast to the PostgreSQL Wire Protocol, which
-still allows non-encrypted connections when SSL is enabled. If you want to
-enforce SSL usage, please consult the :ref:`admin_hba`.
+.. rst-class:: open
+
+- If you enable SSL for :ref:`HTTP <sql_http_endpoint>`, all connections will
+  require HTTPS.
+
+- By default, if you enable SSL for the :ref:`PostgreSQL wire protocol
+  <postgres_wire_protocol>`, clients can negotiate on a per-connection basis
+  whether to use SSL. However, you can enforce SSL via :ref:`Host-Based
+  Authentication <admin_hba>`.
+
+- If you enable SSL for the CrateDB transport protocol (used for intra-node
+  communication), nodes can operate in two modes:
+
+  1. Only accept SSL connections (:ref:`ssl.transport.mode
+     <ssl.transport.mode>` set to ``on``)
+
+  2. Accept SSL and non-SSL connections (:ref:`ssl.transport.mode
+     <ssl.transport.mode>` set to ``dual``)
+
+.. TIP::
+
+   You can use ``dual`` SSL mode and :ref:`Host-Based Authentication
+   <admin_hba_node>` to configure a multi-zone cluster that allows
+   non-encrypted traffic between nodes in the same zone but enforces encryption
+   for nodes communicating between zones.
 
 .. rubric:: Table of contents
 
@@ -37,6 +55,7 @@ Once the ``keystore`` (and optional ``truststore``) is created, continue with
 the following steps:
 
  - Set ``ssl.psql.enabled`` or ``ssl.http.enabled`` to ``true``.
+ - Set ``ssl.transport.mode`` to ``dual`` or ``on``.
  - :ref:`ssl_configure_keystore`
  - (Optional) :ref:`ssl_configure_truststore`
 

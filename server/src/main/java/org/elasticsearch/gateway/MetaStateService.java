@@ -68,7 +68,7 @@ public class MetaStateService {
      * meta state with globalGeneration -1 and empty meta data is returned.
      * @throws IOException if some IOException when loading files occurs or there is no metadata referenced by manifest file.
      */
-    Tuple<Manifest, Metadata> loadFullState() throws IOException {
+    public Tuple<Manifest, Metadata> loadFullState() throws IOException {
         final Manifest manifest = MANIFEST_FORMAT.loadLatestState(LOGGER, namedXContentRegistry, nodeEnv.nodeDataPaths());
         if (manifest == null) {
             return loadFullStateBWC();
@@ -177,17 +177,6 @@ public class MetaStateService {
     }
 
     /**
-     * Loads Manifest file from disk, returns <code>Manifest.empty()</code> if there is no manifest file.
-     */
-    public Manifest loadManifestOrEmpty() throws IOException {
-        Manifest manifest = MANIFEST_FORMAT.loadLatestState(LOGGER, namedXContentRegistry, nodeEnv.nodeDataPaths());
-        if (manifest == null) {
-            manifest = Manifest.empty();
-        }
-        return manifest;
-    }
-
-    /**
      * Loads the global state, *without* index state, see {@link #loadFullState()} for that.
      */
     Metadata loadGlobalState() throws IOException {
@@ -268,28 +257,23 @@ public class MetaStateService {
     }
 
     /**
-     * Writes index metadata and updates manifest file accordingly.
-     * Used by tests.
+     * Creates empty cluster state file on disk, deleting global metadata and unreferencing all index metadata
+     * (only used for dangling indices at that point).
      */
-    public void writeIndexAndUpdateManifest(String reason, IndexMetadata metadata) throws IOException {
-        long generation = writeIndex(reason, metadata);
-        Manifest manifest = loadManifestOrEmpty();
-        Map<Index, Long> indices = new HashMap<>(manifest.getIndexGenerations());
-        indices.put(metadata.getIndex(), generation);
-        manifest = new Manifest(manifest.getCurrentTerm(), manifest.getClusterStateVersion(), manifest.getGlobalGeneration(), indices);
-        writeManifestAndCleanup(reason, manifest);
-        cleanupIndex(metadata.getIndex(), generation);
+    public void unreferenceAll() throws IOException {
+        MANIFEST_FORMAT.writeAndCleanup(Manifest.empty(), nodeEnv.nodeDataPaths()); // write empty file so that indices become unreferenced
+        META_DATA_FORMAT.cleanupOldFiles(Long.MAX_VALUE, nodeEnv.nodeDataPaths());
     }
 
-    /**
-     * Writes global metadata and updates manifest file accordingly.
-     * Used by tests.
-     */
-    public void writeGlobalStateAndUpdateManifest(String reason, Metadata metadata) throws IOException {
-        long generation = writeGlobalState(reason, metadata);
-        Manifest manifest = loadManifestOrEmpty();
-        manifest = new Manifest(manifest.getCurrentTerm(), manifest.getClusterStateVersion(), generation, manifest.getIndexGenerations());
-        writeManifestAndCleanup(reason, manifest);
-        cleanupGlobalState(generation);
+    public void deleteAll() throws IOException {
+        // To ensure that the metadata is never reimported by loadFullStateBWC in case where the deletions here fail mid-way through,
+        // we first write an empty manifest file so that the indices become unreferenced, then clean up the indices, and only then delete
+        // the manifest file.
+        unreferenceAll();
+        for (String indexFolderName : nodeEnv.availableIndexFolders()) {
+            // delete meta state directories of indices
+            MetadataStateFormat.deleteMetaState(nodeEnv.resolveIndexFolder(indexFolderName));
+        }
+        MANIFEST_FORMAT.cleanupOldFiles(Long.MAX_VALUE, nodeEnv.nodeDataPaths()); // finally delete manifest
     }
 }

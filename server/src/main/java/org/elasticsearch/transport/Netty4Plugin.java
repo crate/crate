@@ -50,8 +50,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
+import io.crate.auth.Authentication;
 import io.crate.netty.EventLoopGroups;
 import io.crate.plugin.PipelineRegistry;
+import io.crate.protocols.ssl.SslContextProvider;
 
 public class Netty4Plugin extends Plugin implements NetworkPlugin {
 
@@ -113,7 +115,9 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                                                           CircuitBreakerService circuitBreakerService,
                                                           NamedWriteableRegistry namedWriteableRegistry,
                                                           NetworkService networkService,
-                                                          EventLoopGroups eventLoopGroups) {
+                                                          EventLoopGroups eventLoopGroups,
+                                                          Authentication authentication,
+                                                          SslContextProvider sslContextProvider) {
         return Collections.singletonMap(
             NETTY_TRANSPORT_NAME,
             () -> new Netty4Transport(
@@ -124,7 +128,9 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                 bigArrays,
                 namedWriteableRegistry,
                 circuitBreakerService,
-                eventLoopGroups
+                eventLoopGroups,
+                authentication,
+                sslContextProvider
             )
         );
     }

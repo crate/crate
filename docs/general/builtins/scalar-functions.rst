@@ -2446,6 +2446,89 @@ null_string
 If the ``null_string`` argument is omitted or NULL, none of the substrings of
 the input will be replaced by NULL.
 
+.. _scalar-array-min:
+
+``array_min(array)``
+--------------------
+
+The ``array_min`` function returns the smallest element in ``array``. If
+``array`` is ``NULL`` or an empty array, the function returns ``NULL``. This
+function supports arrays of any of the :ref:`primitive types
+<sql_ddl_datatypes_primitives>`.
+
+::
+
+    cr> SELECT array_min([3, 2, 1]) AS min;
+    +-----+
+    | min |
+    +-----+
+    |   1 |
+    +-----+
+    SELECT 1 row in set (... sec)
+
+.. _scalar-array-max:
+
+``array_max(array)``
+--------------------
+
+The ``array_max`` function returns the largest element in ``array``. If
+``array`` is ``NULL`` or an empty array, the function returns ``NULL``. This
+function supports arrays of any of the :ref:`primitive types
+<sql_ddl_datatypes_primitives>`.
+
+::
+
+    cr> SELECT array_max([1,2,3]) AS max;
+    +-----+
+    | max |
+    +-----+
+    |   3 |
+    +-----+
+    SELECT 1 row in set (... sec)
+
+.. _scalar-array-sum:
+
+``array_sum(array)``
+--------------------
+
+Returns the sum of array elements that are not ``NULL``.
+Depending on the argument type a suitable return type is chosen. For ``real``
+and ``double precison`` argument types the return type is equal to the argument
+type. For ``char``, ``smallint``, ``integer`` and ``bigint`` the return type
+changes to ``bigint``. If the range of ``bigint`` values (-2^64 to 2^64-1) gets
+exceeded an ``ArithmeticException`` will be raised.
+
+::
+
+    cr> SELECT array_sum([1,2,3]) AS sum;
+    +-----+
+    | sum |
+    +-----+
+    |   6 |
+    +-----+
+    SELECT 1 row in set (... sec)
+
+The sum on the bigint array will result in an overflow in the following query:
+
+::
+
+    cr> SELECT array_sum([9223372036854775807,9223372036854775807]) as sum;
+    ArithmeticException[long overflow]
+
+To address the overflow of the sum of the given array elements,
+we cast the array to the numeric data type:
+
+::
+
+    cr>  SELECT array_sum([9223372036854775807,9223372036854775807] :: numeric[])
+    ... as sum;
+    +----------------------+
+    |                  sum |
+    +----------------------+
+    | 18446744073709551614 |
+    +----------------------+
+    SELECT 1 row in set (... sec)
+
 .. _scalar-conditional-functions-expressions:
 
 Conditional functions and expressions

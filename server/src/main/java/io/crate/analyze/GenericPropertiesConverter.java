@@ -1,12 +1,12 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,18 +21,20 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_SETTING_PREFIX;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_SETTING_PREFIX;
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.sql.tree.GenericProperties;
 
 public class GenericPropertiesConverter {
 
@@ -205,7 +207,7 @@ public class GenericPropertiesConverter {
                 throw new IllegalArgumentException(
                     "Cannot change a dynamic group setting, only concrete settings allowed.");
             }
-            Settings.Builder singleSettingBuilder = Settings.builder();
+            Settings.Builder singleSettingBuilder = Settings.builder().put(builder.build());
             genericPropertyToSetting(singleSettingBuilder, setting.getKey(), valueSymbol);
             Object value = setting.get(singleSettingBuilder.build());
             if (value instanceof Settings) {

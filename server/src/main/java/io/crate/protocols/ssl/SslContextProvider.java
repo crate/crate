@@ -1,23 +1,22 @@
 /*
- * Licensed to Crate under one or more contributor license agreements.
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.  Crate licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.  You may
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied.  See the License for the specific language governing
- * permissions and limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
 package io.crate.protocols.ssl;
@@ -30,18 +29,19 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -50,7 +50,9 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.auth.AuthSettings;
+import io.crate.auth.Protocol;
 import io.crate.common.Optionals;
+import io.crate.common.annotations.VisibleForTesting;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -59,24 +61,42 @@ import io.netty.handler.ssl.SslProvider;
 @Singleton
 public class SslContextProvider {
 
+    private static final String TLS_VERSION = "TLSv1.2";
     private static final Logger LOGGER = LogManager.getLogger(SslContextProvider.class);
 
     private volatile SslContext sslContext;
 
     private final Settings settings;
+    private final String keystorePath;
+    private final char[] keystorePass;
+    private final char[] keystoreKeyPass;
+    private final String trustStorePath;
+    private final char[] trustStorePass;
+
+
 
     @Inject
     public SslContextProvider(Settings settings) {
         this.settings = settings;
+        this.keystorePath = SslSettings.SSL_KEYSTORE_FILEPATH.get(settings);
+        this.keystorePass = SslSettings.SSL_KEYSTORE_PASSWORD.get(settings).toCharArray();
+        this.keystoreKeyPass = SslSettings.SSL_KEYSTORE_KEY_PASSWORD.get(settings).toCharArray();
+
+        this.trustStorePath = SslSettings.SSL_TRUSTSTORE_FILEPATH.get(settings);
+        this.trustStorePass = SslSettings.SSL_TRUSTSTORE_PASSWORD.get(settings).toCharArray();
     }
 
-    public SslContext getSslContext() {
+    public SslContext getServerContext() {
+        return getServerContext(null);
+    }
+
+    public SslContext getServerContext(@Nullable Protocol protocol) {
         var localRef = sslContext;
         if (localRef == null) {
             synchronized (this) {
                 localRef = sslContext;
                 if (localRef == null) {
-                    sslContext = localRef = buildSslContext();
+                    sslContext = localRef = serverContext(protocol);
                 }
             }
         }
@@ -85,19 +105,25 @@ public class SslContextProvider {
 
     public void reloadSslContext() {
         synchronized (this) {
-            sslContext = buildSslContext();
+            sslContext = serverContext(null);
             LOGGER.info("SSL configuration is reloaded.");
         }
     }
 
-    private SslContext buildSslContext() {
-        var keystorePath = SslSettings.SSL_KEYSTORE_FILEPATH.get(settings);
-        var keystorePass = SslSettings.SSL_KEYSTORE_PASSWORD.get(settings).toCharArray();
-        var keystoreKeyPass = SslSettings.SSL_KEYSTORE_KEY_PASSWORD.get(settings).toCharArray();
+    @VisibleForTesting
+    public SSLContext jdkSSLContext() throws Exception {
+        var keyStore = loadKeyStore(keystorePath, keystorePass);
+        var keyManagers = createKeyManagers(keyStore, keystoreKeyPass);
 
-        var trustStorePath = SslSettings.SSL_TRUSTSTORE_FILEPATH.get(settings);
-        var trustStorePass = SslSettings.SSL_TRUSTSTORE_PASSWORD.get(settings).toCharArray();
+        var trustStore = Optionals.of(() -> loadKeyStore(trustStorePath, trustStorePass)).orElse(keyStore);
+        var trustManagers = createTrustManagers(trustStore);
 
+        SSLContext sslContext = SSLContext.getInstance(TLS_VERSION);
+        sslContext.init(keyManagers, trustManagers, null);
+        return sslContext;
+    }
+
+    public SslContext clientContext() {
         try {
             var keyStore = loadKeyStore(keystorePath, keystorePass);
             var keyManagers = createKeyManagers(keyStore, keystoreKeyPass);
@@ -107,12 +133,57 @@ public class SslContextProvider {
                 .map(SslContextProvider::createTrustManagers)
                 .orElseGet(() -> new TrustManager[0]);
 
-            // Use the newest SSL standard which is (at the time of writing) TLSv1.2
-            // If we just specify "TLS" here, it depends on the JVM implementation which version we'll get.
-            SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+            SSLContext sslContext = SSLContext.getInstance(TLS_VERSION);
             sslContext.init(keyManagers, trustManagers, null);
 
             var keyStoreRootCerts = getRootCertificates(keyStore);
+            var trustStoreRootCerts = trustStore
+                .map(SslContextProvider::getRootCertificates)
+                .orElseGet(() -> new X509Certificate[0]);
+            return SslContextBuilder
+                .forClient()
+                .keyManager(getKey(keyStore, keystoreKeyPass), getCertificateChain(keyStore))
+                .ciphers(List.of(sslContext.createSSLEngine().getEnabledCipherSuites()))
+                .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
+                .trustManager(concat(keyStoreRootCerts, trustStoreRootCerts))
+                .sessionCacheSize(0)
+                .sessionTimeout(0)
+                .startTls(false)
+                .sslProvider(SslProvider.JDK)
+                .build();
+        } catch (SslConfigurationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new SslConfigurationException("Failed to build SSL configuration: " + e.getMessage(), e);
+        }
+    }
+
+    @Nullable
+    private PrivateKey getKey(KeyStore keyStore, char[] password) throws Exception {
+        Enumeration<String> aliases = keyStore.aliases();
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            Key key = keyStore.getKey(alias, password);
+            if (key instanceof PrivateKey privateKey) {
+                return privateKey;
+            }
+        }
+        return null;
+    }
+
+    private SslContext serverContext(@Nullable Protocol protocol) {
+        try {
+            var keyStore = loadKeyStore(keystorePath, keystorePass);
+            var keyManagers = createKeyManagers(keyStore, keystoreKeyPass);
+
+            var trustStore = Optionals.of(() -> loadKeyStore(trustStorePath, trustStorePass));
+            var trustManagers = trustStore
+                .map(SslContextProvider::createTrustManagers)
+                .orElseGet(() -> new TrustManager[0]);
+
+            SSLContext sslContext = SSLContext.getInstance(TLS_VERSION);
+            sslContext.init(keyManagers, trustManagers, null);
+
             var keyStoreCertChain = getCertificateChain(keyStore);
             var trustStoreRootCerts = trustStore
                 .map(SslContextProvider::getRootCertificates)
@@ -122,8 +193,8 @@ public class SslContextProvider {
                 .forServer(privateKey, keyStoreCertChain)
                 .ciphers(List.of(sslContext.createSSLEngine().getEnabledCipherSuites()))
                 .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
-                .clientAuth(AuthSettings.resolveClientAuth(settings))
-                .trustManager(concat(keyStoreRootCerts, trustStoreRootCerts))
+                .clientAuth(AuthSettings.resolveClientAuth(settings, protocol))
+                .trustManager(concat(keyStoreCertChain, trustStoreRootCerts))
                 .sessionCacheSize(0)
                 .sessionTimeout(0)
                 .startTls(false)
@@ -173,11 +244,9 @@ public class SslContextProvider {
             Enumeration<String> aliases = keyStore.aliases();
             while (aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();
-                if (keyStore.isCertificateEntry(alias)) {
-                    var cert = (X509Certificate) keyStore.getCertificate(alias);
-                    if (cert != null) {
-                        certs.add(cert);
-                    }
+                Certificate certificate = keyStore.getCertificate(alias);
+                if (certificate instanceof X509Certificate x509Cert) {
+                    certs.add(x509Cert);
                 }
             }
         } catch (Exception e) {
