@@ -523,6 +523,7 @@ should be crossed out as well.
 - [ ] 5736dfb8c31 Warn on slow metadata performance (#50956)
 - [ ] d1deeaeb74c Allow proxy mode server name to be configured (#50774)
 - [ ] d9528406bf3 Use default profile for remote connections (#50828)
+- [x] b146740e052 Fix queuing in AsyncLucenePersistedState (#50958)
 - [x] 22ba759e1f3 Move metadata storage to Lucene (#50928)
 - [x] 0510af87868 Do not force refresh when write indexing buffer (#50769)
 - [x] 40801af8840 Import replicated closed dangling indices (#50649)
