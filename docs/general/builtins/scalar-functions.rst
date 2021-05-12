@@ -2491,12 +2491,17 @@ function supports arrays of any of the :ref:`primitive types
 ``array_sum(array)``
 --------------------
 
-Returns the sum of array elements that are not ``NULL``.
-Depending on the argument type a suitable return type is chosen. For ``real``
-and ``double precison`` argument types the return type is equal to the argument
-type. For ``char``, ``smallint``, ``integer`` and ``bigint`` the return type
-changes to ``bigint``. If the range of ``bigint`` values (-2^64 to 2^64-1) gets
-exceeded an ``ArithmeticException`` will be raised.
+Returns the sum of array elements that are not ``NULL``. If ``array`` is
+``NULL`` or an empty array, the function returns ``NULL``. This function
+supports arrays of any :ref:`numeric types
+<data-type-numeric>`. 
+
+For ``real`` and ``double precison`` arguments, the return type is equal to the
+argument type. For ``char``, ``smallint``, ``integer``, and ``bigint``
+arguments, the return type changes to ``bigint``.
+
+If any ``bigint`` value exceeds range limits (-2^64 to 2^64-1), an
+``ArithmeticException`` will be raised.
 
 ::
 
@@ -2527,6 +2532,29 @@ we cast the array to the numeric data type:
     +----------------------+
     | 18446744073709551614 |
     +----------------------+
+    SELECT 1 row in set (... sec)
+
+.. _scalar-array-avg:
+
+``array_avg(array)``
+--------------------
+
+Returns the average of all values in ``array`` that are not ``NULL`` If
+``array`` is ``NULL`` or an empty array, the function returns ``NULL``. This
+function supports arrays of any :ref:`numeric types <data-type-numeric>`.
+
+For ``real`` and ``double precison`` arguments, the return type is equal to the
+argument type. For ``char``, ``smallint``, ``integer``, and ``bigint``
+arguments, the return type is ``numeric``.
+
+::
+
+    cr> SELECT array_avg([1,2,3]) AS avg;
+    +-----+
+    | avg |
+    +-----+
+    |   2 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 .. _scalar-conditional-functions-expressions:

@@ -50,6 +50,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.net.ssl.SNIHostName;
 
+import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.BooleanQuery;
@@ -462,7 +463,7 @@ public class Node implements Closeable {
 
             UserLookup userLookup = new UserLookupService(clusterService);
             var authentication = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)
-                ? new HostBasedAuthentication(settings, userLookup)
+                ? new HostBasedAuthentication(settings, userLookup, SystemDefaultDnsResolver.INSTANCE)
                 : new AlwaysOKAuthentication(userLookup);
 
             final SslContextProvider sslContextProvider = new SslContextProvider(settings);

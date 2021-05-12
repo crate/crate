@@ -25,6 +25,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSortedMap;
 import io.crate.user.UserLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
+import org.apache.http.conn.DnsResolver;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.Cidrs;
 import org.elasticsearch.common.network.InetAddresses;
@@ -32,6 +35,8 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -39,6 +44,8 @@ import java.util.SortedMap;
 
 
 public class HostBasedAuthentication implements Authentication {
+
+    private static final Logger LOGGER = LogManager.getLogger(HostBasedAuthentication.class);
 
     private static final String DEFAULT_AUTH_METHOD = "trust";
     private static final String KEY_USER = "user";
@@ -73,11 +80,13 @@ public class HostBasedAuthentication implements Authentication {
      */
     private SortedMap<String, Map<String, String>> hbaConf;
     private final UserLookup userLookup;
+    private final DnsResolver dnsResolver;
 
     @Inject
-    public HostBasedAuthentication(Settings settings, UserLookup userLookup) {
+    public HostBasedAuthentication(Settings settings, UserLookup userLookup, DnsResolver dnsResolver) {
         hbaConf = convertHbaSettingsToHbaConf(settings);
         this.userLookup = userLookup;
+        this.dnsResolver = dnsResolver;
     }
 
     @VisibleForTesting
@@ -135,7 +144,7 @@ public class HostBasedAuthentication implements Authentication {
         }
         return hbaConf.entrySet().stream()
             .filter(e -> Matchers.isValidUser(e, user))
-            .filter(e -> Matchers.isValidAddress(e.getValue().get(KEY_ADDRESS), connectionProperties.address()))
+            .filter(e -> Matchers.isValidAddress(e.getValue().get(KEY_ADDRESS), connectionProperties.address(), dnsResolver))
             .filter(e -> Matchers.isValidProtocol(e.getValue().get(KEY_PROTOCOL), connectionProperties.protocol()))
             .filter(e -> Matchers.isValidConnection(e.getValue().get(SSL.KEY), connectionProperties))
             .findFirst();
@@ -153,20 +162,33 @@ public class HostBasedAuthentication implements Authentication {
             return hbaUser == null || user.equals(hbaUser);
         }
 
-        static boolean isValidAddress(@Nullable String hbaAddress, InetAddress address) {
-            if (hbaAddress == null) {
+        static boolean isValidAddress(@Nullable String hbaAddressOrHostname, InetAddress address, DnsResolver resolver) {
+            if (hbaAddressOrHostname == null) {
                 // no IP/CIDR --> 0.0.0.0/0 --> match all
                 return true;
             }
-            if (hbaAddress.equals("_local_")) {
+            if (hbaAddressOrHostname.equals("_local_")) {
                 // special case "_local_" which matches both IPv4 and IPv6 localhost addresses
                 return inetAddressToInt(address) == IPV4_LOCALHOST || inetAddressToInt(address) == IPV6_LOCALHOST;
             }
-            int p = hbaAddress.indexOf('/');
+            int p = hbaAddressOrHostname.indexOf('/');
             if (p < 0) {
-                return InetAddresses.forString(hbaAddress).equals(address);
+                try {
+                    if (hbaAddressOrHostname.startsWith(".")) {
+                        // not an ip address, subdomain
+                        var clientHostName = address.getCanonicalHostName();
+                        return clientHostName != null ? clientHostName.endsWith(hbaAddressOrHostname) : false;
+                    } else {
+                        // SystemDefaultDnsResolver is injected here and internally it uses InetAddress.getAllByName
+                        // which tries to treat argument as an ip address and then as a hostname.
+                        return Arrays.stream(resolver.resolve(hbaAddressOrHostname)).anyMatch(inetAddress -> inetAddress.equals(address));
+                    }
+                } catch (UnknownHostException e) {
+                    LOGGER.warn("Cannot resolve hostname {} specified in the HBA configuration.", hbaAddressOrHostname);
+                    return false;
+                }
             }
-            long[] minAndMax = Cidrs.cidrMaskToMinMax(hbaAddress);
+            long[] minAndMax = Cidrs.cidrMaskToMinMax(hbaAddressOrHostname);
             long addressAsLong = inetAddressToInt(address);
             return minAndMax[0] <= addressAsLong && addressAsLong < minAndMax[1];
         }

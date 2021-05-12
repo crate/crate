@@ -25,12 +25,11 @@ import io.crate.common.annotations.VisibleForTesting;
 
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
-import java.util.Objects;
 
 public class OverflowAwareMutableLong {
 
     private long primitiveSum;
-    private BigDecimal bigDecimalSum = null;
+    private BigDecimal bigDecimalSum = BigDecimal.ZERO;
     private boolean hasValue;
 
     public OverflowAwareMutableLong(long value) {
@@ -54,22 +53,21 @@ public class OverflowAwareMutableLong {
 
     public void add(long value) {
         hasValue = true;
-        if (bigDecimalSum == null) {
-            long newSum = primitiveSum + value;
-            if (((primitiveSum ^ newSum) & (value ^ newSum)) < 0) {
-                bigDecimalSum = BigDecimal.valueOf(primitiveSum).add(BigDecimal.valueOf(value));
-            } else {
-                primitiveSum = newSum;
-            }
+        // Check for overflow before it happens, taken from Math.addExact
+        long newSum = primitiveSum + value;
+        if (((primitiveSum ^ newSum) & (value ^ newSum)) < 0) {
+            // Overflow is about to happen, cannot add.
+            // Flushing gathered primitive sum and value to BigDecimal
+            bigDecimalSum = bigDecimalSum.add(BigDecimal.valueOf(primitiveSum)).add(BigDecimal.valueOf(value));
+            primitiveSum = 0; //Reset primitive after the flushing
         } else {
-            bigDecimalSum = bigDecimalSum.add(BigDecimal.valueOf(value));
+            // Keep gathering in primitive, overflow is not happening here.
+            primitiveSum += value;
         }
     }
 
     public BigDecimal value() {
-        return Objects.requireNonNullElseGet(
-            bigDecimalSum,
-            () -> BigDecimal.valueOf(primitiveSum)
-        );
+        // Adding residual unflushed value before return.
+        return bigDecimalSum.add(BigDecimal.valueOf(primitiveSum));
     }
 }
