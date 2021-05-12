@@ -97,7 +97,7 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
 
         Set<Path> indexPaths = uniqueParentPaths(shardDataPaths, indexMetadataPaths);
 
-        final PersistedClusterStateService persistedClusterStateService = createPersistedClusterStateService(dataPaths);
+        final PersistedClusterStateService persistedClusterStateService = createPersistedClusterStateService(env.settings(), dataPaths);
 
         final Metadata metadata = loadClusterState(terminal, env, persistedClusterStateService).metadata();
         if (indexPaths.isEmpty() && metadata.indices().isEmpty()) {
@@ -135,7 +135,7 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
             return;
         }
 
-        final PersistedClusterStateService persistedClusterStateService = createPersistedClusterStateService(dataPaths);
+        final PersistedClusterStateService persistedClusterStateService = createPersistedClusterStateService(env.settings(), dataPaths);
 
         final Metadata metadata = loadClusterState(terminal, env, persistedClusterStateService).metadata();
 
