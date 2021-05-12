@@ -29,10 +29,6 @@ import org.apache.lucene.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.coordination.DetachClusterCommand;
-import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
-import org.elasticsearch.cluster.coordination.NoMasterBlockService;
-import org.elasticsearch.cluster.coordination.UnsafeBootstrapMasterCommand;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -279,7 +275,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
 
         logger.info("--> unsafely-bootstrap 1st master-eligible node");
         MockTerminal terminal = unsafeBootstrap(environmentMaster1);
-        Metadata metadata = ElasticsearchNodeCommand.createPersistedClusterStateService(nodeEnvironment.nodeDataPaths())
+        Metadata metadata = ElasticsearchNodeCommand.createPersistedClusterStateService(Settings.EMPTY, nodeEnvironment.nodeDataPaths())
             .loadBestOnDiskState().metadata;
         assertThat(terminal.getOutput(), containsString(
             String.format(Locale.ROOT, UnsafeBootstrapMasterCommand.CLUSTER_STATE_TERM_VERSION_MSG_FORMAT,
@@ -406,7 +402,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void testCanRunUnsafeBootstrapAfterErroneousDetachWithoutLoosingMetaData() throws Exception {
+    public void testCanRunUnsafeBootstrapAfterErroneousDetachWithoutLoosingMetadata() throws Exception {
         internalCluster().setBootstrapMasterNodeIndex(0);
         String masterNode = internalCluster().startMasterOnlyNode();
         Settings masterNodeDataPathSettings = internalCluster().dataPathSettings(masterNode);

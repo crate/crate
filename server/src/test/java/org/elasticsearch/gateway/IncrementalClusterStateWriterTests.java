@@ -458,12 +458,12 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         final long slowWriteLoggingThresholdMillis;
         final Settings settings;
         if (randomBoolean()) {
-            slowWriteLoggingThresholdMillis = IncrementalClusterStateWriter.SLOW_WRITE_LOGGING_THRESHOLD.get(Settings.EMPTY).millis();
+            slowWriteLoggingThresholdMillis = PersistedClusterStateService.SLOW_WRITE_LOGGING_THRESHOLD.get(Settings.EMPTY).millis();
             settings = Settings.EMPTY;
         } else {
             slowWriteLoggingThresholdMillis = randomLongBetween(2, 100000);
             settings = Settings.builder()
-                .put(IncrementalClusterStateWriter.SLOW_WRITE_LOGGING_THRESHOLD.getKey(), slowWriteLoggingThresholdMillis + "ms")
+                .put(PersistedClusterStateService.SLOW_WRITE_LOGGING_THRESHOLD.getKey(), slowWriteLoggingThresholdMillis + "ms")
                 .build();
         }
 
@@ -504,7 +504,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             "*"));
 
         clusterSettings.applySettings(Settings.builder()
-            .put(IncrementalClusterStateWriter.SLOW_WRITE_LOGGING_THRESHOLD.getKey(), writeDurationMillis.get() + "ms")
+            .put(PersistedClusterStateService.SLOW_WRITE_LOGGING_THRESHOLD.getKey(), writeDurationMillis.get() + "ms")
             .build());
         assertExpectedLogs(clusterState, incrementalClusterStateWriter, new MockLogAppender.SeenEventExpectation(
             "should see warning at reduced threshold",
