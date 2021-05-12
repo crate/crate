@@ -60,6 +60,13 @@ public class SnapshotsInProgressSerializationTests extends AbstractDiffableWireS
         for (int i = 0; i < numberOfIndices; i++) {
             indices.add(new IndexId(randomAlphaOfLength(10), randomAlphaOfLength(10)));
         }
+        List<String> templates = new ArrayList<>();
+        if (includeGlobalState == false) {
+            int numberOfTemplates = randomIntBetween(0, 5);
+            for (int i = 0; i < numberOfTemplates; i++) {
+                templates.add(randomAlphaOfLength(10));
+            }
+        }
         long startTime = randomLong();
         long repositoryStateId = randomLong();
         ImmutableOpenMap.Builder<ShardId, SnapshotsInProgress.ShardSnapshotStatus> builder = ImmutableOpenMap.builder();
@@ -79,7 +86,7 @@ public class SnapshotsInProgressSerializationTests extends AbstractDiffableWireS
             }
         }
         ImmutableOpenMap<ShardId, SnapshotsInProgress.ShardSnapshotStatus> shards = builder.build();
-        return new Entry(snapshot, includeGlobalState, partial, state, indices, startTime, repositoryStateId, shards, randomBoolean());
+        return new Entry(snapshot, includeGlobalState, partial, state, indices, templates, startTime, repositoryStateId, shards, randomBoolean());
     }
 
     @Override

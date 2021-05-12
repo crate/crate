@@ -293,6 +293,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         request.includeGlobalState(), request.partial(),
                         State.INIT,
                         snapshotIndices,
+                        List.of(request.templates()),
                         threadPool.absoluteTimeInMillis(),
                         repositoryData.getGenId(),
                         null,
@@ -596,6 +597,9 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             Metadata.Builder builder = Metadata.builder();
             for (IndexId index : snapshot.indices()) {
                 builder.put(metadata.index(index.getName()), false);
+            }
+            for (String template : snapshot.templates()) {
+                builder.put(metadata.templates().get(template));
             }
             metadata = builder.build();
         }
