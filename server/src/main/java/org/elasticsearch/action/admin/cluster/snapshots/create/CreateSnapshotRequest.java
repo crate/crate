@@ -20,6 +20,7 @@
 package org.elasticsearch.action.admin.cluster.snapshots.create;
 
 import org.elasticsearch.ElasticsearchGenerationException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
@@ -68,6 +69,8 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
 
     private String[] indices = EMPTY_ARRAY;
 
+    private String[] templates = EMPTY_ARRAY;
+
     private IndicesOptions indicesOptions = IndicesOptions.strictExpandOpen();
 
     private boolean partial = false;
@@ -98,6 +101,9 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
         repository = in.readString();
         indices = in.readStringArray();
         indicesOptions = IndicesOptions.readIndicesOptions(in);
+        if (in.getVersion().after(Version.V_4_5_1)) {
+            templates = in.readStringArray();
+        }
         settings = readSettingsFromStream(in);
         includeGlobalState = in.readBoolean();
         waitForCompletion = in.readBoolean();
@@ -111,6 +117,9 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
         out.writeString(repository);
         out.writeStringArray(indices);
         indicesOptions.writeIndicesOptions(out);
+        if (out.getVersion().after(Version.V_4_5_1)) {
+            out.writeStringArray(templates);
+        }
         writeSettingsToStream(settings, out);
         out.writeBoolean(includeGlobalState);
         out.writeBoolean(waitForCompletion);
@@ -214,6 +223,15 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
     public CreateSnapshotRequest indicesOptions(IndicesOptions indicesOptions) {
         this.indicesOptions = indicesOptions;
         return this;
+    }
+
+    public CreateSnapshotRequest templates(List<String> templates) {
+        this.templates = templates.toArray(new String[0]);
+        return this;
+    }
+
+    public String[] templates() {
+        return templates;
     }
 
 
