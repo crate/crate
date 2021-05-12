@@ -59,6 +59,12 @@ None
 Fixes
 =====
 
+- Fixed an issue that resulted in more data being snapshot than expected if
+  only concrete tables were snapshot by the
+  ``CREATE SNAPSHOT ... TABLE [table, ...]``. Instead of just the concrete
+  tables, also the metadata of partitioned table, views, users, etc. were
+  falsely stored.
+
 - Fixed an issue that resulted in a non-executable plan if a windows function
   result from a sub-select is used inside a query filter. An example::
 

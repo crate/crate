@@ -90,6 +90,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         private final boolean partial;
         private final ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards;
         private final List<IndexId> indices;
+        private final List<String> templates;
         private final ImmutableOpenMap<String, List<ShardId>> waitingIndices;
         private final long startTime;
         private final long repositoryStateId;
@@ -97,6 +98,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         @Nullable private final String failure;
 
         public Entry(Snapshot snapshot, boolean includeGlobalState, boolean partial, State state, List<IndexId> indices,
+                     List<String> templates,
                      long startTime, long repositoryStateId, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards,
                      String failure, boolean useShardGenerations) {
             this.state = state;
@@ -104,6 +106,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             this.includeGlobalState = includeGlobalState;
             this.partial = partial;
             this.indices = indices;
+            this.templates = templates;
             this.startTime = startTime;
             if (shards == null) {
                 this.shards = ImmutableOpenMap.of();
@@ -119,17 +122,18 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         }
 
         public Entry(Snapshot snapshot, boolean includeGlobalState, boolean partial, State state, List<IndexId> indices,
+                     List<String> templates,
                      long startTime, long repositoryStateId, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards, boolean useShardGenerations) {
-            this(snapshot, includeGlobalState, partial, state, indices, startTime, repositoryStateId, shards, null, useShardGenerations);
+            this(snapshot, includeGlobalState, partial, state, indices, templates, startTime, repositoryStateId, shards, null, useShardGenerations);
         }
 
         public Entry(Entry entry, State state, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
-            this(entry.snapshot, entry.includeGlobalState, entry.partial, state, entry.indices, entry.startTime,
+            this(entry.snapshot, entry.includeGlobalState, entry.partial, state, entry.indices, entry.templates, entry.startTime,
                 entry.repositoryStateId, shards, entry.failure, entry.useShardGenerations);
         }
 
         public Entry(Entry entry, State state, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards, String failure) {
-            this(entry.snapshot, entry.includeGlobalState, entry.partial, state, entry.indices, entry.startTime,
+            this(entry.snapshot, entry.includeGlobalState, entry.partial, state, entry.indices, entry.templates, entry.startTime,
                 entry.repositoryStateId, shards, failure, entry.useShardGenerations);
         }
 
@@ -164,6 +168,10 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
 
         public List<IndexId> indices() {
             return indices;
+        }
+
+        public List<String> templates() {
+            return templates;
         }
 
         public ImmutableOpenMap<String, List<ShardId>> waitingIndices() {
@@ -469,6 +477,10 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             for (int j = 0; j < indices; j++) {
                 indexBuilder.add(new IndexId(in.readString(), in.readString()));
             }
+            List<String> templates = List.of();
+            if (in.getVersion().after(Version.V_4_5_1)) {
+                templates = List.of(in.readStringArray());
+            }
             final long startTime = in.readLong();
             ImmutableOpenMap.Builder<ShardId, ShardSnapshotStatus> builder = ImmutableOpenMap.builder();
             final int shards = in.readVInt();
@@ -489,6 +501,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
                 partial,
                 state,
                 Collections.unmodifiableList(indexBuilder),
+                templates,
                 startTime,
                 repositoryStateId,
                 builder.build(),
@@ -509,6 +522,9 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             out.writeVInt(entry.indices().size());
             for (IndexId index : entry.indices()) {
                 index.writeTo(out);
+            }
+            if (out.getVersion().after(Version.V_4_5_1)) {
+                out.writeStringArray(entry.templates.toArray(new String[0]));
             }
             out.writeLong(entry.startTime());
             out.writeVInt(entry.shards().size());
