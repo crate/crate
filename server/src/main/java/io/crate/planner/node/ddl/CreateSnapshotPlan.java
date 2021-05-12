@@ -37,6 +37,7 @@ import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -137,6 +138,7 @@ public class CreateSnapshotPlan implements Plan {
         boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(settings);
 
         final HashSet<String> snapshotIndices;
+        final HashSet<String> templates = new HashSet<>();
         if (createSnapshot.tables().isEmpty()) {
             for (SchemaInfo schemaInfo : schemas) {
                 for (TableInfo tableInfo : schemaInfo.getTables()) {
@@ -167,6 +169,12 @@ public class CreateSnapshotPlan implements Plan {
                         throw e;
                     }
                 }
+                if (docTableInfo.isPartitioned()) {
+                    templates.add(
+                        PartitionName.templateName(docTableInfo.ident().schema(), docTableInfo.ident().name())
+                    );
+                }
+
                 if (table.partitionProperties().isEmpty()) {
                     snapshotIndices.addAll(Arrays.asList(docTableInfo.concreteIndices()));
                 } else {
@@ -193,7 +201,7 @@ public class CreateSnapshotPlan implements Plan {
             createSnapshot.snapshot().getRepository(),
             createSnapshot.snapshot().getSnapshotId().getName()
         )
-            .includeGlobalState(true)
+            .includeGlobalState(createSnapshot.tables().isEmpty())
             .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
             .indices(snapshotIndices.toArray(new String[0]))
             .indicesOptions(
@@ -203,6 +211,7 @@ public class CreateSnapshotPlan implements Plan {
                     true,
                     false,
                     IndicesOptions.lenientExpandOpen()))
+            .templates(templates.stream().toList())
             .settings(settings);
     }
 }

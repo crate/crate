@@ -256,11 +256,11 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
                 " TABLE custom.backmeup PARTITION (date='1970-01-01')  WITH (wait_for_completion=true)");
         assertThat(response.rowCount(), is(1L));
 
-        execute("select name, \"repository\", concrete_indices, state from sys.snapshots order by 2");
+        execute("select name, \"repository\", concrete_indices, tables, state from sys.snapshots order by 2");
         assertThat(printedTable(response.rows()),
-                   is("my_snapshot| my_repo| [custom..partitioned.backmeup.04130]| SUCCESS\n" +
+                   is("my_snapshot| my_repo| [custom..partitioned.backmeup.04130]| [custom.backmeup]| SUCCESS\n" +
                // shows up twice because the repos have the same fs path.
-               "my_snapshot| my_repo_ro| [custom..partitioned.backmeup.04130]| SUCCESS\n"));
+               "my_snapshot| my_repo_ro| [custom..partitioned.backmeup.04130]| [custom.backmeup]| SUCCESS\n"));
     }
 
     @Test
@@ -727,6 +727,26 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
         assertThat(response.rowCount(), is(0L));
 
         execute("SELECT type FROM sys.privileges WHERE grantee = 'my_user'");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void test_create_snapshot_tables_does_not_store_global_state() {
+        createTable("custom.t1", false);
+        execute("CREATE USER my_user");
+
+        execute("CREATE SNAPSHOT " + snapshotName() + " TABLE custom.t1 WITH (wait_for_completion=true)");
+
+        execute("DROP TABLE custom.t1");
+        execute("DROP USER my_user");
+
+        // restore everything from the snapshot to validate that it only contains the table
+        execute("RESTORE SNAPSHOT " + snapshotName() + " ALL");
+
+        execute("SELECT table_name FROM information_schema.tables WHERE table_name = 't1'");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("SELECT name FROM sys.users WHERE name = 'my_user'");
         assertThat(response.rowCount(), is(0L));
     }
 

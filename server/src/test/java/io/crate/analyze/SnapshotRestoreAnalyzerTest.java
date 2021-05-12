@@ -194,6 +194,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
             e,
             "CREATE SNAPSHOT my_repo.my_snapshot TABLE users, locations " +
             "WITH (wait_for_completion=true)");
+        assertThat(request.includeGlobalState(), is(false));
         assertThat(request.indices(), arrayContainingInAnyOrder("users", "locations"));
         assertThat(request.repository(), is("my_repo"));
         assertThat(request.snapshot(), is("my_snapshot"));
@@ -258,6 +259,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 ".partitioned.parted.0400",
                 ".partitioned.parted.04732cpp6ksjcc9i60o30c1g")
         );
+        assertThat(request.includeGlobalState(), is(false));
+        assertThat(request.templates(), arrayContainingInAnyOrder(".partitioned.parted."));
     }
 
     @Test
