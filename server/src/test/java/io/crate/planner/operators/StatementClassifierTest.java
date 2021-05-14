@@ -32,6 +32,7 @@ import java.io.IOException;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
 public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
@@ -132,5 +133,21 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.INSERT));
         assertThat(classification.labels(), contains("TableFunction"));
+    }
+
+    @Test
+    public void test_classify_multiphase_delete_statement() {
+        Plan plan = e.plan("DELETE FROM users WHERE id in (SELECT id from users)");
+        StatementClassifier.Classification classification = StatementClassifier.classify(plan);
+        assertThat(classification.type(), is(Plan.StatementType.DELETE));
+        assertThat(classification.labels(), is(empty()));
+    }
+
+    @Test
+    public void test_classify_multiphase_update_statement() {
+        Plan plan = e.plan("UPDATE users set name = 'a' WHERE id in (SELECT id from users)");
+        StatementClassifier.Classification classification = StatementClassifier.classify(plan);
+        assertThat(classification.type(), is(Plan.StatementType.UPDATE));
+        assertThat(classification.labels(), is(empty()));
     }
 }
