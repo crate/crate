@@ -22,20 +22,29 @@
 
 package io.crate.planner.operators;
 
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Row;
+import io.crate.execution.dsl.phases.NestedLoopPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
+import io.crate.planner.ExecutionPlan;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.node.dql.join.Join;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.junit.Test;
+import org.mockito.internal.matchers.Null;
 
 import java.util.List;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class CollectTest extends CrateDummyClusterServiceUnitTest {
 
@@ -57,5 +66,25 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collect.estimatedRowSize(), is(DataTypes.INTEGER.fixedSize() * 2L));
         LogicalPlan prunedCollect = collect.pruneOutputsExcept(tableStats, List.of(x));
         assertThat(prunedCollect.estimatedRowSize(), is((long) DataTypes.INTEGER.fixedSize()));
+    }
+
+    @Test
+    public void test() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE t (x int)")
+            .build();
+        TableStats tableStats = new TableStats();
+        PlannerContext plannerCtx = e.getPlannerContext(clusterService.state());
+        ProjectionBuilder projectionBuilder = new ProjectionBuilder(e.nodeCtx);
+        QueriedSelectRelation analyzedRelation = e.analyze("SELECT 123 AS alias, 456 AS alias2 FROM t ORDER BY alias, 2");
+        LogicalPlanner logicalPlanner = new LogicalPlanner(
+            e.nodeCtx,
+            tableStats,
+            () -> clusterService.state().nodes().getMinNodeVersion()
+        );
+        LogicalPlan operator = logicalPlanner.plan(analyzedRelation, plannerCtx);
+        ExecutionPlan build = operator.build(plannerCtx, projectionBuilder, -1, 0, null,
+                                             null, Row.EMPTY, SubQueryResults.EMPTY);
+        assertThat((((RoutedCollectPhase) ((io.crate.planner.node.dql.Collect) build).collectPhase())).orderBy(), is(nullValue()));
     }
 }

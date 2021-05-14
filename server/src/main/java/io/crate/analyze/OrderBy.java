@@ -216,6 +216,7 @@ public class OrderBy implements Writeable {
     public String toString() {
         StringBuilder sb = new StringBuilder("OrderBy{");
         explainRepresentation(sb, orderBySymbols, reverseFlags, nullsFirst, Symbol::toString);
+        sb.append("}");
         return sb.toString();
     }
 
