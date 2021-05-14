@@ -35,6 +35,7 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Literal;
@@ -155,7 +156,8 @@ public class Collect implements LogicalPlan {
                 order.map(binder)
                     // Filter out literal constants as ordering by constants is a NO-OP and also not supported
                     // on the collect operation.
-                    .exclude(s -> s instanceof Literal));
+                    .exclude(s -> s instanceof Literal ||
+                                  s instanceof AliasSymbol alias && alias.symbol() instanceof Literal));
         }
         int limitAndOffset = limitAndOffset(limit, offset);
         maybeApplyPageSize(limitAndOffset, pageSizeHint, collectPhase);
