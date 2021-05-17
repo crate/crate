@@ -19,24 +19,6 @@
 
 package org.elasticsearch.common.xcontent;
 
-import io.crate.types.Regclass;
-import io.crate.types.Regproc;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.time.DateFormatter;
-import org.elasticsearch.common.time.DateFormatters;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.Instant;
-import org.joda.time.MutableDateTime;
-import org.joda.time.ReadableInstant;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
-import org.joda.time.tz.CachedDateTimeZone;
-import org.joda.time.tz.FixedDateTimeZone;
-
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -58,12 +40,37 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.time.DateFormatter;
+import org.elasticsearch.common.time.DateFormatters;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.Instant;
+import org.joda.time.MutableDateTime;
+import org.joda.time.ReadableInstant;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
+import org.joda.time.tz.CachedDateTimeZone;
+import org.joda.time.tz.FixedDateTimeZone;
+import org.locationtech.spatial4j.shape.Point;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
+import org.locationtech.spatial4j.shape.jts.JtsPoint;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.data.RowN;
+import io.crate.types.IntervalType;
+import io.crate.types.Regclass;
+import io.crate.types.Regproc;
+import io.crate.types.TimeTZ;
+
 /**
- * SPI extensions for Elasticsearch-specific classes (like the Lucene or Joda
+ * SPI extensions for ES/CrateDB-specific classes (like the Lucene or Joda
  * dependency classes) that need to be encoded by {@link XContentBuilder} in a
  * specific way.
  */
-public class XContentElasticsearchExtension implements XContentBuilderExtension {
+public class ServerXContentExtension implements XContentBuilderExtension {
 
     public static final DateTimeFormatter DEFAULT_DATE_PRINTER = ISODateTimeFormat.dateTime().withZone(DateTimeZone.UTC);
     public static final DateFormatter DEFAULT_FORMATTER = DateFormatters.forPattern("strict_date_optional_time_nanos");
@@ -95,6 +102,10 @@ public class XContentElasticsearchExtension implements XContentBuilderExtension 
         writers.put(Year.class, (b, v) -> b.value(v.toString()));
         writers.put(Duration.class, (b, v) -> b.value(v.toString()));
         writers.put(Period.class, (b, v) -> b.value(v.toString()));
+        writers.put(org.joda.time.Period.class, (b, v) -> {
+            org.joda.time.Period period = (org.joda.time.Period) v;
+            b.value(IntervalType.PERIOD_FORMATTER.print(period));
+        });
         writers.put(BytesReference.class, (b, v) -> {
             if (v == null) {
                 b.nullValue();
@@ -113,6 +124,35 @@ public class XContentElasticsearchExtension implements XContentBuilderExtension 
         });
         writers.put(Regproc.class, (b, v) -> b.value(((Regproc) v).name()));
         writers.put(Regclass.class, (b, v) -> b.value(((Regclass) v).oid()));
+        writers.put(PointImpl.class, (b, v) -> {
+            Point point = (Point) v;
+            b.startArray();
+            b.value(point.getX());
+            b.value(point.getY());
+            b.endArray();
+        });
+        writers.put(JtsPoint.class, (b, v) -> {
+            Point point = (Point) v;
+            b.startArray();
+            b.value(point.getX());
+            b.value(point.getY());
+            b.endArray();
+        });
+        writers.put(RowN.class, (b, v) -> {
+            RowN row = (RowN) v;
+            b.startArray();
+            for (int i = 0; i < row.numColumns(); i++) {
+                b.value(row.get(i));
+            }
+            b.endArray();
+        });
+        writers.put(TimeTZ.class, (b, v) -> {
+            TimeTZ timetz = (TimeTZ) v;
+            b.startArray();
+            b.value(timetz.getMicrosFromMidnight());
+            b.value(timetz.getSecondsFromUTC());
+            b.endArray();
+        });
         return writers;
     }
 
