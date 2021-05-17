@@ -260,10 +260,4 @@ public class SeqNoFieldMapper extends MetadataFieldMapper {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         return builder;
     }
-
-    @Override
-    protected void doMerge(Mapper mergeWith) {
-        // nothing to do
-    }
-
 }

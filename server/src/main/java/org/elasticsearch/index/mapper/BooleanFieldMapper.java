@@ -244,6 +244,11 @@ public class BooleanFieldMapper extends FieldMapper {
     }
 
     @Override
+    protected void mergeOptions(FieldMapper other, List<String> conflicts) {
+
+    }
+
+    @Override
     protected String contentType() {
         return CONTENT_TYPE;
     }

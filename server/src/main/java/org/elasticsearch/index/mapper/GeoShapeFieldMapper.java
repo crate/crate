@@ -350,34 +350,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
             defaultStrategy.setPointsOnly(pointsOnly);
         }
 
-        @Override
-        public void checkCompatibility(MappedFieldType fieldType, List<String> conflicts) {
-            super.checkCompatibility(fieldType, conflicts);
-            GeoShapeFieldType other = (GeoShapeFieldType)fieldType;
-            // prevent user from changing strategies
-            if (strategyName().equals(other.strategyName()) == false) {
-                conflicts.add("mapper [" + name() + "] has different [strategy]");
-            }
-
-            // prevent user from changing trees (changes encoding)
-            if (tree().equals(other.tree()) == false) {
-                conflicts.add("mapper [" + name() + "] has different [tree]");
-            }
-
-            if ((pointsOnly() != other.pointsOnly())) {
-                conflicts.add("mapper [" + name() + "] has different points_only");
-            }
-
-            // TODO we should allow this, but at the moment levels is used to build bookkeeping variables
-            // in lucene's SpatialPrefixTree implementations, need a patch to correct that first
-            if (treeLevels() != other.treeLevels()) {
-                conflicts.add("mapper [" + name() + "] has different [tree_levels]");
-            }
-            if (precisionInMeters() != other.precisionInMeters()) {
-                conflicts.add("mapper [" + name() + "] has different [precision]");
-            }
-        }
-
         private static int getLevels(int treeLevels, double precisionInMeters, int defaultLevels, boolean geoHash) {
             if (treeLevels > 0 || precisionInMeters >= 0) {
                 return Math.max(treeLevels, precisionInMeters >= 0 ? (geoHash ? GeoUtils.geoHashLevelsForPrecision(precisionInMeters)
@@ -559,10 +531,8 @@ public class GeoShapeFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void doMerge(Mapper mergeWith) {
-        super.doMerge(mergeWith);
-
-        GeoShapeFieldMapper gsfm = (GeoShapeFieldMapper)mergeWith;
+    protected void mergeOptions(FieldMapper other, List<String> conflicts) {
+        GeoShapeFieldMapper gsfm = (GeoShapeFieldMapper) other;
         if (gsfm.coerce.explicit()) {
             this.coerce = gsfm.coerce;
         }
@@ -571,6 +541,27 @@ public class GeoShapeFieldMapper extends FieldMapper {
         }
         if (gsfm.ignoreZValue.explicit()) {
             this.ignoreZValue = gsfm.ignoreZValue;
+        }
+        // prevent user from changing strategies
+        if (fieldType().strategyName().equals(gsfm.fieldType().strategyName()) == false) {
+            conflicts.add("mapper [" + name() + "] has different [strategy]");
+        }
+        // prevent user from changing trees (changes encoding)
+        if (fieldType().tree().equals(gsfm.fieldType().tree()) == false) {
+            conflicts.add("mapper [" + name() + "] has different [tree]");
+        }
+
+        if ((fieldType().pointsOnly() != gsfm.fieldType().pointsOnly())) {
+            conflicts.add("mapper [" + name() + "] has different points_only");
+        }
+
+        // TODO we should allow this, but at the moment levels is used to build bookkeeping variables
+        // in lucene's SpatialPrefixTree implementations, need a patch to correct that first
+        if (fieldType().treeLevels() != gsfm.fieldType().treeLevels()) {
+            conflicts.add("mapper [" + name() + "] has different [tree_levels]");
+        }
+        if (fieldType().precisionInMeters() != gsfm.fieldType().precisionInMeters()) {
+            conflicts.add("mapper [" + name() + "] has different [precision]");
         }
     }
 
