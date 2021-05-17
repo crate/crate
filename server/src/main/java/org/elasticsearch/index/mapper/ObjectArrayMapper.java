@@ -41,11 +41,11 @@ import java.util.Map;
  */
 public class ObjectArrayMapper extends ObjectMapper {
 
-    static class Builder extends ObjectMapper.Builder {
+    static class Builder extends ObjectMapper.Builder<Builder> {
 
-        private final ObjectMapper.Builder innerBuilder;
+        private final ObjectMapper.Builder<?> innerBuilder;
 
-        Builder(String name, ObjectMapper.Builder innerBuilder) {
+        Builder(String name, ObjectMapper.Builder<?> innerBuilder) {
             super(name);
             this.innerBuilder = innerBuilder;
         }
@@ -61,7 +61,7 @@ public class ObjectArrayMapper extends ObjectMapper {
                                             String fullPath,
                                             boolean enabled,
                                             Dynamic dynamic,
-                                            Map mappers,
+                                            Map<String, Mapper> mappers,
                                             @Nullable Settings settings) {
             return new ObjectArrayMapper(
                 name,

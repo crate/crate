@@ -29,8 +29,8 @@ import org.joda.time.DateTimeZone;
  */
 public abstract class SimpleMappedFieldType extends MappedFieldType {
 
-    protected SimpleMappedFieldType() {
-        super();
+    protected SimpleMappedFieldType(String name, boolean isSearchable, boolean hasDocValues) {
+        super(name, isSearchable, hasDocValues);
     }
 
     protected SimpleMappedFieldType(MappedFieldType ref) {

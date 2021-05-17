@@ -26,6 +26,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.IndexSettings;
+import org.junit.Test;
 
 import java.util.List;
 
@@ -47,6 +48,7 @@ public class CloseIndexIT extends SQLIntegrationTestCase {
      * Test for https://github.com/elastic/elasticsearch/issues/47276 which checks that the persisted metadata on a data node does not
      * become inconsistent when using replicated closed indices.
      */
+    @Test
     public void testRelocatedClosedIndexIssue() throws Exception {
         final List<String> dataNodes = internalCluster().startDataOnlyNodes(2);
         // allocate shard to first data node

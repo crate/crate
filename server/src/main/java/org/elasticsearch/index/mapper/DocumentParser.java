@@ -576,7 +576,7 @@ final class DocumentParser {
         }
     }
 
-    private static Mapper.Builder<?,?> createBuilderFromFieldType(final ParseContext context, MappedFieldType fieldType, String currentFieldName) {
+    private static Mapper.Builder<?> createBuilderFromFieldType(final ParseContext context, MappedFieldType fieldType, String currentFieldName) {
         Mapper.Builder builder = null;
         if (fieldType instanceof TextFieldType) {
             builder = context.root().findTemplateBuilder(context, currentFieldName, "text", XContentFieldType.STRING);
@@ -622,15 +622,15 @@ final class DocumentParser {
         return builder;
     }
 
-    private static Mapper.Builder<?, ?> newLongBuilder(String name) {
+    private static Mapper.Builder<?> newLongBuilder(String name) {
         return new NumberFieldMapper.Builder(name, NumberFieldMapper.NumberType.LONG);
     }
 
-    private static Mapper.Builder<?, ?> newFloatBuilder(String name) {
+    private static Mapper.Builder<?> newFloatBuilder(String name) {
         return new NumberFieldMapper.Builder(name, NumberFieldMapper.NumberType.FLOAT);
     }
 
-    static Mapper.Builder<?,?> createBuilderFromDynamicValue(final ParseContext context, XContentParser.Token token, String currentFieldName) throws IOException {
+    static Mapper.Builder<?> createBuilderFromDynamicValue(final ParseContext context, XContentParser.Token token, String currentFieldName) throws IOException {
         if (token == XContentParser.Token.VALUE_STRING) {
             Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.STRING);
             if (builder == null) {
@@ -687,11 +687,11 @@ final class DocumentParser {
             return;
         }
         final Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
-        final Mapper.Builder builder = createBuilderFromDynamicValue(context, token, currentFieldName);
+        final Mapper.Builder<?> builder = createBuilderFromDynamicValue(context, token, currentFieldName);
         if (parentMapper.equals(context.root())) {
             int position = getPositionForDynamicField(context, parentMapper);
-            if (builder instanceof FieldMapper.Builder) {
-                ((FieldMapper.Builder) builder).position(position);
+            if (builder instanceof FieldMapper.Builder<?> fieldMapperBuilder) {
+                fieldMapperBuilder.position(position);
             }
         }
         Mapper mapper = builder.build(builderContext);

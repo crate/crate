@@ -105,8 +105,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             DataTypes.LONG
         );
 
-        var aggregationField = new NumberFieldMapper.NumberFieldType(NumberFieldMapper.NumberType.LONG);
-        aggregationField.setName("z");
+        var aggregationField = new NumberFieldMapper.NumberFieldType("z", NumberFieldMapper.NumberType.LONG);
         var sumDocValuesAggregator = sumAggregation.getDocValueAggregator(
             List.of(DataTypes.LONG),
             List.of(aggregationField)
@@ -148,8 +147,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             DataTypes.LONG
         );
 
-        var aggregationField = new NumberFieldMapper.NumberFieldType(NumberFieldMapper.NumberType.LONG);
-        aggregationField.setName("z");
+        var aggregationField = new NumberFieldMapper.NumberFieldType("z", NumberFieldMapper.NumberType.LONG);
         var sumDocValuesAggregator = sumAggregation.getDocValueAggregator(
             List.of(DataTypes.LONG),
             List.of(aggregationField)

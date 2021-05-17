@@ -41,6 +41,7 @@ import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -162,8 +163,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     @Before
     public void setUp() {
-        valueFieldType = new NumberFieldMapper.NumberFieldType(fieldType);
-        valueFieldType.setName("value");
+        valueFieldType = new NumberFieldMapper.NumberFieldType("value", fieldType);
     }
 
     @Test
@@ -279,19 +279,18 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     @Test
     public void testSearchMoreAppliesMinScoreFilter() throws Exception {
         IndexWriter w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
-        KeywordFieldMapper.KeywordFieldType fieldType = new KeywordFieldMapper.KeywordFieldType();
-        fieldType.setName("x");
-        fieldType.freeze();
+        var keywordFieldType = new KeywordFieldMapper.KeywordFieldType("x");
+        var fieldType = KeywordFieldMapper.Defaults.FIELD_TYPE;
 
         for (int i = 0; i < 3; i++) {
-            addDoc(w, fieldType, "Arthur");
+            addDoc(w, "x", fieldType, "Arthur");
         }
-        addDoc(w, fieldType, "Arthurr"); // not "Arthur" to lower score
+        addDoc(w, "x", fieldType, "Arthurr"); // not "Arthur" to lower score
         w.commit();
         IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(w, true, true));
 
         List<LuceneCollectorExpression<?>> columnReferences = Collections.singletonList(new ScoreCollectorExpression());
-        Query query = fieldType.fuzzyQuery("Arthur", Fuzziness.AUTO, 2, 3, true);
+        Query query = keywordFieldType.fuzzyQuery("Arthur", Fuzziness.AUTO, 2, 3, true);
         LuceneOrderedDocCollector collector;
 
         // without minScore filter we get 2 and 2 docs - this is not necessary for the test but is here
@@ -321,19 +320,19 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     @Test
     public void testSearchNoScores() throws Exception {
         IndexWriter w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
-        KeywordFieldMapper.KeywordFieldType fieldType = new KeywordFieldMapper.KeywordFieldType();
-        fieldType.setName("x");
-        fieldType.freeze();
+        String name = "x";
+        var keywordFieldType = new KeywordFieldMapper.KeywordFieldType(name);
+        var fieldType = KeywordFieldMapper.Defaults.FIELD_TYPE;
 
         for (int i = 0; i < 3; i++) {
-            addDoc(w, fieldType, "Arthur");
+            addDoc(w, name, fieldType, "Arthur");
         }
-        addDoc(w, fieldType, "Arthur"); // not "Arthur" to lower score
+        addDoc(w, name, fieldType, "Arthur"); // not "Arthur" to lower score
         w.commit();
         IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(w, true, true));
 
         List<LuceneCollectorExpression<?>> columnReferences = Collections.singletonList(new ScoreCollectorExpression());
-        Query query = fieldType.termsQuery(Collections.singletonList("Arthur"), null);
+        Query query = keywordFieldType.termsQuery(Collections.singletonList("Arthur"), null);
         LuceneOrderedDocCollector collector = collector(searcher, columnReferences, query, null, false);
         KeyIterable<ShardId, Row> result = collector.collect();
 
@@ -348,19 +347,18 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     @Test
     public void testSearchWithScores() throws Exception {
         IndexWriter w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
-        KeywordFieldMapper.KeywordFieldType fieldType = new KeywordFieldMapper.KeywordFieldType();
-        fieldType.setName("x");
-        fieldType.freeze();
 
+        FieldType fieldType = KeywordFieldMapper.Defaults.FIELD_TYPE;
         for (int i = 0; i < 3; i++) {
-            addDoc(w, fieldType, "Arthur");
+            addDoc(w, "x", fieldType, "Arthur");
         }
-        addDoc(w, fieldType, "Arthur"); // not "Arthur" to lower score
+        addDoc(w, "x", fieldType, "Arthur"); // not "Arthur" to lower score
         w.commit();
         IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(w, true, true));
 
         List<LuceneCollectorExpression<?>> columnReferences = Collections.singletonList(new ScoreCollectorExpression());
-        Query query = fieldType.termsQuery(Collections.singletonList("Arthur"), null);
+        var keywordFieldType = new KeywordFieldMapper.KeywordFieldType("x");
+        Query query = keywordFieldType.termsQuery(Collections.singletonList("Arthur"), null);
         LuceneOrderedDocCollector collector = collector(searcher, columnReferences, query, null, true);
         KeyIterable<ShardId, Row> result = collector.collect();
 
@@ -372,9 +370,9 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         assertThat(values.next().get(0), Matchers.is(1.0F));
     }
 
-    private static void addDoc(IndexWriter w, KeywordFieldMapper.KeywordFieldType fieldType, String value) throws IOException {
+    private static void addDoc(IndexWriter w, String name, FieldType fieldType, String value) throws IOException {
         Document doc = new Document();
-        Field field = new Field(fieldType.name(), value, fieldType);
+        Field field = new Field(name, value, fieldType);
         doc.add(field);
         w.addDocument(doc);
     }

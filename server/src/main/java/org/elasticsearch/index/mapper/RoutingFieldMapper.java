@@ -20,6 +20,7 @@
 package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
@@ -46,28 +47,25 @@ public class RoutingFieldMapper extends MetadataFieldMapper {
     public static class Defaults {
         public static final String NAME = "_routing";
 
-        public static final MappedFieldType FIELD_TYPE = new RoutingFieldType();
+        public static final FieldType FIELD_TYPE = new FieldType();
 
         static {
             FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
             FIELD_TYPE.setTokenized(false);
             FIELD_TYPE.setStored(true);
             FIELD_TYPE.setOmitNorms(true);
-            FIELD_TYPE.setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
-            FIELD_TYPE.setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
-            FIELD_TYPE.setName(NAME);
             FIELD_TYPE.freeze();
         }
 
         public static final boolean REQUIRED = false;
     }
 
-    public static class Builder extends MetadataFieldMapper.Builder<Builder, RoutingFieldMapper> {
+    public static class Builder extends MetadataFieldMapper.Builder<Builder> {
 
         private boolean required = Defaults.REQUIRED;
 
-        public Builder(MappedFieldType existing) {
-            super(Defaults.NAME, existing == null ? Defaults.FIELD_TYPE : existing, Defaults.FIELD_TYPE);
+        public Builder() {
+            super(Defaults.NAME, Defaults.FIELD_TYPE);
         }
 
         public Builder required(boolean required) {
@@ -83,8 +81,8 @@ public class RoutingFieldMapper extends MetadataFieldMapper {
 
     public static class TypeParser implements MetadataFieldMapper.TypeParser {
         @Override
-        public MetadataFieldMapper.Builder<?,?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-            Builder builder = new Builder(parserContext.mapperService().fullName(NAME));
+        public MetadataFieldMapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+            Builder builder = new Builder();
             for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
                 Map.Entry<String, Object> entry = iterator.next();
                 String fieldName = entry.getKey();
@@ -101,7 +99,7 @@ public class RoutingFieldMapper extends MetadataFieldMapper {
         public MetadataFieldMapper getDefault(MappedFieldType fieldType, ParserContext context) {
             final Settings indexSettings = context.mapperService().getIndexSettings().getSettings();
             if (fieldType != null) {
-                return new RoutingFieldMapper(indexSettings, fieldType);
+                return new RoutingFieldMapper(Defaults.FIELD_TYPE, Defaults.REQUIRED, indexSettings);
             } else {
                 return parse(NAME, Collections.emptyMap(), context)
                         .build(new BuilderContext(indexSettings, new ContentPath(1)));
@@ -111,7 +109,12 @@ public class RoutingFieldMapper extends MetadataFieldMapper {
 
     static final class RoutingFieldType extends StringFieldType {
 
+        static RoutingFieldType INSTANCE = new RoutingFieldType();
+
         RoutingFieldType() {
+            super(NAME, true, false);
+            setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
+            setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
         }
 
         protected RoutingFieldType(RoutingFieldType ref) {
@@ -134,14 +137,10 @@ public class RoutingFieldMapper extends MetadataFieldMapper {
         }
     }
 
-    private boolean required;
+    private final boolean required;
 
-    private RoutingFieldMapper(Settings indexSettings, MappedFieldType existing) {
-        this(existing.clone(), Defaults.REQUIRED, indexSettings);
-    }
-
-    private RoutingFieldMapper(MappedFieldType fieldType, boolean required, Settings indexSettings) {
-        super(NAME, null, fieldType, Defaults.FIELD_TYPE, indexSettings);
+    private RoutingFieldMapper(FieldType fieldType, boolean required, Settings indexSettings) {
+        super(fieldType, RoutingFieldType.INSTANCE, indexSettings);
         this.required = required;
     }
 
@@ -165,8 +164,8 @@ public class RoutingFieldMapper extends MetadataFieldMapper {
     protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
         String routing = context.sourceToParse().routing();
         if (routing != null) {
-            if (fieldType().indexOptions() != IndexOptions.NONE || fieldType().stored()) {
-                fields.add(new Field(fieldType().name(), routing, fieldType()));
+            if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
+                fields.add(new Field(fieldType().name(), routing, fieldType));
                 createFieldNamesField(context, fields);
             }
         }

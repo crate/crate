@@ -21,8 +21,15 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.index.IndexableField;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import javax.annotation.Nullable;
+
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -30,11 +37,6 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 /**
  * fieldmapper for encoding and handling of primitive arrays (non-object) explicitly
@@ -78,7 +80,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
     ArrayMapper(String simpleName,
                 Integer position,
                 @Nullable String defaultExpression,
-                MappedFieldType fieldType,
+                FieldType fieldType,
                 MappedFieldType defaultFieldType,
                 Settings indexSettings,
                 MultiFields multiFields,
@@ -87,31 +89,35 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         this.innerMapper = innerMapper;
     }
 
-    private static MappedFieldType newArrayFieldType(Mapper.Builder innerBuilder) {
-        if (innerBuilder instanceof FieldMapper.Builder) {
-            return new ArrayFieldType(((FieldMapper.Builder) innerBuilder).fieldType());
+    private static FieldType getFieldType(Mapper.Builder<?> builder) {
+        if (builder instanceof FieldMapper.Builder<?> fieldMapperBuilder) {
+            return fieldMapperBuilder.fieldType;
         }
         throw new IllegalArgumentException("expected a FieldMapper.Builder");
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder, ArrayMapper> {
+    public static class Builder extends FieldMapper.Builder<Builder> {
 
-        private final Mapper.Builder innerBuilder;
+        private final Mapper.Builder<?> innerBuilder;
 
-        public Builder(String name, Mapper.Builder innerBuilder) {
-            super(name, newArrayFieldType(innerBuilder), newArrayFieldType(innerBuilder));
+        public Builder(String name, Mapper.Builder<?> innerBuilder) {
+            super(name, getFieldType(innerBuilder));
             this.innerBuilder = innerBuilder;
         }
 
         @Override
         public ArrayMapper build(BuilderContext context) {
             Mapper innerMapper = innerBuilder.build(context);
+            MappedFieldType mappedFieldType = null;
+            if (innerMapper instanceof FieldMapper fieldMapper) {
+                mappedFieldType = fieldMapper.fieldType();
+            }
             return new ArrayMapper(
                 name,
                 position,
                 defaultExpression,
                 fieldType,
-                defaultFieldType,
+                mappedFieldType,
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
                 innerMapper
