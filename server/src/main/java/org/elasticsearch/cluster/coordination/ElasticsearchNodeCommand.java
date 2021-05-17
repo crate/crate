@@ -56,7 +56,7 @@ import java.util.stream.Stream;
 public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
 
     private static final Logger LOGGER = LogManager.getLogger(ElasticsearchNodeCommand.class);
-    static final String DELIMITER = "------------------------------------------------------------------------\n";
+    protected static final String DELIMITER = "------------------------------------------------------------------------\n";
 
     public static final String STOP_WARNING_MSG =
             DELIMITER +
@@ -175,7 +175,7 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
         }
     }
 
-    public OptionParser getParser() {
+    OptionParser getParser() {
         return parser;
     }
 }

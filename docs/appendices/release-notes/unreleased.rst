@@ -116,3 +116,6 @@ Fixes
   ``CREATE TABLE`` statements to be rejected because the validation always used
   a fixed value of ``5`` instead of the actual number of shards declared within
   the ``CREATE TABLE`` statement.
+
+- Fixed an issue that caused incorrect classification for DELETE and UPDATE
+  queries with sub-select. Statement type for those queries was always SELECT.

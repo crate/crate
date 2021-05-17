@@ -37,6 +37,7 @@ import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.store.NativeFSLockFactory;
 import org.apache.lucene.store.SimpleFSDirectory;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Randomness;
@@ -253,7 +254,7 @@ public final class NodeEnvironment implements Closeable {
             sharedDataPath = null;
             locks = null;
             nodeLockId = -1;
-            nodeMetadata = new NodeMetadata(generateNodeId(settings));
+            nodeMetadata = new NodeMetadata(generateNodeId(settings), Version.CURRENT);
             return;
         }
         boolean success = false;
@@ -405,7 +406,6 @@ public final class NodeEnvironment implements Closeable {
         logger.info("heap size [{}], compressed ordinary object pointers [{}]", maxHeapSize, useCompressedOops);
     }
 
-
     /**
      * scans the node paths and loads existing metadata file. If not found a new meta data will be generated
      * and persisted into the nodePaths
@@ -435,12 +435,14 @@ public final class NodeEnvironment implements Closeable {
             final NodeMetadata legacyMetadata = NodeMetadata.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, paths);
             if (legacyMetadata == null) {
                 assert nodeIds.isEmpty() : nodeIds;
-                metadata = new NodeMetadata(generateNodeId(settings));
+                metadata = new NodeMetadata(generateNodeId(settings), Version.CURRENT);
             } else {
                 assert nodeIds.equals(Collections.singleton(legacyMetadata.nodeId())) : nodeIds + " doesn't match " + legacyMetadata;
                 metadata = legacyMetadata;
             }
         }
+        metadata = metadata.upgradeToCurrentVersion();
+        assert metadata.nodeVersion().equals(Version.CURRENT) : metadata.nodeVersion() + " != " + Version.CURRENT;
 
         return metadata;
     }
