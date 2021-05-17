@@ -123,11 +123,6 @@ public class TextFieldMapper extends FieldMapper {
             return super.docValues(docValues);
         }
 
-        public Builder eagerGlobalOrdinals(boolean eagerGlobalOrdinals) {
-            fieldType().setEagerGlobalOrdinals(eagerGlobalOrdinals);
-            return builder;
-        }
-
         public Builder fielddataFrequencyFilter(double minFreq, double maxFreq, int minSegmentSize) {
             fieldType().setFielddataMinFrequency(minFreq);
             fieldType().setFielddataMaxFrequency(maxFreq);
@@ -226,9 +221,6 @@ public class TextFieldMapper extends FieldMapper {
                     iterator.remove();
                 } else if (propName.equals("fielddata")) {
                     builder.fielddata(XContentMapValues.nodeBooleanValue(propNode, "fielddata"));
-                    iterator.remove();
-                } else if (propName.equals("eager_global_ordinals")) {
-                    builder.eagerGlobalOrdinals(XContentMapValues.nodeBooleanValue(propNode, "eager_global_ordinals"));
                     iterator.remove();
                 } else if (propName.equals("fielddata_frequency_filter")) {
                     Map<?,?> frequencyFilter = (Map<?, ?>) propNode;

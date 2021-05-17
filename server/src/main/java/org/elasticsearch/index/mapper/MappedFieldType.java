@@ -282,13 +282,4 @@ public abstract class MappedFieldType extends FieldType {
             throw new IllegalArgumentException("Cannot search on field [" + name() + "] since it is not indexed.");
         }
     }
-
-    public boolean eagerGlobalOrdinals() {
-        return eagerGlobalOrdinals;
-    }
-
-    public void setEagerGlobalOrdinals(boolean eagerGlobalOrdinals) {
-        checkIfFrozen();
-        this.eagerGlobalOrdinals = eagerGlobalOrdinals;
-    }
 }

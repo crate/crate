@@ -115,11 +115,6 @@ public final class KeywordFieldMapper extends FieldMapper {
             return super.indexOptions(indexOptions);
         }
 
-        public Builder eagerGlobalOrdinals(boolean eagerGlobalOrdinals) {
-            fieldType().setEagerGlobalOrdinals(eagerGlobalOrdinals);
-            return builder;
-        }
-
         public Builder splitQueriesOnWhitespace(boolean splitQueriesOnWhitespace) {
             fieldType().setSplitQueriesOnWhitespace(splitQueriesOnWhitespace);
             return builder;
@@ -188,9 +183,6 @@ public final class KeywordFieldMapper extends FieldMapper {
                     iterator.remove();
                 } else if (propName.equals("norms")) {
                     TypeParsers.parseNorms(builder, name, propNode);
-                    iterator.remove();
-                } else if (propName.equals("eager_global_ordinals")) {
-                    builder.eagerGlobalOrdinals(XContentMapValues.nodeBooleanValue(propNode, "eager_global_ordinals"));
                     iterator.remove();
                 } else if (propName.equals("normalizer")) {
                     if (propNode != null) {
