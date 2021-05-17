@@ -229,15 +229,6 @@ public final class KeywordFieldMapper extends FieldMapper {
         }
 
         @Override
-        public void checkCompatibility(MappedFieldType otherFT, List<String> conflicts) {
-            super.checkCompatibility(otherFT, conflicts);
-            KeywordFieldType other = (KeywordFieldType) otherFT;
-            if (Objects.equals(normalizer, other.normalizer) == false) {
-                conflicts.add("mapper [" + name() + "] has different [normalizer]");
-            }
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) {
                 return true;
@@ -434,15 +425,17 @@ public final class KeywordFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void doMerge(Mapper mergeWith) {
-        super.doMerge(mergeWith);
-        var mw = ((KeywordFieldMapper) mergeWith);
-        this.ignoreAbove = mw.ignoreAbove;
-        if (!Objects.equals(this.lengthLimit, mw.lengthLimit)) {
+    protected void mergeOptions(FieldMapper other, List<String> conflicts) {
+        KeywordFieldMapper k = (KeywordFieldMapper) other;
+        if (!Objects.equals(this.lengthLimit, k.lengthLimit)) {
             throw new IllegalArgumentException(
                 "mapper [" + name() + "] has different length_limit settings, current ["
-                + this.lengthLimit + "], merged [" + mw.lengthLimit + "]");
+                + this.lengthLimit + "], merged [" + k.lengthLimit + "]");
         }
+        if (!Objects.equals(fieldType().normalizer(), k.fieldType().normalizer())) {
+            conflicts.add("mapper [" + name() + "] has different [normalizer]");
+        }
+        this.ignoreAbove = k.ignoreAbove;
     }
 
     @Override

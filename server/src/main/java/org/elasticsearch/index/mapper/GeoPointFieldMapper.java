@@ -206,14 +206,13 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
     }
 
     @Override
-    protected void doMerge(Mapper mergeWith) {
-        super.doMerge(mergeWith);
-        GeoPointFieldMapper gpfmMergeWith = (GeoPointFieldMapper) mergeWith;
-        if (gpfmMergeWith.ignoreMalformed.explicit()) {
-            this.ignoreMalformed = gpfmMergeWith.ignoreMalformed;
+    protected void mergeOptions(FieldMapper other, List<String> conflicts) {
+        GeoPointFieldMapper geoFieldMapper = (GeoPointFieldMapper) other;
+        if (geoFieldMapper.ignoreMalformed.explicit()) {
+            this.ignoreMalformed = geoFieldMapper.ignoreMalformed;
         }
-        if (gpfmMergeWith.ignoreZValue.explicit()) {
-            this.ignoreZValue = gpfmMergeWith.ignoreZValue;
+        if (geoFieldMapper.ignoreZValue.explicit()) {
+            this.ignoreZValue = geoFieldMapper.ignoreZValue;
         }
     }
 
