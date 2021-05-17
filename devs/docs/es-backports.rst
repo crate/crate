@@ -405,7 +405,7 @@ should be crossed out as well.
 - [ ] 1d1956ee93d Add size support to `top_metrics` (backport of #52662) (#52914)
 - [ ] 52fa4653003 Cache completion stats between refreshes (#52872)
 - [ ] 82ab1bc1ff4 Separate translog from index deletion conditions (#52556)
-- [ ] db6b9c21c71 Use local checkpoint to calculate min translog gen for recovery (#51905)
+- [x] db6b9c21c71 Use local checkpoint to calculate min translog gen for recovery (#51905)
 - [ ] be8d704e2b3 Remove seeds depedency for remote cluster settings (#52829)
 - [ ] 1807f86751a Generalize how queries on `_index` are handled at rewrite time (#52815)
 - [ ] 9e38125464a Clarify when shard iterators get sorted (#52810)

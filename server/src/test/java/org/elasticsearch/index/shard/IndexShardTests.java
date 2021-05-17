@@ -2021,6 +2021,83 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
+    public void testRecoverFromStoreWithOutOfOrderDelete() throws IOException {
+        /*
+         * The flow of this test:
+         * - delete #1
+         * - roll generation (to create gen 2)
+         * - index #0
+         * - index #3
+         * - flush (commit point has max_seqno 3, and local checkpoint 1 -> points at gen 2, previous commit point is maintained)
+         * - index #2
+         * - index #5
+         * - If flush and then recover from the existing store, delete #1 will be removed while index #0 is still retained and replayed.
+         */
+        final IndexShard shard = newStartedShard(false);
+        long primaryTerm = shard.getOperationPrimaryTerm();
+        shard.advanceMaxSeqNoOfUpdatesOrDeletes(1); // manually advance msu for this delete
+        shard.applyDeleteOperationOnReplica(1, primaryTerm, 2, "id");
+        shard.getEngine().rollTranslogGeneration(); // isolate the delete in it's own generation
+        shard.applyIndexOperationOnReplica(0, primaryTerm, 1, Translog.UNSET_AUTO_GENERATED_TIMESTAMP, false,
+            new SourceToParse(shard.shardId().getIndexName(), "id", new BytesArray("{}"), XContentType.JSON));
+        shard.applyIndexOperationOnReplica(3, primaryTerm, 3, Translog.UNSET_AUTO_GENERATED_TIMESTAMP, false,
+            new SourceToParse(shard.shardId().getIndexName(), "id-3", new BytesArray("{}"), XContentType.JSON));
+        // Flushing a new commit with local checkpoint=1 allows to skip the translog gen #1 in recovery.
+        shard.flush(new FlushRequest().force(true).waitIfOngoing(true));
+        shard.applyIndexOperationOnReplica(2, primaryTerm, 3, Translog.UNSET_AUTO_GENERATED_TIMESTAMP, false,
+            new SourceToParse(shard.shardId().getIndexName(), "id-2", new BytesArray("{}"), XContentType.JSON));
+        shard.applyIndexOperationOnReplica(5, primaryTerm, 1, Translog.UNSET_AUTO_GENERATED_TIMESTAMP, false,
+            new SourceToParse(shard.shardId().getIndexName(), "id-5", new BytesArray("{}"), XContentType.JSON));
+        shard.sync(); // advance local checkpoint
+
+        final int translogOps;
+        final int replayedOps;
+        if (randomBoolean()) {
+            // Advance the global checkpoint to remove the 1st commit; this shard will recover the 2nd commit.
+            shard.updateGlobalCheckpointOnReplica(3, "test");
+            logger.info("--> flushing shard");
+            shard.flush(new FlushRequest().force(true).waitIfOngoing(true));
+            translogOps = 4; // delete #1 won't be replayed.
+            replayedOps = 3;
+        } else {
+            if (randomBoolean()) {
+                shard.getEngine().rollTranslogGeneration();
+            }
+            translogOps = 5;
+            replayedOps = 5;
+        }
+
+        final ShardRouting replicaRouting = shard.routingEntry();
+        IndexShard newShard = reinitShard(shard,
+            newShardRouting(replicaRouting.shardId(), replicaRouting.currentNodeId(), true, ShardRoutingState.INITIALIZING,
+                RecoverySource.ExistingStoreRecoverySource.INSTANCE));
+        DiscoveryNode localNode = new DiscoveryNode("foo", buildNewFakeTransportAddress(), Map.of(), Set.of(), Version.CURRENT);
+        newShard.markAsRecovering("store", new RecoveryState(newShard.routingEntry(), localNode, null));
+        assertTrue(recoverFromStore(newShard));
+        assertEquals(replayedOps, newShard.recoveryState().getTranslog().recoveredOperations());
+        assertEquals(translogOps, newShard.recoveryState().getTranslog().totalOperations());
+        assertEquals(translogOps, newShard.recoveryState().getTranslog().totalOperationsOnStart());
+        updateRoutingEntry(newShard, ShardRoutingHelper.moveToStarted(newShard.routingEntry()));
+        assertDocCount(newShard, 3);
+        closeShards(newShard);
+    }
+
+    @Test
+    public void testRecoverFromStalePrimaryForceNewHistoryUUID() throws IOException {
+        final IndexShard shard = newStartedShard(true);
+        int totalOps = randomInt(10);
+        for (int i = 0; i < totalOps; i++) {
+            indexDoc(shard, "_doc", Integer.toString(i));
+        }
+        if (randomBoolean()) {
+            shard.updateLocalCheckpointForShard(shard.shardRouting.allocationId().getId(), totalOps - 1);
+            flushShard(shard);
+        }
+
+        closeShards(shard);
+    }
+
+    @Test
     public void testOperationPermitOnReplicaShards() throws Exception {
         ShardId shardId = new ShardId("test", "_na_", 0);
         IndexShard indexShard;
@@ -3151,78 +3228,6 @@ public class IndexShardTests extends IndexShardTestCase {
 
         }
         closeShards(shard);
-    }
-
-    @Test
-    public void testRecoverFromStoreWithOutOfOrderDelete() throws IOException {
-        /*
-         * The flow of this test:
-         * - delete #1
-         * - roll generation (to create gen 2)
-         * - index #0
-         * - index #3
-         * - flush (commit point has max_seqno 3, and local checkpoint
-         *      1 -> points at gen 2, previous commit point is maintained)
-         * - index #2
-         * - index #5
-         * - If flush and then recover from the existing store, delete #1
-         *       will be removed while index #0 is still retained and replayed.
-         */
-        IndexShard shard = newStartedShard(false);
-        shard.advanceMaxSeqNoOfUpdatesOrDeletes(1); // manually advance msu for this delete
-        shard.applyDeleteOperationOnReplica(1, primaryTerm, 2, "id");
-        shard.getEngine().rollTranslogGeneration(); // isolate the delete in it's own generation
-        shard.applyIndexOperationOnReplica(
-            0, primaryTerm, 1, UNSET_AUTO_GENERATED_TIMESTAMP, false,
-            new SourceToParse(shard.shardId().getIndexName(), "id", new BytesArray("{}"), XContentType.JSON));
-        shard.applyIndexOperationOnReplica(
-            3, primaryTerm, 3, UNSET_AUTO_GENERATED_TIMESTAMP, false,
-            new SourceToParse(shard.shardId().getIndexName(), "id-3", new BytesArray("{}"), XContentType.JSON));
-        // Flushing a new commit with local checkpoint=1 allows to skip the translog gen #1 in recovery.
-        shard.flush(new FlushRequest().force(true).waitIfOngoing(true));
-        shard.applyIndexOperationOnReplica(
-            2, primaryTerm, 3, UNSET_AUTO_GENERATED_TIMESTAMP, false,
-            new SourceToParse(shard.shardId().getIndexName(), "id-2", new BytesArray("{}"), XContentType.JSON));
-        shard.applyIndexOperationOnReplica(
-            5, primaryTerm, 1, UNSET_AUTO_GENERATED_TIMESTAMP, false,
-            new SourceToParse(shard.shardId().getIndexName(), "id-5", new BytesArray("{}"), XContentType.JSON));
-        shard.sync(); // advance local checkpoint
-
-        final int translogOps;
-        if (randomBoolean()) {
-            // Advance the global checkpoint to remove the 1st commit; this shard will recover the 2nd commit.
-            shard.updateGlobalCheckpointOnReplica(3, "test");
-            logger.info("--> flushing shard");
-            shard.flush(new FlushRequest().force(true).waitIfOngoing(true));
-            translogOps = 4; // delete #1 won't be replayed.
-        } else if (randomBoolean()) {
-            shard.getEngine().rollTranslogGeneration();
-            translogOps = 5;
-        } else {
-            translogOps = 5;
-        }
-
-        ShardRouting replicaRouting = shard.routingEntry();
-        IndexShard newShard = reinitShard(
-            shard,
-            newShardRouting(
-                replicaRouting.shardId(),
-                replicaRouting.currentNodeId(),
-                true,
-                ShardRoutingState.INITIALIZING,
-                RecoverySource.ExistingStoreRecoverySource.INSTANCE)
-        );
-        DiscoveryNode localNode = new DiscoveryNode(
-            "foo", buildNewFakeTransportAddress(), Map.of(), Set.of(), Version.CURRENT);
-        newShard.markAsRecovering("store", new RecoveryState(newShard.routingEntry(), localNode, null));
-        assertThat(recoverFromStore(newShard), is(true));
-        assertThat(newShard.recoveryState().getTranslog().recoveredOperations(), is(translogOps));
-        assertThat(newShard.recoveryState().getTranslog().totalOperations(), is(translogOps));
-        assertThat(newShard.recoveryState().getTranslog().totalOperationsOnStart(), is(translogOps));
-        assertEquals(100.0f, newShard.recoveryState().getTranslog().recoveredPercent(), 0.01f);
-        updateRoutingEntry(newShard, ShardRoutingHelper.moveToStarted(newShard.routingEntry()));
-        assertDocCount(newShard, 3);
-        closeShards(newShard);
     }
 
     /* This test just verifies that we fill up local checkpoint up

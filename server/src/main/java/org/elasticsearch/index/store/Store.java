@@ -1473,10 +1473,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
             if (translogUUID.equals(getUserData(writer).get(Translog.TRANSLOG_UUID_KEY))) {
                 throw new IllegalArgumentException("a new translog uuid can't be equal to existing one. got [" + translogUUID + "]");
             }
-            final Map<String, String> map = new HashMap<>();
-            map.put(Translog.TRANSLOG_GENERATION_KEY, "1");
-            map.put(Translog.TRANSLOG_UUID_KEY, translogUUID);
-            updateCommitData(writer, map);
+            updateCommitData(writer, Collections.singletonMap(Translog.TRANSLOG_UUID_KEY, translogUUID));
         } finally {
             metadataLock.writeLock().unlock();
         }
@@ -1519,21 +1516,16 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
             // are not retained but max_seqno is at most the global checkpoint, we may mistakenly select it as a starting commit.
             // To avoid this issue, we only select index commits whose translog are fully retained.
             if (indexVersionCreated.before(org.elasticsearch.Version.V_3_2_0)) {
-                if (minRetainedTranslogGen == -1L) {
-                    // An old checkpoint does not have min_translog_gen, then we can not determine whether a commit point has all
-                    // its required translog or not. In this case, we should start with the last commit until we have a new checkpoint.
-                    startingIndexCommit = existingCommits.get(existingCommits.size() - 1);
-                } else {
-                    final List<IndexCommit> recoverableCommits = new ArrayList<>();
-                    for (IndexCommit commit : existingCommits) {
-                        if (minRetainedTranslogGen <= Long.parseLong(commit.getUserData().get(Translog.TRANSLOG_GENERATION_KEY))) {
-                            recoverableCommits.add(commit);
-                        }
+                final List<IndexCommit> recoverableCommits = new ArrayList<>();
+                for (IndexCommit commit : existingCommits) {
+                    final String translogGeneration = commit.getUserData().get("translog_generation");
+                    if (translogGeneration == null || minRetainedTranslogGen <= Long.parseLong(translogGeneration)) {
+                        recoverableCommits.add(commit);
                     }
-                    assert recoverableCommits.isEmpty() == false : "No commit point with translog found; " +
-                        "commits [" + existingCommits + "], minRetainedTranslogGen [" + minRetainedTranslogGen + "]";
-                    startingIndexCommit = CombinedDeletionPolicy.findSafeCommitPoint(recoverableCommits, lastSyncedGlobalCheckpoint);
                 }
+                assert recoverableCommits.isEmpty() == false : "No commit point with translog found; " +
+                        "commits [" + existingCommits + "], minRetainedTranslogGen [" + minRetainedTranslogGen + "]";
+                startingIndexCommit = CombinedDeletionPolicy.findSafeCommitPoint(recoverableCommits, lastSyncedGlobalCheckpoint);
             } else {
                 // TODO: Asserts the starting commit is a safe commit once peer-recovery sets global checkpoint.
                 startingIndexCommit = CombinedDeletionPolicy.findSafeCommitPoint(existingCommits, lastSyncedGlobalCheckpoint);
