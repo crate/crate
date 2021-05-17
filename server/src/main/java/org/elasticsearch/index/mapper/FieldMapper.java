@@ -488,9 +488,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         if (indexed && (includeDefaults || fieldType().indexOptions() != defaultFieldType.indexOptions())) {
             builder.field("index_options", indexOptionToString(fieldType().indexOptions()));
         }
-        if (includeDefaults || fieldType().eagerGlobalOrdinals() != defaultFieldType.eagerGlobalOrdinals()) {
-            builder.field("eager_global_ordinals", fieldType().eagerGlobalOrdinals());
-        }
 
         multiFields.toXContent(builder, params);
         copyTo.toXContent(builder, params);
