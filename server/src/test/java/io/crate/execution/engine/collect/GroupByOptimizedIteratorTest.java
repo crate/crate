@@ -135,7 +135,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         for (int i = 0; i < 10; i++) {
             Document doc = new Document();
             BytesRef value = new BytesRef(Integer.toString(i));
-            doc.add(new Field(columnName, value, KeywordFieldMapper.Defaults.FIELD_TYPE.clone()));
+            doc.add(new Field(columnName, value, KeywordFieldMapper.Defaults.FIELD_TYPE));
             iw.addDocument(doc);
         }
         iw.commit();
@@ -164,7 +164,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         for (int i = 0; i < 10; i++) {
             Document doc = new Document();
             BytesRef value = new BytesRef("1");
-            doc.add(new Field(columnName, value, KeywordFieldMapper.Defaults.FIELD_TYPE.clone()));
+            doc.add(new Field(columnName, value, KeywordFieldMapper.Defaults.FIELD_TYPE));
             iw.addDocument(doc);
         }
         iw.commit();

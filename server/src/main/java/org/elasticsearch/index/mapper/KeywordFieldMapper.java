@@ -30,6 +30,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
@@ -54,7 +55,7 @@ public final class KeywordFieldMapper extends FieldMapper {
     public static final String CONTENT_TYPE = "keyword";
 
     public static class Defaults {
-        public static final MappedFieldType FIELD_TYPE = new KeywordFieldType();
+        public static final FieldType FIELD_TYPE = new FieldType();
 
         static {
             FIELD_TYPE.setTokenized(false);
@@ -67,19 +68,26 @@ public final class KeywordFieldMapper extends FieldMapper {
         public static final int IGNORE_ABOVE = Integer.MAX_VALUE;
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder, KeywordFieldMapper> {
+    public static class KeywordField extends Field {
 
+        public KeywordField(String field, BytesRef term, FieldType ft) {
+            super(field, term, ft);
+        }
+
+        public KeywordField(String field, BytesRef term) {
+            super(field, term, Defaults.FIELD_TYPE);
+        }
+    }
+
+    public static class Builder extends FieldMapper.Builder<Builder> {
+
+        protected String nullValue = Defaults.NULL_VALUE;
         protected int ignoreAbove = Defaults.IGNORE_ABOVE;
         private Integer lengthLimit;
 
         public Builder(String name) {
-            super(name, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE);
+            super(name, Defaults.FIELD_TYPE);
             builder = this;
-        }
-
-        @Override
-        public KeywordFieldType fieldType() {
-            return (KeywordFieldType) super.fieldType();
         }
 
         public Builder ignoreAbove(int ignoreAbove) {
@@ -107,17 +115,31 @@ public final class KeywordFieldMapper extends FieldMapper {
             return super.indexOptions(indexOptions);
         }
 
+        public Builder nullValue(String nullValue) {
+            this.nullValue = nullValue;
+            return builder;
+        }
+
+        private KeywordFieldType buildFieldType(BuilderContext context) {
+            return new KeywordFieldType(
+                buildFullName(context),
+                indexed,
+                hasDocValues,
+                fieldType.omitNorms() == false,
+                boost
+            );
+        }
 
         @Override
         public KeywordFieldMapper build(BuilderContext context) {
-            setupFieldType(context);
             return new KeywordFieldMapper(
                 name,
                 position,
                 defaultExpression,
                 fieldType,
-                defaultFieldType,
+                buildFieldType(context),
                 ignoreAbove,
+                nullValue,
                 lengthLimit,
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
@@ -128,7 +150,7 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
-        public Mapper.Builder<?,?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             KeywordFieldMapper.Builder builder = new KeywordFieldMapper.Builder(name);
             parseField(builder, name, node, parserContext);
             for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
@@ -149,17 +171,36 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     public static final class KeywordFieldType extends StringFieldType {
 
+        boolean hasNorms;
         private Integer lengthLimit;
 
-        public KeywordFieldType() {
+        public KeywordFieldType(String name,
+                                boolean isSearchable,
+                                boolean hasDocValues,
+                                boolean hasNorms,
+                                float boost) {
+            super(name, isSearchable, hasDocValues);
+            this.hasNorms = hasNorms;
             setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
             setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
         }
 
-        protected KeywordFieldType(KeywordFieldType ref) {
-            super(ref);
+        public KeywordFieldType(String name, boolean isSearchable, boolean hasDocValues) {
+            this(name, isSearchable, hasDocValues, true, 1.0f);
         }
 
+        public KeywordFieldType(String name) {
+            this(name, true, true);
+        }
+
+        protected KeywordFieldType(KeywordFieldType ref) {
+            super(ref);
+            this.hasNorms = ref.hasNorms;
+            setIndexAnalyzer(ref.indexAnalyzer());
+            setSearchAnalyzer(ref.searchAnalyzer());
+        }
+
+        @Override
         public KeywordFieldType clone() {
             return new KeywordFieldType(this);
         }
@@ -197,19 +238,11 @@ public final class KeywordFieldMapper extends FieldMapper {
         public Query existsQuery(QueryShardContext context) {
             if (hasDocValues()) {
                 return new DocValuesFieldExistsQuery(name());
-            } else if (omitNorms()) {
+            } else if (hasNorms == false) {
                 return new TermQuery(new Term(FieldNamesFieldMapper.NAME, name()));
             } else {
                 return new NormsFieldExistsQuery(name());
             }
-        }
-
-        @Override
-        public Query nullValueQuery() {
-            if (nullValue() == null) {
-                return null;
-            }
-            return termQuery(nullValue(), null);
         }
 
         @Override
@@ -245,21 +278,25 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     private int ignoreAbove;
     private Integer lengthLimit;
+    private String nullValue;
+
 
     protected KeywordFieldMapper(String simpleName,
                                  Integer position,
                                  @Nullable String defaultExpression,
-                                 MappedFieldType fieldType,
-                                 MappedFieldType defaultFieldType,
+                                 FieldType fieldType,
+                                 MappedFieldType mappedFieldType,
                                  int ignoreAbove,
+                                 String nullValue,
                                  Integer lengthLimit,
                                  Settings indexSettings,
                                  MultiFields multiFields,
                                  CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.ignoreAbove = ignoreAbove;
         this.lengthLimit = lengthLimit;
+        this.nullValue = nullValue;
     }
 
     /** Values that have more chars than the return value of this method will
@@ -287,7 +324,7 @@ public final class KeywordFieldMapper extends FieldMapper {
         } else {
             XContentParser parser = context.parser();
             if (parser.currentToken() == XContentParser.Token.VALUE_NULL) {
-                value = fieldType().nullValueAsString();
+                value = nullValue;
             } else {
                 value = parser.textOrNull();
             }
@@ -299,11 +336,11 @@ public final class KeywordFieldMapper extends FieldMapper {
 
         // convert to utf8 only once before feeding postings/dv/stored fields
         final BytesRef binaryValue = new BytesRef(value);
-        if (fieldType().indexOptions() != IndexOptions.NONE || fieldType().stored()) {
-            Field field = new Field(fieldType().name(), binaryValue, fieldType());
+        if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
+            Field field = new Field(fieldType().name(), binaryValue, fieldType);
             fields.add(field);
 
-            if (fieldType().hasDocValues() == false && fieldType().omitNorms()) {
+            if (fieldType().hasDocValues() == false && fieldType.omitNorms()) {
                 createFieldNamesField(context, fields);
             }
         }
@@ -327,15 +364,14 @@ public final class KeywordFieldMapper extends FieldMapper {
                 + this.lengthLimit + "], merged [" + k.lengthLimit + "]");
         }
         this.ignoreAbove = k.ignoreAbove;
+        this.fieldType().setSearchAnalyzer(k.fieldType().searchAnalyzer());
+        this.fieldType().setBoost(k.fieldType().boost());
     }
 
     @Override
     protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
         super.doXContentBody(builder, includeDefaults, params);
 
-        if (includeDefaults || fieldType().nullValue() != null) {
-            builder.field("null_value", fieldType().nullValue());
-        }
 
         if (includeDefaults || ignoreAbove != Defaults.IGNORE_ABOVE) {
             builder.field("ignore_above", ignoreAbove);

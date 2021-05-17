@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
@@ -48,9 +49,14 @@ public class TextFieldMapper extends FieldMapper {
         public static final int INDEX_PREFIX_MIN_CHARS = 2;
         public static final int INDEX_PREFIX_MAX_CHARS = 5;
 
-        public static final MappedFieldType FIELD_TYPE = new TextFieldType();
+        public static final FieldType FIELD_TYPE = new FieldType();
 
         static {
+            FIELD_TYPE.setTokenized(true);
+            FIELD_TYPE.setStored(false);
+            FIELD_TYPE.setStoreTermVectors(false);
+            FIELD_TYPE.setOmitNorms(false);
+            FIELD_TYPE.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
             FIELD_TYPE.freeze();
         }
 
@@ -61,16 +67,11 @@ public class TextFieldMapper extends FieldMapper {
         public static final int POSITION_INCREMENT_GAP = 100;
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder, TextFieldMapper> {
+    public static class Builder extends FieldMapper.Builder<Builder> {
 
         public Builder(String name) {
-            super(name, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE);
+            super(name, Defaults.FIELD_TYPE);
             builder = this;
-        }
-
-        @Override
-        public TextFieldType fieldType() {
-            return (TextFieldType) super.fieldType();
         }
 
         @Override
@@ -81,29 +82,44 @@ public class TextFieldMapper extends FieldMapper {
             return super.docValues(docValues);
         }
 
+
+        private TextFieldType buildFieldType(BuilderContext context) {
+            TextFieldType ft = new TextFieldType(
+                buildFullName(context),
+                indexed,
+                fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0);
+            ft.setIndexAnalyzer(indexAnalyzer);
+            ft.setSearchAnalyzer(searchAnalyzer);
+            ft.setSearchQuoteAnalyzer(searchQuoteAnalyzer);
+            return ft;
+        }
+
+
         @Override
         public TextFieldMapper build(BuilderContext context) {
-            setupFieldType(context);
+            TextFieldType tft = buildFieldType(context);
             return new TextFieldMapper(
                 name,
                 position,
                 defaultExpression,
-                fieldType(),
-                defaultFieldType,
+                fieldType,
+                tft,
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
                 copyTo
             );
         }
+
+
     }
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
         public Mapper.Builder parse(String fieldName, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             TextFieldMapper.Builder builder = new TextFieldMapper.Builder(fieldName);
-            builder.fieldType().setIndexAnalyzer(parserContext.getIndexAnalyzers().getDefaultIndexAnalyzer());
-            builder.fieldType().setSearchAnalyzer(parserContext.getIndexAnalyzers().getDefaultSearchAnalyzer());
-            builder.fieldType().setSearchQuoteAnalyzer(parserContext.getIndexAnalyzers().getDefaultSearchQuoteAnalyzer());
+            builder.indexAnalyzer(parserContext.getIndexAnalyzers().getDefaultIndexAnalyzer());
+            builder.searchAnalyzer(parserContext.getIndexAnalyzers().getDefaultSearchAnalyzer());
+            builder.searchQuoteAnalyzer(parserContext.getIndexAnalyzers().getDefaultSearchQuoteAnalyzer());
             parseTextField(builder, fieldName, node, parserContext);
             return builder;
         }
@@ -111,12 +127,18 @@ public class TextFieldMapper extends FieldMapper {
 
     public static final class TextFieldType extends StringFieldType {
 
-        public TextFieldType() {
-            setTokenized(true);
+        public TextFieldType(String name, boolean indexed, boolean hasPositions) {
+            super(name, indexed, false);
+            this.hasPositions = hasPositions;
+        }
+
+        public TextFieldType(String name) {
+            this(name, true, true);
         }
 
         protected TextFieldType(TextFieldType ref) {
             super(ref);
+            this.hasPositions = ref.hasPositions;
         }
 
         public TextFieldType clone() {
@@ -140,33 +162,24 @@ public class TextFieldMapper extends FieldMapper {
 
         @Override
         public Query existsQuery(QueryShardContext context) {
-            if (omitNorms()) {
+            if (context.getMapperService().getLuceneFieldType(name()).omitNorms()) {
                 return new TermQuery(new Term(FieldNamesFieldMapper.NAME, name()));
             } else {
                 return new NormsFieldExistsQuery(name());
             }
-        }
-
-        @Override
-        public Query nullValueQuery() {
-            if (nullValue() == null) {
-                return null;
-            }
-            return termQuery(nullValue(), null);
         }
     }
 
     protected TextFieldMapper(String simpleName,
                               Integer position,
                               String defaultExpression,
-                              TextFieldType fieldType,
-                              MappedFieldType defaultFieldType,
+                              FieldType fieldType,
+                              TextFieldType mappedFieldType,
                               Settings indexSettings,
                               MultiFields multiFields,
                               CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
-        assert fieldType.tokenized();
-        assert fieldType.hasDocValues() == false;
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
+        assert mappedFieldType.hasDocValues() == false;
     }
 
     @Override
@@ -187,10 +200,10 @@ public class TextFieldMapper extends FieldMapper {
             return;
         }
 
-        if (fieldType().indexOptions() != IndexOptions.NONE || fieldType().stored()) {
-            Field field = new Field(fieldType().name(), value, fieldType());
+        if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
+            Field field = new Field(fieldType().name(), value, fieldType);
             fields.add(field);
-            if (fieldType().omitNorms()) {
+            if (fieldType.omitNorms()) {
                 createFieldNamesField(context, fields);
             }
         }
@@ -208,6 +221,11 @@ public class TextFieldMapper extends FieldMapper {
     @Override
     public TextFieldType fieldType() {
         return (TextFieldType) super.fieldType();
+    }
+
+    @Override
+    protected boolean docValuesByDefault() {
+        return false;
     }
 
     @Override

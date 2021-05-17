@@ -39,7 +39,8 @@ import org.elasticsearch.index.query.QueryShardContext;
  * can be implemented. */
 public abstract class StringFieldType extends TermBasedFieldType {
 
-    public StringFieldType() {
+    public StringFieldType(String name, boolean isSearchable, boolean hasDocValues) {
+        super(name, isSearchable, hasDocValues);
     }
 
     protected StringFieldType(MappedFieldType ref) {

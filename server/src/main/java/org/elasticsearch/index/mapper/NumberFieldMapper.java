@@ -35,6 +35,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
@@ -53,6 +54,7 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.Explicit;
 import org.elasticsearch.common.Numbers;
+import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -71,15 +73,24 @@ public class NumberFieldMapper extends FieldMapper {
     public static class Defaults {
         public static final Explicit<Boolean> IGNORE_MALFORMED = new Explicit<>(false, false);
         public static final Explicit<Boolean> COERCE = new Explicit<>(true, false);
+        public static final FieldType FIELD_TYPE = new FieldType();
+
+        static {
+            FIELD_TYPE.setStored(false);
+            FIELD_TYPE.freeze();
+        }
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder, NumberFieldMapper> {
+    public static class Builder extends FieldMapper.Builder<Builder> {
 
         private Boolean ignoreMalformed;
         private Boolean coerce;
+        private Number nullValue;
+        private final NumberType type;
 
         public Builder(String name, NumberType type) {
-            super(name, new NumberFieldType(type), new NumberFieldType(type));
+            super(name, Defaults.FIELD_TYPE);
+            this.type = type;
             builder = this;
         }
 
@@ -88,12 +99,15 @@ public class NumberFieldMapper extends FieldMapper {
             return builder;
         }
 
-        /**
-         * Numeric field types no longer support `index_options`
-         */
+        public Builder nullValue(Number nullValue) {
+            this.nullValue = nullValue;
+            return builder;
+        }
+
         @Override
-        protected boolean allowsIndexOptions() {
-            return false;
+        public Builder indexOptions(IndexOptions indexOptions) {
+            throw new MapperParsingException(
+                    "index_options not allowed in field [" + name + "] of type [" + type.typeName() + "]");
         }
 
         protected Explicit<Boolean> ignoreMalformed(BuilderContext context) {
@@ -122,21 +136,16 @@ public class NumberFieldMapper extends FieldMapper {
         }
 
         @Override
-        protected void setupFieldType(BuilderContext context) {
-            super.setupFieldType(context);
-        }
-
-        @Override
         public NumberFieldMapper build(BuilderContext context) {
-            setupFieldType(context);
             return new NumberFieldMapper(
                 name,
                 position,
                 defaultExpression,
                 fieldType,
-                defaultFieldType,
+                new NumberFieldType(buildFullName(context), type, indexed, hasDocValues),
                 ignoreMalformed(context),
                 coerce(context),
+                nullValue,
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
                 copyTo
@@ -153,7 +162,7 @@ public class NumberFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Mapper.Builder<?,?> parse(String name, Map<String, Object> node,
+        public Mapper.Builder<?> parse(String name, Map<String, Object> node,
                                          ParserContext parserContext) throws MapperParsingException {
             Builder builder = new Builder(name, type);
             TypeParsers.parseField(builder, name, node, parserContext);
@@ -703,6 +712,7 @@ public class NumberFieldMapper extends FieldMapper {
             return name;
         }
 
+        /** Get the associated numeric type */
         public abstract Query termQuery(String field, Object value);
 
         public abstract Query termsQuery(String field, List<Object> values);
@@ -783,12 +793,15 @@ public class NumberFieldMapper extends FieldMapper {
 
         private final NumberType type;
 
-        public NumberFieldType(NumberType type) {
-            super();
+        public NumberFieldType(String name, NumberType type, boolean isSearchable, boolean hasDocValues) {
+            super(name, isSearchable, hasDocValues);
             this.type = Objects.requireNonNull(type);
-            setTokenized(false);
-            setHasDocValues(true);
-            setOmitNorms(true);
+            this.setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);     // allows number fields in significant text aggs - do we need this?
+            this.setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);    // allows match queries on number fields
+        }
+
+        public NumberFieldType(String name, NumberType type) {
+            this(name, type, true, true);
         }
 
         private NumberFieldType(NumberFieldType other) {
@@ -871,21 +884,24 @@ public class NumberFieldMapper extends FieldMapper {
     private Explicit<Boolean> ignoreMalformed;
 
     private Explicit<Boolean> coerce;
+    private final Number nullValue;
 
     private NumberFieldMapper(
             String simpleName,
             Integer position,
             @Nullable String defaultExpression,
-            MappedFieldType fieldType,
-            MappedFieldType defaultFieldType,
+            FieldType fieldType,
+            MappedFieldType mappedFieldType,
             Explicit<Boolean> ignoreMalformed,
             Explicit<Boolean> coerce,
+            Number nullValue,
             Settings indexSettings,
             MultiFields multiFields,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
         this.ignoreMalformed = ignoreMalformed;
         this.coerce = coerce;
+        this.nullValue = nullValue;
     }
 
     @Override
@@ -895,7 +911,7 @@ public class NumberFieldMapper extends FieldMapper {
 
     @Override
     protected String contentType() {
-        return fieldType.typeName();
+        return fieldType().type.typeName();
     }
 
     @Override
@@ -921,7 +937,7 @@ public class NumberFieldMapper extends FieldMapper {
                 numericValue = fieldType().type.parse(parser, coerce.value());
             } catch (IllegalArgumentException | JsonParseException e) {
                 if (ignoreMalformed.value() && parser.currentToken().isValue()) {
-                    context.addIgnoredField(fieldType.name());
+                    context.addIgnoredField(mappedFieldType.name());
                     return;
                 } else {
                     throw e;
@@ -931,7 +947,7 @@ public class NumberFieldMapper extends FieldMapper {
         }
 
         if (value == null) {
-            value = fieldType().nullValue();
+            value = nullValue;
         }
 
         if (value == null) {
@@ -942,11 +958,16 @@ public class NumberFieldMapper extends FieldMapper {
             numericValue = fieldType().type.parse(value, coerce.value());
         }
 
-        boolean indexed = fieldType().indexOptions() != IndexOptions.NONE;
         boolean docValued = fieldType().hasDocValues();
-        boolean stored = fieldType().stored();
-        fields.addAll(fieldType().type.createFields(fieldType().name(), numericValue, indexed, docValued, stored));
-        if (docValued == false && (stored || indexed)) {
+        boolean stored = fieldType.stored();
+        fields.addAll(fieldType().type.createFields(
+            fieldType().name(),
+            numericValue,
+            fieldType().isSearchable(),
+            docValued,
+            stored
+        ));
+        if (docValued == false && (stored || fieldType().isSearchable())) {
             createFieldNamesField(context, fields);
         }
     }
@@ -982,8 +1003,8 @@ public class NumberFieldMapper extends FieldMapper {
             builder.field("coerce", coerce.value());
         }
 
-        if (includeDefaults || fieldType().nullValue() != null) {
-            builder.field("null_value", fieldType().nullValue());
+        if (nullValue != null) {
+            builder.field("null_value", nullValue);
         }
     }
 }

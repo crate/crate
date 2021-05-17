@@ -37,25 +37,22 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
     public Mapper create(String name, ObjectMapper parentMapper, ParseContext context) {
         Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
         try {
-            Mapper.Builder<?, ?> innerBuilder = detectInnerMapper(context, name, context.parser());
+            Mapper.Builder<?> innerBuilder = detectInnerMapper(context, name, context.parser());
             if (innerBuilder == null) {
                 return null;
             }
             Mapper innerMapper = innerBuilder.build(builderContext);
-            if (innerMapper instanceof ObjectMapper) {
-                ObjectMapper objectMapper = (ObjectMapper) innerMapper;
+            if (innerMapper instanceof ObjectMapper objectMapper) {
                 return new ObjectArrayMapper(name, objectMapper, context.indexSettings().getSettings());
             }
-            FieldMapper fieldMapper = (FieldMapper) innerMapper;
-
-            MappedFieldType mappedFieldType = new ArrayFieldType(((FieldMapper.Builder) innerBuilder).fieldType());
-            mappedFieldType.setName(name);
+            FieldMapper innerFieldMapper = (FieldMapper) innerMapper;
+            ArrayFieldType mappedFieldType = new ArrayFieldType(innerFieldMapper.fieldType());
             return new ArrayMapper(
                 name,
-                fieldMapper.position(),
+                innerFieldMapper.position(),
                 null,
+                innerFieldMapper.fieldType,
                 mappedFieldType,
-                mappedFieldType.clone(),
                 context.indexSettings().getSettings(),
                 FieldMapper.MultiFields.empty(),
                 innerMapper);
@@ -65,9 +62,9 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
     }
 
 
-    private static Mapper.Builder<?, ?> detectInnerMapper(ParseContext parseContext,
-                                                          String fieldName,
-                                                          XContentParser parser) throws IOException {
+    private static Mapper.Builder<?> detectInnerMapper(ParseContext parseContext,
+                                                       String fieldName,
+                                                       XContentParser parser) throws IOException {
         XContentParser.Token token = parser.currentToken();
         if (token == XContentParser.Token.START_ARRAY) {
             token = parser.nextToken();

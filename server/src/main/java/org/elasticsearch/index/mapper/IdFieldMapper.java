@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.MatchAllDocsQuery;
@@ -50,36 +51,38 @@ public class IdFieldMapper extends MetadataFieldMapper {
     public static class Defaults {
         public static final String NAME = IdFieldMapper.NAME;
 
-        public static final MappedFieldType FIELD_TYPE = new IdFieldType();
+        public static final FieldType FIELD_TYPE = new FieldType();
 
         static {
             FIELD_TYPE.setTokenized(false);
             FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
             FIELD_TYPE.setStored(true);
             FIELD_TYPE.setOmitNorms(true);
-            FIELD_TYPE.setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
-            FIELD_TYPE.setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
-            FIELD_TYPE.setName(NAME);
             FIELD_TYPE.freeze();
         }
     }
 
     public static class TypeParser implements MetadataFieldMapper.TypeParser {
         @Override
-        public MetadataFieldMapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public MetadataFieldMapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             throw new MapperParsingException(NAME + " is not configurable");
         }
 
         @Override
         public MetadataFieldMapper getDefault(MappedFieldType fieldType, ParserContext context) {
             final IndexSettings indexSettings = context.mapperService().getIndexSettings();
-            return new IdFieldMapper(indexSettings, fieldType);
+            return new IdFieldMapper(Defaults.FIELD_TYPE, indexSettings);
         }
     }
 
     static final class IdFieldType extends StringFieldType {
 
-        IdFieldType() {
+        public static final IdFieldType INSTANCE = new IdFieldType();
+
+        private IdFieldType() {
+            super(NAME, true, false);
+            setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
+            setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
         }
 
         protected IdFieldType(IdFieldType ref) {
@@ -127,19 +130,8 @@ public class IdFieldMapper extends MetadataFieldMapper {
         }
     }
 
-    static MappedFieldType defaultFieldType(IndexSettings indexSettings) {
-        MappedFieldType defaultFieldType = Defaults.FIELD_TYPE.clone();
-        defaultFieldType.setIndexOptions(IndexOptions.DOCS);
-        defaultFieldType.setStored(true);
-        return defaultFieldType;
-    }
-
-    private IdFieldMapper(IndexSettings indexSettings, MappedFieldType existing) {
-        this(existing == null ? defaultFieldType(indexSettings) : existing, indexSettings);
-    }
-
-    private IdFieldMapper(MappedFieldType fieldType, IndexSettings indexSettings) {
-        super(NAME, null, fieldType, defaultFieldType(indexSettings), indexSettings.getSettings());
+    private IdFieldMapper(FieldType fieldType, IndexSettings indexSettings) {
+        super(fieldType, new IdFieldType(), indexSettings.getSettings());
     }
 
     @Override

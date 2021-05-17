@@ -25,12 +25,13 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
@@ -50,44 +51,41 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
     public static class Defaults {
         public static final String NAME = FieldNamesFieldMapper.NAME;
 
-        public static final MappedFieldType FIELD_TYPE = new FieldNamesFieldType();
+        public static final boolean ENABLED = true;
+        public static final FieldType FIELD_TYPE = new FieldType();
 
         static {
             FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
             FIELD_TYPE.setTokenized(false);
             FIELD_TYPE.setStored(false);
             FIELD_TYPE.setOmitNorms(true);
-            FIELD_TYPE.setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
-            FIELD_TYPE.setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
-            FIELD_TYPE.setName(NAME);
             FIELD_TYPE.freeze();
         }
     }
 
-    public static class Builder extends MetadataFieldMapper.Builder<Builder, FieldNamesFieldMapper> {
+    static class Builder extends MetadataFieldMapper.Builder<Builder> {
+        private boolean enabled = Defaults.ENABLED;
 
         public Builder(MappedFieldType existing) {
-            super(Defaults.NAME, existing == null ? Defaults.FIELD_TYPE : existing, Defaults.FIELD_TYPE);
+            super(Defaults.NAME, Defaults.FIELD_TYPE);
         }
 
-        @Override
-        @Deprecated
-        public Builder index(boolean index) {
-            return super.index(index);
+        Builder enabled(boolean enabled) {
+            this.enabled = enabled;
+            return this;
         }
 
         @Override
         public FieldNamesFieldMapper build(BuilderContext context) {
-            setupFieldType(context);
-            fieldType.setHasDocValues(false);
-            FieldNamesFieldType fieldNamesFieldType = (FieldNamesFieldType)fieldType;
-            return new FieldNamesFieldMapper(fieldType, context.indexSettings());
+            FieldNamesFieldType fieldNamesFieldType = new FieldNamesFieldType();
+            fieldNamesFieldType.setEnabled(enabled);
+            return new FieldNamesFieldMapper(fieldType, fieldNamesFieldType, context.indexSettings());
         }
     }
 
     public static class TypeParser implements MetadataFieldMapper.TypeParser {
         @Override
-        public MetadataFieldMapper.Builder<?,?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public MetadataFieldMapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             return new Builder(parserContext.mapperService().fullName(NAME));
         }
 
@@ -95,7 +93,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         public MetadataFieldMapper getDefault(MappedFieldType fieldType, ParserContext context) {
             final Settings indexSettings = context.mapperService().getIndexSettings().getSettings();
             if (fieldType != null) {
-                return new FieldNamesFieldMapper(indexSettings, fieldType);
+                return new FieldNamesFieldMapper(Defaults.FIELD_TYPE, fieldType, indexSettings);
             } else {
                 return parse(NAME, Collections.emptyMap(), context)
                         .build(new BuilderContext(indexSettings, new ContentPath(1)));
@@ -105,11 +103,15 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
 
     public static final class FieldNamesFieldType extends TermBasedFieldType {
 
+        private boolean enabled = Defaults.ENABLED;
+
         public FieldNamesFieldType() {
+            super(Defaults.NAME, true, false);
         }
 
         protected FieldNamesFieldType(FieldNamesFieldType ref) {
             super(ref);
+            this.enabled = ref.enabled;
         }
 
         @Override
@@ -118,8 +120,28 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (!super.equals(o)) return false;
+            FieldNamesFieldType that = (FieldNamesFieldType) o;
+            return enabled == that.enabled;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(super.hashCode(), enabled);
+        }
+
+        @Override
         public String typeName() {
             return CONTENT_TYPE;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public boolean isEnabled() {
+            return enabled;
         }
 
         @Override
@@ -133,12 +155,8 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         }
     }
 
-    private FieldNamesFieldMapper(Settings indexSettings, MappedFieldType existing) {
-        this(existing.clone(), indexSettings);
-    }
-
-    private FieldNamesFieldMapper(MappedFieldType fieldType, Settings indexSettings) {
-        super(NAME, null, fieldType, Defaults.FIELD_TYPE, indexSettings);
+    private FieldNamesFieldMapper(FieldType fieldType, MappedFieldType mappedFieldType, Settings indexSettings) {
+        super(fieldType, mappedFieldType, indexSettings);
     }
 
     @Override
@@ -198,6 +216,9 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
 
     @Override
     protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
+        if (fieldType().isEnabled() == false) {
+            return;
+        }
         for (ParseContext.Document document : context) {
             final List<String> paths = new ArrayList<>(document.getFields().size());
             String previousPath = ""; // used as a sentinel - field names can't be empty
@@ -215,8 +236,8 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
             }
             for (String path : paths) {
                 for (String fieldName : extractFieldNames(path)) {
-                    if (fieldType().indexOptions() != IndexOptions.NONE || fieldType().stored()) {
-                        document.add(new Field(fieldType().name(), fieldName, fieldType()));
+                    if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
+                        document.add(new Field(fieldType().name(), fieldName, fieldType));
                     }
                 }
             }
@@ -232,13 +253,13 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         boolean includeDefaults = params.paramAsBoolean("include_defaults", false);
 
-        if (includeDefaults == false) {
+        if (includeDefaults == false && fieldType().isEnabled() == Defaults.ENABLED) {
             return builder;
         }
 
         builder.startObject(NAME);
-        if (includeDefaults) {
-            builder.field("enabled", true);
+        if (includeDefaults || fieldType().isEnabled() != Defaults.ENABLED) {
+            builder.field("enabled", fieldType().isEnabled());
         }
 
         builder.endObject();

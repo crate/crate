@@ -34,7 +34,8 @@ import java.util.List;
  *  with the inverted index. */
 abstract class TermBasedFieldType extends SimpleMappedFieldType {
 
-    TermBasedFieldType() {
+    TermBasedFieldType(String name, boolean isSearchable, boolean hasDocValues) {
+        super(name, isSearchable, hasDocValues);
     }
 
     protected TermBasedFieldType(MappedFieldType ref) {

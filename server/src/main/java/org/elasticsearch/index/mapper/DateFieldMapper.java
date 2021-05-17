@@ -20,7 +20,6 @@
 package org.elasticsearch.index.mapper;
 
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
-import static org.elasticsearch.index.mapper.TypeParsers.parseDateTimeFormatter;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -31,6 +30,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
@@ -56,30 +56,36 @@ import org.joda.time.DateTimeZone;
 /** A {@link FieldMapper} for ip addresses. */
 public class DateFieldMapper extends FieldMapper {
 
+    private static final String DEFAULT_FORMAT_PATTERN = "strict_date_optional_time||epoch_millis";
     public static final String CONTENT_TYPE = "date";
     public static final FormatDateTimeFormatter DEFAULT_DATE_TIME_FORMATTER = Joda.forPattern(
-            "strict_date_optional_time||epoch_millis", IsoLocale.ROOT);
+        DEFAULT_FORMAT_PATTERN, IsoLocale.ROOT);
 
     public static class Defaults {
         public static final Explicit<Boolean> IGNORE_MALFORMED = new Explicit<>(false, false);
+        public static final FieldType FIELD_TYPE = new FieldType();
+
+        static {
+            FIELD_TYPE.setTokenized(true);
+            FIELD_TYPE.setStored(false);
+            FIELD_TYPE.setStoreTermVectors(false);
+            FIELD_TYPE.setOmitNorms(false);
+            FIELD_TYPE.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+        }
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder, DateFieldMapper> {
+    public static class Builder extends FieldMapper.Builder<Builder> {
 
         private Boolean ignoreMalformed;
+        private Explicit<String> format = new Explicit<>(DEFAULT_FORMAT_PATTERN, false);
         private Boolean ignoreTimezone;
         private Locale locale;
-        private boolean dateTimeFormatterSet = false;
+        String nullValue;
 
         public Builder(String name) {
-            super(name, new DateFieldType(), new DateFieldType());
+            super(name, Defaults.FIELD_TYPE);
             builder = this;
             locale = IsoLocale.ROOT;
-        }
-
-        @Override
-        public DateFieldType fieldType() {
-            return (DateFieldType)fieldType;
         }
 
         public Builder ignoreMalformed(boolean ignoreMalformed) {
@@ -102,45 +108,48 @@ public class DateFieldMapper extends FieldMapper {
             return Defaults.IGNORE_MALFORMED;
         }
 
-        /** Whether an explicit format for this date field has been set already. */
-        public boolean isDateTimeFormatterSet() {
-            return dateTimeFormatterSet;
-        }
-
-        public Builder dateTimeFormatter(FormatDateTimeFormatter dateTimeFormatter) {
-            fieldType().setDateTimeFormatter(dateTimeFormatter);
-            dateTimeFormatterSet = true;
+        public Builder locale(Locale locale) {
+            this.locale = locale;
             return this;
         }
 
-        public void locale(Locale locale) {
-            this.locale = locale;
+        public Builder nullValue(String nullValue) {
+            this.nullValue = nullValue;
+            return this;
         }
 
-        @Override
-        protected void setupFieldType(BuilderContext context) {
-            super.setupFieldType(context);
-            FormatDateTimeFormatter dateTimeFormatter = fieldType().dateTimeFormatter;
-            if (!locale.equals(dateTimeFormatter.locale())) {
-                fieldType().setDateTimeFormatter(new FormatDateTimeFormatter(
-                    dateTimeFormatter.format(),
-                    dateTimeFormatter.parser(),
-                    dateTimeFormatter.printer(),
-                    locale
-                ));
-            }
+        public String format() {
+            return format.value();
+        }
+
+        public Builder format(String format) {
+            this.format = new Explicit<>(format, true);
+            return this;
+        }
+
+        public boolean isFormatterSet() {
+            return format.explicit();
+        }
+
+        protected DateFieldType setupFieldType(BuilderContext context) {
+            String pattern = this.format.value();
+            var formatter = Joda.forPattern(pattern, locale);
+            return new DateFieldType(buildFullName(context), indexed, hasDocValues, formatter);
         }
 
         @Override
         public DateFieldMapper build(BuilderContext context) {
-            setupFieldType(context);
+            DateFieldType ft = setupFieldType(context);
+            Long nullTimestamp = nullValue == null ? null : ft.dateTimeFormatter.parser().parseMillis(nullValue);
             return new DateFieldMapper(
                 name,
                 position,
                 defaultExpression,
                 fieldType,
-                defaultFieldType,
+                ft,
                 ignoreMalformed(context),
+                nullTimestamp,
+                nullValue,
                 ignoreTimezone,
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
@@ -154,7 +163,7 @@ public class DateFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Mapper.Builder<?,?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             Builder builder = new Builder(name);
             TypeParsers.parseField(builder, name, node, parserContext);
             for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
@@ -175,7 +184,7 @@ public class DateFieldMapper extends FieldMapper {
                     builder.locale(locale);
                     iterator.remove();
                 } else if (propName.equals("format")) {
-                    builder.dateTimeFormatter(parseDateTimeFormatter(propNode));
+                    builder.format(propNode.toString());
                     iterator.remove();
                 } else if (propName.equals("ignore_timezone")) {
                     builder.ignoreTimezone(nodeBooleanValue(propNode, "ignore_timezone"));
@@ -189,17 +198,14 @@ public class DateFieldMapper extends FieldMapper {
     public static final class DateFieldType extends MappedFieldType {
         protected FormatDateTimeFormatter dateTimeFormatter;
 
-        DateFieldType() {
-            super();
-            setTokenized(false);
-            setHasDocValues(true);
-            setOmitNorms(true);
-            setDateTimeFormatter(DEFAULT_DATE_TIME_FORMATTER);
+        DateFieldType(String name, boolean isSearchable, boolean hasDocValues, FormatDateTimeFormatter formatter) {
+            super(name, isSearchable, hasDocValues);
+            this.dateTimeFormatter = formatter;
         }
 
         DateFieldType(DateFieldType other) {
             super(other);
-            setDateTimeFormatter(other.dateTimeFormatter);
+            this.dateTimeFormatter = other.dateTimeFormatter;
         }
 
         @Override
@@ -230,7 +236,6 @@ public class DateFieldMapper extends FieldMapper {
         }
 
         public void setDateTimeFormatter(FormatDateTimeFormatter dateTimeFormatter) {
-            checkIfFrozen();
             this.dateTimeFormatter = dateTimeFormatter;
         }
 
@@ -306,21 +311,27 @@ public class DateFieldMapper extends FieldMapper {
 
     private Explicit<Boolean> ignoreMalformed;
     private final Boolean ignoreTimezone;
+    private final Long nullValue;
+    private final String nullValueAsString;
 
     private DateFieldMapper(
             String simpleName,
             Integer position,
             @Nullable String defaultExpression,
-            MappedFieldType fieldType,
-            MappedFieldType defaultFieldType,
+            FieldType fieldType,
+            MappedFieldType mappedFieldType,
             Explicit<Boolean> ignoreMalformed,
+            Long nullValue,
+            String nullValueAsString,
             Boolean ignoreTimezone,
             Settings indexSettings,
             MultiFields multiFields,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
         this.ignoreMalformed = ignoreMalformed;
         this.ignoreTimezone = ignoreTimezone;
+        this.nullValue = nullValue;
+        this.nullValueAsString = nullValueAsString;
     }
 
     @Override
@@ -330,7 +341,7 @@ public class DateFieldMapper extends FieldMapper {
 
     @Override
     protected String contentType() {
-        return fieldType.typeName();
+        return fieldType().typeName();
     }
 
     @Override
@@ -352,35 +363,34 @@ public class DateFieldMapper extends FieldMapper {
             dateAsString = context.parser().textOrNull();
         }
 
-        if (dateAsString == null) {
-            dateAsString = fieldType().nullValueAsString();
-        }
-
-        if (dateAsString == null) {
-            return;
-        }
-
         long timestamp;
-        try {
-            timestamp = fieldType().parse(dateAsString);
-        } catch (IllegalArgumentException e) {
-            if (ignoreMalformed.value()) {
-                context.addIgnoredField(fieldType.name());
+        if (dateAsString == null) {
+            if (nullValue == null) {
                 return;
-            } else {
-                throw e;
+            }
+            timestamp = nullValue;
+        } else {
+            try {
+                timestamp = fieldType().parse(dateAsString);
+            } catch (IllegalArgumentException e) {
+                if (ignoreMalformed.value()) {
+                    context.addIgnoredField(mappedFieldType.name());
+                    return;
+                } else {
+                    throw e;
+                }
             }
         }
 
-        if (fieldType().indexOptions() != IndexOptions.NONE) {
+        if (mappedFieldType.isSearchable()) {
             fields.add(new LongPoint(fieldType().name(), timestamp));
         }
-        if (fieldType().hasDocValues()) {
+        if (mappedFieldType.hasDocValues()) {
             fields.add(new SortedNumericDocValuesField(fieldType().name(), timestamp));
-        } else if (fieldType().stored() || fieldType().indexOptions() != IndexOptions.NONE) {
+        } else if (fieldType.stored() || mappedFieldType.isSearchable()) {
             createFieldNamesField(context, fields);
         }
-        if (fieldType().stored()) {
+        if (fieldType.stored()) {
             fields.add(new StoredField(fieldType().name(), timestamp));
         }
     }
@@ -407,8 +417,8 @@ public class DateFieldMapper extends FieldMapper {
             builder.field("ignore_malformed", ignoreMalformed.value());
         }
 
-        if (includeDefaults || fieldType().nullValue() != null) {
-            builder.field("null_value", fieldType().nullValueAsString());
+        if (nullValue != null) {
+            builder.field("null_value", nullValueAsString);
         }
 
         if (includeDefaults

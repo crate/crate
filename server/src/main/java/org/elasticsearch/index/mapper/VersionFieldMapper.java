@@ -19,7 +19,12 @@
 
 package org.elasticsearch.index.mapper;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexOptions;
@@ -32,10 +37,6 @@ import org.elasticsearch.index.mapper.ParseContext.Document;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.QueryShardException;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
 /** Mapper for the _version field. */
 public class VersionFieldMapper extends MetadataFieldMapper {
 
@@ -45,20 +46,19 @@ public class VersionFieldMapper extends MetadataFieldMapper {
     public static class Defaults {
 
         public static final String NAME = VersionFieldMapper.NAME;
-        public static final MappedFieldType FIELD_TYPE = new VersionFieldType();
+        public static final FieldType FIELD_TYPE = new FieldType();
+        public static final MappedFieldType MAPPED_FIELD_TYPE = new VersionFieldType();
 
         static {
-            FIELD_TYPE.setName(NAME);
             FIELD_TYPE.setDocValuesType(DocValuesType.NUMERIC);
             FIELD_TYPE.setIndexOptions(IndexOptions.NONE);
-            FIELD_TYPE.setHasDocValues(true);
             FIELD_TYPE.freeze();
         }
     }
 
     public static class TypeParser implements MetadataFieldMapper.TypeParser {
         @Override
-        public MetadataFieldMapper.Builder<?, ?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public MetadataFieldMapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             throw new MapperParsingException(NAME + " is not configurable");
         }
 
@@ -71,7 +71,10 @@ public class VersionFieldMapper extends MetadataFieldMapper {
 
     static final class VersionFieldType extends MappedFieldType {
 
-        VersionFieldType() {
+        public static final VersionFieldType INSTANCE = new VersionFieldType();
+
+        private VersionFieldType() {
+            super(NAME, false, true);
         }
 
         protected VersionFieldType(VersionFieldType ref) {
@@ -100,7 +103,7 @@ public class VersionFieldMapper extends MetadataFieldMapper {
     }
 
     private VersionFieldMapper(Settings indexSettings) {
-        super(NAME, null, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE, indexSettings);
+        super(Defaults.FIELD_TYPE, Defaults.MAPPED_FIELD_TYPE, indexSettings);
     }
 
     @Override
