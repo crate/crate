@@ -19,9 +19,16 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import static org.elasticsearch.index.mapper.TypeParsers.parseField;
+
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
@@ -37,19 +44,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.index.analysis.AnalyzerScope;
-import org.elasticsearch.index.analysis.IndexAnalyzers;
-import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.query.QueryShardContext;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import static org.elasticsearch.index.mapper.TypeParsers.parseField;
 
 /**
  * A field mapper for keywords. This mapper accepts strings and indexes them as-is.
@@ -74,11 +69,8 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     public static class Builder extends FieldMapper.Builder<Builder, KeywordFieldMapper> {
 
-        protected String nullValue = Defaults.NULL_VALUE;
         protected int ignoreAbove = Defaults.IGNORE_ABOVE;
         private Integer lengthLimit;
-        private IndexAnalyzers indexAnalyzers;
-        private String normalizerName;
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE);
@@ -115,36 +107,10 @@ public final class KeywordFieldMapper extends FieldMapper {
             return super.indexOptions(indexOptions);
         }
 
-        public Builder splitQueriesOnWhitespace(boolean splitQueriesOnWhitespace) {
-            fieldType().setSplitQueriesOnWhitespace(splitQueriesOnWhitespace);
-            return builder;
-        }
-
-        public Builder normalizer(IndexAnalyzers indexAnalyzers, String name) {
-            this.indexAnalyzers = indexAnalyzers;
-            this.normalizerName = name;
-            return builder;
-        }
 
         @Override
         public KeywordFieldMapper build(BuilderContext context) {
             setupFieldType(context);
-            if (normalizerName != null) {
-                NamedAnalyzer normalizer = indexAnalyzers.getNormalizer(normalizerName);
-                if (normalizer == null) {
-                    throw new MapperParsingException("normalizer [" + normalizerName + "] not found for field [" + name + "]");
-                }
-                fieldType().setNormalizer(normalizer);
-                final NamedAnalyzer searchAnalyzer;
-                if (fieldType().splitQueriesOnWhitespace) {
-                    searchAnalyzer = indexAnalyzers.getWhitespaceNormalizer(normalizerName);
-                } else {
-                    searchAnalyzer = normalizer;
-                }
-                fieldType().setSearchAnalyzer(searchAnalyzer);
-            } else if (fieldType().splitQueriesOnWhitespace) {
-                fieldType().setSearchAnalyzer(new NamedAnalyzer("whitespace", AnalyzerScope.INDEX, new WhitespaceAnalyzer()));
-            }
             return new KeywordFieldMapper(
                 name,
                 position,
@@ -169,28 +135,11 @@ public final class KeywordFieldMapper extends FieldMapper {
                 Map.Entry<String, Object> entry = iterator.next();
                 String propName = entry.getKey();
                 Object propNode = entry.getValue();
-                if (propName.equals("null_value")) {
-                    if (propNode == null) {
-                        throw new MapperParsingException("Property [null_value] cannot be null.");
-                    }
-                    builder.nullValue(propNode.toString());
-                    iterator.remove();
-                } else if (propName.equals("ignore_above")) {
+                if (propName.equals("ignore_above")) {
                     builder.ignoreAbove(XContentMapValues.nodeIntegerValue(propNode, -1));
                     iterator.remove();
                 } else if (propName.equals("length_limit")) {
                     builder.lengthLimit(XContentMapValues.nodeIntegerValue(propNode, -1));
-                    iterator.remove();
-                } else if (propName.equals("norms")) {
-                    TypeParsers.parseNorms(builder, name, propNode);
-                    iterator.remove();
-                } else if (propName.equals("normalizer")) {
-                    if (propNode != null) {
-                        builder.normalizer(parserContext.getIndexAnalyzers(), propNode.toString());
-                    }
-                    iterator.remove();
-                } else if (propName.equals("split_queries_on_whitespace")) {
-                    builder.splitQueriesOnWhitespace(XContentMapValues.nodeBooleanValue(propNode, "split_queries_on_whitespace"));
                     iterator.remove();
                 }
             }
@@ -200,8 +149,6 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     public static final class KeywordFieldType extends StringFieldType {
 
-        private NamedAnalyzer normalizer = null;
-        private boolean splitQueriesOnWhitespace;
         private Integer lengthLimit;
 
         public KeywordFieldType() {
@@ -211,9 +158,6 @@ public final class KeywordFieldMapper extends FieldMapper {
 
         protected KeywordFieldType(KeywordFieldType ref) {
             super(ref);
-            this.normalizer = ref.normalizer;
-            this.lengthLimit = ref.lengthLimit;
-            this.splitQueriesOnWhitespace = ref.splitQueriesOnWhitespace;
         }
 
         public KeywordFieldType clone() {
@@ -232,14 +176,12 @@ public final class KeywordFieldMapper extends FieldMapper {
                 return false;
             }
             KeywordFieldType that = (KeywordFieldType) o;
-            return splitQueriesOnWhitespace == that.splitQueriesOnWhitespace &&
-                   Objects.equals(normalizer, that.normalizer) &&
-                   Objects.equals(lengthLimit, that.lengthLimit);
+            return Objects.equals(lengthLimit, that.lengthLimit);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(super.hashCode(), normalizer, splitQueriesOnWhitespace, lengthLimit);
+            return Objects.hash(super.hashCode(), lengthLimit);
         }
 
         @Override
@@ -247,27 +189,8 @@ public final class KeywordFieldMapper extends FieldMapper {
             return CONTENT_TYPE;
         }
 
-        private NamedAnalyzer normalizer() {
-            return normalizer;
-        }
-
-        public void setNormalizer(NamedAnalyzer normalizer) {
-            checkIfFrozen();
-            this.normalizer = normalizer;
-            setIndexAnalyzer(normalizer);
-        }
-
-        public boolean splitQueriesOnWhitespace() {
-            return splitQueriesOnWhitespace;
-        }
-
         public void setLengthLimit(Integer lengthLimit) {
             this.lengthLimit = lengthLimit;
-        }
-
-        public void setSplitQueriesOnWhitespace(boolean splitQueriesOnWhitespace) {
-            checkIfFrozen();
-            this.splitQueriesOnWhitespace = splitQueriesOnWhitespace;
         }
 
         @Override
@@ -374,27 +297,6 @@ public final class KeywordFieldMapper extends FieldMapper {
             return;
         }
 
-        final NamedAnalyzer normalizer = fieldType().normalizer();
-        if (normalizer != null) {
-            try (TokenStream ts = normalizer.tokenStream(name(), value)) {
-                final CharTermAttribute termAtt = ts.addAttribute(CharTermAttribute.class);
-                ts.reset();
-                if (ts.incrementToken() == false) {
-                    throw new IllegalStateException("The normalization token stream is "
-                        + "expected to produce exactly 1 token, but got 0 for analyzer " + normalizer
-                        + " and input \"" + value + "\"");
-                }
-                final String newValue = termAtt.toString();
-                if (ts.incrementToken()) {
-                    throw new IllegalStateException("The normalization token stream is "
-                        + "expected to produce exactly 1 token, but got 2+ for analyzer " + normalizer
-                        + " and input \"" + value + "\"");
-                }
-                ts.end();
-                value = newValue;
-            }
-        }
-
         // convert to utf8 only once before feeding postings/dv/stored fields
         final BytesRef binaryValue = new BytesRef(value);
         if (fieldType().indexOptions() != IndexOptions.NONE || fieldType().stored()) {
@@ -424,9 +326,6 @@ public final class KeywordFieldMapper extends FieldMapper {
                 "mapper [" + name() + "] has different length_limit settings, current ["
                 + this.lengthLimit + "], merged [" + k.lengthLimit + "]");
         }
-        if (!Objects.equals(fieldType().normalizer(), k.fieldType().normalizer())) {
-            conflicts.add("mapper [" + name() + "] has different [normalizer]");
-        }
         this.ignoreAbove = k.ignoreAbove;
     }
 
@@ -444,16 +343,6 @@ public final class KeywordFieldMapper extends FieldMapper {
 
         if (includeDefaults || lengthLimit != null) {
             builder.field("length_limit", lengthLimit);
-        }
-
-        if (fieldType().normalizer() != null) {
-            builder.field("normalizer", fieldType().normalizer().name());
-        } else if (includeDefaults) {
-            builder.nullField("normalizer");
-        }
-
-        if (includeDefaults || fieldType().splitQueriesOnWhitespace) {
-            builder.field("split_queries_on_whitespace", fieldType().splitQueriesOnWhitespace);
         }
     }
 }
