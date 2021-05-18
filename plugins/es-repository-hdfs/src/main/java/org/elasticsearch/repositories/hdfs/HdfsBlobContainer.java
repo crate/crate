@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.blobstore.DeleteResult;
 import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
 import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 import org.elasticsearch.repositories.hdfs.HdfsBlobStore.Operation;
@@ -78,9 +79,13 @@ final class HdfsBlobContainer extends AbstractBlobContainer {
         }
     }
 
+    // TODO: See if we can get precise result reporting.
+    private static final DeleteResult DELETE_RESULT = new DeleteResult(1L, 0L);
+
     @Override
-    public void delete() throws IOException {
+    public DeleteResult delete() throws IOException {
         store.execute(fileContext -> fileContext.delete(path, true));
+        return DELETE_RESULT;
     }
 
     @Override
