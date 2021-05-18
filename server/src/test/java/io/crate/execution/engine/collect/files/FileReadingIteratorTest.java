@@ -29,13 +29,13 @@ import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import org.elasticsearch.test.ESTestCase;
+import io.crate.metadata.TransactionContext;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,6 +44,7 @@ import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,6 +55,7 @@ import java.util.function.Supplier;
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
 import static io.crate.testing.TestingHelpers.createReference;
+import static org.hamcrest.Matchers.is;
 
 public class FileReadingIteratorTest extends ESTestCase {
 
@@ -157,6 +159,39 @@ public class FileReadingIteratorTest extends ESTestCase {
             new Object[]{CSV_AS_MAP_SECOND_LINE});
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    public void test_GetUrisWithGlob() throws Exception {
+        String path = Paths.get(getClass().getResource("/essetup/data/").toURI()).toUri().toString();
+        List<FileReadingIterator.UriWithGlob> uriWithGlobs = ((FileReadingIterator) createBatchIterator(
+            List.of(
+                path + "nested_dir/*.json",
+                path + "nested_dir/*_1.json",
+                path + "nested_dir/*/2_*",
+                path + "nested_dir/nested_dir_2/*/sub.json",
+                path + "nested_dir/nested_dir_*/*/sub.json",
+                "s3://fakeBucket3/prefix*/*.json",
+                "s3://fakeBucket3/*/*.json",
+                "s3://fakeBucket3/*/prefix2/prefix3/a.json",
+                "s3://fakeBucket3/*/prefix2/*/*.json",
+                "s3://fakeBucket3/prefix/p*x/*/*.json"
+            ),
+            JSON
+        )).urisWithGlob;
+        List<String> preGlobURIs = uriWithGlobs.stream().map(e -> e.preGlobUri.toString()).toList();
+        assertThat(preGlobURIs, is(List.of(
+            path + "nested_dir/",
+            path + "nested_dir/",
+            path + "nested_dir/",
+            path + "nested_dir/nested_dir_2/",
+            path + "nested_dir/",
+            "s3://fakeBucket3/",
+            "s3://fakeBucket3/",
+            "s3://fakeBucket3/",
+            "s3://fakeBucket3/",
+            "s3://fakeBucket3/prefix/"
+        )));
     }
 
     private BatchIterator<Row> createBatchIterator(Collection<String> fileUris,

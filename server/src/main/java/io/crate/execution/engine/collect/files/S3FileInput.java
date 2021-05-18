@@ -90,8 +90,8 @@ public class S3FileInput implements FileInput {
         if (client == null) {
             client = clientBuilder.client(uri);
         }
-        S3Object object = client.getObject(uri.getHost(), uri.getPath().substring(1));
-
+        String key = uri.getPath().length() > 1 ? uri.getPath().substring(1) : "";
+        S3Object object = client.getObject(uri.getHost(), key);
         if (object != null) {
             return object.getObjectContent();
         }
