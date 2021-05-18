@@ -345,7 +345,7 @@ public class GeoUtils {
                     } else if (element == 2) {
                         lat = parser.doubleValue();
                     } else {
-                        GeoPoint.assertZValue(ignoreZValue, parser.doubleValue());
+                        GeoPoint.assertZValue(parser.doubleValue());
                     }
                 } else {
                     throw new ElasticsearchParseException("numeric value expected");
@@ -353,7 +353,7 @@ public class GeoUtils {
             }
             return point.reset(lat, lon);
         } else if (parser.currentToken() == Token.VALUE_STRING) {
-            return point.resetFromString(parser.text(), ignoreZValue);
+            return point.resetFromString(parser.text());
         } else {
             throw new ElasticsearchParseException("geo_point expected");
         }

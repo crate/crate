@@ -19,12 +19,10 @@
 
 package org.elasticsearch.index.mapper;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 import static org.elasticsearch.index.mapper.TypeParsers.parseField;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -40,8 +38,6 @@ import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.Explicit;
-import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.settings.Settings;
@@ -58,16 +54,8 @@ import org.elasticsearch.index.query.QueryShardException;
 public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapperParser {
     public static final String CONTENT_TYPE = "geo_point";
 
-    public static class Names {
-        public static final String IGNORE_MALFORMED = "ignore_malformed";
-        public static final ParseField IGNORE_Z_VALUE = new ParseField("ignore_z_value");
-        public static final String NULL_VALUE = "null_value";
-    }
-
     public static class Defaults {
-        public static final Explicit<Boolean> IGNORE_MALFORMED = new Explicit<>(false, false);
         public static final GeoPointFieldType FIELD_TYPE = new GeoPointFieldType();
-        public static final Explicit<Boolean> IGNORE_Z_VALUE = new Explicit<>(true, false);
 
         static {
             FIELD_TYPE.setTokenized(false);
@@ -78,64 +66,24 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
     }
 
     public static class Builder extends FieldMapper.Builder<Builder, GeoPointFieldMapper> {
-        protected Boolean ignoreMalformed;
-        private Boolean ignoreZValue;
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE);
             builder = this;
         }
 
-        public Builder ignoreMalformed(boolean ignoreMalformed) {
-            this.ignoreMalformed = ignoreMalformed;
-            return builder;
-        }
-
-        protected Explicit<Boolean> ignoreMalformed(BuilderContext context) {
-            if (ignoreMalformed != null) {
-                return new Explicit<>(ignoreMalformed, true);
-            }
-            if (context.indexSettings() != null) {
-                return new Explicit<>(IGNORE_MALFORMED_SETTING.get(context.indexSettings()), false);
-            }
-            return GeoPointFieldMapper.Defaults.IGNORE_MALFORMED;
-        }
-
-        protected Explicit<Boolean> ignoreZValue(BuilderContext context) {
-            if (ignoreZValue != null) {
-                return new Explicit<>(ignoreZValue, true);
-            }
-            return Defaults.IGNORE_Z_VALUE;
-        }
-
-        public Builder ignoreZValue(final boolean ignoreZValue) {
-            this.ignoreZValue = ignoreZValue;
-            return this;
-        }
-
-        public GeoPointFieldMapper build(BuilderContext context, String simpleName, MappedFieldType fieldType,
-                                         MappedFieldType defaultFieldType, Settings indexSettings,
-                                         MultiFields multiFields, Explicit<Boolean> ignoreMalformed,
-                                         Explicit<Boolean> ignoreZValue, CopyTo copyTo) {
+        @Override
+        public GeoPointFieldMapper build(BuilderContext context) {
             setupFieldType(context);
             return new GeoPointFieldMapper(
-                simpleName,
+                name,
                 position,
                 defaultExpression,
                 fieldType,
                 defaultFieldType,
-                indexSettings,
-                multiFields,
-                ignoreMalformed,
-                ignoreZValue,
+                context.indexSettings(),
+                multiFieldsBuilder.build(this, context),
                 copyTo);
-        }
-
-        @Override
-        public GeoPointFieldMapper build(BuilderContext context) {
-            return build(context, name, fieldType, defaultFieldType, context.indexSettings(),
-                multiFieldsBuilder.build(this, context), ignoreMalformed(context),
-                ignoreZValue(context), copyTo);
         }
     }
 
@@ -146,49 +94,9 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                 throws MapperParsingException {
             Builder builder = new GeoPointFieldMapper.Builder(name);
             parseField(builder, name, node, parserContext);
-            Object nullValue = null;
-            for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
-                Map.Entry<String, Object> entry = iterator.next();
-                String propName = entry.getKey();
-                Object propNode = entry.getValue();
-
-                if (propName.equals(Names.IGNORE_MALFORMED)) {
-                    builder.ignoreMalformed(nodeBooleanValue(propNode, name + '.' + Names.IGNORE_MALFORMED));
-                    iterator.remove();
-                } else if (propName.equals(Names.IGNORE_Z_VALUE.getPreferredName())) {
-                    builder.ignoreZValue(nodeBooleanValue(propNode, propName + '.' + Names.IGNORE_Z_VALUE.getPreferredName()));
-                    iterator.remove();
-                } else if (propName.equals(Names.NULL_VALUE)) {
-                    if (propNode == null) {
-                        throw new MapperParsingException("Property [null_value] cannot be null.");
-                    }
-                    nullValue = propNode;
-                    iterator.remove();
-                }
-            }
-
-            if (nullValue != null) {
-                boolean ignoreZValue = builder.ignoreZValue == null ? Defaults.IGNORE_Z_VALUE.value() : builder.ignoreZValue;
-                boolean ignoreMalformed = builder.ignoreMalformed == null ? Defaults.IGNORE_MALFORMED.value() : builder.ignoreMalformed;
-                GeoPoint point = GeoUtils.parseGeoPoint(nullValue, ignoreZValue);
-                if (ignoreMalformed == false) {
-                    if (point.lat() > 90.0 || point.lat() < -90.0) {
-                        throw new IllegalArgumentException("illegal latitude value [" + point.lat() + "]");
-                    }
-                    if (point.lon() > 180.0 || point.lon() < -180) {
-                        throw new IllegalArgumentException("illegal longitude value [" + point.lon() + "]");
-                    }
-                } else {
-                    GeoUtils.normalizePoint(point);
-                }
-                builder.nullValue(point);
-            }
             return builder;
         }
     }
-
-    protected Explicit<Boolean> ignoreMalformed;
-    protected Explicit<Boolean> ignoreZValue;
 
     public GeoPointFieldMapper(String simpleName,
                                Integer position,
@@ -197,23 +105,12 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                                MappedFieldType defaultFieldType,
                                Settings indexSettings,
                                MultiFields multiFields,
-                               Explicit<Boolean> ignoreMalformed,
-                               Explicit<Boolean> ignoreZValue,
                                CopyTo copyTo) {
         super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
-        this.ignoreMalformed = ignoreMalformed;
-        this.ignoreZValue = ignoreZValue;
     }
 
     @Override
     protected void mergeOptions(FieldMapper other, List<String> conflicts) {
-        GeoPointFieldMapper geoFieldMapper = (GeoPointFieldMapper) other;
-        if (geoFieldMapper.ignoreMalformed.explicit()) {
-            this.ignoreMalformed = geoFieldMapper.ignoreMalformed;
-        }
-        if (geoFieldMapper.ignoreZValue.explicit()) {
-            this.ignoreZValue = geoFieldMapper.ignoreZValue;
-        }
     }
 
     @Override
@@ -262,15 +159,11 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
 
     protected void parse(ParseContext context, GeoPoint point) throws IOException {
 
-        if (ignoreMalformed.value() == false) {
-            if (point.lat() > 90.0 || point.lat() < -90.0) {
-                throw new IllegalArgumentException("illegal latitude value [" + point.lat() + "] for " + name());
-            }
-            if (point.lon() > 180.0 || point.lon() < -180) {
-                throw new IllegalArgumentException("illegal longitude value [" + point.lon() + "] for " + name());
-            }
-        } else {
-            GeoUtils.normalizePoint(point);
+        if (point.lat() > 90.0 || point.lat() < -90.0) {
+            throw new IllegalArgumentException("illegal latitude value [" + point.lat() + "] for " + name());
+        }
+        if (point.lon() > 180.0 || point.lon() < -180) {
+            throw new IllegalArgumentException("illegal longitude value [" + point.lon() + "] for " + name());
         }
         if (fieldType().indexOptions() != IndexOptions.NONE) {
             context.doc().add(new LatLonPoint(fieldType().name(), point.lat(), point.lon()));
@@ -321,7 +214,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                         token = context.parser().nextToken();
                         Double alt = Double.NaN;
                         if (token == XContentParser.Token.VALUE_NUMBER) {
-                            alt = GeoPoint.assertZValue(ignoreZValue.value(), context.parser().doubleValue());
+                            alt = GeoPoint.assertZValue(context.parser().doubleValue());
                         } else if (token != XContentParser.Token.END_ARRAY) {
                             throw new ElasticsearchParseException("[{}] field type does not accept > 3 dimensions", CONTENT_TYPE);
                         }
@@ -355,46 +248,18 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
      * Parses geopoint represented as an object or an array, ignores malformed geopoints if needed
      */
     private void parseGeoPointIgnoringMalformed(ParseContext context, GeoPoint sparse) throws IOException {
-        try {
-            parse(context, GeoUtils.parseGeoPoint(context.parser(), sparse));
-        } catch (ElasticsearchParseException e) {
-            if (ignoreMalformed.value() == false) {
-                throw e;
-            }
-            context.addIgnoredField(fieldType.name());
-        }
+        parse(context, GeoUtils.parseGeoPoint(context.parser(), sparse));
     }
 
     /**
      * Parses geopoint represented as a string and ignores malformed geopoints if needed
      */
     private void parseGeoPointStringIgnoringMalformed(ParseContext context, GeoPoint sparse) throws IOException {
-        try {
-            parse(context, sparse.resetFromString(context.parser().text(), ignoreZValue.value()));
-        } catch (ElasticsearchParseException e) {
-            if (ignoreMalformed.value() == false) {
-                throw e;
-            }
-            context.addIgnoredField(fieldType.name());
-        }
+        parse(context, sparse.resetFromString(context.parser().text()));
     }
 
     @Override
     protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
         super.doXContentBody(builder, includeDefaults, params);
-        if (includeDefaults || ignoreMalformed.explicit()) {
-            builder.field(Names.IGNORE_MALFORMED, ignoreMalformed.value());
-        }
-        if (includeDefaults || ignoreZValue.explicit()) {
-            builder.field(Names.IGNORE_Z_VALUE.getPreferredName(), ignoreZValue.value());
-        }
-
-        if (includeDefaults || fieldType().nullValue() != null) {
-            builder.field(Names.NULL_VALUE, fieldType().nullValue());
-        }
-    }
-
-    public Explicit<Boolean> ignoreZValue() {
-        return ignoreZValue;
     }
 }

@@ -19,6 +19,19 @@
 
 package org.elasticsearch.index.mapper;
 
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
@@ -32,8 +45,6 @@ import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.Explicit;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.SpatialStrategy;
 import org.elasticsearch.common.geo.XShapeCollection;
@@ -48,18 +59,6 @@ import org.elasticsearch.index.query.QueryShardException;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
-import static org.elasticsearch.index.mapper.GeoPointFieldMapper.Names.IGNORE_MALFORMED;
 
 /**
  * FieldMapper for indexing {@link org.locationtech.spatial4j.shape.Shape}s.
@@ -91,7 +90,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
         public static final String ORIENTATION = "orientation";
         public static final String STRATEGY = "strategy";
         public static final String STRATEGY_POINTS_ONLY = "points_only";
-        public static final String COERCE = "coerce";
     }
 
     public static class Defaults {
@@ -102,9 +100,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
         public static final int QUADTREE_LEVELS = GeoUtils.quadTreeLevelsForPrecision("50m");
         public static final Orientation ORIENTATION = Orientation.RIGHT;
         public static final double LEGACY_DISTANCE_ERROR_PCT = 0.025d;
-        public static final Explicit<Boolean> COERCE = new Explicit<>(false, false);
-        public static final Explicit<Boolean> IGNORE_MALFORMED = new Explicit<>(false, false);
-        public static final Explicit<Boolean> IGNORE_Z_VALUE = new Explicit<>(true, false);
 
         public static final MappedFieldType FIELD_TYPE = new GeoShapeFieldType();
 
@@ -123,10 +118,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
 
     public static class Builder extends FieldMapper.Builder<Builder, GeoShapeFieldMapper> {
 
-        private Boolean coerce;
-        private Boolean ignoreMalformed;
-        private Boolean ignoreZValue;
-
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE);
         }
@@ -136,51 +127,9 @@ public class GeoShapeFieldMapper extends FieldMapper {
             return (GeoShapeFieldType)fieldType;
         }
 
-        public Builder coerce(boolean coerce) {
-            this.coerce = coerce;
-            return builder;
-        }
-
         @Override
         protected boolean defaultDocValues(Version indexCreated) {
             return false;
-        }
-
-        protected Explicit<Boolean> coerce(BuilderContext context) {
-            if (coerce != null) {
-                return new Explicit<>(coerce, true);
-            }
-            if (context.indexSettings() != null) {
-                return new Explicit<>(COERCE_SETTING.get(context.indexSettings()), false);
-            }
-            return Defaults.COERCE;
-        }
-
-        public Builder ignoreMalformed(boolean ignoreMalformed) {
-            this.ignoreMalformed = ignoreMalformed;
-            return builder;
-        }
-
-        protected Explicit<Boolean> ignoreMalformed(BuilderContext context) {
-            if (ignoreMalformed != null) {
-                return new Explicit<>(ignoreMalformed, true);
-            }
-            if (context.indexSettings() != null) {
-                return new Explicit<>(IGNORE_MALFORMED_SETTING.get(context.indexSettings()), false);
-            }
-            return Defaults.IGNORE_MALFORMED;
-        }
-
-        protected Explicit<Boolean> ignoreZValue(BuilderContext context) {
-            if (ignoreZValue != null) {
-                return new Explicit<>(ignoreZValue, true);
-            }
-            return Defaults.IGNORE_Z_VALUE;
-        }
-
-        public Builder ignoreZValue(final boolean ignoreZValue) {
-            this.ignoreZValue = ignoreZValue;
-            return this;
         }
 
         @Override
@@ -197,9 +146,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
                 position,
                 defaultExpression,
                 fieldType,
-                ignoreMalformed(context),
-                coerce(context),
-                ignoreZValue(context),
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
                 copyTo
@@ -234,16 +180,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
                     iterator.remove();
                 } else if (Names.STRATEGY.equals(fieldName)) {
                     builder.fieldType().setStrategyName(fieldNode.toString());
-                    iterator.remove();
-                } else if (IGNORE_MALFORMED.equals(fieldName)) {
-                    builder.ignoreMalformed(nodeBooleanValue(fieldNode, fieldName + ".ignore_malformed"));
-                    iterator.remove();
-                } else if (Names.COERCE.equals(fieldName)) {
-                    builder.coerce(nodeBooleanValue(fieldNode, fieldName + '.' + Names.COERCE));
-                    iterator.remove();
-                } else if (GeoPointFieldMapper.Names.IGNORE_Z_VALUE.getPreferredName().equals(fieldName)) {
-                    builder.ignoreZValue(
-                        nodeBooleanValue(fieldNode, fieldName + '.' + GeoPointFieldMapper.Names.IGNORE_Z_VALUE.getPreferredName()));
                     iterator.remove();
                 } else if (Names.STRATEGY_POINTS_ONLY.equals(fieldName)) {
                     pointsOnly = nodeBooleanValue(fieldNode, fieldName + '.' + Names.STRATEGY_POINTS_ONLY);
@@ -458,24 +394,14 @@ public class GeoShapeFieldMapper extends FieldMapper {
         }
     }
 
-    protected Explicit<Boolean> coerce;
-    protected Explicit<Boolean> ignoreMalformed;
-    protected Explicit<Boolean> ignoreZValue;
-
     public GeoShapeFieldMapper(String simpleName,
                                Integer position,
                                @Nullable String defaultExpression,
                                MappedFieldType fieldType,
-                               Explicit<Boolean> ignoreMalformed,
-                               Explicit<Boolean> coerce,
-                               Explicit<Boolean> ignoreZValue,
                                Settings indexSettings,
                                MultiFields multiFields,
                                CopyTo copyTo) {
         super(simpleName, position, defaultExpression, fieldType, Defaults.FIELD_TYPE, indexSettings, multiFields, copyTo);
-        this.coerce = coerce;
-        this.ignoreMalformed = ignoreMalformed;
-        this.ignoreZValue = ignoreZValue;
     }
 
     @Override
@@ -510,11 +436,8 @@ public class GeoShapeFieldMapper extends FieldMapper {
             }
             indexShape(context, shape);
         } catch (Exception e) {
-            if (ignoreMalformed.value() == false) {
-                throw new MapperParsingException("failed to parse field [{}] of type [{}]", e, fieldType().name(),
-                        fieldType().typeName());
-            }
-            context.addIgnoredField(fieldType.name());
+            throw new MapperParsingException("failed to parse field [{}] of type [{}]", e, fieldType().name(),
+                    fieldType().typeName());
         }
     }
 
@@ -533,15 +456,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
     @Override
     protected void mergeOptions(FieldMapper other, List<String> conflicts) {
         GeoShapeFieldMapper gsfm = (GeoShapeFieldMapper) other;
-        if (gsfm.coerce.explicit()) {
-            this.coerce = gsfm.coerce;
-        }
-        if (gsfm.ignoreMalformed.explicit()) {
-            this.ignoreMalformed = gsfm.ignoreMalformed;
-        }
-        if (gsfm.ignoreZValue.explicit()) {
-            this.ignoreZValue = gsfm.ignoreZValue;
-        }
         // prevent user from changing strategies
         if (fieldType().strategyName().equals(gsfm.fieldType().strategyName()) == false) {
             conflicts.add("mapper [" + name() + "] has different [strategy]");
@@ -614,27 +528,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
                 builder.field(Names.STRATEGY_POINTS_ONLY, fieldType().pointsOnly());
             }
         }
-        if (includeDefaults || coerce.explicit()) {
-            builder.field(Names.COERCE, coerce.value());
-        }
-        if (includeDefaults || ignoreMalformed.explicit()) {
-            builder.field(IGNORE_MALFORMED, ignoreMalformed.value());
-        }
-        if (includeDefaults || ignoreZValue.explicit()) {
-            builder.field(GeoPointFieldMapper.Names.IGNORE_Z_VALUE.getPreferredName(), ignoreZValue.value());
-        }
-    }
-
-    public Explicit<Boolean> coerce() {
-        return coerce;
-    }
-
-    public Explicit<Boolean> ignoreMalformed() {
-        return ignoreMalformed;
-    }
-
-    public Explicit<Boolean> ignoreZValue() {
-        return ignoreZValue;
     }
 
     @Override
