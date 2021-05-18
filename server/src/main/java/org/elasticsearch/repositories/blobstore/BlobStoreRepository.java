@@ -69,6 +69,7 @@ import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
+import org.elasticsearch.common.blobstore.DeleteResult;
 import org.elasticsearch.common.blobstore.fs.FsBlobContainer;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -106,6 +107,7 @@ import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.repositories.RepositoryCleanupResult;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.RepositoryVerificationException;
@@ -611,25 +613,66 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * @param listener     listener to invoke with the combined long of all blobs removed in this operation
      */
     private void cleanupStaleBlobs(Map<String, BlobContainer> foundIndices, Map<String, BlobMetadata> rootBlobs,
-                                   RepositoryData newRepoData, ActionListener<Long> listener) {
-        final GroupedActionListener<Long> groupedListener = new GroupedActionListener<>(ActionListener.wrap(deleteResults -> {
-            long deletes = 0;
-            for (Long result : deleteResults) {
-                deletes += result;
+                                   RepositoryData newRepoData, ActionListener<DeleteResult> listener) {
+        final GroupedActionListener<DeleteResult> groupedListener = new GroupedActionListener<>(ActionListener.wrap(deleteResults -> {
+            DeleteResult deleteResult = DeleteResult.ZERO;
+            for (DeleteResult result : deleteResults) {
+                deleteResult = deleteResult.add(result);
             }
-            listener.onResponse(deletes);
+            listener.onResponse(deleteResult);
         }, listener::onFailure), 2);
 
         final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
         executor.execute(ActionRunnable.supply(groupedListener, () -> {
             List<String> deletedBlobs = cleanupStaleRootFiles(staleRootBlobs(newRepoData, rootBlobs.keySet()));
-            return (long) deletedBlobs.size();
+            return new DeleteResult(deletedBlobs.size(), deletedBlobs.stream().mapToLong(name -> rootBlobs.get(name).length()).sum());
         }));
 
         final Set<String> survivingIndexIds = newRepoData.getIndices().values().stream().map(IndexId::getId).collect(Collectors.toSet());
         executor.execute(ActionRunnable.supply(groupedListener, () -> cleanupStaleIndices(foundIndices, survivingIndexIds)));
     }
 
+
+    /**
+     * Runs cleanup actions on the repository. Increments the repository state id by one before executing any modifications on the
+     * repository.
+     * TODO: Add shard level cleanups
+     * <ul>
+     *     <li>Deleting stale indices {@link #cleanupStaleIndices}</li>
+     *     <li>Deleting unreferenced root level blobs {@link #cleanupStaleRootFiles}</li>
+     * </ul>
+     * @param repositoryStateId Current repository state id
+     * @param listener Lister to complete when done
+     */
+    public void cleanup(long repositoryStateId, ActionListener<RepositoryCleanupResult> listener) {
+        ActionListener.completeWith(listener, () -> {
+            if (isReadOnly()) {
+                throw new RepositoryException(metadata.name(), "cannot run cleanup on readonly repository");
+            }
+            final RepositoryData repositoryData = getRepositoryData();
+            if (repositoryData.getGenId() != repositoryStateId) {
+                // Check that we are working on the expected repository version before gathering the data to clean up
+                throw new RepositoryException(metadata.name(), "concurrent modification of the repository before cleanup started, " +
+                    "expected current generation [" + repositoryStateId + "], actual current generation ["
+                    + repositoryData.getGenId() + "]");
+            }
+            Map<String, BlobMetadata> rootBlobs = blobContainer().listBlobs();
+            final Map<String, BlobContainer> foundIndices = blobStore().blobContainer(indicesPath()).children();
+            final Set<String> survivingIndexIds =
+                repositoryData.getIndices().values().stream().map(IndexId::getId).collect(Collectors.toSet());
+            final List<String> staleRootBlobs = staleRootBlobs(repositoryData, rootBlobs.keySet());
+            if (survivingIndexIds.equals(foundIndices.keySet()) && staleRootBlobs.isEmpty()) {
+                // Nothing to clean up we return
+                return new RepositoryCleanupResult(DeleteResult.ZERO);
+            }
+            // write new index-N blob to ensure concurrent operations will fail
+            writeIndexGen(repositoryData, repositoryStateId, true);
+            final DeleteResult deleteIndicesResult = cleanupStaleIndices(foundIndices, survivingIndexIds);
+            List<String> cleaned = cleanupStaleRootFiles(staleRootBlobs);
+            return new RepositoryCleanupResult(
+                deleteIndicesResult.add(cleaned.size(), cleaned.stream().mapToLong(name -> rootBlobs.get(name).length()).sum()));
+        });
+    }
 
     // Finds all blobs directly under the repository root path that are not referenced by the current RepositoryData
     private List<String> staleRootBlobs(RepositoryData repositoryData, Set<String> rootBlobNames) {
@@ -680,21 +723,15 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         return Collections.emptyList();
     }
 
-    private long cleanupStaleIndices(Map<String, BlobContainer> foundIndices, Set<String> survivingIndexIds) {
-        long deleteResult = 0;
+    private DeleteResult cleanupStaleIndices(Map<String, BlobContainer> foundIndices, Set<String> survivingIndexIds) {
+        DeleteResult deleteResult = DeleteResult.ZERO;
         try {
             for (Map.Entry<String, BlobContainer> indexEntry : foundIndices.entrySet()) {
                 final String indexSnId = indexEntry.getKey();
                 try {
                     if (survivingIndexIds.contains(indexSnId) == false) {
                         LOGGER.debug("[{}] Found stale index [{}]. Cleaning it up", metadata.name(), indexSnId);
-                        indexEntry.getValue().delete();
-                        //This is not the exact number of blobs, as the blob container could also have children.
-                        //However fetching the blobs before deletion is an expensive operation.
-                        //This is ok because currently the deletes are not used. BlobContainer.delete()
-                        //could return the number of blobs and the bytes deleted if we plan to use this
-                        //data somewhere.
-                        deleteResult++;
+                        deleteResult = deleteResult.add(indexEntry.getValue().delete());
                         LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
                     }
                 } catch (Exception e) {
