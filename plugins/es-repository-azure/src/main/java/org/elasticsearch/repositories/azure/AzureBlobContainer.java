@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.blobstore.DeleteResult;
 import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
 
 import java.io.IOException;
@@ -120,9 +121,9 @@ public class AzureBlobContainer extends AbstractBlobContainer {
     }
 
     @Override
-    public void delete() throws IOException {
+    public DeleteResult delete() throws IOException {
         try {
-            blobStore.deleteBlobDirectory(keyPath);
+            return blobStore.deleteBlobDirectory(keyPath);
         } catch (URISyntaxException | StorageException e) {
             throw new IOException(e);
         }

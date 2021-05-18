@@ -23,6 +23,7 @@ import io.crate.common.SuppressForbidden;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.blobstore.DeleteResult;
 import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
 
 import java.io.BufferedInputStream;
@@ -97,7 +98,7 @@ public class URLBlobContainer extends AbstractBlobContainer {
     }
 
     @Override
-    public void delete() {
+    public DeleteResult delete() {
         throw new UnsupportedOperationException("URL repository is read only");
     }
 

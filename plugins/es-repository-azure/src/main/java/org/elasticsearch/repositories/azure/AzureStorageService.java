@@ -43,6 +43,7 @@ import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 import io.crate.common.collections.Tuple;
+import org.elasticsearch.common.blobstore.DeleteResult;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -54,6 +55,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.FileAlreadyExistsException;
 import java.security.InvalidKeyException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -185,19 +188,39 @@ public class AzureStorageService {
         azureBlob.delete(DeleteSnapshotsOption.NONE, null, null, client.v2().get());
     }
 
-    void deleteBlobDirectory(String container, String path) throws URISyntaxException, StorageException, IOException {
+    DeleteResult deleteBlobDirectory(String container, String path) throws URISyntaxException, StorageException, IOException {
         final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client();
         final CloudBlobContainer blobContainer = client.v1().getContainerReference(container);
+        final Collection<Exception> exceptions = new ArrayList<>();
+        long blobsDeleted = 0L;
+        long bytesDeleted = 0L;
         for (final ListBlobItem blobItem : blobContainer.listBlobs(path, true)) {
             // uri.getPath is of the form /container/keyPath.* and we want to strip off the /container/
             // this requires 1 + container.length() + 1, with each 1 corresponding to one of the /
             final String blobPath = blobItem.getUri().getPath().substring(1 + container.length() + 1);
+            final long len;
+            if (blobItem instanceof CloudBlob) {
+                len = ((CloudBlob) blobItem).getProperties().getLength();
+            } else {
+                len = -1L;
+            }
             try {
                 deleteBlob(container, blobPath);
-            } catch (URISyntaxException | StorageException e) {
-                throw new IOException("Deleting directory [" + path + "] failed");
+                blobsDeleted++;
+                if (len >= 0) {
+                    bytesDeleted += len;
+                }
+            } catch (Exception e) {
+                exceptions.add(e);
             }
         }
+
+        if (exceptions.isEmpty() == false) {
+            final IOException ex = new IOException("Deleting directory [" + path + "] failed");
+            exceptions.forEach(ex::addSuppressed);
+            throw ex;
+        }
+        return new DeleteResult(blobsDeleted, bytesDeleted);
     }
 
     public InputStream getInputStream(String container, String blob)
