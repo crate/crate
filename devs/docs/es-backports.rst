@@ -414,6 +414,7 @@ should be crossed out as well.
 - [ ] f993ef80f88 Move the terms index of `_id` off-heap. (#52518)
 - [ ] 96d603979b4 Upgrade Lucene to 8.5.0-snapshot-b01d7cb (#52584)
 - [ ] 3afb5ca1330 Fix synchronization in ByteSizeCachingDirectory (#52512)
+- [x] 5aa612c2759 Fix testRestoreLocalHistoryFromTranslog (#52441)
 - [ ] 8d2261fe479 Refactor GeoShapeIndexer by extracting polygon / line decomposers (#52422) (#52506)
 - [ ] 9d40277d4cb Deciders should not by default collect yes'es (#52438)
 - [ ] a742c58d45d Extract a ConnectionManager interface (#51722)
