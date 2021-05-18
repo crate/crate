@@ -186,11 +186,11 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
 
     @Override
-    protected void doMerge(Mapper mergeWith) {
-        if (mergeWith instanceof ArrayMapper) {
-            innerMapper = innerMapper.merge(((ArrayMapper) mergeWith).innerMapper);
+    protected void mergeOptions(FieldMapper other, List<String> conflicts) {
+        if (other instanceof ArrayMapper arrayMapper) {
+            innerMapper.merge(arrayMapper.innerMapper);
         } else {
-            innerMapper = innerMapper.merge(mergeWith);
+            innerMapper.merge(other);
         }
     }
 

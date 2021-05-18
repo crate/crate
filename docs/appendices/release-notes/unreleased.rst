@@ -91,6 +91,9 @@ Changes
 
 - Added support of hostnames in HBA configuration.
 
+- Added support for directory-level wild card expansion for URIs passed to
+  ``COPY FROM`` statements.
+
 Fixes
 =====
 

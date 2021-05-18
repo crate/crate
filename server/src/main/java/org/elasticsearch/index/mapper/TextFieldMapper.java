@@ -421,6 +421,11 @@ public class TextFieldMapper extends FieldMapper {
         }
 
         @Override
+        protected void mergeOptions(FieldMapper other, List<String> conflicts) {
+
+        }
+
+        @Override
         protected String contentType() {
             return "phrase";
         }
@@ -439,6 +444,11 @@ public class TextFieldMapper extends FieldMapper {
         @Override
         protected void parseCreateField(ParseContext context, List<IndexableField> fields) {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        protected void mergeOptions(FieldMapper other, List<String> conflicts) {
+
         }
 
         @Override
@@ -714,9 +724,8 @@ public class TextFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void doMerge(Mapper mergeWith) {
-        super.doMerge(mergeWith);
-        TextFieldMapper mw = (TextFieldMapper) mergeWith;
+    protected void mergeOptions(FieldMapper other, List<String> conflicts) {
+        TextFieldMapper mw = (TextFieldMapper) other;
 
         if (this.prefixFieldMapper != null && mw.prefixFieldMapper != null) {
             this.prefixFieldMapper = (PrefixFieldMapper) this.prefixFieldMapper.merge(mw.prefixFieldMapper);

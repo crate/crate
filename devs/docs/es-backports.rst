@@ -299,7 +299,7 @@ should be crossed out as well.
 - [ ] 99f7115f228 Revert "Close channel on handshake error with old version (#56989)"
 - [ ] c81a189da95 Close channel on handshake error with old version (#56989)
 - [ ] fb000d6cf4e Simplify range query methods for range types. (#56976)
-- [ ] 18bfbeda297 Move merge compatibility logic from MappedFieldType to FieldMapper (#56915)
+- [x] 18bfbeda297 Move merge compatibility logic from MappedFieldType to FieldMapper (#56915)
 - [ ] 46e5c37267c Remove Dead Conditional from RoutingTable (#56870) (#56914)
 - [ ] 195a5247d4b Prevent connection races in testEnsureWeReconnect (#56654)
 - [ ] a3e845cbad5 Suppress cluster UUID logs in 6.8/7.x upgrade (#56835)

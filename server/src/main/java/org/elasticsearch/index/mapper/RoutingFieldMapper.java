@@ -192,9 +192,4 @@ public class RoutingFieldMapper extends MetadataFieldMapper {
         builder.endObject();
         return builder;
     }
-
-    @Override
-    protected void doMerge(Mapper mergeWith) {
-        // do nothing here, no merging, but also no exception
-    }
 }

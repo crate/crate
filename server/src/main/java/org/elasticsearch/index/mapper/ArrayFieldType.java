@@ -62,13 +62,6 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     }
 
     @Override
-    public void checkCompatibility(MappedFieldType other, List<String> conflicts) {
-        super.checkCompatibility(other, conflicts);
-        // it's an array field type, lets check the inner type
-        innerFieldType.checkCompatibility(((ArrayFieldType) other).innerFieldType, conflicts);
-    }
-
-    @Override
     public boolean hasDocValues() {
         return innerFieldType.hasDocValues();
     }

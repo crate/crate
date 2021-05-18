@@ -95,7 +95,7 @@ public final class Mapping implements ToXContentFragment {
             if (mergeInto == null) {
                 merged = metaMergeWith;
             } else {
-                merged = mergeInto.merge(metaMergeWith);
+                merged = (MetadataFieldMapper) mergeInto.merge(metaMergeWith);
             }
             mergedMetadataMappers.put(merged.getClass(), merged);
         }
