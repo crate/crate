@@ -81,7 +81,7 @@ public class GeoWKTParser {
             throws IOException, ElasticsearchParseException {
         StringReader reader = new StringReader(parser.text());
         try {
-            boolean ignoreZValue = (shapeMapper != null && shapeMapper.ignoreZValue().value() == true);
+            boolean ignoreZValue = true;
             // setup the tokenizer; configured to read words w/o numbers
             StreamTokenizer tokenizer = new StreamTokenizer(reader);
             tokenizer.resetSyntax();
@@ -155,7 +155,7 @@ public class GeoWKTParser {
         }
         PointBuilder pt = new PointBuilder(nextNumber(stream), nextNumber(stream));
         if (isNumberNext(stream) == true) {
-            GeoPoint.assertZValue(ignoreZValue, nextNumber(stream));
+            GeoPoint.assertZValue(nextNumber(stream));
         }
         nextCloser(stream);
         return pt;
@@ -191,7 +191,7 @@ public class GeoWKTParser {
         final double lat = nextNumber(stream);
         Double z = null;
         if (isNumberNext(stream)) {
-            z = GeoPoint.assertZValue(ignoreZValue, nextNumber(stream));
+            z = GeoPoint.assertZValue(nextNumber(stream));
         }
         return z == null ? new Coordinate(lon, lat) : new Coordinate(lon, lat, z);
     }

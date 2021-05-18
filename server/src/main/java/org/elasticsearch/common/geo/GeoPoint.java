@@ -28,7 +28,6 @@ import java.io.IOException;
 
 import static org.elasticsearch.common.geo.GeoHashUtils.mortonEncode;
 import static org.elasticsearch.common.geo.GeoHashUtils.stringEncode;
-import static org.elasticsearch.index.mapper.GeoPointFieldMapper.Names.IGNORE_Z_VALUE;
 
 public final class GeoPoint implements ToXContentFragment {
 
@@ -64,10 +63,6 @@ public final class GeoPoint implements ToXContentFragment {
     }
 
     public GeoPoint resetFromString(String value) {
-        return resetFromString(value, false);
-    }
-
-    public GeoPoint resetFromString(String value, final boolean ignoreZValue) {
         if (value.contains(",")) {
             String[] vals = value.split(",");
             if (vals.length > 3) {
@@ -77,7 +72,7 @@ public final class GeoPoint implements ToXContentFragment {
             double lat = Double.parseDouble(vals[0].trim());
             double lon = Double.parseDouble(vals[1].trim());
             if (vals.length > 2) {
-                GeoPoint.assertZValue(ignoreZValue, Double.parseDouble(vals[2].trim()));
+                GeoPoint.assertZValue(Double.parseDouble(vals[2].trim()));
             }
             return reset(lat, lon);
         }
@@ -167,11 +162,8 @@ public final class GeoPoint implements ToXContentFragment {
         return builder.latlon(lat, lon);
     }
 
-    public static double assertZValue(final boolean ignoreZValue, double zValue) {
-        if (ignoreZValue == false) {
-            throw new ElasticsearchParseException("Exception parsing coordinates: found Z value [{}] but [{}] "
-                + "parameter is [{}]", zValue, IGNORE_Z_VALUE, ignoreZValue);
-        }
+    public static double assertZValue(double zValue) {
+        // We removed the `ignore_z_value`, before it defaulted to `true`, so we ignore all z values
         return zValue;
     }
 }

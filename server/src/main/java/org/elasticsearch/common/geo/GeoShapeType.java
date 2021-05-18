@@ -46,12 +46,12 @@ public enum GeoShapeType {
     POINT("point") {
         @Override
         public ShapeBuilder getBuilder(CoordinateNode coordinates, DistanceUnit.Distance radius,
-                                       Orientation orientation, boolean coerce) {
-            return new PointBuilder().coordinate(validate(coordinates, coerce).coordinate);
+                                       Orientation orientation) {
+            return new PointBuilder().coordinate(validate(coordinates).coordinate);
         }
 
         @Override
-        CoordinateNode validate(CoordinateNode coordinates, boolean coerce) {
+        CoordinateNode validate(CoordinateNode coordinates) {
             if (coordinates.isEmpty()) {
                 throw new ElasticsearchParseException(
                     "invalid number of points (0) provided when expecting a single coordinate ([lat, lng])");
@@ -64,8 +64,8 @@ public enum GeoShapeType {
     MULTIPOINT("multipoint") {
         @Override
         public ShapeBuilder getBuilder(CoordinateNode coordinates, DistanceUnit.Distance radius,
-                                       Orientation orientation, boolean coerce) {
-            validate(coordinates, coerce);
+                                       Orientation orientation) {
+            validate(coordinates);
             CoordinatesBuilder coordinatesBuilder = new CoordinatesBuilder();
             for (CoordinateNode node : coordinates.children) {
                 coordinatesBuilder.coordinate(node.coordinate);
@@ -74,7 +74,7 @@ public enum GeoShapeType {
         }
 
         @Override
-        CoordinateNode validate(CoordinateNode coordinates, boolean coerce) {
+        CoordinateNode validate(CoordinateNode coordinates) {
             if (coordinates.children == null || coordinates.children.isEmpty()) {
                 if (coordinates.coordinate != null) {
                     throw new ElasticsearchParseException("single coordinate found when expecting an array of " +
@@ -84,7 +84,7 @@ public enum GeoShapeType {
                     ">0 points (e.g., [[lat, lng]] or [[lat, lng], ...])");
             } else {
                 for (CoordinateNode point : coordinates.children) {
-                    POINT.validate(point, coerce);
+                    POINT.validate(point);
                 }
             }
             return coordinates;
@@ -94,8 +94,8 @@ public enum GeoShapeType {
     LINESTRING("linestring") {
         @Override
         public ShapeBuilder getBuilder(CoordinateNode coordinates, DistanceUnit.Distance radius,
-                                       Orientation orientation, boolean coerce) {
-            validate(coordinates, coerce);
+                                       Orientation orientation) {
+            validate(coordinates);
             CoordinatesBuilder line = new CoordinatesBuilder();
             for (CoordinateNode node : coordinates.children) {
                 line.coordinate(node.coordinate);
@@ -104,7 +104,7 @@ public enum GeoShapeType {
         }
 
         @Override
-        CoordinateNode validate(CoordinateNode coordinates, boolean coerce) {
+        CoordinateNode validate(CoordinateNode coordinates) {
             if (coordinates.children.size() < 2) {
                 throw new ElasticsearchParseException("invalid number of points in LineString (found [{}] - must be >= 2)",
                     coordinates.children.size());
@@ -115,17 +115,17 @@ public enum GeoShapeType {
     MULTILINESTRING("multilinestring") {
         @Override
         public ShapeBuilder getBuilder(CoordinateNode coordinates, DistanceUnit.Distance radius,
-                                       Orientation orientation, boolean coerce) {
-            validate(coordinates, coerce);
+                                       Orientation orientation) {
+            validate(coordinates);
             MultiLineStringBuilder multiline = new MultiLineStringBuilder();
             for (CoordinateNode node : coordinates.children) {
-                multiline.linestring(LineStringBuilder.class.cast(LINESTRING.getBuilder(node, radius, orientation, coerce)));
+                multiline.linestring(LineStringBuilder.class.cast(LINESTRING.getBuilder(node, radius, orientation)));
             }
             return multiline;
         }
 
         @Override
-        CoordinateNode validate(CoordinateNode coordinates, boolean coerce) {
+        CoordinateNode validate(CoordinateNode coordinates) {
             if (coordinates.children.size() < 1) {
                 throw new ElasticsearchParseException("invalid number of lines in MultiLineString (found [{}] - must be >= 1)",
                     coordinates.children.size());
@@ -136,22 +136,22 @@ public enum GeoShapeType {
     POLYGON("polygon") {
         @Override
         public ShapeBuilder getBuilder(CoordinateNode coordinates, DistanceUnit.Distance radius,
-                                       Orientation orientation, boolean coerce) {
-            validate(coordinates, coerce);
+                                       Orientation orientation) {
+            validate(coordinates);
             // build shell
             LineStringBuilder shell = LineStringBuilder.class.cast(LINESTRING.getBuilder(coordinates.children.get(0),
-                radius, orientation, coerce));
+                radius, orientation));
             // build polygon with shell and holes
             PolygonBuilder polygon = new PolygonBuilder(shell, orientation);
             for (int i = 1; i < coordinates.children.size(); ++i) {
                 CoordinateNode child = coordinates.children.get(i);
-                LineStringBuilder hole = LineStringBuilder.class.cast(LINESTRING.getBuilder(child, radius, orientation, coerce));
+                LineStringBuilder hole = LineStringBuilder.class.cast(LINESTRING.getBuilder(child, radius, orientation));
                 polygon.hole(hole);
             }
             return polygon;
         }
 
-        void validateLinearRing(CoordinateNode coordinates, boolean coerce) {
+        void validateLinearRing(CoordinateNode coordinates) {
             if (coordinates.children == null || coordinates.children.isEmpty()) {
                 String error = "Invalid LinearRing found.";
                 error += (coordinates.coordinate == null) ?
@@ -159,24 +159,20 @@ public enum GeoShapeType {
                 throw new ElasticsearchParseException(error);
             }
 
-            int numValidPts = coerce ? 3 : 4;
+            int numValidPts = 4;
             if (coordinates.children.size() < numValidPts) {
                 throw new ElasticsearchParseException("invalid number of points in LinearRing (found [{}] - must be >= [{}])",
                     coordinates.children.size(), numValidPts);
             }
             // close linear ring iff coerce is set and ring is open, otherwise throw parse exception
             if (!coordinates.children.get(0).coordinate.equals(
-                coordinates.children.get(coordinates.children.size() - 1).coordinate)) {
-                if (coerce == true) {
-                    coordinates.children.add(coordinates.children.get(0));
-                } else {
-                    throw new ElasticsearchParseException("invalid LinearRing found (coordinates are not closed)");
-                }
+                    coordinates.children.get(coordinates.children.size() - 1).coordinate)) {
+                throw new ElasticsearchParseException("invalid LinearRing found (coordinates are not closed)");
             }
         }
 
         @Override
-        CoordinateNode validate(CoordinateNode coordinates, boolean coerce) {
+        CoordinateNode validate(CoordinateNode coordinates) {
             /**
              * Per GeoJSON spec (http://geojson.org/geojson-spec.html#linestring)
              * A LinearRing is closed LineString with 4 or more positions. The first and last positions
@@ -188,7 +184,7 @@ public enum GeoShapeType {
                     "invalid LinearRing provided for type polygon. Linear ring must be an array of coordinates");
             }
             for (CoordinateNode ring : coordinates.children) {
-                validateLinearRing(ring, coerce);
+                validateLinearRing(ring);
             }
 
             return coordinates;
@@ -197,17 +193,17 @@ public enum GeoShapeType {
     MULTIPOLYGON("multipolygon") {
         @Override
         public ShapeBuilder getBuilder(CoordinateNode coordinates, DistanceUnit.Distance radius,
-                                       Orientation orientation, boolean coerce) {
-            validate(coordinates, coerce);
+                                       Orientation orientation) {
+            validate(coordinates);
             MultiPolygonBuilder polygons = new MultiPolygonBuilder(orientation);
             for (CoordinateNode node : coordinates.children) {
-                polygons.polygon(PolygonBuilder.class.cast(POLYGON.getBuilder(node, radius, orientation, coerce)));
+                polygons.polygon(PolygonBuilder.class.cast(POLYGON.getBuilder(node, radius, orientation)));
             }
             return polygons;
         }
 
         @Override
-        CoordinateNode validate(CoordinateNode coordinates, boolean coerce) {
+        CoordinateNode validate(CoordinateNode coordinates) {
             // noop; todo validate at least 1 polygon to ensure valid multipolygon
             return coordinates;
         }
@@ -215,8 +211,8 @@ public enum GeoShapeType {
     ENVELOPE("envelope") {
         @Override
         public ShapeBuilder getBuilder(CoordinateNode coordinates, DistanceUnit.Distance radius,
-                                       Orientation orientation, boolean coerce) {
-            validate(coordinates, coerce);
+                                       Orientation orientation) {
+            validate(coordinates);
             // verify coordinate bounds, correct if necessary
             Coordinate uL = coordinates.children.get(0).coordinate;
             Coordinate lR = coordinates.children.get(1).coordinate;
@@ -224,7 +220,7 @@ public enum GeoShapeType {
         }
 
         @Override
-        CoordinateNode validate(CoordinateNode coordinates, boolean coerce) {
+        CoordinateNode validate(CoordinateNode coordinates) {
             // validate the coordinate array for envelope type
             if (coordinates.children.size() != 2) {
                 throw new ElasticsearchParseException(
@@ -242,13 +238,13 @@ public enum GeoShapeType {
     CIRCLE("circle") {
         @Override
         public ShapeBuilder getBuilder(CoordinateNode coordinates, DistanceUnit.Distance radius,
-                                       Orientation orientation, boolean coerce) {
+                                       Orientation orientation) {
             return new CircleBuilder().center(coordinates.coordinate).radius(radius);
 
         }
 
         @Override
-        CoordinateNode validate(CoordinateNode coordinates, boolean coerce) {
+        CoordinateNode validate(CoordinateNode coordinates) {
             // noop
             return coordinates;
         }
@@ -256,13 +252,13 @@ public enum GeoShapeType {
     GEOMETRYCOLLECTION("geometrycollection") {
         @Override
         public ShapeBuilder getBuilder(CoordinateNode coordinates, DistanceUnit.Distance radius,
-                                       Orientation orientation, boolean coerce) {
+                                       Orientation orientation) {
             // noop, handled in parser
             return null;
         }
 
         @Override
-        CoordinateNode validate(CoordinateNode coordinates, boolean coerce) {
+        CoordinateNode validate(CoordinateNode coordinates) {
             // noop
             return null;
         }
@@ -297,10 +293,9 @@ public enum GeoShapeType {
 
     public abstract ShapeBuilder getBuilder(CoordinateNode coordinates,
                                             DistanceUnit.Distance radius,
-                                            ShapeBuilder.Orientation orientation,
-                                            boolean coerce);
+                                            ShapeBuilder.Orientation orientation);
 
-    abstract CoordinateNode validate(CoordinateNode coordinates, boolean coerce);
+    abstract CoordinateNode validate(CoordinateNode coordinates);
 
     /** wkt shape name */
     public String wktName() {
