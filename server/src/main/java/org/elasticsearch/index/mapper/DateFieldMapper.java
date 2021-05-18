@@ -225,18 +225,6 @@ public class DateFieldMapper extends FieldMapper {
             return CONTENT_TYPE;
         }
 
-        @Override
-        public void checkCompatibility(MappedFieldType fieldType, List<String> conflicts) {
-            super.checkCompatibility(fieldType, conflicts);
-            DateFieldType other = (DateFieldType) fieldType;
-            if (Objects.equals(dateTimeFormatter().format(), other.dateTimeFormatter().format()) == false) {
-                conflicts.add("mapper [" + name() + "] has different [format] values");
-            }
-            if (Objects.equals(dateTimeFormatter().locale(), other.dateTimeFormatter().locale()) == false) {
-                conflicts.add("mapper [" + name() + "] has different [locale] values");
-            }
-        }
-
         public FormatDateTimeFormatter dateTimeFormatter() {
             return dateTimeFormatter;
         }
@@ -398,11 +386,16 @@ public class DateFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void doMerge(Mapper mergeWith) {
-        super.doMerge(mergeWith);
-        final DateFieldMapper other = (DateFieldMapper) mergeWith;
-        if (other.ignoreMalformed.explicit()) {
-            this.ignoreMalformed = other.ignoreMalformed;
+    protected void mergeOptions(FieldMapper other, List<String> conflicts) {
+        final DateFieldMapper d = (DateFieldMapper) other;
+        if (Objects.equals(fieldType().dateTimeFormatter().format(), d.fieldType().dateTimeFormatter().format()) == false) {
+            conflicts.add("mapper [" + name() + "] has different [format] values");
+        }
+        if (Objects.equals(fieldType().dateTimeFormatter().locale(), d.fieldType().dateTimeFormatter().locale()) == false) {
+            conflicts.add("mapper [" + name() + "] has different [locale] values");
+        }
+        if (d.ignoreMalformed.explicit()) {
+            this.ignoreMalformed = d.ignoreMalformed;
         }
     }
 

@@ -22,7 +22,6 @@ package org.elasticsearch.index.mapper;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -203,14 +202,10 @@ public class SourceFieldMapper extends MetadataFieldMapper {
     }
 
     @Override
-    protected void doMerge(Mapper mergeWith) {
-        SourceFieldMapper sourceMergeWith = (SourceFieldMapper) mergeWith;
-        List<String> conflicts = new ArrayList<>();
+    protected void mergeOptions(FieldMapper other, List<String> conflicts) {
+        SourceFieldMapper sourceMergeWith = (SourceFieldMapper) other;
         if (this.enabled != sourceMergeWith.enabled) {
             conflicts.add("Cannot update enabled setting for [_source]");
-        }
-        if (conflicts.isEmpty() == false) {
-            throw new IllegalArgumentException("Can't merge because of conflicts: " + conflicts);
         }
     }
 }
