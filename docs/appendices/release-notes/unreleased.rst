@@ -119,3 +119,6 @@ Fixes
 
 - Fixed an issue that caused incorrect classification for DELETE and UPDATE
   queries with sub-select. Statement type for those queries was always SELECT.
+
+- Fixed an issue that threw an exception when ``ORDER BY`` clauses contain
+  the output column position or the alias name of an aliased column.
