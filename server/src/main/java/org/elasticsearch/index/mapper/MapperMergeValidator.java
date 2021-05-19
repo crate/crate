@@ -40,7 +40,6 @@ class MapperMergeValidator {
      */
     public static void validateNewMappers(Collection<ObjectMapper> objectMappers,
                                           Collection<FieldMapper> fieldMappers,
-                                          Collection<FieldAliasMapper> fieldAliasMappers,
                                           FieldTypeLookup fieldTypes) {
         Set<String> objectFullNames = new HashSet<>();
         for (ObjectMapper objectMapper : objectMappers) {
@@ -58,46 +57,6 @@ class MapperMergeValidator {
             } else if (fieldNames.add(name) == false) {
                 throw new IllegalArgumentException("Field [" + name + "] is defined twice.");
             }
-        }
-
-        Set<String> fieldAliasNames = new HashSet<>();
-        for (FieldAliasMapper fieldAliasMapper : fieldAliasMappers) {
-            String name = fieldAliasMapper.name();
-            if (objectFullNames.contains(name)) {
-                throw new IllegalArgumentException("Field [" + name + "] is defined both as an object and a field.");
-            } else if (fieldNames.contains(name)) {
-                throw new IllegalArgumentException("Field [" + name + "] is defined both as an alias and a concrete field.");
-            } else if (fieldAliasNames.add(name) == false) {
-                throw new IllegalArgumentException("Field [" + name + "] is defined twice.");
-            }
-
-            validateFieldAliasMapper(name, fieldAliasMapper.path(), fieldNames, fieldAliasNames);
-        }
-    }
-
-    /**
-     * Checks that the new field alias is valid.
-     *
-     * Note that this method assumes that new concrete fields have already been processed, so that it
-     * can verify that an alias refers to an existing concrete field.
-     */
-    private static void validateFieldAliasMapper(String aliasName,
-                                                 String path,
-                                                 Set<String> fieldMappers,
-                                                 Set<String> fieldAliasMappers) {
-        if (path.equals(aliasName)) {
-            throw new IllegalArgumentException("Invalid [path] value [" + path + "] for field alias [" +
-                aliasName + "]: an alias cannot refer to itself.");
-        }
-
-        if (fieldAliasMappers.contains(path)) {
-            throw new IllegalArgumentException("Invalid [path] value [" + path + "] for field alias [" +
-                aliasName + "]: an alias cannot refer to another alias.");
-        }
-
-        if (fieldMappers.contains(path) == false) {
-            throw new IllegalArgumentException("Invalid [path] value [" + path + "] for field alias [" +
-                aliasName + "]: an alias must refer to an existing field in the mappings.");
         }
     }
 }

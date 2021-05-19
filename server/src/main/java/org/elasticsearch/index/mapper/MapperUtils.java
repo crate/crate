@@ -27,25 +27,22 @@ enum MapperUtils {
     /**
      * Splits the provided mapper and its descendants into object, field, and field alias mappers.
      */
-    public static void collect(Mapper mapper, Collection<ObjectMapper> objectMappers,
-                               Collection<FieldMapper> fieldMappers,
-                               Collection<FieldAliasMapper> fieldAliasMappers) {
+    public static void collect(Mapper mapper,
+                               Collection<ObjectMapper> objectMappers,
+                               Collection<FieldMapper> fieldMappers) {
         if (mapper instanceof RootObjectMapper) {
             // root mapper isn't really an object mapper
-        } else if (mapper instanceof ObjectMapper) {
-            objectMappers.add((ObjectMapper)mapper);
-        } else if (mapper instanceof FieldMapper) {
-            fieldMappers.add((FieldMapper)mapper);
-        } else if (mapper instanceof FieldAliasMapper) {
-            fieldAliasMappers.add((FieldAliasMapper) mapper);
+        } else if (mapper instanceof ObjectMapper objectMapper) {
+            objectMappers.add(objectMapper);
+        } else if (mapper instanceof FieldMapper fieldMapper) {
+            fieldMappers.add(fieldMapper);
         } else {
             throw new IllegalStateException("Unrecognized mapper type [" +
                 mapper.getClass().getSimpleName() + "].");
         }
 
-
         for (Mapper child : mapper) {
-            collect(child, objectMappers, fieldMappers, fieldAliasMappers);
+            collect(child, objectMappers, fieldMappers);
         }
     }
 }
