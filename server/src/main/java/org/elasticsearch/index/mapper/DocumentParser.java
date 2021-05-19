@@ -633,38 +633,6 @@ final class DocumentParser {
 
     static Mapper.Builder<?,?> createBuilderFromDynamicValue(final ParseContext context, XContentParser.Token token, String currentFieldName) throws IOException {
         if (token == XContentParser.Token.VALUE_STRING) {
-            String text = context.parser().text();
-
-            boolean parseableAsLong = false;
-            try {
-                Long.parseLong(text);
-                parseableAsLong = true;
-            } catch (NumberFormatException e) {
-                // not a long number
-            }
-
-            boolean parseableAsDouble = false;
-            try {
-                Double.parseDouble(text);
-                parseableAsDouble = true;
-            } catch (NumberFormatException e) {
-                // not a double number
-            }
-
-            if (parseableAsLong && context.root().numericDetection()) {
-                Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.LONG);
-                if (builder == null) {
-                    builder = newLongBuilder(currentFieldName);
-                }
-                return builder;
-            } else if (parseableAsDouble && context.root().numericDetection()) {
-                Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.DOUBLE);
-                if (builder == null) {
-                    builder = newFloatBuilder(currentFieldName);
-                }
-                return builder;
-            }
-
             Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.STRING);
             if (builder == null) {
                 builder = new TextFieldMapper.Builder(currentFieldName)

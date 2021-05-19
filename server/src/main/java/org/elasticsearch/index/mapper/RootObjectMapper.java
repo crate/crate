@@ -37,7 +37,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 import static org.elasticsearch.index.mapper.TypeParsers.parseDateTimeFormatter;
 
 public class RootObjectMapper extends ObjectMapper {
@@ -48,14 +47,12 @@ public class RootObjectMapper extends ObjectMapper {
                 DateFieldMapper.DEFAULT_DATE_TIME_FORMATTER,
                 Joda.getStrictStandardDateFormatter()
             };
-        public static final boolean NUMERIC_DETECTION = false;
     }
 
     public static class Builder extends ObjectMapper.Builder<Builder, RootObjectMapper> {
 
         protected Explicit<DynamicTemplate[]> dynamicTemplates = new Explicit<>(new DynamicTemplate[0], false);
         protected Explicit<FormatDateTimeFormatter[]> dynamicDateTimeFormatters = new Explicit<>(Defaults.DYNAMIC_DATE_TIME_FORMATTERS, false);
-        protected Explicit<Boolean> numericDetection = new Explicit<>(Defaults.NUMERIC_DETECTION, false);
 
         public Builder(String name) {
             super(name);
@@ -87,7 +84,6 @@ public class RootObjectMapper extends ObjectMapper {
                 mappers,
                 dynamicDateTimeFormatters,
                 dynamicTemplates,
-                numericDetection,
                 settings
             );
         }
@@ -162,16 +158,12 @@ public class RootObjectMapper extends ObjectMapper {
                 }
                 builder.dynamicTemplates(templates);
                 return true;
-            } else if (fieldName.equals("numeric_detection")) {
-                builder.numericDetection = new Explicit<>(nodeBooleanValue(fieldNode, "numeric_detection"), true);
-                return true;
             }
             return false;
         }
     }
 
     private Explicit<FormatDateTimeFormatter[]> dynamicDateTimeFormatters;
-    private Explicit<Boolean> numericDetection;
     private Explicit<DynamicTemplate[]> dynamicTemplates;
 
     RootObjectMapper(String name,
@@ -180,12 +172,10 @@ public class RootObjectMapper extends ObjectMapper {
                      Map<String, Mapper> mappers,
                      Explicit<FormatDateTimeFormatter[]> dynamicDateTimeFormatters,
                      Explicit<DynamicTemplate[]> dynamicTemplates,
-                     Explicit<Boolean> numericDetection,
                      Settings settings) {
         super(name, null, name, enabled, dynamic, mappers, settings);
         this.dynamicTemplates = dynamicTemplates;
         this.dynamicDateTimeFormatters = dynamicDateTimeFormatters;
-        this.numericDetection = numericDetection;
     }
 
     @Override
@@ -196,12 +186,7 @@ public class RootObjectMapper extends ObjectMapper {
         // applied at merge time
         update.dynamicTemplates = new Explicit<>(new DynamicTemplate[0], false);
         update.dynamicDateTimeFormatters = new Explicit<FormatDateTimeFormatter[]>(Defaults.DYNAMIC_DATE_TIME_FORMATTERS, false);
-        update.numericDetection = new Explicit<>(Defaults.NUMERIC_DETECTION, false);
         return update;
-    }
-
-    public boolean numericDetection() {
-        return this.numericDetection.value();
     }
 
     public FormatDateTimeFormatter[] dynamicDateTimeFormatters() {
@@ -254,9 +239,6 @@ public class RootObjectMapper extends ObjectMapper {
     protected void doMerge(ObjectMapper mergeWith) {
         super.doMerge(mergeWith);
         RootObjectMapper mergeWithObject = (RootObjectMapper) mergeWith;
-        if (mergeWithObject.numericDetection.explicit()) {
-            this.numericDetection = mergeWithObject.numericDetection;
-        }
         if (mergeWithObject.dynamicDateTimeFormatters.explicit()) {
             this.dynamicDateTimeFormatters = mergeWithObject.dynamicDateTimeFormatters;
         }
@@ -290,10 +272,6 @@ public class RootObjectMapper extends ObjectMapper {
                 builder.endObject();
             }
             builder.endArray();
-        }
-
-        if (numericDetection.explicit() || includeDefaults) {
-            builder.field("numeric_detection", numericDetection.value());
         }
     }
 }
