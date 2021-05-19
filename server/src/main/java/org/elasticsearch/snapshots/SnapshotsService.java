@@ -272,7 +272,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 SnapshotDeletionsInProgress deletionsInProgress = currentState.custom(SnapshotDeletionsInProgress.TYPE);
                 if (deletionsInProgress != null && deletionsInProgress.hasDeletionsInProgress()) {
                     throw new ConcurrentSnapshotExecutionException(repositoryName, snapshotName,
-                        "cannot snapshot while a snapshot deletion is in-progress");
+                        "cannot snapshot while a snapshot deletion is in-progress in [" + deletionsInProgress + "]");
                 }
                 SnapshotsInProgress snapshots = currentState.custom(SnapshotsInProgress.TYPE);
                 if (snapshots != null && snapshots.entries().isEmpty() == false) {
@@ -1184,7 +1184,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 SnapshotDeletionsInProgress deletionsInProgress = currentState.custom(SnapshotDeletionsInProgress.TYPE);
                 if (deletionsInProgress != null && deletionsInProgress.hasDeletionsInProgress()) {
                     throw new ConcurrentSnapshotExecutionException(snapshot,
-                        "cannot delete - another snapshot is currently being deleted");
+                        "cannot delete - another snapshot is currently being deleted in [" + deletionsInProgress + "]");
                 }
                 RestoreInProgress restoreInProgress = currentState.custom(RestoreInProgress.TYPE);
                 if (restoreInProgress != null) {
@@ -1192,7 +1192,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     // otherwise we could end up deleting a snapshot that is being restored
                     // and the files the restore depends on would all be gone
                     if (restoreInProgress.isEmpty() == false) {
-                        throw new ConcurrentSnapshotExecutionException(snapshot, "cannot delete snapshot during a restore");
+                        throw new ConcurrentSnapshotExecutionException(snapshot,
+                            "cannot delete snapshot during a restore in progress in [" + restoreInProgress + "]");
                     }
                 }
                 ClusterState.Builder clusterStateBuilder = ClusterState.builder(currentState);
