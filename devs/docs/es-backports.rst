@@ -473,6 +473,7 @@ should be crossed out as well.
 - [ ] 4178c57410f Apply cluster states in system context (#53785)
 - [ ] 4f1b2fd2b15 Add support for distance queries on geo_shape queries (#53466) (#53795)
 - [ ] b0884baf466 Geo shape query vs geo point backport (#53774)
+- [x] 1615c4b3790 Fix testKeepTranslogAfterGlobalCheckpoint (#53704)
 - [ ] 9b3b08318d3 Remove unused import
 - [ ] bc5dae2713b Fix compilation in RoutingNode
 - [ ] 90ab949415e Improve performance of shards limits decider (#53577)
@@ -532,6 +533,7 @@ should be crossed out as well.
 - [ ] 337153b29fd Throw better exception on wrong `dynamic_templates` syntax (#51783)
 - [ ] 21224caeaf2 Remove comparison to true for booleans (#51723)
 - [ ] 39a3a950de0 Simplify rebalancer's weight function (#51632)
+- [x] 27c15d6ccd4 Fix InternalEngineTests.testSeqNoAndCheckpoints (#51630) (#51672)
 - [ ] 86f3b47299b Make `date_range` query rounding consistent with `date` (#50237) (#51741)
 - [ ] 72ae0ca73fe Log exceptions in TcpTransport at DEBUG level (#51612)
 - [ ] 1064009e9d9 Allow Parallel Snapshot Restore And Delete (#51608) (#51666)

@@ -2465,7 +2465,7 @@ public class InternalEngineTests extends EngineTestCase {
                         rarely() ? 100 : Versions.MATCH_ANY,
                         VersionType.INTERNAL,
                         PRIMARY,
-                        0,
+                        System.nanoTime(),
                         UNASSIGNED_SEQ_NO,
                         0
                     );
@@ -2486,7 +2486,7 @@ public class InternalEngineTests extends EngineTestCase {
                     final Engine.Index index = new Engine.Index(newUid(doc), doc,
                                                                 UNASSIGNED_SEQ_NO, primaryTerm.get(),
                                                                 rarely() ? 100 : Versions.MATCH_ANY, VersionType.INTERNAL,
-                                                                PRIMARY, 0, -1, false, UNASSIGNED_SEQ_NO, 0);
+                                                                PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);
                     final Engine.IndexResult result = initialEngine.index(index);
                     if (result.getResultType() == Engine.Result.Type.SUCCESS) {
                         assertThat(result.getSeqNo(), equalTo(primarySeqNo + 1));
@@ -4933,8 +4933,8 @@ public class InternalEngineTests extends EngineTestCase {
                     engine.syncTranslog();
                 }
                 if (frequently()) {
-                    final long lastSyncedGlobalCheckpoint = Translog.readGlobalCheckpoint(translogPath, translogUUID);
                     engine.flush(randomBoolean(), true);
+                    final long lastSyncedGlobalCheckpoint = Translog.readGlobalCheckpoint(translogPath, translogUUID);
                     final List<IndexCommit> commits = DirectoryReader.listCommits(store.directory());
                     // Keep only one safe commit as the oldest commit.
                     final IndexCommit safeCommit = commits.get(0);
