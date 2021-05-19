@@ -31,6 +31,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import io.crate.types.NumericType;
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -49,7 +50,8 @@ public class SumAggregationTest extends AggregationTestCase {
                 argumentType.getTypeSignature(),
                 returnType.getTypeSignature()
             ),
-            data
+            data,
+            List.of()
         );
     }
 
@@ -118,7 +120,8 @@ public class SumAggregationTest extends AggregationTestCase {
             signature.getArgumentDataTypes(),
             signature.getReturnType().createType(),
             rows,
-            false
+            false,
+            List.of()
         );
         assertThat(result, is(1.4f));
     }
@@ -173,13 +176,18 @@ public class SumAggregationTest extends AggregationTestCase {
     @Test
     public void test_sum_numeric_on_long_non_doc_values_field() {
         //noinspection rawtypes
+        Version minNodeVersion = randomBoolean()
+            ? Version.CURRENT
+            : Version.V_4_0_9;
         var result = execPartialAggregationWithoutDocValues(
             (AggregationFunction) nodeCtx.functions().getQualified(
                 NumericSumAggregation.SIGNATURE,
                 List.of(DataTypes.NUMERIC),
                 DataTypes.NUMERIC
             ), new Object[][]{{1L}, {2L}, {3L}},
-            true
+            true,
+            minNodeVersion
+
         );
         assertThat(result, is(BigDecimal.valueOf(6)));
     }
@@ -187,13 +195,17 @@ public class SumAggregationTest extends AggregationTestCase {
     @Test
     public void test_sum_numeric_on_long_non_doc_values_field_with_overflow() {
         //noinspection rawtypes
+        Version minNodeVersion = randomBoolean()
+            ? Version.CURRENT
+            : Version.V_4_0_9;
         var result = execPartialAggregationWithoutDocValues(
             (AggregationFunction) nodeCtx.functions().getQualified(
                 NumericSumAggregation.SIGNATURE,
                 List.of(DataTypes.NUMERIC),
                 DataTypes.NUMERIC
             ), new Object[][]{{Long.MAX_VALUE}, {10L}},
-            true
+            true,
+            minNodeVersion
         );
         assertThat(result, is(BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.TEN)));
     }
@@ -201,13 +213,17 @@ public class SumAggregationTest extends AggregationTestCase {
     @Test
     public void test_sum_numeric_on_floating_point_non_doc_values_field() {
         //noinspection rawtypes
+        Version minNodeVersion = randomBoolean()
+            ? Version.CURRENT
+            : Version.V_4_0_9;
         var result = execPartialAggregationWithoutDocValues(
             (AggregationFunction) nodeCtx.functions().getQualified(
                 NumericSumAggregation.SIGNATURE,
                 List.of(DataTypes.NUMERIC),
                 DataTypes.NUMERIC
             ), new Object[][]{{1d}, {1d}},
-            true
+            true,
+            minNodeVersion
         );
         assertThat(result, is(BigDecimal.valueOf(2.0)));
     }
@@ -219,6 +235,9 @@ public class SumAggregationTest extends AggregationTestCase {
         assertThat(expected.toString(), is("12.44"));
 
         //noinspection rawtypes
+        Version minNodeVersion = randomBoolean()
+            ? Version.CURRENT
+            : Version.V_4_0_9;
         var result = execPartialAggregationWithoutDocValues(
             (AggregationFunction) nodeCtx.functions().getQualified(
                 NumericSumAggregation.SIGNATURE,
@@ -226,7 +245,8 @@ public class SumAggregationTest extends AggregationTestCase {
                 DataTypes.NUMERIC
             ),
             new Object[][]{{12d}, {0.4357d}},
-            true
+            true,
+            minNodeVersion
         );
         assertThat(result.toString(), is(expected.toString()));
     }

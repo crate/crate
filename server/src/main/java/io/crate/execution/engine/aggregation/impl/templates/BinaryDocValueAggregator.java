@@ -19,43 +19,46 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.aggregation.impl;
+package io.crate.execution.engine.aggregation.impl.templates;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.memory.MemoryManager;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.SortedNumericDocValues;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.CheckedBiConsumer;
+import org.elasticsearch.common.TriFunction;
+import org.elasticsearch.index.fielddata.FieldData;
+import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.function.Function;
 
-public class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T> {
+public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
 
     private final String columnName;
-    private final Function<RamAccounting, T> stateInitializer;
-    private final CheckedBiConsumer<SortedNumericDocValues, T, IOException> docValuesConsumer;
+    private final TriFunction<RamAccounting, MemoryManager, Version, T> stateInitializer;
+    private final CheckedBiConsumer<SortedBinaryDocValues, T, IOException> docValuesConsumer;
 
-    private SortedNumericDocValues values;
+    protected SortedBinaryDocValues values;
 
-    public SortedNumericDocValueAggregator(String columnName,
-                                           Function<RamAccounting, T> stateInitializer,
-                                           CheckedBiConsumer<SortedNumericDocValues, T, IOException> docValuesConsumer) {
+    public BinaryDocValueAggregator(String columnName,
+                                    TriFunction<RamAccounting, MemoryManager, Version, T> stateInitializer,
+                                    CheckedBiConsumer<SortedBinaryDocValues, T, IOException> docValuesConsumer) {
         this.columnName = columnName;
         this.stateInitializer = stateInitializer;
         this.docValuesConsumer = docValuesConsumer;
     }
 
     @Override
-    public T initialState(RamAccounting ramAccounting) {
-        return stateInitializer.apply(ramAccounting);
+    public T initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
+        return stateInitializer.apply(ramAccounting, memoryManager, minNodeVersion);
     }
 
     @Override
     public void loadDocValues(LeafReader reader) throws IOException {
-        values = DocValues.getSortedNumeric(reader, columnName);
+        values = FieldData.toString(DocValues.getSortedSet(reader, columnName));
     }
 
     @Override

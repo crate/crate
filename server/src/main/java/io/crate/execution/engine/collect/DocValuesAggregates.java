@@ -43,6 +43,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -57,6 +58,7 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
+import org.elasticsearch.Version;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
@@ -118,6 +120,8 @@ public class DocValuesAggregates {
                 try {
                     return CompletableFuture.completedFuture(getRow(
                         collectTask.getRamAccounting(),
+                        collectTask.memoryManager(),
+                        collectTask.minNodeVersion(),
                         killed,
                         searcher.item(),
                         queryContext.query(),
@@ -162,14 +166,19 @@ public class DocValuesAggregates {
             }
 
             var aggregationReferences = new ArrayList<Symbol>(aggregation.inputs().size());
+            var literals = new ArrayList<Literal<?>>();
             for (var input : aggregation.inputs()) {
-                var reference = input.accept(AggregationInputToReferenceResolver.INSTANCE, toCollect);
-                if (reference == null) {
-                    // We can extend this to instead return an adapter
-                    // to the normal aggregation implementation
-                    return null;
+                if (input instanceof Literal<?> literal) {
+                    literals.add(literal);
+                } else {
+                    var reference = input.accept(AggregationInputToReferenceResolver.INSTANCE, toCollect);
+                    if (reference == null) {
+                        // We can extend this to instead return an adapter
+                        // to the normal aggregation implementation
+                        return null;
+                    }
+                    aggregationReferences.add(reference);
                 }
-                aggregationReferences.add(reference);
             }
             var fieldTypes = new ArrayList<MappedFieldType>(aggregationReferences.size());
             for (var reference : aggregationReferences) {
@@ -187,7 +196,8 @@ public class DocValuesAggregates {
             }
             DocValueAggregator<?> docValueAggregator = ((AggregationFunction<?, ?>) func).getDocValueAggregator(
                 Symbols.typeView(aggregationReferences),
-                fieldTypes
+                fieldTypes,
+                literals
             );
             if (docValueAggregator == null) {
                 return null;
@@ -234,6 +244,8 @@ public class DocValuesAggregates {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static Iterable<Row> getRow(RamAccounting ramAccounting,
+                                        MemoryManager memoryManager,
+                                        Version minNodeVersion,
                                         AtomicReference<Throwable> killed,
                                         IndexSearcher searcher,
                                         Query query,
@@ -242,7 +254,7 @@ public class DocValuesAggregates {
         List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
         Object[] cells = new Object[aggregators.size()];
         for (int i = 0; i < aggregators.size(); i++) {
-            cells[i] = aggregators.get(i).initialState(ramAccounting);
+            cells[i] = aggregators.get(i).initialState(ramAccounting, memoryManager, minNodeVersion);
         }
         for (var leaf : leaves) {
             Scorer scorer = weight.scorer(leaf);

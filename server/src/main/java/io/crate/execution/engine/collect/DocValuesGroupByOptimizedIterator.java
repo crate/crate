@@ -38,6 +38,7 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.memory.MemoryManager;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
@@ -46,6 +47,7 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
+import org.elasticsearch.Version;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -152,14 +154,15 @@ final class DocValuesGroupByOptimizedIterator {
             sharedShardContext.indexService().cache()
         );
 
-        var ramAccounting = collectTask.getRamAccounting();
         if (columnKeyRefs.size() == 1) {
             return GroupByIterator.forSingleKey(
                 aggregators,
                 searcher.item(),
                 columnKeyRefs.get(0),
                 keyExpressions,
-                ramAccounting,
+                collectTask.getRamAccounting(),
+                collectTask.memoryManager(),
+                collectTask.minNodeVersion(),
                 queryContext.query(),
                 new CollectorContext(sharedShardContext.readerId())
             );
@@ -169,7 +172,9 @@ final class DocValuesGroupByOptimizedIterator {
                 searcher.item(),
                 columnKeyRefs,
                 keyExpressions,
-                ramAccounting,
+                collectTask.getRamAccounting(),
+                collectTask.memoryManager(),
+                collectTask.minNodeVersion(),
                 queryContext.query(),
                 new CollectorContext(sharedShardContext.readerId())
             );
@@ -184,6 +189,8 @@ final class DocValuesGroupByOptimizedIterator {
                                                Reference keyReference,
                                                List<? extends LuceneCollectorExpression<?>> keyExpressions,
                                                RamAccounting ramAccounting,
+                                               MemoryManager memoryManager,
+                                               Version minNodeVersion,
                                                Query query,
                                                CollectorContext collectorContext) {
             return GroupByIterator.getIterator(
@@ -191,6 +198,8 @@ final class DocValuesGroupByOptimizedIterator {
                 indexSearcher,
                 keyExpressions,
                 ramAccounting,
+                memoryManager,
+                minNodeVersion,
                 GroupByMaps.accountForNewEntry(
                     ramAccounting,
                     SizeEstimatorFactory.create(keyReference.valueType()),
@@ -209,6 +218,8 @@ final class DocValuesGroupByOptimizedIterator {
                                                   List<Reference> keyColumnRefs,
                                                   List<? extends LuceneCollectorExpression<?>> keyExpressions,
                                                   RamAccounting ramAccounting,
+                                                  MemoryManager memoryManager,
+                                                  Version minNodeVersion,
                                                   Query query,
                                                   CollectorContext collectorContext) {
             return GroupByIterator.getIterator(
@@ -216,6 +227,8 @@ final class DocValuesGroupByOptimizedIterator {
                 indexSearcher,
                 keyExpressions,
                 ramAccounting,
+                memoryManager,
+                minNodeVersion,
                 GroupByMaps.accountForNewEntry(
                     ramAccounting,
                     new MultiSizeEstimator(
@@ -245,6 +258,8 @@ final class DocValuesGroupByOptimizedIterator {
                                                   IndexSearcher indexSearcher,
                                                   List<? extends LuceneCollectorExpression<?>> keyExpressions,
                                                   RamAccounting ramAccounting,
+                                                  MemoryManager memoryManager,
+                                                  Version minNodeVersion,
                                                   BiConsumer<Map<K, Object[]>, K> accountForNewKeyEntry,
                                                   Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
                                                   BiConsumer<K, Object[]> applyKeyToCells,
@@ -269,6 +284,8 @@ final class DocValuesGroupByOptimizedIterator {
                                     accountForNewKeyEntry,
                                     keyExtractor,
                                     ramAccounting,
+                                    memoryManager,
+                                    minNodeVersion,
                                     query,
                                     killed
                                 ),
@@ -318,6 +335,8 @@ final class DocValuesGroupByOptimizedIterator {
             BiConsumer<Map<K, Object[]>, K> accountForNewKeyEntry,
             Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
             RamAccounting ramAccounting,
+            MemoryManager memoryManager,
+            Version minNodeVersion,
             Query query,
             AtomicReference<Throwable> killed
         ) throws IOException {
@@ -360,7 +379,7 @@ final class DocValuesGroupByOptimizedIterator {
                         states = new Object[aggregators.size()];
                         for (int i = 0; i < aggregators.size(); i++) {
                             var aggregator = aggregators.get(i);
-                            states[i] = aggregator.initialState(ramAccounting);
+                            states[i] = aggregator.initialState(ramAccounting, memoryManager, minNodeVersion);
                             //noinspection unchecked
                             aggregator.apply(ramAccounting, doc, states[i]);
                         }
