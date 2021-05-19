@@ -407,8 +407,6 @@ final class DocumentParser {
             FieldMapper fieldMapper = (FieldMapper) mapper;
             fieldMapper.parse(context);
             parseCopyFields(context, fieldMapper.copyTo().copyToFields());
-        } else if (mapper instanceof FieldAliasMapper) {
-            throw new IllegalArgumentException("Cannot write to a field alias [" + mapper.name() + "].");
         } else {
             throw new IllegalStateException("The provided mapper [" + mapper.name() + "] has an unrecognized type [" +
                 mapper.getClass().getSimpleName() + "].");
@@ -754,8 +752,6 @@ final class DocumentParser {
         if (mapper != null) {
             if (mapper instanceof FieldMapper) {
                 ((FieldMapper) mapper).parse(context);
-            } else if (mapper instanceof FieldAliasMapper) {
-                throw new IllegalArgumentException("Cannot copy to a field alias [" + mapper.name() + "].");
             } else {
                 throw new IllegalStateException("The provided mapper [" + mapper.name() +
                     "] has an unrecognized type [" + mapper.getClass().getSimpleName() + "].");

@@ -56,9 +56,7 @@ class FieldTypeLookup implements Iterable<MappedFieldType> {
      * to use the new type from the given field mapper. Similarly if an alias already
      * exists, it will be updated to reference the field type from the new mapper.
      */
-    public FieldTypeLookup copyAndAddAll(String type,
-                                         Collection<FieldMapper> fieldMappers,
-                                         Collection<FieldAliasMapper> fieldAliasMappers) {
+    public FieldTypeLookup copyAndAddAll(String type, Collection<FieldMapper> fieldMappers) {
         Objects.requireNonNull(type, "type must not be null");
 
         CopyOnWriteHashMap<String, MappedFieldType> fullName = this.fullNameToFieldType;
@@ -70,16 +68,6 @@ class FieldTypeLookup implements Iterable<MappedFieldType> {
 
             if (Objects.equals(fieldType, fullNameFieldType) == false) {
                 fullName = fullName.copyAndPut(fieldType.name(), fieldType);
-            }
-        }
-
-        for (FieldAliasMapper fieldAliasMapper : fieldAliasMappers) {
-            String aliasName = fieldAliasMapper.name();
-            String path = fieldAliasMapper.path();
-
-            String existingPath = aliases.get(aliasName);
-            if (Objects.equals(path, existingPath) == false) {
-                aliases = aliases.copyAndPut(aliasName, path);
             }
         }
 
