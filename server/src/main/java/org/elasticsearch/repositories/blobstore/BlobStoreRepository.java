@@ -120,6 +120,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.collections.Tuple;
 import io.crate.exceptions.InvalidArgumentException;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * BlobStore - based implementation of Snapshot Repository
@@ -408,7 +409,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         } else {
             try {
                 final Map<String, BlobMetadata> rootBlobs = blobContainer().listBlobs();
-                final RepositoryData repositoryData = getRepositoryData(latestGeneration(rootBlobs.keySet()));
+                final RepositoryData repositoryData = safeRepositoryData(repositoryStateId, rootBlobs);
                 // Cache the indices that were found before writing out the new index-N blob so that a stuck master will never
                 // delete an index that was created by another master node after writing this index-N blob.
                 final Map<String, BlobContainer> foundIndices = blobStore().blobContainer(indicesPath()).children();
@@ -417,6 +418,30 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 listener.onFailure(new RepositoryException(metadata.name(), "failed to delete snapshot [" + snapshotId + "]", ex));
             }
         }
+    }
+
+    /**
+     * Loads {@link RepositoryData} ensuring that it is consistent with the given {@code rootBlobs} as well of the assumed generation.
+     *
+     * @param repositoryStateId Expected repository generation
+     * @param rootBlobs         Blobs at the repository root
+     * @return RepositoryData
+     */
+    private RepositoryData safeRepositoryData(long repositoryStateId, Map<String, BlobMetadata> rootBlobs) {
+        final long generation = latestGeneration(rootBlobs.keySet());
+        final long genToLoad = latestKnownRepoGen.updateAndGet(known -> Math.max(known, repositoryStateId));
+        if (genToLoad > generation) {
+            // It's always a possibility to not see the latest index-N in the listing here on an eventually consistent blob store, just
+            // debug log it. Any blobs leaked as a result of an inconsistent listing here will be cleaned up in a subsequent cleanup or
+            // snapshot delete run anyway.
+            LOGGER.debug("Determined repository's generation from its contents to [" + generation + "] but " +
+                "current generation is at least [" + genToLoad + "]");
+        }
+        if (genToLoad != repositoryStateId) {
+            throw new RepositoryException(metadata.name(), "concurrent modification of the index-N file, expected current generation [" +
+                repositoryStateId + "], actual current generation [" + genToLoad + "]");
+        }
+        return getRepositoryData(genToLoad);
     }
 
     /**
@@ -629,8 +654,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         final Set<String> survivingIndexIds = newRepoData.getIndices().values().stream().map(IndexId::getId).collect(Collectors.toSet());
         executor.execute(ActionRunnable.supply(groupedListener, () -> cleanupStaleIndices(foundIndices, survivingIndexIds)));
     }
-
-
+    
     // Finds all blobs directly under the repository root path that are not referenced by the current RepositoryData
     private List<String> staleRootBlobs(RepositoryData repositoryData, Set<String> rootBlobNames) {
         final Set<String> allSnapshotIds =
@@ -907,12 +931,36 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         }
     }
 
+    // Tracks the latest known repository generation in a best-effort way to detect inconsistent listing of root level index-N blobs
+    // and concurrent modifications.
+    // Protected for use in MockEventuallyConsistentRepository
+    protected final AtomicLong latestKnownRepoGen = new AtomicLong(RepositoryData.EMPTY_REPO_GEN);
+
     @Override
     public RepositoryData getRepositoryData() {
-        try {
-            return getRepositoryData(latestIndexBlobId());
-        } catch (IOException ioe) {
-            throw new RepositoryException(metadata.name(), "Could not determine repository generation from root blobs", ioe);
+        // Retry loading RepositoryData in a loop in case we run into concurrent modifications of the repository.
+        while (true) {
+            final long generation;
+            try {
+                generation = latestIndexBlobId();
+            } catch (IOException ioe) {
+                throw new RepositoryException(metadata.name(), "Could not determine repository generation from root blobs", ioe);
+            }
+            final long genToLoad = latestKnownRepoGen.updateAndGet(known -> Math.max(known, generation));
+            if (genToLoad > generation) {
+                LOGGER.info("Determined repository generation [" + generation
+                    + "] from repository contents but correct generation must be at least [" + genToLoad + "]");
+            }
+            try {
+                return getRepositoryData(genToLoad);
+            } catch (RepositoryException e) {
+                if (genToLoad != latestKnownRepoGen.get()) {
+                    LOGGER.warn("Failed to load repository data generation [" + genToLoad +
+                        "] because a concurrent operation moved the current generation to [" + latestKnownRepoGen.get() + "]", e);
+                    continue;
+                }
+                throw e;
+            }
         }
     }
 
@@ -933,6 +981,12 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 return RepositoryData.snapshotsFromXContent(parser, indexGen);
             }
         } catch (IOException ioe) {
+            // If we fail to load the generation we tracked in latestKnownRepoGen we reset it.
+            // This is done as a fail-safe in case a user manually deletes the contents of the repository in which case subsequent
+            // operations must start from the EMPTY_REPO_GEN again
+            if (latestKnownRepoGen.compareAndSet(indexGen, RepositoryData.EMPTY_REPO_GEN)) {
+                LOGGER.warn("Resetting repository generation tracker because we failed to read generation [" + indexGen + "]", ioe);
+            }
             throw new RepositoryException(metadata.name(), "could not read repository data from index blob", ioe);
         }
     }
@@ -958,10 +1012,21 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 expectedGen + "], actual current generation [" + currentGen + "] - possibly due to simultaneous snapshot deletion requests");
         }
         final long newGen = currentGen + 1;
+        if (latestKnownRepoGen.get() >= newGen) {
+            throw new IllegalArgumentException(
+                "Tried writing generation [" + newGen + "] but repository is at least at generation [" + newGen + "] already");
+        }
         // write the index file
         final String indexBlob = INDEX_FILE_PREFIX + Long.toString(newGen);
         LOGGER.debug("Repository [{}] writing new index generational blob [{}]", metadata.name(), indexBlob);
-        writeAtomic(indexBlob, BytesReference.bytes(repositoryData.snapshotsToXContent(XContentFactory.jsonBuilder(), writeShardGens)), true);
+        writeAtomic(indexBlob,
+            BytesReference.bytes(repositoryData.snapshotsToXContent(XContentFactory.jsonBuilder(), writeShardGens)), true);
+        final long latestKnownGen = latestKnownRepoGen.updateAndGet(known -> Math.max(known, newGen));
+        if (newGen < latestKnownGen) {
+            // Don't mess up the index.latest blob
+            throw new IllegalStateException(
+                "Wrote generation [" + newGen + "] but latest known repo gen concurrently changed to [" + latestKnownGen + "]");
+        }
         // write the current generation to the index-latest file
         final BytesReference genBytes;
         try (BytesStreamOutput bStream = new BytesStreamOutput()) {
