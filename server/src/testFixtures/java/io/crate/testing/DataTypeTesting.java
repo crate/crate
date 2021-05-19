@@ -46,6 +46,8 @@ import io.crate.types.RegclassType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import org.elasticsearch.common.network.InetAddresses;
+import org.elasticsearch.common.network.NetworkAddress;
 import org.joda.time.Period;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
@@ -93,9 +95,9 @@ public class DataTypeTesting {
             case IpType.ID:
                 return () -> {
                     if (random.nextBoolean()) {
-                        return (T) randomIPv4Address(random);
+                        return (T) NetworkAddress.format(InetAddresses.forString(randomIPv4Address(random)));
                     } else {
-                        return (T) randomIPv6Address(random);
+                        return (T) NetworkAddress.format(InetAddresses.forString(randomIPv6Address(random)));
                     }
                 };
 

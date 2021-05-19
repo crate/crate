@@ -27,6 +27,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import io.crate.common.MutableFloat;
+import io.crate.expression.symbol.Literal;
 import io.crate.types.ByteType;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
@@ -89,7 +90,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public MutableLong initialState(RamAccounting ramAccounting) {
+        public MutableLong initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             ramAccounting.addBytes(DataTypes.LONG.fixedSize());
             return new MutableLong(Long.MIN_VALUE);
         }
@@ -130,7 +131,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public MutableDouble initialState(RamAccounting ramAccounting) {
+        public MutableDouble initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             ramAccounting.addBytes(DataTypes.DOUBLE.fixedSize());
             return new MutableDouble(- Double.MAX_VALUE);
         }
@@ -171,7 +172,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public MutableFloat initialState(RamAccounting ramAccounting) {
+        public MutableFloat initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             ramAccounting.addBytes(DataTypes.FLOAT.fixedSize());
             return new MutableFloat(- Float.MAX_VALUE);
         }
@@ -212,7 +213,8 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
 
         @Override
         public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
-                                                           List<MappedFieldType> fieldTypes) {
+                                                           List<MappedFieldType> fieldTypes,
+                                                           List<Literal<?>> optionalParams) {
             DataType<?> arg = argumentTypes.get(0);
             switch (arg.id()) {
                 case ByteType.ID:

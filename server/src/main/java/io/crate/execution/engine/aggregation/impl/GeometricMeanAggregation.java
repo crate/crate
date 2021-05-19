@@ -28,6 +28,8 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
+import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
@@ -290,7 +292,8 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
 
     @Override
     public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
-                                                       List<MappedFieldType> fieldTypes) {
+                                                       List<MappedFieldType> fieldTypes,
+                                                       List<Literal<?>> optionalParams) {
         switch (argumentTypes.get(0).id()) {
             case ByteType.ID:
             case ShortType.ID:
@@ -300,7 +303,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    (ramAccounting) -> {
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
                         return new GeometricMeanState();
                     },
@@ -309,7 +312,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    (ramAccounting) -> {
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
                         return new GeometricMeanState();
                     },
@@ -321,7 +324,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    (ramAccounting) -> {
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
                         return new GeometricMeanState();
                     },

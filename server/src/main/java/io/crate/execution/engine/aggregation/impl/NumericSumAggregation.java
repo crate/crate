@@ -26,6 +26,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
@@ -168,7 +169,8 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
     @Override
     public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
-                                                       List<MappedFieldType> fieldTypes) {
+                                                       List<MappedFieldType> fieldTypes,
+                                                       List<Literal<?>> optionalParams) {
         return switch (argumentTypes.get(0).id()) {
             case ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID ->
                 new SumLong(returnType, fieldTypes.get(0).name());
@@ -190,7 +192,7 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
 
         @Override
-        public OverflowAwareMutableLong initialState(RamAccounting ramAccounting) {
+        public OverflowAwareMutableLong initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             ramAccounting.addBytes(INIT_BIG_DECIMAL_SIZE);
             return new OverflowAwareMutableLong(0L);
         }
@@ -234,7 +236,7 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
 
         @Override
-        public BigDecimalValueWrapper initialState(RamAccounting ramAccounting) {
+        public BigDecimalValueWrapper initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             ramAccounting.addBytes(INIT_BIG_DECIMAL_SIZE);
             return new BigDecimalValueWrapper(BigDecimal.ZERO);
         }
@@ -281,7 +283,7 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
 
         @Override
-        public BigDecimalValueWrapper initialState(RamAccounting ramAccounting) {
+        public BigDecimalValueWrapper initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             ramAccounting.addBytes(INIT_BIG_DECIMAL_SIZE);
             return new BigDecimalValueWrapper(BigDecimal.ZERO);
         }

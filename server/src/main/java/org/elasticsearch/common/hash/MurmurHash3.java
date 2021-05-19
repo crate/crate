@@ -65,34 +65,35 @@ public enum MurmurHash3 {
      * @param length - length of array
      * @return - hashcode
      */
-    public static long hash64(byte[] data, int length) {
-        return hash64(data, length, DEFAULT_SEED);
+    public static long hash64(byte[] data, int offset, int length) {
+        return hash64(data, offset, length, DEFAULT_SEED);
     }
 
     /**
      * Murmur3 64-bit variant. This is essentially MSB 8 bytes of Murmur3 128-bit variant.
      *
      * @param data   - input byte array
-     * @param length - length of array
+     * @param offset - starting position.
+     * @param length - length of processed bytes starting from the offset.
      * @param seed   - seed.
      * @return - hashcode
      */
     @SuppressWarnings("fall through")
-    public static long hash64(byte[] data, int length, int seed) {
+    public static long hash64(byte[] data, int offset, int length, int seed) {
         long hash = seed;
         final int nblocks = length >> 3;
 
         // body
         for (int i = 0; i < nblocks; i++) {
-            final int i8 = i << 3;
+            final int i8 = (i << 3) + offset;
             long k = ((long) data[i8] & 0xff)
-                     | (((long) data[i8 + 1] & 0xff) << 8)
-                     | (((long) data[i8 + 2] & 0xff) << 16)
-                     | (((long) data[i8 + 3] & 0xff) << 24)
-                     | (((long) data[i8 + 4] & 0xff) << 32)
-                     | (((long) data[i8 + 5] & 0xff) << 40)
-                     | (((long) data[i8 + 6] & 0xff) << 48)
-                     | (((long) data[i8 + 7] & 0xff) << 56);
+                | (((long) data[i8 + 1] & 0xff) << 8)
+                | (((long) data[i8 + 2] & 0xff) << 16)
+                | (((long) data[i8 + 3] & 0xff) << 24)
+                | (((long) data[i8 + 4] & 0xff) << 32)
+                | (((long) data[i8 + 5] & 0xff) << 40)
+                | (((long) data[i8 + 6] & 0xff) << 48)
+                | (((long) data[i8 + 7] & 0xff) << 56);
 
             // mix functions
             k *= C1;
@@ -104,8 +105,8 @@ public enum MurmurHash3 {
 
         // tail
         long k1 = 0;
-        int tailStart = nblocks << 3;
-        switch (length - tailStart) {
+        int tailStart = (nblocks << 3) + offset;
+        switch (length - (nblocks << 3)) {
             case 7:
                 k1 ^= ((long) data[tailStart + 6] & 0xff) << 48;
                 // fall through
