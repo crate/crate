@@ -622,6 +622,7 @@ should be crossed out as well.
 - [ ] f7d9e7bdc48 Better Exceptions on Concurrent Snapshot Operations (#49220) (#49237)
 - [ ] fc505aaa764 Track Repository Gen. in BlobStoreRepository (#48944) (#49116)
 - [x] 0e1035241da Fix Broken Snapshots in Mixed Clusters (#48993) (#48995)
+- [x] fc505aaa764 Track Repository Gen. in BlobStoreRepository (#48944) (#49116)
 - [ ] c45470f84f4 Fix ShardGenerations in RepositoryData in BwC Case (#48920) (#48947)
 - [x] 8360248a43a Always use last properly persisted metadata as previous state (#47779)
 - [x] 38f02217f00 Omit writing index metadata for non-replicated closed indices on data-only node (#47285)
