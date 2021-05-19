@@ -533,6 +533,7 @@ should be crossed out as well.
 - [ ] 337153b29fd Throw better exception on wrong `dynamic_templates` syntax (#51783)
 - [ ] 21224caeaf2 Remove comparison to true for booleans (#51723)
 - [ ] 39a3a950de0 Simplify rebalancer's weight function (#51632)
+- [x] 27c15d6ccd4 Fix InternalEngineTests.testSeqNoAndCheckpoints (#51630) (#51672)
 - [ ] 86f3b47299b Make `date_range` query rounding consistent with `date` (#50237) (#51741)
 - [ ] 72ae0ca73fe Log exceptions in TcpTransport at DEBUG level (#51612)
 - [ ] 1064009e9d9 Allow Parallel Snapshot Restore And Delete (#51608) (#51666)

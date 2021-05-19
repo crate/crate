@@ -2465,7 +2465,7 @@ public class InternalEngineTests extends EngineTestCase {
                         rarely() ? 100 : Versions.MATCH_ANY,
                         VersionType.INTERNAL,
                         PRIMARY,
-                        0,
+                        System.nanoTime(),
                         UNASSIGNED_SEQ_NO,
                         0
                     );
@@ -2486,7 +2486,7 @@ public class InternalEngineTests extends EngineTestCase {
                     final Engine.Index index = new Engine.Index(newUid(doc), doc,
                                                                 UNASSIGNED_SEQ_NO, primaryTerm.get(),
                                                                 rarely() ? 100 : Versions.MATCH_ANY, VersionType.INTERNAL,
-                                                                PRIMARY, 0, -1, false, UNASSIGNED_SEQ_NO, 0);
+                                                                PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);
                     final Engine.IndexResult result = initialEngine.index(index);
                     if (result.getResultType() == Engine.Result.Type.SUCCESS) {
                         assertThat(result.getSeqNo(), equalTo(primarySeqNo + 1));
