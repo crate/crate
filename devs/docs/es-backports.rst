@@ -473,6 +473,7 @@ should be crossed out as well.
 - [ ] 4178c57410f Apply cluster states in system context (#53785)
 - [ ] 4f1b2fd2b15 Add support for distance queries on geo_shape queries (#53466) (#53795)
 - [ ] b0884baf466 Geo shape query vs geo point backport (#53774)
+- [x] 1615c4b3790 Fix testKeepTranslogAfterGlobalCheckpoint (#53704)
 - [ ] 9b3b08318d3 Remove unused import
 - [ ] bc5dae2713b Fix compilation in RoutingNode
 - [ ] 90ab949415e Improve performance of shards limits decider (#53577)
