@@ -431,6 +431,7 @@ should be crossed out as well.
 - [ ] 8a565c4fa61 Voting config exclusions should work with absent nodes (#55291)
 - [ ] 2f91e2aab78 Fix Race in Snapshot Abort (#54873) (#55233)
 - [ ] d8b43c62838 Make Snapshot Deletes Less Racy (#54765) (#55226)
+- [x] 156e5aa77f0 Fix testKeepTranslogAfterGlobalCheckpoint (#55868)
 - [ ] e164c9aaee5 Remove Redundant Cluster State during Snapshot INIT + Master Failover (#54420) (#55208)
 - [ ] 48048646e79 Move Snapshot Status Related Method to Appropriate Places (#54558) (#55209)
 - [ ] a610513ec76 Provide repository-level stats for searchable snapshots (#55051)
