@@ -52,7 +52,7 @@ Fixes
 -----
 
 - Fixed the processing of ``LIMIT`` clauses within queries in the :ref:`INSERT
-  INTO <ref-insert>` statement. A query like ``INSERT INTO target (SELECT *
+  INTO <sql-insert>` statement. A query like ``INSERT INTO target (SELECT *
   FROM (SELECT * FROM source LIMIT 10) t)`` could insert more than 10 rows if
   there is more than 1 node in the cluster.  In addition, using ``LIMIT`` in
   the top level query of the ``INSERT INTO`` statement is now no longer
