@@ -61,7 +61,7 @@ error message::
     policy <column_policy>`).
 
     However, you can configure the :ref:`column_policy <column_policy>` table
-    parameter so that the :ref:`INSERT <ref-insert>`, :ref:`UPDATE
+    parameter so that the :ref:`INSERT <sql-insert>`, :ref:`UPDATE
     <ref-update>`, and :ref:`COPY FROM <sql-copy-from>` statements can
     arbitrarily create new columns as needed (what's known as a *dynamic*
     column policy).

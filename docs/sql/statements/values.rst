@@ -37,7 +37,7 @@ An example::
    VALUES 3 rows in set (... sec)
 
 
-It is commonly used in :ref:`ref-insert` to provide values to insert into a
+It is commonly used in :ref:`sql-insert` to provide values to insert into a
 table.
 
 All :ref:`expressions <gloss-expression>` within the same column must have the

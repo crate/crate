@@ -245,7 +245,7 @@ New statements and clauses
   that the values of certain columns must satisfy a :ref:`boolean expression
   <sql-literal-value>` on insert and update.
 
-- Introduced new optional ``RETURNING`` clause for :ref:`INSERT <ref-insert>`
+- Introduced new optional ``RETURNING`` clause for :ref:`INSERT <sql-insert>`
   and :ref:`UPDATE <ref-update>` to return specified values from each row
   written.
 

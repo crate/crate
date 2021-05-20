@@ -20,7 +20,8 @@ rows) with CrateDB.
 .. contents::
    :local:
 
-.. _inserting_data:
+
+.. _dml-inserting-data:
 
 Inserting data
 ==============
@@ -29,10 +30,10 @@ Inserting data to CrateDB is done by using the SQL ``INSERT`` statement.
 
 .. NOTE::
 
-    The column list is always ordered based on the column position
-    in the :ref:`sql-create-table` statement of the table. If the insert
-    columns are omitted, the values in the ``VALUES`` clauses must
-    correspond to the table columns in that order.
+    The column list is always ordered based on the column position in the
+    :ref:`sql-create-table` statement of the table. If the insert columns are
+    omitted, the values in the ``VALUES`` clauses must correspond to the table
+    columns in that order.
 
 Inserting a row::
 
@@ -121,6 +122,8 @@ inserted row::
     ... ('Arthur Dent', 9876, 5432, 642935);
     SQLParseException[Given value 642935 for generated column check_sum does not match calculation ((num_part1 + num_part2) * 42) = 642936]
 
+
+.. _dml-inserting-by-query:
 
 Inserting data by query
 -----------------------
@@ -216,6 +219,9 @@ Resulting partitions of the last insert by query::
    ``limit``, ``offset`` and ``order by`` are not supported inside the query
    statement.
 
+
+.. _dml-inserting-upserts:
+
 Upserts (``ON CONFLICT DO UPDATE SET``)
 ---------------------------------------
 
@@ -227,11 +233,11 @@ commonly referred to as an *upsert*, being a combination of "update" and
 
 ::
 
-    cr> select
+    cr> SELECT
     ...     name,
     ...     visits,
-    ...     extract(year from last_visit) as last_visit
-    ... from uservisits order by name;
+    ...     extract(year from last_visit) AS last_visit
+    ... FROM uservisits ORDER BY NAME;
     +----------+--------+------------+
     | name     | visits | last_visit |
     +----------+--------+------------+
@@ -242,33 +248,32 @@ commonly referred to as an *upsert*, being a combination of "update" and
 
 ::
 
-    cr> insert into uservisits (id, name, visits, last_visit) values
+    cr> INSERT INTO uservisits (id, name, visits, last_visit) VALUES
     ... (
     ...     0,
     ...     'Ford',
     ...     1,
-    ...     '2015-09-12'
-    ... ) on conflict (id) do update set
-    ...     visits = visits + 1,
-    ...     last_visit = '2015-01-12';
+    ...     '2015-01-12'
+    ... ) ON CONFLICT (id) DO UPDATE SET
+    ...     visits = visits + 1;
     INSERT OK, 1 row affected (... sec)
 
 .. Hidden: refresh uservisits
 
-    cr> refresh table uservisits
+    cr> REFRESH TABLE uservisits
     REFRESH OK, 1 row affected (... sec)
 
 ::
 
-    cr> select
+    cr> SELECT
     ...     name,
     ...     visits,
-    ...     extract(year from last_visit) as last_visit
-    ... from uservisits where id = 0;
+    ...     extract(year from last_visit) AS last_visit
+    ... FROM uservisits WHERE id = 0;
     +------+--------+------------+
     | name | visits | last_visit |
     +------+--------+------------+
-    | Ford |      2 | 2015       |
+    | Ford |      2 | 2013       |
     +------+--------+------------+
     SELECT 1 row in set (... sec)
 
@@ -277,7 +282,7 @@ conflict occurred, by using the special ``excluded`` table. This table is
 especially useful in multiple-row inserts, to refer to the current rows
 values::
 
-    cr> insert into uservisits (id, name, visits, last_visit) values
+    cr> INSERT INTO uservisits (id, name, visits, last_visit) VALUES
     ... (
     ...     0,
     ...     'Ford',
@@ -289,23 +294,23 @@ values::
     ...     'Trillian',
     ...     5,
     ...     '2016-01-15'
-    ... ) on conflict (id) do update set
+    ... ) ON CONFLICT (id) DO UPDATE SET
     ...     visits = visits + excluded.visits,
     ...     last_visit = excluded.last_visit;
     INSERT OK, 2 rows affected (... sec)
 
 .. Hidden: refresh uservisits
 
-    cr> refresh table uservisits
+    cr> REFRESH TABLE uservisits
     REFRESH OK, 1 row affected (... sec)
 
 ::
 
-    cr> select
+    cr> SELECT
     ...     name,
     ...     visits,
-    ...     extract(year from last_visit) as last_visit
-    ... from uservisits order by name;
+    ...     extract(year from last_visit) AS last_visit
+    ... FROM uservisits ORDER BY name;
     +----------+--------+------------+
     | name     | visits | last_visit |
     +----------+--------+------------+
@@ -316,51 +321,51 @@ values::
 
 This can also be done when using a query instead of values::
 
-    cr> create table uservisits2 (
+    cr> CREATE TABLE uservisits2 (
     ...   id integer primary key,
     ...   name text,
     ...   visits integer,
     ...   last_visit timestamp with time zone
-    ... ) clustered by (id) into 2 shards with (number_of_replicas = 0);
+    ... ) CLUSTERED BY (id) INTO 2 SHARDS WITH (number_of_replicas = 0);
     CREATE OK, 1 row affected (... sec)
 
 ::
 
-    cr> insert into uservisits2 (id, name, visits, last_visit)
+    cr> INSERT INTO uservisits2 (id, name, visits, last_visit)
     ... (
-    ...     select id, name, visits, last_visit
-    ...     from uservisits
+    ...     SELECT id, name, visits, last_visit
+    ...     FROM uservisits
     ... );
     INSERT OK, 2 rows affected (... sec)
 
 .. Hidden: refresh uservisits2
 
-    cr> refresh table uservisits2
+    cr> REFRESH TABLE uservisits2
     REFRESH OK, 1 row affected (... sec)
 
 ::
 
-    cr> insert into uservisits2 (id, name, visits, last_visit)
+    cr> INSERT INTO uservisits2 (id, name, visits, last_visit)
     ... (
-    ...     select id, name, visits, last_visit
-    ...     from uservisits
-    ... ) on conflict (id) do update set
+    ...     SELECT id, name, visits, last_visit
+    ...     FROM uservisits
+    ... ) ON CONFLICT (id) DO UPDATE SET
     ...     visits = visits + excluded.visits,
     ...     last_visit = excluded.last_visit;
     INSERT OK, 2 rows affected (... sec)
 
 .. Hidden: refresh uservisits2
 
-    cr> refresh table uservisits2
+    cr> REFRESH TABLE uservisits2
     REFRESH OK, 1 row affected (... sec)
 
 ::
 
-    cr> select
+    cr> SELECT
     ...     name,
     ...     visits,
-    ...     extract(year from last_visit) as last_visit
-    ... from uservisits order by name;
+    ...     extract(year from last_visit) AS last_visit
+    ... FROM uservisits ORDER BY name;
     +----------+--------+------------+
     | name     | visits | last_visit |
     +----------+--------+------------+
@@ -371,10 +376,17 @@ This can also be done when using a query instead of values::
 
 .. Hidden: drop previously created table
 
-   cr> drop table uservisits2
+   cr> DROP TABLE uservisits2
     DROP OK, 1 row affected (... sec)
 
-.. _dml_updating_data:
+
+.. SEEALSO::
+
+    :ref:`SQL syntax: ON CONFLICT DO UPDATE SET
+    <sql-insert-on-conflict-do-update>`
+
+
+.. _dml-updating-data:
 
 Updating data
 =============
@@ -403,7 +415,8 @@ It's also possible to reference a column within the :ref:`expression
     might occur. CrateDB contains a retry logic that tries to resolve the
     conflict automatically.
 
-.. _dml_deleting_data:
+
+.. _dml-deleting-data:
 
 Deleting data
 =============
@@ -413,10 +426,14 @@ Deleting rows in CrateDB is done using the SQL ``DELETE`` statement::
     cr> delete from locations where position > 3;
     DELETE OK, ... rows affected (... sec)
 
-.. _importing_data:
+
+.. _dml-import-export:
 
 Import and export
 =================
+
+
+.. _dml-importing-data:
 
 Importing data
 --------------
@@ -457,6 +474,9 @@ Example CSV data::
 
 For further information, including how to import data to
 :ref:`partitioned-tables`, take a look at the :ref:`sql-copy-from` reference.
+
+
+.. _dml-importing-data-example:
 
 Example
 .......
@@ -523,6 +543,9 @@ This wildcard can also be used to only match certain files in a directory::
     cr> refresh table quotes;
     REFRESH OK, 1 row affected (... sec)
 
+
+.. _dml-importing-data-summary:
+
 Detailed error reporting
 ........................
 
@@ -573,7 +596,8 @@ If an error happens while processing the URI in general, the ``error_count`` and
 
 See :ref:`sql-copy-from` for more information.
 
-.. _exporting_data:
+
+.. _dml-exporting-data:
 
 Exporting data
 --------------
@@ -612,6 +636,7 @@ exported::
     COPY OK, 2 rows affected ...
 
 For further details see :ref:`sql-copy-to`.
+
 
 .. _crate-python: https://pypi.python.org/pypi/crate/
 .. _PCRE: https://www.pcre.org/

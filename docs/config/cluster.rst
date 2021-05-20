@@ -319,7 +319,7 @@ Bulk operations
 ---------------
 
 SQL DML Statements involving a huge amount of rows like :ref:`sql-copy-from`,
-:ref:`ref-insert` or :ref:`ref-update` can take an enormous amount of time and
+:ref:`sql-insert` or :ref:`ref-update` can take an enormous amount of time and
 resources. The following settings change the behaviour of those queries.
 
 .. _bulk.request_timeout:
