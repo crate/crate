@@ -137,7 +137,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
      */
     public static Map<String, Object> parseMapping(NamedXContentRegistry xContentRegistry, String mappingSource) throws Exception {
         try (XContentParser parser = XContentType.JSON.xContent()
-                .createParser(xContentRegistry, LoggingDeprecationHandler.INSTANCE, mappingSource)) {
+            .createParser(xContentRegistry, LoggingDeprecationHandler.INSTANCE, mappingSource)) {
             return parser.map();
         }
     }
@@ -207,8 +207,8 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                     final CompressedXContent currentSource = currentIndexMetadata.mapping().source();
                     final CompressedXContent newSource = mapping.source();
                     assert currentSource.equals(newSource) :
-                            "expected current mapping [" + currentSource + "] for type [" + mapping.type() + "] "
-                                    + "to be the same as new mapping [" + newSource + "]";
+                        "expected current mapping [" + currentSource + "] for type [" + mapping.type() + "] "
+                            + "to be the same as new mapping [" + newSource + "]";
                 }
             } else {
                 // if the mapping version is changed, it should increase, there should be updates, and the mapping should be different
@@ -341,13 +341,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             checkDepthLimit(fullPathObjectMappers.keySet());
         }
 
-        if (newMapper != null) {
-            DocumentMapper updatedDocumentMapper = newMapper.updateFieldType(fieldTypes.fullNameToFieldType);
-            if (updatedDocumentMapper != newMapper) {
-                newMapper = updatedDocumentMapper;
-            }
-        }
-
         // only need to immutably rewrap these if the previous reference was changed.
         // if not then they are already implicitly immutable.
         if (fullPathObjectMappers != this.fullPathObjectMappers) {
@@ -360,22 +353,8 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         this.fieldTypes = fieldTypes;
         this.fullPathObjectMappers = fullPathObjectMappers;
 
-        assert assertMappersShareSameFieldType();
         assert newMapper == null || assertSerialization(newMapper);
-
         return newMapper;
-    }
-
-    private boolean assertMappersShareSameFieldType() {
-        if (mapper != null) {
-            List<FieldMapper> fieldMappers = new ArrayList<>();
-            Collections.addAll(fieldMappers, mapper.mapping().metadataMappers);
-            MapperUtils.collect(mapper.root(), new ArrayList<>(), fieldMappers);
-            for (FieldMapper fieldMapper : fieldMappers) {
-                assert fieldMapper.fieldType() == fieldTypes.get(fieldMapper.name()) : fieldMapper.name();
-            }
-        }
-        return true;
     }
 
     private boolean assertSerialization(DocumentMapper mapper) {
@@ -415,7 +394,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         final int depth = numDots + 2;
         if (depth > maxDepth) {
             throw new IllegalArgumentException("Limit of mapping depth [" + maxDepth + "] in index [" + index().getName()
-                    + "] has been exceeded due to object field [" + objectPath + "]");
+                + "] has been exceeded due to object field [" + objectPath + "]");
         }
     }
 
@@ -423,7 +402,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         if (indexSettings.getIndexMetadata().isRoutingPartitionedIndex()) {
             if (!newMapper.routingFieldMapper().required()) {
                 throw new IllegalArgumentException("mapping type [" + newMapper.type() + "] must have routing "
-                        + "required for partitioned index [" + indexSettings.getIndex().getName() + "]");
+                    + "required for partitioned index [" + indexSettings.getIndex().getName() + "]");
             }
         }
     }

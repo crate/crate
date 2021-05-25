@@ -34,7 +34,6 @@ import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactor
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -687,16 +686,8 @@ final class DocumentParser {
         if (dynamic == ObjectMapper.Dynamic.FALSE) {
             return;
         }
-        final String path = context.path().pathAsText(currentFieldName);
         final Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
-        final MappedFieldType existingFieldType = context.mapperService().fullName(path);
-        final Mapper.Builder builder;
-        if (existingFieldType != null) {
-            // create a builder of the same type
-            builder = createBuilderFromFieldType(context, existingFieldType, currentFieldName);
-        } else {
-            builder = createBuilderFromDynamicValue(context, token, currentFieldName);
-        }
+        final Mapper.Builder builder = createBuilderFromDynamicValue(context, token, currentFieldName);
         if (parentMapper.equals(context.root())) {
             int position = getPositionForDynamicField(context, parentMapper);
             if (builder instanceof FieldMapper.Builder) {
@@ -704,10 +695,6 @@ final class DocumentParser {
             }
         }
         Mapper mapper = builder.build(builderContext);
-        if (existingFieldType != null) {
-            // try to not introduce a conflict
-            mapper = mapper.updateFieldType(Collections.singletonMap(path, existingFieldType));
-        }
         context.addDynamicMapper(mapper);
 
         parseObjectOrField(context, mapper);

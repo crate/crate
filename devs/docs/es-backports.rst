@@ -361,7 +361,7 @@ should be crossed out as well.
 - [ ] 75868ea915d Catch InputCoercionException thrown by Jackson parser (#57287) (#57330)
 - [ ] 10e1dc199dc Revert "Remove unused logic from FieldNamesFieldMapper. (#56834)"
 - [ ] 5b08eaf90cb Fix trimUnsafeCommits for indices created before 6.2 (#57187)
-- [ ] d6b79bcd95e Remove Mapper.updateFieldType() (#57151)
+- [x] d6b79bcd95e Remove Mapper.updateFieldType() (#57151)
 - [ ] 343fb699a4c Remove unused logic from FieldNamesFieldMapper. (#56834)
 - [ ] dde75b0f64e Fix Confusing Exception on Shard Snapshot Abort (#57116) (#57117)
 - [ ] 5569137ae3c Flatten ReleaseableBytesReference Object Trees (#57092) (#57109)
