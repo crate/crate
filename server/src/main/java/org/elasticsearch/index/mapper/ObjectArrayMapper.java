@@ -95,17 +95,6 @@ public class ObjectArrayMapper extends ObjectMapper {
     }
 
     @Override
-    public ObjectMapper updateFieldType(Map<String, MappedFieldType> fullNameToFieldType) {
-        ObjectMapper updatedMapper = innerMapper.updateFieldType(fullNameToFieldType);
-        if (innerMapper != updatedMapper) {
-            ObjectArrayMapper clone = clone();
-            clone.innerMapper = updatedMapper;
-            return clone;
-        }
-        return this;
-    }
-
-    @Override
     public ObjectMapper mappingUpdate(Mapper mapper) {
         ObjectMapper updatedMapper = innerMapper.mappingUpdate(mapper);
         if (innerMapper != updatedMapper) {
