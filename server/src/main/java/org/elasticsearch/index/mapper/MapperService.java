@@ -311,17 +311,16 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         // check basic sanity of the new mapping
         List<ObjectMapper> objectMappers = new ArrayList<>();
         List<FieldMapper> fieldMappers = new ArrayList<>();
-        List<FieldAliasMapper> fieldAliasMappers = new ArrayList<>();
         MetadataFieldMapper[] metadataMappers = newMapper.mapping().metadataMappers;
         Collections.addAll(fieldMappers, metadataMappers);
-        MapperUtils.collect(newMapper.mapping().root(), objectMappers, fieldMappers, fieldAliasMappers);
+        MapperUtils.collect(newMapper.mapping().root(), objectMappers, fieldMappers);
 
         FieldTypeLookup fieldTypes = this.fieldTypes;
-        MapperMergeValidator.validateNewMappers(objectMappers, fieldMappers, fieldAliasMappers, fieldTypes);
+        MapperMergeValidator.validateNewMappers(objectMappers, fieldMappers, fieldTypes);
         checkPartitionedIndexConstraints(newMapper);
 
         // update lookup data-structures
-        fieldTypes = fieldTypes.copyAndAddAll(newMapper.type(), fieldMappers, fieldAliasMappers);
+        fieldTypes = fieldTypes.copyAndAddAll(newMapper.type(), fieldMappers);
 
         for (ObjectMapper objectMapper : objectMappers) {
             if (fullPathObjectMappers == this.fullPathObjectMappers) {
@@ -338,7 +337,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             // deserializing cluster state that was sent by the master node,
             // this check will be skipped.
             checkTotalFieldsLimit(
-                objectMappers.size() + fieldMappers.size() - metadataMappers.length + fieldAliasMappers.size());
+                objectMappers.size() + fieldMappers.size() - metadataMappers.length);
             checkDepthLimit(fullPathObjectMappers.keySet());
         }
 
@@ -371,7 +370,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         if (mapper != null) {
             List<FieldMapper> fieldMappers = new ArrayList<>();
             Collections.addAll(fieldMappers, mapper.mapping().metadataMappers);
-            MapperUtils.collect(mapper.root(), new ArrayList<>(), fieldMappers, new ArrayList<>());
+            MapperUtils.collect(mapper.root(), new ArrayList<>(), fieldMappers);
             for (FieldMapper fieldMapper : fieldMappers) {
                 assert fieldMapper.fieldType() == fieldTypes.get(fieldMapper.name()) : fieldMapper.name();
             }

@@ -40,7 +40,6 @@ public final class DocumentFieldMappers implements Iterable<Mapper> {
     }
 
     public DocumentFieldMappers(Collection<FieldMapper> mappers,
-                                Collection<FieldAliasMapper> aliasMappers,
                                 Analyzer defaultIndex,
                                 Analyzer defaultSearch,
                                 Analyzer defaultSearchQuote) {
@@ -50,10 +49,6 @@ public final class DocumentFieldMappers implements Iterable<Mapper> {
             fieldMappers.put(mapper.name(), mapper);
             MappedFieldType fieldType = mapper.fieldType();
             put(indexAnalyzers, fieldType.name(), fieldType.indexAnalyzer(), defaultIndex);
-        }
-
-        for (FieldAliasMapper aliasMapper : aliasMappers) {
-            fieldMappers.put(aliasMapper.name(), aliasMapper);
         }
 
         this.fieldMappers = Collections.unmodifiableMap(fieldMappers);

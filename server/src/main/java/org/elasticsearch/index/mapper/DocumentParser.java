@@ -22,7 +22,6 @@ package org.elasticsearch.index.mapper;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
 import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -408,8 +407,6 @@ final class DocumentParser {
             FieldMapper fieldMapper = (FieldMapper) mapper;
             fieldMapper.parse(context);
             parseCopyFields(context, fieldMapper.copyTo().copyToFields());
-        } else if (mapper instanceof FieldAliasMapper) {
-            throw new IllegalArgumentException("Cannot write to a field alias [" + mapper.name() + "].");
         } else {
             throw new IllegalStateException("The provided mapper [" + mapper.name() + "] has an unrecognized type [" +
                 mapper.getClass().getSimpleName() + "].");
@@ -634,71 +631,8 @@ final class DocumentParser {
         return new NumberFieldMapper.Builder(name, NumberFieldMapper.NumberType.FLOAT);
     }
 
-    private static Mapper.Builder<?, ?> newDateBuilder(String name, FormatDateTimeFormatter dateTimeFormatter) {
-        DateFieldMapper.Builder builder = new DateFieldMapper.Builder(name);
-        if (dateTimeFormatter != null) {
-            builder.dateTimeFormatter(dateTimeFormatter);
-        }
-        return builder;
-    }
-
     static Mapper.Builder<?,?> createBuilderFromDynamicValue(final ParseContext context, XContentParser.Token token, String currentFieldName) throws IOException {
         if (token == XContentParser.Token.VALUE_STRING) {
-            String text = context.parser().text();
-
-            boolean parseableAsLong = false;
-            try {
-                Long.parseLong(text);
-                parseableAsLong = true;
-            } catch (NumberFormatException e) {
-                // not a long number
-            }
-
-            boolean parseableAsDouble = false;
-            try {
-                Double.parseDouble(text);
-                parseableAsDouble = true;
-            } catch (NumberFormatException e) {
-                // not a double number
-            }
-
-            if (parseableAsLong && context.root().numericDetection()) {
-                Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.LONG);
-                if (builder == null) {
-                    builder = newLongBuilder(currentFieldName);
-                }
-                return builder;
-            } else if (parseableAsDouble && context.root().numericDetection()) {
-                Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.DOUBLE);
-                if (builder == null) {
-                    builder = newFloatBuilder(currentFieldName);
-                }
-                return builder;
-            } else if (parseableAsLong == false && parseableAsDouble == false && context.root().dateDetection()) {
-                // We refuse to match pure numbers, which are too likely to be
-                // false positives with date formats that include eg.
-                // `epoch_millis` or `YYYY`
-                for (FormatDateTimeFormatter dateTimeFormatter : context.root().dynamicDateTimeFormatters()) {
-                    try {
-                        dateTimeFormatter.parser().parseMillis(text);
-                    } catch (IllegalArgumentException e) {
-                        // failure to parse this, continue
-                        continue;
-                    }
-                    Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.DATE);
-                    if (builder == null) {
-                        builder = newDateBuilder(currentFieldName, dateTimeFormatter);
-                    }
-                    if (builder instanceof DateFieldMapper.Builder) {
-                        DateFieldMapper.Builder dateBuilder = (DateFieldMapper.Builder) builder;
-                        if (dateBuilder.isDateTimeFormatterSet() == false) {
-                            dateBuilder.dateTimeFormatter(dateTimeFormatter);
-                        }
-                    }
-                    return builder;
-                }
-            }
-
             Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.STRING);
             if (builder == null) {
                 builder = new TextFieldMapper.Builder(currentFieldName)
@@ -818,8 +752,6 @@ final class DocumentParser {
         if (mapper != null) {
             if (mapper instanceof FieldMapper) {
                 ((FieldMapper) mapper).parse(context);
-            } else if (mapper instanceof FieldAliasMapper) {
-                throw new IllegalArgumentException("Cannot copy to a field alias [" + mapper.name() + "].");
             } else {
                 throw new IllegalStateException("The provided mapper [" + mapper.name() +
                     "] has an unrecognized type [" + mapper.getClass().getSimpleName() + "].");
