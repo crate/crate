@@ -189,7 +189,7 @@ public class DocIndexMetadata {
                      ColumnPolicy columnPolicy,
                      Reference.IndexType indexType,
                      boolean isNotNull,
-                     boolean columnStoreEnabled) {
+                     boolean columnStoreDisabled) {
         Reference ref;
         boolean partitionByColumn = partitionedBy.contains(column);
         String generatedExpression = generatedColumns.get(column.fqn());
@@ -197,9 +197,17 @@ public class DocIndexMetadata {
             indexType = Reference.IndexType.NOT_ANALYZED;
         }
         if (generatedExpression == null) {
-            ref = newInfo(position, column, type, defaultExpression, columnPolicy, indexType, isNotNull, columnStoreEnabled);
+            ref = newInfo(position, column, type, defaultExpression, columnPolicy, indexType, isNotNull, columnStoreDisabled);
         } else {
-            ref = newGeneratedColumnInfo(position, column, type, columnPolicy, indexType, generatedExpression, isNotNull);
+            ref = new GeneratedReference(
+            position,
+            refIdent(column),
+            granularity(column),
+            type,
+            columnPolicy,
+            indexType,
+            generatedExpression,
+            isNotNull);
         }
         if (column.isTopLevel()) {
             columns.add(ref);
@@ -235,24 +243,6 @@ public class DocIndexMetadata {
         return new ReferenceIdent(ident, column);
     }
 
-    private GeneratedReference newGeneratedColumnInfo(int position,
-                                                      ColumnIdent column,
-                                                      DataType type,
-                                                      ColumnPolicy columnPolicy,
-                                                      Reference.IndexType indexType,
-                                                      String generatedExpression,
-                                                      boolean isNotNull) {
-        return new GeneratedReference(
-            position,
-            refIdent(column),
-            granularity(column),
-            type,
-            columnPolicy,
-            indexType,
-            generatedExpression,
-            isNotNull);
-    }
-
     private RowGranularity granularity(ColumnIdent column) {
         if (partitionedBy.contains(column)) {
             return RowGranularity.PARTITION;
@@ -262,12 +252,12 @@ public class DocIndexMetadata {
 
     private Reference newInfo(Integer position,
                               ColumnIdent column,
-                              DataType type,
+                              DataType<?> type,
                               @Nullable String formattedDefaultExpression,
                               ColumnPolicy columnPolicy,
                               Reference.IndexType indexType,
                               boolean nullable,
-                              boolean columnStoreEnabled) {
+                              boolean columnStoreDisabled) {
         Symbol defaultExpression = null;
         if (formattedDefaultExpression != null) {
             Expression expression = SqlParser.createExpression(formattedDefaultExpression);
@@ -280,7 +270,7 @@ public class DocIndexMetadata {
             columnPolicy,
             indexType,
             nullable,
-            columnStoreEnabled,
+            columnStoreDisabled,
             position,
             defaultExpression
         );
