@@ -90,24 +90,6 @@ public class Reference extends Symbol {
              ColumnPolicy.DYNAMIC,
              IndexType.NOT_ANALYZED,
              true,
-             position,
-             defaultExpression);
-    }
-
-    public Reference(ReferenceIdent ident,
-                     RowGranularity granularity,
-                     DataType<?> type,
-                     ColumnPolicy columnPolicy,
-                     IndexType indexType,
-                     boolean nullable,
-                     int position,
-                     @Nullable Symbol defaultExpression) {
-        this(ident,
-             granularity,
-             type,
-             columnPolicy,
-             indexType,
-             nullable,
              false,
              position,
              defaultExpression);

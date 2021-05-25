@@ -104,6 +104,7 @@ public class DocTableInfoTest extends ESTestCase {
             ColumnPolicy.STRICT,
             Reference.IndexType.NOT_ANALYZED,
             true,
+            false,
             1,
             null
         );
