@@ -617,7 +617,7 @@ should be crossed out as well.
 - [ ] 1cde4a6364c Make SnapshotsService#getRepositoryData Async (#49322) (#49358)
 - [ ] 0acba44a2e8 Make Repository.getRepositoryData an Async API (#49299) (#49312)
 - [ ] 9c006483141 Make Snapshot Delete Concurrency Exception Consistent (#49266) (#49281)
-- [ ] 25cc8e36636 Fix RepoCleanup not Removed on Master-Failover (#49217) (#49239)
+- [x] 25cc8e36636 Fix RepoCleanup not Removed on Master-Failover (#49217) (#49239)
 - [x] f7d9e7bdc48 Better Exceptions on Concurrent Snapshot Operations (#49220) (#49237)
 - [ ] fc505aaa764 Track Repository Gen. in BlobStoreRepository (#48944) (#49116)
 - [x] 0e1035241da Fix Broken Snapshots in Mixed Clusters (#48993) (#48995)
