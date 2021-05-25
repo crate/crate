@@ -63,6 +63,7 @@ public class ReferenceTest extends ESTestCase {
             ColumnPolicy.STRICT,
             Reference.IndexType.ANALYZED,
             false,
+            true,
             0,
             Literal.of(Map.of("f", 10)
             )
@@ -88,6 +89,7 @@ public class ReferenceTest extends ESTestCase {
             ColumnPolicy.STRICT,
             Reference.IndexType.ANALYZED,
             false,
+            true,
             0,
             Literal.of(Map.of("f", 10)
             )

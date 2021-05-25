@@ -291,6 +291,7 @@ public final class SystemTable<T> implements TableInfo {
                         ColumnPolicy.DYNAMIC,
                         IndexType.NOT_ANALYZED,
                         column.isNullable,
+                        false,
                         position,
                         null
                     )
