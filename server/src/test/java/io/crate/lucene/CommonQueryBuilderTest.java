@@ -44,7 +44,9 @@ import org.apache.lucene.search.RegexpQuery;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
+import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -526,5 +528,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_is_not_null_on_ignored_results_in_function_query() throws Exception {
         Query query = convert("obj_ignored is not null");
         assertThat(query.toString(), is("(NOT (_doc['obj_ignored'] IS NULL))"));
+    }
+
+    @Test
+    public void test_equal_on_varchar_column_uses_term_query() throws Exception {
+        Query query = convert("vchar_name = 'Trillian'");
+        assertThat(query.toString(), is("vchar_name:Trillian"));
+        assertThat(query, Matchers.instanceOf(TermQuery.class));
     }
 }

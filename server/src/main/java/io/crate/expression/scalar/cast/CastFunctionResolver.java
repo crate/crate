@@ -32,6 +32,8 @@ import io.crate.types.DataTypes;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
@@ -39,6 +41,16 @@ public class CastFunctionResolver {
 
     public static final List<String> CAST_FUNCTION_NAMES = List.of(
         ExplicitCastFunction.NAME, ImplicitCastFunction.NAME, TryCastFunction.NAME);
+
+    @Nullable
+    public static CastMode getCastMode(String functionName) {
+        return switch (functionName) {
+            case ExplicitCastFunction.NAME -> CastMode.EXPLICIT;
+            case ImplicitCastFunction.NAME -> CastMode.IMPLICIT;
+            case TryCastFunction.NAME -> CastMode.TRY;
+            default -> null;
+        };
+    }
 
     public static Symbol generateCastFunction(Symbol sourceSymbol,
                                               DataType<?> targetType,

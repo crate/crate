@@ -21,8 +21,16 @@
 
 package io.crate.planner.optimizer.symbol.rule;
 
+import static io.crate.expression.operator.Operators.COMPARISON_OPERATORS;
+import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+
+import java.util.List;
+import java.util.Optional;
+
 import io.crate.common.collections.Lists2;
 import io.crate.expression.operator.LikeOperators;
+import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
@@ -33,13 +41,6 @@ import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
 import io.crate.planner.optimizer.symbol.Rule;
 import io.crate.types.DataType;
-
-import java.util.List;
-import java.util.Optional;
-
-import static io.crate.expression.operator.Operators.COMPARISON_OPERATORS;
-import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 
 public class MoveReferenceCastToLiteralCastInsideOperators implements Rule<Function> {
@@ -54,10 +55,8 @@ public class MoveReferenceCastToLiteralCastInsideOperators implements Rule<Funct
 
     private final Capture<Function> castCapture;
     private final Pattern<Function> pattern;
-    private final FunctionSymbolResolver functionResolver;
 
     public MoveReferenceCastToLiteralCastInsideOperators(FunctionSymbolResolver functionResolver) {
-        this.functionResolver = functionResolver;
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
             .with(f -> MATCHING_OPERATORS.contains(f.name()))
@@ -81,10 +80,9 @@ public class MoveReferenceCastToLiteralCastInsideOperators implements Rule<Funct
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);
         DataType<?> targetType = reference.valueType();
-
-        return functionResolver.apply(
-            operator.name(),
-            List.of(reference, literal.cast(targetType))
-        );
+        Symbol castedLiteral = literal.cast(targetType, CastFunctionResolver.getCastMode(castFunction.name()));
+        // Can't use functionResolver here because it would attempt to re-resolve the function.
+        // LIKE is only registered for (text, text), and if the `reference` here has varchar(n) it would again wrap the arguments in casts.
+        return new Function(operator.signature(), List.of(reference, castedLiteral), operator.valueType());
     }
 }

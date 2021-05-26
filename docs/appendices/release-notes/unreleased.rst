@@ -97,6 +97,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that prevented ``LIKE`` operators from using the index if the
+  left operand was a varchar column with length limit, and the right operand a
+  literal.
+
 - Fixed an issue that resulted in more data being snapshot than expected if
   only concrete tables were snapshot by the
   ``CREATE SNAPSHOT ... TABLE [table, ...]``. Instead of just the concrete
