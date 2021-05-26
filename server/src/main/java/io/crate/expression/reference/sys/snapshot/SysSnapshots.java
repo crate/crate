@@ -21,8 +21,10 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.concurrent.CompletableFutures;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -30,15 +32,18 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.SnapshotException;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.elasticsearch.snapshots.SnapshotState;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 @Singleton
@@ -57,11 +62,27 @@ public class SysSnapshots {
         this.getRepositories = getRepositories;
     }
 
-    public Iterable<SysSnapshot> currentSnapshots() {
-        return () -> getRepositories.get().stream()
-            .flatMap(repository -> repository.getRepositoryData().getSnapshotIds().stream()
-                .map(snapshotId -> createSysSnapshot(repository, snapshotId))
-            ).iterator();
+    public CompletableFuture<Iterable<SysSnapshot>> currentSnapshots() {
+        ArrayList<FutureActionListener<RepositoryData, List<SysSnapshot>>> futureActionListeners = new ArrayList<>();
+        for (Repository repository : getRepositories.get()) {
+            var listener = new FutureActionListener<RepositoryData, List<SysSnapshot>>(repositoryData -> {
+                ArrayList<SysSnapshot> result = new ArrayList<>();
+                Collection<SnapshotId> snapshotIds = repositoryData.getSnapshotIds();
+                for (SnapshotId snapshotId : snapshotIds) {
+                    result.add(createSysSnapshot(repository, snapshotId));
+                }
+                return result;
+            });
+            repository.getRepositoryData(listener);
+            futureActionListeners.add(listener);
+        }
+        return CompletableFutures.allAsList(futureActionListeners).thenApply(data -> {
+            ArrayList<SysSnapshot> result = new ArrayList<>();
+            for (List<SysSnapshot> datum : data) {
+                result.addAll(datum);
+            }
+            return result;
+        });
     }
 
     private static SysSnapshot createSysSnapshot(Repository repository, SnapshotId snapshotId) {

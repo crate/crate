@@ -481,8 +481,8 @@ public class RepositoriesService implements ClusterStateApplier {
         public UnregisterRepositoryRequest(String cause, String name) {
             this.cause = cause;
             this.name = name;
-
         }
+
     }
 
     /**
