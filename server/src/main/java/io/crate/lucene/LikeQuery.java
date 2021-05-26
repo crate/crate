@@ -70,8 +70,7 @@ final class LikeQuery implements FunctionToQuery {
             // column doesn't exist on this index -> no match
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
-
-        if (dataType.equals(DataTypes.STRING)) {
+        if (dataType.id() == DataTypes.STRING.ID) {
             return createCaseAwareQuery(
                 fieldType.name(),
                 BytesRefs.toString(value),
