@@ -32,6 +32,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.repositories.ESBlobStoreTestCase;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
@@ -796,7 +797,7 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
         final SetOnce<RepositoryData> repositoryData = new SetOnce<>();
         final CountDownLatch latch = new CountDownLatch(1);
         threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {
-            repositoryData.set(repository.getRepositoryData());
+            repositoryData.set(ESBlobStoreTestCase.getRepositoryData(repository));
             latch.countDown();
         });
         latch.await();

@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.repositories;
 
+import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
@@ -85,4 +86,8 @@ public abstract class ESBlobStoreTestCase extends ESTestCase {
     }
 
     protected abstract BlobStore newBlobStore() throws IOException;
+
+    public static RepositoryData getRepositoryData(Repository repository) {
+        return PlainActionFuture.get(repository::getRepositoryData);
+    }
 }

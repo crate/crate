@@ -616,8 +616,7 @@ should be crossed out as well.
 - [ ] ac2774c9fac Use Cluster State to Track Repository Generation (#49729) (#49976)
 - [ ] 996cdebfb42 Make BlobStoreRepository#writeIndexGen API Async (#49584) (#49610)
 - [ ] 97c7ea60b93 Add Missing Nullable Assertions in SnapshotsService (#49465) (#49492)
-- [ ] 1cde4a6364c Make SnapshotsService#getRepositoryData Async (#49322) (#49358)
-- [ ] 0acba44a2e8 Make Repository.getRepositoryData an Async API (#49299) (#49312)
+- [x] 4d659c4bdbf Make Repository.getRepositoryData an Async API (#49299)
 - [x] 9c006483141 Make Snapshot Delete Concurrency Exception Consistent (#49266) (#49281)
 - [x] 25cc8e36636 Fix RepoCleanup not Removed on Master-Failover (#49217) (#49239)
 - [x] f7d9e7bdc48 Better Exceptions on Concurrent Snapshot Operations (#49220) (#49237)
@@ -656,7 +655,6 @@ are not listed anymore.
 - [d] c2deb287f13 Add a cluster setting to disallow loading fielddata on _id field (#49166)
 - [d] 725dda37ea5 Flush instead of synced-flush inactive shards (#49126) -- CrateDB 5.0
 - [d] b8ce07b4cc5 Pre-sort shards based on the max/min value of the primary sort field (#49092)
-- [d] 4d659c4bdbf Make Repository.getRepositoryData an Async API (#49299)
 - [d] a5f17fc2750 Add preflight check to dynamic mapping updates (#48817)
 - [d] 2e7d62c27c9 Geo: improve handling of out of bounds points in linestrings (#47939)
 - [d] 54d6da54320 [Java.time] Calculate week of a year with ISO rules (#48209)

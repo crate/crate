@@ -26,20 +26,24 @@ import io.crate.common.collections.Lists2;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.SnapshotException;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.elasticsearch.snapshots.SnapshotState;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 @Singleton
 public class SysSnapshots {
@@ -58,10 +62,23 @@ public class SysSnapshots {
     }
 
     public Iterable<SysSnapshot> currentSnapshots() {
-        return () -> getRepositories.get().stream()
-            .flatMap(repository -> repository.getRepositoryData().getSnapshotIds().stream()
-                .map(snapshotId -> createSysSnapshot(repository, snapshotId))
-            ).iterator();
+        return () -> getRepositories.get().stream().flatMap(SysSnapshots::createSysSnapshots).iterator();
+    }
+
+    private static Stream<SysSnapshot> createSysSnapshots(Repository repository) {
+        final ArrayList<SnapshotId> snapshotIds = new ArrayList<>();
+        repository.getRepositoryData(new ActionListener<>() {
+            @Override
+            public void onResponse(RepositoryData repositoryData) {
+                snapshotIds.addAll(repositoryData.getSnapshotIds());
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+
+            }
+        });
+        return snapshotIds.stream().map(id -> createSysSnapshot(repository, id));
     }
 
     private static SysSnapshot createSysSnapshot(Repository repository, SnapshotId snapshotId) {
