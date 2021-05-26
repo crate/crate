@@ -112,4 +112,11 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(convertSqlLikeToLuceneWildcard("\\_me"), is("_me"));
         assertThat(convertSqlLikeToLuceneWildcard("?me"), is("\\?me"));
     }
+
+    @Test
+    public void test_like_on_varchar_column_uses_wildcard_query() throws Exception {
+        Query query = convert("vchar_name LIKE 'Trillian%'");
+        assertThat(query.toString(), is("vchar_name:Trillian*"));
+        assertThat(query, instanceOf(WildcardQuery.class));
+    }
 }

@@ -88,7 +88,6 @@ public class Optimizer {
                     return null;
                 }
             };
-
         this.rules = Lists2.map(rules, r -> r.apply(functionResolver));
         this.minNodeVersionInCluster = minNodeVersionInCluster;
         this.nodeCtx = nodeCtx;
