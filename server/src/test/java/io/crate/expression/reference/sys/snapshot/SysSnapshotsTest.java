@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.UUIDs;
@@ -33,22 +34,28 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class SysSnapshotsTest extends ESTestCase {
 
     @Test
-    public void testUnavailableSnapshotsAreFilteredOut() {
+    public void testUnavailableSnapshotsAreFilteredOut() throws Exception {
         HashMap<String, SnapshotId> snapshots = new HashMap<>();
         SnapshotId s1 = new SnapshotId("s1", UUIDs.randomBase64UUID());
         SnapshotId s2 = new SnapshotId("s2", UUIDs.randomBase64UUID());
@@ -58,16 +65,23 @@ public class SysSnapshotsTest extends ESTestCase {
             1, snapshots, Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY);
 
         Repository r1 = mock(Repository.class);
-        when(r1.getRepositoryData()).thenReturn(repositoryData);
+        doAnswer((Answer<Void>) invocation -> {
+            ActionListener<RepositoryData> callback = invocation.getArgument(0);
+            callback.onResponse(repositoryData);
+            return null;
+        }).when(r1).getRepositoryData(any());
+
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
         when(r1.getSnapshotInfo(eq(s1))).thenThrow(new SnapshotException("repo1", "s1", "Everything is wrong"));
         when(r1.getSnapshotInfo(eq(s2))).thenReturn(new SnapshotInfo(s2, Collections.emptyList(), SnapshotState.SUCCESS));
 
         SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1));
-        List<SysSnapshot> currentSnapshots = StreamSupport.stream(sysSnapshots.currentSnapshots().spliterator(), false)
-            .collect(Collectors.toList());
+        Stream<SysSnapshot> currentSnapshots = StreamSupport.stream(
+            Spliterators.spliteratorUnknownSize(sysSnapshots.currentSnapshots().get().iterator(), Spliterator.ORDERED),
+            false
+        );
         assertThat(
-            currentSnapshots.stream().map(SysSnapshot::name).collect(Collectors.toList()),
+            currentSnapshots.map(SysSnapshot::name).collect(Collectors.toList()),
             containsInAnyOrder("s1", "s2")
         );
     }
