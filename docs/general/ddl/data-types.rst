@@ -19,59 +19,33 @@ names.
 
 .. contents::
    :local:
+   :depth: 3
 
-Classification
-==============
 
-.. _sql_ddl_datatypes_primitives:
+.. _data-types-classes:
+
+Type classes
+============
+
+
+.. _data-types-primitive:
 
 Primitive types
 ---------------
 
-Primitive types are :ref:`scalar <gloss-scalar>` values:
+Primitive types are types with :ref:`scalar <gloss-scalar>` values.
 
-* `boolean`_
-* `char <special character types_>`_
-* `smallint <numeric types_>`_
-* `integer <numeric types_>`_
-* `bigint <numeric types_>`_
-* `real <numeric types_>`_
-* `numeric <numeric types_>`_
-* `double precision <numeric types_>`_
-* `text <data-type-text_>`_
-* `ip`_
-* `timestamp with time zone <timestamp with time zone_>`_
-* `timestamp without time zone <timestamp without time zone_>`_
-* `date <date_>`_
-* `interval`_
-* `bit`_
+.. rubric:: Table of contents
 
-.. _sql_ddl_datatypes_geographic:
+.. contents::
+   :local:
+   :depth: 2
 
-Geographic types
-----------------
-
-Geographic types are :ref:`nonscalar <gloss-nonscalar>` values representing
-points or shapes in a 2D world:
-
-* `geo_point`_
-* `geo_shape`_
-
-.. _data-types-container:
-
-Container types
----------------
-
-Container types are :ref:`nonscalar <gloss-nonscalar>` values that can contain
-other values:
-
-* `object`_
-* `array`_
 
 .. _data-type-boolean:
 
-``boolean``
-===========
+Boolean values
+''''''''''''''
 
 A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
 
@@ -85,10 +59,11 @@ A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
     cr> drop table my_bool_table;
     DROP OK, 1 row affected (... sec)
 
+
 .. _character-data-types:
 
-Character types
-===============
+Character data
+''''''''''''''
 
 Character types are general purpose strings of character data.
 
@@ -96,18 +71,19 @@ Only character data types without specified length can be analyzed.
 By default the :ref:`plain <plain-analyzer>` analyzer is used. See
 :ref:`sql_ddl_index_fulltext`.
 
+
 .. _data-type-varchar:
 
 ``character varying(n)``, ``varchar(n)``
-----------------------------------------
+........................................
 
 The ``character varying(n)`` or ``varchar(n)`` character data types represent
 variable length strings. All unicode characters are allowed.
 
-The optional length specification ``n`` is a positive `integer <numeric
-types_>`_ that defines the maximum length, in characters, of the values
-that have to be stored or cast. The minimum length is ``1``. The maximum
-length is defined by the upper `integer <numeric types_>`_ range.
+The optional length specification ``n`` is a positive :ref:`integer
+<data-type-numeric>` that defines the maximum length, in characters, of the
+values that have to be stored or cast. The minimum length is ``1``. The maximum
+length is defined by the upper :ref:`integer <data-type-numeric>` range.
 
 An attempt to store a string literal that exceeds the specified length
 of the character data type results in an error.
@@ -168,10 +144,11 @@ see also :ref:`type aliases <data-type-aliases>`.
     cr> DROP TABLE users;
     DROP OK, 1 row affected (... sec)
 
+
 .. _data-type-text:
 
 ``text``
---------
+........
 
 A text-based basic type containing one or more characters. All unicode
 characters are allowed.
@@ -199,7 +176,7 @@ characters are allowed.
 .. _data-type-bit:
 
 ``bit``
--------
+.......
 
 A type representing a vector of bits with a fixed size.
 
@@ -213,7 +190,7 @@ An example:
 ::
 
   B'00010010'
-  
+
 
 ::
 
@@ -255,10 +232,22 @@ Inserting values that are either too short or too long results in an error:
     DROP OK, 1 row affected (... sec)
 
 
+.. _data-type-special:
+
+Special character types
+.......................
+
++----------+--------+------------------+
+| Name     | Size   | Description      |
++==========+========+==================+
+| ``char`` | 1 byte | single-byte type |
++----------+--------+------------------+
+
+
 .. _data-type-numeric:
 
-Numeric types
-=============
+Numeric data
+''''''''''''
 
 CrateDB supports a set of the following numeric data types:
 
@@ -295,8 +284,69 @@ CrateDB supports a set of the following numeric data types:
       - inexact, variable-precision
       - 15 decimal digits precision
 
-Floating-Point Types
---------------------
+
+.. _data-type-bit:
+
+``bit``
+-------
+
+A type representing a vector of bits with a fixed size.
+
+
+Values of the type can be created using the bit string literal syntax. A bit
+string starts with the ``B`` prefix, followed by a sequence of ``0`` or ``1``
+digits quoted within single quotes ``'``.
+
+An example:
+
+::
+
+  B'00010010'
+
+
+::
+
+  cr> CREATE TABLE metrics (bits bit(4));
+  CREATE OK, 1 row affected (... sec)
+
+
+  cr> INSERT INTO metrics (bits) VALUES (B'0110');
+  INSERT OK, 1 row affected  (... sec)
+
+
+Inserting values that are either too short or too long results in an error:
+
+::
+
+  cr> INSERT INTO metrics (bits) VALUES (B'00101');
+  SQLParseException[bit string length 5 does not match type bit(4)]
+
+
+.. hide:
+
+    cr> REFRESH TABLE metrics;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT bits from metrics;
+    +---------+
+    | bits    |
+    +---------+
+    | B'0110' |
+    +---------+
+    SELECT 1 row in set (... sec)
+
+
+.. hide:
+
+    cr> DROP TABLE metrics;
+    DROP OK, 1 row affected (... sec)
+
+
+Floating-point types
+....................
+
 
 The ``real`` and ``double precision`` data types are inexact,
 variable-precision numeric types. It means that these types are stored as an
@@ -315,7 +365,7 @@ or comparing floating-point values for equality might not always match.
     `Wikipedia: Double-precision floating-point format`_
 
 
-Special floating point values
+Special floating-point values
 .............................
 
 CrateDB conforms to the `IEEE 754`_ standard concerning special values for
@@ -354,10 +404,11 @@ These special numeric values can also be inserted into a column of type
     ... VALUES ('NaN', 'Infinity');
     INSERT OK, 1 row affected (... sec)
 
+
 .. _numeric_type:
 
 Arbitrary Precision Numbers
----------------------------
+...........................
 
 .. NOTE::
 
@@ -396,46 +447,11 @@ represented by an unscaled value of the unlimited precision::
 The ``numeric`` type backed internally by the Java ``BigDecimal`` class. For
 more detailed information about its behaviour, see `BigDecimal documentation`_.
 
-.. _ip-type:
-
-``ip``
-======
-
-The ``ip`` type allows to store IPv4 and IPv6 addresses by inserting their
-string representation. Internally IP addresses are stored as ``bigint``
-allowing expected sorting, filtering and aggregation.
-
-Example::
-
-    cr> create table my_table_ips (
-    ...   fqdn text,
-    ...   ip_addr ip
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-::
-
-    cr> insert into my_table_ips (fqdn, ip_addr)
-    ... values ('localhost', '127.0.0.1'),
-    ...        ('router.local', '0:0:0:0:0:ffff:c0a8:64');
-    INSERT OK, 2 rows affected (... sec)
-
-::
-
-    cr> insert into my_table_ips (fqdn, ip_addr)
-    ... values ('localhost', 'not.a.real.ip');
-    SQLParseException[Cannot cast `'not.a.real.ip'` of type `text` to type `ip`]
-
-IP addresses support the :ref:`operator <gloss-operator>` ``<<``, which checks
-for subnet inclusion using `CIDR notation`_. The left-hand :ref:`operand
-<gloss-operand>` must be of type :ref:`ip <ip-type>` and the right-hand must be
-of type :ref:`text <data-type-text>` (e.g., ``'192.168.1.5' <<
-'192.168.1/24'``).
 
 .. _date-time-types:
 
-Date and time types
-===================
+Dates and times
+'''''''''''''''
 
 +---------------------------------+----------+-------------------------+------------------------+
 | Name                            | Size     | Description             | Range                  |
@@ -454,10 +470,11 @@ Date and time types
 |                                 |          |                         | to ``292278993AD``     |
 +---------------------------------+----------+-------------------------+------------------------+
 
+
 .. _timestamp_data_type:
 
 Timestamps
-----------
+..........
 
 The timestamp types consist of the concatenation of a date and time, followed
 by an optional time zone.
@@ -494,10 +511,11 @@ For more detailed information about the date and time elements, see
     timestamp values, but only dates between year ``292275054BC`` and
     ``292278993AD``, which is slightly smaller.
 
+
 .. _datetime-with-time-zone:
 
 ``timestamp with time zone``
-............................
+````````````````````````````
 
 A string literal that contain a timestamp value with the time zone will be
 converted to UTC considering its offset for the time zone.
@@ -534,7 +552,7 @@ the epoch with milliseconds as fractions.
 .. _datetime-without-time-zone:
 
 ``timestamp without time zone``
-...............................
+```````````````````````````````
 
 A string literal that contain a timestamp value with the time zone will be
 converted to UTC without considering the time zone indication.
@@ -562,7 +580,7 @@ converted to UTC without considering the time zone indication.
 .. _timestamp-at-time-zone:
 
 ``timestamp with/without time zone AT TIME ZONE zone``
-......................................................
+``````````````````````````````````````````````````````
 
 AT TIME ZONE converts a timestamp without time zone to/from a timestamp with
 time zone. It has the following variants:
@@ -581,10 +599,11 @@ specified as a string (e.g., 'Europe/Madrid', '+02:00').
 The scalar function :ref:`TIMEZONE <scalar-timezone>` (zone, timestamp) is
 equivalent to the SQL-conforming timestamp construct ``AT TIME ZONE zone``.
 
+
 .. _time-data-type:
 
 time with time zone
--------------------
+...................
 
 The time type consists of time followed by an optional time zone.
 
@@ -633,10 +652,11 @@ Time zone syntax as defined by `ISO 8601 time zone designators`_.
     +-----------------------+
     SELECT 1 row in set (... sec)
 
+
 .. _date-data-type:
 
 ``date``
----------
+........
 
 .. NOTE::
 
@@ -662,16 +682,17 @@ This format is the only currently supported for PostgreSQL clients.
     +---------------+
     SELECT 1 row in set (... sec)
 
+
 .. _interval_data_type:
 
 Interval
---------
+........
 
 
 .. _interval-literal:
 
 Interval literal
-................
+````````````````
 
 An interval literal represents a span of time and can be either
 a :ref:`year-month-literal` or :ref:`day-time-literal` literal. The generic
@@ -696,10 +717,11 @@ literal synopsis defined as following
         | MINUTE
         | SECOND
 
+
 .. _year-month-literal:
 
 year-month
-^^^^^^^^^^
+""""""""""
 
 A ``year-month`` literal includes either ``YEAR``, ``MONTH`` or a contiguous
 subset of these fields.
@@ -720,10 +742,11 @@ For example::
     +------------------------+
     SELECT 1 row in set (... sec)
 
+
 .. _day-time-literal:
 
 day-time
-^^^^^^^^
+""""""""
 
 A ``day-time`` literal includes either ``DAY``, ``HOUR``, ``MINUTE``,
 ``SECOND`` or a contiguous subset of these fields.
@@ -754,7 +777,7 @@ For example::
 .. _string-literal:
 
 string-literal
-^^^^^^^^^^^^^^
+""""""""""""""
 
 An interval ``string-literal`` can be defined by a combination of
 :ref:`day-time-literal <day-time-literal>` and
@@ -776,7 +799,7 @@ For example::
 .. _iso-8601-format:
 
 ISO-8601 format
-"""""""""""""""
+^^^^^^^^^^^^^^^
 
 The iso-8601 format describes a duration of time using the
 `ISO 8601 duration format`_ syntax.
@@ -795,7 +818,7 @@ For example::
 .. _postgresql-format:
 
 PostgreSQL format
-"""""""""""""""""
+^^^^^^^^^^^^^^^^^
 
 The ``PostgreSQL`` format describes a duration of time using the `PostgreSQL
 interval format`_ syntax.
@@ -814,7 +837,7 @@ For example::
 .. _temporal-arithmetic:
 
 Temporal arithmetic
--------------------
+...................
 
 The following table specifies the declared types of :ref:`arithmetic
 expressions <arithmetic>` that involve temporal :ref:`operands
@@ -834,177 +857,56 @@ expressions <arithmetic>` that involve temporal :ref:`operands
 +---------------+----------------+---------------+
 
 
-.. _geo_point_data_type:
+.. _ip-type:
 
-``geo_point``
-=============
+IP addresses
+''''''''''''
 
-A ``geo_point`` is a :ref:`geographic data type <sql_ddl_datatypes_geographic>`
-used to store latitude and longitude coordinates.
+The ``ip`` type allows to store IPv4 and IPv6 addresses by inserting their
+string representation. Internally IP addresses are stored as ``bigint``
+allowing expected sorting, filtering and aggregation.
 
-Columns with the ``geo_point`` type are represented and inserted using an array
-of doubles in the following format::
+Example::
 
-    [<lon_value>, <lat_value>]
-
-Alternatively a `WKT`_ string can also be used to declare geo points::
-
-    'POINT ( <lon_value> <lat_value> )'
-
-.. NOTE::
-
-    Empty geo points are not supported.
-
-    Additionally, if a column is dynamically created the type detection won't
-    recognize neither WKT strings nor double arrays. That means columns of type
-    geo_point must always be declared beforehand.
-
-Create table example::
-
-    cr> create table my_table_geopoint (
-    ...   id integer primary key,
-    ...   pin geo_point
-    ... ) with (number_of_replicas = 0)
+    cr> create table my_table_ips (
+    ...   fqdn text,
+    ...   ip_addr ip
+    ... );
     CREATE OK, 1 row affected (... sec)
 
-.. _geo_shape_data_type:
+::
 
-``geo_shape``
-=============
+    cr> insert into my_table_ips (fqdn, ip_addr)
+    ... values ('localhost', '127.0.0.1'),
+    ...        ('router.local', '0:0:0:0:0:ffff:c0a8:64');
+    INSERT OK, 2 rows affected (... sec)
 
-A ``geo_shape`` is a :ref:`geographic data type <sql_ddl_datatypes_geographic>`
-used to store 2D shapes defined as `GeoJSON geometry objects`_.
+::
 
-A ``geo_shape`` column can store different kinds of `GeoJSON geometry
-objects`_.  Thus it is possible to store e.g. ``LineString`` and
-``MultiPolygon`` shapes in the same column.
+    cr> insert into my_table_ips (fqdn, ip_addr)
+    ... values ('localhost', 'not.a.real.ip');
+    SQLParseException[Cannot cast `'not.a.real.ip'` of type `text` to type `ip`]
 
-.. NOTE::
+IP addresses support the :ref:`operator <gloss-operator>` ``<<``, which checks
+for subnet inclusion using `CIDR notation`_. The left-hand :ref:`operand
+<gloss-operand>` must be of type :ref:`ip <ip-type>` and the right-hand must be
+of type :ref:`text <data-type-text>` (e.g., ``'192.168.1.5' <<
+'192.168.1/24'``).
 
-    3D coordinates are not supported.
 
-    Empty ``Polygon`` and ``LineString`` geo shapes are not supported.
+.. _data-types-container:
 
-Definition
-----------
+Container types
+---------------
 
-To define a ``geo_shape`` column::
+Container types are types with :ref:`nonscalar <gloss-nonscalar>` values that
+can contain other values.
 
-    <columnName> geo_shape
 
-A geographical index with default parameters is created implicitly to allow for
-geographical queries.
+.. _data-type-object:
 
-The default definition for the column type is::
-
-    <columnName> geo_shape INDEX USING geohash WITH (precision='50m', distance_error_pct=0.025)
-
-There are two geographic index types: ``geohash`` (the default) and
-``quadtree``. These indices are only allowed on ``geo_shape`` columns. For more
-information, see :ref:`geo_shape_data_type_index`.
-
-Both of these index types accept the following parameters:
-
-:precision:
-  (Default: ``50m``) Define the maximum precision of the used index and
-  thus for all indexed shapes. Given as string containing a number and
-  an optional distance unit (defaults to ``m``).
-
-  Supported units are ``inch`` (``in``), ``yard`` (``yd``), ``miles``
-  (``mi``), ``kilometers`` (``km``), ``meters`` (``m``), ``centimeters``
-  (``cm``), ``millimeters`` (``mm``).
-
-:distance_error_pct:
-  (Default: ``0.025`` (2,5%)) The measure of acceptable error for shapes
-  stored in this column expressed as a percentage value of the shape
-  size The allowed maximum is ``0.5`` (50%).
-
-  The percentage will be taken from the diagonal distance from the
-  center of the bounding box enclosing the shape to the closest corner
-  of the enclosing box. In effect bigger shapes will be indexed with
-  lower precision than smaller shapes. The ratio of precision loss is
-  determined by this setting, that means the higher the
-  ``distance_error_pct`` the smaller the indexing precision.
-
-  This will have the effect of increasing the indexed shape internally,
-  so e.g. points that are not exactly inside this shape will end up
-  inside it when it comes to querying as the shape has grown when
-  indexed.
-
-:tree_levels:
-  Maximum number of layers to be used by the ``PrefixTree`` defined by
-  the index type (either ``geohash`` or ``quadtree``. See
-  :ref:`geo_shape_data_type_index`).
-
-  This can be used to control the precision of the used index. Since
-  this parameter requires a certain level of understanting of the
-  underlying implementation, users may use the ``precision`` parameter
-  instead. CrateDB uses the ``tree_levels`` parameter internally and
-  this is what is returned via the ``SHOW CREATE TABLE`` statement even
-  if you use the precision parameter. Defaults to the value which is
-  ``50m`` converted to ``precision`` depending on the index type.
-
-.. _geo_shape_data_type_index:
-
-Geo shape index structure
--------------------------
-
-Computations on very complex polygons and geometry collections are exact but
-very expensive. To provide fast queries even on complex shapes, CrateDB uses a
-different approach to store, analyze and query geo shapes.
-
-The surface of the earth is represented as a number of grid layers each with
-higher precision. While the upper layer has one grid cell, the layer below
-contains many cells for the equivalent space.
-
-Each grid cell on each layer is addressed in 2d space either by a `Geohash`_
-for ``geohash`` trees or by tightly packed coordinates in a `Quadtree`_. Those
-addresses conveniently share the same address-prefix between lower layers and
-upper layers. So we are able to use a `Trie`_ to represent the grids, and
-`Tries`_ can be queried efficiently as their complexity is determined by the
-tree depth only.
-
-A geo shape is transformed into these grid cells. Think of this transformation
-process as dissecting a vector image into its pixelated counterpart, reasonably
-accurately. We end up with multiple images each with a better resolution, up to
-the configured precision.
-
-Every grid cell that processed up to the configured precision is stored in an
-inverted index, creating a mapping from a grid cell to all shapes that touch
-it. This mapping is our geographic index.
-
-The main difference is that the ``geohash`` supports higher precision than the
-``quadtree`` tree. Both tree implementations support precision in order of
-fractions of millimeters.
-
-Representation
---------------
-
-Columns with the ``geo_shape`` type are represented and inserted as object
-containing a valid `GeoJSON`_ geometry object::
-
-    {
-      type = 'Polygon',
-      coordinates = [
-         [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ]
-      ]
-    }
-
-Alternatively a `WKT`_ string can be used to represent a geo_shape as well::
-
-    'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'
-
-.. NOTE::
-
-    It is not possible to detect a geo_shape type for a dynamically created
-    column. Like with :ref:`geo_point_data_type` type, geo_shape columns need
-    to be created explicitly using either :ref:`sql-create-table` or
-    :ref:`sql-alter-table`.
-
-.. _object_data_type:
-
-``object``
-==========
+Objects
+'''''''
 
 An object is a :ref:`container data type <data-types-container>` and is
 structured as a collection of key-values.
@@ -1051,7 +953,7 @@ Example::
     DROP OK, 1 row affected (... sec)
 
 ``strict``
-----------
+..........
 
 The column policy can be configured to be ``strict``, rejecting any subcolumn
 that is not defined upfront in the schema. As you might have guessed, defining
@@ -1075,7 +977,7 @@ Example::
     DROP OK, 1 row affected (... sec)
 
 ``dynamic``
------------
+...........
 
 Another option is ``dynamic``, which means that new subcolumns can be added in
 this object.
@@ -1126,8 +1028,9 @@ which is exactly the same as::
 New columns added to ``dynamic`` objects are, once added, usable as usual
 subcolumns. One can retrieve them, sort by them and use them in where clauses.
 
+
 ``ignored``
------------
+...........
 
 The third option is ``ignored``. Explicitly defined columns within an
 ``ignored`` object behave the same as those within object columns declared as
@@ -1137,8 +1040,7 @@ with ``ignored``, dynamically added columns do not result in a schema update
 and the values won't be indexed. This allows you to store values with a mixed
 type under the same key.
 
-An example:
-::
+An example::
 
     cr> CREATE TABLE metrics (
     ...   id TEXT PRIMARY KEY,
@@ -1209,7 +1111,6 @@ An example:
      cr> SELECT sum(payload['value']::bigint) FROM metrics;
      SQLParseException[Cannot cast value `str` to type `bigint`]
 
-
 .. hide:
 
     cr> drop table metrics;
@@ -1219,13 +1120,13 @@ An example:
 .. _data-type-object-insert:
 
 Inserting objects
------------------
+.................
 
 
 .. _data-type-object-literals:
 
 Object literals
-...............
+```````````````
 
 You can insert objects using object literals. Object literals are delimited
 using curly brackets and key-value pairs are connected via ``=``.
@@ -1289,7 +1190,7 @@ Combined::
 .. _data-type-object-json:
 
 JSON
-....
+````
 
 You can insert objects using JSON strings. To do this, you must :ref:`type cast
 <type_cast>` the string to an object with an implicit cast (i.e., passing a
@@ -1339,8 +1240,8 @@ Nested object::
 
 .. _data-type-array:
 
-``array``
-=========
+Arrays
+''''''
 
 An array is a :ref:`container data type <data-types-container>` and is
 structured as a collection of other data types. Arrays can contain the
@@ -1351,8 +1252,8 @@ following:
 * :ref:`Numeric types <data-type-numeric>`
 * :ref:`IP addresses <ip-type>`
 * :ref:`Date and time types <date-time-types>`
-* :ref:`Geographic types <sql_ddl_datatypes_geographic>`
-* :ref:`Objects <object_data_type>`
+* :ref:`Geographic types <data-types-geo>`
+* :ref:`Objects <data-type-object>`
 
 Array types are defined as follows::
 
@@ -1375,10 +1276,11 @@ This means ``text[]`` is equivalent to ``array(text)``.
     Currently arrays cannot be nested. Something like ``array(array(text))``
     won't work.
 
+
 .. _data-type-array-literals:
 
 Array constructor
------------------
+.................
 
 Arrays can be written using the array constructor ``ARRAY[]`` or short ``[]``.
 The array constructor is an :ref:`expression <gloss-expression>` that accepts
@@ -1393,8 +1295,9 @@ All array elements must have the same data type, which determines the inner
 type of the array. If an array contains no elements, its element type will be
 inferred by the context in which it occurs, if possible.
 
+
 Examples
-........
+````````
 
 Some valid arrays are::
 
@@ -1435,7 +1338,7 @@ constant array values.
 
 
 Array representation
-....................
+````````````````````
 
 Arrays are always represented as zero or more literal elements inside square
 brackets (``[]``), for example::
@@ -1443,67 +1346,264 @@ brackets (``[]``), for example::
     [1, 2, 3]
     ['Zaphod', 'Ford', 'Arthur']
 
-.. _data-type-special:
 
-Special character types
-=======================
+.. _data-types-geo:
 
-+----------+--------+------------------+
-| Name     | Size   | Description      |
-+==========+========+==================+
-| ``char`` | 1 byte | single-byte type |
-+----------+--------+------------------+
+Geographic types
+----------------
+
+:ref:`Geographic types <data-types-geo>` are types with :ref:`nonscalar
+<gloss-nonscalar>` values representing points or shapes in a 2D world.
 
 
-Object Identifier Types
-=======================
+.. _data-type-geo-point:
 
-.. _oid_regproc:
+Geometric points
+''''''''''''''''
 
-Regproc
--------
+A ``geo_point`` is a :ref:`geographic data type <data-types-geo>` used to store
+latitude and longitude coordinates.
 
-The object identifier alias type that is used in the :ref:`postgres_pg_catalog`
-tables for referencing :ref:`functions <user-defined-functions>`.  For more
-information, see PostgreSQL :ref:`postgres_pg_oid`.
+Columns with the ``geo_point`` type are represented and inserted using an array
+of doubles in the following format::
 
-Casting a column of the ``regproc`` alias data type to ``text`` or ``integer``
-results in a function name or its ``oid``, respectively.
+    [<lon_value>, <lat_value>]
 
+Alternatively a `WKT`_ string can also be used to declare geo points::
 
-.. _oid_regclass:
+    'POINT ( <lon_value> <lat_value> )'
 
-Regclass
---------
+.. NOTE::
 
-A type for the object identifier of the ``pg_class`` table in the
-:ref:`postgres_pg_catalog` table.
+    Empty geo points are not supported.
 
-Casting a column of the ``regclass`` to ``text`` or ``integer`` results in a
-relation name or its ``oid``, respectively.
+    Additionally, if a column is dynamically created the type detection won't
+    recognize neither WKT strings nor double arrays. That means columns of type
+    geo_point must always be declared beforehand.
 
+Create table example::
 
-.. _oidvector_type:
-
-oidvector
----------
-
-This is a system type used to represent one or more OID values.
-
-It looks similar to an array of integers, but doesn't support any of the
-:ref:`scalar functions <scalar-functions>` or :ref:`expressions
-<gloss-expression>` that can be used on regular arrays.
+    cr> create table my_table_geopoint (
+    ...   id integer primary key,
+    ...   pin geo_point
+    ... ) with (number_of_replicas = 0)
+    CREATE OK, 1 row affected (... sec)
 
 
-.. _type_conversion:
+.. _data-type-geo-shape:
 
-Type conversion
-===============
+Geometric shapes
+''''''''''''''''
 
-.. _type_cast:
+A ``geo_shape`` is a :ref:`geographic data type <data-types-geo>` used to store
+2D shapes defined as `GeoJSON geometry objects`_.
 
-``CAST``
---------
+A ``geo_shape`` column can store different kinds of `GeoJSON geometry
+objects`_.  Thus it is possible to store e.g. ``LineString`` and
+``MultiPolygon`` shapes in the same column.
+
+.. NOTE::
+
+    3D coordinates are not supported.
+
+    Empty ``Polygon`` and ``LineString`` geo shapes are not supported.
+
+
+Definition
+..........
+
+To define a ``geo_shape`` column::
+
+    <columnName> geo_shape
+
+A geographical index with default parameters is created implicitly to allow for
+geographical queries.
+
+The default definition for the column type is::
+
+    <columnName> geo_shape INDEX USING geohash WITH (precision='50m', distance_error_pct=0.025)
+
+There are two geographic index types: ``geohash`` (the default) and
+``quadtree``. These indices are only allowed on ``geo_shape`` columns. For more
+information, see :ref:`geo_shape_data_type_index`.
+
+Both of these index types accept the following parameters:
+
+:precision:
+  (Default: ``50m``) Define the maximum precision of the used index and
+  thus for all indexed shapes. Given as string containing a number and
+  an optional distance unit (defaults to ``m``).
+
+  Supported units are ``inch`` (``in``), ``yard`` (``yd``), ``miles``
+  (``mi``), ``kilometers`` (``km``), ``meters`` (``m``), ``centimeters``
+  (``cm``), ``millimeters`` (``mm``).
+
+:distance_error_pct:
+  (Default: ``0.025`` (2,5%)) The measure of acceptable error for shapes
+  stored in this column expressed as a percentage value of the shape
+  size The allowed maximum is ``0.5`` (50%).
+
+  The percentage will be taken from the diagonal distance from the
+  center of the bounding box enclosing the shape to the closest corner
+  of the enclosing box. In effect bigger shapes will be indexed with
+  lower precision than smaller shapes. The ratio of precision loss is
+  determined by this setting, that means the higher the
+  ``distance_error_pct`` the smaller the indexing precision.
+
+  This will have the effect of increasing the indexed shape internally,
+  so e.g. points that are not exactly inside this shape will end up
+  inside it when it comes to querying as the shape has grown when
+  indexed.
+
+:tree_levels:
+  Maximum number of layers to be used by the ``PrefixTree`` defined by
+  the index type (either ``geohash`` or ``quadtree``. See
+  :ref:`geo_shape_data_type_index`).
+
+  This can be used to control the precision of the used index. Since
+  this parameter requires a certain level of understanting of the
+  underlying implementation, users may use the ``precision`` parameter
+  instead. CrateDB uses the ``tree_levels`` parameter internally and
+  this is what is returned via the ``SHOW CREATE TABLE`` statement even
+  if you use the precision parameter. Defaults to the value which is
+  ``50m`` converted to ``precision`` depending on the index type.
+
+
+.. _geo_shape_data_type_index:
+
+Geo shape index structure
+.........................
+
+Computations on very complex polygons and geometry collections are exact but
+very expensive. To provide fast queries even on complex shapes, CrateDB uses a
+different approach to store, analyze and query geo shapes.
+
+The surface of the earth is represented as a number of grid layers each with
+higher precision. While the upper layer has one grid cell, the layer below
+contains many cells for the equivalent space.
+
+Each grid cell on each layer is addressed in 2d space either by a `Geohash`_
+for ``geohash`` trees or by tightly packed coordinates in a `Quadtree`_. Those
+addresses conveniently share the same address-prefix between lower layers and
+upper layers. So we are able to use a `Trie`_ to represent the grids, and
+`Tries`_ can be queried efficiently as their complexity is determined by the
+tree depth only.
+
+A geo shape is transformed into these grid cells. Think of this transformation
+process as dissecting a vector image into its pixelated counterpart, reasonably
+accurately. We end up with multiple images each with a better resolution, up to
+the configured precision.
+
+Every grid cell that processed up to the configured precision is stored in an
+inverted index, creating a mapping from a grid cell to all shapes that touch
+it. This mapping is our geographic index.
+
+The main difference is that the ``geohash`` supports higher precision than the
+``quadtree`` tree. Both tree implementations support precision in order of
+fractions of millimeters.
+
+
+Representation
+..............
+
+Columns with the ``geo_shape`` type are represented and inserted as object
+containing a valid `GeoJSON`_ geometry object::
+
+    {
+      type = 'Polygon',
+      coordinates = [
+         [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ]
+      ]
+    }
+
+Alternatively a `WKT`_ string can be used to represent a geo_shape as well::
+
+    'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'
+
+.. NOTE::
+
+    It is not possible to detect a geo_shape type for a dynamically created
+    column. Like with :ref:`data-type-geo-point` type, geo_shape columns need
+    to be created explicitly using either :ref:`sql-create-table` or
+    :ref:`sql-alter-table`.
+
+
+.. _data-types-postgres:
+
+PostgreSQL compatibility types
+------------------------------
+
+
+.. _data-types-postgres-oids:
+
+Object Identifiers (OIDs)
+'''''''''''''''''''''''''
+
+*Object Identifiers* (OIDs) are used internally by PostgreSQL as primary keys
+for various system tables.
+
+.. SEEALSO::
+
+    :ref:`PostgreSQL: Object Identifier (OID) types <postgres_pg_oid>`
+
+
+.. _data-type-oid:
+
+``oid``
+.......
+
+
+The ``oid`` type is mapped to the :ref:`integer <data-type-numeric>` data type.
+
+
+.. _data-type-regproc:
+
+``regproc``
+...........
+
+
+An alias for the :ref:`oid <data-type-oid>` type.
+
+The ``regproc`` type is used by tables in the :ref:`postgres_pg_catalog` schema
+to reference functions in the `pg_proc`_ table.
+
+:ref:`Casting <type_cast>` a ``regproc`` type to a :ref:`data-type-text` or
+:ref:`integer <data-type-numeric>` type will result in the corresponding
+function name or ``oid`` value, respectively.
+
+
+.. _data-type-regclass:
+
+``regclass``
+............
+
+An alias for the :ref:`oid <data-type-oid>` type.
+
+The ``regclass`` type is used by tables in the :ref:`postgres_pg_catalog`
+schema to reference relations in the `pg_class`_ table.
+
+:ref:`Casting <type_cast>` a ``regclass`` type to a :ref:`data-type-text` or
+:ref:`integer <data-type-numeric>` type will result in the corresponding
+relation name or ``oid`` value, respectively.
+
+
+.. _data-type-oidvector:
+
+``oidvector``
+.............
+
+The ``oidvector`` type is used to represent one or more :ref:`oid
+<data-type-oid>` values.
+
+This type is similar to an :ref:`array <data-type-array>` of integers. However,
+you cannot use it with any :ref:`scalar functions <scalar-functions>` or
+:ref:`expressions <gloss-expression>`.
+
+
+.. _type-casting:
+
+Type casting
+============
 
 A type ``cast`` specifies a conversion from one data type to another. It will
 only succeed if the value of the :ref:`expression <gloss-expression>` is
@@ -1515,6 +1615,26 @@ CrateDB supports two equivalent syntaxes for type casts:
 
    cast(expression as type)
    expression::type
+
+
+Cast expressions
+----------------
+
+
+::
+
+   cast(expression as type)
+   expression::type
+
+
+Cast functions
+--------------
+
+
+.. _type_cast:
+
+``CAST``
+''''''''
 
 Example usages:
 
@@ -1556,8 +1676,9 @@ converting an array of integer values to a boolean array.
    It is not possible to cast to or from ``object`` and ``geopoint``, or to
    ``geoshape`` data type.
 
+
 ``TRY_CAST``
-------------
+''''''''''''
 
 While ``cast`` throws an error for incompatible type casts, ``try_cast``
 returns ``null`` in this case. Otherwise the result is the same as with
@@ -1592,10 +1713,11 @@ Trying to cast a ``text`` to ``integer``, will fail with ``cast`` if
     +-------------+
     SELECT 1 row in set (... sec)
 
+
 .. _type_cast_from_string_literal:
 
-``type 'string'``
------------------
+Casting from string literals
+----------------------------
 
 This cast operation is applied to a string literal and it effectively
 initializes a constant of an arbitrary type.
@@ -1624,9 +1746,10 @@ Example usages, initializing an ``integer`` and a ``timestamp`` constant:
 
 .. NOTE::
 
-  This cast operation is limited to :ref:`sql_ddl_datatypes_primitives` only.
-  For complex types such as ``array`` or ``object`` use the
-  :ref:`type_cast` syntax.
+  This cast operation is limited to :ref:`primitive data types
+  <data-types-primitive>` only.  For complex types such as ``array`` or
+  ``object`` use the :ref:`type_cast` syntax.
+
 
 .. _data-type-aliases:
 
@@ -1702,6 +1825,8 @@ See the table below for a full list of aliases:
 .. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
 .. _ISO 8601 time zone designators: https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
 .. _pattern letters and symbols: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/time/format/DateTimeFormatter.html
+.. _pg_class: https://www.postgresql.org/docs/10/static/catalog-pg-class.html
+.. _pg_proc: https://www.postgresql.org/docs/10/static/catalog-pg-proc.html
 .. _PostgreSQL interval format: https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-INTERVAL-INPUT
 .. _Quadtree: https://en.wikipedia.org/wiki/Quadtree
 .. _Trie: https://en.wikipedia.org/wiki/Trie

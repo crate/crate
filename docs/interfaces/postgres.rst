@@ -213,20 +213,26 @@ table available in CrateDB::
 
 .. _postgres_pg_oid:
 
-Object Identifier Types
-~~~~~~~~~~~~~~~~~~~~~~~
+OID types
+~~~~~~~~~
 
-Object identifiers are used internally by PostgreSQL for various system
-tables. The ``oid`` type is currently mapped to the :ref:`integer
-<data-type-numeric>` data type.
+*Object Identifiers* (OIDs) are used internally by PostgreSQL as primary keys
+for various system tables.
 
-The ``oid`` type might have the following type aliases:
+CrateDB supports the the :ref:`oid <data-type-oid>` type and the following
+aliases:
 
-+-------------+-------------+-----------------+---------+
-| Name        | Reference   | Description     | Example |
-+=============+=============+=================+=========+
-| ``regproc`` | ``pg_proc`` | a function name | ``sum`` |
-+-------------+-------------+-----------------+---------+
++------------------------+----------------------+-------------+-------------+
+| Name                   | Reference            | Description | Example     |
++========================+======================+=============+=============+
+| :ref:`regproc          | `pg_proc             | A function  | ``sum``     |
+| <data-type-regproc>`   | <pgsql_pg_proc_>`__  | name        |             |
++------------------------+----------------------+-------------+-------------+
+| :ref:`regclass         | `pg_class            | A relation  | ``pg_type`` |
+| <data-type-regclass>`  | <pgsql_pg_class_>`__ | name        |             |
++------------------------+----------------------+-------------+-------------+
+
+CrateDB also supports the :ref:`oidvector <data-type-oidvector>` type.
 
 .. NOTE::
 
@@ -238,6 +244,7 @@ The ``oid`` type might have the following type aliases:
    integer literal to the ``regproc`` type results in an object of the
    ``regproc`` type that has a name that corresponds to the string
    representation of the literal and the literal value as ``oid``.
+
 
 Show transaction isolation
 --------------------------
@@ -355,7 +362,7 @@ Objects
 
 The definition of structured values by using ``JSON`` types, *composite types*
 or ``HSTORE`` are not supported. CrateDB alternatively allows the definition of
-nested documents (of type :ref:`object_data_type`) that store fieldscontaining
+nested documents (of type :ref:`data-type-object`) that store fieldscontaining
 any CrateDB supported data type, including nested object types.
 
 Type casts
