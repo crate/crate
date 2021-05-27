@@ -160,7 +160,7 @@ public class BlobStoreRepositoryTest extends SQLIntegrationTestCase {
         // write to and read from a index file with no entries
         assertThat(ESBlobStoreTestCase.getRepositoryData(repository).getSnapshotIds().size(), equalTo(0));
         final RepositoryData emptyData = RepositoryData.EMPTY;
-        repository.writeIndexGen(emptyData, emptyData.getGenId(), true);
+        writeIndexGen(repository, emptyData, emptyData.getGenId());
         RepositoryData repoData = ESBlobStoreTestCase.getRepositoryData(repository);
         assertEquals(repoData, emptyData);
         assertEquals(repoData.getIndices().size(), 0);
@@ -169,13 +169,19 @@ public class BlobStoreRepositoryTest extends SQLIntegrationTestCase {
 
         // write to and read from an index file with snapshots but no indices
         repoData = addRandomSnapshotsToRepoData(repoData, false);
-        repository.writeIndexGen(repoData, repoData.getGenId(), true);
+        writeIndexGen(repository, repoData, repoData.getGenId());
         assertEquals(repoData, ESBlobStoreTestCase.getRepositoryData(repository));
 
         // write to and read from a index file with random repository data
         repoData = addRandomSnapshotsToRepoData(ESBlobStoreTestCase.getRepositoryData(repository), true);
-        repository.writeIndexGen(repoData, repoData.getGenId(), true);
+        writeIndexGen(repository, repoData, repoData.getGenId());
         assertEquals(repoData, ESBlobStoreTestCase.getRepositoryData(repository));
+    }
+
+    private static void writeIndexGen(BlobStoreRepository repository, RepositoryData repositoryData, long generation) {
+        final PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        repository.writeIndexGen(repositoryData, generation, true, future);
+        future.actionGet();
     }
 
     @Test
@@ -184,14 +190,14 @@ public class BlobStoreRepositoryTest extends SQLIntegrationTestCase {
 
         // write to index generational file
         RepositoryData repositoryData = generateRandomRepoData();
-        repository.writeIndexGen(repositoryData, repositoryData.getGenId(), true);
+        writeIndexGen(repository, repositoryData, repositoryData.getGenId());
         assertThat(ESBlobStoreTestCase.getRepositoryData(repository), equalTo(repositoryData));
         assertThat(repository.latestIndexBlobId(), equalTo(0L));
         assertThat(repository.readSnapshotIndexLatestBlob(), equalTo(0L));
 
         // adding more and writing to a new index generational file
         repositoryData = addRandomSnapshotsToRepoData(ESBlobStoreTestCase.getRepositoryData(repository), true);
-        repository.writeIndexGen(repositoryData, repositoryData.getGenId(), true);
+        writeIndexGen(repository, repositoryData, repositoryData.getGenId());
         assertEquals(ESBlobStoreTestCase.getRepositoryData(repository), repositoryData);
         assertThat(repository.latestIndexBlobId(), equalTo(1L));
         assertThat(repository.readSnapshotIndexLatestBlob(), equalTo(1L));
@@ -199,7 +205,7 @@ public class BlobStoreRepositoryTest extends SQLIntegrationTestCase {
         // removing a snapshot and writing to a new index generational file
         repositoryData = ESBlobStoreTestCase.getRepositoryData(repository).removeSnapshot(
             repositoryData.getSnapshotIds().iterator().next(), ShardGenerations.EMPTY);
-        repository.writeIndexGen(repositoryData, repositoryData.getGenId(), true);
+        writeIndexGen(repository, repositoryData, repositoryData.getGenId());
         assertEquals(ESBlobStoreTestCase.getRepositoryData(repository), repositoryData);
         assertThat(repository.latestIndexBlobId(), equalTo(2L));
         assertThat(repository.readSnapshotIndexLatestBlob(), equalTo(2L));
@@ -211,12 +217,12 @@ public class BlobStoreRepositoryTest extends SQLIntegrationTestCase {
         // write to index generational file
         RepositoryData repositoryData = generateRandomRepoData();
         final long startingGeneration = repositoryData.getGenId();
-        repository.writeIndexGen(repositoryData, startingGeneration, true);
+        writeIndexGen(repository, repositoryData, startingGeneration);
 
         // write repo data again to index generational file, errors because we already wrote to the
         // N+1 generation from which this repository data instance was created
-        expectThrows(RepositoryException.class, () -> repository.writeIndexGen(
-            repositoryData.withGenId(startingGeneration + 1), repositoryData.getGenId(), true));
+        expectThrows(RepositoryException.class,
+                     () -> writeIndexGen(repository, repositoryData.withGenId(startingGeneration + 1), repositoryData.getGenId()));
     }
 
     protected BlobStoreRepository getRepository() throws Exception {
