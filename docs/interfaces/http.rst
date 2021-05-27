@@ -1,18 +1,10 @@
 .. highlight:: sh
 
-.. _sql_http_endpoint:
+.. _interface-http:
 
 =============
 HTTP endpoint
 =============
-
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-Introduction
-============
 
 CrateDB provides a HTTP Endpoint that can be used to submit SQL queries. The
 endpoint is accessible under ``<servername:port>/_sql``.
@@ -55,7 +47,13 @@ A simple ``SELECT`` statement can be submitted like this::
     in this document, we use `here documents`_ (i.e. ``EOF``) for multiline
     readability.
 
-.. _parameter_substitution:
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+.. _http-param-substitution:
 
 Parameter substitution
 ======================
@@ -142,9 +140,10 @@ The same query using question marks as placeholders looks like this::
 .. NOTE::
 
     With some queries the row count is not ascertainable. In this cases
-    rowcount is ``-1``.
+    ``rowcount`` is ``-1``.
 
-.. _http_default_schema:
+
+.. _http-default-schema:
 
 Default schema
 ==============
@@ -181,6 +180,9 @@ It is possible to set a default schema while querying the CrateDB cluster via
 
 If the schema name is not specified in the header, the default ``doc`` schema
 will be used instead.
+
+
+.. _http-column-types:
 
 Column types
 ============
@@ -235,80 +237,58 @@ Example of JSON representation of a column list of (String, Integer[])::
 IDs of all currently available data types:
 
 .. list-table::
-   :widths: 8 30 62
+   :widths: 8 30
    :header-rows: 1
 
    * - ID
-     - Data Type
-     - Format
+     - Data type
    * - 0
-     - Null
-     - null
+     - :ref:`NULL <type-null>`
    * - 1
-     - Not Supported
-     -
+     - Not supported
    * - 2
-     - :ref:`char <data-type-special>`
-     - single byte
+     - :ref:`CHAR <type-char>`
    * - 3
-     - :ref:`boolean <data-type-boolean>`
-     - `true` or `false`
+     - :ref:`BOOLEAN <type-boolean>`
    * - 4
-     - :ref:`text <data-type-text>`
-     - all unicode characters allowed
+     - :ref:`TEXT <type-text>`
    * - 5
-     - :ref:`ip <ip-type>`
-     - '0:0:0:0:0:ffff:c0a8:64', '192.169.0.55'
+     - :ref:`IP <type-ip>`
    * - 6
-     - :ref:`double precision <data-type-numeric>`
-     - 15 decimal digits precision
+     - :ref:`DOUBLE PRECISION <type-double-precision>`
    * - 7
-     - real
-     - 6 decimal digits precision
+     - :ref:`REAL <type-real>`
    * - 8
-     - smallint
-     - range -32768 to 32767
+     - :ref:`SMALLINT <type-smallint>`
    * - 9
-     - integer
-     - range -2^31 to 2^31-1
+     - :ref:`INTEGER <type-integer>`
    * - 10
-     - bigint
-     - range -2^63 to 2^63-1
+     - :ref:`BIGINT <type-bigint>`
    * - 11
-     - :ref:`timestamp <timestamp_data_type>`
-     - ``bigint`` e.g. 1591808274761
+     - :ref:`TIMESTAMP <type-timestamp>`
    * - 12
-     - :ref:`object(dynamic|strict|ignored) <object_data_type>`
-     - '{"key": "value"}', { key = 'value'}
+     - :ref:`OBJECT <type-object>`
    * - 13
-     - :ref:`geo_point <geo_point_data_type>`
-     - [lon_value::``double``, lat_value::``double``] e.g. [28.979999972507358,-57.33000000938773]
+     - :ref:`GEO_POINT <type-geo_point>`
    * - 14
-     - :ref:`geo_shape <geo_shape_data_type>`
-     - object[] e.g. [{"coordinates":[[[100.0,0.0],[101.0,0.0],[101.0,1.0]]],"type":"Polygon"}]
+     - :ref:`GEO_SHAPE <type-geo_shape>`
    * - 15
-     - Unchecked Object
-     -
+     - Unchecked object
    * - 19
-     - :ref:`regproc <oid_regproc>`
-     -
+     - :ref:`REGPROC <type-regproc>`
    * - 20
-     - :ref:`time with time zone <time-data-type>`
-     - [``bigint``, ``integer``] e.g. [70652987666, 0]
+     - :ref:`TIME <type-time>`
    * - 21
-     - :ref:`oidvector <oidvector_type>`
-     - An array of numbers
+     - :ref:`OIDVECTOR <type-oidvector>`
    * - 23
-     - :ref:`regclass <oid_regclass>`
-     - OID, referring the OID of the `pg_class` table. The result is an ``INTEGER``.
+     - :ref:`REGCLASS <type-regclass>`
    * - 24
-     - :ref:`date <date-data-type>`
-     - range 292275054BC to 292278993AD
+     - :ref:`DATE <type-date>`
    * - 100
-     - :ref:`array <data-type-array>`
-     - [``integer``, ``integer``] e.g. [100, 9] for a ``array(integer)``
+     - :ref:`ARRAY <type-array>`
 
-.. _bulk_operations:
+
+.. _http-bulk-ops:
 
 Bulk operations
 ===============
@@ -364,6 +344,9 @@ insert three records at once::
       ]
     }
 
+
+.. _http-error-handling:
+
 Error handling
 ==============
 
@@ -388,7 +371,7 @@ appropriate exception::
     }
 
 To get more insight into what exactly went wrong an additional ``error_trace``
-GET parameter can be specified to return the stack trace::
+``GET`` parameter can be specified to return the stack trace::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X POST '127.0.0.1:4200/_sql?error_trace=true' -d@- <<- EOF
@@ -493,6 +476,9 @@ Code   Error
 ------ ---------------------------------------------------------------------
 5030   The query was killed by a ``kill`` statement
 ====== =====================================================================
+
+
+.. _http-bulk-errors:
 
 Bulk errors
 -----------

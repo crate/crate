@@ -8,9 +8,11 @@ Data types
 
 Data can be stored in different formats. CrateDB has different types that can
 be specified if a table is created using the the :ref:`sql-create-table`
-statement. Data types play a central role as they limit what kind of data can
-be inserted, how it is stored and they also influence the behaviour when the
-records are queried.
+statement.
+
+Data types play a central role as they limit what kind of data can be inserted,
+how it is stored and they also influence the behaviour when the records are
+queried.
 
 Data type names are reserved words and need to be escaped when used as column
 names.
@@ -19,252 +21,403 @@ names.
 
 .. contents::
    :local:
+   :depth: 2
 
-Classification
-==============
 
-.. _sql_ddl_datatypes_primitives:
+.. _data-types-primitive:
 
 Primitive types
----------------
+===============
 
-Primitive types are :ref:`scalar <gloss-scalar>` values:
+Primitive types are types with :ref:`scalar <gloss-scalar>` values:
 
-* `boolean`_
-* `char <special character types_>`_
-* `smallint <numeric types_>`_
-* `integer <numeric types_>`_
-* `bigint <numeric types_>`_
-* `real <numeric types_>`_
-* `numeric <numeric types_>`_
-* `double precision <numeric types_>`_
-* `text <data-type-text_>`_
-* `ip`_
-* `timestamp with time zone <timestamp with time zone_>`_
-* `timestamp without time zone <timestamp without time zone_>`_
-* `date <date_>`_
-* `interval`_
-* `bit`_
-* `json <data-type-json_>`_
+.. contents::
+   :local:
+   :depth: 2
 
-.. _sql_ddl_datatypes_geographic:
 
-Geographic types
-----------------
+.. _data-types-nulls:
 
-Geographic types are :ref:`nonscalar <gloss-nonscalar>` values representing
-points or shapes in a 2D world:
+Null values
+-----------
 
-* `geo_point`_
-* `geo_shape`_
 
-.. _data-types-container:
+.. _type-null:
 
-Container types
----------------
+``NULL``
+''''''''
 
-Container types are :ref:`nonscalar <gloss-nonscalar>` values that can contain
-other values:
+A ``NULL`` represents a missing value.
 
-* `object`_
-* `array`_
+.. NOTE::
 
-.. _data-type-boolean:
+    ``NULL`` values are not the same as ``0``, an empty string (``''``), an
+    empty object (``{}``), an empty array (``[]``), or any other kind of empty
+    or zeroed data type.
 
-``boolean``
-===========
 
-A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
+You can use ``NULL`` values when inserting records to indicate the absence of a
+data point (i.e., the value for a specific column is not known).
 
-    cr> create table my_bool_table (
-    ...   first_column boolean
+Similarly, CrateDB will produce ``NULL`` values when, for example, data is
+missing from a :ref:`outer left-join <join-types-outer>` operation (i.e., when
+a row from one relation has no corresponding row in the joined relation).
+
+If you insert a record without specifying the value for a particular column,
+CrateDB will insert a ``NULL`` value for that column.
+
+For example::
+
+    cr> CREATE TABLE users (
+    ...     first_name TEXT,
+    ...     surname TEXT
     ... );
     CREATE OK, 1 row affected (... sec)
 
-.. hide:
+Insert a record without specifying ``surname``::
 
-    cr> drop table my_bool_table;
+    cr> INSERT INTO users (
+    ...     first_name
+    ... ) VALUES (
+    ...     'Alice'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+The resulting row will have a ``NULL`` value for ``surname``::
+
+    cr> SELECT
+    ...     first_name,
+    ...     surname
+    ... FROM users
+    ... WHERE first_name = 'Alice';
+    +------------+---------+
+    | first_name | surname |
+    +------------+---------+
+    | Alice      | NULL    |
+    +------------+---------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE users;
     DROP OK, 1 row affected (... sec)
 
-.. _character-data-types:
+You can prevent ``NULL`` values being inserted altogether with a :ref:`NOT NULL
+constraint <not_null_constraint>`, like so::
 
-Character types
-===============
+    cr> CREATE TABLE users_with_surnames (
+    ...     first_name TEXT,
+    ...     surname TEXT NOT NULL
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+Now, when you try to insert a user without a surname, it will produce an
+error::
+
+    cr> INSERT INTO users_with_surnames (
+    ...     first_name
+    ... ) VALUES (
+    ...     'Alice'
+    ... );
+    SQLParseException["surname" must not be null]
+
+.. HIDE:
+
+    cr> DROP TABLE users_with_surnames;
+    DROP OK, 1 row affected (... sec)
+
+
+.. _data-types-boolean-values:
+
+Boolean values
+--------------
+
+.. _type-boolean:
+
+``BOOLEAN``
+'''''''''''
+
+A basic boolean type accepting ``true`` and ``false`` as values.
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     first_column BOOLEAN
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +------------+
+    | TODO       |
+    +------------+
+    | Alice      |
+    +------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+
+.. _data-types-character-data:
+
+Character data
+--------------
 
 Character types are general purpose strings of character data.
 
-Only character data types without specified length can be analyzed.
-By default the :ref:`plain <plain-analyzer>` analyzer is used. See
-:ref:`sql_ddl_index_fulltext`.
+CrateDB supports the following character types:
 
-.. _data-type-varchar:
+.. contents::
+   :local:
+   :depth: 1
 
-``character varying(n)``, ``varchar(n)``
-----------------------------------------
+.. NOTE::
 
-The ``character varying(n)`` or ``varchar(n)`` character data types represent
-variable length strings. All unicode characters are allowed.
+    Only character data types without specified length can be :ref:`analyzed
+    for full text search <sql_ddl_index_fulltext>`.
 
-The optional length specification ``n`` is a positive `integer <numeric
-types_>`_ that defines the maximum length, in characters, of the values
-that have to be stored or cast. The minimum length is ``1``. The maximum
-length is defined by the upper `integer <numeric types_>`_ range.
+    By default, the :ref:`plain <plain-analyzer>` analyzer is used.
+
+
+.. _type-varchar:
+
+``VARCHAR(n)``
+''''''''''''''
+
+The ``VARCHAR(n)`` (or ``CHARACTER VARYING(n)``) type represents variable
+length strings. All unicode characters are allowed.
+
+The optional length specification ``n`` is a positive :ref:`integer
+<data-type-numeric>` that defines the maximum length, in characters, of the
+values that have to be stored or cast. The minimum length is ``1``. The maximum
+length is defined by the upper :ref:`integer <data-type-numeric>` range.
 
 An attempt to store a string literal that exceeds the specified length
 of the character data type results in an error.
 
 ::
 
-    cr> CREATE TABLE users (id varchar, name varchar(6));
+    cr> CREATE TABLE users (
+    ...     id VARCHAR,
+    ...     name VARCHAR(6)
+    ... );
     CREATE OK, 1 row affected (... sec)
 
 ::
 
-    cr> INSERT INTO users (id, name) VALUES ('1361', 'john doe')
-    SQLParseException['john doe' is too long for the text type of length: 6]
+    cr> INSERT INTO users (
+    ...     id,
+    ...     name
+    ... ) VALUES (
+    ...     '1',
+    ...     'Alice Smith'
+    ... );
+    SQLParseException['Alice Smith' is too long for the text type of length: 6]
 
 If the excess characters are all spaces, the string literal will be truncated
 to the specified length.
 
 ::
 
-    cr> INSERT INTO users (id, name) VALUES ('1', 'john     ')
+    cr> INSERT INTO users (
+    ...     id,
+    ...     name
+    ... ) VALUES (
+    ...     '2',
+    ...     'Bob     '
+    ... );
     INSERT OK, 1 row affected (... sec)
 
-.. hide:
+.. HIDE:
 
-    cr> REFRESH TABLE users
+    cr> REFRESH TABLE users;
     REFRESH OK, 1 row affected (... sec)
 
 ::
 
-    cr> SELECT id, name, char_length(name) AS name_length
+    cr> SELECT
+    ...    id,
+    ...    name,
+    ...    char_length(name) AS name_length
     ... FROM users;
     +----+------+-------------+
     | id | name | name_length |
     +----+------+-------------+
-    | 1  | john |           6 |
+    | 1  | Bob  |           3 |
     +----+------+-------------+
     SELECT 1 row in set (... sec)
 
-If a value is explicitly cast to ``varchar(n)``, then an over-length value
+If a value is explicitly cast to ``VARCHAR(n)``, then an over-length value
 will be truncated to ``n`` characters without raising an error.
 
 ::
 
-    cr> SELECT 'john doe'::varchar(4) AS name;
-    +------+
-    | name |
-    +------+
-    | john |
-    +------+
+    cr> SELECT 'Alice Smith'::VARCHAR(5) AS name;
+    +-------+
+    | name  |
+    +-------+
+    | Alice |
+    +-------+
     SELECT 1 row in set (... sec)
 
-``character varying`` and ``varchar`` without the length specifier are
+``CHARACTER VARYING`` and ``VARCHAR`` without the length specifier are
 aliases for the :ref:`text <data-type-text>` data type,
 see also :ref:`type aliases <data-type-aliases>`.
 
-.. hide:
+.. HIDE:
 
     cr> DROP TABLE users;
     DROP OK, 1 row affected (... sec)
 
-.. _data-type-text:
 
-``text``
---------
+.. _type-text:
+
+``TEXT``
+''''''''
 
 A text-based basic type containing one or more characters. All unicode
 characters are allowed.
 
 ::
 
-    cr> CREATE TABLE users (name text);
+    cr> CREATE TABLE users (
+    ...     name TEXT
+    ... );
     CREATE OK, 1 row affected (... sec)
 
-.. hide:
+TODO::
+
+    cr> INSERT INTO users (
+    ...     name
+    ... ) VALUES (
+    ...     'Alice'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE users;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM users;
+    +-------+
+    | name  |
+    +-------+
+    | Alice |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
 
     cr> DROP TABLE users;
     DROP OK, 1 row affected (... sec)
 
 .. NOTE::
 
-   Maximum indexed string length is restricted to 32766 bytes, when encoded
-   with UTF-8 unless the string is analyzed using full text or indexing and
-   the usage of the :ref:`ddl-storage-columnstore` is disabled.
+   The maximum indexed string length is restricted to 32766 bytes when encoded
+   with UTF-8 unless the string is analyzed using full text or indexing and the
+   usage of the :ref:`ddl-storage-columnstore` is disabled.
 
-.. NOTE::
    There is no difference in storage costs among all character data types.
 
 
 .. _data-type-bit:
 
-``bit``
--------
+``BIT(n)``
+''''''''''
 
-A type representing a vector of bits with a fixed size.
+A string representation of a a bit sequence, useful for visualizing a `bit
+mask`_.
 
-
-Values of the type can be created using the bit string literal syntax. A bit
+Values of this type can be created using the bit string literal syntax. A bit
 string starts with the ``B`` prefix, followed by a sequence of ``0`` or ``1``
 digits quoted within single quotes ``'``.
 
-An example:
+The optional length specification ``n`` is a positive :ref:`integer
+<data-type-numeric>` that defines the maximum length, in characters, of the
+values that have to be stored or cast. The minimum length is ``1``. The maximum
+length is defined by the upper :ref:`integer <data-type-numeric>` range.
 
-::
+For example::
 
-  B'00010010'
-  
-
-::
-
-  cr> CREATE TABLE metrics (bits bit(4));
+  cr> CREATE TABLE my_table (
+  ...     bit_mask BIT(4)
+  ... );
   CREATE OK, 1 row affected (... sec)
 
-
-  cr> INSERT INTO metrics (bits) VALUES (B'0110');
-  INSERT OK, 1 row affected  (... sec)
-
-
-Inserting values that are either too short or too long results in an error:
-
 ::
 
-  cr> INSERT INTO metrics (bits) VALUES (B'00101');
-  SQLParseException[bit string length 5 does not match type bit(4)]
+  cr> INSERT INTO my_table (
+  ...     bit_mask
+  ... ) VALUES (
+  ...     B'0110'
+  ... );
+  INSERT OK, 1 row affected  (... sec)
 
+.. HIDE:
 
-.. hide:
-
-    cr> REFRESH TABLE metrics;
+    cr> REFRESH TABLE my_table;
     REFRESH OK, 1 row affected (... sec)
 
 ::
 
-    cr> SELECT bits from metrics;
-    +---------+
-    | bits    |
-    +---------+
-    | B'0110' |
-    +---------+
+    cr> SELECT bit_mask FROM my_table;
+    +----------+
+    | bit_mask |
+    +----------+
+    | B'0110'  |
+    +----------+
     SELECT 1 row in set (... sec)
 
+Inserting values that are either too short or too long results in an error::
 
-.. hide:
+  cr> INSERT INTO my_table (
+  ...     bit_mask
+  ... ) VALUES (
+  ...    B'00101'
+  ... );
+  SQLParseException[bit string length 5 does not match type bit(4)]
 
-    cr> DROP TABLE metrics;
+.. HIDE:
+
+    cr> DROP TABLE my_table;
     DROP OK, 1 row affected (... sec)
 
 
 .. _data-type-json:
 
 ``json``
---------
+''''''''
 
 A type representing a JSON string.
 
 This type only exists for compatibility and interoperability with PostgreSQL. It cannot to be
-used in data definition statements and it is not possible to use it to store data. 
+used in data definition statements and it is not possible to use it to store data.
 To store JSON data use the existing :ref:`OBJECT <object_data_type>` type. It is a more powerful
 alternative that offers more flexibility and delivering the same benefits.
 
@@ -303,132 +456,277 @@ Casting from ``OBJECT`` to ``JSON``::
     SELECT 1 row in set (... sec)
 
 
+.. _data-types-numeric:
 
-.. _data-type-numeric:
+Numeric data
+------------
 
-Numeric types
-=============
+CrateDB supports the following numeric types:
 
-CrateDB supports a set of the following numeric data types:
-
-.. list-table::
-    :header-rows: 1
-
-    * - Name
-      - Size
-      - Description
-      - Range
-    * - ``smallint``
-      - 2 bytes
-      - small-range integer
-      - -32,768 to 32,767
-    * - ``integer``
-      - 4 bytes
-      - typical choice for integer
-      - -2^31 to 2^31-1
-    * - ``bigint``
-      - 8 bytes
-      - large-range integer
-      - -2^63 to 2^63-1
-    * - ``numeric``
-      - variable
-      - user-specified precision, exact
-      - up to 131072 digits before the decimal point;
-        up to 16383 digits after the decimal point
-    * - ``real``
-      - 4 bytes
-      - inexact, variable-precision
-      - 6 decimal digits precision
-    * - ``double precision``
-      - 8 bytes
-      - inexact, variable-precision
-      - 15 decimal digits precision
-
-Floating-Point Types
---------------------
-
-The ``real`` and ``double precision`` data types are inexact,
-variable-precision numeric types. It means that these types are stored as an
-approximation.  Therefore, storage, calculation, and retrieval of the value
-will not always result in an exact representation of the actual floating-point
-value.
-
-For instance, the result of applying ``sum`` or ``avg`` :ref:`aggregate
-functions <aggregation-functions>` may slightly vary between query executions
-or comparing floating-point values for equality might not always match.
-
-.. SEEALSO::
-
-    `Wikipedia: Single-precision floating-point format`_
-
-    `Wikipedia: Double-precision floating-point format`_
+.. contents::
+   :local:
+   :depth: 1
 
 
-Special floating point values
-.............................
+.. _data-types-floating-point:
 
-CrateDB conforms to the `IEEE 754`_ standard concerning special values for
-``real`` and ``double precision`` floating point data types. This means that
-it also supports  ``NaN``, ``Infinity``, ``-Infinity`` (negative infinity),
-and ``-0`` (signed zero).
+.. NOTE::
 
-::
+    The :ref:`REAL <type-real>` and :ref:`DOUBLE PRECISION
+    <type-double-precision>` data types are inexact, variable-precision
+    floating-poin t types, meaning that these types are stored as an
+    approximation.
 
-    cr> SELECT 0.0 / 0.0 AS a, 1.0 / 0.0 as B, 1.0 / -0.0 AS c;
-    +-----+----------+-----------+
-    | a   | b        | c         |
-    +-----+----------+-----------+
-    | NaN | Infinity | -Infinity |
-    +-----+----------+-----------+
-    SELECT 1 row in set (... sec)
+    Accordingly, storage, calculation, and retrieval of the value will not
+    always result in an exact representation of the actual floating-point
+    value. For instance, the result of applying :ref:`SUM <aggregation-sum>`
+    or :ref:`AVG <aggregation-avg>` aggregate functions may slightly vary
+    between query executions or comparing floating-point values for equality
+    might not always match.
 
-These special numeric values can also be inserted into a column of type
-``real`` or ``double precision`` using a ``text`` literal.
+    CrateDB conforms to the `IEEE 754`_ standard concerning special values for
+    floating-point data types, meaning that ``NaN``, ``Infinity``,
+    ``-Infinity`` (negative infinity), and ``-0`` (signed zero) are all
+    supported::
 
-::
+        cr> SELECT
+        ...     0.0 / 0.0 AS a,
+        ...     1.0 / 0.0 AS B,
+        ...     1.0 / -0.0 AS c;
+        +-----+----------+-----------+
+        | a   | b        | c         |
+        +-----+----------+-----------+
+        | NaN | Infinity | -Infinity |
+        +-----+----------+-----------+
+        SELECT 1 row in set (... sec)
 
-    cr> create table my_table3 (
-    ...   first_column integer,
-    ...   second_column bigint,
-    ...   third_column smallint,
-    ...   fourth_column double precision,
-    ...   fifth_column real,
-    ...   sixth_column char
+    These special numeric values can also be inserted into a column of type
+    ``REAL`` or ``DOUBLE PRECISION`` using a :ref:`TEXT <type-text>` literal.
+
+    For instance::
+
+        cr> CREATE TABLE my_table (
+        ...     column_1 INTEGER,
+        ...     column_2 BIGINT,
+        ...     column_3 SMALLINT,
+        ...     column_4 DOUBLE PRECISION,
+        ...     column_5 REAL,
+        ...     column_6 CHAR
+        ... );
+        CREATE OK, 1 row affected (... sec)
+
+    ::
+
+        cr> INSERT INTO my_table (
+        ...     column_4,
+        ...     column_5
+        ... ) VALUES (
+        ...     'NaN',
+        ...     'Infinity'
+        ... );
+        INSERT OK, 1 row affected (... sec)
+
+    ::
+
+        cr> SELECT
+        ...     column_4,
+        ...     column_5
+        ... FROM my_table;
+        +----------+----------+
+        | column_4 | column_5 |
+        +----------+----------+
+        | NaN      | Infinity |
+        +----------+----------+
+        SELECT 1 row in set (... sec)
+
+    .. HIDE:
+
+        cr> DROP TABLE my_table;
+        DROP OK, 1 row affected (... sec)
+
+
+.. _type-smallint:
+
+``SMALLINT``
+''''''''''''
+
+A small integer.
+
+Limited to two bytes, with a range from -32,768 to 32,767.
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     number SMALLINT
     ... );
     CREATE OK, 1 row affected (... sec)
 
 ::
 
-    cr> INSERT INTO my_table3 (fourth_column, fifth_column)
-    ... VALUES ('NaN', 'Infinity');
-    INSERT OK, 1 row affected (... sec)
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     32767
+    ... );
+    CREATE OK, 1 row affected (... sec)
 
-.. _numeric_type:
+.. HIDE:
 
-Arbitrary Precision Numbers
----------------------------
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT number FROM my_table;
+    +--------+
+    | number |
+    +--------+
+    | 32767  |
+    +--------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+
+.. _type-integer:
+
+``INTEGER``
+'''''''''''
+
+An integer.
+
+Limited to four bytes, with a range from -2^31 to 2^31-1.
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     number INTEGER
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     2147483647
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT number FROM my_table;
+    +------------+
+    | number     |
+    +------------+
+    | 2147483647 |
+    +------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+
+.. _type-bigint:
+
+``BIGINT``
+''''''''''
+
+A large integer.
+
+Limited to eight bytes, with a range from -2^63 to 2^63-1.
+
+Example:
+
+::
+
+    cr> CREATE TABLE my_table (
+    ...     number BIGINT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     9223372036854775807
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT number FROM my_table;
+    +---------------------+
+    | number              |
+    +---------------------+
+    | 9223372036854775807 |
+    +---------------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+
+.. _type-numeric:
+
+``NUMERIC(precision, scale)``
+'''''''''''''''''''''''''''''
+
+An exact number with an arbitrary, user-specified precision.
+
+Variable size, with up to 131072 digits before the decimal point and up to
+16383 digits after the decimal point.
+
+For example, using a :ref:`cast from a string literal
+<data-types-casting-str>`::
+
+    cr> SELECT NUMERIC(5, 2) '123.45' AS number;
+    +--------+
+    | number |
+    +--------+
+    | 123.45 |
+    +--------+
+    SELECT 1 row in set (... sec)
 
 .. NOTE::
 
-    The storage of the ``numeric`` data type is not supported. Therefore,
-    it is not possible to create tables with ``numeric`` fields.
+    The ``NUMERIC`` type is only supported as a type literal (i.e., for use in
+    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
+    <data-types-casting-exp>`, as above).
 
-The ``numeric`` type literals store exact numeric data values and
-perform exact calculations on them.
+    You cannot create table columns of type ``NUMERIC``.
 
 This type is usually used when it is important to preserve exact precision
 or handle values that exceed the range of the numeric types of the fixed
 length. The aggregations and arithmetic operations on numeric values are
 much slower compared to operations on the integer or floating-point types.
 
-The ``numeric`` type can be configured with the precision and scale. The
-``precision`` of a numeric is the total count of significant digits in the
-unscaled numeric value.  The ``scale`` of a numeric is the count of decimal
-digits in the fractional part, to the right of the decimal point. For example,
-the number 123.45 has a precision of 5 and a scale of 2. Integers have a scale
-of zero.
+The ``NUMERIC`` type can be configured with the ``precision`` and
+``scale``. The ``precision`` value of a numeric is the total count of
+significant digits in the unscaled numeric value. The ``scale`` value of a
+numeric is the count of decimal digits in the fractional part, to the right of
+the decimal point. For example, the number 123.45 has a precision of ``5`` and
+a scale of ``2``. Integers have a scale of zero.
 
-To declare the ``numeric`` type with the precision and scale use the syntax::
+To declare the ``NUMERIC`` type with the precision and scale, use the syntax::
 
     NUMERIC(precision, scale)
 
@@ -437,210 +735,633 @@ or positive integer in this case::
 
     NUMERIC(precision)
 
-Without configuring the precision and scale the ``numeric`` type value will be
+Without configuring the precision and scale the ``NUMERIC`` type value will be
 represented by an unscaled value of the unlimited precision::
 
     NUMERIC
 
-The ``numeric`` type backed internally by the Java ``BigDecimal`` class. For
+The ``NUMERIC`` type backed internally by the Java ``BigDecimal`` class. For
 more detailed information about its behaviour, see `BigDecimal documentation`_.
 
-.. _ip-type:
 
-``ip``
-======
+.. _type-real:
 
-The ``ip`` type allows to store IPv4 and IPv6 addresses by inserting their
-string representation. Internally IP addresses are stored as ``bigint``
-allowing expected sorting, filtering and aggregation.
+``REAL``
+''''''''
 
-Example::
+An inexact `single-precision floating-point`_ value.
 
-    cr> create table my_table_ips (
-    ...   fqdn text,
-    ...   ip_addr ip
+Limited to four bytes, with six to nine decimal digits precision.
+
+Example:
+
+::
+
+    cr> CREATE TABLE my_table (
+    ...     number REAL
     ... );
     CREATE OK, 1 row affected (... sec)
 
 ::
 
-    cr> insert into my_table_ips (fqdn, ip_addr)
-    ... values ('localhost', '127.0.0.1'),
-    ...        ('router.local', '0:0:0:0:0:ffff:c0a8:64');
-    INSERT OK, 2 rows affected (... sec)
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     3.4028235e+38
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. TIP::
+
+    ``3.4028235+38`` represents the value 3.4028235 × 10\ :sup:`38`
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 
-    cr> insert into my_table_ips (fqdn, ip_addr)
-    ... values ('localhost', 'not.a.real.ip');
-    SQLParseException[Cannot cast `'not.a.real.ip'` of type `text` to type `ip`]
+    cr> SELECT number FROM my_table;
+    +---------------+
+    | number        |
+    +---------------+
+    | 3.4028235e+38 |
+    +---------------+
+    SELECT 1 row in set (... sec)
 
-IP addresses support the :ref:`operator <gloss-operator>` ``<<``, which checks
-for subnet inclusion using `CIDR notation`_. The left-hand :ref:`operand
-<gloss-operand>` must be of type :ref:`ip <ip-type>` and the right-hand must be
-of type :ref:`text <data-type-text>` (e.g., ``'192.168.1.5' <<
-'192.168.1/24'``).
+You can insert values which exceed the maximum precision, like so::
 
-.. _date-time-types:
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     3.4028234664e+38
+    ... );
+    CREATE OK, 1 row affected (... sec)
 
-Date and time types
-===================
+.. HIDE:
 
-+---------------------------------+----------+-------------------------+------------------------+
-| Name                            | Size     | Description             | Range                  |
-+=================================+==========+=========================+========================+
-| ``timestamp with time zone``    | 8 bytes  | time and date with time | ``292275054BC``        |
-|                                 |          | zone                    | to ``292278993AD``     |
-+---------------------------------+----------+-------------------------+------------------------+
-| ``timestamp without time zone`` | 8 bytes  | time and date without   | ``292275054BC``        |
-|                                 |          | time zone               | to ``292278993AD``     |
-+---------------------------------+----------+-------------------------+------------------------+
-| ``time with time zone``         | 12 bytes | time with time zone     | ``00:00:00.000000``    |
-| ``timetz``                      |          |                         | to ``23:59:59.999999`` |
-|                                 |          |                         | zone: -18:00 to 18:00  |
-+---------------------------------+----------+-------------------------+------------------------+
-| ``date``                        | 8  bytes | date in utc             | ``292275054BC``        |
-|                                 |          |                         | to ``292278993AD``     |
-+---------------------------------+----------+-------------------------+------------------------+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
 
-.. _timestamp_data_type:
+However, the recorded value will be an approximation of the original (i.e., the
+additional precision is lost)::
 
-Timestamps
-----------
+    cr> SELECT number FROM my_table;
+    +---------------+
+    | number        |
+    +---------------+
+    | 3.4028235e+38 |
+    +---------------+
+    SELECT 1 row in set (... sec)
 
-The timestamp types consist of the concatenation of a date and time, followed
-by an optional time zone.
+.. HIDE:
 
-Internally, timestamp values are mapped to the UTC milliseconds since
-``1970-01-01T00:00:00Z`` stored as ``bigint``.
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
 
-Timestamps are always returned as ``bigint`` values.
+.. SEEALSO::
 
-The syntax for timestamp string literals is as follows:
+    :ref:`CrateDB floating-point values <data-types-floating-point>`
+
+
+.. _type-double-precision:
+
+``DOUBLE PRECISION``
+''''''''''''''''''''
+
+An inexact number with variable precision supporting `double-precision
+floating-point`_ values.
+
+Limited to eight bytes, with 15 to 17 decimal digits precision.
+
+Example:
+
+::
+
+    cr> CREATE TABLE my_table (
+    ...     number DOUBLE PRECISION
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     1.7976931348623157e+308
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. TIP::
+
+    ``1.7976931348623157e+308`` represents the value 1.7976931348623157 × 10\
+    :sup:`308`
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT number FROM my_table;
+    +-------------------------+
+    | TODO                    |
+    +-------------------------+
+    | 1.7976931348623157e+308 |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
+You can insert values which exceed the maximum precision, like so::
+
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     1.79769313486231572014e+308
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+However, the recorded value will be an approximation of the original (i.e., the
+additional precision is lost)::
+
+    cr> SELECT number FROM my_table;
+    +-------------------------+
+    | number                  |
+    +-------------------------+
+    | 1.7976931348623157e+308 |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+.. SEEALSO::
+
+    :ref:`CrateDB floating-point values <data-types-floating-point>`
+
+
+.. _data-types-dates-times:
+
+Dates and times
+---------------
+
+CrateDB supports the following types for dates and times:
+
+.. contents::
+   :local:
+   :depth: 2
+
+With a few exceptions (noted below) the ``+`` and ``-`` :ref:`operators
+<gloss-operator>` can be used to create :ref:`arithmetic expressions
+<arithmetic>` with temporal operands:
+
++---------------+----------------+---------------+
+| Operand       | Operator       | Operand       |
++===============+================+===============+
+| ``TIMESTAMP`` |          ``-`` | ``TIMESTAMP`` |
++---------------+----------------+---------------+
+|  ``INTERVAL`` |          ``+`` | ``TIMESTAMP`` |
++---------------+----------------+---------------+
+| ``TIMESTAMP`` | ``+`` or ``-`` |  ``INTERVAL`` |
++---------------+----------------+---------------+
+|  ``INTERVAL`` | ``+`` or ``-`` |  ``INTERVAL`` |
++---------------+----------------+---------------+
+
+.. NOTE::
+
+    If an object column is :ref:`dynamically created
+    <type-object-columns-dynamic>`, the type detection will not recognize date
+    and time types, meaning that date and time type columns must always be
+    declared beforehand.
+
+
+.. _type-timestamp:
+
+``TIMESTAMP``
+'''''''''''''
+
+A timestamp expresses a specific date and time as the number of milliseconds
+since the `Unix epoch`_ (i.e., ``1970-01-01T00:00:00Z``).
+
+Timestamps can be expressed as string literals (e.g.,
+``'1970-01-02T00:00:00'``) with the following syntax:
 
 .. code-block:: text
 
     date-element [time-separator [time-element [offset]]]
 
-    time-separator: 'T' | ' '
     date-element:   yyyy-MM-dd
+    time-separator: 'T' | ' '
     time-element:   HH:mm:ss [fraction]
     fraction:       '.' digit+
     offset:         {+ | -} HH [:mm] | 'Z'
 
-For more detailed information about the date and time elements, see
-`pattern letters and symbols`_.
+.. SEEALSO::
+
+    For more information about date and time formatting, see `Java 15\:
+    Patterns for Formatting and Parsing`_.
+
+    Time zone syntax as defined by `ISO 8601 time zone designators`_.
+
+Internally, CrateDB stores timestamps as :ref:`BIGINT <type-bigint>`
+values, which are limited to eight bytes.
+
+If you cast a :ref:`BIGINT <type-bigint>` to a ``TIMEZONE``, the integer value
+will be interpreted as the number of milliseconds since the Unix epoch.
+
+Using the :ref:`date_format() <scalar-date_format>` function, for readability::
+
+    cr> SELECT
+    ...     date_format(0::TIMESTAMP) AS ts_0,
+    ...     date_format(1000::TIMESTAMP) AS ts_1;
+    +-----------------------------+-----------------------------+
+    | ts_0                        | ts_1                        |
+    +-----------------------------+-----------------------------+
+    | 1970-01-01T00:00:00.000000Z | 1970-01-01T00:00:01.000000Z |
+    +-----------------------------+-----------------------------+
+    SELECT 1 row in set (... sec)
+
+If you cast a :ref:`REAL <type-real>` or a :ref:`DOUBLE PRECISION
+<type-double-precision>` to a ``TIMESTAMP``, the numeric value wil be
+interpreted as the number of seconds since the Unix epoch, with fractional
+values approximated to the nearest millisecond::
+
+    cr> SELECT
+    ...     date_format(0::TIMESTAMP) AS ts_0,
+    ...     date_format(1.5::TIMESTAMP) AS ts_1;
+    +-----------------------------+-----------------------------+
+    | ts_0                        | ts_1                        |
+    +-----------------------------+-----------------------------+
+    | 1970-01-01T00:00:00.000000Z | 1970-01-01T00:00:01.500000Z |
+    +-----------------------------+-----------------------------+
+    SELECT 1 row in set (... sec)
 
 .. CAUTION::
 
-    When inserting timestamps smaller than ``-999999999999999`` (equals to
-    ``-29719-04-05T22:13:20.001Z``) or bigger than ``999999999999999`` (equals to
-    ``33658-09-27T01:46:39.999Z``) rounding issues may occur.
+    Due to internal date parsing, the full ``BIGINT`` range is not supported
+    for timestamp values. The valid range of dates is from ``292275054BC`` to
+    ``292278993AD``.
+
+    When inserting timestamps smaller than ``-999999999999999`` (equal to
+    ``-29719-04-05T22:13:20.001Z``) or bigger than ``999999999999999`` (equal
+    to ``33658-09-27T01:46:39.999Z``) rounding issues may occur.
+
+A ``TIMESTAMP`` can be further defined as:
+
+.. contents::
+   :local:
+   :depth: 1
+
+
+.. _type-timestamp-with-tz:
+
+``WITH TIME ZONE``
+..................
+
+If you define a timestamp as ``TIMESTAMP WITH TIME ZONE``, CrateDB will convert
+string literals to `Coordinated Universal Time`_ (UTC) using the ``offset``
+value (e.g., ``+01:00`` for plus one hour or ``Z`` for UTC).
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     ts_tz_1 TIMESTAMP WITH TIME ZONE,
+    ...     ts_tz_2 TIMESTAMP WITH TIME ZONE
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     ts_tz_1,
+    ...     ts_tz_2
+    ... ) VALUES (
+    ...     '1970-01-02T00:00:00',
+    ...     '1970-01-02T00:00:00+01:00'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT
+    ...     ts_tz_1,
+    ...     ts_tz_2
+    ... FROM my_table;
+    +----------+----------+
+    |  ts_tz_1 |  ts_tz_2 |
+    +----------+----------+
+    | 86400000 | 82800000 |
+    +----------+----------+
+    SELECT 1 row in set (... sec)
+
+You can use :ref:`data_format() <scalar-date_format>` to to make the output
+easier to read::
+
+    cr> SELECT
+    ...     date_format('%Y-%m-%dT%H:%i', ts_tz_1) AS ts_tz_1,
+    ...     date_format('%Y-%m-%dT%H:%i', ts_tz_2) AS ts_tz_2
+    ... FROM my_table;
+    +------------------+------------------+
+    | ts_tz_1          | ts_tz_2          |
+    +------------------+------------------+
+    | 1970-01-02T00:00 | 1970-01-01T23:00 |
+    +------------------+------------------+
+    SELECT 1 row in set (... sec)
+
+Notice that ``ts_tz_2`` is smaller than ``ts_tz_1`` by one hour. CrateDB used
+the ``+01:00`` offset (i.e., *ahead of UTC by one hour*) to convert the second
+timestamp into UTC prior to insertion. Contrast this with the behavior of
+:ref:`WITHOUT TIME ZONE <type-timestamp-without-tz>`.
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
 
 .. NOTE::
 
-    Due to internal date parsing, not the full ``bigint`` range is supported for
-    timestamp values, but only dates between year ``292275054BC`` and
-    ``292278993AD``, which is slightly smaller.
+    ``TIMESTAMPTZ`` is an alias for ``TIMESTAMP WITH TIME ZONE``.
 
-.. _datetime-with-time-zone:
+.. CAUTION::
 
-``timestamp with time zone``
-............................
+    In the absence of an explicit :ref:`WITH TIME ZONE
+    <type-timestamp-with-tz>` or :ref:`WITHOUT TIME ZONE
+    <type-timestamp-without-tz>`, CrateDB will interpret ``TIMEZONE`` as an
+    alias for ``TIMESTAMP WITH TIME ZONE``.
 
-A string literal that contain a timestamp value with the time zone will be
-converted to UTC considering its offset for the time zone.
-
-::
-
-    cr> select '1970-01-02T00:00:00+0100'::timestamp with time zone as ts_z,
-    ...        '1970-01-02T00:00:00Z'::timestamp with time zone ts_z,
-    ...        '1970-01-02T00:00:00'::timestamp with time zone ts_z,
-    ...        '1970-01-02 00:00:00'::timestamp with time zone ts_z_sql_format;
-    +----------+----------+----------+-----------------+
-    |     ts_z |     ts_z |     ts_z | ts_z_sql_format |
-    +----------+----------+----------+-----------------+
-    | 82800000 | 86400000 | 86400000 |        86400000 |
-    +----------+----------+----------+-----------------+
-    SELECT 1 row in set (... sec)
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. CrateDB 4.0 :ref:`deprecated this alias <v4.0.0-deprecations>`
+    and behavior may change in a future version of CrateDB (see `tracking issue
+    #11491`_). To avoid issued, we recommend that you always specify ``WITH
+    TIME ZONE`` or ``WITHOUT TIME ZONE``.
 
 
-Timestamps will also accept a ``bigint`` representing UTC milliseconds since
-the epoch or a ``real`` or ``double precision`` representing UTC seconds since
-the epoch with milliseconds as fractions.
+.. _type-timestamp-without-tz:
 
-::
+``WITHOUT TIME ZONE``
+.....................
 
-    cr> select 1.0::timestamp with time zone AS ts;
-    +------+
-    |   ts |
-    +------+
-    | 1000 |
-    +------+
-    SELECT 1 row in set (... sec)
+If you define a timestamp as ``TIMESTAMP WITHOUT TIME ZONE``, CrateDB will
+convert string literals to `Coordinated Universal Time`_ (UTC) without using
+the ``offset`` value (i.e., any time zone information present is stripped prior
+to insertion).
 
+Example::
 
-.. _datetime-without-time-zone:
-
-``timestamp without time zone``
-...............................
-
-A string literal that contain a timestamp value with the time zone will be
-converted to UTC without considering the time zone indication.
+    cr> CREATE TABLE my_table (
+    ...     ts_1 TIMESTAMP WITHOUT TIME ZONE,
+    ...     ts_2 TIMESTAMP WITHOUT TIME ZONE
+    ... );
+    CREATE OK, 1 row affected (... sec)
 
 ::
 
-    cr> select '1970-01-02T00:00:00+0200'::timestamp without time zone as ts,
-    ...        '1970-01-02T00:00:00+0400'::timestamp without time zone as ts,
-    ...        '1970-01-02T00:00:00Z'::timestamp without time zone as ts,
-    ...        '1970-01-02 00:00:00Z'::timestamp without time zone as ts_sql_format;
-    +----------+----------+----------+---------------+
-    |       ts |       ts |       ts | ts_sql_format |
-    +----------+----------+----------+---------------+
-    | 86400000 | 86400000 | 86400000 |      86400000 |
-    +----------+----------+----------+---------------+
+    cr> INSERT INTO my_table (
+    ...     ts_1,
+    ...     ts_2
+    ... ) VALUES (
+    ...     '1970-01-02T00:00:00',
+    ...     '1970-01-02T00:00:00+01:00'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+Using the :ref:`data_format() <scalar-date_format>` function, for readability::
+
+    cr> SELECT
+    ...     date_format('%Y-%m-%dT%H:%i', ts_1) AS ts_1,
+    ...     date_format('%Y-%m-%dT%H:%i', ts_2) AS ts_2
+    ... FROM my_table;
+    +------------------+------------------+
+    | ts_1             | ts_2             |
+    +------------------+------------------+
+    | 1970-01-02T00:00 | 1970-01-02T00:00 |
+    +------------------+------------------+
     SELECT 1 row in set (... sec)
 
+Notice that ``ts_1`` and ``ts_2`` are identical. CrateDB ignored the ``+01:00``
+offset (i.e., *ahead of UTC by one hour*) when processing the second string
+literal. Contrast this with the behavior of :ref:`WITH TIME ZONE
+<type-timestamp-with-tz>`.
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+.. CAUTION::
+
+    In the absence of an explicit :ref:`WITH TIME ZONE
+    <type-timestamp-with-tz>` or :ref:`WITHOUT TIME ZONE
+    <type-timestamp-without-tz>`, CrateDB will interpret ``TIMEZONE`` as an
+    alias for ``TIMESTAMP WITH TIME ZONE``.
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. CrateDB 4.0 :ref:`deprecated this alias <v4.0.0-deprecations>`
+    and behavior may change in a future version of CrateDB (see `tracking issue
+    #11491`_). To avoid issued, we recommend that you always specify ``WITH
+    TIME ZONE`` or ``WITHOUT TIME ZONE``.
+
+
+.. _type-timestamp-at-tz:
+
+``AT TIME ZONE``
+................
+
+You can use the ``AT TIME ZONE`` clause to modify a timestamp in one of two
+different ways:
+
+.. contents::
+   :local:
+   :depth: 1
 
 .. NOTE::
 
-    If a column is dynamically created the type detection won't recognize
-    date time types. That means date type columns must always be declared
-    beforehand.
+    The ``AT TIME ZONE`` type is only supported as a type literal (i.e., for
+    use in SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
+    <data-types-casting-exp>`, as below).
 
-.. _timestamp-at-time-zone:
+    You cannot create table columns of type ``NUMERIC``.
 
-``timestamp with/without time zone AT TIME ZONE zone``
-......................................................
 
-AT TIME ZONE converts a timestamp without time zone to/from a timestamp with
-time zone. It has the following variants:
+.. _type-timestamp-tz-at-tz-convert:
 
-.. csv-table::
-   :header: "Expression", "Return Type", "Description"
+Convert a timestamp time zone
+`````````````````````````````
 
-   "timestamp without time zone AT TIME ZONE zone", "timestamp with time zone", "Treat \
-   given time stamp without time zone as located in the specified time zone"
-   "timestamp with time zone AT TIME ZONE zone", "timestamp without time zone", "Convert \
-   given time stamp with time zone to the new time zone, with no time zone designation"
+If you use ``AT TIME ZONE tz`` with a ``TIMESTAMP WITH TIME ZONE``, CrateDB
+will convert timestamp to time zone ``tz`` and cast the return value as a
+:ref:`TIMESTAMP WITHOUT TIME ZONE <type-timestamp-without-tz>` (which discards
+the the time zone information). This process effectively allows you to correct
+the offset used to calculate UTC.
 
-In these :ref:`expressions <gloss-expression>`, the desired time zone is
-specified as a string (e.g., 'Europe/Madrid', '+02:00').
+Example::
 
-The scalar function :ref:`TIMEZONE <scalar-timezone>` (zone, timestamp) is
-equivalent to the SQL-conforming timestamp construct ``AT TIME ZONE zone``.
+    cr> CREATE TABLE my_table (
+    ...     ts_tz TIMESTAMP WITH TIME ZONE
+    ... );
+    CREATE OK, 1 row affected (... sec)
 
-.. _time-data-type:
+::
 
-time with time zone
--------------------
+    cr> INSERT INTO my_table (
+    ...     ts_tz
+    ... ) VALUES (
+    ...     '1970-01-02T00:00:00'
+    ... );
+    CREATE OK, 1 row affected (... sec)
 
-The time type consists of time followed by an optional time zone.
+.. HIDE:
 
-``timetz`` is an alias for `time with time zone`.
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
 
-`time with time zone` literals can be constructed using a string literal
-and a cast. The syntax for string literal is as follows:
+Using the :ref:`data_format() <scalar-date_format>` function, for readability::
+
+    cr> SELECT date_format(
+    ...     '%Y-%m-%dT%H:%i', ts_tz AT TIME ZONE '+01:00'
+    ... ) AS ts
+    ... FROM my_table;
+    +------------------+
+    | ts               |
+    +------------------+
+    | 1970-01-02T01:00 |
+    +------------------+
+    SELECT 1 row in set (... sec)
+
+.. TIP::
+
+    The ``AT TIME ZONE`` clause does the same as the :ref:`timezone()
+    <scalar-timezone>` function::
+
+        cr> SELECT date_format(
+        ...     '%Y-%m-%dT%H:%i', timezone('+01:00', ts_tz)
+        ... ) AS ts
+        ... FROM my_table;
+        +------------------+------------------+
+        | ts_1             | ts_2             |
+        +------------------+------------------+
+        | 1970-01-02T01:00 | 1970-01-02T01:00 |
+        +------------------+------------------+
+        SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+
+.. _type-timestamp-at-tz-add:
+
+Add a timestamp time zone
+`````````````````````````
+
+If you use ``AT TIME ZONE`` with a :ref:`TIMESTAMP WITHOUT TIME ZONE
+<type-timestamp-with-tz>`, CrateDB will add the missing time zone information,
+recalculate the timestamp in UTC, and cast the return value as a
+:ref:`TIMESTAMP WITH TIME ZONE <type-timestamp-without-tz>`.
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     ts TIMESTAMP WITHOUT TIME ZONE
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     ts
+    ... ) VALUES (
+    ...     '1970-01-02T00:00:00'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+Using the :ref:`data_format() <scalar-date_format>` function, for readability::
+
+    cr> SELECT date_format(
+    ...     '%Y-%m-%dT%H:%i', ts AT TIME ZONE '+01:00'
+    ... ) AS ts_tz
+    ... FROM my_table;
+    +------------------+
+    | ts_tz            |
+    +------------------+
+    | 1970-01-01T23:00 |
+    +------------------+
+    SELECT 1 row in set (... sec)
+
+.. TIP::
+
+    The ``AT TIME ZONE`` clause does the same as the :ref:`timezone()
+    <scalar-timezone>` function::
+
+        cr> SELECT date_format(
+        ...     '%Y-%m-%dT%H:%i', timezone('+01:00', ts)
+        ... ) AS ts_tz
+        ... FROM my_table;
+        +------------------+
+        | ts_tz            |
+        +------------------+
+        | 1970-01-01T23:00 |
+        +------------------+
+        SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+
+.. _type-time:
+
+``TIME``
+''''''''
+
+A ``TIME`` expresses a specific time as the number of milliseconds
+since midnight along with a time zone offset.
+
+Limited to 12 bytes, with a time range from ``00:00:00.000000`` to
+``23:59:59.999999`` and a time zone range from ``-18:00`` to ``18:00``.
+
+.. CAUTION::
+
+    CrateDB does not support ``TIME`` by itself or ``TIME WITHOUT TIME ZONE``.
+    You must always specify ``TIME WITH TIME ZONE`` or its alias ``TIMETZ``.
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. This behavior may change in a future version of CrateDB (see
+    `tracking issue #11491`_).
+
+.. NOTE::
+
+    The ``DATE`` type is only supported as a type literal (i.e., for use in
+    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
+    <data-types-casting-exp>`, as below).
+
+Times can be expressed as string literals (e.g., ``'13:00:00'``) with the
+following syntax:
 
 .. code-block:: text
 
@@ -652,21 +1373,55 @@ and a cast. The syntax for string literal is as follows:
     offset:       {+ | -} time-only | geo-region
     geo-region:   As defined by ISO 8601.
 
+Above, ``fraction`` accepts up to six digits, with a precision in microseconds.
 
-Where ``time-only`` can contain optional seconds, or optional minutes and
-seconds, and can use ``:`` as a separator optionally.
+.. SEEALSO::
 
-`fraction` accepts up to 6 digits, as precision is in micro seconds.
+    For more information about time formatting, see `Java 15\: Patterns for
+    Formatting and Parsing`_.
 
-Time zone syntax as defined by `ISO 8601 time zone designators`_.
+    Time zone syntax as defined by `ISO 8601 time zone designators`_.
 
-.. NOTE::
+For example::
 
-    This type cannot be used in `CREATE TABLE` or `ALTER` statements.
+    cr> SELECT '13:00:00'::TIMETZ AS t_tz;
+    +------------------+
+    | t_tz             |
+    +------------------+
+    | [46800000000, 0] |
+    +------------------+
+    SELECT 1 row in set (... sec)
 
-::
+The value of first element is the number of milliseconds since midnight. The
+value of the second element is the number of seconds corresponding to the time
+zone offset (zero in this instance, as no time zone was specified).
 
-    cr> select '13:59:59.999999'::timetz;
+For example, with a ``+01:00`` time zone::
+
+    cr> SELECT '13:00:00+01:00'::TIMETZ AS t_tz;
+    +---------------------+
+    | t_tz                |
+    +---------------------+
+    | [46800000000, 3600] |
+    +---------------------+
+    SELECT 1 row in set (... sec)
+
+The time zone offset is calculated as 3600 seconds, which is equivalent to an
+hour.
+
+Negative time zone offsets will return negative seconds::
+
+    cr> SELECT '13:00:00-01:00'::TIMETZ AS t_tz;
+    +----------------------+
+    | t_tz                 |
+    +----------------------+
+    | [46800000000, -3600] |
+    +----------------------+
+    SELECT 1 row in set (... sec)
+
+Here's an example that uses fractional seconds::
+
+    cr> SELECT '13:59:59.999999'::TIMETZ as t_tz;
     +------------------+
     | 13:59:59.999999  |
     +------------------+
@@ -674,94 +1429,255 @@ Time zone syntax as defined by `ISO 8601 time zone designators`_.
     +------------------+
     SELECT 1 row in set (... sec)
 
-    cr> select '13:59:59.999999+02:00'::timetz;
-    +-----------------------+
-    | 13:59:59.999999+02:00 |
-    +-----------------------+
-    | [50399999999, 7200]   |
-    +-----------------------+
-    SELECT 1 row in set (... sec)
+.. CAUTION::
 
-.. _date-data-type:
+    The current implementation of the ``TIME`` type has the following
+    limitations:
 
-``date``
----------
+    .. rst-class:: open
+
+    - ``TIME`` types cannot be :ref:`cast <data-types-casting-exp>` to any
+      other types (including :ref:`TEXT <type-text>`)
+
+    - ``TIME`` types cannot be used in :ref:`arithmetic expressions
+      <arithmetic>` (e.g., with ``TIME``, ``DATE``, and
+      ``INTERVAL`` types)
+
+    - ``TIME`` types cannot be used with time and date scalar functions (e.g.,
+      :ref:`date_format() <scalar-date_format>` and :ref:`extract()
+      <scalar-extract>`)
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. This behavior may change in a future version of CrateDB (see
+    `tracking issue #11528`_).
+
+
+.. _type-date:
+
+``DATE``
+''''''''
+
+A ``DATE`` expresses a specific year, month and a day in `UTC`_.
+
+Internally, CrateDB stores dates as :ref:`BIGINT <type-bigint>` values, which
+are limited to eight bytes.
+
+If you cast a :ref:`BIGINT <type-bigint>` to a ``DATE``, the integer value will
+be interpreted as the number of milliseconds since the Unix epoch. If you cast
+a :ref:`REAL <type-real>` or a :ref:`DOUBLE PRECISION <type-double-precision>`
+to a ``DATE``, the numeric value wil be interpreted as the number of seconds
+since the Unix epoch.
+
+.. CAUTION::
+
+    Due to internal date parsing, the full ``BIGINT`` range is not supported
+    for timestamp values. The valid range of dates is from ``292275054BC`` to
+    ``292278993AD``.
+
+    When inserting dates smaller than ``-999999999999999`` (equal to
+    ``-29719-04-05``) or bigger than ``999999999999999`` (equal
+    to ``33658-09-27``) rounding issues may occur.
+
+.. _type-date-warning:
+
+.. WARNING::
+
+    The ``DATE`` type was not designed to allow time-of-day information (i.e.,
+    it is supposed to have a resolution of one day).
+
+    However, CrateDB allows you violate that constraint by casting any number
+    of milliseconds within limits to a ``DATE`` type. The result is then
+    returned as a :ref:`TIMESTAMP <type-timestamp>`. When used in conjunction
+    with :ref:`arithmetic expressions <arithmetic>`, these ``TIMESTAMP`` values
+    may produce unexpected results.
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. This behavior may change in a future version of CrateDB (see
+    `tracking issue #11528`_).
+
+.. CAUTION::
+
+    The current implementation of the ``DATE`` type has the following
+    limitations:
+
+    .. rst-class:: open
+
+    - ``DATE`` types cannot be added or subtracted to or from other ``DATE``
+      types as expected (i.e., to calculate the difference between the two in
+      a number of days).
+
+      Doing so will convert both ``DATE`` values into ``TIMESTAMP`` values
+      before performing the operation, resulting in a ``TIMESTAMP`` value
+      corresponding to a full date and time (see :ref:`WARNING
+      <type-date-warning>` above).
+
+    - :ref:`Numeric data types <data-types-numeric>` cannot be added to or
+      subtracted from ``DATE`` types as expected (e.g., to increase the date by
+      ``n`` days).
+
+      Doing so will, for example, convert the ``DATE`` into a ``TIMESTAMP`` and
+      increase the value by ``n`` milliseconds (see :ref:`WARNING
+      <type-date-warning>` above).
+
+    - :ref:`TIME <type-time>` types cannot be added to or subtracted from
+      ``DATE`` types.
+
+    - :ref:`INTERVAL <type-interval>` types cannot be added to or subtracted
+      from ``DATE`` types.
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. This behavior may change in a future version of CrateDB (see
+    `tracking issue #11528`_).
 
 .. NOTE::
 
-    The storage of the ``date`` data type is not supported. Therefore,
-    it is not possible to create tables with ``date`` fields.
+    The ``DATE`` type is only supported as a type literal (i.e., for use in
+    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
+    <data-types-casting-exp>`, as below).
 
-The ``date`` data type can be used to represent values with a year, month and a day.
+Dates can be expressed as string literals (e.g., ``'2021-03-09'``) with the
+following syntax:
 
-To construct values of the type ``date`` you can cast a string literal
-or a numeric literal to ``date``. If a numeric value is used, it must contain
-the number of milliseconds since ``1970-01-01T00:00:00Z``.
+.. code-block:: text
 
-The string format for dates is `YYYY-MM-DD`. For example `2021-03-09`.
-This format is the only currently supported for PostgreSQL clients.
+    yyyy-MM-dd
 
-::
+.. SEEALSO::
 
-    cr> select '2021-03-09'::date as cd;
-    +---------------+
-    |            cd |
-    +---------------+
-    | 1615248000000 |
-    +---------------+
+    For more information about date and time formatting, see `Java 15\:
+    Patterns for Formatting and Parsing`_.
+
+For example, using the :ref:`data_format() <scalar-date_format>` function, for
+readability::
+
+
+    cr> SELECT
+    ...    date_format(
+    ...        '%Y-%m-%d',
+    ...        '2021-03-09'::DATE
+    ...    ) AS date;
+    +------------+
+    | date       |
+    +------------+
+    | 2021-03-09 |
+    +------------+
     SELECT 1 row in set (... sec)
 
-.. _interval_data_type:
 
-Interval
---------
+.. _type-interval:
 
+``INTERVAL``
+''''''''''''
 
-.. _interval-literal:
+An ``INTERVAL`` represents a span of time.
 
-Interval literal
-................
+.. NOTE::
 
-An interval literal represents a span of time and can be either
-a :ref:`year-month-literal` or :ref:`day-time-literal` literal. The generic
-literal synopsis defined as following
+    The ``INTERVAL`` type is only supported as a type literal (i.e., for use in
+    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
+    <data-types-casting-exp>`, as above).
 
-::
+    You cannot create table columns of type ``INTERVAL``.
 
-    <interval_literal> ::=
-        INTERVAL [ <sign> ] <string_literal> <interval_qualifier>
+The basic syntax is::
 
-    <interval_qualifier> ::=
-        <start_field> [ TO <end_field>]
+    INTERVAL <quantity> <unit>
 
-    <start_field> ::= <datetime_field>
-    <end_field> ::= <datetime_field>
+Where ``unit`` can be any of the following:
 
-    <datetime_field> ::=
-          YEAR
-        | MONTH
-        | DAY
-        | HOUR
-        | MINUTE
-        | SECOND
-
-.. _year-month-literal:
-
-year-month
-^^^^^^^^^^
-
-A ``year-month`` literal includes either ``YEAR``, ``MONTH`` or a contiguous
-subset of these fields.
-
-::
-
-    <year_month_literal> ::=
-        INTERVAL [ {+ | -} ]'yy' <interval_qualifier> |
-        INTERVAL [ {+ | -} ]'[ yy- ] mm' <interval_qualifier>
+- ``YEAR``
+- ``MONTH``
+- ``DAY``
+- ``HOUR``
+- ``MINUTE``
+- ``SECOND``
 
 For example::
 
-    cr> select INTERVAL '01-02' YEAR TO MONTH AS result;
+    cr> SELECT INTERVAL '1' DAY AS result;
+    +----------------+
+    | result         |
+    +----------------+
+    | 1 day 00:00:00 |
+    +----------------+
+    SELECT 1 row in set (... sec)
+
+Intervals can be positive or negative::
+
+    cr> SELECT INTERVAL -'1' DAY AS result;
+    +-----------------+
+    | result          |
+    +-----------------+
+    | -1 day 00:00:00 |
+    +-----------------+
+    SELECT 1 row in set (... sec)
+
+When using ``SECOND``, you can define fractions of a seconds (with a precision
+of zero to six digits)::
+
+    cr> SELECT INTERVAL '1.5' SECOND AS result;
+    +--------------+
+    | result       |
+    +--------------+
+    | 00:00:01.500 |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. CAUTION::
+
+    The ``INTERVAL`` data type does not currently support the input units
+    ``MILLENNIUM``, ``CENTURY``, ``DECADE``, ``MILLISECOND``, or
+    ``MICROSECOND``.
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. This behavior may change in a future version of CrateDB (see
+    `tracking issue #11490`_).
+
+You can also use the following syntax to express an interval::
+
+    INTERVAL <string>
+
+Where ``string`` describes the interval using one of the recognized formats:
+
++----------------------+-----------------------+---------------------+
+| Description          | Example               | Equivalent          |
++======================+=======================+=====================+
+| Standard SQL format  | ``1-2``               | 1 year 2 months     |
+| (year-month)         |                       |                     |
++----------------------+-----------------------+---------------------+
+| Standard SQL format  | ``1-2 3 4:05:06``     | 1 year 2 months     |
+|                      |                       | 3 days 4 hours      |
+|                      |                       | 5 minutes 6 seconds |
++----------------------+-----------------------+---------------------+
+| Standard SQL format  | ``3 4:05:06``         | 3 days 4 hours      |
+| (day-time)           |                       | 5 minutes 6 seconds |
++----------------------+-----------------------+---------------------+
+| `PostgreSQL interval | ``1 year 2 months     | 1 year 2 months     |
+| format`_             | 3 days 4 hours        | 3 days 4 hours      |
+|                      | 5 minutes 6 seconds`` | 5 minutes 6 seconds |
++----------------------+-----------------------+---------------------+
+| `ISO 8601 duration   | ``P1Y2M3DT4H5M6S``    | 1 year 2 months     |
+| format`_             |                       | 3 days 4 hours      |
+|                      |                       | 5 minutes 6 seconds |
++----------------------+-----------------------+---------------------+
+
+For example::
+
+    cr> SELECT INTERVAL '1-2 3 4:05:06' AS result;
+    +-------------------------------+
+    | result                        |
+    +-------------------------------+
+    | 1 year 2 mons 3 days 04:05:06 |
+    +-------------------------------+
+    SELECT 1 row in set (... sec)
+
+You can limit the precision of an interval by specifying ``<unit> TO
+<unit>`` after the interval ``string``.
+
+For example, you can use ``YEAR TO MONTH`` to limit an interval to a day-month
+value::
+
+    cr> SELECT INTERVAL '1-2 3 4:05:06' YEAR TO MONTH AS result;
     +------------------------+
     | result                 |
     +------------------------+
@@ -769,297 +1685,142 @@ For example::
     +------------------------+
     SELECT 1 row in set (... sec)
 
-.. _day-time-literal:
+You can use ``DAY TO HOUR``, as another example, to limit a day-time interval
+to days and hours::
 
-day-time
-^^^^^^^^
+    cr> SELECT INTERVAL '3 4:05:06' DAY TO HOUR AS result;
+    +-----------------+
+    | result          |
+    +-----------------+
+    | 3 days 04:00:00 |
+    +-----------------+
+    SELECT 1 row in set (... sec)
 
-A ``day-time`` literal includes either ``DAY``, ``HOUR``, ``MINUTE``,
-``SECOND`` or a contiguous subset of these fields.
+.. TIP::
 
-When using ``SECOND``, it is possible to define more digits representing
-a number of fractions of a seconds with ``.nn``. The allowed fractional
-seconds precision of ``SECOND`` ranges from 0 to 6 digits.
+    You can use intervals in combination with :ref:`CURRENT_TIMESTAMP
+    <current_timestamp>` to calculate values that are offset relative to the
+    current date and time.
+
+    For example, to calculate a timestamp corresponding to exactly one day ago,
+    use::
+
+        cr>  SELECT CURRENT_TIMESTAMP - INTERVAL '1' DAY AS result;
+        +---------------+
+        | result        |
+        +---------------+
+        | 1623847247282 |
+        +---------------+
+        SELECT 1 row in set (... sec)
+
+
+.. _data-types-ip-addresses:
+
+IP addresses
+------------
+
+
+.. _type-ip:
+
+``IP``
+''''''
+
+An ``IP`` is a string representation of an `IP adddress`_ (IPv4 or IPv6).
+
+Internally IP addresses are stored as ``BIGINT`` values, allowing expected
+sorting, filtering, and aggregation.
+
+For example::
+
+    cr> CREATE TABLE my_table (
+    ...     fqdn TEXT,
+    ...     ip_addr IP
+    ... );
+    CREATE OK, 1 row affected (... sec)
 
 ::
 
-    <day_time_literal> ::=
-        INTERVAL [ {+ | -} ]'dd [ <space> hh [ :mm [ :ss ]]]' <interval_qualifier>
-        INTERVAL [ {+ | -} ]'hh [ :mm [ :ss [ .nn ]]]' <interval_qualifier>
-        INTERVAL [ {+ | -} ]'mm [ :ss [ .nn ]]' <interval_qualifier>
-        INTERVAL [ {+ | -} ]'ss [ .nn ]' <interval_qualifier>
+    cr> INSERT INTO my_table (
+    ...     fqdn,
+    ...     ip_addr
+    ... ) VALUES (
+    ...     'localhost',
+    ...     '127.0.0.1'
+    ... ), (
+    ...     'router.local',
+    ...     '0:0:0:0:0:ffff:c0a8:64'
+    ... );
+    INSERT OK, 2 rows affected (... sec)
 
-For example::
+.. HIDE:
 
-    cr> select INTERVAL '10 23:10' DAY TO MINUTE AS result;
-    +-------------------------+
-    | result                  |
-    +-------------------------+
-    | 1 weeks 3 days 23:10:00 |
-    +-------------------------+
-    SELECT 1 row in set (... sec)
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
 
+::
 
-.. _string-literal:
+    cr> SELECT fqdn, ip_addr FROM my_table;
+    +--------------+---------------+
+    | fqdn         | ip_addr       |
+    +--------------+---------------+
+    | router.local | 192.168.0.100 |
+    | localhost    | 127.0.0.1     |
+    +--------------+---------------+
+    SELECT 2 rows in set (... sec)
 
-string-literal
-^^^^^^^^^^^^^^
+The ``fqdn`` column (see `Fully Qualified Domain Name`_) will accept any value
+because it was specified as :ref:`TEXT <type-text>`. However, trying to insert
+``fake.ip`` won't work, because it is not a correctly formatted ``IP``
+address::
 
-An interval ``string-literal`` can be defined by a combination of
-:ref:`day-time-literal <day-time-literal>` and
-:ref:`year-month-literal <year-month-literal>`
-or using the :ref:`iso-8601-format <iso-8601-format>` or
-:ref:`PostgreSQL-format <postgresql-format>`.
+    cr> INSERT INTO my_table (
+    ...     fqdn,
+    ...     ip_addr
+    ... ) VALUES (
+    ...     'localhost',
+    ...     'fake.ip'
+    ... );
+    SQLParseException[Cannot cast `'fake.ip'` of type `text` to type `ip`]
 
-For example::
+.. HIDE:
 
-    cr> select INTERVAL '1-2 3 4:5:6' AS result;
-    +-------------------------------+
-    | result                        |
-    +-------------------------------+
-    | 1 year 2 mons 3 days 04:05:06 |
-    +-------------------------------+
-    SELECT 1 row in set (... sec)
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
 
+IP addresses support the ``<<`` :ref:`operator <gloss-operator>`, which checks
+for subnet inclusion using `CIDR notation`_. The left-hand :ref:`operand
+<gloss-operand>` must an :ref:`IP <ip-type>` type and the right-hand must be
+:ref:`TEXT <data-type-text>` type (e.g., ``'192.168.1.5' << '192.168.1/24'``).
 
-.. _iso-8601-format:
 
-ISO-8601 format
-"""""""""""""""
+.. _data-types-container:
 
-The iso-8601 format describes a duration of time using the
-`ISO 8601 duration format`_ syntax.
+Container types
+===============
 
-For example::
+Container types are types with :ref:`nonscalar <gloss-nonscalar>` values that
+may contain other values:
 
-    cr> select INTERVAL 'P1Y2M3DT4H5M6S' AS result;
-    +-------------------------------+
-    | result                        |
-    +-------------------------------+
-    | 1 year 2 mons 3 days 04:05:06 |
-    +-------------------------------+
-    SELECT 1 row in set (... sec)
+.. contents::
+   :local:
+   :depth: 3
 
 
-.. _postgresql-format:
+.. _data-types-objects:
 
-PostgreSQL format
-"""""""""""""""""
+Objects
+-------
 
-The ``PostgreSQL`` format describes a duration of time using the `PostgreSQL
-interval format`_ syntax.
 
-For example::
+.. _type-object:
 
-    cr> select INTERVAL '1 year 2 months 3 days 4 hours 5 minutes 6 seconds' AS result;
-    +-------------------------------+
-    | result                        |
-    +-------------------------------+
-    | 1 year 2 mons 3 days 04:05:06 |
-    +-------------------------------+
-    SELECT 1 row in set (... sec)
+``OBJECT``
+''''''''''
 
-
-.. _temporal-arithmetic:
-
-Temporal arithmetic
--------------------
-
-The following table specifies the declared types of :ref:`arithmetic
-expressions <arithmetic>` that involve temporal :ref:`operands
-<gloss-operand>`:
-
-
-+---------------+----------------+---------------+
-|       Operand | Operator       |       Operand |
-+===============+================+===============+
-| ``timestamp`` |          ``-`` | ``timestamp`` |
-+---------------+----------------+---------------+
-|  ``interval`` |          ``+`` | ``timestamp`` |
-+---------------+----------------+---------------+
-| ``timestamp`` | ``+`` or ``-`` |  ``interval`` |
-+---------------+----------------+---------------+
-|  ``interval`` | ``+`` or ``-`` |  ``interval`` |
-+---------------+----------------+---------------+
-
-
-.. _geo_point_data_type:
-
-``geo_point``
-=============
-
-A ``geo_point`` is a :ref:`geographic data type <sql_ddl_datatypes_geographic>`
-used to store latitude and longitude coordinates.
-
-Columns with the ``geo_point`` type are represented and inserted using an array
-of doubles in the following format::
-
-    [<lon_value>, <lat_value>]
-
-Alternatively a `WKT`_ string can also be used to declare geo points::
-
-    'POINT ( <lon_value> <lat_value> )'
-
-.. NOTE::
-
-    Empty geo points are not supported.
-
-    Additionally, if a column is dynamically created the type detection won't
-    recognize neither WKT strings nor double arrays. That means columns of type
-    geo_point must always be declared beforehand.
-
-Create table example::
-
-    cr> create table my_table_geopoint (
-    ...   id integer primary key,
-    ...   pin geo_point
-    ... ) with (number_of_replicas = 0)
-    CREATE OK, 1 row affected (... sec)
-
-.. _geo_shape_data_type:
-
-``geo_shape``
-=============
-
-A ``geo_shape`` is a :ref:`geographic data type <sql_ddl_datatypes_geographic>`
-used to store 2D shapes defined as `GeoJSON geometry objects`_.
-
-A ``geo_shape`` column can store different kinds of `GeoJSON geometry
-objects`_.  Thus it is possible to store e.g. ``LineString`` and
-``MultiPolygon`` shapes in the same column.
-
-.. NOTE::
-
-    3D coordinates are not supported.
-
-    Empty ``Polygon`` and ``LineString`` geo shapes are not supported.
-
-Definition
-----------
-
-To define a ``geo_shape`` column::
-
-    <columnName> geo_shape
-
-A geographical index with default parameters is created implicitly to allow for
-geographical queries.
-
-The default definition for the column type is::
-
-    <columnName> geo_shape INDEX USING geohash WITH (precision='50m', distance_error_pct=0.025)
-
-There are two geographic index types: ``geohash`` (the default) and
-``quadtree``. These indices are only allowed on ``geo_shape`` columns. For more
-information, see :ref:`geo_shape_data_type_index`.
-
-Both of these index types accept the following parameters:
-
-:precision:
-  (Default: ``50m``) Define the maximum precision of the used index and
-  thus for all indexed shapes. Given as string containing a number and
-  an optional distance unit (defaults to ``m``).
-
-  Supported units are ``inch`` (``in``), ``yard`` (``yd``), ``miles``
-  (``mi``), ``kilometers`` (``km``), ``meters`` (``m``), ``centimeters``
-  (``cm``), ``millimeters`` (``mm``).
-
-:distance_error_pct:
-  (Default: ``0.025`` (2,5%)) The measure of acceptable error for shapes
-  stored in this column expressed as a percentage value of the shape
-  size The allowed maximum is ``0.5`` (50%).
-
-  The percentage will be taken from the diagonal distance from the
-  center of the bounding box enclosing the shape to the closest corner
-  of the enclosing box. In effect bigger shapes will be indexed with
-  lower precision than smaller shapes. The ratio of precision loss is
-  determined by this setting, that means the higher the
-  ``distance_error_pct`` the smaller the indexing precision.
-
-  This will have the effect of increasing the indexed shape internally,
-  so e.g. points that are not exactly inside this shape will end up
-  inside it when it comes to querying as the shape has grown when
-  indexed.
-
-:tree_levels:
-  Maximum number of layers to be used by the ``PrefixTree`` defined by
-  the index type (either ``geohash`` or ``quadtree``. See
-  :ref:`geo_shape_data_type_index`).
-
-  This can be used to control the precision of the used index. Since
-  this parameter requires a certain level of understanting of the
-  underlying implementation, users may use the ``precision`` parameter
-  instead. CrateDB uses the ``tree_levels`` parameter internally and
-  this is what is returned via the ``SHOW CREATE TABLE`` statement even
-  if you use the precision parameter. Defaults to the value which is
-  ``50m`` converted to ``precision`` depending on the index type.
-
-.. _geo_shape_data_type_index:
-
-Geo shape index structure
--------------------------
-
-Computations on very complex polygons and geometry collections are exact but
-very expensive. To provide fast queries even on complex shapes, CrateDB uses a
-different approach to store, analyze and query geo shapes.
-
-The surface of the earth is represented as a number of grid layers each with
-higher precision. While the upper layer has one grid cell, the layer below
-contains many cells for the equivalent space.
-
-Each grid cell on each layer is addressed in 2d space either by a `Geohash`_
-for ``geohash`` trees or by tightly packed coordinates in a `Quadtree`_. Those
-addresses conveniently share the same address-prefix between lower layers and
-upper layers. So we are able to use a `Trie`_ to represent the grids, and
-`Tries`_ can be queried efficiently as their complexity is determined by the
-tree depth only.
-
-A geo shape is transformed into these grid cells. Think of this transformation
-process as dissecting a vector image into its pixelated counterpart, reasonably
-accurately. We end up with multiple images each with a better resolution, up to
-the configured precision.
-
-Every grid cell that processed up to the configured precision is stored in an
-inverted index, creating a mapping from a grid cell to all shapes that touch
-it. This mapping is our geographic index.
-
-The main difference is that the ``geohash`` supports higher precision than the
-``quadtree`` tree. Both tree implementations support precision in order of
-fractions of millimeters.
-
-Representation
---------------
-
-Columns with the ``geo_shape`` type are represented and inserted as object
-containing a valid `GeoJSON`_ geometry object::
-
-    {
-      type = 'Polygon',
-      coordinates = [
-         [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ]
-      ]
-    }
-
-Alternatively a `WKT`_ string can be used to represent a geo_shape as well::
-
-    'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'
-
-.. NOTE::
-
-    It is not possible to detect a geo_shape type for a dynamically created
-    column. Like with :ref:`geo_point_data_type` type, geo_shape columns need
-    to be created explicitly using either :ref:`sql-create-table` or
-    :ref:`sql-alter-table`.
-
-.. _object_data_type:
-
-``object``
-==========
-
-An object is a :ref:`container data type <data-types-container>` and is
-structured as a collection of key-values.
+An object is structured as a collection of key-values.
 
 An object can contain any other type, including further child objects. An
-``object`` column can be schemaless or can have a defined (i.e., enforced)
+``OBJECT`` column can be schemaless or can have a defined (i.e., enforced)
 schema.
 
 Objects are not the same as JSON objects, although they share a lot of
@@ -1068,153 +1829,324 @@ similarities. However, objects can be :ref:`inserted as JSON strings
 
 Syntax::
 
-    <columnName> OBJECT [ ({DYNAMIC|STRICT|IGNORED}) ] [ AS ( <columnDefinition>* ) ]
+    <columnName> OBJECT
+        [ ({DYNAMIC|STRICT|IGNORED}) ]
+        [ AS ( <columnDefinition>* ) ]
 
-The only required part of this column definition is ``OBJECT``.
+The only required syntax is ``OBJECT``.
 
-The column policy defining this objects behaviour is optional, if left out
-``DYNAMIC`` will be used.
+The column policy (``DYNAMIC``, ``STRICT``, or ``IGNORED``) is optional and
+defaults to :ref:`DYNAMIC <type-object-columns-dynamic>`.
 
-The list of subcolumns is optional as well, if left out, this object will have
-no schema (with a schema created on the fly on first inserts in case of
-``DYNAMIC``).
+If the optional list of subcolumns (``columnDefinition``) is omitted, the
+object will have no schema. CrateDB will create a schema for :ref:`DYNAMIC
+<type-object-columns-dynamic>` objects upon first insert.
 
 Example::
 
-    cr> create table my_table11 (
-    ...   title text,
-    ...   col1 object,
-    ...   col3 object(strict) as (
-    ...     age integer,
-    ...     name text,
-    ...     col31 object as (
-    ...       birthday timestamp with time zone
+    cr> CREATE TABLE my_table (
+    ...     title TEXT,
+    ...     quotation OBJECT,
+    ...     protagonist OBJECT(STRICT) AS (
+    ...         age INTEGER,
+    ...         first_name TEXT,
+    ...         details OBJECT AS (
+    ...             birthday TIMESTAMP WITH TIME ZONE
+    ...         )
     ...     )
-    ...   )
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-.. hide:
-
-    cr> drop table my_table11;
-    DROP OK, 1 row affected (... sec)
-
-``strict``
-----------
-
-The column policy can be configured to be ``strict``, rejecting any subcolumn
-that is not defined upfront in the schema. As you might have guessed, defining
-``strict`` objects without subcolumns results in an unusable column that will
-always be null, which is the most useless column one could create.
-
-Example::
-
-    cr> create table my_table12 (
-    ...   title text,
-    ...   author object(strict) as (
-    ...     name text,
-    ...     birthday timestamp with time zone
-    ...   )
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-.. hide:
-
-    cr> drop table my_table12;
-    DROP OK, 1 row affected (... sec)
-
-``dynamic``
------------
-
-Another option is ``dynamic``, which means that new subcolumns can be added in
-this object.
-
-Note that adding new columns to an object with a ``dynamic`` policy will affect
-the schema of the table. Once a column is added, it shows up in the
-``information_schema.columns`` table and its type and attributes are fixed.
-They will have the type that was guessed by their inserted/updated value and
-they will always be analyzed as-is with the :ref:`plain <plain-analyzer>`,
-which means the column will be indexed but not tokenized in the case of
-``text`` columns.
-
-If a new column ``a`` was added with type ``integer``, adding strings to this
-column will result in an error.
-
-Examples::
-
-    cr> create table my_table13 (
-    ...   title text,
-    ...   author object as (
-    ...     name text,
-    ...     birthday timestamp with time zone
-    ...   )
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-.. hide:
-
-    cr> drop table my_table13;
-    DROP OK, 1 row affected (... sec)
-
-which is exactly the same as::
-
-    cr> create table my_table14 (
-    ...   title text,
-    ...   author object(dynamic) as (
-    ...     name text,
-    ...     birthday timestamp with time zone
-    ...   )
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-.. hide:
-
-    cr> drop table my_table14;
-    DROP OK, 1 row affected (... sec)
-
-New columns added to ``dynamic`` objects are, once added, usable as usual
-subcolumns. One can retrieve them, sort by them and use them in where clauses.
-
-``ignored``
------------
-
-The third option is ``ignored``. Explicitly defined columns within an
-``ignored`` object behave the same as those within object columns declared as
-``dynamic`` or ``strict`` (e.g., column constraints are still enforced, columns
-that would be indexed are still indexed, and so on). The difference is that
-with ``ignored``, dynamically added columns do not result in a schema update
-and the values won't be indexed. This allows you to store values with a mixed
-type under the same key.
-
-An example:
-::
-
-    cr> CREATE TABLE metrics (
-    ...   id TEXT PRIMARY KEY,
-    ...   payload OBJECT (IGNORED) as (
-    ...     tag TEXT
-    ...   )
     ... );
     CREATE OK, 1 row affected (... sec)
 
 ::
 
-    cr> INSERT INTO metrics (id, payload) values ('1', {"tag"='AT', "value"=30});
-    INSERT OK, 1 row affected (... sec)
+    cr> INSERT INTO my_table (
+    ...     title,
+    ...     quotation,
+    ...     protagonist
+    ... ) VALUES (
+    ...     'Alice in Wonderland',
+    ...     {
+    ...         "words" = 'Curiouser and curiouser!',
+    ...         "length" = 3
+    ...     },
+    ...     {
+    ...         "age" = '10',
+    ...         "first_name" = 'Alice',
+    ...         "details" = {
+    ...             "birthday" = '1852-05-04T00:00Z'::TIMESTAMPTZ
+    ...         }
+    ...     }
+    ... );
+    CREATE OK, 1 row affected (... sec)
 
-::
+.. HIDE:
 
-    cr> INSERT INTO metrics (id, payload) values ('2', {"tag"='AT', "value"='str'});
-    INSERT OK, 1 row affected (... sec)
-
-::
-
-    cr> refresh table metrics;
+    cr> REFRESH TABLE my_table;
     REFRESH OK, 1 row affected (... sec)
 
 ::
 
-    cr> SELECT payload FROM metrics ORDER BY id;
+    cr> SELECT
+    ...     protagonist['first_name'] AS name,
+    ...     date_format(
+    ...         '%D %b %Y',
+    ...         'GMT',
+    ...         protagonist['details']['birthday']
+    ...      ) AS born,
+    ...     protagonist['age'] AS age
+    ... FROM my_table;
+    +-------+--------------+-----+
+    | name  | born         | age |
+    +-------+--------------+-----+
+    | Alice | 4th May 1852 |  10 |
+    +-------+--------------+-----+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+
+.. _type-object-column-policy:
+
+Object column policy
+....................
+
+
+.. _type-object-columns-strict:
+
+``STRICT``
+``````````
+
+If the column policy is configured as ``STRICT``, CrateDB will reject any
+subcolumn that is not defined upfront by ``columnDefinition``.
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     title TEXT,
+    ...     protagonist OBJECT(STRICT) AS (
+    ...         name TEXT
+    ...     )
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     title,
+    ...     protagonist
+    ... ) VALUES (
+    ...     'Alice in Wonderland',
+    ...     {
+    ...         "age" = '10',
+    ...     }
+    ... );
+    SQLParseException[line 8:5: no viable alternative at input 'VALUES (\n    'Alice in Wonderland',\n    {\n        "age" = '10',\n    }']
+
+The insert above failed because the ``protagonist`` column defines a ``name``
+column and does not define an ``age`` column.
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+.. NOTE::
+
+    Objects with a ``STRICT`` column policy and no ``columnDefinition`` will be
+    have one unusable column that will always be null.
+
+
+.. _type-object-columns-dynamic:
+
+``DYNAMIC``
+```````````
+
+If the column policy is configured as ``DYNAMIC`` (the default), inserts may
+dynamically add new subcolumns to the object definition.
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     title TEXT,
+    ...     quotation OBJECT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+The following statement is equivalent to the above::
+
+    cr> CREATE TABLE my_table (
+    ...     title TEXT,
+    ...     quotation OBJECT(DYNAMIC)
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+The following statement is also equivalent to the above::
+
+    cr> CREATE TABLE my_table (
+    ...     title TEXT,
+    ...     quotation OBJECT(DYNAMIC) AS (
+    ...         words TEXT,
+    ...         length SMALLINT
+    ...     )
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+You can insert using the existing columns::
+
+    cr> INSERT INTO my_table (
+    ...     title,
+    ...     quotation
+    ... ) VALUES (
+    ...     'Alice in Wonderland',
+    ...     {
+    ...         "words" = 'Curiouser and curiouser!',
+    ...         "length" = 3
+    ...     }
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+Or you can add new columns::
+
+    cr> INSERT INTO my_table (
+    ...     title,
+    ...     quotation
+    ... ) VALUES (
+    ...     'Alice in Wonderland',
+    ...     {
+    ...         "words" = 'DRINK ME',
+    ...         "length" = 2,
+    ...         "chapter" = 1
+    ...     }
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+All rows have the same columns (including newly added columns), but missing
+records will be returned as :ref:`NULL <type-null>` values::
+
+    cr> SELECT
+    ...     quotation['chapter'] as chapter,
+    ...     quotation['words'] as quote
+    ... FROM my_table
+    ... ORDER BY chapter ASC;
+    +---------+--------------------------+
+    | chapter | quote                    |
+    +---------+--------------------------+
+    |       1 | DRINK ME                 |
+    |    NULL | Curiouser and curiouser! |
+    +---------+--------------------------+
+    SELECT 2 rows in set (0.114 sec)
+
+New columns are usable like any other subcolumn. You can retrieve them, sort by
+them, and use them in where clauses.
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+.. NOTE::
+
+    Adding new columns to an object with a ``DYNAMIC`` policy will affect the
+    schema of the table.
+
+    Once a column is added, it shows up in the ``information_schema.columns``
+    table and its type and attributes are fixed. If a new column ``a`` was
+    added with type ``INTEGER``, adding strings to the column will result in an
+    error.
+
+    Dynamically added columns will always be analyzed as-is with the
+    :ref:`plain analyzer <plain-analyzer>`, which means the column will be
+    indexed but not tokenized in the case of ``TEXT`` columns.
+
+
+.. _type-object-columns-ignored:
+
+``IGNORED``
+```````````
+
+If the column policy is configured as ``IGNORED``, inserts may dynamically add
+new subcolumns to the object definition. However, dynamically added subcolumns
+do not cause a schema update and the values contained will not be indexed.
+
+Because dynamically created columns are not recorded in the schema, you can
+insert mixed types into them. For example, one row may insert an integer and
+the next row may insert an object. Objects with a :ref:`STRICT
+<type-object-columns-strict>` or :ref:`DYNAMIC <type-object-columns-dynamic>`
+column policy do not allow this.
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     title TEXT,
+    ...     protagonist OBJECT(IGNORED) AS (
+    ...         name TEXT,
+    ...         chapter SMALLINT
+    ...     )
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     title,
+    ...     protagonist
+    ... ) VALUES (
+    ...     'Alice in Wonderland',
+    ...     {
+    ...         "name" = 'Alice',
+    ...         "chapter" = 1,
+    ...         "size" = {
+    ...             "value" = 10,
+    ...             "units" = 'inches'
+    ...         }
+    ...     }
+    ... );
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     title,
+    ...     protagonist
+    ... ) VALUES (
+    ...     'Alice in Wonderland',
+    ...     {
+    ...         "name" = 'Alice',
+    ...         "chapter" = 2,
+    ...         "size" = 'As big as a room'
+    ...     }
+    ... );
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT
+    ...     protagonist['name'] as name,
+    ...     protagonist['chapter'] as chapter,
+    ...     pg_typeof(protagonist['size']) as size
+    ... FROM my_table
+    ... ORDER BY protagonist['chapter'] ASC;
     +-------------------------------+
     | payload                       |
     +-------------------------------+
@@ -1223,15 +2155,52 @@ An example:
     +-------------------------------+
     SELECT 2 rows in set (... sec)
 
+::
+
+    cr> CREATE TABLE my_table (
+    ...     TODO TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +--------------+
+    | TODO         |
+    +--------------+
+    | TODO         |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+
 .. NOTE::
 
-    Given that dynamically added sub-columns of an ``ignored`` objects are not
+    Given that dynamically added sub-columns of an ``IGNORED`` objects are not
     indexed, filter operations on these columns cannot utilize the index and
     instead a value lookup is performed for each matching row. This can be
     mitigated by combining a filter using the ``AND`` clause with other
     predicates on indexed columns.
 
-    Futhermore, values for dynamically added sub-columns of an ``ignored``
+    Futhermore, values for dynamically added sub-columns of an ``IGNORED``
     objects aren't stored in a column store, which means that ordering on these
     columns or using them with aggregates is also slower than using the same
     operations on regular columns. For some operations it may also be necessary
@@ -1241,7 +2210,7 @@ An example:
     An example:
     ::
 
-     cr> SELECT id, payload FROM metrics ORDER BY payload['value']::text DESC;
+     cr> SELECT id, payload FROM metrics ORDER BY payload['value']::TEXT DESC;
      +----+-------------------------------+
      | id | payload                       |
      +----+-------------------------------+
@@ -1255,23 +2224,16 @@ An example:
 
     ::
 
-     cr> SELECT sum(payload['value']::bigint) FROM metrics;
+     cr> SELECT SUM(payload['value']::BIGINT) FROM metrics;
      SQLParseException[Cannot cast value `str` to type `bigint`]
 
+.. HIDE:
 
-.. hide:
-
-    cr> drop table metrics;
+    cr> DROP TABLE metrics;
     DROP OK, 1 row affected (... sec)
 
 
-.. _data-type-object-insert:
-
-Inserting objects
------------------
-
-
-.. _data-type-object-literals:
+.. _data-types-object-literals:
 
 Object literals
 ...............
@@ -1323,7 +2285,7 @@ for a value::
 
 Combined::
 
-    { id = 1, name = 'foo', tags = ['apple', 'banana', 'pear'], size = 3.1415, valid = ? }
+    { id = 1, name = 'foo', tags = ['apple'], size = 3.1415, valid = ? }
 
 .. NOTE::
 
@@ -1332,17 +2294,18 @@ Combined::
 
 .. SEEALSO::
 
-    :ref:`Selecting values from inner objects and nested objects <sql_dql_objects>`
+    :ref:`Selecting values from inner objects and nested objects
+    <sql_dql_objects>`
 
 
-.. _data-type-object-json:
+.. _data-types-object-json:
 
-JSON
-....
+Inserting objects as JSON
+.........................
 
 You can insert objects using JSON strings. To do this, you must :ref:`type cast
 <type_cast>` the string to an object with an implicit cast (i.e., passing a
-string into an object column) or an explicit cast (i.e., using the ``::object``
+string into an object column) or an explicit cast (i.e., using the ``::OBJECT``
 syntax).
 
 .. TIP::
@@ -1378,7 +2341,7 @@ Camel case keys::
 
 Nested object::
 
-    '{ "nested_obj_colmn": { "int_col": 1234, "str_col": "text value" } }'::object
+    '{ "nested_obj_col": { "int_col": 1234, "str_col": "foo" } }'::object
 
 .. NOTE::
 
@@ -1386,48 +2349,92 @@ Nested object::
     inside a JSON string.
 
 
-.. _data-type-array:
+.. _data-types-arrays:
 
-``array``
-=========
+Arrays
+------
 
-An array is a :ref:`container data type <data-types-container>` and is
-structured as a collection of other data types. Arrays can contain the
-following:
 
-* :ref:`Booleans <data-type-boolean>`
-* :ref:`Character types <character-data-types>`
-* :ref:`Numeric types <data-type-numeric>`
-* :ref:`IP addresses <ip-type>`
-* :ref:`Date and time types <date-time-types>`
-* :ref:`Geographic types <sql_ddl_datatypes_geographic>`
-* :ref:`Objects <object_data_type>`
+.. _type-array:
+
+``ARRAY``
+'''''''''
+
+An array is structured as a collection of other data types.
+
+Arrays can contain the following:
+
+* :ref:`Primitive types <data-types-primitive>`
+* :ref:`Objects <type-object>`
+* :ref:`Geographic types <data-types-geo>`
 
 Array types are defined as follows::
 
-    cr> create table my_table_arrays (
-    ...     tags array(text),
-    ...     objects array(object as (age integer, name text))
+    cr> CREATE TABLE my_table_arrays (
+    ...     tags ARRAY(TEXT),
+    ...     objects ARRAY(OBJECT AS (age INTEGER, name TEXT))
     ... );
     CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> CREATE TABLE my_table (
+    ...     TODO TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +--------------+
+    | TODO         |
+    +--------------+
+    | TODO         |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
 
 
 An alternative is the following syntax to refer to arrays::
 
     <typeName>[]
 
-This means ``text[]`` is equivalent to ``array(text)``.
-
+This means ``TEXT[]`` is equivalent to ``ARRAY(text)``.
 
 .. NOTE::
 
-    Currently arrays cannot be nested. Something like ``array(array(text))``
+    Currently arrays cannot be nested. Something like ``ARRAY(ARRAY(TEXT))``
     won't work.
 
-.. _data-type-array-literals:
+Arrays are always represented as zero or more literal elements inside square
+brackets (``[]``), for example::
 
-Array constructor
------------------
+    [1, 2, 3]
+    ['Zaphod', 'Ford', 'Arthur']
+
+
+.. _data-types-array-literals:
+
+Array literals
+..............
 
 Arrays can be written using the array constructor ``ARRAY[]`` or short ``[]``.
 The array constructor is an :ref:`expression <gloss-expression>` that accepts
@@ -1441,9 +2448,6 @@ Synopsis::
 All array elements must have the same data type, which determines the inner
 type of the array. If an array contains no elements, its element type will be
 inferred by the context in which it occurs, if possible.
-
-Examples
-........
 
 Some valid arrays are::
 
@@ -1465,7 +2469,7 @@ comma and enclosed with curly braces::
 
 ::
 
-    cr> SELECT '{ab, CD, "CD", null, "null"}'::array(text) AS arr;
+    cr> SELECT '{ab, CD, "CD", null, "null"}'::ARRAY(TEXT) AS arr;
     +----------------------------------+
     | arr                              |
     +----------------------------------+
@@ -1474,87 +2478,441 @@ comma and enclosed with curly braces::
     SELECT 1 row in set (... sec)
 
 
-``null`` elements are interpreted as ``NULL`` (none, absent), if you want the
+``null`` elements are interpreted as ``null`` (none, absent), if you want the
 literal ``null`` string, it has to be enclosed in double quotes.
 
 
-This variant primarily exists for compatibility with PostgreSQL. The ``Array
-constructor`` syntax explained further above is the preferred way to define
+This variant primarily exists for compatibility with PostgreSQL. The array
+constructor syntax explained further above is the preferred way to define
 constant array values.
 
 
-Array representation
-....................
+.. _data-types-geo:
 
-Arrays are always represented as zero or more literal elements inside square
-brackets (``[]``), for example::
+Geographic types
+================
 
-    [1, 2, 3]
-    ['Zaphod', 'Ford', 'Arthur']
+:ref:`Geographic types <data-types-geo>` are types with :ref:`nonscalar
+<gloss-nonscalar>` values representing points or shapes in a 2D world:
 
-.. _data-type-special:
-
-Special character types
-=======================
-
-+----------+--------+------------------+
-| Name     | Size   | Description      |
-+==========+========+==================+
-| ``char`` | 1 byte | single-byte type |
-+----------+--------+------------------+
+.. contents::
+   :local:
+   :depth: 3
 
 
-Object Identifier Types
-=======================
+.. _data-types-geo-point:
 
-.. _oid_regproc:
-
-Regproc
--------
-
-The object identifier alias type that is used in the :ref:`postgres_pg_catalog`
-tables for referencing :ref:`functions <user-defined-functions>`.  For more
-information, see PostgreSQL :ref:`postgres_pg_oid`.
-
-Casting a column of the ``regproc`` alias data type to ``text`` or ``integer``
-results in a function name or its ``oid``, respectively.
+Geometric points
+----------------
 
 
-.. _oid_regclass:
+.. _type-geo_point:
 
-Regclass
---------
+``GEO_POINT``
+'''''''''''''
 
-A type for the object identifier of the ``pg_class`` table in the
-:ref:`postgres_pg_catalog` table.
+A ``GEO_POINT`` is a :ref:`geographic data type <data-types-geo>` used to store
+latitude and longitude coordinates.
 
-Casting a column of the ``regclass`` to ``text`` or ``integer`` results in a
-relation name or its ``oid``, respectively.
+Columns with the ``GEO_POINT`` type are represented and inserted using an array
+of doubles in the following format::
+
+    [<lon_value>, <lat_value>]
+
+Alternatively a `WKT`_ string can also be used to declare geo points::
+
+    'POINT ( <lon_value> <lat_value> )'
+
+.. NOTE::
+
+    Empty geo points are not supported.
+
+    Additionally, if a column is dynamically created the type detection won't
+    recognize neither WKT strings nor double arrays. That means columns of type
+    ``GEO_POINT`` must always be declared beforehand.
+
+Create table example::
+
+    cr> CREATE TABLE my_table_geopoint (
+    ...   id INTEGER PRIMARY KEY,
+    ...   pin GEO_POINT
+    ... ) WITH (number_of_replicas = 0)
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> CREATE TABLE my_table (
+    ...     TODO TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +--------------+
+    | TODO         |
+    +--------------+
+    | TODO         |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
 
 
-.. _oidvector_type:
 
-oidvector
----------
+.. _data-type-geo-shape:
 
-This is a system type used to represent one or more OID values.
-
-It looks similar to an array of integers, but doesn't support any of the
-:ref:`scalar functions <scalar-functions>` or :ref:`expressions
-<gloss-expression>` that can be used on regular arrays.
+Geometric shapes
+----------------
 
 
-.. _type_conversion:
+.. _type-geo_shape:
 
-Type conversion
-===============
+``GEO_SHAPE``
+'''''''''''''
 
-.. _type_cast:
+A ``geo_shape`` is a :ref:`geographic data type <data-types-geo>` used to store
+2D shapes defined as `GeoJSON geometry objects`_.
 
-``CAST``
---------
+A ``GEO_SHAPE`` column can store different kinds of `GeoJSON geometry
+objects`_. Thus it is possible to store e.g. ``LineString`` and
+``MultiPolygon`` shapes in the same column.
 
-A type ``cast`` specifies a conversion from one data type to another. It will
+.. NOTE::
+
+    3D coordinates are not supported.
+
+    Empty ``Polygon`` and ``LineString`` geo shapes are not supported.
+
+::
+
+    cr> CREATE TABLE my_table (
+    ...     TODO TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +--------------+
+    | TODO         |
+    +--------------+
+    | TODO         |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+
+.. _type-geo_shape-definition:
+
+Geo shape column definition
+...........................
+
+To define a ``GEO_SHAPE`` column::
+
+    <columnName> geo_shape
+
+A geographical index with default parameters is created implicitly to allow for
+geographical queries.
+
+The default definition for the column type is::
+
+    <columnName> GEO_SHAPE INDEX USING geohash
+        WITH (precision='50m', distance_error_pct=0.025)
+
+There are two geographic index types: ``geohash`` (the default) and
+``quadtree``. These indices are only allowed on ``geo_shape`` columns. For more
+information, see :ref:`geo_shape_data_type_index`.
+
+Both of these index types accept the following parameters:
+
+``precision``
+  (Default: ``50m``) Define the maximum precision of the used index and
+  thus for all indexed shapes. Given as string containing a number and
+  an optional distance unit (defaults to ``m``).
+
+  Supported units are ``inch`` (``in``), ``yard`` (``yd``), ``miles``
+  (``mi``), ``kilometers`` (``km``), ``meters`` (``m``), ``centimeters``
+  (``cm``), ``millimeters`` (``mm``).
+
+``distance_error_pct``
+  (Default: ``0.025`` (2,5%)) The measure of acceptable error for shapes
+  stored in this column expressed as a percentage value of the shape
+  size The allowed maximum is ``0.5`` (50%).
+
+  The percentage will be taken from the diagonal distance from the
+  center of the bounding box enclosing the shape to the closest corner
+  of the enclosing box. In effect bigger shapes will be indexed with
+  lower precision than smaller shapes. The ratio of precision loss is
+  determined by this setting, that means the higher the
+  ``distance_error_pct`` the smaller the indexing precision.
+
+  This will have the effect of increasing the indexed shape internally,
+  so e.g. points that are not exactly inside this shape will end up
+  inside it when it comes to querying as the shape has grown when
+  indexed.
+
+``tree_levels``
+  Maximum number of layers to be used by the ``PrefixTree`` defined by
+  the index type (either ``geohash`` or ``quadtree``. See
+  :ref:`geo_shape_data_type_index`).
+
+  This can be used to control the precision of the used index. Since
+  this parameter requires a certain level of understanting of the
+  underlying implementation, users may use the ``precision`` parameter
+  instead. CrateDB uses the ``tree_levels`` parameter internally and
+  this is what is returned via the ``SHOW CREATE TABLE`` statement even
+  if you use the precision parameter. Defaults to the value which is
+  ``50m`` converted to ``precision`` depending on the index type.
+
+
+.. _type-geo_shape-index:
+
+Geo shape index structure
+.........................
+
+Computations on very complex polygons and geometry collections are exact but
+very expensive. To provide fast queries even on complex shapes, CrateDB uses a
+different approach to store, analyze and query geo shapes.
+
+The surface of the earth is represented as a number of grid layers each with
+higher precision. While the upper layer has one grid cell, the layer below
+contains many cells for the equivalent space.
+
+Each grid cell on each layer is addressed in 2d space either by a `Geohash`_
+for ``geohash`` trees or by tightly packed coordinates in a `Quadtree`_. Those
+addresses conveniently share the same address-prefix between lower layers and
+upper layers. So we are able to use a `Trie`_ to represent the grids, and
+`Tries`_ can be queried efficiently as their complexity is determined by the
+tree depth only.
+
+A geo shape is transformed into these grid cells. Think of this transformation
+process as dissecting a vector image into its pixelated counterpart, reasonably
+accurately. We end up with multiple images each with a better resolution, up to
+the configured precision.
+
+Every grid cell that processed up to the configured precision is stored in an
+inverted index, creating a mapping from a grid cell to all shapes that touch
+it. This mapping is our geographic index.
+
+The main difference is that the ``geohash`` supports higher precision than the
+``quadtree`` tree. Both tree implementations support precision in order of
+fractions of millimeters.
+
+
+.. _type-geo_shape-literals:
+
+Geo shape literals
+..................
+
+Columns with the ``GEO_SHAPE`` type are represented and inserted as object
+containing a valid `GeoJSON`_ geometry object::
+
+    {
+        type = 'Polygon',
+        coordinates = [
+            [
+                [100.0, 0.0],
+                [101.0, 0.0],
+                [101.0, 1.0],
+                [100.0, 1.0],
+                [100.0, 0.0]
+            ]
+        ]
+    }
+
+Alternatively a `WKT`_ string can be used to represent a ``GEO_SHAPE`` as
+well::
+
+    'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'
+
+.. NOTE::
+
+    It is not possible to detect a ``GEO_SHAPE`` type for a dynamically created
+    column. Like with :ref:`type-geo_point` type, ``GEO_SHAPE`` columns need to
+    be created explicitly using either :ref:`sql-create-table` or
+    :ref:`sql-alter-table`.
+
+
+.. _data-types-postgres:
+
+PostgreSQL compatibility
+========================
+
+.. contents::
+   :local:
+   :depth: 1
+
+
+.. _data-types-postgres-aliases:
+
+Type aliases
+------------
+
+For compatibility with PostgreSQL we include some type aliases which can be
+used instead of the CrateDB specific type names.
+
+For example, in a type cast::
+
+  cr> SELECT 10::INT2 AS INT2;
+  +------+
+  | INT2 |
+  +------+
+  |   10 |
+  +------+
+  SELECT 1 row in set (... sec)
+
+
+See the table below for a full list of aliases:
+
++-----------------------+------------------------------+
+| Alias                 | CrateDB Type                 |
++=======================+==============================+
+| ``SHORT``             | ``SMALLINT``                 |
++-----------------------+------------------------------+
+| ``INT``               | ``INTEGER``                  |
++-----------------------+------------------------------+
+| ``INT2``              | ``SMALLINT``                 |
++-----------------------+------------------------------+
+| ``INT4``              | ``INTEGER``                  |
++-----------------------+------------------------------+
+| ``INT8``              | ``BIGINT``                   |
++-----------------------+------------------------------+
+| ``LONG``              | ``BIGINT``                   |
++-----------------------+------------------------------+
+| ``STRING``            | ``TEXT``                     |
++-----------------------+------------------------------+
+| ``VARCHAR``           | ``TEXT``                     |
++-----------------------+------------------------------+
+| ``CHARACTER VARYING`` | ``TEXT``                     |
++-----------------------+------------------------------+
+| ``NAME``              | ``TEXT``                     |
++-----------------------+------------------------------+
+| ``REGPROC``           | ``TEXT``                     |
++-----------------------+------------------------------+
+| ``BYTE``              | ``CHAR``                     |
++-----------------------+------------------------------+
+| ``FLOAT``             | ``REAL``                     |
++-----------------------+------------------------------+
+| ``FLOAT4``            | ``REAL``                     |
++-----------------------+------------------------------+
+| ``FLOAT8``            | ``DOUBLE PRECISION``         |
++-----------------------+------------------------------+
+| ``DOUBLE``            | ``DOUBLE PRECISION``         |
++-----------------------+------------------------------+
+| ``TIMESTAMP``         | ``TIMESTAMP WITH TIME ZONE`` |
++-----------------------+------------------------------+
+| ``TIMESTAMPTZ``       | ``TIMESTAMP WITH TIME ZONE`` |
++-----------------------+------------------------------+
+
+.. NOTE::
+
+   The :ref:`PG_TYPEOF <pg_typeof>` system :ref:`function <gloss-function>` can
+   be used to resolve the data type of any :ref:`expression
+   <gloss-expression>`.
+
+.. _data-types-postgres-internal:
+
+Internal-use types
+------------------
+
+.. _type-char:
+
+``CHAR``
+  A one-byte character used internally as for enumeration in the
+  :ref:`PostgreSQL system catalogs <postgres_pg_catalog>`.
+
+  Specified as a signed integer in the range -128 to 127.
+
+.. _type-oid:
+
+``OID``
+  An *Object Identifier* (OID). OIDS are used internally as primary keys in the
+  :ref:`PostgreSQL system catalogs <postgres_pg_catalog>`.
+
+  The ``OID`` type is mapped to the :ref:`integer
+  <data-type-numeric>` data type.
+
+.. _type-regproc:
+
+``REGPROC``
+  An alias for the :ref:`oid <type-oid>` type.
+
+  The ``REGPROC`` type is used by tables in the :ref:`postgres_pg_catalog`
+  schema to reference functions in the `pg_proc`_ table.
+
+  :ref:`Casting <type_cast>` a ``REGPROC`` type to a :ref:`data-type-text` or
+  :ref:`integer <data-type-numeric>` type will result in the corresponding
+  function name or ``oid`` value, respectively.
+
+.. _type-regclass:
+
+``REGCLASS``
+  An alias for the :ref:`oid <type-oid>` type.
+
+  The ``REGCLASS`` type is used by tables in the :ref:`postgres_pg_catalog`
+  schema to reference relations in the `pg_class`_ table.
+
+  :ref:`Casting <type_cast>` a ``REGCLASS`` type to a :ref:`data-type-text` or
+  :ref:`integer <data-type-numeric>` type will result in the corresponding
+  relation name or ``oid`` value, respectively.
+
+.. _type-oidvector:
+
+``OIDVECTOR``
+  The ``OIDVECTOR`` type is used to represent one or more :ref:`oid <type-oid>`
+  values.
+
+  This type is similar to an :ref:`array <data-type-array>` of integers.
+  However, you cannot use it with any :ref:`scalar functions
+  <scalar-functions>` or :ref:`expressions <gloss-expression>`.
+
+.. SEEALSO::
+
+    :ref:`PostgreSQL: Object Identifier (OID) types <postgres_pg_oid>`
+
+
+.. _data-types-casting:
+
+Type casting
+============
+
+A type ``CAST`` specifies a conversion from one data type to another. It will
 only succeed if the value of the :ref:`expression <gloss-expression>` is
 convertible to the desired data type, otherwise an error is returned.
 
@@ -1562,16 +2920,44 @@ CrateDB supports two equivalent syntaxes for type casts:
 
 ::
 
-   cast(expression as type)
-   expression::type
+   CAST(expression AS TYPE)
+   expression::TYPE
+
+.. contents::
+   :local:
+   :depth: 1
+
+
+.. _data-types-casting-exp:
+
+Cast expressions
+----------------
+
+
+::
+
+   CAST(expression AS TYPE)
+   expression::TYPE
+
+
+.. _data-types-casting-fn:
+
+Cast functions
+--------------
+
+
+.. _fn-cast:
+
+``CAST``
+''''''''
 
 Example usages:
 
 ::
 
-    cr> select cast(port['http'] as boolean) from sys.nodes limit 1;
+    cr> SELECT CAST(port['http'] AS BOOLEAN) FROM sys.nodes LIMIT 1;
     +-------------------------------+
-    | cast(port['http'] AS boolean) |
+    | CAST(port['http'] AS BOOLEAN) |
     +-------------------------------+
     | TRUE                          |
     +-------------------------------+
@@ -1579,7 +2965,7 @@ Example usages:
 
 ::
 
-    cr> select (2+10)/2::text AS col;
+    cr> SELECT (2+10)/2::TEXT AS col;
     +-----+
     | col |
     +-----+
@@ -1592,7 +2978,7 @@ converting an array of integer values to a boolean array.
 
 ::
 
-    cr> select cast([0,1,5] as array(boolean)) AS active_threads ;
+    cr> SELECT CAST([0,1,5] AS ARRAY(BOOLEAN)) AS active_threads ;
     +---------------------+
     | active_threads      |
     +---------------------+
@@ -1602,58 +2988,62 @@ converting an array of integer values to a boolean array.
 
 .. NOTE::
 
-   It is not possible to cast to or from ``object`` and ``geopoint``, or to
-   ``geoshape`` data type.
+   It is not possible to cast to or from ``OBJECT``, ``GEO_POINT``, and
+   ``GEO_SHAPE`` types.
+
+
+.. _fn-try-cast:
 
 ``TRY_CAST``
-------------
+''''''''''''
 
-While ``cast`` throws an error for incompatible type casts, ``try_cast``
+While ``CAST`` throws an error for incompatible type casts, ``TRY_CAST``
 returns ``null`` in this case. Otherwise the result is the same as with
-``cast``.
+``CAST``.
 
 ::
 
-   try_cast(expression as type)
+   TRY_CAST(expression AS TYPE)
 
 Example usages:
 
 ::
 
-    cr> select try_cast('true' as boolean) AS col;
+    cr> SELECT TRY_CAST('true' AS BOOLEAN) AS col;
     +------+
     | col  |
     +------+
-    | TRUE |
+    | true |
     +------+
     SELECT 1 row in set (... sec)
 
-Trying to cast a ``text`` to ``integer``, will fail with ``cast`` if
-``text`` is no valid integer but return ``null`` with ``try_cast``:
+Trying to cast a ``TEXT`` to ``INTEGER``, will fail with ``CAST`` if
+``TEXT`` is no valid integer but return ``null`` with ``TRY_CAST``:
 
 ::
 
-    cr> select try_cast(name as integer) AS name_as_int from sys.nodes limit 1;
+    cr> SELECT TRY_CAST(name AS INTEGER) AS name_as_int FROM sys.nodes LIMIT 1;
     +-------------+
     | name_as_int |
     +-------------+
-    |        NULL |
+    |        null |
     +-------------+
     SELECT 1 row in set (... sec)
 
-.. _type_cast_from_string_literal:
 
-``type 'string'``
------------------
+.. _data-types-casting-str:
+
+Cast from string literals
+-------------------------
 
 This cast operation is applied to a string literal and it effectively
 initializes a constant of an arbitrary type.
 
-Example usages, initializing an ``integer`` and a ``timestamp`` constant:
+Example usages, initializing an ``INTEGER`` and a ``TIMESTAMP`` constant:
 
 ::
 
-    cr> select integer '25' AS int;
+    cr> SELECT INTEGER '25' AS int;
     +-----+
     | int |
     +-----+
@@ -1663,7 +3053,7 @@ Example usages, initializing an ``integer`` and a ``timestamp`` constant:
 
 ::
 
-    cr> select timestamp with time zone '2029-12-12T11:44:00.24446' AS ts;
+    cr> SELECT TIMESTAMP WITH TIME ZONE '2029-12-12T11:44:00.24446' AS ts;
     +---------------+
     | ts            |
     +---------------+
@@ -1673,92 +3063,37 @@ Example usages, initializing an ``integer`` and a ``timestamp`` constant:
 
 .. NOTE::
 
-  This cast operation is limited to :ref:`sql_ddl_datatypes_primitives` only.
-  For complex types such as ``array`` or ``object`` use the
-  :ref:`type_cast` syntax.
-
-.. _data-type-aliases:
-
-Type aliases
-============
-
-For compatibility with PostgreSQL we include some type aliases which can be
-used instead of the CrateDB specific type names.
-
-For example, in a type cast::
-
-  cr> select 10::int2 AS int2;
-  +------+
-  | int2 |
-  +------+
-  |   10 |
-  +------+
-  SELECT 1 row in set (... sec)
-
-
-See the table below for a full list of aliases:
-
-+-------------+--------------------------+
-| Alias       | Crate Type               |
-+=============+==========================+
-| int2        | smallint                 |
-+-------------+--------------------------+
-| short       | smallint                 |
-+-------------+--------------------------+
-| int         | integer                  |
-+-------------+--------------------------+
-| int4        | integer                  |
-+-------------+--------------------------+
-| int8        | bigint                   |
-+-------------+--------------------------+
-| long        | bigint                   |
-+-------------+--------------------------+
-| string      | text                     |
-+-------------+--------------------------+
-| varchar     | text                     |
-+-------------+--------------------------+
-| character   | text                     |
-| varying     |                          |
-+-------------+--------------------------+
-| name        | text                     |
-+-------------+--------------------------+
-| regproc     | text                     |
-+-------------+--------------------------+
-| byte        | char                     |
-+-------------+--------------------------+
-| float       | real                     |
-+-------------+--------------------------+
-| float4      | real                     |
-+-------------+--------------------------+
-| float8      | double precision         |
-+-------------+--------------------------+
-| double      | double precision         |
-+-------------+--------------------------+
-| timestamp   | timestamp with time zone |
-+-------------+--------------------------+
-| timestamptz | timestamp with time zone |
-+-------------+--------------------------+
-
-.. NOTE::
-
-   The :ref:`PG_TYPEOF <pg_typeof>` system :ref:`function <gloss-function>` can
-   be used to resolve the data type of any :ref:`expression
-   <gloss-expression>`.
+  This cast operation is limited to :ref:`primitive data types
+  <data-types-primitive>` only. For complex types such as ``ARRAY`` or
+  ``OBJECT``, use the :ref:`type_cast` syntax.
 
 
 .. _BigDecimal documentation: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/math/BigDecimal.html
+.. _bit mask: https://en.wikipedia.org/wiki/Mask_(computing)
 .. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
+.. _Coordinated Universal Time: https://en.wikipedia.org/wiki/Coordinated_Universal_Time
+.. _double-precision floating-point: https://en.wikipedia.org/wiki/Double-precision_floating-point_format
 .. _Geohash: https://en.wikipedia.org/wiki/Geohash
 .. _GeoJSON geometry objects: https://tools.ietf.org/html/rfc7946#section-3.1
 .. _GeoJSON: https://geojson.org/
 .. _IEEE 754: https://ieeexplore.ieee.org/document/30711/?arnumber=30711&filter=AND(p_Publication_Number:2355)
 .. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
 .. _ISO 8601 time zone designators: https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
-.. _pattern letters and symbols: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/time/format/DateTimeFormatter.html
+.. _Java 15\: Patterns for Formatting and Parsing: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/time/format/DateTimeFormatter.html#patterns
+.. _pg_class: https://www.postgresql.org/docs/10/static/catalog-pg-class.html
+.. _pg_proc: https://www.postgresql.org/docs/10/static/catalog-pg-proc.html
 .. _PostgreSQL interval format: https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-INTERVAL-INPUT
 .. _Quadtree: https://en.wikipedia.org/wiki/Quadtree
+.. _single-precision floating-point: https://en.wikipedia.org/wiki/Single-precision_floating-point_format
 .. _Trie: https://en.wikipedia.org/wiki/Trie
 .. _Tries: https://en.wikipedia.org/wiki/Trie
-.. _Wikipedia\: Double-precision floating-point format: https://en.wikipedia.org/wiki/Double-precision_floating-point_format
-.. _Wikipedia\: Single-precision floating-point format: https://en.wikipedia.org/wiki/Single-precision_floating-point_format
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text
+.. _UTC: `Coordinated Universal Time`_
+.. _Coordinated Universal Time: https://en.wikipedia.org/wiki/Coordinated_Universal_Time
+.. _Unix epoch: https://en.wikipedia.org/wiki/Unix_time
+.. _tracking issue #11491: https://github.com/crate/crate/issues/11491
+.. _tracking issue #11490: https://github.com/crate/crate/issues/11490
+.. _tracking issue #11528: https://github.com/crate/crate/issues/11528
+.. _The PostgreSQL DATE type: https://www.postgresql.org/docs/current/datatype-datetime.html
+.. _Fully Qualified Domain Name: https://en.wikipedia.org/wiki/Fully_qualified_domain_name
+.. _IP adddress: https://en.wikipedia.org/wiki/IP_address
