@@ -20,6 +20,7 @@
 package org.elasticsearch.index.engine;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -31,6 +32,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogConfig;
@@ -45,8 +47,16 @@ import org.elasticsearch.index.translog.TranslogDeletionPolicy;
  */
 public final class NoOpEngine extends ReadOnlyEngine {
 
+    private final DocsStats docsStats;
+
     public NoOpEngine(EngineConfig config) {
         super(config, null, null, true, Function.identity());
+        Directory directory = store.directory();
+        try (DirectoryReader reader = openDirectory(directory, config.getIndexSettings().isSoftDeleteEnabled())) {
+            this.docsStats = docsStats(reader);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
@@ -94,6 +104,12 @@ public final class NoOpEngine extends ReadOnlyEngine {
                 return null;
             }
         };
+    }
+
+
+    @Override
+    public DocsStats docStats() {
+        return docsStats;
     }
 
     /**
