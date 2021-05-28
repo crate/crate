@@ -26,6 +26,7 @@ import java.util.Locale;
 
 import com.google.common.base.CaseFormat;
 
+import io.crate.planner.optimizer.rule.RewriteCountOnObjectToCountOnNotNullNonObjectSubColumn;
 import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.common.annotations.VisibleForTesting;
@@ -87,7 +88,8 @@ public class LoadedRules implements SessionSettingProvider {
         RewriteCollectToGet.class,
         RewriteGroupByKeysLimitToTopNDistinct.class,
         RewriteInsertFromSubQueryToInsertFromValues.class,
-        RewriteToQueryThenFetch.class
+        RewriteToQueryThenFetch.class,
+        RewriteCountOnObjectToCountOnNotNullNonObjectSubColumn.class
     );
 
     @Override

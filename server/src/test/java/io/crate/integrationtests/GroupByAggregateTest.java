@@ -25,7 +25,6 @@ import io.crate.data.ArrayBucket;
 import io.crate.data.Paging;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
@@ -1334,5 +1333,17 @@ public class GroupByAggregateTest extends SQLIntegrationTestCase {
         );
         execute("select name, count(x), count(x) from doc.tbl group by name");
         assertThat(printedTable(response.rows()), Is.is("Apple| 3| 3\n"));
+    }
+
+    @Test
+    public void test() {
+        execute("create table t2 (device int, payload object as ( col int not null)) clustered into 1 shards");
+        execute("insert into t2 values (1, {col=9}),(1, {col=10}),(1, {col=11}),(2, {col=9})");
+        refresh();
+        execute("select device, count(payload) from t2 group by 1");
+        String actual = printedTable(response.rows());
+        execute("select device, count(payload['col']) as \"count(payload)\" from t2 group by 1");
+        String expected = printedTable(response.rows());
+        assertThat(actual,is(expected));
     }
 }

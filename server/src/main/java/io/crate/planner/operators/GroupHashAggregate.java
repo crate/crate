@@ -126,6 +126,10 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         return aggregates;
     }
 
+    public List<Symbol> groupKeys() {
+        return groupKeys;
+    }
+
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,

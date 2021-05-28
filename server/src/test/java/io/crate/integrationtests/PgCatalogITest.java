@@ -128,6 +128,7 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
             "optimizer_move_order_beneath_union| true| Indicates if the optimizer rule MoveOrderBeneathUnion is activated.| NULL| NULL\n" +
             "optimizer_remove_redundant_fetch_or_eval| true| Indicates if the optimizer rule RemoveRedundantFetchOrEval is activated.| NULL| NULL\n" +
             "optimizer_rewrite_collect_to_get| true| Indicates if the optimizer rule RewriteCollectToGet is activated.| NULL| NULL\n" +
+            "optimizer_rewrite_count_on_object_to_count_on_not_null_non_object_sub_column| true| Indicates if the optimizer rule RewriteCountOnObjectToCountOnNotNullNonObjectSubColumn is activated.| NULL| NULL\n" +
             "optimizer_rewrite_filter_on_outer_join_to_inner_join| true| Indicates if the optimizer rule RewriteFilterOnOuterJoinToInnerJoin is activated.| NULL| NULL\n" +
             "optimizer_rewrite_group_by_keys_limit_to_top_n_distinct| true| Indicates if the optimizer rule RewriteGroupByKeysLimitToTopNDistinct is activated.| NULL| NULL\n" +
             "optimizer_rewrite_insert_from_sub_query_to_insert_from_values| true| Indicates if the optimizer rule RewriteInsertFromSubQueryToInsertFromValues is activated.| NULL| NULL\n" +

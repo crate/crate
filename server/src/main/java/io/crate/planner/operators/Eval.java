@@ -55,12 +55,19 @@ import java.util.function.Function;
 public final class Eval extends ForwardingLogicalPlan {
 
     private final List<Symbol> outputs;
+    private boolean REWRITTEN_OUTPUTS_NOT_TO_BE_PRUNED = false;
 
     public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
         if (source.outputs().equals(outputs)) {
             return source;
         }
         return new Eval(source, outputs);
+    }
+
+    public static LogicalPlan createUnprunable(LogicalPlan source, List<Symbol> outputs) {
+        var eval = create(source, outputs);
+        ((Eval)eval).REWRITTEN_OUTPUTS_NOT_TO_BE_PRUNED = true;
+        return eval;
     }
 
     Eval(LogicalPlan source, List<Symbol> outputs) {
@@ -97,6 +104,7 @@ public final class Eval extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+        if (REWRITTEN_OUTPUTS_NOT_TO_BE_PRUNED == true) return this;
         LogicalPlan newSource = source.pruneOutputsExcept(tableStats, outputsToKeep);
         if (source == newSource) {
             return this;
