@@ -34,6 +34,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -80,6 +81,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.types.DataType;
 
 final class DocValuesGroupByOptimizedIterator {
 
@@ -185,6 +187,7 @@ final class DocValuesGroupByOptimizedIterator {
                                                RamAccounting ramAccounting,
                                                Query query,
                                                CollectorContext collectorContext) {
+            DataType keyType = keyReference.valueType();
             return GroupByIterator.getIterator(
                 aggregators,
                 indexSearcher,
@@ -198,7 +201,8 @@ final class DocValuesGroupByOptimizedIterator {
                 (expressions) -> expressions.get(0).value(),
                 (key, cells) -> cells[0] = key,
                 query,
-                new CollectorContext(collectorContext.readerId())
+                new CollectorContext(collectorContext.readerId()),
+                GroupByMaps.mapForType(keyType)
             );
         }
 
@@ -235,7 +239,8 @@ final class DocValuesGroupByOptimizedIterator {
                     }
                 },
                 query,
-                new CollectorContext(collectorContext.readerId())
+                new CollectorContext(collectorContext.readerId()),
+                HashMap::new
             );
         }
 
@@ -248,7 +253,8 @@ final class DocValuesGroupByOptimizedIterator {
                                                   Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
                                                   BiConsumer<K, Object[]> applyKeyToCells,
                                                   Query query,
-                                                  CollectorContext collectorContext) {
+                                                  CollectorContext collectorContext,
+                                                  Supplier<Map<K, Object[]>> createMap) {
             for (int i = 0; i < keyExpressions.size(); i++) {
                 keyExpressions.get(i).startCollect(collectorContext);
             }
@@ -269,7 +275,8 @@ final class DocValuesGroupByOptimizedIterator {
                                     keyExtractor,
                                     ramAccounting,
                                     query,
-                                    killed
+                                    killed,
+                                    createMap
                                 ),
                                 keyExpressions.size(),
                                 applyKeyToCells,
@@ -318,10 +325,11 @@ final class DocValuesGroupByOptimizedIterator {
             Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
             RamAccounting ramAccounting,
             Query query,
-            AtomicReference<Throwable> killed
+            AtomicReference<Throwable> killed,
+            Supplier<Map<K, Object[]>> createMap
         ) throws IOException {
 
-            HashMap<K, Object[]> statesByKey = new HashMap<>();
+            Map<K, Object[]> statesByKey = createMap.get();
             Weight weight = indexSearcher.createWeight(
                 indexSearcher.rewrite(query),
                 ScoreMode.COMPLETE_NO_SCORES,

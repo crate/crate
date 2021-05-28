@@ -54,6 +54,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -259,7 +260,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             (expressions) -> expressions.get(0).value(),
             (key, cells) -> cells[0] = key,
             new MatchAllDocsQuery(),
-            new CollectorContext()
+            new CollectorContext(),
+            HashMap::new
         );
     }
 }
