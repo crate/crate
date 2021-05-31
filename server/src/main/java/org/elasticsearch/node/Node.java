@@ -513,10 +513,12 @@ public class Node implements Closeable {
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
 
-            modules.add(new RepositoriesModule(
-                this.environment,
+            modules.add(new RepositoriesModule(this.environment,
                 pluginsService.filterPlugins(RepositoryPlugin.class),
-                xContentRegistry, threadPool)
+                transportService,
+                clusterService,
+                threadPool,
+                xContentRegistry)
             );
 
             final RerouteService rerouteService = new BatchedRerouteService(

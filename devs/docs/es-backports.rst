@@ -645,6 +645,7 @@ should be crossed out as well.
 - [x] 749135b37c9 Prevent in-place downgrades and invalid upgrades (#41731)
 - [x] 328ba09f84b Omit non-masters in ClusterFormationFailureHelper (#41344)
 - [x] 2f41b1b64de Remove `Tracer` from `MockTransportService` (#40237)
+- [x] afd42df15f5 Deguice RepositoriesService (#36016)
 - [x] 7624734f14b Added wait_for_metadata_version parameter to cluster state api (#35535)
 - [x] ebb93db0102 Remove pre 6.0.0 support from InternalEngine (#27720)
 

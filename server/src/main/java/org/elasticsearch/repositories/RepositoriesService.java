@@ -45,7 +45,6 @@ import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.RestoreService;
@@ -70,7 +69,6 @@ public class RepositoriesService implements ClusterStateApplier {
 
     private volatile Map<String, Repository> repositories = Collections.emptyMap();
 
-    @Inject
     public RepositoriesService(Settings settings, ClusterService clusterService, TransportService transportService,
                                Map<String, Repository.Factory> typesRegistry,
                                ThreadPool threadPool) {
@@ -419,6 +417,10 @@ public class RepositoriesService implements ClusterStateApplier {
         return Collections.unmodifiableCollection(repositories.values());
     }
 
+    public Map<String, Repository.Factory> typesRegistry() {
+        return typesRegistry;
+    }
+
     /**
      * Register repository request
      */
@@ -517,5 +519,4 @@ public class RepositoriesService implements ClusterStateApplier {
         }
 
     }
-
 }
