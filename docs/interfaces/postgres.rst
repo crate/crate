@@ -236,14 +236,25 @@ CrateDB also supports the :ref:`oidvector <data-type-oidvector>` type.
 
 .. NOTE::
 
-   Currently, casting a string or integer literal to the ``regproc`` type
-   wouldn't result in a :ref:`function <user-defined-functions>` lookup.
-   Instead, casting the string literal to the ``regproc`` type results in an
-   object of the ``regproc`` type that has a name that corresponds to the
-   string literal and the ``oid`` hash of the literal as ``oid``. Casting an
-   integer literal to the ``regproc`` type results in an object of the
-   ``regproc`` type that has a name that corresponds to the string
-   representation of the literal and the literal value as ``oid``.
+    Casting a :ref:`string <character-data-types>` or an :ref:`integer
+    <data-type-numeric>` to the ``regproc`` type does not result in a function
+    lookup (as it does with PostgreSQL).
+
+    Instead:
+
+    .. rst-class:: open
+
+    - Casting a string to the ``regproc`` type results in an object of the
+      ``regproc`` type with a name equal to the string value and an ``oid``
+      equal to an integer hash of the string.
+
+    - Casting an integer to the ``regproc`` type results in an object of the
+      ``regproc`` type with a name equal to the string representation of the
+      integer and an ``oid`` equal to the integer value.
+
+    Consult the :ref:`CrateDB data types reference<data-types-postgres-oids>`
+    for more information about each OID type (including additional type casting
+    behaviour).
 
 
 Show transaction isolation
