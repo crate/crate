@@ -641,6 +641,7 @@ should be crossed out as well.
 - [x] bc008d8a9db Increase waiting time when check retention locks (#42994)
 - [x] fe1674174f6 Remove some leftover refs to minimum_master_nodes (#42700)
 - [x] 1b6dc178388 Remove transport client from tests (#42457)
+- [x] 39a3d637340 Unguice Snapshot / Restore services (#42357)
 - [x] c1de8c29db2 Cluster state from API should always have a master (#42454)
 - [x] 749135b37c9 Prevent in-place downgrades and invalid upgrades (#41731)
 - [x] 328ba09f84b Omit non-masters in ClusterFormationFailureHelper (#41344)

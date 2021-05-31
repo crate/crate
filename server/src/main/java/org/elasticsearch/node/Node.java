@@ -156,6 +156,8 @@ import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.RepositoriesModule;
 import org.elasticsearch.search.SearchModule;
+import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotShardsService;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ExecutorBuilder;
@@ -512,13 +514,44 @@ public class Node implements Closeable {
             final GatewayMetaState gatewayMetaState = new GatewayMetaState();
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
-
-            modules.add(new RepositoriesModule(this.environment,
+            RepositoriesModule repositoriesModule = new RepositoriesModule(
+                this.environment,
                 pluginsService.filterPlugins(RepositoryPlugin.class),
                 transportService,
                 clusterService,
                 threadPool,
-                xContentRegistry)
+                xContentRegistry
+            );
+            modules.add(repositoriesModule);
+
+            RepositoriesService repositoryService = repositoriesModule.repositoryService();
+
+            SnapshotsService snapshotsService = new SnapshotsService(
+                settings,
+                clusterService,
+                clusterModule.getIndexNameExpressionResolver(),
+                repositoryService,
+                threadPool
+            );
+
+            SnapshotShardsService snapshotShardsService = new SnapshotShardsService(
+                settings,
+                clusterService,
+                repositoryService,
+                threadPool,
+                transportService,
+                indicesService,
+                clusterModule.getIndexNameExpressionResolver()
+            );
+
+            RestoreService restoreService = new RestoreService(
+                clusterService,
+                repositoryService,
+                clusterModule.getAllocationService(),
+                metadataCreateIndexService,
+                metadataIndexUpgradeService,
+                clusterService.getClusterSettings(),
+                shardLimitValidator
             );
 
             final RerouteService rerouteService = new BatchedRerouteService(
@@ -569,6 +602,10 @@ public class Node implements Closeable {
                     b.bind(MetadataIndexUpgradeService.class).toInstance(metadataIndexUpgradeService);
                     b.bind(ClusterInfoService.class).toInstance(clusterInfoService);
                     b.bind(GatewayMetaState.class).toInstance(gatewayMetaState);
+                    b.bind(RepositoriesService.class).toInstance(repositoryService);
+                    b.bind(SnapshotsService.class).toInstance(snapshotsService);
+                    b.bind(SnapshotShardsService.class).toInstance(snapshotShardsService);
+                    b.bind(RestoreService.class).toInstance(restoreService);
                     b.bind(Discovery.class).toInstance(discoveryModule.getDiscovery());
                     {
                         RecoverySettings recoverySettings = new RecoverySettings(settings,

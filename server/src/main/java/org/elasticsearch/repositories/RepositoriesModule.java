@@ -27,9 +27,6 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.fs.FsRepository;
-import org.elasticsearch.snapshots.RestoreService;
-import org.elasticsearch.snapshots.SnapshotShardsService;
-import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.repositories.TypeSettings;
@@ -81,11 +78,6 @@ public class RepositoriesModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(RepositoriesService.class).toInstance(repositoriesService);
-        bind(SnapshotsService.class).asEagerSingleton();
-        bind(SnapshotShardsService.class).asEagerSingleton();
-        bind(RestoreService.class).asEagerSingleton();
-
         Map<String, Repository.Factory> repositoryTypes = repositoriesService.typesRegistry();
         MapBinder<String, Repository.Factory> typesBinder = MapBinder.newMapBinder(binder(), String.class, Repository.Factory.class);
         repositoryTypes.forEach((k, v) -> typesBinder.addBinding(k).toInstance(v));
@@ -99,6 +91,9 @@ public class RepositoriesModule extends AbstractModule {
             var repoSettings = e.getValue().settings();
             typeSettingsBinder.addBinding(repoScheme).toInstance(repoSettings);
         }
+    }
 
+    public RepositoriesService repositoryService() {
+        return repositoriesService;
     }
 }

@@ -46,7 +46,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -112,7 +111,6 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
     private final SnapshotStateExecutor snapshotStateExecutor = new SnapshotStateExecutor();
     private final UpdateSnapshotStatusAction updateSnapshotStatusHandler;
 
-    @Inject
     public SnapshotShardsService(Settings settings, ClusterService clusterService, RepositoriesService repositoriesService,
                                  ThreadPool threadPool, TransportService transportService, IndicesService indicesService,
                                  IndexNameExpressionResolver indexNameExpressionResolver) {
