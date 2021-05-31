@@ -20,6 +20,7 @@
 package org.elasticsearch.repositories;
 
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -32,6 +33,7 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.repositories.TypeSettings;
+import org.elasticsearch.transport.TransportService;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,12 +45,14 @@ import java.util.Map;
  */
 public class RepositoriesModule extends AbstractModule {
 
-    private final Map<String, Repository.Factory> repositoryTypes;
+    private final RepositoriesService repositoriesService;
 
     public RepositoriesModule(Environment env,
                               List<RepositoryPlugin> repoPlugins,
-                              NamedXContentRegistry namedXContentRegistry,
-                              ThreadPool threadPool) {
+                              TransportService transportService,
+                              ClusterService clusterService,
+                              ThreadPool threadPool,
+                              NamedXContentRegistry namedXContentRegistry) {
         Map<String, Repository.Factory> factories = new HashMap<>();
         factories.put(FsRepository.TYPE, new Repository.Factory() {
 
@@ -70,15 +74,19 @@ public class RepositoriesModule extends AbstractModule {
                 }
             }
         }
-        repositoryTypes = Collections.unmodifiableMap(factories);
+
+        Map<String, Repository.Factory> repositoryTypes = Collections.unmodifiableMap(factories);
+        repositoriesService = new RepositoriesService(env.settings(), clusterService, transportService, repositoryTypes, threadPool);
     }
 
     @Override
     protected void configure() {
-        bind(RepositoriesService.class).asEagerSingleton();
+        bind(RepositoriesService.class).toInstance(repositoriesService);
         bind(SnapshotsService.class).asEagerSingleton();
         bind(SnapshotShardsService.class).asEagerSingleton();
         bind(RestoreService.class).asEagerSingleton();
+
+        Map<String, Repository.Factory> repositoryTypes = repositoriesService.typesRegistry();
         MapBinder<String, Repository.Factory> typesBinder = MapBinder.newMapBinder(binder(), String.class, Repository.Factory.class);
         repositoryTypes.forEach((k, v) -> typesBinder.addBinding(k).toInstance(v));
 
@@ -91,5 +99,6 @@ public class RepositoriesModule extends AbstractModule {
             var repoSettings = e.getValue().settings();
             typeSettingsBinder.addBinding(repoScheme).toInstance(repoSettings);
         }
+
     }
 }
