@@ -491,7 +491,8 @@ public class MatchQuery {
     protected Query blendTermQuery(Term term, MappedFieldType fieldType) {
         if (fuzziness != null) {
             try {
-                Query query = fieldType.fuzzyQuery(term.text(), fuzziness, fuzzyPrefixLength, maxExpansions, transpositions);
+                fieldType.failIfNotIndexed();
+                Query query = new FuzzyQuery(term, fuzziness.asDistance(term.text()), fuzzyPrefixLength, maxExpansions, transpositions);
                 if (query instanceof FuzzyQuery) {
                     QueryParsers.setRewriteMethod((FuzzyQuery) query, fuzzyRewriteMethod);
                 }
