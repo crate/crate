@@ -36,11 +36,9 @@ class MapperMergeValidator {
      * @param objectMappers The newly added object mappers.
      * @param fieldMappers The newly added field mappers.
      * @param fieldAliasMappers The newly added field alias mappers.
-     * @param fieldTypes Any existing field and field alias mappers, collected into a lookup structure.
      */
     public static void validateNewMappers(Collection<ObjectMapper> objectMappers,
-                                          Collection<FieldMapper> fieldMappers,
-                                          FieldTypeLookup fieldTypes) {
+                                          Collection<FieldMapper> fieldMappers) {
         Set<String> objectFullNames = new HashSet<>();
         for (ObjectMapper objectMapper : objectMappers) {
             String fullPath = objectMapper.fullPath();

@@ -315,12 +315,10 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         Collections.addAll(fieldMappers, metadataMappers);
         MapperUtils.collect(newMapper.mapping().root(), objectMappers, fieldMappers);
 
-        FieldTypeLookup fieldTypes = this.fieldTypes;
-        MapperMergeValidator.validateNewMappers(objectMappers, fieldMappers, fieldTypes);
+        MapperMergeValidator.validateNewMappers(objectMappers, fieldMappers);
         checkPartitionedIndexConstraints(newMapper);
 
-        // update lookup data-structures
-        fieldTypes = fieldTypes.copyAndAddAll(newMapper.type(), fieldMappers);
+        this.fieldTypes = new FieldTypeLookup(fieldMappers);
 
         for (ObjectMapper objectMapper : objectMappers) {
             if (fullPathObjectMappers == this.fullPathObjectMappers) {
@@ -350,7 +348,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         if (newMapper != null) {
             this.mapper = newMapper;
         }
-        this.fieldTypes = fieldTypes;
         this.fullPathObjectMappers = fullPathObjectMappers;
 
         assert newMapper == null || assertSerialization(newMapper);
