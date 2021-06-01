@@ -21,7 +21,6 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.geo.ShapeRelation;
@@ -115,12 +114,6 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     @Override
     public Query fuzzyQuery(Object value, Fuzziness fuzziness, int prefixLength, int maxExpansions, boolean transpositions) {
         return innerFieldType.fuzzyQuery(value, fuzziness, prefixLength, maxExpansions, transpositions);
-    }
-
-    @Override
-    @Nullable
-    public Query queryStringTermQuery(Term term) {
-        return innerFieldType.queryStringTermQuery(term);
     }
 
     @Override

@@ -24,7 +24,6 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
@@ -215,12 +214,6 @@ public abstract class MappedFieldType {
     }
 
     public abstract Query existsQuery(QueryShardContext context);
-
-    /** A term query to use when parsing a query string. Can return {@code null}. */
-    @Nullable
-    public Query queryStringTermQuery(Term term) {
-        return null;
-    }
 
     /** @throws IllegalArgumentException if the fielddata is not supported on this type.
      *  An IllegalArgumentException is needed in order to return an http error 400
