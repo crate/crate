@@ -318,7 +318,7 @@ should be crossed out as well.
 - [ ] 8ebd341710e Add text search information to MappedFieldType (#58230) (#58432)
 - [ ] 943efb78fd7 Save Shard ID Serializations in Bulk Requests (#56209) (#58414)
 - [ ] 256b660f0a0 Remove anonymous PublicationContext implementation (#58412)
-- [ ] 519d1278e23 Make FieldTypeLookup immutable (#58162) (#58411)
+- [x] 519d1278e23 Make FieldTypeLookup immutable (#58162) (#58411)
 - [ ] a44dad9fbb4 [7.x] Add support for snapshot and restore to data streams (#57675) (#58371)
 - [ ] 4b8cf2af6a8 Add serialization test for FieldMappers when include_defaults=true (#58235) (#58328)
 - [ ] ca2d12d039b Remove Settings parameter from FieldMapper base class (#58237)
