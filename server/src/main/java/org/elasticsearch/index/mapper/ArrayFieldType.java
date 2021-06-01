@@ -24,7 +24,6 @@ package org.elasticsearch.index.mapper;
 import org.apache.lucene.search.Query;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.geo.ShapeRelation;
-import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.joda.time.DateTimeZone;
@@ -109,11 +108,6 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     @Override
     public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, ShapeRelation relation, DateTimeZone timeZone, QueryShardContext context) {
         return innerFieldType.rangeQuery(lowerTerm, upperTerm, includeLower, includeUpper, relation, timeZone, context);
-    }
-
-    @Override
-    public Query fuzzyQuery(Object value, Fuzziness fuzziness, int prefixLength, int maxExpansions, boolean transpositions) {
-        return innerFieldType.fuzzyQuery(value, fuzziness, prefixLength, maxExpansions, transpositions);
     }
 
     @Override

@@ -47,7 +47,9 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
@@ -290,7 +292,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(w, true, true));
 
         List<LuceneCollectorExpression<?>> columnReferences = Collections.singletonList(new ScoreCollectorExpression());
-        Query query = keywordFieldType.fuzzyQuery("Arthur", Fuzziness.AUTO, 2, 3, true);
+        Query query = new FuzzyQuery(new Term("x", "Arthur"), Fuzziness.AUTO.asDistance("Arthur"), 2, 3, true);
         LuceneOrderedDocCollector collector;
 
         // without minScore filter we get 2 and 2 docs - this is not necessary for the test but is here

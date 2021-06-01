@@ -27,12 +27,10 @@ import javax.annotation.Nullable;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
-import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.geo.ShapeRelation;
-import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.QueryShardException;
@@ -205,14 +203,6 @@ public abstract class MappedFieldType {
         throw new IllegalArgumentException("Field [" + name + "] of type [" + typeName() + "] does not support range queries");
     }
 
-    public Query fuzzyQuery(Object value, Fuzziness fuzziness, int prefixLength, int maxExpansions, boolean transpositions) {
-        throw new IllegalArgumentException("Can only use fuzzy queries on keyword and text fields - not on [" + name + "] which is of type [" + typeName() + "]");
-    }
-
-    public Query prefixQuery(String value, @Nullable MultiTermQuery.RewriteMethod method, QueryShardContext context) {
-        throw new QueryShardException(context, "Can only use prefix queries on keyword and text fields - not on [" + name + "] which is of type [" + typeName() + "]");
-    }
-
     public abstract Query existsQuery(QueryShardContext context);
 
     /** @throws IllegalArgumentException if the fielddata is not supported on this type.
@@ -227,7 +217,7 @@ public abstract class MappedFieldType {
         }
     }
 
-    protected final void failIfNotIndexed() {
+    public final void failIfNotIndexed() {
         if (isIndexed == false) {
             // we throw an IAE rather than an ISE so that it translates to a 4xx code rather than 5xx code on the http layer
             throw new IllegalArgumentException("Cannot search on field [" + name() + "] since it is not indexed.");
