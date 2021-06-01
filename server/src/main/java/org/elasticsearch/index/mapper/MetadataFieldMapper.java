@@ -19,11 +19,12 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.elasticsearch.common.settings.Settings;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.lucene.document.FieldType;
+import org.elasticsearch.common.settings.Settings;
 
 
 /**
@@ -34,7 +35,7 @@ public abstract class MetadataFieldMapper extends FieldMapper {
     public interface TypeParser extends Mapper.TypeParser {
 
         @Override
-        MetadataFieldMapper.Builder<?,?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException;
+        MetadataFieldMapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException;
 
         /**
          * Get the default {@link MetadataFieldMapper} to use, if nothing had to be parsed.
@@ -48,14 +49,33 @@ public abstract class MetadataFieldMapper extends FieldMapper {
     }
 
     @SuppressWarnings("rawtypes")
-    public abstract static class Builder<T extends Builder, Y extends MetadataFieldMapper> extends FieldMapper.Builder<T, Y> {
-        public Builder(String name, MappedFieldType fieldType, MappedFieldType defaultFieldType) {
-            super(name, fieldType, defaultFieldType);
+    public abstract static class Builder<T extends Builder<T>> extends FieldMapper.Builder<T> {
+        public Builder(String name, FieldType fieldType) {
+            super(name, fieldType);
         }
+
+        @Override
+        public T index(boolean index) {
+            if (index == false) {
+                throw new IllegalArgumentException("Metadata fields must be indexed");
+            }
+            return builder;
+        }
+
+        public abstract MetadataFieldMapper build(BuilderContext context);
     }
 
-    protected MetadataFieldMapper(String simpleName, Integer position, MappedFieldType fieldType, MappedFieldType defaultFieldType, Settings indexSettings) {
-        super(simpleName, position, null, fieldType, defaultFieldType, indexSettings, MultiFields.empty(), CopyTo.empty());
+    protected MetadataFieldMapper(FieldType fieldType, MappedFieldType mappedFieldType, Settings indexSettings) {
+        super(
+            mappedFieldType.name(),
+            null,
+            null,
+            fieldType,
+            mappedFieldType,
+            indexSettings,
+            MultiFields.empty(),
+            CopyTo.empty()
+        );
     }
 
     /**

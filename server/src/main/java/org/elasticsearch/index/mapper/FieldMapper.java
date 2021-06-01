@@ -28,7 +28,6 @@ import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.Version;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -54,66 +53,36 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     public static final Setting<Boolean> COERCE_SETTING =
         Setting.boolSetting("index.mapping.coerce", false, Property.IndexScope);
 
-    public abstract static class Builder<T extends Builder, Y extends FieldMapper> extends Mapper.Builder<T, Y> {
+    public abstract static class Builder<T extends Builder<T>> extends Mapper.Builder<T> {
 
-        protected final MappedFieldType fieldType;
-        protected final MappedFieldType defaultFieldType;
-        private final IndexOptions defaultOptions;
+        protected final FieldType fieldType;
         protected boolean omitNormsSet = false;
         protected boolean indexOptionsSet = false;
-        protected boolean docValuesSet = false;
+        protected boolean hasDocValues = true;
+        protected boolean indexed = true;
         protected final MultiFields.Builder multiFieldsBuilder;
         protected CopyTo copyTo = CopyTo.empty();
         protected Integer position;
+        protected float boost = 1.0f;
         @Nullable
         protected String defaultExpression;
+        // TODO move to text-specific builder base class
+        protected NamedAnalyzer indexAnalyzer;
+        protected NamedAnalyzer searchAnalyzer;
+        protected NamedAnalyzer searchQuoteAnalyzer;
 
-        protected Builder(String name, MappedFieldType fieldType, MappedFieldType defaultFieldType) {
+        protected Builder(String name, FieldType fieldType) {
             super(name);
-            this.fieldType = fieldType.clone();
-            this.defaultFieldType = defaultFieldType.clone();
-            this.defaultOptions = fieldType.indexOptions(); // we have to store it the fieldType is mutable
-            this.docValuesSet = fieldType.hasDocValues();
+            this.fieldType = new FieldType(fieldType);
             multiFieldsBuilder = new MultiFields.Builder();
         }
 
-        public MappedFieldType fieldType() {
-            return fieldType;
-        }
-
         public T index(boolean index) {
-            if (index) {
-                if (fieldType.indexOptions() == IndexOptions.NONE) {
-                    /*
-                     * the logic here is to reset to the default options only if we are not indexed ie. options are null
-                     * if the fieldType has a non-null option we are all good it might have been set through a different
-                     * call.
-                     */
-                    IndexOptions options = getDefaultIndexOption();
-                    if (options == IndexOptions.NONE) {
-                        // can happen when an existing type on the same index has disabled indexing
-                        // since we inherit the default field type from the first mapper that is
-                        // created on an index
-                        throw new IllegalArgumentException("mapper [" + name + "] has different [index] values from other types of the same index");
-                    }
-                    fieldType.setIndexOptions(options);
-                }
-            } else {
-                fieldType.setIndexOptions(IndexOptions.NONE);
+            this.indexed = index;
+            if (index == false) {
+                this.fieldType.setIndexOptions(IndexOptions.NONE);
             }
             return builder;
-        }
-
-        @Nullable
-        protected IndexOptions getDefaultIndexOption() {
-            return defaultOptions;
-        }
-
-        /**
-         * @return if this {@link Builder} allows setting of `index_options`
-         */
-        protected boolean allowsIndexOptions() {
-            return true;
         }
 
         public T store(boolean store) {
@@ -122,8 +91,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
 
         public T docValues(boolean docValues) {
-            this.fieldType.setHasDocValues(docValues);
-            this.docValuesSet = true;
+            this.hasDocValues = docValues;
             return builder;
         }
 
@@ -159,7 +127,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
 
         public T boost(float boost) {
-            this.fieldType.setBoost(boost);
+            this.boost = boost;
             return builder;
         }
 
@@ -176,26 +144,21 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
 
         public T indexAnalyzer(NamedAnalyzer indexAnalyzer) {
-            this.fieldType.setIndexAnalyzer(indexAnalyzer);
+            this.indexAnalyzer = indexAnalyzer;
             return builder;
         }
 
         public T searchAnalyzer(NamedAnalyzer searchAnalyzer) {
-            this.fieldType.setSearchAnalyzer(searchAnalyzer);
+            this.searchAnalyzer = searchAnalyzer;
             return builder;
         }
 
         public T searchQuoteAnalyzer(NamedAnalyzer searchQuoteAnalyzer) {
-            this.fieldType.setSearchQuoteAnalyzer(searchQuoteAnalyzer);
+            this.searchQuoteAnalyzer = searchQuoteAnalyzer;
             return builder;
         }
 
-        public Builder nullValue(Object nullValue) {
-            this.fieldType.setNullValue(nullValue);
-            return this;
-        }
-
-        public T addMultiField(Mapper.Builder mapperBuilder) {
+        public T addMultiField(Mapper.Builder<?> mapperBuilder) {
             multiFieldsBuilder.add(mapperBuilder);
             return builder;
         }
@@ -209,24 +172,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             return context.path().pathAsText(name);
         }
 
-        protected boolean defaultDocValues(Version indexCreated) {
-            // add doc values by default to keyword (boolean, numerics, etc.) fields
-            return fieldType.tokenized() == false;
-        }
-
-        protected void setupFieldType(BuilderContext context) {
-            fieldType.setName(buildFullName(context));
-            if (fieldType.indexAnalyzer() == null && fieldType.tokenized() == false && fieldType.indexOptions() != IndexOptions.NONE) {
-                fieldType.setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
-                fieldType.setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
-            }
-            boolean defaultDocValues = defaultDocValues(context.indexCreatedVersion());
-            defaultFieldType.setHasDocValues(defaultDocValues);
-            if (docValuesSet == false) {
-                fieldType.setHasDocValues(defaultDocValues);
-            }
-        }
-
         public void position(int position) {
             this.position = position;
         }
@@ -237,8 +182,8 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     }
 
     protected final Version indexCreatedVersion;
-    protected MappedFieldType fieldType;
-    protected final MappedFieldType defaultFieldType;
+    protected FieldType fieldType;
+    protected MappedFieldType mappedFieldType;
     protected MultiFields multiFields;
     protected CopyTo copyTo;
 
@@ -258,8 +203,8 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     protected FieldMapper(String simpleName,
                           @Nullable Integer position,
                           @Nullable String defaultExpression,
-                          MappedFieldType fieldType,
-                          MappedFieldType defaultFieldType,
+                          FieldType fieldType,
+                          MappedFieldType mappedFieldType,
                           Settings indexSettings,
                           MultiFields multiFields,
                           CopyTo copyTo) {
@@ -268,13 +213,12 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         this.position = position;
         this.defaultExpression = defaultExpression;
         this.indexCreatedVersion = Version.indexCreated(indexSettings);
-        if (simpleName.isEmpty()) {
+        if (mappedFieldType.name().isEmpty()) {
             throw new IllegalArgumentException("name cannot be empty string");
         }
         fieldType.freeze();
         this.fieldType = fieldType;
-        defaultFieldType.freeze();
-        this.defaultFieldType = defaultFieldType;
+        this.mappedFieldType = mappedFieldType;
         this.multiFields = multiFields;
         this.copyTo = Objects.requireNonNull(copyTo);
     }
@@ -290,11 +234,11 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
 
     @Override
     public String typeName() {
-        return fieldType.typeName();
+        return mappedFieldType.typeName();
     }
 
     public MappedFieldType fieldType() {
-        return fieldType;
+        return mappedFieldType;
     }
 
     /**
@@ -327,11 +271,12 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     protected abstract void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException;
 
     protected void createFieldNamesField(ParseContext context, List<IndexableField> fields) {
-        FieldNamesFieldType fieldNamesFieldType = (FieldNamesFieldMapper.FieldNamesFieldType) context.docMapper()
-                .metadataMapper(FieldNamesFieldMapper.class).fieldType();
-        if (fieldNamesFieldType != null) {
+        FieldNamesFieldType fieldNamesFieldType = context.docMapper()
+            .metadataMapper(FieldNamesFieldMapper.class)
+            .fieldType();
+        if (fieldNamesFieldType != null && fieldNamesFieldType.isEnabled()) {
             for (String fieldName : FieldNamesFieldMapper.extractFieldNames(fieldType().name())) {
-                fields.add(new Field(FieldNamesFieldMapper.NAME, fieldName, fieldNamesFieldType));
+                fields.add(new Field(FieldNamesFieldMapper.NAME, fieldName, FieldNamesFieldMapper.Defaults.FIELD_TYPE));
             }
         }
     }
@@ -355,7 +300,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         FieldMapper merged = clone();
         List<String> conflicts = new ArrayList<>();
         if (mergeWith instanceof FieldMapper == false) {
-            throw new IllegalArgumentException("mapper [" + fieldType.name() + "] cannot be changed from type ["
+            throw new IllegalArgumentException("mapper [" + mappedFieldType.name() + "] cannot be changed from type ["
             + contentType() + "] to [" + mergeWith.getClass().getSimpleName() + "]");
         }
         FieldMapper toMerge = (FieldMapper) mergeWith;
@@ -367,6 +312,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
         merged.multiFields = multiFields.merge(toMerge.multiFields);
         // apply changeable values
+        merged.mappedFieldType = toMerge.mappedFieldType;
         merged.fieldType = toMerge.fieldType;
         merged.copyTo = toMerge.copyTo;
         return merged;
@@ -379,18 +325,22 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
                 + "] to [" + mergeWith.contentType() + "]");
         }
 
-        MappedFieldType other = mergeWith.fieldType;
+        FieldType other = mergeWith.fieldType;
+        final MappedFieldType otherm = mergeWith.mappedFieldType;
 
         boolean indexed = fieldType.indexOptions() != IndexOptions.NONE;
         boolean mergeWithIndexed = other.indexOptions() != IndexOptions.NONE;
-        // TODO: should be validating if index options go "up" (but "down" is ok)
         if (indexed != mergeWithIndexed) {
             conflicts.add("mapper [" + name() + "] has different [index] values");
+        }
+        // TODO: should be validating if index options go "up" (but "down" is ok)
+        if (fieldType.indexOptions() != other.indexOptions()) {
+            conflicts.add("mapper [" + name() + "] has different [index_options] values");
         }
         if (fieldType.stored() != other.stored()) {
             conflicts.add("mapper [" + name() + "] has different [store] values");
         }
-        if (fieldType.hasDocValues() != other.hasDocValues()) {
+        if (this.mappedFieldType.hasDocValues() != otherm.hasDocValues()) {
             conflicts.add("mapper [" + name() + "] has different [doc_values] values");
         }
         if (fieldType.omitNorms() && !other.omitNorms()) {
@@ -410,13 +360,13 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
 
         // null and "default"-named index analyzers both mean the default is used
-        if (fieldType.indexAnalyzer() == null || "default".equals(fieldType.indexAnalyzer().name())) {
-            if (other.indexAnalyzer() != null && "default".equals(other.indexAnalyzer().name()) == false) {
+        if (mappedFieldType.indexAnalyzer() == null || "default".equals(mappedFieldType.indexAnalyzer().name())) {
+            if (otherm.indexAnalyzer() != null && "default".equals(otherm.indexAnalyzer().name()) == false) {
                 conflicts.add("mapper [" + name() + "] has different [analyzer]");
             }
-        } else if (other.indexAnalyzer() == null || "default".equals(other.indexAnalyzer().name())) {
+        } else if (otherm.indexAnalyzer() == null || "default".equals(otherm.indexAnalyzer().name())) {
             conflicts.add("mapper [" + name() + "] has different [analyzer]");
-        } else if (fieldType.indexAnalyzer().name().equals(other.indexAnalyzer().name()) == false) {
+        } else if (mappedFieldType.indexAnalyzer().name().equals(otherm.indexAnalyzer().name()) == false) {
             conflicts.add("mapper [" + name() + "] has different [analyzer]");
         }
     }
@@ -434,6 +384,18 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         return builder.endObject();
     }
 
+    protected boolean indexedByDefault() {
+        return true;
+    }
+
+    protected boolean docValuesByDefault() {
+        return true;
+    }
+
+    protected boolean storedByDefault() {
+        return false;
+    }
+
     protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
 
         builder.field("type", contentType());
@@ -442,10 +404,11 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             builder.field("boost", fieldType().boost());
         }
 
-        boolean indexed = fieldType().indexOptions() != IndexOptions.NONE;
-        boolean defaultIndexed = defaultFieldType.indexOptions() != IndexOptions.NONE;
-        if (includeDefaults || indexed != defaultIndexed) {
-            builder.field("index", indexed);
+        if (includeDefaults || mappedFieldType.isSearchable() != indexedByDefault()) {
+            builder.field("index", mappedFieldType.isSearchable());
+        }
+        if (includeDefaults || mappedFieldType.hasDocValues() != docValuesByDefault()) {
+            builder.field("doc_values", mappedFieldType.hasDocValues());
         }
         if (position != null) {
             builder.field("position", position);
@@ -453,18 +416,8 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         if (defaultExpression != null) {
             builder.field("default_expr", defaultExpression);
         }
-        if (includeDefaults || fieldType().stored() != defaultFieldType.stored()) {
-            builder.field("store", fieldType().stored());
-        }
-        doXContentDocValues(builder, includeDefaults);
-        if (includeDefaults || fieldType().storeTermVectors() != defaultFieldType.storeTermVectors()) {
-            builder.field("term_vector", termVectorOptionsToString(fieldType()));
-        }
-        if (includeDefaults || fieldType().omitNorms() != defaultFieldType.omitNorms()) {
-            builder.field("norms", fieldType().omitNorms() == false);
-        }
-        if (indexed && (includeDefaults || fieldType().indexOptions() != defaultFieldType.indexOptions())) {
-            builder.field("index_options", indexOptionToString(fieldType().indexOptions()));
+        if (includeDefaults || fieldType.stored() != storedByDefault()) {
+            builder.field("store", fieldType.stored());
         }
 
         multiFields.toXContent(builder, params);
@@ -481,23 +434,18 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             }
         } else {
             boolean hasDefaultIndexAnalyzer = fieldType().indexAnalyzer().name().equals("default");
-            boolean hasDifferentSearchAnalyzer = fieldType().searchAnalyzer().name().equals(fieldType().indexAnalyzer().name()) == false;
-            boolean hasDifferentSearchQuoteAnalyzer = fieldType().searchAnalyzer().name().equals(fieldType().searchQuoteAnalyzer().name()) == false;
+            final String searchAnalyzerName = fieldType().searchAnalyzer().name();
+            boolean hasDifferentSearchAnalyzer = searchAnalyzerName.equals(fieldType().indexAnalyzer().name()) == false;
+            boolean hasDifferentSearchQuoteAnalyzer = searchAnalyzerName.equals(fieldType().searchQuoteAnalyzer().name()) == false;
             if (includeDefaults || hasDefaultIndexAnalyzer == false || hasDifferentSearchAnalyzer || hasDifferentSearchQuoteAnalyzer) {
                 builder.field("analyzer", fieldType().indexAnalyzer().name());
                 if (includeDefaults || hasDifferentSearchAnalyzer || hasDifferentSearchQuoteAnalyzer) {
-                    builder.field("search_analyzer", fieldType().searchAnalyzer().name());
+                    builder.field("search_analyzer", searchAnalyzerName);
                     if (includeDefaults || hasDifferentSearchQuoteAnalyzer) {
                         builder.field("search_quote_analyzer", fieldType().searchQuoteAnalyzer().name());
                     }
                 }
             }
-        }
-    }
-
-    protected void doXContentDocValues(XContentBuilder builder, boolean includeDefaults) throws IOException {
-        if (includeDefaults || defaultFieldType.hasDocValues() != fieldType().hasDocValues()) {
-            builder.field("doc_values", fieldType().hasDocValues());
         }
     }
 

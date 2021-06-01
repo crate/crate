@@ -42,6 +42,7 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     }
 
     ArrayFieldType(MappedFieldType innerFieldType) {
+        super(innerFieldType.name(), innerFieldType.isSearchable(), innerFieldType.hasDocValues());
         this.innerFieldType = innerFieldType;
     }
 
@@ -64,11 +65,6 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     @Override
     public boolean hasDocValues() {
         return innerFieldType.hasDocValues();
-    }
-
-    @Override
-    public void setHasDocValues(boolean hasDocValues) {
-        innerFieldType.setHasDocValues(hasDocValues);
     }
 
     @Override
@@ -102,21 +98,6 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     }
 
     @Override
-    public Object nullValue() {
-        return innerFieldType.nullValue();
-    }
-
-    @Override
-    public String nullValueAsString() {
-        return innerFieldType.nullValueAsString();
-    }
-
-    @Override
-    public void setNullValue(Object nullValue) {
-        innerFieldType.setNullValue(nullValue);
-    }
-
-    @Override
     public Query termQuery(Object value, @Nullable QueryShardContext context) {
         return innerFieldType.termQuery(value, context);
     }
@@ -134,11 +115,6 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     @Override
     public Query fuzzyQuery(Object value, Fuzziness fuzziness, int prefixLength, int maxExpansions, boolean transpositions) {
         return innerFieldType.fuzzyQuery(value, fuzziness, prefixLength, maxExpansions, transpositions);
-    }
-
-    @Override
-    public Query nullValueQuery() {
-        return innerFieldType.nullValueQuery();
     }
 
     @Override

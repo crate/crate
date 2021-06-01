@@ -49,7 +49,7 @@ public class RootObjectMapper extends ObjectMapper {
             };
     }
 
-    public static class Builder extends ObjectMapper.Builder<Builder, RootObjectMapper> {
+    public static class Builder extends ObjectMapper.Builder<Builder> {
 
         protected Explicit<DynamicTemplate[]> dynamicTemplates = new Explicit<>(new DynamicTemplate[0], false);
         protected Explicit<FormatDateTimeFormatter[]> dynamicDateTimeFormatters = new Explicit<>(Defaults.DYNAMIC_DATE_TIME_FORMATTERS, false);
@@ -71,7 +71,7 @@ public class RootObjectMapper extends ObjectMapper {
 
         @Override
         public RootObjectMapper build(BuilderContext context) {
-            return super.build(context);
+            return (RootObjectMapper) super.build(context);
         }
 
         @Override

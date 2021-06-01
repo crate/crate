@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
@@ -33,7 +34,6 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
@@ -50,26 +50,23 @@ public class SourceFieldMapper extends MetadataFieldMapper {
         public static final String NAME = SourceFieldMapper.NAME;
         public static final boolean ENABLED = true;
 
-        public static final MappedFieldType FIELD_TYPE = new SourceFieldType();
+        public static final FieldType FIELD_TYPE = new FieldType();
 
         static {
             FIELD_TYPE.setIndexOptions(IndexOptions.NONE); // not indexed
             FIELD_TYPE.setStored(true);
             FIELD_TYPE.setOmitNorms(true);
-            FIELD_TYPE.setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
-            FIELD_TYPE.setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
-            FIELD_TYPE.setName(NAME);
             FIELD_TYPE.freeze();
         }
 
     }
 
-    public static class Builder extends MetadataFieldMapper.Builder<Builder, SourceFieldMapper> {
+    public static class Builder extends MetadataFieldMapper.Builder<Builder> {
 
         private boolean enabled = Defaults.ENABLED;
 
         public Builder() {
-            super(Defaults.NAME, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE);
+            super(Defaults.NAME, new FieldType(Defaults.FIELD_TYPE));
         }
 
         public Builder enabled(boolean enabled) {
@@ -85,7 +82,7 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
     public static class TypeParser implements MetadataFieldMapper.TypeParser {
         @Override
-        public MetadataFieldMapper.Builder<?,?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public MetadataFieldMapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             Builder builder = new Builder();
 
             for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
@@ -109,7 +106,10 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
     static final class SourceFieldType extends MappedFieldType {
 
-        SourceFieldType() {
+        public static final SourceFieldType INSTANCE = new SourceFieldType();
+
+        private SourceFieldType() {
+            super(NAME, false, false);
         }
 
         protected SourceFieldType(SourceFieldType ref) {
@@ -144,7 +144,7 @@ public class SourceFieldMapper extends MetadataFieldMapper {
     }
 
     private SourceFieldMapper(boolean enabled, Settings indexSettings) {
-        super(NAME, null, Defaults.FIELD_TYPE.clone(), Defaults.FIELD_TYPE, indexSettings); // Only stored.
+        super(Defaults.FIELD_TYPE, SourceFieldType.INSTANCE, indexSettings); // Only stored.
         this.enabled = enabled;
     }
 
@@ -162,7 +162,7 @@ public class SourceFieldMapper extends MetadataFieldMapper {
     protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
         BytesReference originalSource = context.sourceToParse().source();
         BytesReference source = originalSource;
-        if (enabled && fieldType().stored() && source != null) {
+        if (enabled && fieldType.stored() && source != null) {
             // Percolate and tv APIs may not set the source and that is ok, because these APIs will not index any data
             BytesRef ref = source.toBytesRef();
             fields.add(new StoredField(fieldType().name(), ref.bytes, ref.offset, ref.length));

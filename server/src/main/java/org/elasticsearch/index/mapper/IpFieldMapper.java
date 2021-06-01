@@ -29,10 +29,10 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StoredField;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocValuesFieldExistsQuery;
@@ -56,19 +56,31 @@ public class IpFieldMapper extends FieldMapper {
 
     public static class Defaults {
         public static final Explicit<Boolean> IGNORE_MALFORMED = new Explicit<>(false, false);
+        public static final FieldType FIELD_TYPE = new FieldType();
+
+        static {
+            FIELD_TYPE.setDimensions(1, Integer.BYTES);
+            FIELD_TYPE.freeze();
+        }
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder, IpFieldMapper> {
+    public static class Builder extends FieldMapper.Builder<Builder> {
 
         private Boolean ignoreMalformed;
+        private InetAddress nullValue;
 
         public Builder(String name) {
-            super(name, new IpFieldType(), new IpFieldType());
+            super(name, Defaults.FIELD_TYPE);
             builder = this;
         }
 
         public Builder ignoreMalformed(boolean ignoreMalformed) {
             this.ignoreMalformed = ignoreMalformed;
+            return builder;
+        }
+
+        public Builder nullValue(InetAddress nullValue) {
+            this.nullValue = nullValue;
             return builder;
         }
 
@@ -84,14 +96,14 @@ public class IpFieldMapper extends FieldMapper {
 
         @Override
         public IpFieldMapper build(BuilderContext context) {
-            setupFieldType(context);
             return new IpFieldMapper(
                 name,
                 position,
                 defaultExpression,
                 fieldType,
-                defaultFieldType,
+                new IpFieldType(buildFullName(context), indexed, hasDocValues),
                 ignoreMalformed(context),
+                nullValue,
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
                 copyTo);
@@ -104,7 +116,7 @@ public class IpFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Mapper.Builder<?,?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             Builder builder = new Builder(name);
             TypeParsers.parseField(builder, name, node, parserContext);
             for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
@@ -128,10 +140,12 @@ public class IpFieldMapper extends FieldMapper {
 
     public static final class IpFieldType extends SimpleMappedFieldType {
 
-        public IpFieldType() {
-            super();
-            setTokenized(false);
-            setHasDocValues(true);
+        public IpFieldType(String name, boolean indexed, boolean hasDocValues) {
+            super(name, indexed, hasDocValues);
+        }
+
+        public IpFieldType(String name) {
+            this(name, true, true);
         }
 
         IpFieldType(IpFieldType other) {
@@ -253,19 +267,22 @@ public class IpFieldMapper extends FieldMapper {
     }
 
     private Explicit<Boolean> ignoreMalformed;
+    private final InetAddress nullValue;
 
     private IpFieldMapper(
             String simpleName,
             Integer position,
             String defaultExpression,
-            MappedFieldType fieldType,
-            MappedFieldType defaultFieldType,
+            FieldType fieldType,
+            MappedFieldType mappedFieldType,
             Explicit<Boolean> ignoreMalformed,
+            InetAddress nullValue,
             Settings indexSettings,
             MultiFields multiFields,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
         this.ignoreMalformed = ignoreMalformed;
+        this.nullValue = nullValue;
     }
 
     @Override
@@ -275,7 +292,7 @@ public class IpFieldMapper extends FieldMapper {
 
     @Override
     protected String contentType() {
-        return fieldType.typeName();
+        return fieldType().typeName();
     }
 
     @Override
@@ -293,7 +310,7 @@ public class IpFieldMapper extends FieldMapper {
         }
 
         if (addressAsObject == null) {
-            addressAsObject = fieldType().nullValue();
+            addressAsObject = nullValue;;
         }
 
         if (addressAsObject == null) {
@@ -309,7 +326,7 @@ public class IpFieldMapper extends FieldMapper {
                 address = InetAddresses.forString(addressAsString);
             } catch (IllegalArgumentException e) {
                 if (ignoreMalformed.value()) {
-                    context.addIgnoredField(fieldType.name());
+                    context.addIgnoredField(fieldType().name());
                     return;
                 } else {
                     throw e;
@@ -317,15 +334,15 @@ public class IpFieldMapper extends FieldMapper {
             }
         }
 
-        if (fieldType().indexOptions() != IndexOptions.NONE) {
+        if (fieldType().isSearchable()) {
             fields.add(new InetAddressPoint(fieldType().name(), address));
         }
         if (fieldType().hasDocValues()) {
             fields.add(new SortedSetDocValuesField(fieldType().name(), new BytesRef(InetAddressPoint.encode(address))));
-        } else if (fieldType().stored() || fieldType().indexOptions() != IndexOptions.NONE) {
+        } else if (fieldType.stored() || fieldType().isSearchable()) {
             createFieldNamesField(context, fields);
         }
-        if (fieldType().stored()) {
+        if (fieldType.stored()) {
             fields.add(new StoredField(fieldType().name(), new BytesRef(InetAddressPoint.encode(address))));
         }
     }
@@ -333,6 +350,9 @@ public class IpFieldMapper extends FieldMapper {
     @Override
     protected void mergeOptions(FieldMapper other, List<String> conflicts) {
         IpFieldMapper mergeWith = (IpFieldMapper) other;
+        if (mergeWith.nullValue != this.nullValue) {
+            conflicts.add("mapper [" + name() + "] has different [null_value] values");
+        }
         if (mergeWith.ignoreMalformed.explicit()) {
             this.ignoreMalformed = mergeWith.ignoreMalformed;
         }
@@ -342,12 +362,8 @@ public class IpFieldMapper extends FieldMapper {
     protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
         super.doXContentBody(builder, includeDefaults, params);
 
-        if (includeDefaults || fieldType().nullValue() != null) {
-            Object nullValue = fieldType().nullValue();
-            if (nullValue != null) {
-                nullValue = InetAddresses.toAddrString((InetAddress) nullValue);
-            }
-            builder.field("null_value", nullValue);
+        if (nullValue != null) {
+            builder.field("null_value", InetAddresses.toAddrString(nullValue));
         }
 
         if (includeDefaults || ignoreMalformed.explicit()) {

@@ -28,10 +28,10 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.LatLonDocValuesField;
 import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.document.StoredField;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocValuesFieldExistsQuery;
@@ -53,34 +53,33 @@ import org.elasticsearch.index.query.QueryShardException;
  */
 public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapperParser {
     public static final String CONTENT_TYPE = "geo_point";
+    public static final FieldType FIELD_TYPE = new FieldType();
 
-    public static class Defaults {
-        public static final GeoPointFieldType FIELD_TYPE = new GeoPointFieldType();
-
-        static {
-            FIELD_TYPE.setTokenized(false);
-            FIELD_TYPE.setHasDocValues(true);
-            FIELD_TYPE.setDimensions(2, Integer.BYTES);
-            FIELD_TYPE.freeze();
-        }
+    static {
+        FIELD_TYPE.setStored(false);
+        FIELD_TYPE.setTokenized(false);
+        FIELD_TYPE.setDimensions(2, Integer.BYTES);
+        FIELD_TYPE.freeze();
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder, GeoPointFieldMapper> {
+    public static class Builder extends FieldMapper.Builder<Builder> {
 
         public Builder(String name) {
-            super(name, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE);
+            super(name, FIELD_TYPE);
+            hasDocValues = true;
             builder = this;
         }
 
+
         @Override
         public GeoPointFieldMapper build(BuilderContext context) {
-            setupFieldType(context);
+            var ft = new GeoPointFieldType(buildFullName(context), indexed, hasDocValues);
             return new GeoPointFieldMapper(
                 name,
                 position,
                 defaultExpression,
                 fieldType,
-                defaultFieldType,
+                ft,
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
                 copyTo);
@@ -90,7 +89,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
     public static class TypeParser implements Mapper.TypeParser {
         @Override
         @SuppressWarnings("rawtypes")
-        public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext)
+        public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext)
                 throws MapperParsingException {
             Builder builder = new GeoPointFieldMapper.Builder(name);
             parseField(builder, name, node, parserContext);
@@ -101,7 +100,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
     public GeoPointFieldMapper(String simpleName,
                                Integer position,
                                @Nullable String defaultExpression,
-                               MappedFieldType fieldType,
+                               FieldType fieldType,
                                MappedFieldType defaultFieldType,
                                Settings indexSettings,
                                MultiFields multiFields,
@@ -124,7 +123,9 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
     }
 
     public static class GeoPointFieldType extends MappedFieldType {
-        public GeoPointFieldType() {
+
+        public GeoPointFieldType(String name, boolean indexed, boolean hasDocValues) {
+            super(name, indexed, hasDocValues);
         }
 
         GeoPointFieldType(GeoPointFieldType ref) {
@@ -165,15 +166,15 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
         if (point.lon() > 180.0 || point.lon() < -180) {
             throw new IllegalArgumentException("illegal longitude value [" + point.lon() + "] for " + name());
         }
-        if (fieldType().indexOptions() != IndexOptions.NONE) {
+        if (fieldType().isSearchable()) {
             context.doc().add(new LatLonPoint(fieldType().name(), point.lat(), point.lon()));
         }
-        if (fieldType().stored()) {
+        if (fieldType.stored()) {
             context.doc().add(new StoredField(fieldType().name(), point.toString()));
         }
-        if (fieldType.hasDocValues()) {
+        if (fieldType().hasDocValues()) {
             context.doc().add(new LatLonDocValuesField(fieldType().name(), point.lat(), point.lon()));
-        } else if (fieldType().stored() || fieldType().indexOptions() != IndexOptions.NONE) {
+        } else if (fieldType.stored() || fieldType().isSearchable()) {
             List<IndexableField> fields = new ArrayList<>(1);
             createFieldNamesField(context, fields);
             for (IndexableField field : fields) {
@@ -233,9 +234,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
             } else if (token == XContentParser.Token.VALUE_STRING) {
                 parseGeoPointStringIgnoringMalformed(context, sparse);
             } else if (token == XContentParser.Token.VALUE_NULL) {
-                if (fieldType.nullValue() != null) {
-                    parse(context, (GeoPoint) fieldType.nullValue());
-                }
+                // ignore
             } else {
                 parseGeoPointIgnoringMalformed(context, sparse);
             }

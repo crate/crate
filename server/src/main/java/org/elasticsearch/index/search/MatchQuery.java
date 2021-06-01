@@ -19,11 +19,19 @@
 
 package org.elasticsearch.index.search;
 
+import static org.elasticsearch.common.lucene.search.Queries.newLenientFieldQuery;
+import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.miscellaneous.DisableGraphAttribute;
-import org.apache.lucene.index.IndexOptions;
+import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
+import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.ExtendedCommonTermsQuery;
 import org.apache.lucene.search.BooleanClause;
@@ -53,11 +61,6 @@ import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.support.QueryParsers;
-
-import java.io.IOException;
-
-import static org.elasticsearch.common.lucene.search.Queries.newLenientFieldQuery;
-import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
 
 public class MatchQuery {
 
@@ -213,10 +216,6 @@ public class MatchQuery {
         }
     }
 
-    private boolean hasPositions(MappedFieldType fieldType) {
-        return fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0;
-    }
-
     public Query parse(Type type, String fieldName, Object value) throws IOException {
         MappedFieldType fieldType = context.fieldMapper(fieldName);
         if (fieldType == null) {
@@ -237,7 +236,7 @@ public class MatchQuery {
 
         MatchQueryBuilder builder = new MatchQueryBuilder(analyzer, fieldType);
         builder.setEnablePositionIncrements(this.enablePositionIncrements);
-        if (hasPositions(fieldType)) {
+        if (fieldType.hasPositions()) {
             builder.setAutoGenerateMultiTermSynonymsPhraseQuery(this.autoGenerateSynonymsPhraseQuery);
         } else {
             builder.setAutoGenerateMultiTermSynonymsPhraseQuery(false);
@@ -314,7 +313,7 @@ public class MatchQuery {
         protected Query analyzePhrase(String field, TokenStream stream, int slop) throws IOException {
             try {
                 checkForPositions(field);
-                Query query = mapper.phraseQuery(field, stream, slop, enablePositionIncrements);
+                Query query = phraseQuery(field, stream, slop, enablePositionIncrements);
                 if (query instanceof PhraseQuery) {
                     // synonyms that expand to multiple terms can return a phrase query.
                     return blendPhraseQuery((PhraseQuery) query, mapper);
@@ -337,7 +336,7 @@ public class MatchQuery {
         protected Query analyzeMultiPhrase(String field, TokenStream stream, int slop) throws IOException {
             try {
                 checkForPositions(field);
-                return mapper.multiPhraseQuery(field, stream, slop, enablePositionIncrements);
+                return multiPhraseQuery(field, stream, slop, enablePositionIncrements);
             } catch (IllegalStateException e) {
                 if (lenient) {
                     return newLenientFieldQuery(field, e);
@@ -352,7 +351,7 @@ public class MatchQuery {
         }
 
         private void checkForPositions(String field) {
-            if (hasPositions(mapper) == false) {
+            if (mapper.hasPositions() == false) {
                 throw new IllegalStateException("field:[" + field + "] was indexed without position data; cannot run PhraseQuery");
             }
         }
@@ -506,5 +505,60 @@ public class MatchQuery {
             }
         }
         return termQuery(fieldType, term.bytes(), lenient);
+    }
+
+    private static Query multiPhraseQuery(String field, TokenStream stream, int slop, boolean enablePositionIncrements) throws IOException {
+        MultiPhraseQuery.Builder mpqb = new MultiPhraseQuery.Builder();
+        mpqb.setSlop(slop);
+
+        TermToBytesRefAttribute termAtt = stream.getAttribute(TermToBytesRefAttribute.class);
+
+        PositionIncrementAttribute posIncrAtt = stream.getAttribute(PositionIncrementAttribute.class);
+        int position = -1;
+
+        List<Term> multiTerms = new ArrayList<>();
+        stream.reset();
+        while (stream.incrementToken()) {
+            int positionIncrement = posIncrAtt.getPositionIncrement();
+
+            if (positionIncrement > 0 && multiTerms.size() > 0) {
+                if (enablePositionIncrements) {
+                    mpqb.add(multiTerms.toArray(new Term[0]), position);
+                } else {
+                    mpqb.add(multiTerms.toArray(new Term[0]));
+                }
+                multiTerms.clear();
+            }
+            position += positionIncrement;
+            multiTerms.add(new Term(field, termAtt.getBytesRef()));
+        }
+
+        if (enablePositionIncrements) {
+            mpqb.add(multiTerms.toArray(new Term[0]), position);
+        } else {
+            mpqb.add(multiTerms.toArray(new Term[0]));
+        }
+        return mpqb.build();
+    }
+
+    private static Query phraseQuery(String field, TokenStream stream, int slop, boolean enablePosIncrements) throws IOException {
+        PhraseQuery.Builder builder = new PhraseQuery.Builder();
+        builder.setSlop(slop);
+
+        TermToBytesRefAttribute termAtt = stream.getAttribute(TermToBytesRefAttribute.class);
+        PositionIncrementAttribute posIncrAtt = stream.getAttribute(PositionIncrementAttribute.class);
+        int position = -1;
+
+        stream.reset();
+        while (stream.incrementToken()) {
+            if (enablePosIncrements) {
+                position += posIncrAtt.getPositionIncrement();
+            } else {
+                position += 1;
+            }
+            builder.add(new Term(field, termAtt.getBytesRef()), position);
+        }
+
+        return builder.build();
     }
 }

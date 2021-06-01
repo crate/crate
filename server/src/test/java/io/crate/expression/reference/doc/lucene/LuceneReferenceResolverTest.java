@@ -21,20 +21,21 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import static org.hamcrest.Matchers.instanceOf;
+
+import java.util.List;
+
+import org.elasticsearch.index.mapper.KeywordFieldMapper.KeywordFieldType;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.tree.ColumnPolicy;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.junit.Test;
-
-import java.util.List;
-
-import static org.hamcrest.Matchers.instanceOf;
 
 public class LuceneReferenceResolverTest extends ESTestCase {
 
@@ -42,7 +43,7 @@ public class LuceneReferenceResolverTest extends ESTestCase {
     private RelationName name = new RelationName("s", "t");
     private LuceneReferenceResolver luceneReferenceResolver = new LuceneReferenceResolver(
         name.indexNameOrAlias(),
-        i -> KeywordFieldMapper.Defaults.FIELD_TYPE,
+        i -> new KeywordFieldType("dummy", true, false),
         List.of()
     );
 
