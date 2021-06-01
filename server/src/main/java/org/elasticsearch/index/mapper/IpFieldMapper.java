@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index.mapper;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -66,7 +65,6 @@ public class IpFieldMapper extends FieldMapper {
 
     public static class Builder extends FieldMapper.Builder<Builder> {
 
-        private Boolean ignoreMalformed;
         private InetAddress nullValue;
 
         public Builder(String name) {
@@ -74,24 +72,9 @@ public class IpFieldMapper extends FieldMapper {
             builder = this;
         }
 
-        public Builder ignoreMalformed(boolean ignoreMalformed) {
-            this.ignoreMalformed = ignoreMalformed;
-            return builder;
-        }
-
         public Builder nullValue(InetAddress nullValue) {
             this.nullValue = nullValue;
             return builder;
-        }
-
-        protected Explicit<Boolean> ignoreMalformed(BuilderContext context) {
-            if (ignoreMalformed != null) {
-                return new Explicit<>(ignoreMalformed, true);
-            }
-            if (context.indexSettings() != null) {
-                return new Explicit<>(IGNORE_MALFORMED_SETTING.get(context.indexSettings()), false);
-            }
-            return Defaults.IGNORE_MALFORMED;
         }
 
         @Override
@@ -102,7 +85,6 @@ public class IpFieldMapper extends FieldMapper {
                 defaultExpression,
                 fieldType,
                 new IpFieldType(buildFullName(context), indexed, hasDocValues),
-                ignoreMalformed(context),
                 nullValue,
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
@@ -128,9 +110,6 @@ public class IpFieldMapper extends FieldMapper {
                         throw new MapperParsingException("Property [null_value] cannot be null.");
                     }
                     builder.nullValue(InetAddresses.forString(propNode.toString()));
-                    iterator.remove();
-                } else if (propName.equals("ignore_malformed")) {
-                    builder.ignoreMalformed(nodeBooleanValue(propNode, name + ".ignore_malformed"));
                     iterator.remove();
                 }
             }
@@ -266,7 +245,6 @@ public class IpFieldMapper extends FieldMapper {
         }
     }
 
-    private Explicit<Boolean> ignoreMalformed;
     private final InetAddress nullValue;
 
     private IpFieldMapper(
@@ -275,13 +253,11 @@ public class IpFieldMapper extends FieldMapper {
             String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
-            Explicit<Boolean> ignoreMalformed,
             InetAddress nullValue,
             Settings indexSettings,
             MultiFields multiFields,
             CopyTo copyTo) {
         super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
-        this.ignoreMalformed = ignoreMalformed;
         this.nullValue = nullValue;
     }
 
@@ -322,16 +298,7 @@ public class IpFieldMapper extends FieldMapper {
         if (addressAsObject instanceof InetAddress) {
             address = (InetAddress) addressAsObject;
         } else {
-            try {
-                address = InetAddresses.forString(addressAsString);
-            } catch (IllegalArgumentException e) {
-                if (ignoreMalformed.value()) {
-                    context.addIgnoredField(fieldType().name());
-                    return;
-                } else {
-                    throw e;
-                }
-            }
+            address = InetAddresses.forString(addressAsString);
         }
 
         if (fieldType().isSearchable()) {
@@ -353,9 +320,6 @@ public class IpFieldMapper extends FieldMapper {
         if (mergeWith.nullValue != this.nullValue) {
             conflicts.add("mapper [" + name() + "] has different [null_value] values");
         }
-        if (mergeWith.ignoreMalformed.explicit()) {
-            this.ignoreMalformed = mergeWith.ignoreMalformed;
-        }
     }
 
     @Override
@@ -364,10 +328,6 @@ public class IpFieldMapper extends FieldMapper {
 
         if (nullValue != null) {
             builder.field("null_value", InetAddresses.toAddrString(nullValue));
-        }
-
-        if (includeDefaults || ignoreMalformed.explicit()) {
-            builder.field("ignore_malformed", ignoreMalformed.value());
         }
     }
 }
