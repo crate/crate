@@ -1,16 +1,25 @@
 .. highlight:: psql
-.. _ref-drop-repository:
+
+.. _sql-drop-repository:
 
 ===================
 ``DROP REPOSITORY``
 ===================
 
-Unregister a repository.
+You can use the ``DROP REPOSITORY`` :ref:`statement <gloss-statement>` to
+de-register a repository.
+
+.. SEEALSO::
+
+    :ref:`CREATE REPOSITORY <sql-create-repository>`
 
 .. rubric:: Table of contents
 
 .. contents::
    :local:
+
+
+.. _sql-drop-repo-synopsis:
 
 Synopsis
 ========
@@ -19,20 +28,27 @@ Synopsis
 
     DROP REPOSITORY repository_name;
 
+
+.. _sql-drop-repo-desc:
+
 Description
 ===========
 
-DROP REPOSITORY will unregister an existing repository from the cluster.
-
-It cannot be used for creating, dropping or restoring snapshots anymore.
+When a repository is de-registered, it is no longer available for use.
 
 .. NOTE::
 
-   Already stored snapshots in the repository remain unchanged during this
-   operation.
+    When you drop a repository, CrateDB deletes the corresponding record from
+    :ref:`sys.repositories <sys-repositories>` but does not delete any
+    snapshots from the corresponding backend data storage. If you create a new
+    repository using the same backend data storage, any existing snapshots will
+    become available again.
+
+
+.. _sql-drop-repo-params:
 
 Parameters
 ==========
 
 :repository_name:
-  The name of the repository as identifier
+  The name of the repository to de-register.

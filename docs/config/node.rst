@@ -279,14 +279,14 @@ Paths
   | *Runtime:* ``no``
 
   A list of filesystem or UNC paths where repositories of type
-  :ref:`ref-create-repository-types-fs` may be stored.
+  :ref:`sql-create-repo-fs` may be stored.
 
   Without this setting a CrateDB user could write snapshot files to any
   directory that is writable by the CrateDB process. To safeguard against this
   security issue, the possible paths have to be whitelisted here.
 
-  See also :ref:`location <ref-create-repository-types-fs-location>` setting of
-  repository type ``fs``.
+  See also :ref:`location <sql-create-repo-fs-location>` setting of repository
+  type ``fs``.
 
 .. SEEALSO::
 
@@ -719,8 +719,7 @@ Repositories are used to :ref:`backup <snapshot-restore>` a CrateDB cluster.
 **repositories.url.allowed_urls**
   | *Runtime:* ``no``
 
-  This setting only applies to repositories of type
-  :ref:`ref-create-repository-types-url`.
+  This setting only applies to repositories of type :ref:`sql-create-repo-url`.
 
   With this setting a list of urls can be specified which are allowed to be
   used if a repository of type ``url`` is created.
@@ -740,7 +739,7 @@ Repositories are used to :ref:`backup <snapshot-restore>` a CrateDB cluster.
   | *Runtime:* ``no``
 
   A list of protocols that are supported by repositories of type
-  :ref:`ref-create-repository-types-url`.
+  :ref:`sql-create-repo-url`.
 
   The ``jar`` protocol is used to access the contents of jar files. For more
   info, see the java `JarURLConnection documentation`_.

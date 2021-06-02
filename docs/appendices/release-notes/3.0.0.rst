@@ -296,7 +296,7 @@ Other Changes
   configured explicitly. Bucket regions are now inferred automatically.
 
   If you want to override this, you can use the :ref:`endpoint parameter
-  <ref-create-repository-types-s3>`.
+  <sql-create-repo-s3-endpoint>`.
 
 - Previously, the ``X-User`` HTTP header could be used to provide a username.
   This head is now deprecated in favour of the standard `HTTP Authorization
