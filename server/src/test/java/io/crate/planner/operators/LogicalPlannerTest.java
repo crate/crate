@@ -418,6 +418,19 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
     }
 
+    @Test
+    public void test_group_by_with_alias_and_limit_topn_distinct_rewrite_creates_valid_plan() {
+        TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
+        tableStats.updateTableStats(Map.of(t1.ident(), new Stats(100L, 100L, Map.of())));
+        LogicalPlan plan = plan("select a as b from doc.t1 group by a limit 10");
+        assertThat(plan, isPlan(
+            "Eval[a AS b]\n" +
+            "  └ TopNDistinct[10::bigint;0 | [a]]\n" +
+            "    └ Collect[doc.t1 | [a] | true]"
+        ));
+    }
+
+
     public static Matcher<LogicalPlan> isPlan(String expectedPlan) {
         return new FeatureMatcher<>(equalTo(expectedPlan), "same output", "output ") {
 
