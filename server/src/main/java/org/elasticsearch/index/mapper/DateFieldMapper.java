@@ -76,7 +76,6 @@ public class DateFieldMapper extends FieldMapper {
 
     public static class Builder extends FieldMapper.Builder<Builder> {
 
-        private Boolean ignoreMalformed;
         private Explicit<String> format = new Explicit<>(DEFAULT_FORMAT_PATTERN, false);
         private Boolean ignoreTimezone;
         private Locale locale;
@@ -88,24 +87,9 @@ public class DateFieldMapper extends FieldMapper {
             locale = IsoLocale.ROOT;
         }
 
-        public Builder ignoreMalformed(boolean ignoreMalformed) {
-            this.ignoreMalformed = ignoreMalformed;
-            return builder;
-        }
-
         public Builder ignoreTimezone(boolean ignoreTimezone) {
             this.ignoreTimezone = ignoreTimezone;
             return builder;
-        }
-
-        protected Explicit<Boolean> ignoreMalformed(BuilderContext context) {
-            if (ignoreMalformed != null) {
-                return new Explicit<>(ignoreMalformed, true);
-            }
-            if (context.indexSettings() != null) {
-                return new Explicit<>(IGNORE_MALFORMED_SETTING.get(context.indexSettings()), false);
-            }
-            return Defaults.IGNORE_MALFORMED;
         }
 
         public Builder locale(Locale locale) {
@@ -147,7 +131,6 @@ public class DateFieldMapper extends FieldMapper {
                 defaultExpression,
                 fieldType,
                 ft,
-                ignoreMalformed(context),
                 nullTimestamp,
                 nullValue,
                 ignoreTimezone,
@@ -175,9 +158,6 @@ public class DateFieldMapper extends FieldMapper {
                         throw new MapperParsingException("Property [null_value] cannot be null.");
                     }
                     builder.nullValue(propNode.toString());
-                    iterator.remove();
-                } else if (propName.equals("ignore_malformed")) {
-                    builder.ignoreMalformed(nodeBooleanValue(propNode, name + ".ignore_malformed"));
                     iterator.remove();
                 } else if (propName.equals("locale")) {
                     Locale locale = LocaleUtils.parse(propNode.toString());
@@ -309,7 +289,6 @@ public class DateFieldMapper extends FieldMapper {
         }
     }
 
-    private Explicit<Boolean> ignoreMalformed;
     private final Boolean ignoreTimezone;
     private final Long nullValue;
     private final String nullValueAsString;
@@ -320,7 +299,6 @@ public class DateFieldMapper extends FieldMapper {
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
-            Explicit<Boolean> ignoreMalformed,
             Long nullValue,
             String nullValueAsString,
             Boolean ignoreTimezone,
@@ -328,7 +306,6 @@ public class DateFieldMapper extends FieldMapper {
             MultiFields multiFields,
             CopyTo copyTo) {
         super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
-        this.ignoreMalformed = ignoreMalformed;
         this.ignoreTimezone = ignoreTimezone;
         this.nullValue = nullValue;
         this.nullValueAsString = nullValueAsString;
@@ -370,16 +347,7 @@ public class DateFieldMapper extends FieldMapper {
             }
             timestamp = nullValue;
         } else {
-            try {
-                timestamp = fieldType().parse(dateAsString);
-            } catch (IllegalArgumentException e) {
-                if (ignoreMalformed.value()) {
-                    context.addIgnoredField(mappedFieldType.name());
-                    return;
-                } else {
-                    throw e;
-                }
-            }
+            timestamp = fieldType().parse(dateAsString);
         }
 
         if (mappedFieldType.isSearchable()) {
@@ -404,18 +372,11 @@ public class DateFieldMapper extends FieldMapper {
         if (Objects.equals(fieldType().dateTimeFormatter().locale(), d.fieldType().dateTimeFormatter().locale()) == false) {
             conflicts.add("mapper [" + name() + "] has different [locale] values");
         }
-        if (d.ignoreMalformed.explicit()) {
-            this.ignoreMalformed = d.ignoreMalformed;
-        }
     }
 
     @Override
     protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
         super.doXContentBody(builder, includeDefaults, params);
-
-        if (includeDefaults || ignoreMalformed.explicit()) {
-            builder.field("ignore_malformed", ignoreMalformed.value());
-        }
 
         if (nullValue != null) {
             builder.field("null_value", nullValueAsString);

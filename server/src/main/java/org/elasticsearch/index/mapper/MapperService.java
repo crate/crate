@@ -87,7 +87,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     //also missing, not sure if on purpose. See IndicesModule#getMetadataMappers
     private static final ObjectHashSet<String> META_FIELDS = ObjectHashSet.from(
             "_id", "_type", "_routing", "_index",
-            "_size", "_timestamp", "_ttl", IgnoredFieldMapper.NAME
+            "_size", "_timestamp", "_ttl"
     );
 
     private final IndexAnalyzers indexAnalyzers;

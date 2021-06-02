@@ -31,7 +31,6 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import com.fasterxml.jackson.core.JsonParseException;
 
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
@@ -83,7 +82,6 @@ public class NumberFieldMapper extends FieldMapper {
 
     public static class Builder extends FieldMapper.Builder<Builder> {
 
-        private Boolean ignoreMalformed;
         private Boolean coerce;
         private Number nullValue;
         private final NumberType type;
@@ -92,11 +90,6 @@ public class NumberFieldMapper extends FieldMapper {
             super(name, Defaults.FIELD_TYPE);
             this.type = type;
             builder = this;
-        }
-
-        public Builder ignoreMalformed(boolean ignoreMalformed) {
-            this.ignoreMalformed = ignoreMalformed;
-            return builder;
         }
 
         public Builder nullValue(Number nullValue) {
@@ -108,16 +101,6 @@ public class NumberFieldMapper extends FieldMapper {
         public Builder indexOptions(IndexOptions indexOptions) {
             throw new MapperParsingException(
                     "index_options not allowed in field [" + name + "] of type [" + type.typeName() + "]");
-        }
-
-        protected Explicit<Boolean> ignoreMalformed(BuilderContext context) {
-            if (ignoreMalformed != null) {
-                return new Explicit<>(ignoreMalformed, true);
-            }
-            if (context.indexSettings() != null) {
-                return new Explicit<>(IGNORE_MALFORMED_SETTING.get(context.indexSettings()), false);
-            }
-            return Defaults.IGNORE_MALFORMED;
         }
 
         public Builder coerce(boolean coerce) {
@@ -143,7 +126,6 @@ public class NumberFieldMapper extends FieldMapper {
                 defaultExpression,
                 fieldType,
                 new NumberFieldType(buildFullName(context), type, indexed, hasDocValues),
-                ignoreMalformed(context),
                 coerce(context),
                 nullValue,
                 context.indexSettings(),
@@ -175,9 +157,6 @@ public class NumberFieldMapper extends FieldMapper {
                         throw new MapperParsingException("Property [null_value] cannot be null.");
                     }
                     builder.nullValue(type.parse(propNode, false));
-                    iterator.remove();
-                } else if (propName.equals("ignore_malformed")) {
-                    builder.ignoreMalformed(nodeBooleanValue(propNode, name + ".ignore_malformed"));
                     iterator.remove();
                 } else if (propName.equals("coerce")) {
                     builder.coerce(nodeBooleanValue(propNode, name + ".coerce"));
@@ -881,8 +860,6 @@ public class NumberFieldMapper extends FieldMapper {
         }
     }
 
-    private Explicit<Boolean> ignoreMalformed;
-
     private Explicit<Boolean> coerce;
     private final Number nullValue;
 
@@ -892,14 +869,12 @@ public class NumberFieldMapper extends FieldMapper {
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
-            Explicit<Boolean> ignoreMalformed,
             Explicit<Boolean> coerce,
             Number nullValue,
             Settings indexSettings,
             MultiFields multiFields,
             CopyTo copyTo) {
         super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
-        this.ignoreMalformed = ignoreMalformed;
         this.coerce = coerce;
         this.nullValue = nullValue;
     }
@@ -933,16 +908,7 @@ public class NumberFieldMapper extends FieldMapper {
                 && parser.textLength() == 0) {
             value = null;
         } else {
-            try {
-                numericValue = fieldType().type.parse(parser, coerce.value());
-            } catch (IllegalArgumentException | JsonParseException e) {
-                if (ignoreMalformed.value() && parser.currentToken().isValue()) {
-                    context.addIgnoredField(mappedFieldType.name());
-                    return;
-                } else {
-                    throw e;
-                }
-            }
+            numericValue = fieldType().type.parse(parser, coerce.value());
             value = numericValue;
         }
 
@@ -983,9 +949,6 @@ public class NumberFieldMapper extends FieldMapper {
                 + m.fieldType().type.name + "]"
             );
         } else {
-            if (m.ignoreMalformed.explicit()) {
-                this.ignoreMalformed = m.ignoreMalformed;
-            }
             if (m.coerce.explicit()) {
                 this.coerce = m.coerce;
             }
@@ -996,9 +959,6 @@ public class NumberFieldMapper extends FieldMapper {
     protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
         super.doXContentBody(builder, includeDefaults, params);
 
-        if (includeDefaults || ignoreMalformed.explicit()) {
-            builder.field("ignore_malformed", ignoreMalformed.value());
-        }
         if (includeDefaults || coerce.explicit()) {
             builder.field("coerce", coerce.value());
         }
