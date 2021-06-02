@@ -23,11 +23,16 @@ package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -50,6 +55,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.function.Function;
 
 public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDecimal> {
 
@@ -167,10 +173,19 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         return previousAggState;
     }
 
+    @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
-                                                       List<MappedFieldType> fieldTypes,
+    public DocValueAggregator<?> getDocValueAggregator(List<Symbol> aggregationReferences,
+                                                       Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
+                                                       DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
+        var fieldTypes = getMappedFieldTypes.apply(
+            Lists2.map(aggregationReferences, s -> ((Reference)s).column().fqn())
+        );
+        if (fieldTypes == null) {
+            return null;
+        }
+        var argumentTypes = Symbols.typeView(aggregationReferences);
         return switch (argumentTypes.get(0).id()) {
             case ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID ->
                 new SumLong(returnType, fieldTypes.get(0).name());

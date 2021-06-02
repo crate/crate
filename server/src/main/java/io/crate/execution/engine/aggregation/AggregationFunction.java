@@ -24,8 +24,10 @@ package io.crate.execution.engine.aggregation;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -33,6 +35,7 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * A special FunctionImplementation that compute a single result from a set of input values
@@ -115,7 +118,10 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
     }
 
     @Nullable
-    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes, List<MappedFieldType> fieldTypes, List<Literal<?>> optionalParams) {
+    public DocValueAggregator<?> getDocValueAggregator(List<Symbol> aggregationReferences,
+                                                       Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
+                                                       DocTableInfo table,
+                                                       List<Literal<?>> optionalParams) {
         return null;
     }
 }

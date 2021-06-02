@@ -99,6 +99,10 @@ Changes
 - Improved the performance of the :ref`hyperloglog_distinct
   <aggregation-hyperloglog-distinct>` aggregation function.
 
+- Added an optimization that improves the performance of `count()` aggregations
+  on object columns that have at least one inner column with a `NOT NULL`
+  constraint.
+
 Fixes
 =====
 

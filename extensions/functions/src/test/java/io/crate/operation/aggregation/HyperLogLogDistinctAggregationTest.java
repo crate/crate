@@ -35,8 +35,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.network.NetworkAddress;
 import org.junit.Before;
 import org.junit.Test;
 

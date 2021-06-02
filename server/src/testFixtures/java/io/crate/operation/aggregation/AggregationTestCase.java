@@ -51,6 +51,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
@@ -235,8 +236,9 @@ public abstract class AggregationTestCase extends ESTestCase {
                 );
             } else {
                 var docValueAggregator = aggregationFunction.getDocValueAggregator(
-                    actualArgumentTypes,
-                    Lists2.map(actualArgumentTypes, dataType -> mock(MappedFieldType.class)),
+                    toReference(actualArgumentTypes),
+                    getMappedFieldTypes,
+                    mock(DocTableInfo.class),
                     List.of()
                 );
                 if (docValueAggregator != null) {
@@ -567,8 +569,9 @@ public abstract class AggregationTestCase extends ESTestCase {
             SearchPath.pathWithPGCatalogAndDoc()
         );
         var docValueAggregator = aggregationFunction.getDocValueAggregator(
-            argumentTypes,
-            Lists2.map(argumentTypes, dataType -> mock(MappedFieldType.class)),
+            toReference(argumentTypes),
+            getMappedFieldTypes,
+            mock(DocTableInfo.class),
             List.of()
         );
         assertThat(
@@ -580,4 +583,22 @@ public abstract class AggregationTestCase extends ESTestCase {
             is(not(nullValue()))
         );
     }
+
+    public static List<Symbol> toReference(List<DataType<?>> dataTypes) {
+        var references = new ArrayList<Symbol>(dataTypes.size());
+        for (int i = 0; i < dataTypes.size(); i++) {
+            references.add(
+                new Reference(
+                    new ReferenceIdent(new RelationName(null, "dummy"), Integer.toString(i)),
+                    RowGranularity.DOC,
+                    dataTypes.get(i),
+                    i + 1,
+                    null)
+            );
+        }
+        return references;
+    }
+
+    private java.util.function.Function<List<String>, List<MappedFieldType>> getMappedFieldTypes =
+        refNames -> Lists2.map(refNames, refName -> mock(MappedFieldType.class));
 }
