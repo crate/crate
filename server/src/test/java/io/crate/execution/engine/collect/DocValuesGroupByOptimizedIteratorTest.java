@@ -35,6 +35,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
@@ -64,7 +65,6 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTest {
 
@@ -109,11 +109,17 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
 
         var aggregationField = new NumberFieldMapper.NumberFieldType("z", NumberFieldMapper.NumberType.LONG);
         var sumDocValuesAggregator = sumAggregation.getDocValueAggregator(
-            List.of(DataTypes.LONG),
-            List.of(aggregationField),
+            List.of(new Reference(
+                new ReferenceIdent(RelationName.fromIndexName("test"), "z"),
+                RowGranularity.DOC,
+                DataTypes.LONG,
+                0,
+                null)
+            ),
+            (x) -> List.of(aggregationField),
+            mock(DocTableInfo.class),
             List.of()
         );
-
         var keyExpressions = List.of(new LongColumnReference("y"));
         var it = DocValuesGroupByOptimizedIterator.GroupByIterator.forSingleKey(
             List.of(sumDocValuesAggregator),
@@ -154,8 +160,17 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
 
         var aggregationField = new NumberFieldMapper.NumberFieldType("z", NumberFieldMapper.NumberType.LONG);
         var sumDocValuesAggregator = sumAggregation.getDocValueAggregator(
-            List.of(DataTypes.LONG),
-            List.of(aggregationField),
+            List.of(new Reference(
+                new ReferenceIdent(
+                    RelationName.fromIndexName("test"),
+                    "z"),
+                RowGranularity.DOC,
+                DataTypes.LONG,
+                0,
+                null)
+            ),
+            (x) -> List.of(aggregationField),
+            mock(DocTableInfo.class),
             List.of()
         );
         var keyExpressions = List.of(new BytesRefColumnReference("x"), new LongColumnReference("y"));

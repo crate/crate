@@ -22,19 +22,42 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.common.MutableLong;
+import io.crate.common.collections.Lists2;
+import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.impl.templates.BinaryDocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 
 public class CountAggregationTest extends AggregationTestCase {
@@ -48,6 +71,29 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             List.of()
         );
+    }
+
+    private void assertHasDocValueAggregator(List<Symbol> aggregationReferences,
+                                             DocTableInfo sourceTable,
+                                             Class<?> expectedAggregatorClass) {
+        var aggregationFunction = (AggregationFunction<?, ?>) nodeCtx.functions().get(
+            null,
+            CountAggregation.NAME,
+            InputColumn.mapToInputColumns(aggregationReferences),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
+        var docValueAggregator = aggregationFunction.getDocValueAggregator(
+            aggregationReferences,
+            refNames -> Lists2.map(refNames, refName -> mock(MappedFieldType.class)),
+            sourceTable,
+            List.of()
+        );
+        if (expectedAggregatorClass == null) {
+            assertThat(docValueAggregator, Matchers.is(nullValue()));
+        } else {
+            assertThat(docValueAggregator, Matchers.is(notNullValue()));
+            assertThat(docValueAggregator, Matchers.is(instanceOf(expectedAggregatorClass)));
+        }
     }
 
     @Test
@@ -73,6 +119,215 @@ public class CountAggregationTest extends AggregationTestCase {
         for (var dataType : List.of(DataTypes.STRING, DataTypes.IP)) {
             assertHasDocValueAggregator(CountAggregation.NAME, List.of(dataType));
         }
+    }
+
+    private void helper_count_on_object_with_not_null_immediate_child(DataType<?> childType, Class<?> expectedAggregatorClass) {
+        Reference notNullImmediateChild = new Reference(
+            new ReferenceIdent(null, new ColumnIdent("top_level_object", "not_null_subcol")),
+            RowGranularity.DOC,
+            childType,
+            0,
+            null);
+        Reference countedObject = new Reference(
+            new ReferenceIdent(null, new ColumnIdent("top_level_object")),
+            RowGranularity.DOC,
+            ObjectType.builder().setInnerType(notNullImmediateChild.column().leafName(), notNullImmediateChild.valueType()).build(),
+            0,
+            null
+        );
+        DocTableInfo sourceTable = mock(DocTableInfo.class);
+        when(sourceTable.notNullColumns()).thenReturn(List.of(notNullImmediateChild.column()));
+        when(sourceTable.getReference(eq(notNullImmediateChild.column()))).thenReturn(notNullImmediateChild);
+
+        assertHasDocValueAggregator(List.of(countedObject), sourceTable, expectedAggregatorClass);
+        verify(sourceTable, times(1)).notNullColumns();
+        verify(sourceTable, times(1)).getReference(eq(notNullImmediateChild.column()));
+    }
+
+    @Test
+    public void test_count_on_object_with_immediate_not_null_subcolumn_uses_DocValueAggregator() {
+        var countedObjectToExpectedAggregatorMap = Map.ofEntries(
+            Map.entry(DataTypes.BYTE, SortedNumericDocValueAggregator.class),
+            Map.entry(DataTypes.TIMESTAMPZ, SortedNumericDocValueAggregator.class),
+            Map.entry(DataTypes.GEO_POINT, SortedNumericDocValueAggregator.class),
+            Map.entry(DataTypes.IP, BinaryDocValueAggregator.class),
+            Map.entry(DataTypes.STRING, BinaryDocValueAggregator.class)
+        );
+        for (var e : countedObjectToExpectedAggregatorMap.entrySet()) {
+            helper_count_on_object_with_not_null_immediate_child(e.getKey(), e.getValue());
+        }
+    }
+
+    @Test
+    public void test_count_on_object_with_deeper_not_null_subcolumn_uses_DocValueAggregator() {
+        Reference notNullGrandChild = new Reference(
+            new ReferenceIdent(
+                null,
+                new ColumnIdent("top_level_object", List.of("second_level_object", "not_null_subcol"))),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            0,
+            null);
+        Reference immediateChild = new Reference(
+            new ReferenceIdent(null, new ColumnIdent("top_level_object", "second_level_object")),
+            RowGranularity.DOC,
+            ObjectType.builder().setInnerType(notNullGrandChild.column().leafName(), notNullGrandChild.valueType()).build(),
+            0,
+            null
+        );
+        Reference countedObject = new Reference(
+            new ReferenceIdent(null, new ColumnIdent("top_level_object")),
+            RowGranularity.DOC,
+            ObjectType.builder().setInnerType(immediateChild.column().leafName(), immediateChild.valueType()).build(),
+            0,
+            null
+        );
+        DocTableInfo sourceTable = mock(DocTableInfo.class);
+        when(sourceTable.notNullColumns()).thenReturn(List.of(notNullGrandChild.column()));
+        when(sourceTable.getReference(eq(notNullGrandChild.column()))).thenReturn(notNullGrandChild);
+
+        assertHasDocValueAggregator(List.of(countedObject), sourceTable, BinaryDocValueAggregator.class);
+        verify(sourceTable, times(1)).notNullColumns();
+        verify(sourceTable, times(1)).getReference(eq(notNullGrandChild.column()));
+    }
+
+    @Test
+    public void test_count_on_object_with_not_null_sibling_not_use_DocValueAggregator() {
+        Reference notNullSibling = new Reference(
+            new ReferenceIdent(
+                null,
+                new ColumnIdent("top_level_Integer")),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            0,
+            null);
+        Reference countedObject = new Reference(
+            new ReferenceIdent(null, new ColumnIdent("top_level_object")),
+            RowGranularity.DOC,
+            ObjectType.UNTYPED,
+            0,
+            null
+        );
+        DocTableInfo sourceTable = mock(DocTableInfo.class);
+        when(sourceTable.notNullColumns()).thenReturn(List.of(notNullSibling.column()));
+        when(sourceTable.getReference(eq(notNullSibling.column()))).thenReturn(notNullSibling);
+
+        assertHasDocValueAggregator(List.of(countedObject), sourceTable, null);
+        verify(sourceTable, times(1)).notNullColumns();
+        verify(sourceTable, times(0)).getReference(eq(notNullSibling.column()));
+    }
+
+    @Test
+    public void test_count_on_object_with_not_null_siblings_child_not_use_DocValueAggregator() {
+        Reference notNullSibilingsChild = new Reference(
+            new ReferenceIdent(
+                null,
+                new ColumnIdent("top_level_sibling", List.of("not_null_subcol"))),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            0,
+            null);
+        Reference sibling = new Reference(  //unused
+            new ReferenceIdent(null, new ColumnIdent("top_level_sibling")),
+            RowGranularity.DOC,
+            ObjectType.builder().setInnerType(notNullSibilingsChild.column().leafName(), notNullSibilingsChild.valueType()).build(),
+            0,
+            null
+        );
+        Reference countedObject = new Reference(
+            new ReferenceIdent(null, new ColumnIdent("top_level_object")),
+            RowGranularity.DOC,
+            ObjectType.UNTYPED,
+            0,
+            null
+        );
+        DocTableInfo sourceTable = mock(DocTableInfo.class);
+        when(sourceTable.notNullColumns()).thenReturn(List.of(notNullSibilingsChild.column()));
+        when(sourceTable.getReference(eq(notNullSibilingsChild.column()))).thenReturn(notNullSibilingsChild);
+
+        assertHasDocValueAggregator(List.of(countedObject), sourceTable, null);
+        verify(sourceTable, times(1)).notNullColumns();
+        verify(sourceTable, times(0)).getReference(eq(notNullSibilingsChild.column()));
+    }
+
+    @Test
+    public void test_count_on_object_with_nullable_subcolumn_not_use_DocValueAggregator() {
+        Reference nullableChild = new Reference(
+            new ReferenceIdent(null, new ColumnIdent("top_level_object", "nullable_subcol")),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            0,
+            null);
+        Reference countedObject = new Reference(
+            new ReferenceIdent(null, new ColumnIdent("top_level_object")),
+            RowGranularity.DOC,
+            ObjectType.builder().setInnerType(nullableChild.column().leafName(), nullableChild.valueType()).build(),
+            0,
+            null
+        );
+        DocTableInfo sourceTable = mock(DocTableInfo.class);
+        when(sourceTable.notNullColumns()).thenReturn(List.of());
+        when(sourceTable.getReference(eq(nullableChild.column()))).thenReturn(nullableChild);
+
+        assertHasDocValueAggregator(List.of(countedObject), sourceTable, null);
+        verify(sourceTable, times(1)).notNullColumns();
+        verify(sourceTable, times(0)).getReference(eq(nullableChild.column()));
+    }
+
+    @Test
+    public void test_count_on_object_with_multiple_not_null_candidates() {
+        Reference notNullGrandChild1 = new Reference(
+            new ReferenceIdent(
+                null,
+                new ColumnIdent("top_level_object", List.of("second_level_object", "not_null_subcol1"))),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            0,
+            null);
+        Reference notNullGrandChild2 = new Reference(
+            new ReferenceIdent(
+                null,
+                new ColumnIdent("top_level_object", List.of("second_level_object", "not_null_subcol2"))),
+            RowGranularity.DOC,
+            DataTypes.BYTE,
+            0,
+            null);
+        Reference immediateChild = new Reference(
+            new ReferenceIdent(null, new ColumnIdent("top_level_object", "second_level_object")),
+            RowGranularity.DOC,
+            ObjectType.builder()
+                .setInnerType(notNullGrandChild1.column().leafName(), notNullGrandChild1.valueType())
+                .setInnerType(notNullGrandChild2.column().leafName(), notNullGrandChild2.valueType())
+                .build(),
+            0,
+            null
+        );
+        Reference notNullImmediateChild = new Reference(
+            new ReferenceIdent(null, new ColumnIdent("top_level_object", "not_null_subcol")),
+            RowGranularity.DOC,
+            DataTypes.IP,
+            0,
+            null);
+        Reference countedObject = new Reference(
+            new ReferenceIdent(null, new ColumnIdent("top_level_object")),
+            RowGranularity.DOC,
+            ObjectType.builder()
+                .setInnerType(immediateChild.column().leafName(), immediateChild.valueType())
+                .setInnerType(notNullImmediateChild.column().leafName(), notNullImmediateChild.valueType())
+                .build(),
+            0,
+            null
+        );
+        DocTableInfo sourceTable = mock(DocTableInfo.class);
+        when(sourceTable.notNullColumns()).thenReturn(List.of(notNullGrandChild1.column(),
+                                                              notNullGrandChild2.column(),
+                                                              notNullImmediateChild.column()));
+        when(sourceTable.getReference(eq(notNullGrandChild1.column()))).thenReturn(notNullGrandChild1);
+        when(sourceTable.getReference(eq(notNullGrandChild2.column()))).thenReturn(notNullGrandChild2);
+        when(sourceTable.getReference(eq(notNullImmediateChild.column()))).thenReturn(notNullImmediateChild);
+        assertHasDocValueAggregator(List.of(countedObject), sourceTable, BinaryDocValueAggregator.class);
+        verify(sourceTable, times(1)).notNullColumns();
+        verify(sourceTable, times(1)).getReference(eq(notNullGrandChild1.column()));
     }
 
     @Test

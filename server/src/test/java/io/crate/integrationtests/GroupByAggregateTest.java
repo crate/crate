@@ -33,14 +33,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 
+import java.util.Arrays;
+
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.not;
-
-import java.util.Arrays;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class GroupByAggregateTest extends SQLIntegrationTestCase {
@@ -580,6 +580,41 @@ public class GroupByAggregateTest extends SQLIntegrationTestCase {
         assertEquals("management", response.rows()[3][0]);
         assertEquals(1L, response.rows()[3][1]);
         assertEquals(1L, response.rows()[3][2]);
+    }
+
+    @Test
+    public void testCompareCountOnObjectHavingNotNullSubcolumnAndCountDirectlyOnNotNullSubcolumn() {
+        execute("""
+                   create table tbl (
+                        device int not null,
+                        payload object as (
+                            col int,
+                            nested_payload object as (
+                                col int not null)
+                        ),
+                        nullable_payload object as (
+                            col int
+                        )
+                   )
+                   """);
+        execute("insert into tbl values(1, {col=11, nested_payload={col=111}}, {col=null})");
+        execute("insert into tbl values(1, {col=null, nested_payload={col=111}}, {col=11})");
+        execute("insert into tbl values(1, {col=11, nested_payload={col=111}}, null)");
+        execute("refresh table tbl");
+
+        /* count(payload) is implicitly optimized to use DocValueAggregator of payload['nested_payload']['col'],
+           so below 3 executions are expected to have the same results. */
+        execute("select device, count(payload) from tbl group by 1");
+        assertThat(printedTable(response.rows()), is("1| 3\n"));
+        execute("select device, count(payload['nested_payload']) from tbl group by 1");
+        assertThat(printedTable(response.rows()), is("1| 3\n"));
+        execute("select device, count(payload['nested_payload']['col']) from tbl group by 1");
+        assertThat(printedTable(response.rows()), is("1| 3\n"));
+        // below are just there to show that no other available columns are used instead of payload['nested_payload']['col']
+        execute("select device, count(nullable_payload) from tbl group by 1");
+        assertThat(printedTable(response.rows()), is("1| 2\n"));
+        execute("select device, count(payload['col']) from tbl group by 1");
+        assertThat(printedTable(response.rows()), is("1| 2\n"));
     }
 
     @Test

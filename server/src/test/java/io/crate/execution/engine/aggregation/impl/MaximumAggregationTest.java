@@ -48,7 +48,7 @@ public class MaximumAggregationTest extends AggregationTestCase {
     @Test
     public void test_function_implements_doc_values_aggregator_for_numeric_types() {
         for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            assertHasDocValueAggregator(MinimumAggregation.NAME, List.of(dataType));
+            assertHasDocValueAggregator(MaximumAggregation.NAME, List.of(dataType));
         }
     }
 

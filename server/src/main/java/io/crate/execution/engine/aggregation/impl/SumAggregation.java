@@ -26,12 +26,17 @@ import io.crate.common.MutableDouble;
 import io.crate.common.MutableFloat;
 import io.crate.common.MutableLong;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -54,6 +59,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
+import java.util.function.Function;
 
 public class SumAggregation<T extends Number> extends AggregationFunction<T, T> {
 
@@ -180,10 +186,19 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         return subtraction.apply(previousAggState, returnType.sanitizeValue(stateToRemove[0].value()));
     }
 
+    @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
-                                                       List<MappedFieldType> fieldTypes,
+    public DocValueAggregator<?> getDocValueAggregator(List<Symbol> aggregationReferences,
+                                                       Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
+                                                       DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
+        var fieldTypes = getMappedFieldTypes.apply(
+            Lists2.map(aggregationReferences, s -> ((Reference)s).column().fqn())
+        );
+        if (fieldTypes == null) {
+            return null;
+        }
+        var argumentTypes = Symbols.typeView(aggregationReferences);
         switch (argumentTypes.get(0).id()) {
             case ByteType.ID:
             case ShortType.ID:

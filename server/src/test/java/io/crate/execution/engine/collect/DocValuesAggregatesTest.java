@@ -23,7 +23,9 @@ package io.crate.execution.engine.collect;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
+import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
@@ -37,6 +39,8 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
+import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,6 +50,7 @@ import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -54,6 +59,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
 
     private Functions functions;
     private SqlExpressions e;
+    private DocTableInfo table;
 
     private final Aggregation longSumAggregation = new Aggregation(
         Signature.aggregate(
@@ -65,15 +71,26 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
         List.of(new InputColumn(0, DataTypes.LONG))
     );
 
+    private final Aggregation countAggregation = new Aggregation(
+        CountAggregation.SIGNATURE,
+        CountAggregation.SIGNATURE.getReturnType().createType(),
+        List.of(new InputColumn(0, ObjectType.UNTYPED))
+    );
+
     @Before
     public void setup() {
         functions = createNodeContext().functions();
         RelationName name = new RelationName(DocSchemaInfo.NAME, "tbl");
-        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+        this.table = SQLExecutor.tableInfo(
             name,
-            "create table tbl (x bigint)",
+            """
+                create table tbl (
+                    x bigint,
+                    payload_subInt object as (col int not null)
+                )
+                """,
             clusterService);
-        Map<RelationName, AnalyzedRelation> sources = Map.of(name, new TableRelation(tableInfo));
+        Map<RelationName, AnalyzedRelation> sources = Map.of(name, new TableRelation(this.table));
         e = new SqlExpressions(sources);
     }
 
@@ -84,7 +101,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             List.of(longSumAggregation),
             fqn -> new NumberFieldMapper.NumberFieldType(fqn, NumberFieldMapper.NumberType.LONG),
             List.of(e.asSymbol("tbl.x")),
-            SearchPath.pathWithPGCatalogAndDoc()
+            SearchPath.pathWithPGCatalogAndDoc(),
+            table
         );
         assertThat(aggregators, contains(instanceOf(SumAggregation.SumLong.class)));
     }
@@ -96,7 +114,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             List.of(longSumAggregation),
             fqn -> new NumberFieldMapper.NumberFieldType(fqn, NumberFieldMapper.NumberType.LONG),
             List.of(e.asSymbol("tbl.x::real")),
-            SearchPath.pathWithPGCatalogAndDoc()
+            SearchPath.pathWithPGCatalogAndDoc(),
+            table
         );
         assertThat(aggregators, is(nullValue()));
 
@@ -105,7 +124,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             List.of(longSumAggregation),
             fqn -> new NumberFieldMapper.NumberFieldType(fqn, NumberFieldMapper.NumberType.LONG),
             List.of(e.asSymbol("tbl.x::numeric")),
-            SearchPath.pathWithPGCatalogAndDoc()
+            SearchPath.pathWithPGCatalogAndDoc(),
+            table
         );
         assertThat(aggregators, contains(instanceOf(SumAggregation.SumLong.class)));
     }
@@ -117,7 +137,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             List.of(longSumAggregation),
             fqn -> new NumberFieldMapper.NumberFieldType(fqn, NumberFieldMapper.NumberType.LONG),
             List.of(Literal.of(1)),
-            SearchPath.pathWithPGCatalogAndDoc()
+            SearchPath.pathWithPGCatalogAndDoc(),
+            table
         );
         assertThat(aggregators, is(nullValue()));
     }
@@ -129,7 +150,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             List.of(longSumAggregation),
             fqn -> null,
             List.of(Literal.of(1)),
-            SearchPath.pathWithPGCatalogAndDoc()
+            SearchPath.pathWithPGCatalogAndDoc(),
+            table
         );
         assertThat(aggregators, is(nullValue()));
     }
@@ -141,8 +163,42 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             List.of(longSumAggregation),
             fqn -> new NumberFieldMapper.NumberFieldType(fqn, NumberFieldMapper.NumberType.LONG, true, false),
             List.of(e.asSymbol("tbl.x")),
-            SearchPath.pathWithPGCatalogAndDoc()
+            SearchPath.pathWithPGCatalogAndDoc(),
+            table
         );
         assertThat(aggregators, is(nullValue()));
+    }
+
+    @Test
+    public void test_create_aggregators_for_multiple_aggregations() {
+        var actualAggregators = DocValuesAggregates.createAggregators(
+            functions,
+            List.of(new Aggregation(
+                        CountAggregation.SIGNATURE,
+                        CountAggregation.SIGNATURE.getReturnType().createType(),
+                        List.of(new InputColumn(0, ObjectType.UNTYPED))),
+                    new Aggregation(
+                        CountAggregation.SIGNATURE,
+                        CountAggregation.SIGNATURE.getReturnType().createType(),
+                        List.of(new InputColumn(1, ObjectType.UNTYPED))),
+                    new Aggregation(
+                        Signature.aggregate(
+                            SumAggregation.NAME,
+                            DataTypes.LONG.getTypeSignature(),
+                            DataTypes.LONG.getTypeSignature()
+                        ),
+                        DataTypes.LONG,
+                        List.of(new InputColumn(2, DataTypes.LONG)))
+
+            ),
+            fqn -> new KeywordFieldMapper.KeywordFieldType(fqn, true, true),  //MappedFieldType for ObjectTypes
+            List.of(e.asSymbol("tbl.Payload_subInt"), e.asSymbol("tbl.payload_subInt"),e.asSymbol("tbl.x")),
+            SearchPath.pathWithPGCatalogAndDoc(),
+            table
+        );
+        //select count(tbl.Payload_subInt), count(tbl.payload_subInt), sum(tbl.x) from tbl;
+        assertThat(actualAggregators, containsInAnyOrder(instanceOf(SortedNumericDocValueAggregator.class),
+                                                         instanceOf(SortedNumericDocValueAggregator.class),
+                                                         instanceOf(SumAggregation.SumLong.class)));
     }
 }
