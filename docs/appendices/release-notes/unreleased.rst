@@ -59,6 +59,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that could lead to errors when using ``DISTINCT`` or ``GROUP
+  BY`` with duplicate columns.
+
 - Fixed an issue that could cause ``GROUP BY`` queries with a ``LIMIT`` clause
   and aliased columns to fail.
 

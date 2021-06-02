@@ -139,9 +139,10 @@ final class DocValuesGroupByOptimizedIterator {
 
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx
             = docInputFactory.getCtx(collectTask.txnCtx());
-        docCtx.add(columnKeyRefs);
-        List<? extends LuceneCollectorExpression<?>> keyExpressions = docCtx.expressions();
-
+        List<LuceneCollectorExpression<?>> keyExpressions = new ArrayList<>();
+        for (var keyRef : columnKeyRefs) {
+            keyExpressions.add((LuceneCollectorExpression<?>) docCtx.add(keyRef));
+        }
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
