@@ -29,12 +29,12 @@ import org.apache.hadoop.security.KerberosInfo;
 import org.apache.hadoop.security.SecurityUtil;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -120,7 +120,7 @@ public final class HdfsPlugin extends Plugin implements RepositoryPlugin {
     @Override
     public Map<String, Repository.Factory> getRepositories(Environment env,
                                                            NamedXContentRegistry namedXContentRegistry,
-                                                           ThreadPool threadPool) {
+                                                           ClusterService clusterService) {
         return Collections.singletonMap(
             "hdfs",
             new Repository.Factory() {
@@ -158,7 +158,7 @@ public final class HdfsPlugin extends Plugin implements RepositoryPlugin {
 
                 @Override
                 public Repository create(RepositoryMetadata metadata) throws Exception {
-                    return new HdfsRepository(metadata, env, namedXContentRegistry, threadPool);
+                    return new HdfsRepository(metadata, env, namedXContentRegistry, clusterService);
                 }
             }
         );

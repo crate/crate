@@ -32,6 +32,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.repositories.IndexId;
+import org.elasticsearch.repositories.RepositoryOperation;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotsService;
 
@@ -83,7 +84,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         return builder.append("]").toString();
     }
 
-    public static class Entry {
+    public static class Entry implements ToXContent, RepositoryOperation {
         private final State state;
         private final Snapshot snapshot;
         private final boolean includeGlobalState;
@@ -150,8 +151,14 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             final Set<String> indexNamesInShards = new HashSet<>();
             shards.keysIt().forEachRemaining(s -> indexNamesInShards.add(s.getIndexName()));
             assert indexNames.equals(indexNamesInShards)
-                : "Indices in shards " + indexNamesInShards + " differ from expected indices " + indexNames + " for state [" + state + "]";
+                : "Indices in shards " + indexNamesInShards + " differ from expected indices " + indexNames +
+                  " for state [" + state + "]";
             return true;
+        }
+
+        @Override
+        public String repository() {
+            return snapshot.getRepository();
         }
 
         public Snapshot snapshot() {
@@ -190,7 +197,8 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             return startTime;
         }
 
-        public long getRepositoryStateId() {
+        @Override
+        public long repositoryStateId() {
             return repositoryStateId;
         }
 
@@ -246,6 +254,44 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         @Override
         public String toString() {
             return snapshot.toString();
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+            builder.startObject();
+            builder.field(REPOSITORY, snapshot.getRepository());
+            builder.field(SNAPSHOT, snapshot.getSnapshotId().getName());
+            builder.field(UUID, snapshot.getSnapshotId().getUUID());
+            builder.field(INCLUDE_GLOBAL_STATE, includeGlobalState());
+            builder.field(PARTIAL, partial);
+            builder.field(STATE, state);
+            builder.startArray(INDICES);
+            {
+                for (IndexId index : indices) {
+                    index.toXContent(builder, params);
+                }
+            }
+            builder.endArray();
+            builder.humanReadableField(START_TIME_MILLIS, START_TIME, new TimeValue(startTime));
+            builder.field(REPOSITORY_STATE_ID, repositoryStateId);
+            builder.startArray(SHARDS);
+            {
+                for (ObjectObjectCursor<ShardId, ShardSnapshotStatus> shardEntry : shards) {
+                    ShardId shardId = shardEntry.key;
+                    ShardSnapshotStatus status = shardEntry.value;
+                    builder.startObject();
+                    {
+                        builder.field(INDEX, shardId.getIndex());
+                        builder.field(SHARD, shardId.getId());
+                        builder.field(STATE, status.state());
+                        builder.field(NODE, status.nodeId());
+                    }
+                    builder.endObject();
+                }
+            }
+            builder.endArray();
+            builder.endObject();
+            return builder;
         }
 
         private ImmutableOpenMap<String, List<ShardId>> findWaitingIndices(ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
@@ -582,7 +628,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         }
         builder.endArray();
         builder.humanReadableField(START_TIME_MILLIS, START_TIME, new TimeValue(entry.startTime()));
-        builder.field(REPOSITORY_STATE_ID, entry.getRepositoryStateId());
+        builder.field(REPOSITORY_STATE_ID, entry.repositoryStateId());
         builder.startArray(SHARDS);
         {
             for (ObjectObjectCursor<ShardId, ShardSnapshotStatus> shardEntry : entry.shards) {

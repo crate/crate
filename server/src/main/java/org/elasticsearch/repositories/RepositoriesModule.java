@@ -60,11 +60,21 @@ public class RepositoriesModule extends AbstractModule {
 
             @Override
             public Repository create(RepositoryMetadata metadata) throws Exception {
-                return new FsRepository(metadata, env, namedXContentRegistry, threadPool);
+                return new FsRepository(metadata, env, namedXContentRegistry, clusterService);
             }
         });
+
         for (RepositoryPlugin repoPlugin : repoPlugins) {
-            Map<String, Repository.Factory> newRepoTypes = repoPlugin.getRepositories(env, namedXContentRegistry, threadPool);
+            Map<String, Repository.Factory> newRepoTypes = repoPlugin.getRepositories(env, namedXContentRegistry, clusterService);
+            for (Map.Entry<String, Repository.Factory> entry : newRepoTypes.entrySet()) {
+                if (factories.put(entry.getKey(), entry.getValue()) != null) {
+                    throw new IllegalArgumentException("Repository type [" + entry.getKey() + "] is already registered");
+                }
+            }
+        }
+
+        for (RepositoryPlugin repoPlugin : repoPlugins) {
+            Map<String, Repository.Factory> newRepoTypes = repoPlugin.getInternalRepositories(env, namedXContentRegistry, clusterService);
             for (Map.Entry<String, Repository.Factory> entry : newRepoTypes.entrySet()) {
                 if (factories.put(entry.getKey(), entry.getValue()) != null) {
                     throw new IllegalArgumentException("Repository type [" + entry.getKey() + "] is already registered");

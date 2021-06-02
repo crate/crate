@@ -94,6 +94,7 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.stats.CommonStats;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -3512,6 +3513,11 @@ public class IndexShardTests extends IndexShardTestCase {
                         return null;
                     });
                 }
+
+            @Override
+            public void updateState(ClusterState state) {
+                
+            }
         }, future);
         assertThat(future.actionGet(5, TimeUnit.SECONDS), is(true));
         assertThat(target.getLocalCheckpoint(), equalTo(2L));
