@@ -21,13 +21,13 @@ package org.elasticsearch.repositories.s3;
 
 import com.amazonaws.util.json.Jackson;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.repositories.TypeSettings;
 
@@ -72,7 +72,7 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
     }
 
     @Override
-    public Map<String, Repository.Factory> getRepositories(final Environment env, final NamedXContentRegistry registry, ThreadPool threadPool) {
+    public Map<String, Repository.Factory> getRepositories(final Environment env, final NamedXContentRegistry registry, ClusterService clusterService) {
         return Collections.singletonMap(
             S3Repository.TYPE,
             new Repository.Factory() {
@@ -84,7 +84,7 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
 
                 @Override
                 public Repository create(RepositoryMetadata metadata) throws Exception {
-                    return new S3Repository(metadata, env.settings(), registry, service, threadPool);
+                    return new S3Repository(metadata, registry, service, clusterService);
                 }
             }
         );

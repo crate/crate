@@ -63,6 +63,10 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.SnapshotDeletionsInProgress;
+import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Numbers;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.blobstore.BlobContainer;
@@ -108,6 +112,7 @@ import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.RepositoryException;
+import org.elasticsearch.repositories.RepositoryOperation;
 import org.elasticsearch.repositories.RepositoryVerificationException;
 import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.snapshots.ConcurrentSnapshotExecutionException;
@@ -216,8 +221,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      */
     public static final Setting<Boolean> COMPRESS_SETTING = Setting.boolSetting("compress", true, Setting.Property.NodeScope);
 
-    private final Settings settings;
-
     private final boolean compress;
 
     private final RateLimiter snapshotRateLimiter;
@@ -250,18 +253,16 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     /**
      * Constructs new BlobStoreRepository
-     *
-     * @param metadata The metadata for this repository including name and settings
-     * @param settings Settings for the node this repository object is created on
+     * @param metadata   The metadata for this repository including name and settings
+     * @param clusterService ClusterService
      */
-    protected BlobStoreRepository(RepositoryMetadata metadata,
-                                  Settings settings,
-                                  NamedXContentRegistry namedXContentRegistry,
-                                  ThreadPool threadPool,
-                                  BlobPath basePath) {
-        this.settings = settings;
+    protected BlobStoreRepository(
+        final RepositoryMetadata metadata,
+        final NamedXContentRegistry namedXContentRegistry,
+        final ClusterService clusterService,
+        final BlobPath basePath) {
         this.metadata = metadata;
-        this.threadPool = threadPool;
+        this.threadPool = clusterService.getClusterApplierService().threadPool();
         this.compress = COMPRESS_SETTING.get(metadata.settings());
         snapshotRateLimiter = getRateLimiter(metadata.settings(), "max_snapshot_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB));
         restoreRateLimiter = getRateLimiter(metadata.settings(), "max_restore_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB));
@@ -306,6 +307,36 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 LOGGER.warn("cannot close blob store", t);
             }
         }
+    }
+
+    // Inspects all cluster state elements that contain a hint about what the current repository generation is and updates
+    // #latestKnownRepoGen if a newer than currently known generation is found
+    @Override
+    public void updateState(ClusterState state) {
+        if (readOnly) {
+            // No need to waste cycles, no operations can run against a read-only repository
+            return;
+        }
+        long bestGenerationFromCS = RepositoryData.EMPTY_REPO_GEN;
+        final SnapshotsInProgress snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE);
+        if (snapshotsInProgress != null) {
+            bestGenerationFromCS = bestGeneration(snapshotsInProgress.entries());
+        }
+        final SnapshotDeletionsInProgress deletionsInProgress = state.custom(SnapshotDeletionsInProgress.TYPE);
+        // Don't use generation from the delete task if we already found a generation for an in progress snapshot.
+        // In this case, the generation points at the generation the repo will be in after the snapshot finishes so it may not yet exist
+        if (bestGenerationFromCS == RepositoryData.EMPTY_REPO_GEN && deletionsInProgress != null) {
+            bestGenerationFromCS = bestGeneration(deletionsInProgress.getEntries());
+        }
+        final long finalBestGen = bestGenerationFromCS;
+        latestKnownRepoGen.updateAndGet(known -> Math.max(known, finalBestGen));
+    }
+
+    private long bestGeneration(Collection<? extends RepositoryOperation> operations) {
+        final String repoName = metadata.name();
+        assert operations.size() <= 1 : "Assumed one or no operations but received " + operations;
+        return operations.stream().filter(e -> e.repository().equals(repoName)).mapToLong(RepositoryOperation::repositoryStateId)
+            .max().orElse(RepositoryData.EMPTY_REPO_GEN);
     }
 
     public ThreadPool threadPool() {
@@ -887,8 +918,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * @return rate limiter or null of no throttling is needed
      */
     private RateLimiter getRateLimiter(Settings repositorySettings, String setting, ByteSizeValue defaultRate) {
-        ByteSizeValue maxSnapshotBytesPerSec = repositorySettings.getAsBytesSize(setting,
-                settings.getAsBytesSize(setting, defaultRate));
+        ByteSizeValue maxSnapshotBytesPerSec = repositorySettings.getAsBytesSize(setting, defaultRate);
         if (maxSnapshotBytesPerSec.getBytes() <= 0) {
             return null;
         } else {

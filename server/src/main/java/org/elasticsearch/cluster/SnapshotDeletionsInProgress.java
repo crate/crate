@@ -26,6 +26,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.repositories.RepositoryOperation;
 import org.elasticsearch.snapshots.Snapshot;
 
 import java.io.IOException;
@@ -170,7 +171,7 @@ public class SnapshotDeletionsInProgress extends AbstractNamedDiffable<Custom> i
     /**
      * A class representing a snapshot deletion request entry in the cluster state.
      */
-    public static final class Entry implements Writeable {
+    public static final class Entry implements Writeable, RepositoryOperation {
         private final Snapshot snapshot;
         private final long startTime;
         private final long repositoryStateId;
@@ -201,13 +202,6 @@ public class SnapshotDeletionsInProgress extends AbstractNamedDiffable<Custom> i
             return startTime;
         }
 
-        /**
-         * The repository state id at the time the snapshot deletion began.
-         */
-        public long getRepositoryStateId() {
-            return repositoryStateId;
-        }
-
         @Override
         public boolean equals(Object o) {
             if (this == o) {
@@ -232,6 +226,16 @@ public class SnapshotDeletionsInProgress extends AbstractNamedDiffable<Custom> i
             snapshot.writeTo(out);
             out.writeVLong(startTime);
             out.writeLong(repositoryStateId);
+        }
+
+        @Override
+        public String repository() {
+            return snapshot.getRepository();
+        }
+
+        @Override
+        public long repositoryStateId() {
+            return repositoryStateId;
         }
     }
 }
