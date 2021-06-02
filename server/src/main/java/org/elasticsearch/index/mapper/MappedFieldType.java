@@ -44,15 +44,12 @@ public abstract class MappedFieldType {
     private final String name;
     private final boolean docValues;
     private final boolean isIndexed;
-    private float boost;
     private NamedAnalyzer indexAnalyzer;
     private NamedAnalyzer searchAnalyzer;
     private NamedAnalyzer searchQuoteAnalyzer;
     protected boolean hasPositions;
-    private boolean eagerGlobalOrdinals;
 
     public MappedFieldType(String name, boolean isIndexed, boolean hasDocValues) {
-        setBoost(1.0f);
         this.name = Objects.requireNonNull(name);
         this.isIndexed = isIndexed;
         this.docValues = hasDocValues;
@@ -63,14 +60,6 @@ public abstract class MappedFieldType {
 
     public String name() {
         return name;
-    }
-
-    public float boost() {
-        return boost;
-    }
-
-    public void setBoost(float boost) {
-        this.boost = boost;
     }
 
     public boolean hasPositions() {

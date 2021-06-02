@@ -172,7 +172,6 @@ public final class KeywordFieldMapper extends FieldMapper {
     public static final class KeywordFieldType extends StringFieldType {
 
         boolean hasNorms;
-        private Integer lengthLimit;
 
         public KeywordFieldType(String name,
                                 boolean isSearchable,
@@ -197,10 +196,6 @@ public final class KeywordFieldMapper extends FieldMapper {
         @Override
         public String typeName() {
             return CONTENT_TYPE;
-        }
-
-        public void setLengthLimit(Integer lengthLimit) {
-            this.lengthLimit = lengthLimit;
         }
 
         @Override
@@ -334,7 +329,6 @@ public final class KeywordFieldMapper extends FieldMapper {
         }
         this.ignoreAbove = k.ignoreAbove;
         this.fieldType().setSearchAnalyzer(k.fieldType().searchAnalyzer());
-        this.fieldType().setBoost(k.fieldType().boost());
     }
 
     @Override
