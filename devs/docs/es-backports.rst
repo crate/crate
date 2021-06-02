@@ -593,7 +593,6 @@ should be crossed out as well.
 - [sn] 0062d5f301a [DOCS] Remove shadow replica reference (#50029)
 - [ ] ee4a8a08dd5 Improve Snapshot Finalization Ex. Handling (#49995) (#50017)
 - [ ] 62e128f02d4 Cleanup Old index-N Blobs in Repository Cleanup (#49862) (#49902)
-- [ ] 813b49adb42 Make BlobStoreRepository Aware of ClusterState (#49639) (#49711)
 - [x] 678aeb747ea Make elasticsearch-node tools custom metadata-aware (#48390)
 - [x] 87517d96f62 Enable dependent settings values to be validated (#49942)
 - [s] fc3454b10bb Randomly run CCR tests with _source disabled (#49922)
@@ -608,6 +607,7 @@ should be crossed out as well.
 - [x] 602e589235d fix mis typo (#49689)
 - [s] a354c607228 Revert "Remove obsolete resolving logic from TRA (#49647)"
 - [s] 6cca2b04fa0 Remove obsolete resolving logic from TRA (#49647)
+- [x] 459d8edcc08 Make BlobStoreRepository Aware of ClusterState (#49639)
 - [x] 4b16d50cd4b Fix typo when assigning null_value in GeoPointFieldMapper  (#49645)
 - [x] 93dc8941d44 Strengthen validateClusterFormed check (#49248)
 - [x] ba5b4f14131 ESIntegTestCase always cleans up static fields (#49105)

@@ -33,6 +33,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.repositories.IndexId;
+import org.elasticsearch.repositories.RepositoryOperation;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotsService;
 
@@ -84,7 +85,8 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         return builder.append("]").toString();
     }
 
-    public static class Entry implements ToXContent {
+    public static class Entry implements ToXContent, RepositoryOperation {
+
         private final State state;
         private final Snapshot snapshot;
         private final boolean includeGlobalState;
@@ -151,8 +153,14 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             final Set<String> indexNamesInShards = new HashSet<>();
             shards.keysIt().forEachRemaining(s -> indexNamesInShards.add(s.getIndexName()));
             assert indexNames.equals(indexNamesInShards)
-                : "Indices in shards " + indexNamesInShards + " differ from expected indices " + indexNames + " for state [" + state + "]";
+                : "Indices in shards " + indexNamesInShards + " differ from expected indices " + indexNames +
+                  " for state [" + state + "]";
             return true;
+        }
+
+        @Override
+        public String repository() {
+            return snapshot.getRepository();
         }
 
         public Snapshot snapshot() {
@@ -191,7 +199,8 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             return startTime;
         }
 
-        public long getRepositoryStateId() {
+        @Override
+        public long repositoryStateId() {
             return repositoryStateId;
         }
 
@@ -285,11 +294,6 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             builder.endArray();
             builder.endObject();
             return builder;
-        }
-
-        @Override
-        public boolean isFragment() {
-            return false;
         }
 
         private ImmutableOpenMap<String, List<ShardId>> findWaitingIndices(ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
