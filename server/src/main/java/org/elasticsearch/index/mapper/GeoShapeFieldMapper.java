@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -273,49 +272,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
             this.precisionInMeters = precisionInMeters;
             this.distanceErrorPct = distanceErrorPct;
             this.orientation = orientation;
-        }
-
-        protected GeoShapeFieldType(GeoShapeFieldType ref) {
-            super(ref);
-            this.tree = ref.tree;
-            this.strategyName = ref.strategyName;
-            this.pointsOnly = ref.pointsOnly;
-            this.treeLevels = ref.treeLevels;
-            this.precisionInMeters = ref.precisionInMeters;
-            this.distanceErrorPct = ref.distanceErrorPct;
-            this.orientation = ref.orientation;
-        }
-
-        @Override
-        public GeoShapeFieldType clone() {
-            return new GeoShapeFieldType(this);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!super.equals(o)) return false;
-            GeoShapeFieldType that = (GeoShapeFieldType) o;
-            return treeLevels == that.treeLevels &&
-                precisionInMeters == that.precisionInMeters &&
-                Objects.equals(tree, that.tree) &&
-                Objects.equals(strategyName, that.strategyName) &&
-                pointsOnly == that.pointsOnly &&
-                Objects.equals(distanceErrorPct, that.distanceErrorPct) &&
-                orientation == that.orientation;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(
-                super.hashCode(),
-                tree,
-                strategyName,
-                pointsOnly,
-                treeLevels,
-                precisionInMeters,
-                distanceErrorPct,
-                orientation
-            );
         }
 
         @Override

@@ -136,25 +136,6 @@ public class TextFieldMapper extends FieldMapper {
             this(name, true, true);
         }
 
-        protected TextFieldType(TextFieldType ref) {
-            super(ref);
-            this.hasPositions = ref.hasPositions;
-        }
-
-        public TextFieldType clone() {
-            return new TextFieldType(this);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return super.equals(o);
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode();
-        }
-
         @Override
         public String typeName() {
             return CONTENT_TYPE;

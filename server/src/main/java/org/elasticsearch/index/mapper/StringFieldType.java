@@ -33,10 +33,6 @@ public abstract class StringFieldType extends TermBasedFieldType {
         super(name, isSearchable, hasDocValues);
     }
 
-    protected StringFieldType(MappedFieldType ref) {
-        super(ref);
-    }
-
     @Override
     public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, QueryShardContext context) {
         failIfNotIndexed();

@@ -193,37 +193,6 @@ public final class KeywordFieldMapper extends FieldMapper {
             this(name, true, true);
         }
 
-        protected KeywordFieldType(KeywordFieldType ref) {
-            super(ref);
-            this.hasNorms = ref.hasNorms;
-            setIndexAnalyzer(ref.indexAnalyzer());
-            setSearchAnalyzer(ref.searchAnalyzer());
-        }
-
-        @Override
-        public KeywordFieldType clone() {
-            return new KeywordFieldType(this);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            if (!super.equals(o)) {
-                return false;
-            }
-            KeywordFieldType that = (KeywordFieldType) o;
-            return Objects.equals(lengthLimit, that.lengthLimit);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(super.hashCode(), lengthLimit);
-        }
 
         @Override
         public String typeName() {
