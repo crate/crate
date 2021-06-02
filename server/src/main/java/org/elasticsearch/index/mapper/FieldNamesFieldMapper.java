@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -107,28 +106,6 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
 
         public FieldNamesFieldType() {
             super(Defaults.NAME, true, false);
-        }
-
-        protected FieldNamesFieldType(FieldNamesFieldType ref) {
-            super(ref);
-            this.enabled = ref.enabled;
-        }
-
-        @Override
-        public FieldNamesFieldType clone() {
-            return new FieldNamesFieldType(this);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!super.equals(o)) return false;
-            FieldNamesFieldType that = (FieldNamesFieldType) o;
-            return enabled == that.enabled;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(super.hashCode(), enabled);
         }
 
         @Override

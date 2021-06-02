@@ -117,15 +117,6 @@ public class RoutingFieldMapper extends MetadataFieldMapper {
             setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
         }
 
-        protected RoutingFieldType(RoutingFieldType ref) {
-            super(ref);
-        }
-
-        @Override
-        public MappedFieldType clone() {
-            return new RoutingFieldType(this);
-        }
-
         @Override
         public String typeName() {
             return CONTENT_TYPE;

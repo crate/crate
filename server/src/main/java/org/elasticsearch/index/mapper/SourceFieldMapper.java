@@ -112,15 +112,6 @@ public class SourceFieldMapper extends MetadataFieldMapper {
             super(NAME, false, false);
         }
 
-        protected SourceFieldType(SourceFieldType ref) {
-            super(ref);
-        }
-
-        @Override
-        public MappedFieldType clone() {
-            return new SourceFieldType(this);
-        }
-
         @Override
         public String typeName() {
             return CONTENT_TYPE;
