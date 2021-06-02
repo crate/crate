@@ -222,8 +222,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             for (var thisInnerField : this.innerTypes.entrySet()) {
                 var thisInnerType = thisInnerField.getValue();
                 var thatInnerType = that.innerTypes().get(thisInnerField.getKey());
-                if (thatInnerType == null
-                    || !thisInnerType.isConvertableTo(thatInnerType, explicitCast)) {
+                if (thatInnerType != null && !thisInnerType.isConvertableTo(thatInnerType, explicitCast)) {
                     return false;
                 }
             }
