@@ -19,18 +19,14 @@
 
 package org.elasticsearch.index.mapper;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
-
 
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
@@ -50,14 +46,10 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
-import org.elasticsearch.common.Explicit;
 import org.elasticsearch.common.Numbers;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.index.query.QueryShardContext;
@@ -65,56 +57,27 @@ import org.elasticsearch.index.query.QueryShardContext;
 /** A {@link FieldMapper} for numeric types: byte, short, int, long, float and double. */
 public class NumberFieldMapper extends FieldMapper {
 
-    public static final Setting<Boolean> COERCE_SETTING =
-            Setting.boolSetting("index.mapping.coerce", true, Property.IndexScope);
+    public static final FieldType FIELD_TYPE = new FieldType();
 
-    public static class Defaults {
-        public static final Explicit<Boolean> IGNORE_MALFORMED = new Explicit<>(false, false);
-        public static final Explicit<Boolean> COERCE = new Explicit<>(true, false);
-        public static final FieldType FIELD_TYPE = new FieldType();
-
-        static {
-            FIELD_TYPE.setStored(false);
-            FIELD_TYPE.freeze();
-        }
+    static {
+        FIELD_TYPE.setStored(false);
+        FIELD_TYPE.freeze();
     }
 
     public static class Builder extends FieldMapper.Builder<Builder> {
 
-        private Boolean coerce;
-        private Number nullValue;
         private final NumberType type;
 
         public Builder(String name, NumberType type) {
-            super(name, Defaults.FIELD_TYPE);
+            super(name, FIELD_TYPE);
             this.type = type;
             builder = this;
-        }
-
-        public Builder nullValue(Number nullValue) {
-            this.nullValue = nullValue;
-            return builder;
         }
 
         @Override
         public Builder indexOptions(IndexOptions indexOptions) {
             throw new MapperParsingException(
                     "index_options not allowed in field [" + name + "] of type [" + type.typeName() + "]");
-        }
-
-        public Builder coerce(boolean coerce) {
-            this.coerce = coerce;
-            return builder;
-        }
-
-        protected Explicit<Boolean> coerce(BuilderContext context) {
-            if (coerce != null) {
-                return new Explicit<>(coerce, true);
-            }
-            if (context.indexSettings() != null) {
-                return new Explicit<>(COERCE_SETTING.get(context.indexSettings()), false);
-            }
-            return Defaults.COERCE;
         }
 
         @Override
@@ -125,8 +88,6 @@ public class NumberFieldMapper extends FieldMapper {
                 defaultExpression,
                 fieldType,
                 new NumberFieldType(buildFullName(context), type, indexed, hasDocValues),
-                coerce(context),
-                nullValue,
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
                 copyTo
@@ -147,21 +108,6 @@ public class NumberFieldMapper extends FieldMapper {
                                          ParserContext parserContext) throws MapperParsingException {
             Builder builder = new Builder(name, type);
             TypeParsers.parseField(builder, name, node, parserContext);
-            for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
-                Map.Entry<String, Object> entry = iterator.next();
-                String propName = entry.getKey();
-                Object propNode = entry.getValue();
-                if (propName.equals("null_value")) {
-                    if (propNode == null) {
-                        throw new MapperParsingException("Property [null_value] cannot be null.");
-                    }
-                    builder.nullValue(type.parse(propNode, false));
-                    iterator.remove();
-                } else if (propName.equals("coerce")) {
-                    builder.coerce(nodeBooleanValue(propNode, name + ".coerce"));
-                    iterator.remove();
-                }
-            }
             return builder;
         }
     }
@@ -824,23 +770,16 @@ public class NumberFieldMapper extends FieldMapper {
 
     }
 
-    private Explicit<Boolean> coerce;
-    private final Number nullValue;
-
     private NumberFieldMapper(
             String simpleName,
             Integer position,
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
-            Explicit<Boolean> coerce,
-            Number nullValue,
             Settings indexSettings,
             MultiFields multiFields,
             CopyTo copyTo) {
         super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
-        this.coerce = coerce;
-        this.nullValue = nullValue;
     }
 
     @Override
@@ -867,17 +806,12 @@ public class NumberFieldMapper extends FieldMapper {
             value = context.externalValue();
         } else if (parser.currentToken() == Token.VALUE_NULL) {
             value = null;
-        } else if (coerce.value()
-                && parser.currentToken() == Token.VALUE_STRING
+        } else if (parser.currentToken() == Token.VALUE_STRING
                 && parser.textLength() == 0) {
             value = null;
         } else {
-            numericValue = fieldType().type.parse(parser, coerce.value());
+            numericValue = fieldType().type.parse(parser, true);
             value = numericValue;
-        }
-
-        if (value == null) {
-            value = nullValue;
         }
 
         if (value == null) {
@@ -885,7 +819,7 @@ public class NumberFieldMapper extends FieldMapper {
         }
 
         if (numericValue == null) {
-            numericValue = fieldType().type.parse(value, coerce.value());
+            numericValue = fieldType().type.parse(value, true);
         }
 
         boolean docValued = fieldType().hasDocValues();
@@ -912,23 +846,6 @@ public class NumberFieldMapper extends FieldMapper {
                 + "] to ["
                 + m.fieldType().type.name + "]"
             );
-        } else {
-            if (m.coerce.explicit()) {
-                this.coerce = m.coerce;
-            }
-        }
-    }
-
-    @Override
-    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
-        super.doXContentBody(builder, includeDefaults, params);
-
-        if (includeDefaults || coerce.explicit()) {
-            builder.field("coerce", coerce.value());
-        }
-
-        if (nullValue != null) {
-            builder.field("null_value", nullValue);
         }
     }
 }
