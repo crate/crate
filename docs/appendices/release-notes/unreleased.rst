@@ -59,6 +59,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that prevented ``INSERT INTO`` statements where the source is
+  a query that selects an object column which contains a different set of
+  columns than the target object column.
+
 - Fixed an issue that could lead to errors when using ``DISTINCT`` or ``GROUP
   BY`` with duplicate columns.
 
