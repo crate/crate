@@ -21,6 +21,15 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.analyze.SymbolEvaluator.evaluate;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -33,17 +42,14 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
-
-import javax.annotation.Nullable;
-import java.util.List;
-
-import static io.crate.analyze.SymbolEvaluator.evaluate;
 
 public final class TopNDistinct extends ForwardingLogicalPlan {
 
@@ -142,6 +148,21 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
             );
         }
         return executionPlan;
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+        HashSet<Symbol> toKeep = new HashSet<>();
+        Consumer<Symbol> keep = toKeep::add;
+        // Pruning unused outputs would change semantics. Need to keep all in any case
+        for (var output : outputs) {
+            SymbolVisitors.intersection(output, source.outputs(), keep);
+        }
+        LogicalPlan prunedSource = source.pruneOutputsExcept(tableStats, toKeep);
+        if (prunedSource == source) {
+            return this;
+        }
+        return new TopNDistinct(prunedSource, limit, offset, outputs);
     }
 
     @Override

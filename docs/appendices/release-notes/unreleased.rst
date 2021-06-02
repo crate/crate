@@ -97,6 +97,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could cause ``GROUP BY`` queries with a ``LIMIT`` clause
+  and aliased columns to fail.
+
 - Fixed an issue that prevented ``LIKE`` operators from using the index if the
   left operand was a varchar column with length limit, and the right operand a
   literal.
