@@ -43,7 +43,6 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
@@ -800,31 +799,19 @@ public class NumberFieldMapper extends FieldMapper {
         @Override
         public Query termQuery(Object value, QueryShardContext context) {
             failIfNotIndexed();
-            Query query = type.termQuery(name(), value);
-            if (boost() != 1f) {
-                query = new BoostQuery(query, boost());
-            }
-            return query;
+            return type.termQuery(name(), value);
         }
 
         @Override
         public Query termsQuery(List values, QueryShardContext context) {
             failIfNotIndexed();
-            Query query = type.termsQuery(name(), values);
-            if (boost() != 1f) {
-                query = new BoostQuery(query, boost());
-            }
-            return query;
+            return type.termsQuery(name(), values);
         }
 
         @Override
         public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, QueryShardContext context) {
             failIfNotIndexed();
-            Query query = type.rangeQuery(name(), lowerTerm, upperTerm, includeLower, includeUpper, hasDocValues());
-            if (boost() != 1f) {
-                query = new BoostQuery(query, boost());
-            }
-            return query;
+            return type.rangeQuery(name(), lowerTerm, upperTerm, includeLower, includeUpper, hasDocValues());
         }
 
         @Override

@@ -37,7 +37,6 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
@@ -211,11 +210,7 @@ public class DateFieldMapper extends FieldMapper {
 
         @Override
         public Query termQuery(Object value, @Nullable QueryShardContext context) {
-            Query query = rangeQuery(value, value, true, true, ShapeRelation.INTERSECTS, null, context);
-            if (boost() != 1f) {
-                query = new BoostQuery(query, boost());
-            }
-            return query;
+            return rangeQuery(value, value, true, true, ShapeRelation.INTERSECTS, null, context);
         }
 
         @Override

@@ -397,10 +397,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
 
         builder.field("type", contentType());
 
-        if (includeDefaults || fieldType().boost() != 1.0f) {
-            builder.field("boost", fieldType().boost());
-        }
-
         if (includeDefaults || mappedFieldType.isSearchable() != indexedByDefault()) {
             builder.field("index", mappedFieldType.isSearchable());
         }
