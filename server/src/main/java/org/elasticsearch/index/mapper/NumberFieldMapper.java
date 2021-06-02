@@ -713,7 +713,7 @@ public class NumberFieldMapper extends FieldMapper {
         }
     }
 
-    public static final class NumberFieldType extends SimpleMappedFieldType {
+    public static final class NumberFieldType extends MappedFieldType {
 
         private final NumberType type;
 
@@ -755,7 +755,7 @@ public class NumberFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, QueryShardContext context) {
+        public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper) {
             failIfNotIndexed();
             return type.rangeQuery(name(), lowerTerm, upperTerm, includeLower, includeUpper, hasDocValues());
         }

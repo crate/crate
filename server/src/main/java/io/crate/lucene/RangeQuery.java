@@ -87,6 +87,6 @@ class RangeQuery implements FunctionToQuery {
         }
         Tuple<?, ?> bounds = boundsFunction.apply(value);
         assert bounds != null : "bounds must not be null";
-        return fieldType.rangeQuery(bounds.v1(), bounds.v2(), includeLower, includeUpper, null, null, queryShardContext);
+        return fieldType.rangeQuery(bounds.v1(), bounds.v2(), includeLower, includeUpper);
     }
 }

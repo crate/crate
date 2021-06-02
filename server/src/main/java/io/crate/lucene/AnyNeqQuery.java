@@ -34,7 +34,7 @@ import java.io.IOException;
 class AnyNeqQuery extends AbstractAnyQuery {
 
     @Override
-    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
+    protected Query literalMatchesAnyArrayRef(Literal<?> candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
         // 1 != any ( col ) -->  gt 1 or lt 1
         String columnName = array.column().fqn();
         Object value = candidate.value();
@@ -46,18 +46,18 @@ class AnyNeqQuery extends AbstractAnyQuery {
         BooleanQuery.Builder query = new BooleanQuery.Builder();
         query.setMinimumNumberShouldMatch(1);
         query.add(
-            fieldType.rangeQuery(value, null, false, false, null, null, context.queryShardContext),
+            fieldType.rangeQuery(value, null, false, false),
             BooleanClause.Occur.SHOULD
         );
         query.add(
-            fieldType.rangeQuery(null, value, false, false, null, null, context.queryShardContext),
+            fieldType.rangeQuery(null, value, false, false),
             BooleanClause.Occur.SHOULD
         );
         return query.build();
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal array, LuceneQueryBuilder.Context context) {
+    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal<?> array, LuceneQueryBuilder.Context context) {
         //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
         String columnName = candidate.column().fqn();
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);

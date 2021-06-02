@@ -30,11 +30,9 @@ import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.QueryShardException;
-import org.joda.time.DateTimeZone;
 
 /**
  * This defines the core properties and functions to operate on a field.
@@ -137,13 +135,7 @@ public abstract class MappedFieldType {
      * Factory method for range queries.
      * @param relation the relation, nulls should be interpreted like INTERSECTS
      */
-    public Query rangeQuery(Object lowerTerm,
-                            Object upperTerm,
-                            boolean includeLower,
-                            boolean includeUpper,
-                            ShapeRelation relation,
-                            DateTimeZone timeZone,
-                            QueryShardContext context) {
+    public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper) {
         throw new IllegalArgumentException("Field [" + name + "] of type [" + typeName() + "] does not support range queries");
     }
 
