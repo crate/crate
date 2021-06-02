@@ -40,6 +40,8 @@ import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.not;
 
+import java.util.Arrays;
+
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
@@ -1334,5 +1336,26 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         );
         execute("select name, count(x), count(x) from doc.tbl group by name");
         assertThat(printedTable(response.rows()), Is.is("Apple| 3| 3\n"));
+    }
+
+    @Test
+    @UseJdbc(1)
+    public void test_group_by_on_duplicate_keys() throws Exception {
+        execute("create table tbl (city text, name text, id text, location geo_point)");
+        execute(
+            "insert into tbl (id, name, location, city) values " +
+            " ('122021430M', 'Rue Penavayre', [2.573609,44.35007], 'Rodez'), " +
+            " ('013440476U', 'Avenue de Trévoux ', [5.201722,46.20096], 'Saint-Denis-lès-Bourg'), " +
+            " ('021140050C', 'Rue Paul Doumer ', [3.426928,49.04915], 'Brasles') ");
+        execute("refresh table tbl");
+        execute("SELECT DISTINCT id, name, id, location, city FROM tbl");
+
+        // Ensure deterministic order for assertion → sort by id
+        Arrays.sort(response.rows(), (a, b) -> ((String) a[0]).compareTo((String) b[0]));
+        assertThat(printedTable(response.rows()), is(
+            "013440476U| Avenue de Trévoux | 013440476U| Pt(x=5.20172193646431,y=46.200959966517985)| Saint-Denis-lès-Bourg\n" +
+            "021140050C| Rue Paul Doumer | 021140050C| Pt(x=3.426927952095866,y=49.04914998449385)| Brasles\n" +
+            "122021430M| Rue Penavayre| 122021430M| Pt(x=2.573608970269561,y=44.35006999410689)| Rodez\n"
+        ));
     }
 }
