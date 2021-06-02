@@ -51,56 +51,11 @@ public abstract class MappedFieldType {
     protected boolean hasPositions;
     private boolean eagerGlobalOrdinals;
 
-    protected MappedFieldType(MappedFieldType ref) {
-        this.name = ref.name();
-        this.boost = ref.boost();
-        this.isIndexed = ref.isIndexed;
-        this.docValues = ref.hasDocValues();
-        this.indexAnalyzer = ref.indexAnalyzer();
-        this.searchAnalyzer = ref.searchAnalyzer();
-        this.searchQuoteAnalyzer = ref.searchQuoteAnalyzer();
-        this.eagerGlobalOrdinals = ref.eagerGlobalOrdinals;
-        this.hasPositions = ref.hasPositions;
-    }
-
     public MappedFieldType(String name, boolean isIndexed, boolean hasDocValues) {
         setBoost(1.0f);
         this.name = Objects.requireNonNull(name);
         this.isIndexed = isIndexed;
         this.docValues = hasDocValues;
-    }
-
-    @Override
-    public abstract MappedFieldType clone();
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        MappedFieldType fieldType = (MappedFieldType) o;
-
-        return boost == fieldType.boost &&
-            docValues == fieldType.docValues &&
-            Objects.equals(name, fieldType.name) &&
-            Objects.equals(indexAnalyzer, fieldType.indexAnalyzer) &&
-            Objects.equals(searchAnalyzer, fieldType.searchAnalyzer) &&
-            Objects.equals(searchQuoteAnalyzer(), fieldType.searchQuoteAnalyzer()) &&
-            Objects.equals(eagerGlobalOrdinals, fieldType.eagerGlobalOrdinals);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(
-            super.hashCode(),
-            name,
-            boost,
-            docValues,
-            indexAnalyzer,
-            searchAnalyzer,
-            searchQuoteAnalyzer,
-            eagerGlobalOrdinals
-        );
     }
 
     /** Returns the name of this type, as would be specified in mapping properties */

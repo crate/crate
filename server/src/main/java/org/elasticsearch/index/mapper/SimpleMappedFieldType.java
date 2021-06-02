@@ -33,10 +33,6 @@ public abstract class SimpleMappedFieldType extends MappedFieldType {
         super(name, isSearchable, hasDocValues);
     }
 
-    protected SimpleMappedFieldType(MappedFieldType ref) {
-        super(ref);
-    }
-
     @Override
     public final Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper,
                                   ShapeRelation relation, DateTimeZone timeZone, QueryShardContext context) {

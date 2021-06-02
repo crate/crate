@@ -183,29 +183,6 @@ public class DateFieldMapper extends FieldMapper {
             this.dateTimeFormatter = formatter;
         }
 
-        DateFieldType(DateFieldType other) {
-            super(other);
-            this.dateTimeFormatter = other.dateTimeFormatter;
-        }
-
-        @Override
-        public MappedFieldType clone() {
-            return new DateFieldType(this);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!super.equals(o)) return false;
-            DateFieldType that = (DateFieldType) o;
-            return Objects.equals(dateTimeFormatter.format(), that.dateTimeFormatter.format()) &&
-                   Objects.equals(dateTimeFormatter.locale(), that.dateTimeFormatter.locale());
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(super.hashCode(), dateTimeFormatter.format(), dateTimeFormatter.locale());
-        }
-
         @Override
         public String typeName() {
             return CONTENT_TYPE;

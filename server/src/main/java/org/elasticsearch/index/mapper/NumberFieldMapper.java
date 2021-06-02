@@ -783,16 +783,6 @@ public class NumberFieldMapper extends FieldMapper {
             this(name, type, true, true);
         }
 
-        private NumberFieldType(NumberFieldType other) {
-            super(other);
-            this.type = other.type;
-        }
-
-        @Override
-        public MappedFieldType clone() {
-            return new NumberFieldType(this);
-        }
-
         @Override
         public String typeName() {
             return type.name;
@@ -845,19 +835,6 @@ public class NumberFieldMapper extends FieldMapper {
             return type.valueForSearch((Number) value);
         }
 
-        @Override
-        public boolean equals(Object o) {
-            if (super.equals(o) == false) {
-                return false;
-            }
-            NumberFieldType that = (NumberFieldType) o;
-            return type == that.type;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(super.hashCode(), type);
-        }
     }
 
     private Explicit<Boolean> coerce;

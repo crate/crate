@@ -77,15 +77,6 @@ public class VersionFieldMapper extends MetadataFieldMapper {
             super(NAME, false, true);
         }
 
-        protected VersionFieldType(VersionFieldType ref) {
-            super(ref);
-        }
-
-        @Override
-        public MappedFieldType clone() {
-            return new VersionFieldType(this);
-        }
-
         @Override
         public String typeName() {
             return CONTENT_TYPE;

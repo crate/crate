@@ -128,15 +128,6 @@ public class BooleanFieldMapper extends FieldMapper {
             this(name, true, true);
         }
 
-        protected BooleanFieldType(BooleanFieldType ref) {
-            super(ref);
-        }
-
-        @Override
-        public MappedFieldType clone() {
-            return new BooleanFieldType(this);
-        }
-
         @Override
         public String typeName() {
             return CONTENT_TYPE;

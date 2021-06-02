@@ -30,14 +30,9 @@ import org.joda.time.DateTimeZone;
 
 import java.util.List;
 
-class ArrayFieldType extends MappedFieldType implements Cloneable {
+class ArrayFieldType extends MappedFieldType {
 
     private final MappedFieldType innerFieldType;
-
-    private ArrayFieldType(ArrayFieldType ref) {
-        super(ref);
-        this.innerFieldType = ref.innerFieldType;
-    }
 
     ArrayFieldType(MappedFieldType innerFieldType) {
         super(innerFieldType.name(), innerFieldType.isSearchable(), innerFieldType.hasDocValues());
@@ -47,12 +42,6 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     @Override
     public String name() {
         return innerFieldType.name();
-    }
-
-    @SuppressWarnings("CloneDoesntCallSuperClone")
-    @Override
-    public MappedFieldType clone() {
-        return new ArrayFieldType(this);
     }
 
     @Override
