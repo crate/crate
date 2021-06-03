@@ -117,6 +117,30 @@ public class RepositoriesMetadata extends AbstractNamedDiffable<Custom> implemen
         this.repositories = Collections.unmodifiableList(Arrays.asList(repository));
     }
 
+    /**
+     * Creates a new instance that has the given repository moved to the given {@code safeGeneration} and {@code pendingGeneration}.
+     *
+     * @param repoName          repository name
+     * @param safeGeneration    new safe generation
+     * @param pendingGeneration new pending generation
+     * @return new instance with updated generations
+     */
+    public RepositoriesMetadata withUpdatedGeneration(String repoName, long safeGeneration, long pendingGeneration) {
+        int indexOfRepo = -1;
+        for (int i = 0; i < repositories.size(); i++) {
+            if (repositories.get(i).name().equals(repoName)) {
+                indexOfRepo = i;
+                break;
+            }
+        }
+        if (indexOfRepo < 0) {
+            throw new IllegalArgumentException("Unknown repository [" + repoName + "]");
+        }
+        final List<RepositoryMetadata> updatedRepos = new ArrayList<>(repositories);
+        updatedRepos.set(indexOfRepo, new RepositoryMetadata(repositories.get(indexOfRepo), safeGeneration, pendingGeneration));
+        return new RepositoriesMetadata(updatedRepos);
+    }
+
     public static NamedDiff<Custom> readDiffFrom(StreamInput in) throws IOException {
         return readDiffFrom(Custom.class, TYPE, in);
     }
