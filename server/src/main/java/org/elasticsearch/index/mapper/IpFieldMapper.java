@@ -117,7 +117,7 @@ public class IpFieldMapper extends FieldMapper {
         }
     }
 
-    public static final class IpFieldType extends SimpleMappedFieldType {
+    public static final class IpFieldType extends MappedFieldType {
 
         public IpFieldType(String name, boolean indexed, boolean hasDocValues) {
             super(name, indexed, hasDocValues);
@@ -196,7 +196,7 @@ public class IpFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, QueryShardContext context) {
+        public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper) {
             failIfNotIndexed();
             InetAddress lower;
             if (lowerTerm == null) {

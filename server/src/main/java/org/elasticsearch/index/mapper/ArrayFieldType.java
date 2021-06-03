@@ -23,10 +23,8 @@ package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.search.Query;
 import javax.annotation.Nullable;
-import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.joda.time.DateTimeZone;
 
 import java.util.List;
 
@@ -95,8 +93,8 @@ class ArrayFieldType extends MappedFieldType {
     }
 
     @Override
-    public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, ShapeRelation relation, DateTimeZone timeZone, QueryShardContext context) {
-        return innerFieldType.rangeQuery(lowerTerm, upperTerm, includeLower, includeUpper, relation, timeZone, context);
+    public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper) {
+        return innerFieldType.rangeQuery(lowerTerm, upperTerm, includeLower, includeUpper);
     }
 
     @Override

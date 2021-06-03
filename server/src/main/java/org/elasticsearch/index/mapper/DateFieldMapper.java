@@ -37,13 +37,11 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.common.Explicit;
-import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.joda.Joda;
 import org.elasticsearch.common.settings.Settings;
@@ -51,7 +49,6 @@ import org.elasticsearch.common.time.IsoLocale;
 import org.elasticsearch.common.util.LocaleUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.joda.time.DateTimeZone;
 
 /** A {@link FieldMapper} for ip addresses. */
 public class DateFieldMapper extends FieldMapper {
@@ -211,26 +208,15 @@ public class DateFieldMapper extends FieldMapper {
 
         @Override
         public Query termQuery(Object value, @Nullable QueryShardContext context) {
-            Query query = rangeQuery(value, value, true, true, ShapeRelation.INTERSECTS, null, context);
-            if (boost() != 1f) {
-                query = new BoostQuery(query, boost());
-            }
-            return query;
+            return rangeQuery(value, value, true, true);
         }
 
         @Override
         public Query rangeQuery(Object lowerTerm,
                                 Object upperTerm,
                                 boolean includeLower,
-                                boolean includeUpper,
-                                ShapeRelation relation,
-                                @Nullable DateTimeZone timeZone,
-                                QueryShardContext context) {
+                                boolean includeUpper) {
             failIfNotIndexed();
-            if (relation == ShapeRelation.DISJOINT) {
-                throw new IllegalArgumentException("Field [" + name() + "] of type [" + typeName() +
-                        "] does not support DISJOINT ranges");
-            }
             long l, u;
             if (lowerTerm == null) {
                 l = Long.MIN_VALUE;
