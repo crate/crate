@@ -32,7 +32,6 @@ import java.util.Map;
 
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.isArray;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeFloatValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeStringValue;
 
@@ -171,16 +170,9 @@ public class TypeParsers {
             } else if (propName.equals(DOC_VALUES)) {
                 builder.docValues(nodeBooleanValue(propNode, name + '.' + DOC_VALUES));
                 iterator.remove();
-            } else if (propName.equals("boost")) {
-                builder.boost(nodeFloatValue(propNode));
-                iterator.remove();
             } else if (propName.equals("index_options")) {
                 builder.indexOptions(nodeIndexOptionValue(propNode));
                 iterator.remove();
-            } else if (propName.equals("include_in_all")) {
-                throw new MapperParsingException("[include_in_all] is not allowed for indices created on or after version 6.0.0 as " +
-                                "[_all] is deprecated. As a replacement, you can use an [copy_to] on mapping fields to create your " +
-                                "own catch all field.");
             } else if (propName.equals("copy_to")) {
                 parseCopyFields(propNode, builder);
                 iterator.remove();

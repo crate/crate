@@ -28,8 +28,6 @@ import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.Version;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
@@ -47,9 +45,6 @@ import java.util.stream.StreamSupport;
 
 public abstract class FieldMapper extends Mapper implements Cloneable {
 
-    public static final Setting<Boolean> COERCE_SETTING =
-        Setting.boolSetting("index.mapping.coerce", false, Property.IndexScope);
-
     public abstract static class Builder<T extends Builder<T>> extends Mapper.Builder<T> {
 
         protected final FieldType fieldType;
@@ -60,7 +55,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         protected final MultiFields.Builder multiFieldsBuilder;
         protected CopyTo copyTo = CopyTo.empty();
         protected Integer position;
-        protected float boost = 1.0f;
         @Nullable
         protected String defaultExpression;
         // TODO move to text-specific builder base class
@@ -120,11 +114,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
                 this.fieldType.setStoreTermVectors(termVectorPayloads);
             }
             this.fieldType.setStoreTermVectorPayloads(termVectorPayloads);
-            return builder;
-        }
-
-        public T boost(float boost) {
-            this.boost = boost;
             return builder;
         }
 
