@@ -125,8 +125,7 @@ public final class KeywordFieldMapper extends FieldMapper {
                 buildFullName(context),
                 indexed,
                 hasDocValues,
-                fieldType.omitNorms() == false,
-                boost
+                fieldType.omitNorms() == false
             );
         }
 
@@ -176,8 +175,7 @@ public final class KeywordFieldMapper extends FieldMapper {
         public KeywordFieldType(String name,
                                 boolean isSearchable,
                                 boolean hasDocValues,
-                                boolean hasNorms,
-                                float boost) {
+                                boolean hasNorms) {
             super(name, isSearchable, hasDocValues);
             this.hasNorms = hasNorms;
             setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
@@ -185,7 +183,7 @@ public final class KeywordFieldMapper extends FieldMapper {
         }
 
         public KeywordFieldType(String name, boolean isSearchable, boolean hasDocValues) {
-            this(name, isSearchable, hasDocValues, true, 1.0f);
+            this(name, isSearchable, hasDocValues, true);
         }
 
         public KeywordFieldType(String name) {
