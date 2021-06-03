@@ -56,6 +56,7 @@ import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RateLimiter;
 import org.apache.lucene.util.SetOnce;
+import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.StepListener;
@@ -257,6 +258,34 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     private final ClusterService clusterService;
 
     /**
+     * Flag that is set to {@code true} if this instance is started with {@link #metadata} that has a higher value for
+     * {@link RepositoryMetadata#pendingGeneration()} than for {@link RepositoryMetadata#generation()} indicating a full cluster restart
+     * potentially accounting for the the last {@code index-N} write in the cluster state.
+     * Note: While it is true that this value could also be set to {@code true} for an instance on a node that is just joining the cluster
+     * during a new {@code index-N} write, this does not present a problem. The node will still load the correct {@link RepositoryData} in
+     * all cases and simply do a redundant listing of the repository contents if it tries to load {@link RepositoryData} and falls back
+     * to {@link #latestIndexBlobId()} to validate the value of {@link RepositoryMetadata#generation()}.
+     */
+    private boolean uncleanStart;
+
+    /**
+     * This flag indicates that the repository can not exclusively rely on the value stored in {@link #latestKnownRepoGen} to determine the
+     * latest repository generation but must inspect its physical contents as well via {@link #latestIndexBlobId()}.
+     * This flag is set in the following situations:
+     * <ul>
+     *     <li>All repositories that are read-only, i.e. for which {@link #isReadOnly()} returns {@code true} because there are no
+     *     guarantees that another cluster is not writing to the repository at the same time</li>
+     *     <li>The node finds itself in a mixed-version cluster containing nodes older than
+     *     {@link RepositoryMetadata#REPO_GEN_IN_CS_VERSION} where the master node does not update the value of
+     *     {@link RepositoryMetadata#generation()} when writing a new {@code index-N} blob</li>
+     *     <li>The value of {@link RepositoryMetadata#generation()} for this repository is {@link RepositoryData#UNKNOWN_REPO_GEN}
+     *     indicating that no consistent repository generation is tracked in the cluster state yet.</li>
+     *     <li>The {@link #uncleanStart} flag is set to {@code true}</li>
+     * </ul>
+     */
+    private volatile boolean bestEffortConsistency;
+
+    /**
      * Constructs new BlobStoreRepository
      * @param metadata   The metadata for this repository including name and settings
      * @param clusterService ClusterService
@@ -289,6 +318,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     @Override
     protected void doStart() {
+        uncleanStart = metadata.pendingGeneration() > RepositoryData.EMPTY_REPO_GEN &&
+            metadata.generation() != metadata.pendingGeneration();
         ByteSizeValue chunkSize = chunkSize();
         if (chunkSize != null && chunkSize.getBytes() <= 0) {
             throw new IllegalArgumentException("the chunk size cannot be negative: [" + chunkSize + "]");
@@ -319,24 +350,38 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     // #latestKnownRepoGen if a newer than currently known generation is found
     @Override
     public void updateState(ClusterState state) {
-        if (readOnly) {
+        metadata = getRepoMetadata(state);
+        uncleanStart = uncleanStart && metadata.generation() != metadata.pendingGeneration();
+        bestEffortConsistency = uncleanStart || isReadOnly()
+            || state.nodes().getMinNodeVersion().before(RepositoryMetadata.REPO_GEN_IN_CS_VERSION)
+            || metadata.generation() == RepositoryData.UNKNOWN_REPO_GEN;
+        if (isReadOnly()) {
             // No need to waste cycles, no operations can run against a read-only repository
             return;
         }
-        long bestGenerationFromCS = RepositoryData.EMPTY_REPO_GEN;
-        final SnapshotsInProgress snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE);
-        if (snapshotsInProgress != null) {
-            bestGenerationFromCS = bestGeneration(snapshotsInProgress.entries());
+        if (bestEffortConsistency) {
+            long bestGenerationFromCS = RepositoryData.EMPTY_REPO_GEN;
+            final SnapshotsInProgress snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE);
+            if (snapshotsInProgress != null) {
+                bestGenerationFromCS = bestGeneration(snapshotsInProgress.entries());
+            }
+            final SnapshotDeletionsInProgress deletionsInProgress = state.custom(SnapshotDeletionsInProgress.TYPE);
+            // Don't use generation from the delete task if we already found a generation for an in progress snapshot.
+            // In this case, the generation points at the generation the repo will be in after the snapshot finishes so it may not yet
+            // exist
+            if (bestGenerationFromCS == RepositoryData.EMPTY_REPO_GEN && deletionsInProgress != null) {
+                bestGenerationFromCS = bestGeneration(deletionsInProgress.getEntries());
+            }
+            final long finalBestGen = Math.max(bestGenerationFromCS, metadata.generation());
+            latestKnownRepoGen.updateAndGet(known -> Math.max(known, finalBestGen));
+        } else {
+            final long previousBest = latestKnownRepoGen.getAndSet(metadata.generation());
+            if (previousBest != metadata.generation()) {
+                assert metadata.generation() == RepositoryData.CORRUPTED_REPO_GEN || previousBest < metadata.generation() :
+                    "Illegal move from repository generation [" + previousBest + "] to generation [" + metadata.generation() + "]";
+                LOGGER.debug("Updated repository generation from [{}] to [{}]", previousBest, metadata.generation());
+            }
         }
-        final SnapshotDeletionsInProgress deletionsInProgress = state.custom(SnapshotDeletionsInProgress.TYPE);
-        // Don't use generation from the delete task if we already found a generation for an in progress snapshot.
-        // In this case, the generation points at the generation the repo will be in after the snapshot finishes so it may not yet exist
-        if (bestGenerationFromCS == RepositoryData.EMPTY_REPO_GEN && deletionsInProgress != null) {
-            bestGenerationFromCS = bestGeneration(deletionsInProgress.getEntries());
-        }
-        metadata = getRepoMetadata(state);
-        final long finalBestGen = Math.max(bestGenerationFromCS, metadata.generation());
-        latestKnownRepoGen.updateAndGet(known -> Math.max(known, finalBestGen));
     }
 
     private long bestGeneration(Collection<? extends RepositoryOperation> operations) {
@@ -478,7 +523,12 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      */
     private RepositoryData safeRepositoryData(long repositoryStateId, Map<String, BlobMetadata> rootBlobs) {
         final long generation = latestGeneration(rootBlobs.keySet());
-        final long genToLoad = latestKnownRepoGen.updateAndGet(known -> Math.max(known, repositoryStateId));
+        final long genToLoad;
+        if (bestEffortConsistency) {
+            genToLoad = latestKnownRepoGen.updateAndGet(known -> Math.max(known, repositoryStateId));
+        } else {
+            genToLoad = latestKnownRepoGen.get();
+        }
         if (genToLoad > generation) {
             // It's always a possibility to not see the latest index-N in the listing here on an eventually consistent blob store, just
             // debug log it. Any blobs leaked as a result of an inconsistent listing here will be cleaned up in a subsequent cleanup or
@@ -987,36 +1037,106 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     // Tracks the latest known repository generation in a best-effort way to detect inconsistent listing of root level index-N blobs
     // and concurrent modifications.
-    private final AtomicLong latestKnownRepoGen = new AtomicLong(RepositoryData.EMPTY_REPO_GEN);
+    private final AtomicLong latestKnownRepoGen = new AtomicLong(RepositoryData.UNKNOWN_REPO_GEN);
 
     @Override
     public void getRepositoryData(ActionListener<RepositoryData> listener) {
-        ActionListener.completeWith(listener, () -> {
-            // Retry loading RepositoryData in a loop in case we run into concurrent modifications of the repository.
-            while (true) {
+        if (latestKnownRepoGen.get() == RepositoryData.CORRUPTED_REPO_GEN) {
+            listener.onFailure(corruptedStateException(null));
+            return;
+        }
+        // Retry loading RepositoryData in a loop in case we run into concurrent modifications of the repository.
+        while (true) {
+            final long genToLoad;
+            if (bestEffortConsistency) {
+                // We're only using #latestKnownRepoGen as a hint in this mode and listing repo contents as a secondary way of trying
+                // to find a higher generation
                 final long generation;
                 try {
                     generation = latestIndexBlobId();
                 } catch (IOException ioe) {
                     throw new RepositoryException(metadata.name(), "Could not determine repository generation from root blobs", ioe);
                 }
-                final long genToLoad = latestKnownRepoGen.updateAndGet(known -> Math.max(known, generation));
+                genToLoad = latestKnownRepoGen.updateAndGet(known -> Math.max(known, generation));
                 if (genToLoad > generation) {
                     LOGGER.info("Determined repository generation [" + generation
                         + "] from repository contents but correct generation must be at least [" + genToLoad + "]");
                 }
-                try {
-                    return getRepositoryData(genToLoad);
-                } catch (RepositoryException e) {
-                    if (genToLoad != latestKnownRepoGen.get()) {
-                        LOGGER.warn("Failed to load repository data generation [" + genToLoad +
-                            "] because a concurrent operation moved the current generation to [" + latestKnownRepoGen.get() + "]", e);
-                        continue;
-                    }
+            } else {
+                // We only rely on the generation tracked in #latestKnownRepoGen which is exclusively updated from the cluster state
+                genToLoad = latestKnownRepoGen.get();
+            }
+            try {
+                listener.onResponse(getRepositoryData(genToLoad));
+                return;
+            } catch (RepositoryException e) {
+                if (genToLoad != latestKnownRepoGen.get()) {
+                    LOGGER.warn("Failed to load repository data generation [" + genToLoad +
+                        "] because a concurrent operation moved the current generation to [" + latestKnownRepoGen.get() + "]", e);
+                    continue;
+                }
+                if (bestEffortConsistency == false && ExceptionsHelper.unwrap(e, NoSuchFileException.class) != null) {
+                    // We did not find the expected index-N even though the cluster state continues to point at the missing value
+                    // of N so we mark this repository as corrupted.
+                    markRepoCorrupted(genToLoad, e,
+                        ActionListener.wrap(v -> listener.onFailure(corruptedStateException(e)), listener::onFailure));
+                    return;
+                } else {
                     throw e;
                 }
             }
-        });
+        }
+    }
+
+    private RepositoryException corruptedStateException(@Nullable Exception cause) {
+        return new RepositoryException(metadata.name(),
+            "Could not read repository data because the contents of the repository do not match its " +
+                "expected state. This is likely the result of either concurrently modifying the contents of the " +
+                "repository by a process other than this cluster or an issue with the repository's underlying" +
+                "storage. The repository has been disabled to prevent corrupting its contents. To re-enable it " +
+                "and continue using it please remove the repository from the cluster and add it again to make " +
+                "the cluster recover the known state of the repository from its physical contents.", cause);
+    }
+
+    /**
+     * Marks the repository as corrupted. This puts the repository in a state where its tracked value for
+     * {@link RepositoryMetadata#pendingGeneration()} is unchanged while its value for {@link RepositoryMetadata#generation()} is set to
+     * {@link RepositoryData#CORRUPTED_REPO_GEN}. In this state, the repository can not be used any longer and must be removed and
+     * recreated after the problem that lead to it being marked as corrupted has been fixed.
+     *
+     * @param corruptedGeneration generation that failed to load because the index file was not found but that should have loaded
+     * @param originalException   exception that lead to the failing to load the {@code index-N} blob
+     * @param listener            listener to invoke once done
+     */
+    private void markRepoCorrupted(long corruptedGeneration, Exception originalException, ActionListener<Void> listener) {
+        assert corruptedGeneration != RepositoryData.UNKNOWN_REPO_GEN;
+        assert bestEffortConsistency == false;
+        clusterService.submitStateUpdateTask("mark repository corrupted [" + metadata.name() + "][" + corruptedGeneration + "]",
+            new ClusterStateUpdateTask() {
+                @Override
+                public ClusterState execute(ClusterState currentState) {
+                    final RepositoriesMetadata state = currentState.metadata().custom(RepositoriesMetadata.TYPE);
+                    final RepositoryMetadata repoState = state.repository(metadata.name());
+                    if (repoState.generation() != corruptedGeneration) {
+                        throw new IllegalStateException("Tried to mark repo generation [" + corruptedGeneration
+                            + "] as corrupted but its state concurrently changed to [" + repoState + "]");
+                    }
+                    return ClusterState.builder(currentState).metadata(Metadata.builder(currentState.metadata()).putCustom(
+                        RepositoriesMetadata.TYPE, state.withUpdatedGeneration(
+                            metadata.name(), RepositoryData.CORRUPTED_REPO_GEN, repoState.pendingGeneration())).build()).build();
+                }
+
+                @Override
+                public void onFailure(String source, Exception e) {
+                    listener.onFailure(new RepositoryException(metadata.name(), "Failed marking repository state as corrupted",
+                        ExceptionsHelper.useOrSuppress(e, originalException)));
+                }
+
+                @Override
+                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
+                    listener.onResponse(null);
+                }
+            });
     }
 
 
@@ -1036,11 +1156,13 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 return RepositoryData.snapshotsFromXContent(parser, indexGen);
             }
         } catch (IOException ioe) {
-            // If we fail to load the generation we tracked in latestKnownRepoGen we reset it.
-            // This is done as a fail-safe in case a user manually deletes the contents of the repository in which case subsequent
-            // operations must start from the EMPTY_REPO_GEN again
-            if (latestKnownRepoGen.compareAndSet(indexGen, RepositoryData.EMPTY_REPO_GEN)) {
-                LOGGER.warn("Resetting repository generation tracker because we failed to read generation [" + indexGen + "]", ioe);
+            if (bestEffortConsistency) {
+                // If we fail to load the generation we tracked in latestKnownRepoGen we reset it.
+                // This is done as a fail-safe in case a user manually deletes the contents of the repository in which case subsequent
+                // operations must start from the EMPTY_REPO_GEN again
+                if (latestKnownRepoGen.compareAndSet(indexGen, RepositoryData.EMPTY_REPO_GEN)) {
+                    LOGGER.warn("Resetting repository generation tracker because we failed to read generation [" + indexGen + "]", ioe);
+                }
             }
             throw new RepositoryException(metadata.name(), "could not read repository data from index blob", ioe);
         }
@@ -1084,7 +1206,9 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         final StepListener<Long> setPendingStep = new StepListener<>();
         clusterService.submitStateUpdateTask("set pending repository generation [" + metadata.name() + "][" + expectedGen + "]",
             new ClusterStateUpdateTask() {
+
                 private long newGen;
+
                 @Override
                 public ClusterState execute(ClusterState currentState) {
                     final RepositoryMetadata meta = getRepoMetadata(currentState);
@@ -1095,10 +1219,10 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     if (uninitializedMeta == false && meta.pendingGeneration() != genInState) {
                         LOGGER.info("Trying to write new repository data over unfinished write, repo [{}] is at " +
                             "safe generation [{}] and pending generation [{}]", meta.name(), genInState, meta.pendingGeneration());
-                        }
+                    }
                     assert expectedGen == RepositoryData.EMPTY_REPO_GEN || RepositoryData.UNKNOWN_REPO_GEN == meta.generation()
-                           || expectedGen == meta.generation() :
-                    "Expected non-empty generation [" + expectedGen + "] does not match generation tracked in [" + meta + "]";
+                        || expectedGen == meta.generation() :
+                        "Expected non-empty generation [" + expectedGen + "] does not match generation tracked in [" + meta + "]";
                     // If we run into the empty repo generation for the expected gen, the repo is assumed to have been cleared of
                     // all contents by an external process so we reset the safe generation to the empty generation.
                     final long safeGeneration = expectedGen == RepositoryData.EMPTY_REPO_GEN ? RepositoryData.EMPTY_REPO_GEN
@@ -1113,16 +1237,16 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     return ClusterState.builder(currentState)
                         .metadata(
                             Metadata.builder(currentState.getMetadata())
-                                .putCustom(RepositoriesMetadata.TYPE, currentState.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE)
-                                .withUpdatedGeneration(repoName, safeGeneration, newGen))
-                                .build()
+                                .putCustom(
+                                    RepositoriesMetadata.TYPE, currentState.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE)
+                                        .withUpdatedGeneration(repoName, safeGeneration, newGen)
+                                ).build()
                         ).build();
                 }
 
                 @Override
                 public void onFailure(String source, Exception e) {
-                    listener.onFailure(
-                        new RepositoryException(metadata.name(), "Failed to execute cluster state update [" + source + "]", e));
+                    listener.onFailure(new RepositoryException(metadata.name(), "Failed to execute cluster state update [" + source + "]", e));
                 }
 
                 @Override
@@ -1156,12 +1280,13 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             // Step 3: Update CS to reflect new repository generation.
             clusterService.submitStateUpdateTask("set safe repository generation [" + metadata.name() + "][" + newGen + "]",
                 new ClusterStateUpdateTask() {
+
                     @Override
                     public ClusterState execute(ClusterState currentState) {
                         final RepositoryMetadata meta = getRepoMetadata(currentState);
                         if (meta.generation() != expectedGen) {
                             throw new IllegalStateException("Tried to update repo generation to [" + newGen
-                                + "] but saw unexpected generation in state [" + meta + "]");
+                            + "] but saw unexpected generation in state [" + meta + "]");
                         }
                         if (meta.pendingGeneration() != newGen) {
                             throw new IllegalStateException(
@@ -1169,13 +1294,12 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                                 "] after write to generation [" + newGen + "]");
                         }
                         return ClusterState.builder(currentState)
-                                .metadata(Metadata.builder(currentState.getMetadata())
-                                    .putCustom(
-                                        RepositoriesMetadata.TYPE,
-                                        currentState.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE)
-                                            .withUpdatedGeneration(metadata.name(), newGen, newGen))
-                                              .build()
-                                ).build();
+                            .metadata(Metadata.builder(currentState.getMetadata())
+                                .putCustom(RepositoriesMetadata.TYPE,
+                                    currentState.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE)
+                                        .withUpdatedGeneration(metadata.name(), newGen, newGen))
+                                          .build()
+                            ).build();
                     }
 
                     @Override
@@ -1193,8 +1317,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                             final List<String> oldIndexN = LongStream.range(
                                 Math.max(Math.max(expectedGen - 1, 0), newGen - 1000), newGen)
                                 .mapToObj(gen -> INDEX_FILE_PREFIX + gen)
-                                .collect(Collectors.toList()
-                                );
+                                .collect(Collectors.toList());
                             try {
                                 blobContainer().deleteBlobsIgnoringIfNotExists(oldIndexN);
                             } catch (IOException e) {
@@ -1207,10 +1330,10 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     private RepositoryMetadata getRepoMetadata(ClusterState state) {
-        final RepositoryMetadata metadata =
-            state.getMetadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE).repository(this.metadata.name());
-        assert metadata != null;
-        return metadata;
+        final RepositoryMetadata result =
+            state.getMetadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE).repository(metadata.name());
+        assert result != null;
+        return result;
     }
 
 
