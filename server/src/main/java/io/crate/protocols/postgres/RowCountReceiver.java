@@ -55,7 +55,10 @@ class RowCountReceiver extends BaseResultReceiver {
 
     @Override
     public void allFinished(boolean interrupted) {
-        Messages.sendCommandComplete(channel, query, rowCount).addListener(f -> super.allFinished(interrupted));
+        // The returned channel promise will only complete, once the channel is flushed.
+        // But as commandComplete won't flush we must trigger the super method directly
+        Messages.sendCommandComplete(channel, query, rowCount);
+        super.allFinished(interrupted); // -> trigger possible delayed messages
     }
 
     @Override

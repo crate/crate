@@ -100,6 +100,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue at the PostgreSQL protocol message handling causing some
+  clients/drivers to fail on inserts using prepared statements.
+
 - Fixed an issue that prevented ``INSERT INTO`` statements where the source is
   a query that selects an object column which contains a different set of
   columns than the target object column.

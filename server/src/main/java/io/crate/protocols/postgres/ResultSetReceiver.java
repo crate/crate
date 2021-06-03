@@ -21,16 +21,15 @@
 
 package io.crate.protocols.postgres;
 
-import java.util.List;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.crate.protocols.postgres.types.PGType;
 import io.netty.channel.Channel;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.List;
 
 class ResultSetReceiver extends BaseResultReceiver {
 
@@ -79,7 +78,10 @@ class ResultSetReceiver extends BaseResultReceiver {
         if (interrupted) {
             super.allFinished(true);
         } else {
-            Messages.sendCommandComplete(channel, query, rowCount).addListener(f -> super.allFinished(false));
+            // The returned channel promise will only complete, once the channel is flushed.
+            // But as commandComplete won't flush we must trigger the super method directly
+            Messages.sendCommandComplete(channel, query, rowCount);
+            super.allFinished(false);
         }
     }
 

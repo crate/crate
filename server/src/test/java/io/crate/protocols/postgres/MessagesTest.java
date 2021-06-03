@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -105,13 +106,35 @@ public class MessagesTest extends ESTestCase {
             final String response = "SELECT 42";
 
             Messages.sendCommandComplete(channel, "Select 1", 42);
+            channel.flush();
             verifyResponse(channel, response);
             Messages.sendCommandComplete(channel, " Select 1", 42);
+            channel.flush();
             verifyResponse(channel, response);
             Messages.sendCommandComplete(channel, "  Select 1 ", 42);
+            channel.flush();
             verifyResponse(channel, response);
             Messages.sendCommandComplete(channel, "\n  Select 1", 42);
+            channel.flush();
             verifyResponse(channel, response);
+        } finally {
+            channel.finishAndReleaseAll();
+        }
+    }
+
+    /**
+     * Ensuring that on a `CommandComplete` message no flush happens.
+     * Otherwise some clients/driver like e.g. the Progress pgODBC Data Direct
+     * won't work as they do no expect a flush here.
+     *
+     * Related issue: https://github.com/crate/crate/issues/11357
+     */
+    @Test
+    public void testCommandCompleteDoesNotFlush() throws Exception {
+        final EmbeddedChannel channel = new EmbeddedChannel();
+        try {
+            Messages.sendCommandComplete(channel, "Select 1", 42);
+            assertThat(channel.outboundMessages().poll(), nullValue());
         } finally {
             channel.finishAndReleaseAll();
         }
