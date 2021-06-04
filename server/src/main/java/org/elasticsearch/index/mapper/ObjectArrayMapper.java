@@ -59,13 +59,12 @@ public class ObjectArrayMapper extends ObjectMapper {
         protected ObjectMapper createMapper(String name,
                                             Integer position,
                                             String fullPath,
-                                            boolean enabled,
                                             Dynamic dynamic,
                                             Map<String, Mapper> mappers,
                                             @Nullable Settings settings) {
             return new ObjectArrayMapper(
                 name,
-                super.createMapper(name, position, fullPath, enabled, dynamic, mappers, settings),
+                super.createMapper(name, position, fullPath, dynamic, mappers, settings),
                 settings
             );
         }
@@ -77,7 +76,6 @@ public class ObjectArrayMapper extends ObjectMapper {
         super(name,
               innerMapper.position(),
               innerMapper.fullPath(),
-              innerMapper.isEnabled(),
               innerMapper.dynamic(),
               Collections.emptyMap(),
               settings);
