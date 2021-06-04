@@ -27,7 +27,9 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.execution.engine.aggregation.statistics.Variance;
+import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
@@ -213,7 +215,8 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
 
     @Override
     public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
-                                                       List<MappedFieldType> fieldTypes) {
+                                                       List<MappedFieldType> fieldTypes,
+                                                       List<Literal<?>> optionalParams) {
         switch (argumentTypes.get(0).id()) {
             case ByteType.ID:
             case ShortType.ID:
@@ -223,7 +226,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    (ramAccounting) -> {
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
                         return new Variance();
                     },
@@ -232,7 +235,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    (ramAccounting) -> {
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
                         return new Variance();
                     },
@@ -244,7 +247,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    (ramAccounting) -> {
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
                         return new Variance();
                     },

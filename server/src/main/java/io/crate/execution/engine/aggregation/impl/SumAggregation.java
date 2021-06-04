@@ -29,6 +29,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.functions.Signature;
@@ -181,7 +182,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
     @Override
     public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
-                                                       List<MappedFieldType> fieldTypes) {
+                                                       List<MappedFieldType> fieldTypes,
+                                                       List<Literal<?>> optionalParams) {
         switch (argumentTypes.get(0).id()) {
             case ByteType.ID:
             case ShortType.ID:
@@ -236,7 +238,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public MutableLong initialState(RamAccounting ramAccounting) {
+        public MutableLong initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             ramAccounting.addBytes(DataTypes.LONG.fixedSize());
             return new MutableLong(0L);
         }
@@ -270,7 +272,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public MutableDouble initialState(RamAccounting ramAccounting) {
+        public MutableDouble initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             ramAccounting.addBytes(DataTypes.DOUBLE.fixedSize());
             return new MutableDouble(.0d);
         }
@@ -308,7 +310,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public MutableFloat initialState(RamAccounting ramAccounting) {
+        public MutableFloat initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             ramAccounting.addBytes(DataTypes.FLOAT.fixedSize());
             return new MutableFloat(.0f);
         }

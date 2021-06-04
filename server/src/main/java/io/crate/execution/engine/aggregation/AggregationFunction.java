@@ -23,6 +23,7 @@ package io.crate.execution.engine.aggregation;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
+import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.types.DataType;
@@ -114,7 +115,7 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
     }
 
     @Nullable
-    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes, List<MappedFieldType> fieldTypes) {
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes, List<MappedFieldType> fieldTypes, List<Literal<?>> optionalParams) {
         return null;
     }
 }

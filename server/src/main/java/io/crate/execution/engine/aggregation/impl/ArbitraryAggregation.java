@@ -28,6 +28,7 @@ import io.crate.common.MutableObject;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
@@ -132,7 +133,8 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
-                                                       List<MappedFieldType> fieldTypes) {
+                                                       List<MappedFieldType> fieldTypes,
+                                                       List<Literal<?>> optionalParams) {
         var dataType = argumentTypes.get(0);
         switch (dataType.id()) {
             case ByteType.ID:
@@ -248,7 +250,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public MutableObject initialState(RamAccounting ramAccounting) {
+        public MutableObject initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             return new MutableObject();
         }
 
@@ -285,7 +287,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public MutableObject initialState(RamAccounting ramAccounting) {
+        public MutableObject initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             return new MutableObject();
         }
 

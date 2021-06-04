@@ -43,7 +43,8 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
                 argumentType.getTypeSignature(),
                 argumentType.getTypeSignature()
             ),
-            data
+            data,
+            List.of()
         );
     }
 

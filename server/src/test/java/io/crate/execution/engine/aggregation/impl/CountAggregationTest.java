@@ -45,7 +45,8 @@ public class CountAggregationTest extends AggregationTestCase {
             List.of(argumentType),
             DataTypes.LONG,
             data,
-            true
+            true,
+            List.of()
         );
     }
 
@@ -122,7 +123,7 @@ public class CountAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_count_star() throws Exception {
-        assertThat(executeAggregation(CountAggregation.COUNT_STAR_SIGNATURE, new Object[][]{{}, {}}), is(2L));
+        assertThat(executeAggregation(CountAggregation.COUNT_STAR_SIGNATURE, new Object[][]{{}, {}}, List.of()), is(2L));
     }
 
     @Test
