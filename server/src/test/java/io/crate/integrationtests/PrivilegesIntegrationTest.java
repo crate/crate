@@ -397,10 +397,10 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(response.rowCount(), is (0L));
 
         assertThrowsMatches(() -> executeAsNormalUser("alter cluster reroute retry failed"),
-                     isSQLError(containsString("User \"normal\" is not authorized to execute the statement"),
+                     isSQLError(containsString("Missing 'AL' privilege for user 'normal'"),
                                 INTERNAL_ERROR,
                                 UNAUTHORIZED,
-                                4010));
+                                4011));
     }
 
     @Test
