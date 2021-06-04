@@ -6,16 +6,25 @@
 ``COPY FROM``
 =============
 
-Copy data from files into a table.
+You can use the ``COPY FROM`` :ref:`statement <gloss-statement>` to copy data
+from a file into a table.
+
+.. SEEALSO::
+
+    :ref:`Data manipulation: Import and export <importing_data>`
+
+    :ref:`SQL syntax: COPY TO <sql-copy-to>`
+
+Import and export
+=================
 
 .. rubric:: Table of contents
 
 .. contents::
    :local:
-
+   :depth: 2
 
 .. _sql-copy-from-synopsis:
-
 
 Synopsis
 ========
@@ -25,17 +34,8 @@ Synopsis
     COPY table_ident [ PARTITION (partition_column = value [ , ... ]) ]
     FROM uri [ WITH ( option = value [, ...] ) ] [ RETURN SUMMARY ]
 
-Here, ``option`` can be one of:
 
-- ``bulk_size`` *integer*
-- ``shared`` *boolean*
-- ``num_readers`` *integer*
-- ``compression`` *text*
-- ``overwrite_duplicates`` *boolean*
-
-
-.. _sql-copy-from-description:
-
+.. _sql-copy-from-desc:
 
 Description
 ===========
@@ -56,13 +56,13 @@ Here's an example:
 
 .. _sql-copy-from-formats:
 
-Supported formats
------------------
+File formats
+------------
 
 CrateDB accepts both JSON and CSV inputs. The format is inferred from the file
-extension (``.json`` or ``.csv`` respectively) if possible. The
-:ref:`sql-copy-from-format` can also be provided as an option. If a format is
-not specified and the format cannot be inferred, the file will be processed as
+extension (``.json`` or ``.csv`` respectively) if possible. The :ref:`format
+<sql-copy-from-format>` can also be set as an option. If a format is not
+specified and the format cannot be inferred, the file will be processed as
 JSON.
 
 Files must be UTF-8 encoded. Any keys in the object will be added as columns,
@@ -75,8 +75,8 @@ Example JSON data::
     {"id": 1, "quote": "Don't panic"}
     {"id": 2, "quote": "Ford, you're turning into a penguin. Stop it."}
 
-CSV files must contain a header with comma-separated values, which will
-be added as columns.
+CSV files must contain a header with comma-separated values, which will be
+added as columns.
 
 Example CSV data::
 
@@ -87,10 +87,10 @@ Example CSV data::
 See also: :ref:`importing_data`.
 
 
-.. _sql-copy-from-casts-constraints:
+.. _sql-copy-from-type-checks:
 
-Type casts and constraints
---------------------------
+Data type checks
+----------------
 
 CrateDB does not check if the column's data types match the types from the
 import file. It does not cast the types but will always import the data as in
@@ -108,20 +108,51 @@ or ``geo_point`` type, since there is no implict cast to the `GeoJSON`_ format.
    import.
 
 
+.. _sql-copy-from-params:
+
+Parameters
+==========
+
+.. _sql-copy-from-table_ident:
+
+``table_ident``
+  The name (optionally schema-qualified) of an existing table where the data
+  should be put.
+
 .. _sql-copy-from-uri:
 
-URI
-===
+``uri``
+  An expression or or array of expressions. Each :ref:`expression
+  <gloss-expression>` must :ref:`evaluate <gloss-evaluation>` to a string
+  literal that is a `well-formed URI`_.
 
-A string literal or array of string literals containing URIs. Each URI must be
-formatted according to the `URI Scheme`_.
+  URIs must use one of the supported :ref:`URI schemes
+  <sql-copy-from-schemes>`. CrateDB supports :ref:`globbing
+  <sql-copy-from-globbing>` for the :ref:`file <sql-copy-from-file>` and
+  :ref:`s3 <sql-copy-from-s3>` URI schemes.
 
-You can use `globbed`_ pathnames (specifically, ``*`` wildcards) with the ``COPY
-FROM`` statement to construct URIs that can match multiple directories and
-files.
+  .. NOTE::
+
+      If the URI scheme is missing, CrateDB assumes the value is a pathname and
+      will prepend the :ref:`file <sql-copy-from-file>` URI scheme (i.e.,
+      ``file://``). So, for example, CrateDB will convert ``/tmp/file.json`` to
+      ``file:///tmp/file.json``.
+
+
+.. _sql-copy-from-globbing:
+
+URI globbing
+------------
+
+With :ref:`file <sql-copy-from-file>` and :ref:`s3 <sql-copy-from-s3>` URI
+schemes, you can use pathname `globbing`_ (i.e., ``*`` wildcards) with the
+``COPY FROM`` statement to construct URIs that can match multiple directories
+and files.
+
 Suppose you used ``file:///tmp/import_data/*/*.json`` as the URI. This URI
 would match all JSON files located in subdirectories of the
 ``/tmp/import_data`` directory.
+
 So, for example, these files would match:
 
 - ``/tmp/import_data/foo/1.json``
@@ -140,42 +171,39 @@ However, these files would not match:
 - ``/tmp/import_data/foo/bar/2.json`` (too many subdirectories)
 - ``/tmp/import_data/1/boz.js`` (file extension mismatch)
 
-In case the URI scheme is missing the value is assumed to be a file path and
-will be converted to a ``file://`` URI implicitly.
-
-For example:
-
-.. code-block:: text
-
-    '/tmp folder/file.json'
-
-Will be converted to:
-
-.. code-block:: text
-
-    'file:///tmp%20folder/file.json'
-
 
 .. _sql-copy-from-schemes:
 
-Supported schemes
------------------
+URI schemes
+-----------
+
+CrateDB supports the following URI schemes:
+
+.. contents::
+   :local:
+   :depth: 1
 
 
 .. _sql-copy-from-file:
 
 ``file``
-........
+''''''''
 
 You can use the ``file://`` scheme to specify an absolute path to one or more
 files accessible via the local filesystem of one or more CrateDB nodes.
+
+For example:
+
+.. code-block:: text
+
+    file:///path/to/dir
 
 The files must be accessible on at least one node and the system user running
 the ``crate`` process must have read access to every file specified.
 
 By default, every node will attempt to import every file. If the file is
-accessible on multiple nodes, you can set the `shared`_ option to true in
-order to avoid importing duplicates.
+accessible on multiple nodes, you can set the `shared`_ option to true in order
+to avoid importing duplicates.
 
 Use :ref:`sql-copy-from-return-summary` to get information about what actions
 were performed on each node.
@@ -203,9 +231,12 @@ were performed on each node.
 .. _sql-copy-from-s3:
 
 ``s3``
-......
+''''''
 
-The ``s3://`` scheme can be used to access buckets on the Amazon AWS S3 Service:
+You can use the ``s3://`` scheme to access buckets on the `Amazon Simple
+Storage Service`_ (Amazon S3).
+
+For example:
 
 .. code-block:: text
 
@@ -235,39 +266,32 @@ Using the ``s3://`` scheme automatically sets the `shared`_ to true.
    update your firewall rules to allow outgoing connections on port ``443``.
 
 
-.. _sql-copy-from-http-https-jar:
+.. _sql-copy-from-other-schemes:
 
-``http``, ``https``, and ``jar`` (Java URL protocols)
-.....................................................
+Other schemes
+'''''''''''''
 
 In addition to the schemes above, CrateDB supports all protocols supported by
 the `URL`_ implementation of its JVM (typically ``http``, ``https``, ``ftp``,
 and ``jar``). Please refer to the documentation of the JVM vendor for an
 accurate list of supported protocols.
 
-These schemes *do not* support wildcard expansion.
+.. NOTE::
 
-
-.. _sql-copy-from-parameters:
-
-Parameters
-==========
-
-:table_ident:
-  The name (optionally schema-qualified) of an existing table where the
-  data should be put.
-
-:uri:
-  An :ref:`expression <gloss-expression>` which :ref:`evaluates
-  <gloss-evaluation>` to a URI as defined in `RFC2396`_. The supported schemes
-  are listed above. The path may also contain ``*`` wildcards to match multiple
-  files.
+    These schemes *do not* support wildcard expansion.
 
 
 .. _sql-copy-from-clauses:
 
 Clauses
 =======
+
+The ``COPY FROM`` :ref:`statement <gloss-statement>` supports the following
+clauses:
+
+.. contents::
+   :local:
+   :depth: 1
 
 
 .. _sql-copy-from-partition:
@@ -325,20 +349,20 @@ partition for import.
 ``WITH``
 --------
 
-The optional ``WITH`` clause can specify options for the COPY FROM statement.
+You can use the optional ``WITH`` clause to specify option values.
 
 ::
 
     [ WITH ( option = value [, ...] ) ]
 
+The ``WITH`` clause supports the following options:
 
-.. _sql-copy-from-with-options:
+.. contents::
+   :local:
+   :depth: 1
 
-Options
-.......
 
-
-.. _sql-copy-from-bulk-size:
+.. _sql-copy-from-bulk_size:
 
 ``bulk_size``
 '''''''''''''
@@ -362,7 +386,7 @@ If an array of URIs is passed to ``COPY FROM`` this option will overwrite the
 default for *all* URIs.
 
 
-.. _sql-copy-from-node-filters:
+.. _sql-copy-from-node_filters:
 
 ``node_filters``
 ''''''''''''''''
@@ -393,7 +417,7 @@ To verify which nodes match the filter, run the statement with
 :ref:`EXPLAIN <ref-explain>`.
 
 
-.. _sql-copy-from-num-readers:
+.. _sql-copy-from-num_readers:
 
 ``num_readers``
 '''''''''''''''
@@ -417,7 +441,7 @@ the files.
 The default value is ``null``, set to ``gzip`` to read gzipped files.
 
 
-.. _sql-copy-from-overwrite-duplicates:
+.. _sql-copy-from-overwrite_duplicates:
 
 ``overwrite_duplicates``
 ''''''''''''''''''''''''
@@ -428,18 +452,17 @@ Default: false
 primary key already exists. Set to true to overwrite duplicate rows.
 
 
-.. _sql-copy-from-empty-string-as-null:
+.. _sql-copy-from-empty_string_as_null:
 
 ``empty_string_as_null``
 ''''''''''''''''''''''''
 
-If set to ``true`` the ``empty_string_as_null`` option enables conversion
-of un-/quoted empty strings into ``NULL``. The default value is ``false``
-meaning that no action will be taken on empty strings during the COPY FROM
-execution.
+If set to ``true`` the ``empty_string_as_null`` option enables conversion of
+un-/quoted empty strings into ``NULL``. The default value is ``false`` meaning
+that no action will be taken on empty strings during the COPY FROM execution.
 
-The option is only supported when using the ``CSV`` format,
-otherwise, it will be ignored.
+The option is only supported when using the ``CSV`` format, otherwise, it will
+be ignored.
 
 
 .. _sql-copy-from-delimiter:
@@ -513,14 +536,16 @@ inserted records.
 +---------------------------------------+------------------------------------------------+---------------+
 
 
+.. _Amazon Simple Storage Service: https://aws.amazon.com/s3/
 .. _AWS documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
 .. _AWS Java Documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
 .. _Docker volume: https://docs.docker.com/storage/volumes/
 .. _GeoJSON: https://geojson.org/
-.. _RFC2396: https://www.ietf.org/rfc/rfc2396.txt
+.. _globbing: https://en.wikipedia.org/wiki/Glob_(programming)
+.. _percent-encoding: https://en.wikipedia.org/wiki/Percent-encoding
 .. _URI Scheme: https://en.wikipedia.org/wiki/URI_scheme
 .. _URL encoded: https://en.wikipedia.org/wiki/Percent-encoding
 .. _URL: https://docs.oracle.com/javase/8/docs/api/java/net/URL.html
+.. _well-formed URI: https://www.ietf.org/rfc/rfc2396.txt
 .. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text
-.. _globbed: https://en.wikipedia.org/wiki/Glob_(programming)
