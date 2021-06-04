@@ -105,6 +105,12 @@ Changes
 - Improved the performance of the :ref`hyperloglog_distinct
   <aggregation-hyperloglog-distinct>` aggregation function.
 
+- Users with AL privileges (or DDL on both tables) can now run the following
+  ALTER CLUSTER commands:
+  ``ALTER CLUSTER SWAP TABLE source TO target``,
+  ``ALTER CLUSTER REROUTE RETRY FAILED``,
+  ``ALTER CLUSTER GC DANGLING ARTIFACTS``.
+
 - Added an optimization that improves the performance of `count()` aggregations
   on object columns that have at least one inner column with a `NOT NULL`
   constraint.
