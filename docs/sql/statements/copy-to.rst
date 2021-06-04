@@ -6,12 +6,20 @@
 ``COPY TO``
 ===========
 
-Export table contents to files on CrateDB node machines.
+You can use the ``COPY TO`` :ref:`statement <gloss-statement>` to export table
+data to a file.
+
+.. SEEALSO::
+
+    :ref:`Data manipulation: Import and export <importing_data>`
+
+    :ref:`SQL syntax: COPY FROM <sql-copy-from>`
 
 .. rubric:: Table of contents
 
 .. contents::
    :local:
+   :depth: 2
 
 
 .. _sql-copy-to-synopsis:
@@ -28,7 +36,7 @@ Synopsis
                      [ WITH ( copy_parameter [= value] [, ... ] ) ]
 
 
-.. _sql-copy-to-description:
+.. _sql-copy-to-desc:
 
 Description
 ===========
@@ -54,22 +62,26 @@ Here's an example:
    and blob tables don't work with the ``COPY TO`` statement.
 
 
-.. _sql-copy-to-parameters:
+.. _sql-copy-to-params:
 
 Parameters
 ==========
 
-:table_ident:
+.. _sql-copy-to-table_ident:
+
+``table_ident``
   The name (optionally schema-qualified) of the table to be exported.
 
-:column:
+.. _sql-copy-to-column:
+
+``column``
   (optional) A list of column :ref:`expressions <gloss-expression>` that should
   be exported.
 
-.. NOTE::
+  .. NOTE::
 
-   When declaring columns, this changes the output to JSON list format, which
-   is currently not supported by the ``COPY FROM`` statement.
+      When declaring columns, this changes the output to JSON list format,
+      which is currently not supported by the ``COPY FROM`` statement.
 
 
 .. _sql-copy-to-clauses:
@@ -148,63 +160,107 @@ partial exports. (see :ref:`sql_dql_where_clause` for more information).
 ------
 
 The ``TO`` clause allows you to specify an output location.
+
 ::
 
     TO DIRECTORY output_uri
 
-:output_uri:
-  The output URI.
 
-The output URI can be any :ref:`expression <gloss-expression>` that
-:ref:`evaluates <gloss-evaluation>` to a string. The string must be a valid URI
-that uses the ``file://`` or ``s3://`` URI scheme.
+.. _sql-copy-to-to-params:
+
+Parameters
+''''''''''
+
+``output_uri``
+  An :ref:`expression <gloss-expression>` must :ref:`evaluate
+  <gloss-evaluation>` to a string literal that is a `well-formed URI`_. URIs
+  must use one of the supported :ref:`URI schemes <sql-copy-from-schemes>`.
+
+  .. NOTE::
+
+      If the URI scheme is missing, CrateDB assumes the value is a pathname and
+      will prepend the :ref:`file <sql-copy-from-file>` URI scheme (i.e.,
+      ``file://``). So, for example, CrateDB will convert ``/tmp/file.json`` to
+      ``file:///tmp/file.json``.
+
+
+.. _sql-copy-to-schemes:
+
+URI schemes
+-----------
+
+CrateDB supports the following URI schemes:
+
+.. contents::
+   :local:
+   :depth: 1
+
+
+.. _sql-copy-to-file:
+
+``file``
+''''''''
+
+You can use the ``file://`` scheme to specify an absolute path to a file
+on the local file system.
 
 For example:
 
-  - ``file:///path/to/dir``
-  - ``s3://[<accesskey>:<secretkey>@]<bucketname>/<path>``
+.. code-block:: text
 
-If no URI scheme is given (e.g., ``/path/to/dir``) the default scheme
-``file://`` will be used.
+    file:///path/to/dir
 
+.. TIP::
 
-.. _sql-copy-to-containers:
+    If you are running CrateDB inside a container, the file must be inside the
+    container. If you are using *Docker*, you may have to configure a `Docker
+    volume`_ to accomplish this.
 
-Containers
-..........
+.. TIP::
 
-If you are running CrateDB inside a container (e.g., you are running CrateDB on
-*Docker*) the URI must point to a file inside the container.
+    If you are using *Microsoft Windows*, you must include the drive letter in
+    the file URI.
 
-You may have to configure a new `Docker volume`_ to accomplish this.
+    For example:
 
+    .. code-block:: text
 
-.. _sql-copy-to-windows:
+        file://C:\/tmp/import_data/quotes.json
 
-Microsoft Windows
-.................
-
-If you are using *Microsoft Windows*, you must include the drive letter in the
-file URI.
-
-For example, the above file URI should instead be written as
-``file:///C://tmp/import_data/quotes.json``.
-
-Consult the `Windows documentation`_ for more information.
+    Consult the `Windows documentation`_ for more information.
 
 
-.. _sql-copy-to-aws:
+.. _sql-copy-to-s3:
 
-Amazon Web Services
-...................
+``s3``
+''''''
 
-A ``secretkey`` provided by *Amazon Web Services* (AWS) can contain characters
-such as ``/``, ``+`` or ``=``. Such characters must be URI encoded. The same
-encoding as in :ref:`sql-copy-from-s3` applies.
+You can use the ``s3://`` scheme to access buckets on the `Amazon Simple
+Storage Service`_ (Amazon S3).
 
-Additionally, versions prior to 0.51.x use HTTP for connections to S3. Since
-0.51.x these connections are using the HTTPS protocol. Please make sure you
-update your firewall rules to allow outgoing connections on port ``443``.
+For example:
+
+.. code-block:: text
+
+    s3://[<accesskey>:<secretkey>@]<bucketname>/<path>
+
+.. TIP::
+
+   A ``secretkey`` provided by Amazon Web Services can contain characters such
+   as '/', '+' or '='. These characters must be `URL encoded`_. For a detailed
+   explanation read the official `AWS documentation`_.
+
+   To escape a secret key, you can use a snippet like this:
+
+   .. code-block:: console
+
+      sh$ python -c "from getpass import getpass; from urllib.parse import quote_plus; print(quote_plus(getpass('secret_key: ')))"
+
+   This will prompt for the secret key and print the encoded variant.
+
+   Additionally, versions prior to 0.51.x use HTTP for connections to S3. Since
+   0.51.x these connections are using the HTTPS protocol. Please make sure you
+   update your firewall rules to allow outgoing connections on port ``443``.
 
 
 .. _sql-copy-to-with:
@@ -212,19 +268,24 @@ update your firewall rules to allow outgoing connections on port ``443``.
 ``WITH``
 --------
 
-The optional ``WITH`` clause can specify parameters for the copy statement.
+You can use the optional ``WITH`` clause to specify copy parameter values.
 
 ::
 
     [ WITH ( copy_parameter [= value] [, ... ] ) ]
 
-Possible copy_parameters are:
+
+The ``WITH`` clause supports the following copy parameters:
+
+.. contents::
+   :local:
+   :depth: 1
 
 
 .. _sql-copy-to-compression:
 
 ``compression``
-...............
+'''''''''''''''
 
 Define if and how the exported data should be compressed.
 
@@ -232,32 +293,36 @@ By default the output is not compressed.
 
 Possible values for the ``compression`` setting are:
 
-:gzip:
+``gzip``
   Use gzip_ to compress the data output.
 
 
 .. _sql-copy-to-format:
 
 ``format``
-..........
+''''''''''
 
 Optional parameter to override default output behavior.
 
 Possible values for the ``format`` settings are:
 
-:json_object:
+``json_object``
   Each row in the result set is serialized as JSON object and written to an
   output file where one line contains one object. This is the default behavior
   if no columns are defined. Use this format to import with
-  :ref:`sql-copy-from`.
+  :ref:`COPY FROM <sql-copy-from>`.
 
-:json_array:
+``json_array``
   Each row in the result set is serialized as JSON array, storing one array per
   line in an output file. This is the default behavior if columns are defined.
 
 
 .. _Amazon S3: https://aws.amazon.com/s3/
+.. _Amazon Simple Storage Service: https://aws.amazon.com/s3/
+.. _AWS documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
 .. _Docker volume: https://docs.docker.com/storage/volumes/
 .. _gzip: https://www.gzip.org/
 .. _NFS: https://en.wikipedia.org/wiki/Network_File_System
+.. _URL encoded: https://en.wikipedia.org/wiki/Percent-encoding
+.. _well-formed URI: https://www.ietf.org/rfc/rfc2396.txt
 .. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
