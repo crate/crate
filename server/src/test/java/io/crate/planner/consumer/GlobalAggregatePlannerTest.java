@@ -27,6 +27,7 @@ import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -40,6 +41,7 @@ import java.util.UUID;
 
 import static io.crate.testing.SymbolMatchers.isAggregation;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 
@@ -83,5 +85,16 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
         ));
         assertThat(projections.get(0).outputs(), contains(isAggregation("sum", isInputColumn(0))));
         assertThat(projections.get(1).outputs(), contains(isAggregation("sum", isInputColumn(0))));
+    }
+
+    @Test
+    public void test_aggregate_on_virtual_table_uses_shard_projections_if_possible() {
+        Collect plan = e.plan("select sum(x) from (select x from t1) t");
+        List<Projection> projections = plan.collectPhase().projections();
+        assertThat(projections, contains(
+            instanceOf(AggregationProjection.class),
+            instanceOf(AggregationProjection.class)
+        ));
+        assertThat(projections.get(0).requiredGranularity(), is(RowGranularity.SHARD));
     }
 }
