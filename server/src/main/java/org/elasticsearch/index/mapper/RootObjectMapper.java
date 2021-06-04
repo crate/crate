@@ -75,11 +75,10 @@ public class RootObjectMapper extends ObjectMapper {
         }
 
         @Override
-        protected ObjectMapper createMapper(String name, Integer position, String fullPath, boolean enabled, Dynamic dynamic,
+        protected ObjectMapper createMapper(String name, Integer position, String fullPath, Dynamic dynamic,
                 Map<String, Mapper> mappers, @Nullable Settings settings) {
             return new RootObjectMapper(
                 name,
-                enabled,
                 dynamic,
                 mappers,
                 dynamicDateTimeFormatters,
@@ -167,13 +166,12 @@ public class RootObjectMapper extends ObjectMapper {
     private Explicit<DynamicTemplate[]> dynamicTemplates;
 
     RootObjectMapper(String name,
-                     boolean enabled,
                      Dynamic dynamic,
                      Map<String, Mapper> mappers,
                      Explicit<FormatDateTimeFormatter[]> dynamicDateTimeFormatters,
                      Explicit<DynamicTemplate[]> dynamicTemplates,
                      Settings settings) {
-        super(name, null, name, enabled, dynamic, mappers, settings);
+        super(name, null, name, dynamic, mappers, settings);
         this.dynamicTemplates = dynamicTemplates;
         this.dynamicDateTimeFormatters = dynamicDateTimeFormatters;
     }

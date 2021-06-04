@@ -47,7 +47,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
     public static final String CONTENT_TYPE = "object";
 
     public static class Defaults {
-        public static final boolean ENABLED = true;
         public static final Dynamic DYNAMIC = null; // not set, inherited from root
     }
 
@@ -59,8 +58,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     public static class Builder<T extends Builder> extends Mapper.Builder<T> {
 
-        protected boolean enabled = Defaults.ENABLED;
-
         protected Dynamic dynamic = Defaults.DYNAMIC;
 
         protected final List<Mapper.Builder> mappersBuilders = new ArrayList<>();
@@ -70,11 +67,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
         public Builder(String name) {
             super(name);
             this.builder = (T) this;
-        }
-
-        public T enabled(boolean enabled) {
-            this.enabled = enabled;
-            return builder;
         }
 
         public T dynamic(Dynamic dynamic) {
@@ -106,7 +98,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
                 name,
                 position,
                 context.path().pathAsText(name),
-                enabled,
                 dynamic,
                 mappers,
                 context.indexSettings()
@@ -116,11 +107,10 @@ public class ObjectMapper extends Mapper implements Cloneable {
         protected ObjectMapper createMapper(String name,
                                             Integer position,
                                             String fullPath,
-                                            boolean enabled,
                                             Dynamic dynamic,
                                             Map<String, Mapper> mappers,
                                             @Nullable Settings settings) {
-            return new ObjectMapper(name, position, fullPath, enabled, dynamic, mappers, settings);
+            return new ObjectMapper(name, position, fullPath, dynamic, mappers, settings);
         }
 
         public T position(int position) {
@@ -158,9 +148,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
                     boolean dynamic = nodeBooleanValue(fieldNode, fieldName + ".dynamic");
                     builder.dynamic(dynamic ? Dynamic.TRUE : Dynamic.FALSE);
                 }
-                return true;
-            } else if (fieldName.equals("enabled")) {
-                builder.enabled(nodeBooleanValue(fieldNode, fieldName + ".enabled"));
                 return true;
             } else if (fieldName.equals("properties")) {
                 if (fieldNode instanceof Collection && ((Collection) fieldNode).isEmpty()) {
@@ -242,15 +229,12 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     private final String fullPath;
 
-    private final boolean enabled;
-
     private volatile Dynamic dynamic;
 
     private volatile CopyOnWriteHashMap<String, Mapper> mappers;
 
     ObjectMapper(String name, Integer position,
                  String fullPath,
-                 boolean enabled,
                  Dynamic dynamic,
                  Map<String, Mapper> mappers,
                  Settings settings) {
@@ -261,7 +245,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
         this.fullPath = fullPath;
         this.position = position;
-        this.enabled = enabled;
         this.dynamic = dynamic;
         if (mappers == null) {
             this.mappers = new CopyOnWriteHashMap<>();
@@ -300,10 +283,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
     @Override
     public String typeName() {
         return CONTENT_TYPE;
-    }
-
-    public boolean isEnabled() {
-        return this.enabled;
     }
 
     public Mapper getMapper(String field) {
@@ -345,7 +324,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
         for (Mapper mergeWithMapper : mergeWith) {
             Mapper mergeIntoMapper = mappers.get(mergeWithMapper.simpleName());
-            checkEnabledFieldChange(mergeWith, mergeWithMapper, mergeIntoMapper);
 
             Mapper merged;
             if (mergeIntoMapper == null) {
@@ -356,18 +334,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
                 merged = mergeIntoMapper.merge(mergeWithMapper);
             }
             putMapper(merged);
-        }
-    }
-
-    private static void checkEnabledFieldChange(ObjectMapper mergeWith, Mapper mergeWithMapper, Mapper mergeIntoMapper) {
-        if (mergeIntoMapper instanceof ObjectMapper && mergeWithMapper instanceof ObjectMapper) {
-            final ObjectMapper mergeIntoObjectMapper = (ObjectMapper) mergeIntoMapper;
-            final ObjectMapper mergeWithObjectMapper = (ObjectMapper) mergeWithMapper;
-
-            if (mergeIntoObjectMapper.isEnabled() != mergeWithObjectMapper.isEnabled()) {
-                final String path = mergeWith.fullPath() + "." + mergeWithObjectMapper.simpleName() + ".enabled";
-                throw new MapperException("Can't update attribute for type [" + path + "] in index mapping");
-            }
         }
     }
 
@@ -392,10 +358,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
         if (dynamic != null) {
             builder.field("dynamic", dynamic.name().toLowerCase(IsoLocale.ROOT));
         }
-        if (enabled != Defaults.ENABLED) {
-            builder.field("enabled", enabled);
-        }
-
         if (custom != null) {
             custom.toXContent(builder, params);
         }
