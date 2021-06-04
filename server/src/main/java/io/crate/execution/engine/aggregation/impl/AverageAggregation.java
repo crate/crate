@@ -27,6 +27,8 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
+import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
@@ -273,7 +275,8 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
     @Override
     public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
-                                                       List<MappedFieldType> fieldTypes) {
+                                                       List<MappedFieldType> fieldTypes,
+                                                       List<Literal<?>> optionalParams) {
         switch (argumentTypes.get(0).id()) {
             case ByteType.ID:
             case ShortType.ID:
@@ -281,7 +284,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             case LongType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    (ramAccounting) -> {
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
                         return new AverageState();
                     },
@@ -293,7 +296,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    (ramAccounting) -> {
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
                         return new AverageState();
                     },
@@ -306,7 +309,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
-                    (ramAccounting) -> {
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
                         return new AverageState();
                     },

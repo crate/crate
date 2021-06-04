@@ -27,7 +27,10 @@ import io.crate.breaker.RamAccounting;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
+import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
+import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
@@ -43,16 +46,25 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.hash.MurmurHash3;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.index.fielddata.FieldData;
+import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.search.DocValueFormat;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLogLogDistinctAggregation.HllState, Long> {
 
@@ -144,6 +156,122 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         return null;
     }
 
+    @Nullable
+    @Override
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
+                                                       List<MappedFieldType> fieldTypes,
+                                                       List<Literal<?>> optionalParams) {
+        var dataType = argumentTypes.get(0);
+        switch (dataType.id()) {
+            case ByteType.ID:
+            case ShortType.ID:
+            case IntegerType.ID:
+            case LongType.ID:
+            case TimestampType.ID_WITH_TZ:
+            case TimestampType.ID_WITHOUT_TZ:
+                return new SortedNumericDocValueAggregator<>(
+                    fieldTypes.get(0).name(),
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                        var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
+                        var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
+                        return initIfNeeded(state, memoryManager, precision);
+                    },
+                    (values, state) -> {
+                        var hash = BitMixer.mix64(values.nextValue());
+                        state.addHash(hash);
+                    }
+                );
+            case DoubleType.ID:
+            case FloatType.ID:
+                return new SortedNumericDocValueAggregator<>(
+                    fieldTypes.get(0).name(),
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                        var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
+                        var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
+                        return initIfNeeded(state, memoryManager, precision);
+                    },
+                    (values, state) -> {
+                        // Murmur3Hash.Float and Murmur3Hash.Double in regular aggregation call mix64 of doubleToLongBits(double value).
+                        // Equivalent of that in context of DocValue is
+                        // mix64(doubleToLongBits(decoded))
+                        // => mix64(doubleToLongBits(NumericUtils.sortableLongToDouble(values.nextValue())))
+                        // => mix64(doubleToLongBits(Double.longBitsToDouble(sortableDoubleBits(values.nextValue()))))
+                        // => mix64(sortableDoubleBits(values.nextValue()))
+
+                        var hash = BitMixer.mix64(NumericUtils.sortableDoubleBits(values.nextValue()));
+                        state.addHash(hash);
+                    }
+                );
+            case StringType.ID:
+                var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
+                return new HllAggregator(fieldTypes.get(0).name(), dataType, precision) {
+                    @Override
+                    public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
+                        if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
+                            BytesRef ref = super.values.nextValue();
+                            var hash = state.isAllOn4_1() ?
+                                MurmurHash3.hash64(ref.bytes, ref.offset, ref.length)
+                                : MurmurHash3.hash128(ref.bytes, ref.offset, ref.length, 0, super.hash128).h1;
+
+                            state.addHash(hash);
+                        }
+                    }
+                };
+            case IpType.ID:
+                var ipPrecision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
+                return new HllAggregator(fieldTypes.get(0).name(), dataType, ipPrecision) {
+                    @Override
+                    public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
+                        if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
+                            BytesRef ref = super.values.nextValue();
+                            byte[] bytes = ((String) DocValueFormat.IP.format(ref)).getBytes(StandardCharsets.UTF_8);
+
+                            var hash = state.isAllOn4_1() ?
+                                MurmurHash3.hash64(bytes, 0, bytes.length)
+                                : MurmurHash3.hash128(bytes, 0, bytes.length, 0, super.hash128).h1;
+                            state.addHash(hash);
+                        }
+                    }
+                };
+            default:
+                return null;
+        }
+    }
+
+    private abstract static class HllAggregator implements DocValueAggregator<HllState> {
+
+        private final String columnName;
+        private final DataType<?> dataType;
+        private final Integer precision;
+        private final MurmurHash3.Hash128 hash128 = new MurmurHash3.Hash128();
+        private SortedBinaryDocValues values;
+
+        public HllAggregator(String columnName, DataType<?> dataType, Integer precision) {
+            this.columnName = columnName;
+            this.dataType = dataType;
+            this.precision = precision;
+        }
+
+        @Override
+        public HllState initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
+            var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
+            return initIfNeeded(state, memoryManager, precision);
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = FieldData.toString(DocValues.getSortedSet(reader, columnName));
+        }
+
+        @Override
+        public abstract void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException;
+
+        @Override
+        public Object partialResult(RamAccounting ramAccounting, HllState state) {
+            return state;
+        }
+    }
+
     @Override
     public DataType<?> partialType() {
         return HllStateType.INSTANCE;
@@ -197,12 +325,20 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             }
         }
 
+        boolean isAllOn4_1() {
+            return allOn4_1;
+        }
+
         boolean isInitialized() {
             return hyperLogLogPlusPlus != null;
         }
 
         void add(Object value) {
             hyperLogLogPlusPlus.collect(murmur3Hash.hash(value));
+        }
+
+        void addHash(long hash) {
+            hyperLogLogPlusPlus.collect(hash);
         }
 
         void merge(HllState state) {
@@ -216,6 +352,18 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         @Override
         public int compareTo(HllState o) {
             return java.lang.Long.compare(hyperLogLogPlusPlus.cardinality(), o.hyperLogLogPlusPlus.cardinality());
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            HllState that = (HllState) o;
+            return this.compareTo(that) == 0;
         }
 
         @Override
@@ -289,6 +437,13 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
     }
 
+    private static HllState initIfNeeded(HllState state, MemoryManager memoryManager, Integer precision) {
+        if (!state.isInitialized()) {
+            state.init(memoryManager, precision);
+        }
+        return state;
+    }
+
     @VisibleForTesting
     abstract static class Murmur3Hash {
 
@@ -302,6 +457,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 case ShortType.ID:
                 case ByteType.ID:
                 case TimestampType.ID_WITH_TZ:
+                case TimestampType.ID_WITHOUT_TZ:
                     return Long.INSTANCE;
                 case StringType.ID:
                 case BooleanType.ID:
@@ -346,7 +502,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             @Override
             long hash(Object val) {
                 byte[] bytes = DataTypes.STRING.implicitCast(val).getBytes(StandardCharsets.UTF_8);
-                return MurmurHash3.hash64(bytes, bytes.length);
+                return MurmurHash3.hash64(bytes,0, bytes.length);
             }
         }
 
