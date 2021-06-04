@@ -22,9 +22,11 @@
 
 package io.crate.planner.operators;
 
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNDistinctProjection;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
@@ -369,12 +371,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             )
         );
         io.crate.planner.node.dql.Collect collect = sqlExecutor.plan(statement);
-        assertThat(
-            collect.collectPhase().projections(),
-            contains(
-                instanceOf(TopNDistinctProjection.class)
-            )
-        );
+        List<Projection> projections = collect.collectPhase().projections();
+        assertThat(projections, contains(
+            instanceOf(TopNDistinctProjection.class),
+            instanceOf(TopNDistinctProjection.class)
+        ));
+        assertThat(projections.get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        assertThat(projections.get(1).requiredGranularity(), is(RowGranularity.CLUSTER));
     }
 
     @Test
