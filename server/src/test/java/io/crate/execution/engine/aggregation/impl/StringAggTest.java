@@ -27,6 +27,8 @@ import org.elasticsearch.Version;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.hamcrest.Matchers.is;
 
 public class StringAggTest extends AggregationTestCase {
@@ -38,7 +40,8 @@ public class StringAggTest extends AggregationTestCase {
                 new Object[]{null, null},
                 new Object[]{null, null},
                 new Object[]{null, null},
-            }
+            },
+            List.of()
         );
         assertThat(result, Matchers.nullValue());
     }
@@ -50,7 +53,8 @@ public class StringAggTest extends AggregationTestCase {
                 new Object[]{"a", ","},
                 new Object[]{"b", null},
                 new Object[]{"c", ","},
-            });
+            },
+            List.of());
         assertThat(result, is("ab,c"));
     }
 
@@ -61,7 +65,8 @@ public class StringAggTest extends AggregationTestCase {
                 new Object[]{"a", ";"},
                 new Object[]{null, ","},
                 new Object[]{"c", ","},
-            });
+            },
+            List.of());
         assertThat(result, is("a,c"));
     }
 

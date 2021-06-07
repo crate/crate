@@ -57,6 +57,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.types.StringType;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.test.ESTestCase;
@@ -172,13 +173,15 @@ public abstract class AggregationTestCase extends ESTestCase {
     }
 
     public Object executeAggregation(Signature boundSignature,
-                                     Object[][] data) throws Exception {
+                                     Object[][] data,
+                                     List<Literal<?>> optionalParams) throws Exception {
         return executeAggregation(
             boundSignature,
             boundSignature.getArgumentDataTypes(),
             boundSignature.getReturnType().createType(),
             data,
-            true
+            true,
+            optionalParams
         );
     }
 
@@ -187,17 +190,22 @@ public abstract class AggregationTestCase extends ESTestCase {
                                      List<DataType<?>> actualArgumentTypes,
                                      DataType<?> actualReturnType,
                                      Object[][] data,
-                                     boolean randomExtraStates) throws Exception {
+                                     boolean randomExtraStates,
+                                     List<Literal<?>> optionalParams) throws Exception {
         var aggregationFunction = (AggregationFunction) nodeCtx.functions().get(
             null,
             maybeUnboundSignature.getName().name(),
             Lists2.map(actualArgumentTypes, t -> new InputColumn(0, t)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
+        Version minNodeVersion = randomBoolean()
+            ? Version.CURRENT
+            : Version.V_4_0_9;
         Object partialResultWithoutDocValues = execPartialAggregationWithoutDocValues(
             aggregationFunction,
             data,
-            randomExtraStates
+            randomExtraStates,
+            minNodeVersion
         );
 
         var shard = newStartedPrimaryShard(Settings.EMPTY, buildMapping(actualArgumentTypes));
@@ -213,7 +221,9 @@ public abstract class AggregationTestCase extends ESTestCase {
                 maybeUnboundSignature,
                 actualArgumentTypes,
                 actualReturnType,
-                shard
+                shard,
+                minNodeVersion,
+                optionalParams
             );
             // assert that aggregations with/-out doc values yield the
             // same result, if a doc value aggregator exists.
@@ -223,6 +233,15 @@ public abstract class AggregationTestCase extends ESTestCase {
                     partialResultWithoutDocValues,
                     is(partialResultWithDocValues.get(0).get(0))
                 );
+            } else {
+                var docValueAggregator = aggregationFunction.getDocValueAggregator(
+                    actualArgumentTypes,
+                    Lists2.map(actualArgumentTypes, dataType -> mock(MappedFieldType.class)),
+                    List.of()
+                );
+                if (docValueAggregator != null) {
+                    throw new IllegalStateException("DocValueAggregator is implemented but partialResultWithDocValues is null.");
+                }
             }
         } finally {
             closeShard(shard);
@@ -236,7 +255,8 @@ public abstract class AggregationTestCase extends ESTestCase {
     @SuppressWarnings({"unchecked", "rawtypes"})
     protected Object execPartialAggregationWithoutDocValues(AggregationFunction function,
                                                             Object[][] data,
-                                                            boolean randomExtraStates) {
+                                                            boolean randomExtraStates,
+                                                            Version minNodeVersion) {
         var argumentsSize = function.signature().getArgumentTypes().size();
         InputCollectExpression[] inputs = new InputCollectExpression[argumentsSize];
         for (int i = 0; i < argumentsSize; i++) {
@@ -244,9 +264,6 @@ public abstract class AggregationTestCase extends ESTestCase {
         }
 
         ArrayList<Object> states = new ArrayList<>();
-        Version minNodeVersion = randomBoolean()
-            ? Version.CURRENT
-            : Version.V_4_0_9;
         states.add(function.newState(RAM_ACCOUNTING, Version.CURRENT, minNodeVersion, memoryManager));
         for (Row row : new ArrayBucket(data)) {
             for (InputCollectExpression input : inputs) {
@@ -269,11 +286,15 @@ public abstract class AggregationTestCase extends ESTestCase {
     private List<Row> execPartialAggregationWithDocValues(Signature signature,
                                                           List<DataType<?>> argumentTypes,
                                                           DataType<?> actualReturnType,
-                                                          IndexShard shard) throws Exception {
+                                                          IndexShard shard,
+                                                          Version minNodeVersion,
+                                                          List<Literal<?>> optionalParams) throws Exception {
+        List<Symbol> inputs = InputColumn.mapToInputColumns(argumentTypes);
+        inputs.addAll(optionalParams);
         var aggregation = new Aggregation(
             signature,
             actualReturnType,
-            InputColumn.mapToInputColumns(argumentTypes)
+            inputs
         );
         var toCollectRefs = new ArrayList<Symbol>(argumentTypes.size());
         for (int i = 0; i < argumentTypes.size(); i++) {
@@ -313,7 +334,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             ramAccounting -> memoryManager,
             new TestingRowConsumer(),
             new SharedShardContexts(indexServices, UnaryOperator.identity()),
-            Version.CURRENT,
+            minNodeVersion,
             4096);
 
         var batchIterator = DocValuesAggregates.tryOptimize(
@@ -382,6 +403,9 @@ public abstract class AggregationTestCase extends ESTestCase {
                         DataTypes.esMappingNameFrom(
                             ((ArrayType<?>) type).innerType().id()))
                     .endObject();
+            } else if (type.id() == StringType.ID) {
+                builder
+                    .field("type", "keyword");
             } else {
                 builder
                     .field("type", DataTypes.esMappingNameFrom(type.id()));
@@ -544,7 +568,8 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
         var docValueAggregator = aggregationFunction.getDocValueAggregator(
             argumentTypes,
-            Lists2.map(argumentTypes, dataType -> mock(MappedFieldType.class))
+            Lists2.map(argumentTypes, dataType -> mock(MappedFieldType.class)),
+            List.of()
         );
         assertThat(
             "DocValueAggregator is not implemented for "

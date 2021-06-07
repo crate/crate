@@ -21,6 +21,8 @@
 
 package io.crate.operation.aggregation;
 
+import com.carrotsearch.randomizedtesting.RandomizedContext;
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import io.crate.Streamer;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.expression.symbol.Literal;
@@ -28,15 +30,20 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.network.InetAddresses;
+import org.elasticsearch.common.network.NetworkAddress;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.is;
@@ -55,11 +62,12 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
                 argumentType.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature()
             ),
-            data
+            data,
+            List.of()
         );
     }
 
-    private Object executeAggregationWithPrecision(DataType<?> argumentType, Object[][] data) throws Exception {
+    private Object executeAggregationWithPrecision(DataType<?> argumentType, Object[][] data, List<Literal<?>> optionalParams) throws Exception {
         return executeAggregation(
             Signature.aggregate(
                 HyperLogLogDistinctAggregation.NAME,
@@ -67,20 +75,28 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature()
             ),
-            data
+            data,
+            optionalParams
         );
     }
 
-    private Object[][] createTestData(int numRows, @Nullable Integer precision) {
+    private <T> Object[][] createTestData(int numRows, Function<Integer, T> generator, @Nullable Integer precision) {
         Object[][] data = new Object[numRows][];
         for (int i = 0; i < numRows; i++) {
             if (precision != null) {
-                data[i] = new Object[]{i, precision};
+                data[i] = new Object[]{generator.apply(i), precision};
             } else {
-                data[i] = new Object[]{i};
+                data[i] = new Object[]{generator.apply(i)};
             }
         }
         return data;
+    }
+
+    @Test
+    public void test_function_implements_doc_values_aggregator_for_string_based_types() {
+        for (var dataType : List.of(DataTypes.STRING, DataTypes.IP)) {
+            assertHasDocValueAggregator(HyperLogLogDistinctAggregation.NAME, List.of(dataType));
+        }
     }
 
     @Test
@@ -106,18 +122,58 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
     public void testCallWithInvalidPrecisionResultsInAnError() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("precision must be >= 4 and <= 18");
-        executeAggregationWithPrecision(DataTypes.INTEGER, new Object[][]{{4, 1}});
+        executeAggregationWithPrecision(DataTypes.INTEGER, new Object[][]{{4, 1}}, List.of(Literal.of(1)));
     }
 
     @Test
     public void testWithoutPrecision() throws Exception {
-        Object result = executeAggregation(DataTypes.DOUBLE, createTestData(10_000,null));
+        Object result = executeAggregation(DataTypes.DOUBLE, createTestData(10_000, i -> i, null));
         assertThat(result, is(9899L));
     }
 
     @Test
+    public void test_without_precision_string() throws Exception {
+        Object result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}});
+        assertThat(result, is(2L));
+    }
+
+    @Test
+    public void test_without_precision_long() throws Exception {
+        // Dedicated test case to prove that integral and floating types need different implementations.
+        // values.nextValue and NumericUtils.sortableDoubleBits(values.nextValue) return same result in many cases.
+        // They return different result for Long.MIN_VALUE (and all close numbers with same 63-th bit)
+        // but providing 1 Long.MIN_VALUE as input is still not enough.
+        // The difference is revealed only when input data consists of many tricky values i.e values, close to Long.MIN_VALUE.
+        Object result = executeAggregation(DataTypes.LONG, createTestData(10_000, i -> Long.MIN_VALUE + i, null));
+        assertThat(result, is(9925L));
+    }
+
+    @Test
+    public void test_random_type_random_values() throws Exception {
+        var validTypes =  DataTypes.PRIMITIVE_TYPES.stream()
+            .filter(type -> !DataTypes.STORAGE_UNSUPPORTED.contains(type))
+            .collect(Collectors.toList());
+        var type = RandomPicks.randomFrom(RandomizedContext.current().getRandom(), validTypes);
+
+        var data = TestingHelpers.getRandomsOfType(10000, 10000, type)
+            .stream()
+            .map(val -> new Object[]{val})
+            .toArray(size -> new Object[size][1]);
+
+        // No explicit assertions here as the purpose of that test to check random type/value of regular and docValue aggregations.
+        // Needed assertions executed internally in executeAggregation.
+        executeAggregation(type, data);
+    }
+
+    @Test
     public void testWithPrecision() throws Exception {
-        Object result = executeAggregationWithPrecision(DataTypes.DOUBLE, createTestData(10_000,18));
+        int precision = 18;
+        // Precision in createTestData is used to create function arguments for regular aggregation.
+        // Literal.of parameter is used to create function for DocValueAggregation - otherwise it gets ignored.
+        Object result = executeAggregationWithPrecision(DataTypes.DOUBLE,
+            createTestData(10_000, i -> i, precision),
+            List.of(Literal.of(precision))
+        );
         assertThat(result, is(9997L));
     }
 

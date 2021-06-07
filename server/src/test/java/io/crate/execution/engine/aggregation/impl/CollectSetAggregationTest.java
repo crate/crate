@@ -50,7 +50,8 @@ public class CollectSetAggregationTest extends AggregationTestCase {
                 argumentType.getTypeSignature(),
                 new ArrayType<>(argumentType).getTypeSignature()
             ),
-            data
+            data,
+            List.of()
         );
     }
 

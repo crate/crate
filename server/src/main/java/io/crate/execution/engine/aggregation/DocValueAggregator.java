@@ -26,11 +26,13 @@ import java.io.IOException;
 import javax.annotation.Nullable;
 
 import io.crate.breaker.RamAccounting;
+import io.crate.memory.MemoryManager;
 import org.apache.lucene.index.LeafReader;
+import org.elasticsearch.Version;
 
 public interface DocValueAggregator<T> {
 
-    public T initialState(RamAccounting ramAccounting);
+    public T initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion);
 
     public void loadDocValues(LeafReader reader) throws IOException;
 
