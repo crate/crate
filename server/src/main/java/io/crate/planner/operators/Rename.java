@@ -80,6 +80,11 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
             : "Rename operator must have the same number of outputs as the source. Got " + outputs + " and " + source.outputs();
     }
 
+    @Override
+    public boolean preferShardProjections() {
+        return source.preferShardProjections();
+    }
+
     public RelationName name() {
         return name;
     }
