@@ -404,4 +404,28 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> source = sourceGen.generateSourceAndCheckConstraints(new Object[] { "foo", null });
         assertThat(source, not(Matchers.hasKey("model")));
     }
+
+    @Test
+    public void test_default_clauses_are_evaluated_per_row() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (id text default gen_random_text_uuid(), x int)")
+            .build();
+        Reference x = (Reference) e.asSymbol("tbl.x");
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        InsertSourceGen sourceGen = InsertSourceGen.of(
+            txnCtx,
+            e.nodeCtx,
+            tbl,
+            tbl.concreteIndices()[0],
+            GeneratedColumns.Validation.NONE,
+            List.of(x)
+        );
+        Map<String, Object> result;
+        result = sourceGen.generateSourceAndCheckConstraints(new Object[] { 10 });
+        var id1 = result.get("id");
+        result = sourceGen.generateSourceAndCheckConstraints(new Object[] { 20 });
+        var id2 = result.get("id");
+        assertThat(id1, Matchers.notNullValue());
+        assertThat(id1, Matchers.not(is(id2)));
+    }
 }
