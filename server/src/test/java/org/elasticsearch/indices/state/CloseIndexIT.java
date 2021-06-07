@@ -22,10 +22,12 @@ import io.crate.execution.ddl.tables.TransportCloseTable;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.IndexSettings;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.List;
@@ -54,23 +56,27 @@ public class CloseIndexIT extends SQLIntegrationTestCase {
         // allocate shard to first data node
         execute("create table doc.test(x int) clustered into 1 shards with (number_of_replicas=0, \"routing.allocation.include._name\" = ?)", new Object[] {dataNodes.get(0)});
         var numDocs = randomIntBetween(0, 50);
+        var bulkArgs = new Object[numDocs][];
         for(var i = 0; i < numDocs; i++) {
-            execute("insert into doc.test values(?)", new Object[]{i});
+            bulkArgs[i] = new Object[] { i };
         }
+        execute("insert into doc.test values(?)", bulkArgs);
 
         execute("alter table doc.test close");
         // Closed tables cannot not be altered, therefore use the api
         client().admin().indices().prepareUpdateSettings("test").setSettings(Settings.builder().put("index.routing.allocation.include._name", dataNodes.get(1))).get();
         ensureGreen("test");
         internalCluster().fullRestart();
-        assertIndexIsClosed("test");
         ensureGreen("test");
+        assertIndexIsClosed("test");
     }
 
     static void assertIndexIsClosed(final String... indices) {
-        final ClusterState clusterState = client().admin().cluster().prepareState().get().getState();
+        var clusterState = client().admin().cluster().prepareState().get().getState();
+        var availableIndices = clusterState.metadata().indices();
+        assertThat(availableIndices.keys().toArray(String.class), Matchers.arrayContaining(indices));
         for (String index : indices) {
-            final IndexMetadata indexMetadata = clusterState.metadata().indices().get(index);
+            final IndexMetadata indexMetadata = availableIndices.get(index);
             assertThat(indexMetadata.getState(), is(IndexMetadata.State.CLOSE));
             final Settings indexSettings = indexMetadata.getSettings();
             assertThat(indexSettings.hasValue(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey()), is(true));

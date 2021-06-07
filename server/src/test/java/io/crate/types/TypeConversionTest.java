@@ -200,11 +200,19 @@ public class TypeConversionTest extends ESTestCase {
     }
 
     @Test
-    public void test_object_to_object_conversion_with_different_inner_fields() {
-        var thisObj = ObjectType.builder().setInnerType("field1", DataTypes.INTEGER).build();
-        var thatObj = ObjectType.builder().setInnerType("field2", DataTypes.INTEGER).build();
+    public void test_allow_conversion_from_object_to_object_with_new_inner_types() {
+        // Dynamic objects allow dynamic creation of new sub-columns
+        // Because of that we must allow conversions from one object to another
+        // where one object contains more or different columns than the other.
+         ObjectType objX = ObjectType.builder()
+             .setInnerType("x", DataTypes.INTEGER)
+             .build();
+         ObjectType objY = ObjectType.builder()
+             .setInnerType("y", DataTypes.INTEGER)
+             .build();
 
-        assertThat(thisObj.isConvertableTo(thatObj, false), is(false));
+         assertThat(objX.isConvertableTo(objY, false), is(true));
+         assertThat(objY.isConvertableTo(objX, false), is(true));
     }
 
     @Test

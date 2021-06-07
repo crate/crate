@@ -85,20 +85,6 @@ final class DocumentParser {
         );
     }
 
-    private static boolean containsDisabledObjectMapper(ObjectMapper objectMapper, String[] subfields) {
-        for (int i = 0; i < subfields.length - 1; ++i) {
-            Mapper mapper = objectMapper.getMapper(subfields[i]);
-            if (mapper instanceof ObjectMapper == false) {
-                break;
-            }
-            objectMapper = (ObjectMapper) mapper;
-            if (objectMapper.isEnabled() == false) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static void internalParseDocument(Mapping mapping, MetadataFieldMapper[] metadataFieldsMappers,
                                               ParseContext.InternalParseContext context, XContentParser parser) throws IOException {
         final boolean emptyDoc = isEmptyDoc(mapping, parser);
@@ -107,10 +93,7 @@ final class DocumentParser {
             metadataMapper.preParse(context);
         }
 
-        if (mapping.root.isEnabled() == false) {
-            // entire type is disabled
-            parser.skipChildren();
-        } else if (emptyDoc == false) {
+        if (emptyDoc == false) {
             parseObjectOrNested(context, mapping.root);
         }
 
@@ -144,14 +127,12 @@ final class DocumentParser {
     }
 
     private static boolean isEmptyDoc(Mapping mapping, XContentParser parser) throws IOException {
-        if (mapping.root.isEnabled()) {
-            final XContentParser.Token token = parser.nextToken();
-            if (token == XContentParser.Token.END_OBJECT) {
-                // empty doc, we can handle it...
-                return true;
-            } else if (token != XContentParser.Token.FIELD_NAME) {
-                throw new MapperParsingException("Malformed content, after first object, either the type field or the actual properties should exist");
-            }
+        final XContentParser.Token token = parser.nextToken();
+        if (token == XContentParser.Token.END_OBJECT) {
+            // empty doc, we can handle it...
+            return true;
+        } else if (token != XContentParser.Token.FIELD_NAME) {
+            throw new MapperParsingException("Malformed content, after first object, either the type field or the actual properties should exist");
         }
         return false;
     }
@@ -342,10 +323,6 @@ final class DocumentParser {
     }
 
     static void parseObjectOrNested(ParseContext context, ObjectMapper mapper) throws IOException {
-        if (mapper.isEnabled() == false) {
-            context.parser().skipChildren();
-            return;
-        }
         XContentParser parser = context.parser();
         XContentParser.Token token = parser.currentToken();
         if (token == XContentParser.Token.VALUE_NULL) {
@@ -380,9 +357,6 @@ final class DocumentParser {
                 paths = splitAndValidatePath(currentFieldName);
                 if (MapperService.isMetadataField(context.path().pathAsText(currentFieldName))) {
                     throw new MapperParsingException("Field [" + currentFieldName + "] is a metadata field and cannot be added inside a document. Use the index API request parameters.");
-                } else if (containsDisabledObjectMapper(mapper, paths)) {
-                    parser.nextToken();
-                    parser.skipChildren();
                 }
             } else if (token == XContentParser.Token.START_OBJECT) {
                 parseObject(context, mapper, currentFieldName, paths);
@@ -428,11 +402,10 @@ final class DocumentParser {
             if (dynamic == ObjectMapper.Dynamic.STRICT) {
                 throw new StrictDynamicMappingException(mapper.fullPath(), currentFieldName);
             } else if (dynamic == ObjectMapper.Dynamic.TRUE) {
-                Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.OBJECT);
+                Mapper.Builder<?> builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.OBJECT);
                 if (builder == null) {
-                    builder = new ObjectMapper.Builder(currentFieldName)
-                        .position(getPositionForDynamicField(context, mapper))
-                        .enabled(true);
+                    builder = new ObjectMapper.Builder<>(currentFieldName)
+                        .position(getPositionForDynamicField(context, mapper));
                 }
                 Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
                 objectMapper = builder.build(builderContext);
@@ -783,9 +756,9 @@ final class DocumentParser {
                     case STRICT:
                         throw new StrictDynamicMappingException(parent.fullPath(), paths[i]);
                     case TRUE:
-                        Mapper.Builder builder = context.root().findTemplateBuilder(context, paths[i], XContentFieldType.OBJECT);
+                        Mapper.Builder<?> builder = context.root().findTemplateBuilder(context, paths[i], XContentFieldType.OBJECT);
                         if (builder == null) {
-                            builder = new ObjectMapper.Builder(paths[i]).enabled(true);
+                            builder = new ObjectMapper.Builder<>(paths[i]);
                         }
                         Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(),
                             context.path());

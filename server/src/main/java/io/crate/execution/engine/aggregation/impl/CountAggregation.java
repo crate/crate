@@ -27,6 +27,8 @@ import io.crate.common.MutableLong;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.templates.BinaryDocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -237,7 +239,8 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
 
     @Override
     public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
-                                                       List<MappedFieldType> fieldTypes) {
+                                                       List<MappedFieldType> fieldTypes,
+                                                       List<Literal<?>> optionalParams) {
         if (argumentTypes.size() == 1) {
             switch (argumentTypes.get(0).id()) {
                 case ByteType.ID:
@@ -251,7 +254,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
                 case GeoPointType.ID:
                     return new SortedNumericDocValueAggregator<>(
                         fieldTypes.get(0).name(),
-                        (ramAccounting) -> {
+                        (ramAccounting, memoryManager, minNodeVersion) -> {
                             ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
                             return new MutableLong(0L);
                         },
@@ -261,7 +264,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
                 case StringType.ID:
                     return new BinaryDocValueAggregator<>(
                         fieldTypes.get(0).name(),
-                        (ramAccounting) -> {
+                        (ramAccounting, memoryManager, minNodeVersion) -> {
                             ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
                             return new MutableLong(0L);
                         },

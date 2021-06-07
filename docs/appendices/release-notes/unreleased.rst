@@ -94,8 +94,19 @@ Changes
 - Added support for directory-level wild card expansion for URIs passed to
   ``COPY FROM`` statements.
 
+- Improved the performance of the :ref`hyperloglog_distinct
+  <aggregation-hyperloglog-distinct>` aggregation function.
+
 Fixes
 =====
+
+- Fixed an issue that prevented aggregations or grouping operations on virtual
+  tables to run parallel on shard level, even if the inner query would support
+  it.
+
+- Fixed an issue that prevented ``INSERT INTO`` statements where the source is
+  a query that selects an object column which contains a different set of
+  columns than the target object column.
 
 - Fixed an issue that could lead to errors when using ``DISTINCT`` or ``GROUP
   BY`` with duplicate columns.

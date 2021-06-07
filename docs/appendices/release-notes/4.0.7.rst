@@ -78,5 +78,5 @@ Fixes
   upgrade to CrateDB 4.0+.
 
 - Changed the error message returned when a :ref:`CREATE REPOSITORY
-  <ref-create-repository>` statement fails so that it includes more information
+  <sql-create-repository>` statement fails so that it includes more information
   about the cause of the failure.

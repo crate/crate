@@ -41,6 +41,7 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,10 +78,10 @@ public abstract class RestoreOnlyRepository implements Repository {
     }
 
     @Override
-    public RepositoryData getRepositoryData() {
-        HashMap<IndexId, Set<SnapshotId>> map = new HashMap<>();
-        map.put(new IndexId(indexName, "blah"), Set.of());
-        return new RepositoryData(EMPTY_REPO_GEN, Map.of(), Map.of(), map, ShardGenerations.EMPTY);
+    public void getRepositoryData(ActionListener<RepositoryData> listener) {
+        final IndexId indexId = new IndexId(indexName, "blah");
+            listener.onResponse(new RepositoryData(EMPTY_REPO_GEN, Map.of(), Map.of(),
+            Map.of(indexId, Set.of()), ShardGenerations.EMPTY));
     }
 
     @Override

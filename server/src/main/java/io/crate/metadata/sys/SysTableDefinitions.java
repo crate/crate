@@ -105,7 +105,7 @@ public class SysTableDefinitions {
             SysRepositoriesTableInfo.create(clusterService.getClusterSettings().maskedSettings()).expressions(),
             false));
         tableDefinitions.put(SysSnapshotsTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(sysSnapshots.currentSnapshots()),
+            sysSnapshots::currentSnapshots,
             SysSnapshotsTableInfo.create().expressions(),
             true));
         tableDefinitions.put(SysSnapshotRestoreTableInfo.IDENT, new StaticTableDefinition<>(

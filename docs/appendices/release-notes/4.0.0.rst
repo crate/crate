@@ -172,9 +172,9 @@ Removed Settings
 
 - Removed the possibility of configuring the AWS S3 repository client via the
   ``crate.yaml`` configuration file and command line arguments. Please, use the
-  :ref:`ref-create-repository` statement parameters for this purpose.
+  :ref:`sql-create-repository` statement parameters for this purpose.
 
-- Removed :ref:`HDFS repository setting<ref-create-repository-types-hdfs>`:
+- Removed :ref:`HDFS repository <sql-create-repo-hdfs>` setting:
   ``concurrent_streams`` as it is no longer supported.
 
 - The ``zen1`` related discovery settings mentioned in
@@ -369,11 +369,10 @@ Repositories and Snapshots
 --------------------------
 
 - Added support for the :ref:`Azure Storage repositories
-  <ref-create-repository-types-azure>`.
+  <sql-create-repo-azure>`.
 
 - Changed the default value of the ``fs`` repository type setting ``compress``,
-  to ``true``. See :ref:`fs repository
-  parameters<ref-create-repository-types-fs>`.
+  to ``true``. See :ref:`fs repository parameters <sql-create-repo-fs-params>`.
 
 - Improved resiliency of the :ref:`sql-create-snapshot` operation.
 

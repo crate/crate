@@ -26,7 +26,7 @@ Creating a repository
 
 Repositories are used to store, manage and restore snapshots.
 
-They are created using the :ref:`ref-create-repository` statement::
+They are created using the :ref:`sql-create-repository` statement::
 
     cr> CREATE REPOSITORY where_my_snapshots_go TYPE fs
     ... WITH (location='repo_path', compress=true);
@@ -35,7 +35,7 @@ They are created using the :ref:`ref-create-repository` statement::
 Repositories are uniquely identified by their name. Every repository has a
 specific type which determines how snapshots are stored.
 
-CrateDB supports different repository types, see :ref:`ref-create-repository-types`.
+CrateDB supports different repository types, see :ref:`sql-create-repo-types`.
 
 The creation of a repository configures it inside the CrateDB cluster. In
 general no data is written, no snapshots inside repositories changed or
@@ -97,7 +97,7 @@ Snapshots are **incremental**. Snapshots of the same cluster created later only
 store data not already contained in the repository.
 
 All examples above are used with the argument ``wait_for_completion`` set to
-*true*. As described in the :ref:`ref-create-repository` reference
+*true*. As described in the :ref:`sql-create-repository` reference
 documentation, by doing this, the statement will only respond (successfully or
 not) when the snapshot is fully created. Otherwise the snapshot will be created
 in the background and the statement will immediately respond as successful. The
@@ -241,12 +241,12 @@ Dropping repositories
     CREATE OK, 1 row affected (... sec)
 
 If a repository is not needed anymore, it can be dropped using the
-:ref:`ref-drop-repository` statement::
+:ref:`sql-drop-repository` statement::
 
     cr> DROP REPOSITORY "OldRepository";
     DROP OK, 1 row affected (... sec)
 
-This statement, like :ref:`ref-create-repository`, does not manipulate
+This statement, like :ref:`sql-create-repository`, does not manipulate
 repository contents but only deletes stored configuration for this repository
 in the cluster state, so it's not accessible any more.
 
@@ -266,11 +266,10 @@ in the cluster state, so it's not accessible any more.
 Requirements for using HDFS repositories
 ----------------------------------------
 
-CrateDB supports repositories of type
-:ref:`ref-create-repository-types-hdfs` type by default, but required
-`Hadoop`_ java client libraries are not included in any CrateDB distribution
-and need to be added to CrateDB's hdfs plugin folder. By default this is
-``$CRATE_HOME/plugins/es-repository-hdfs``
+CrateDB supports repositories of type :ref:`sql-create-repo-hdfs` by
+default, but required `Hadoop`_ java client libraries are not included in any
+CrateDB distribution and need to be added to CrateDB's hdfs plugin folder. By
+default this is ``$CRATE_HOME/plugins/es-repository-hdfs``
 
 Because some libraries `Hadoop`_ depends on are also required (and so deployed)
 by CrateDB, only the `Hadoop`_ libraries listed below must be copied into the

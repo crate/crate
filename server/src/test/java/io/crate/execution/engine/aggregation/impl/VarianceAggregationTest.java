@@ -42,7 +42,8 @@ public class VarianceAggregationTest extends AggregationTestCase {
                 argumentType.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
             ),
-            data
+            data,
+            List.of()
         );
     }
 

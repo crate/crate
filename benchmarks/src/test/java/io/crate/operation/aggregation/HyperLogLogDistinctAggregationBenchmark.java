@@ -141,7 +141,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
         for (int i = 0; i < rows.size(); i++) {
             String value = DataTypes.STRING.sanitizeValue(rows.get(i).get(0));
             byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
-            hyperLogLogPlusPlus.collect(MurmurHash3.hash64(bytes, bytes.length));
+            hyperLogLogPlusPlus.collect(MurmurHash3.hash64(bytes, 0, bytes.length));
         }
         return hyperLogLogPlusPlus.cardinality();
     }
