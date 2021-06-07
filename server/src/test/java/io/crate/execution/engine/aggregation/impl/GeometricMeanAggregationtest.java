@@ -46,7 +46,8 @@ public class GeometricMeanAggregationtest extends AggregationTestCase {
                 argumentType.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
             ),
-            data
+            data,
+            List.of()
         );
     }
 

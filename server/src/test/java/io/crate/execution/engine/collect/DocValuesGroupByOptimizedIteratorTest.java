@@ -63,6 +63,8 @@ import java.util.function.Consumer;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTest {
 
@@ -108,7 +110,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         var aggregationField = new NumberFieldMapper.NumberFieldType("z", NumberFieldMapper.NumberType.LONG);
         var sumDocValuesAggregator = sumAggregation.getDocValueAggregator(
             List.of(DataTypes.LONG),
-            List.of(aggregationField)
+            List.of(aggregationField),
+            List.of()
         );
 
         var keyExpressions = List.of(new LongColumnReference("y"));
@@ -124,6 +127,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             ),
             keyExpressions,
             RamAccounting.NO_ACCOUNTING,
+            null,
+            null,
             new MatchAllDocsQuery(),
             new CollectorContext()
         );
@@ -150,7 +155,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         var aggregationField = new NumberFieldMapper.NumberFieldType("z", NumberFieldMapper.NumberType.LONG);
         var sumDocValuesAggregator = sumAggregation.getDocValueAggregator(
             List.of(DataTypes.LONG),
-            List.of(aggregationField)
+            List.of(aggregationField),
+            List.of()
         );
         var keyExpressions = List.of(new BytesRefColumnReference("x"), new LongColumnReference("y"));
         var keyRefs = List.of(
@@ -169,13 +175,14 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 null
             )
         );
-
         var it = DocValuesGroupByOptimizedIterator.GroupByIterator.forManyKeys(
             List.of(sumDocValuesAggregator),
             indexSearcher,
             keyRefs,
             keyExpressions,
             RamAccounting.NO_ACCOUNTING,
+            null,
+            null,
             new MatchAllDocsQuery(),
             new CollectorContext()
         );
@@ -251,7 +258,9 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                     return null;
                 }
             }),
-            RamAccounting.NO_ACCOUNTING,
+            null,
+            null,
+            null,
             (states, key) -> {
             },
             (expressions) -> expressions.get(0).value(),

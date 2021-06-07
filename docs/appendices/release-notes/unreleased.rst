@@ -94,6 +94,9 @@ Changes
 - Added support for directory-level wild card expansion for URIs passed to
   ``COPY FROM`` statements.
 
+- Improved the performance of the :ref`hyperloglog_distinct
+  <aggregation-hyperloglog-distinct>` aggregation function.
+
 Fixes
 =====
 

@@ -41,8 +41,8 @@ Fixes
   <single_text_column> FROM <table>`` from working if used within a ``INSERT
   INTO`` statement.
 
-- Re-enabled the IAM role authentication for
-  :ref:`s3 repositories <ref-create-repository-types-s3>`
+- Re-enabled the IAM role authentication for :ref:`s3 repositories
+  <sql-create-repo-s3>`
 
 - Changed the required privileges to execute ``RESET`` statements to include
   the ``AL`` privilege. Users with ``AL`` could change settings using ``SET

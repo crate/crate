@@ -1857,7 +1857,7 @@ used to create, manage and restore snapshots (see :ref:`snapshot-restore`).
 |               | repository has been created       |             |
 |               | with. The specific settings       |             |
 |               | depend on the repository type,    |             |
-|               | see :ref:`ref-create-repository`. |             |
+|               | see :ref:`sql-create-repository`. |             |
 +---------------+-----------------------------------+-------------+
 
 .. Hidden: create repository

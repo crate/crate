@@ -51,7 +51,8 @@ public class PercentileAggregationTest extends AggregationTestCase {
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
             ),
-            rows
+            rows,
+            List.of()
         );
     }
 
@@ -63,7 +64,8 @@ public class PercentileAggregationTest extends AggregationTestCase {
                 DataTypes.DOUBLE_ARRAY.getTypeSignature(),
                 DataTypes.DOUBLE_ARRAY.getTypeSignature()
             ),
-            rows
+            rows,
+            List.of()
         );
     }
 
