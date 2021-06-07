@@ -100,6 +100,11 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that prevented ``DEFAULT`` clauses from being evaluated per
+  record in ``INSERT`` statements with multiple source values. This resulted in
+  the same values being inserted when using nondeterministic functions like
+  ``gen_random_text_uuid`` as default expression.
+
 - Fixed an issue that prevented aggregations or grouping operations on virtual
   tables to run parallel on shard level, even if the inner query would support
   it.
