@@ -66,6 +66,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import static java.lang.Double.doubleToLongBits;
+
 public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLogLogDistinctAggregation.HllState, Long> {
 
     static final String NAME = "hyperloglog_distinct";
@@ -182,6 +184,24 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     }
                 );
             case DoubleType.ID:
+                return new SortedNumericDocValueAggregator<>(
+                    fieldTypes.get(0).name(),
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                        var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
+                        var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
+                        return initIfNeeded(state, memoryManager, precision);
+                    },
+                    (values, state) -> {
+                        // Murmur3Hash.Double in regular aggregation calls mix64 of doubleToLongBits(double value).
+                        // Equivalent of that in context of double DocValue is
+                        // mix64(doubleToLongBits(decoded))
+                        // => mix64(doubleToLongBits(NumericUtils.sortableLongToDouble(values.nextValue())))
+                        // => mix64(doubleToLongBits(Double.longBitsToDouble(sortableDoubleBits(values.nextValue()))))
+                        // => mix64(sortableDoubleBits(values.nextValue()))
+                        var hash = BitMixer.mix64(NumericUtils.sortableDoubleBits(values.nextValue()));
+                        state.addHash(hash);
+                    }
+                );
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     fieldTypes.get(0).name(),
@@ -191,14 +211,12 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (values, state) -> {
-                        // Murmur3Hash.Float and Murmur3Hash.Double in regular aggregation call mix64 of doubleToLongBits(double value).
-                        // Equivalent of that in context of DocValue is
+                        // Murmur3Hash.Float in regular aggregation calls mix64 of doubleToLongBits(double value).
+                        // Equivalent of that in context of float DocValue is
                         // mix64(doubleToLongBits(decoded))
-                        // => mix64(doubleToLongBits(NumericUtils.sortableLongToDouble(values.nextValue())))
-                        // => mix64(doubleToLongBits(Double.longBitsToDouble(sortableDoubleBits(values.nextValue()))))
-                        // => mix64(sortableDoubleBits(values.nextValue()))
-
-                        var hash = BitMixer.mix64(NumericUtils.sortableDoubleBits(values.nextValue()));
+                        // => mix64(doubleToLongBits((double)NumericUtils.sortableIntToFloat((int)values.nextValue())))
+                        // => mix64(doubleToLongBits(NumericUtils.sortableIntToFloat((int)values.nextValue()))) - no need to double cast, auto widening
+                        var hash = BitMixer.mix64(doubleToLongBits(NumericUtils.sortableIntToFloat((int) values.nextValue())));
                         state.addHash(hash);
                     }
                 );
@@ -491,7 +509,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             @Override
             long hash(Object val) {
                 return BitMixer.mix64(
-                    java.lang.Double.doubleToLongBits(DataTypes.DOUBLE.sanitizeValue(val)));
+                    doubleToLongBits(DataTypes.DOUBLE.sanitizeValue(val)));
             }
         }
 
