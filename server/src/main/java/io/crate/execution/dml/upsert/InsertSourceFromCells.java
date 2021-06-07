@@ -22,15 +22,16 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.data.BiArrayRow;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.InputFactory;
+import io.crate.expression.InputFactory.Context;
 import io.crate.expression.ValueExtractors;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.ColumnIdent;
@@ -49,12 +50,17 @@ import java.util.Map;
 
 public final class InsertSourceFromCells implements InsertSourceGen {
 
+    private static final Object[] EMPTY_ARRAY = new Object[0];
+
     private final List<Reference> targets;
     private final BiArrayRow row = new BiArrayRow();
     private final CheckConstraints<Map<String, Object>, CollectExpression<Map<String, Object>, ?>> checks;
     private final GeneratedColumns<Row> generatedColumns;
-    private final Object[] defaultValues;
+    private final List<Input<?>> defaultValues;
     private final List<Reference> partitionedByColumns;
+
+    // This is re-used per document to hold the default values
+    private final Object[] defaultValuesCells;
 
     public InsertSourceFromCells(TransactionContext txnCtx,
                                  NodeContext nodeCtx,
@@ -62,10 +68,12 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                                  String indexName,
                                  GeneratedColumns.Validation validation,
                                  List<Reference> targets) {
-        Tuple<List<Reference>, Object[]> allTargetColumnsAndDefaults = addDefaults(targets, table, txnCtx, nodeCtx);
+        Tuple<List<Reference>, List<Input<?>>> allTargetColumnsAndDefaults = addDefaults(targets, table, txnCtx, nodeCtx);
         this.targets = allTargetColumnsAndDefaults.v1();
         this.defaultValues = allTargetColumnsAndDefaults.v2();
+        this.defaultValuesCells = defaultValues.isEmpty() ? EMPTY_ARRAY : new Object[defaultValues.size()];
         this.partitionedByColumns = table.partitionedByColumns();
+        this.row.secondCells(defaultValuesCells);
 
         ReferencesFromInputRow referenceResolver = new ReferencesFromInputRow(
             this.targets,
@@ -96,7 +104,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     @Override
     public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) {
         row.firstCells(values);
-        row.secondCells(defaultValues);
+        evaluateDefaultValues();
 
         HashMap<String, Object> source = new HashMap<>();
         for (int i = 0; i < targets.size(); i++) {
@@ -133,17 +141,27 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         return source;
     }
 
-    private static Tuple<List<Reference>, Object[]> addDefaults(List<Reference> targets,
-                                                                DocTableInfo table,
-                                                                TransactionContext txnCtx,
-                                                                NodeContext nodeCtx) {
+    private void evaluateDefaultValues() {
+        for (int i = 0; i < defaultValuesCells.length; i++) {
+            defaultValuesCells[i] = defaultValues.get(i).value();
+        }
+    }
+
+    private static Tuple<List<Reference>, List<Input<?>>> addDefaults(List<Reference> targets,
+                                                                      DocTableInfo table,
+                                                                      TransactionContext txnCtx,
+                                                                      NodeContext nodeCtx) {
+        if (table.defaultExpressionColumns().isEmpty()) {
+            return new Tuple<>(targets, List.of());
+        }
+        InputFactory inputFactory = new InputFactory(nodeCtx);
+        Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
         ArrayList<Reference> defaultColumns = new ArrayList<>(table.defaultExpressionColumns().size());
-        ArrayList<Object> defaultValues = new ArrayList<>();
+        ArrayList<Input<?>> defaultValues = new ArrayList<>();
         for (Reference ref : table.defaultExpressionColumns()) {
             if (targets.contains(ref) == false) {
                 defaultColumns.add(ref);
-                Object val = SymbolEvaluator.evaluateWithoutParams(txnCtx, nodeCtx, ref.defaultExpression());
-                defaultValues.add(val);
+                defaultValues.add(ctx.add(ref.defaultExpression()));
             }
         }
         List<Reference> allColumns;
@@ -152,7 +170,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         } else {
             allColumns = Lists2.concat(targets, defaultColumns);
         }
-        return new Tuple<>(allColumns, defaultValues.toArray(new Object[0]));
+        return new Tuple<>(allColumns, defaultValues);
     }
 
     private static class ReferencesFromInputRow implements ReferenceResolver<CollectExpression<Row, ?>> {
