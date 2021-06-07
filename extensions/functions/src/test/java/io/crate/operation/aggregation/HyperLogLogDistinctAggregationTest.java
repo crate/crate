@@ -149,6 +149,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    @AwaitsFix(bugUrl = "https://github.com/crate/crate/issues/11452")
     public void test_random_type_random_values() throws Exception {
         var validTypes =  DataTypes.PRIMITIVE_TYPES.stream()
             .filter(type -> !DataTypes.STORAGE_UNSUPPORTED.contains(type))
