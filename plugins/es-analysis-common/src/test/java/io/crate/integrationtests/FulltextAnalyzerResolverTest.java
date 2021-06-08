@@ -26,7 +26,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.SettingMatcher.hasEntry;
 import static io.crate.testing.SettingMatcher.hasKey;
@@ -463,7 +463,7 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
                 "    \"token_chars\"=['letter', 'digit']" +
                 "  )" +
                 ")");
-        assertThrows(() -> execute("CREATE ANALYZER a10 (TOKENIZER a9tok)"),
+        assertThrowsMatches(() -> execute("CREATE ANALYZER a10 (TOKENIZER a9tok)"),
                      isSQLError(endsWith("Non-existing tokenizer 'a9tok'"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

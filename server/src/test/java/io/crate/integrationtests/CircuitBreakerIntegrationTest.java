@@ -30,7 +30,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -71,7 +71,7 @@ public class CircuitBreakerIntegrationTest extends SQLIntegrationTestCase {
 
         execute("set global \"indices.breaker.query.limit\"='100b'");
 
-        assertThrows(
+        assertThrowsMatches(
             () -> execute("select text from t1 group by text"),
             isSQLError(
                 Matchers.allOf(

@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.CoreMatchers.is;
@@ -351,7 +351,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLIntegrationTestCase 
             " 'function foo(a) { return a; }'");
         execute("create table doc.t1 (id long, l as doc.foo(id))");
 
-        assertThrows(
+        assertThrowsMatches(
             () -> execute("drop function doc.foo(long)"),
             isSQLError(containsString(
                     "Cannot drop function 'doc.foo(bigint)', it is still in use by 'doc.t1.l AS doc.foo(id)'"),

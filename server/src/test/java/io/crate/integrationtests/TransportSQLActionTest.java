@@ -56,7 +56,7 @@ import java.util.stream.Collectors;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -107,7 +107,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         PlanForNode plan = plan("select * from t");
         execute("drop table t");
 
-        assertThrows(() -> execute(plan).getResult(), instanceOf(IndexNotFoundException.class));
+        assertThrowsMatches(() -> execute(plan).getResult(), instanceOf(IndexNotFoundException.class));
     }
 
     @Test
@@ -819,7 +819,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
     public void selectWhereNonExistingColumnMatchFunction() throws Exception {
         nonExistingColumnSetup();
 
-        assertThrows(() -> execute("select * from quotes where match(o['something'], 'bla')"),
+        assertThrowsMatches(() -> execute("select * from quotes where match(o['something'], 'bla')"),
                      isSQLError(is("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -1381,7 +1381,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         execute("insert into t (i, l, d) values (1, 2, 90.5)");
         refresh();
 
-        assertThrows(() -> execute("select log(d, l) from t where log(d, -1) >= 0"),
+        assertThrowsMatches(() -> execute("select log(d, l) from t where log(d, -1) >= 0"),
                      isSQLError(is("log(x, b): given arguments would result in: 'NaN'"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -1395,7 +1395,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         execute("insert into t (i, l, d) values (1, 2, 90.5), (0, 4, 100)");
         execute("refresh table t");
 
-        assertThrows(() -> execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)"),
+        assertThrowsMatches(() -> execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)"),
                      isSQLError(is("log(x, b): given arguments would result in: 'NaN'"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -1533,7 +1533,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         String uniqueId = UUID.randomUUID().toString();
         String stmtStr = "select '" + uniqueId + "' from foobar";
         String stmtStrWhere = "select ''" + uniqueId + "'' from foobar";
-        assertThrows(() -> execute(stmtStr),
+        assertThrowsMatches(() -> execute(stmtStr),
                      isSQLError(containsString("Relation 'foobar' unknown"),
                                 UNDEFINED_TABLE,
                                 NOT_FOUND,
@@ -1585,7 +1585,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSelectWithSingleBulkArgRaisesUnsupportedError() {
-        assertThrows(() ->  execute("select * from sys.cluster", new Object[0][]),
+        assertThrowsMatches(() ->  execute("select * from sys.cluster", new Object[0][]),
                      isSQLError(is("Bulk operations for statements that return result sets is not supported"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -1594,7 +1594,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSelectWithBulkArgsRaisesUnsupportedError() {
-        assertThrows(() -> execute("select * from sys.cluster", new Object[][]{new Object[]{1}, new Object[]{2}}),
+        assertThrowsMatches(() -> execute("select * from sys.cluster", new Object[][]{new Object[]{1}, new Object[]{2}}),
                      isSQLError(is("Bulk operations for statements that return result sets is not supported"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -1659,7 +1659,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         execute("insert into t1 (id) values (1)");
         refresh();
 
-        assertThrows(() -> execute("select 1/0 from t1"),
+        assertThrowsMatches(() -> execute("select 1/0 from t1"),
                      isSQLError(is("/ by zero"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

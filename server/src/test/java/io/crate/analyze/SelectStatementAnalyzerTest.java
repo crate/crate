@@ -84,7 +84,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.RelationMatchers.isDocTable;
 import static io.crate.testing.SymbolMatchers.isAlias;
 import static io.crate.testing.SymbolMatchers.isField;
@@ -2377,7 +2377,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_aliased_table_function_in_group_by_is_prohibited() throws Exception {
         var executor = SQLExecutor.builder(clusterService).build();
-        assertThrows(
+        assertThrowsMatches(
             () -> executor.analyze("select unnest([1]) as a from sys.cluster group by 1"),
             IllegalArgumentException.class,
             "Table functions are not allowed in GROUP BY"

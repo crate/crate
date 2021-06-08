@@ -22,7 +22,7 @@
 package io.crate.analysis.common;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.is;
@@ -138,7 +138,7 @@ public class FulltextITest extends SQLIntegrationTestCase{
         execute("select * from matchbox where match(o['m'], 'Ford')");
         assertThat(response.rowCount(), is(1L));
 
-        assertThrows(() -> execute("select * from matchbox where match(o_ignored['a'], 'Ford')"),
+        assertThrowsMatches(() -> execute("select * from matchbox where match(o_ignored['a'], 'Ford')"),
                      isSQLError(is("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

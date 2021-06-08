@@ -23,7 +23,7 @@ package io.crate.types;
 
 import org.junit.Test;
 
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -32,7 +32,7 @@ public class DateTypeTest {
 
     @Test
     public void testCastFromInvalidString() {
-        assertThrows(() -> DateType.INSTANCE.implicitCast("not-a-number"),
+        assertThrowsMatches(() -> DateType.INSTANCE.implicitCast("not-a-number"),
             ClassCastException.class,
             "Can't cast 'not-a-number' to date");
     }

@@ -42,7 +42,7 @@ import java.util.Locale;
 import java.util.Properties;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isPGError;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -113,7 +113,7 @@ public class AuthenticationIntegrationTest extends SQLIntegrationTestCase {
     public void testInvalidUser() throws Exception {
         Properties properties = new Properties();
         properties.setProperty("user", "me");
-        assertThrows(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties),
+        assertThrowsMatches(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties),
                      isPGError(is("No valid auth.host_based entry found for host \"127.0.0.1\", user \"me\". Did you enable TLS in your client?"),
                                INVALID_AUTHORIZATION_SPECIFICATION));
 
@@ -123,7 +123,7 @@ public class AuthenticationIntegrationTest extends SQLIntegrationTestCase {
     public void testUserInHbaThatDoesNotExist() throws Exception {
         Properties properties = new Properties();
         properties.setProperty("user", "cr8");
-        assertThrows(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties),
+        assertThrowsMatches(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties),
                      isPGError(is("trust authentication failed for user \"cr8\""),
                                INVALID_AUTHORIZATION_SPECIFICATION));
     }
@@ -132,7 +132,7 @@ public class AuthenticationIntegrationTest extends SQLIntegrationTestCase {
     public void testInvalidAuthenticationMethod() throws Exception {
         Properties properties = new Properties();
         properties.setProperty("user", "foo");
-        assertThrows(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties),
+        assertThrowsMatches(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties),
                      isPGError(is("No valid auth.host_based entry found for host \"127.0.0.1\", user \"foo\". Did you enable TLS in your client?"),
                                INVALID_AUTHORIZATION_SPECIFICATION));
     }

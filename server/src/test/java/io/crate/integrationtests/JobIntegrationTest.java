@@ -32,7 +32,7 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.containsString;
@@ -75,13 +75,13 @@ public class JobIntegrationTest extends SQLIntegrationTestCase {
         execute("create table users (name string) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
 
-        assertThrows(() -> execute("insert into users (name) (select name from users where _version = 1)"),
+        assertThrowsMatches(() -> execute("insert into users (name) (select name from users where _version = 1)"),
                      isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));
 
-        assertThrows(() -> execute("select name from users where _version = 1"),
+        assertThrowsMatches(() -> execute("select name from users where _version = 1"),
                      isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

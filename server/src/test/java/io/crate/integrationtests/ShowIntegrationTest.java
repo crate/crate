@@ -28,7 +28,7 @@ import org.junit.Test;
 import java.util.Locale;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -40,7 +40,7 @@ public class ShowIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testShowCrateSystemTable() throws Exception {
-        assertThrows(() -> execute("show create table sys.shards"),
+        assertThrowsMatches(() -> execute("show create table sys.shards"),
                      isSQLError(is("The relation \"sys.shards\" doesn't support or allow SHOW CREATE operations, as it is read-only."),
                          INTERNAL_ERROR, BAD_REQUEST, 4007));
     }
@@ -48,7 +48,7 @@ public class ShowIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void testShowCreateBlobTable() throws Exception {
         execute("create blob table table_blob");
-        assertThrows(() -> execute("show create table blob.table_blob"),
+        assertThrowsMatches(() -> execute("show create table blob.table_blob"),
                      isSQLError(is("The relation \"blob.table_blob\" doesn't support or allow SHOW CREATE operations."),
                          INTERNAL_ERROR, BAD_REQUEST, 4007));
     }
@@ -386,7 +386,7 @@ public class ShowIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testShowUnknownSetting() {
-        assertThrows(() -> execute("show foo"),
+        assertThrowsMatches(() -> execute("show foo"),
                      isSQLError(is("Unknown session setting name 'foo'."),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

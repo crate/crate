@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -1116,7 +1116,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
 
     @Test
     public void testScalarEvaluatesInErrorOnInformationSchema() {
-        assertThrows(() -> execute("select 1/0 from information_schema.tables"),
+        assertThrowsMatches(() -> execute("select 1/0 from information_schema.tables"),
                      isSQLError(is("/ by zero"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

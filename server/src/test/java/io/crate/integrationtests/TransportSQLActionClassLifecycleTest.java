@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
@@ -84,7 +84,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLIntegrationTestCase
     @Test
     public void testSelectNonExistentGlobalExpression() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
-        assertThrows(() -> execute("select count(race), suess.cluster.name from characters"),
+        assertThrowsMatches(() -> execute("select count(race), suess.cluster.name from characters"),
             isSQLError(is("Relation 'suess.cluster' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
     }
 
@@ -198,7 +198,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLIntegrationTestCase
 
     @Test
     public void selectMultiGetRequestFromNonExistentTable() throws Exception {
-        assertThrows(() -> execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"}),
+        assertThrowsMatches(() -> execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"}),
                      isSQLError(is("Relation 'non_existent' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
     }
 
@@ -436,7 +436,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLIntegrationTestCase
 
     @Test
     public void testSetStatementInvalid() throws Exception {
-        assertThrows(() -> execute("set global persistent stats.operations_log_size=-1024"),
+        assertThrowsMatches(() -> execute("set global persistent stats.operations_log_size=-1024"),
                      isSQLError(containsString("Failed to parse value [-1024] for setting [stats.operations_log_size] must be >= 0"),
                                 INTERNAL_ERROR, BAD_REQUEST, 4000));
 
@@ -524,7 +524,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLIntegrationTestCase
     @Test
     public void testAddPrimaryKeyColumnToNonEmptyTable() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
-        assertThrows(() -> execute("alter table characters add newpkcol string primary key"),
+        assertThrowsMatches(() -> execute("alter table characters add newpkcol string primary key"),
                      isSQLError(is("Cannot add a primary key column to a table that isn't empty"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -555,7 +555,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLIntegrationTestCase
 
     @Test
     public void testCreateTableWithInvalidAnalyzer() throws Exception {
-        assertThrows(() -> execute("create table t (content string index using fulltext with (analyzer='foobar'))"),
+        assertThrowsMatches(() -> execute("create table t (content string index using fulltext with (analyzer='foobar'))"),
                      isSQLError(is("Failed to parse mapping: analyzer [foobar] not found for field [content]"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

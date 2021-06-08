@@ -84,7 +84,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -1084,7 +1084,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_select_where_id_and_seq_missing_primary_term() throws Exception {
-        assertThrows(
+        assertThrowsMatches(
             () -> e.plan("select id from users where id = 1 and _seq_no = 11"),
             VersioninigValidationException.class,
             VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
@@ -1093,7 +1093,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_select_where_seq_and_primary_term_missing_id() throws Exception {
-        assertThrows(
+        assertThrowsMatches(
             () -> e.plan("select id from users where _seq_no = 11 and _primary_term = 1"),
             VersioninigValidationException.class,
             VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG

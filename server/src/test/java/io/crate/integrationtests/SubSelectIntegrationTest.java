@@ -40,7 +40,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -340,7 +340,7 @@ public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into t1 (x) values (1), (2)");
         execute("refresh table t1");
 
-        assertThrows(() -> execute("select name from sys.cluster where 1 = (select x from t1)"),
+        assertThrowsMatches(() -> execute("select name from sys.cluster where 1 = (select x from t1)"),
                      isSQLError(containsString("Subquery returned more than 1 row"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

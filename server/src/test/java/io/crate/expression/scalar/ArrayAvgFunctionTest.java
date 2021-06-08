@@ -8,7 +8,7 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.util.List;
 
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 
 public class ArrayAvgFunctionTest extends ScalarTestCase {
 
@@ -91,7 +91,7 @@ public class ArrayAvgFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_array_avg_with_array_of_undefined_inner_type_throws_exception() {
-        assertThrows(() -> assertEvaluate("array_avg([])", null),
+        assertThrowsMatches(() -> assertEvaluate("array_avg([])", null),
             UnsupportedOperationException.class,
             "Unknown function: array_avg([]), no overload found for matching argument types: (undefined_array).");
     }

@@ -48,7 +48,7 @@ import java.util.Map;
 import static io.crate.metadata.table.ColumnPolicies.decodeMappingValue;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
@@ -94,7 +94,7 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
         assertThat(response.cols(), is(arrayContaining("id", "name")));
         assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
 
-        assertThrows(() -> execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)"),
+        assertThrowsMatches(() -> execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)"),
                      isSQLError(is("Column boo unknown"),
                                 UNDEFINED_COLUMN,
                                 NOT_FOUND,
@@ -116,7 +116,7 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
         assertThat(response.cols(), is(arrayContaining("id", "name")));
         assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
 
-        assertThrows(() -> execute("update strict_table set name='Trillian', boo=true where id=1"),
+        assertThrowsMatches(() -> execute("update strict_table set name='Trillian', boo=true where id=1"),
                      isSQLError(is("Column boo unknown"), UNDEFINED_COLUMN, NOT_FOUND,4043));
     }
 
@@ -270,7 +270,7 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
                 authorMap
             });
         execute("refresh table books");
-        assertThrows(() -> execute("insert into books (title, author) values (?,?)",
+        assertThrowsMatches(() -> execute("insert into books (title, author) values (?,?)",
             new Object[]{
                 "Life, the Universe and Everything",
                 Map.of("name", Map.of("first_name", "Douglas", "middle_name", "Noel"))
@@ -399,7 +399,7 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
             new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
         assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
 
-        assertThrows(() -> execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
+        assertThrowsMatches(() -> execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
                                    new Object[]{28, true, false, true}),
                      isSQLError(is("Column perfect unknown"),
                                 UNDEFINED_COLUMN,
@@ -437,7 +437,7 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
             new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
         assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
 
-        assertThrows(() -> execute("update numbers set num=?, perfect=? where num=6",
+        assertThrowsMatches(() -> execute("update numbers set num=?, perfect=? where num=6",
                                    new Object[]{28, true}),
                      isSQLError(is("Column perfect unknown"),
                                 UNDEFINED_COLUMN,
@@ -502,7 +502,7 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
         execute("alter table dynamic_table set (column_policy = 'strict')");
         waitNoPendingTasksOnAll();
-        assertThrows(() -> execute("insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')"),
+        assertThrowsMatches(() -> execute("insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')"),
                      isSQLError(is("Column new_col unknown"), UNDEFINED_COLUMN, NOT_FOUND,4043));
     }
 

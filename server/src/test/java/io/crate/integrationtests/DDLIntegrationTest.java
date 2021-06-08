@@ -25,7 +25,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -137,7 +137,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
     public void testCreateTableAlreadyExistsException() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
-        assertThrows(() -> execute("create table test (col1 integer primary key, col2 string)"),
+        assertThrowsMatches(() -> execute("create table test (col1 integer primary key, col2 string)"),
                      isSQLError(is("Relation 'doc.test' already exists."),
                                 DUPLICATE_TABLE,
                                 CONFLICT,
@@ -233,7 +233,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testGeoShapeInvalidPrecision() throws Exception {
-        assertThrows(() -> execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='10%'))"),
+        assertThrowsMatches(() -> execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='10%'))"),
                      isSQLError(is("Value '10%' of setting precision is not a valid distance unit"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -243,7 +243,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testGeoShapeInvalidDistance() throws Exception {
-        assertThrows(() -> execute(
+        assertThrowsMatches(() -> execute(
             "create table test (col1 geo_shape INDEX using QUADTREE with (distance_error_pct=true))"),
                      isSQLError(is("Value 'true' of setting distance_error_pct is not a float value"),
                          INTERNAL_ERROR,
@@ -254,7 +254,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testUnknownGeoShapeSetting() throws Exception {
-        assertThrows(() -> execute("create table test (col1 geo_shape INDEX using QUADTREE with (does_not_exist=false))"),
+        assertThrowsMatches(() -> execute("create table test (col1 geo_shape INDEX using QUADTREE with (does_not_exist=false))"),
                      isSQLError(is("Setting \"does_not_exist\" ist not supported on geo_shape index"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -303,7 +303,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into quotes (id, quote) values (?, ?)", new Object[]{1, quote});
         execute("refresh table quotes");
 
-        assertThrows(
+        assertThrowsMatches(
             () -> execute("select quote from quotes where quote = ?", new Object[]{quote}),
             isSQLError(
                 containsString("Cannot search on field [quote] since it is not indexed."),
@@ -372,7 +372,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         assertEquals(printedTable(response.rows()),
                      "0| NULL\n" +
                      "1| 1\n");
-        assertThrows(() -> execute("insert into t(id, qty) values(2, -1)"),
+        assertThrowsMatches(() -> execute("insert into t(id, qty) values(2, -1)"),
                      isSQLError(containsString("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values"),
                      INTERNAL_ERROR,
                      BAD_REQUEST,
@@ -388,7 +388,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         assertEquals(printedTable(response.rows()), "0| 1\n");
         execute("update t set qty = 1 where id = 0 returning id, qty");
         assertEquals(printedTable(response.rows()), "0| 1\n");
-        assertThrows(() -> execute("update t set qty = -1 where id = 0"),
+        assertThrowsMatches(() -> execute("update t set qty = -1 where id = 0"),
                      isSQLError(containsString("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values"),
                                 INTERNAL_ERROR,
                                 INTERNAL_SERVER_ERROR,
@@ -401,7 +401,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         execute("create table t (id integer primary key, qty integer constraint check_1 check (qty > 0))");
         execute("alter table t add column bazinga integer constraint bazinga_check check(bazinga <> 42)");
         execute("insert into t(id, qty, bazinga) values(0, 1, 100)");
-        assertThrows(() -> execute("insert into t(id, qty, bazinga) values(0, 1, 42)"),
+        assertThrowsMatches(() -> execute("insert into t(id, qty, bazinga) values(0, 1, 42)"),
                      isSQLError(containsString("Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) and values {qty=1, id=0, bazinga=42}"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -433,7 +433,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
             "doc| t| PRIMARY KEY| t_pk\n"
         ));
         execute("insert into t(id, qty) values(-42, 100)");
-        assertThrows(() -> execute("insert into t(id, qty) values(0, 0)"),
+        assertThrowsMatches(() -> execute("insert into t(id, qty) values(0, 0)"),
                      isSQLError(is("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {qty=0, id=0}"),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
@@ -492,7 +492,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into t (id) values(1)");
         refresh();
 
-        assertThrows(() -> execute("alter table t add column name string primary key"),
+        assertThrowsMatches(() -> execute("alter table t add column name string primary key"),
         isSQLError(is("Cannot add a primary key column to a table that isn't empty"), INTERNAL_ERROR, BAD_REQUEST, 4004));
     }
 
@@ -519,7 +519,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into t (id) values(1)");
         refresh();
 
-        assertThrows(() -> execute("alter table t add column id_generated as (id + 1)"),
+        assertThrowsMatches(() -> execute("alter table t add column id_generated as (id + 1)"),
                      isSQLError(is("Cannot add a generated column to a table that isn't empty"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -532,7 +532,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
         ensureYellow();
-        assertThrows(() -> execute("alter table t add \"o.x\" int"),
+        assertThrowsMatches(() -> execute("alter table t add \"o.x\" int"),
                      isSQLError(is("\"o.x\" contains a dot"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -544,7 +544,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         execute("create table t (id int) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
 
-        assertThrows(() ->  execute("alter table t add \"o['x.y']\" int"),
+        assertThrowsMatches(() ->  execute("alter table t add \"o['x.y']\" int"),
                      isSQLError(is("\"o['x.y']\" contains a dot"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -579,7 +579,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
         execute("alter table t add o['y'] int");
         // column o exists already
-        assertThrows(() -> execute("alter table t add o object as (z string)"),
+        assertThrowsMatches(() -> execute("alter table t add o object as (z string)"),
                      isSQLError(containsString("The table doc.t already has a column named o"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -693,7 +693,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testDropUnknownTable() throws Exception {
-        assertThrows(() -> execute("drop table test"),
+        assertThrowsMatches(() -> execute("drop table test"),
                      isSQLError(is("Relation 'test' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
     }
 
@@ -780,7 +780,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
             "   date timestamp with time zone" +
             ") clustered into 3 shards with (number_of_replicas='0-all')");
 
-        assertThrows(() -> execute("alter table quotes set (number_of_shards=1, number_of_replicas='1-all')"),
+        assertThrowsMatches(() -> execute("alter table quotes set (number_of_shards=1, number_of_replicas='1-all')"),
                      isSQLError(is("Setting [number_of_shards] cannot be combined with other settings"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -803,7 +803,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
                 2, "Now panic", 1395961200000L}
         );
 
-        assertThrows(() -> execute("alter table quotes partition (date=1395874800000) " +
+        assertThrowsMatches(() -> execute("alter table quotes partition (date=1395874800000) " +
                                    "set (number_of_shards=1, number_of_replicas='1-all')"),
                      isSQLError(is("Setting [number_of_shards] cannot be combined with other settings"),
                                 INTERNAL_ERROR,
@@ -831,7 +831,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() throws Exception {
-        assertThrows(() -> execute("create table \"AAA\".t (name string) with (number_of_replicas=0)"),
+        assertThrowsMatches(() -> execute("create table \"AAA\".t (name string) with (number_of_replicas=0)"),
                      isSQLError(is("Relation name \"AAA.t\" is invalid."), INTERNAL_ERROR, BAD_REQUEST, 4002));
 
     }
@@ -872,7 +872,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
     public void test_alter_table_cannot_add_broken_generated_column() throws Exception {
         execute("create table tbl (x int)");
 
-        Asserts.assertThrows(
+        Asserts.assertThrowsMatches(
             () -> execute("alter table tbl add column ts timestamp without time zone generated always as 'foobar'"),
             SQLErrorMatcher.isSQLError(
                 is("Cannot cast `'foobar'` of type `text` to type `timestamp without time zone`"),

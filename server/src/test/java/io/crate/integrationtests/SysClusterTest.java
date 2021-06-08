@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -68,7 +68,7 @@ public class SysClusterTest extends SQLIntegrationTestCase {
 
     @Test
     public void testScalarEvaluatesInErrorOnSysCluster() throws Exception {
-        assertThrows(() -> execute("select 1/0 from sys.cluster"),
+        assertThrowsMatches(() -> execute("select 1/0 from sys.cluster"),
                      isSQLError(is("/ by zero"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 }

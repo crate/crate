@@ -30,7 +30,7 @@ import java.io.File;
 import java.util.HashMap;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static org.hamcrest.Matchers.is;
@@ -87,7 +87,7 @@ public class RepositoryIntegrationTest extends SQLIntegrationTestCase {
                 repoLocation
             });
         waitNoPendingTasksOnAll();
-        assertThrows(() -> execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
+        assertThrowsMatches(() -> execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
                                    new Object[]{repoLocation}),
                      isSQLError(is("Repository 'myRepo' already exists"),
                                 INTERNAL_ERROR,
