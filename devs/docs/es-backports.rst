@@ -623,6 +623,7 @@ should be crossed out as well.
 - [x] fc505aaa764 Track Repository Gen. in BlobStoreRepository (#48944) (#49116)
 - [sn] c45470f84f4 Fix ShardGenerations in RepositoryData in BwC Case (#48920) (#48947)
 - [x] 8360248a43a Always use last properly persisted metadata as previous state (#47779)
+- [x] e244d65869c Fix Snapshot Corruption in Edge Case (#47552)
 - [x] 38f02217f00 Omit writing index metadata for non-replicated closed indices on data-only node (#47285)
 - [x] 5ba4f5fb3c9 Use dynamic port ranges for ExternalTestCluster (#45601)
 - [x] 29235a637f7 Wait for events in waitForRelocation (#45074)
