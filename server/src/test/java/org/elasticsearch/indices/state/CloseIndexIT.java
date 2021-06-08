@@ -60,7 +60,9 @@ public class CloseIndexIT extends SQLIntegrationTestCase {
         for(var i = 0; i < numDocs; i++) {
             bulkArgs[i] = new Object[] { i };
         }
-        execute("insert into doc.test values(?)", bulkArgs);
+        if (numDocs > 0) {
+            execute("insert into doc.test values(?)", bulkArgs);
+        }
 
         execute("alter table doc.test close");
         // Closed tables cannot not be altered, therefore use the api
