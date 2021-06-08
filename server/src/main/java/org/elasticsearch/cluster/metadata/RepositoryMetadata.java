@@ -25,7 +25,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.RepositoryData;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Objects;
 
 /**
@@ -73,7 +72,6 @@ public class RepositoryMetadata {
         assert generation <= pendingGeneration :
             "Pending generation [" + pendingGeneration + "] must be greater or equal to generation [" + generation + "]";
     }
-
 
     /**
      * Returns repository name

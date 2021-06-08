@@ -611,7 +611,7 @@ should be crossed out as well.
 - [x] 4b16d50cd4b Fix typo when assigning null_value in GeoPointFieldMapper  (#49645)
 - [x] 93dc8941d44 Strengthen validateClusterFormed check (#49248)
 - [x] ba5b4f14131 ESIntegTestCase always cleans up static fields (#49105)
-- [ ] ac2774c9fac Use Cluster State to Track Repository Generation (#49729) (#49976)
+- [x] b34daeb64b7 Use Cluster State to Track Repository Generation (#49729)
 - [x] 48ba7dde5cc Make BlobStoreRepository#writeIndexGen API Async (#49584)
 - [x] 97c7ea60b93 Add Missing Nullable Assertions in SnapshotsService (#49465) (#49492)
 - [x] 4d659c4bdbf Make Repository.getRepositoryData an Async API (#49299)
