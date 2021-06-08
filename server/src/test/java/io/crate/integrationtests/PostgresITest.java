@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isPGError;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
@@ -174,7 +174,7 @@ public class PostgresITest extends SQLIntegrationTestCase {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             PreparedStatement stmt = conn.prepareStatement("select ? from sys.cluster");
             stmt.setObject(1, UUID.randomUUID());
-            assertThrows(() -> stmt.executeQuery(), isPGError(is("Can't map PGType with oid=2950 to Crate type"), INTERNAL_ERROR));
+            assertThrowsMatches(() -> stmt.executeQuery(), isPGError(is("Can't map PGType with oid=2950 to Crate type"), INTERNAL_ERROR));
         }
     }
 
@@ -663,7 +663,7 @@ public class PostgresITest extends SQLIntegrationTestCase {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("select name fro sys.cluster");
-            assertThrows(() -> stmt.executeQuery(),
+            assertThrowsMatches(() -> stmt.executeQuery(),
                          isPGError(containsString("mismatched input 'sys'"), INTERNAL_ERROR));
         }
     }
@@ -673,7 +673,7 @@ public class PostgresITest extends SQLIntegrationTestCase {
         try (Connection conn = DriverManager.getConnection(url(RO), properties)) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("create table test(a integer)");
-            assertThrows(() -> stmt.executeQuery(),
+            assertThrowsMatches(() -> stmt.executeQuery(),
                          isPGError(containsString("Only read operations allowed on this node"), INTERNAL_ERROR));
         }
     }
@@ -731,7 +731,7 @@ public class PostgresITest extends SQLIntegrationTestCase {
             conn.createStatement().executeUpdate("create table foo (id int) with (number_of_replicas=0)");
 
             conn.createStatement().execute("set session search_path to DEFAULT");
-            assertThrows(() -> conn.createStatement().execute("select * from foo"),
+            assertThrowsMatches(() -> conn.createStatement().execute("select * from foo"),
                          isPGError(is("Relation 'foo' unknown"), UNDEFINED_TABLE));
         }
     }
@@ -745,7 +745,7 @@ public class PostgresITest extends SQLIntegrationTestCase {
             conn.createStatement().executeUpdate("create table foo (id int) with (number_of_replicas=0)");
             conn.createStatement().executeQuery("select * from bar.foo");
 
-            assertThrows(() -> conn.createStatement().execute("select * from custom.foo"),
+            assertThrowsMatches(() -> conn.createStatement().execute("select * from custom.foo"),
                          isPGError(is("Schema 'custom' unknown"), INTERNAL_ERROR));
         }
     }

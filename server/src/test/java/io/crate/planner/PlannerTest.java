@@ -104,7 +104,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_invalid_any_param_leads_to_clear_error_message() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name = ANY(?) from sys.cluster");
-        Asserts.assertThrows(
+        Asserts.assertThrowsMatches(
             () -> {
                 LogicalPlanner.getNodeOperationTree(
                     plan,

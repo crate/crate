@@ -50,7 +50,7 @@ import java.util.UUID;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -368,7 +368,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
 
-        assertThrows(() -> execute("copy singleshard to '/tmp/file.json'"),
+        assertThrowsMatches(() -> execute("copy singleshard to '/tmp/file.json'"),
                      isSQLError(containsString("Using COPY TO without specifying a DIRECTORY is not supported"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

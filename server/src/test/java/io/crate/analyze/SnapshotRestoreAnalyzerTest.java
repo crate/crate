@@ -59,7 +59,7 @@ import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINIT
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -450,7 +450,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_restore_unknown_metadata() {
-        assertThrows(
+        assertThrowsMatches(
             () -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot UNKNOWN_META"),
             IllegalArgumentException.class,
             "Unknown metadata type 'UNKNOWN_META'"

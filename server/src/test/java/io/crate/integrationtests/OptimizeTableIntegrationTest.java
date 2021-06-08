@@ -28,7 +28,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.allOf;
@@ -112,7 +112,7 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
             ") partitioned by (date) with (refresh_interval=0)");
         ensureYellow();
 
-        assertThrows(() -> execute("optimize table parted partition(date=0)"),
+        assertThrowsMatches(() -> execute("optimize table parted partition(date=0)"),
                      isSQLError(is(String.format("No partition for table '%s' with ident '04130' exists", getFqn("parted"))),
                                 INTERNAL_ERROR,
                                 NOT_FOUND,

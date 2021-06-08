@@ -28,7 +28,7 @@ import org.postgresql.util.PSQLException;
 
 import java.sql.PreparedStatement;
 
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 
 @UseJdbc(value = 1)
 public class PostgresCompatIntegrationTest extends SQLIntegrationTestCase {
@@ -41,7 +41,7 @@ public class PostgresCompatIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testStartTransactionStatement() {
-        assertThrows(() -> execute("START"), PSQLException.class, "ERROR: line 1:6: missing 'TRANSACTION'");
+        assertThrowsMatches(() -> execute("START"), PSQLException.class, "ERROR: line 1:6: missing 'TRANSACTION'");
 
         execute("START TRANSACTION");
         assertNoErrorResponse(response);

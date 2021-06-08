@@ -43,7 +43,7 @@ public class ShardLimitsIT extends SQLIntegrationTestCase {
     @Test
     public void test_shard_limit_is_checked_on_create_table() throws Exception {
         execute("set global \"cluster.max_shards_per_node\" = 1");
-        Asserts.assertThrows(
+        Asserts.assertThrowsMatches(
             () -> execute("create table tbl (x int) clustered into 4 shards with (number_of_replicas = 0)"),
             SQLErrorMatcher.isSQLError(
                 Matchers.containsString("this action would add [4] total shards, but this cluster currently has [0]/[2] maximum shards open;"),
@@ -64,7 +64,7 @@ public class ShardLimitsIT extends SQLIntegrationTestCase {
             with (number_of_replicas = 0)
         """);
         execute("set global \"cluster.max_shards_per_node\" = 1");
-        Asserts.assertThrows(
+        Asserts.assertThrowsMatches(
             () -> execute("insert into tbl (x, p) values (1, 1)"),
             SQLErrorMatcher.isSQLError(
                 Matchers.containsString("this action would add [4] total shards, but this cluster currently has [0]/[2] maximum shards open;"),
@@ -79,7 +79,7 @@ public class ShardLimitsIT extends SQLIntegrationTestCase {
     public void test_shard_limit_is_checked_on_alter_table() throws Exception {
         execute("set global \"cluster.max_shards_per_node\" = 1");
         execute("create table tbl (x int) clustered into 2 shards with (number_of_replicas = 0)");
-        Asserts.assertThrows(
+        Asserts.assertThrowsMatches(
             () -> execute("alter table tbl set (number_of_replicas = 1)"),
             SQLErrorMatcher.isSQLError(
                 Matchers.containsString("this action would add [2] total shards, but this cluster currently has [2]/[2] maximum shards open;"),

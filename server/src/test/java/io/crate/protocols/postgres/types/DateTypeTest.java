@@ -27,7 +27,7 @@ import org.junit.Test;
 
 import java.time.format.DateTimeParseException;
 
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.is;
 
@@ -62,7 +62,7 @@ public class DateTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedFormat() {
-        assertThrows(() -> DateType.INSTANCE.decodeUTF8Text("2016.06.28".getBytes(UTF_8)),
+        assertThrowsMatches(() -> DateType.INSTANCE.decodeUTF8Text("2016.06.28".getBytes(UTF_8)),
             DateTimeParseException.class, "");
     }
 

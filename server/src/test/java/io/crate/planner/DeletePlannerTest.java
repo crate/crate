@@ -44,7 +44,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.isDocKey;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
@@ -102,7 +102,7 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_delete_where_id_and_seq_missing_primary_term() throws Exception {
-        assertThrows(
+        assertThrowsMatches(
             () -> e.plan("delete from users where id = 1 and _seq_no = 11"),
             VersioninigValidationException.class,
             VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG

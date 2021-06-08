@@ -27,7 +27,7 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -122,7 +122,7 @@ public class VersionHandlingIntegrationTest extends SQLIntegrationTestCase {
     public void testUpdateWhereVersionWithoutPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
-        assertThrows(() -> execute("update test set col2 = ? where \"_version\" = ?", new Object[]{"ok now panic", 1}),
+        assertThrowsMatches(() -> execute("update test set col2 = ? where \"_version\" = ?", new Object[]{"ok now panic", 1}),
                      isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -162,7 +162,7 @@ public class VersionHandlingIntegrationTest extends SQLIntegrationTestCase {
     public void testSelectWhereVersionWithoutPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
-        assertThrows(() -> execute("select _version from test where col2 = 'hello' and _version = 1"),
+        assertThrowsMatches(() -> execute("select _version from test where col2 = 'hello' and _version = 1"),
                      isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

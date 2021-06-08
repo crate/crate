@@ -28,7 +28,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
@@ -126,7 +126,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testAlterNonExistingUserThrowsException() throws Exception {
-        assertThrows(() -> executeAsSuperuser("alter user unknown_user set (password = 'unknown')"),
+        assertThrowsMatches(() -> executeAsSuperuser("alter user unknown_user set (password = 'unknown')"),
                      isSQLError(is("User 'unknown_user' does not exist"),
                                 INTERNAL_ERROR,
                                 NOT_FOUND,
@@ -149,7 +149,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testDropUserUnAuthorized() throws Exception {
-        assertThrows(() -> executeAsNormalUser("drop user ford"),
+        assertThrowsMatches(() -> executeAsNormalUser("drop user ford"),
                      isSQLError(is("Missing 'AL' privilege for user 'normal'"),
                                 INTERNAL_ERROR,
                                 UNAUTHORIZED,
@@ -158,7 +158,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testCreateUserUnAuthorized() throws Exception {
-        assertThrows(() -> executeAsNormalUser("create user ford"),
+        assertThrowsMatches(() -> executeAsNormalUser("create user ford"),
                      isSQLError(is("Missing 'AL' privilege for user 'normal'"),
                                 INTERNAL_ERROR,
                                 UNAUTHORIZED,
@@ -167,7 +167,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testCreateNormalUserUnAuthorized() throws Exception {
-        assertThrows(() -> executeAsNormalUser("create user ford"),
+        assertThrowsMatches(() -> executeAsNormalUser("create user ford"),
                      isSQLError(is("Missing 'AL' privilege for user 'normal'"),
                                 INTERNAL_ERROR,
                                 UNAUTHORIZED,
@@ -189,7 +189,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("create user ford_exists");
         assertUserIsCreated("ford_exists");
 
-        assertThrows(() -> executeAsSuperuser("create user ford_exists"),
+        assertThrowsMatches(() -> executeAsSuperuser("create user ford_exists"),
                      isSQLError(is("User 'ford_exists' already exists"),
                                 INTERNAL_ERROR,
                                 CONFLICT,
@@ -198,7 +198,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testDropNonExistingUserThrowsException() throws Exception {
-        assertThrows(() -> executeAsSuperuser("drop user not_exists"),
+        assertThrowsMatches(() -> executeAsSuperuser("drop user not_exists"),
                      isSQLError(is("User 'not_exists' does not exist"),
                                 INTERNAL_ERROR,
                                 NOT_FOUND,
@@ -207,7 +207,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testDropSuperUserThrowsException() throws Exception {
-        assertThrows(() -> executeAsSuperuser("drop user crate"),
+        assertThrowsMatches(() -> executeAsSuperuser("drop user crate"),
                      isSQLError(is("Cannot drop a superuser 'crate'"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

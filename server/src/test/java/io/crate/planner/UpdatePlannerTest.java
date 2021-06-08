@@ -58,7 +58,7 @@ import java.util.Map;
 
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES;
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
@@ -163,7 +163,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_update_where_id_and_seq_missing_primary_term() throws Exception {
-        assertThrows(
+        assertThrowsMatches(
             () -> e.plan("update users set name = 'should not update' where id = 1 and _seq_no = 11"),
             VersioninigValidationException.class,
             VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG

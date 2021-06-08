@@ -25,7 +25,7 @@ import org.junit.Test;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
@@ -56,7 +56,7 @@ public class SwapTableITest extends SQLIntegrationTestCase {
             is("t2\n")
         );
 
-        assertThrows(() ->  execute("select * from t1"),
+        assertThrowsMatches(() ->  execute("select * from t1"),
                      isSQLError(containsString("Relation 't1' unknown"),
                                 UNDEFINED_TABLE,
                                 NOT_FOUND,

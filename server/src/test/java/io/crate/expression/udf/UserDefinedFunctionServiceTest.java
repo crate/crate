@@ -28,6 +28,7 @@ import io.crate.metadata.Schemas;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
 
@@ -124,7 +125,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
             .addTable("create table doc.t1 (id int, gen as foo(id))")
             .build();
 
-        assertThrows(
+        Assertions.assertThrows(
             IllegalArgumentException.class,
             () -> executor.udfService().validateFunctionIsNotInUseByGeneratedColumn(
                 Schemas.DOC_SCHEMA_NAME,
@@ -145,7 +146,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
             .addPartitionedTable("create table doc.p1 (id int, p int, gen as foo(id)) partitioned by (p)")
             .build();
 
-        assertThrows(
+        Assertions.assertThrows(
             IllegalArgumentException.class,
             () -> executor.udfService().validateFunctionIsNotInUseByGeneratedColumn(
                 Schemas.DOC_SCHEMA_NAME,

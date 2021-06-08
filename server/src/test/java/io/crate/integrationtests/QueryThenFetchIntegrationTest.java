@@ -25,7 +25,7 @@ import io.crate.data.Paging;
 import org.junit.Test;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -56,7 +56,7 @@ public class QueryThenFetchIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into t (s) values ('foo')");
         execute("refresh table t");
 
-        assertThrows(() -> execute("select format('%d', s) from t"),
+        assertThrowsMatches(() -> execute("select format('%d', s) from t"),
                      isSQLError(containsString("d != java.lang.String"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

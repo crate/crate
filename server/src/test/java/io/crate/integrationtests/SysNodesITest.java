@@ -26,7 +26,7 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.is;
@@ -48,7 +48,7 @@ public class SysNodesITest extends SQLIntegrationTestCase {
 
     @Test
     public void testScalarEvaluatesInErrorOnSysNodes() throws Exception {
-        assertThrows(() -> execute("select 1/0 from sys.nodes"),
+        assertThrowsMatches(() -> execute("select 1/0 from sys.nodes"),
                      isSQLError(CoreMatchers.is("/ by zero"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
