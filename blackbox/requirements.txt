@@ -3,7 +3,7 @@
 
 crash
 crate
-crate-docs-theme>=0.15.2
+crate-docs-theme
 tqdm==4.24.0
 sphinx-csv-filter>=0.2.0
 pycodestyle==2.4.0
