@@ -12,6 +12,7 @@ else
     exit 1
 fi
 
+rm -r $DIR/.venv
 $PYTHON -m venv $DIR/.venv
 if [ ! -f $DIR/.venv/bin/pip ]; then
     wget https://bootstrap.pypa.io/get-pip.py
@@ -20,4 +21,4 @@ if [ ! -f $DIR/.venv/bin/pip ]; then
 fi
 
 $DIR/.venv/bin/pip install -U pip setuptools wheel
-$DIR/.venv/bin/pip install -r $DIR/requirements.txt
+$DIR/.venv/bin/pip install -U -r $DIR/requirements.txt

@@ -3,7 +3,7 @@
 
 crash
 crate
-crate-docs-theme
+crate-docs-theme>=0.15.2
 tqdm==4.24.0
 sphinx-csv-filter>=0.2.0
 pycodestyle==2.4.0
@@ -16,9 +16,7 @@ sphinx-autobuild==0.6.0
 
 # the next section should mirror the RTD environment
 
-alabaster>=0.7,<0.8,!=0.7.5
 setuptools<41
-sphinx==1.7.4
 
 # used for dns-discovery tests
 dnslib
