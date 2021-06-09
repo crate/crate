@@ -38,7 +38,7 @@ public class BitType extends PGType<BitString> {
     }
 
     public BitType(int length) {
-        this();
+        super(OID, -1, length, "bit");
         this.length = length;
     }
 
