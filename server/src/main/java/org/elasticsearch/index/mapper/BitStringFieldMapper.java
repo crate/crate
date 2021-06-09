@@ -22,7 +22,6 @@
 package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 
@@ -167,8 +166,7 @@ public class BitStringFieldMapper extends FieldMapper {
         if (bytes == null) {
             return;
         }
-        BitSet bitSet = BitSet.valueOf(bytes);
-        BytesRef binaryValue = new BytesRef(bitSet.toByteArray());
+        BytesRef binaryValue = new BytesRef(bytes);
         if (fieldType().isSearchable()) {
             fields.add(new Field(fieldType().name(), binaryValue, fieldType));
         }
