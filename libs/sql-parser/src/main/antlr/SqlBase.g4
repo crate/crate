@@ -296,6 +296,7 @@ parameterOrSimpleLiteral
     | stringLiteral
     | numericLiteral
     | booleanLiteral
+    | bitString
     | parameterExpr
     ;
 
@@ -329,6 +330,10 @@ escapedCharsStringLiteral
 
 stringLiteral
     : STRING
+    ;
+
+bitString
+    : BIT_STRING
     ;
 
 subscriptSafe
@@ -981,6 +986,11 @@ STRING
 ESCAPED_STRING
     : 'E' '\'' ( ~'\'' | '\'\'' | '\\\'' )* '\''
     ;
+
+BIT_STRING
+    : 'B' '\'' ([0-1])* '\''
+    ;
+
 
 INTEGER_VALUE
     : DIGIT+

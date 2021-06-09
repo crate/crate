@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -231,7 +231,7 @@ public class SysShardsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSelectStarMatch() throws Exception {
-        assertThrows(() -> execute("select * from sys.shards where match(table_name, 'characters')"),
+        assertThrowsMatches(() -> execute("select * from sys.shards where match(table_name, 'characters')"),
                      isSQLError(is("Cannot use MATCH on system tables"), INTERNAL_ERROR, BAD_REQUEST, 4004));
     }
 
@@ -288,26 +288,26 @@ public class SysShardsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testGroupByUnknownResultColumn() throws Exception {
-        assertThrows(() -> execute("select lol from sys.shards group by table_name"),
+        assertThrowsMatches(() -> execute("select lol from sys.shards group by table_name"),
                      isSQLError(is("Column lol unknown"), UNDEFINED_COLUMN, NOT_FOUND, 4043));
     }
 
     @Test
     public void testGroupByUnknownGroupByColumn() throws Exception {
-        assertThrows(() -> execute("select max(num_docs) from sys.shards group by lol"),
+        assertThrowsMatches(() -> execute("select max(num_docs) from sys.shards group by lol"),
                      isSQLError(is("Column lol unknown"), UNDEFINED_COLUMN, NOT_FOUND, 4043));
     }
 
     @Test
     public void testGroupByUnknownOrderBy() throws Exception {
-        assertThrows(() -> execute(
+        assertThrowsMatches(() -> execute(
             "select sum(num_docs), table_name from sys.shards group by table_name order by lol"),
                      isSQLError(is("Column lol unknown"), UNDEFINED_COLUMN, NOT_FOUND, 4043));
     }
 
     @Test
     public void testGroupByUnknownWhere() throws Exception {
-        assertThrows(() -> execute(
+        assertThrowsMatches(() -> execute(
             "select sum(num_docs), table_name from sys.shards where lol='funky' group by table_name"),
                      isSQLError(is("Column lol unknown"), UNDEFINED_COLUMN, NOT_FOUND, 4043));
         ;
@@ -315,14 +315,14 @@ public class SysShardsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testGlobalAggregateUnknownWhere() throws Exception {
-        assertThrows(() -> execute(
+        assertThrowsMatches(() -> execute(
             "select sum(num_docs) from sys.shards where lol='funky'"),
                      isSQLError(is("Column lol unknown"), UNDEFINED_COLUMN, NOT_FOUND, 4043));
     }
 
     @Test
     public void testSelectShardIdFromSysNodes() throws Exception {
-        assertThrows(() -> execute(
+        assertThrowsMatches(() -> execute(
             "select sys.shards.id from sys.nodes"),
                      isSQLError(is("Relation 'sys.shards' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
     }
@@ -419,7 +419,7 @@ public class SysShardsTest extends SQLIntegrationTestCase {
         // we need at least 1 shard, otherwise the table is empty and no evaluation occurs
         execute("create table t1 (id integer) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
-        assertThrows(() -> execute(
+        assertThrowsMatches(() -> execute(
             "select 1/0 from sys.shards"),
                      isSQLError(is("/ by zero"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
@@ -443,7 +443,7 @@ public class SysShardsTest extends SQLIntegrationTestCase {
         execute("create table doc.tbl (x int)");
         execute("insert into doc.tbl values(1)");
         execute("alter table doc.tbl close");
-        assertThrows(() -> execute("select * from doc.tbl"),
+        assertThrowsMatches(() -> execute("select * from doc.tbl"),
                      OperationOnInaccessibleRelationException.class,
                      "The relation \"doc.tbl\" doesn't support or allow READ operations, as it is currently closed.");
     }
@@ -454,7 +454,7 @@ public class SysShardsTest extends SQLIntegrationTestCase {
         execute("create table doc.tbl (x int)");
         execute("insert into doc.tbl values(1)");
         execute("alter table doc.tbl close");
-        assertThrows(() -> execute("insert into doc.tbl values(2)"),
+        assertThrowsMatches(() -> execute("insert into doc.tbl values(2)"),
                      OperationOnInaccessibleRelationException.class,
                      "The relation \"doc.tbl\" doesn't support or allow INSERT operations, as it is currently closed.");
     }

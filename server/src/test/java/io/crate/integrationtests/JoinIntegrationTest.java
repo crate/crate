@@ -46,7 +46,7 @@ import java.util.Map;
 import java.util.Random;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printRows;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -692,7 +692,7 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
         PlanForNode plan = plan("select * from t1, t2 where t1.x = t2.x");
         execute("drop table t2");
 
-        assertThrows(() -> execute(plan).getResult(), instanceOf(IndexNotFoundException.class));
+        assertThrowsMatches(() -> execute(plan).getResult(), instanceOf(IndexNotFoundException.class));
     }
 
     @Test
@@ -745,7 +745,7 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void testFailureOfJoinDownstream() throws Exception {
         // provoke an exception when the NL emits a row, must bubble up and NL must stop
-        assertThrows(() -> execute("select cast(R.col2 || ' ' || L.col2 as integer)" +
+        assertThrowsMatches(() -> execute("select cast(R.col2 || ' ' || L.col2 as integer)" +
                                    "   from " +
                                    "       unnest(['hello', 'world'], [1, 2]) L " +
                                    "   inner join " +

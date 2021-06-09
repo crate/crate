@@ -33,7 +33,7 @@ public class Asserts {
 
     private Asserts() {}
 
-    public static void assertThrows(Executable executable, Matcher<? super Throwable> matcher) {
+    public static void assertThrowsMatches(Executable executable, Matcher<? super Throwable> matcher) {
         try {
             executable.execute();
             Assertions.fail("Expected exception to be thrown, but nothing was thrown.");
@@ -42,7 +42,7 @@ public class Asserts {
         }
     }
 
-    public static void assertThrows(Executable executable, Class<? extends Throwable> type, String subString) {
+    public static void assertThrowsMatches(Executable executable, Class<? extends Throwable> type, String subString) {
         try {
             executable.execute();
             Assertions.fail("Expected exception to be thrown, but nothing was thrown.");

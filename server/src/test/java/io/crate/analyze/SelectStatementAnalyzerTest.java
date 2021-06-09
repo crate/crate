@@ -63,6 +63,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.sql.parser.ParsingException;
+import io.crate.sql.tree.BitString;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
@@ -84,7 +85,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.RelationMatchers.isDocTable;
 import static io.crate.testing.SymbolMatchers.isAlias;
 import static io.crate.testing.SymbolMatchers.isField;
@@ -2377,7 +2378,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_aliased_table_function_in_group_by_is_prohibited() throws Exception {
         var executor = SQLExecutor.builder(clusterService).build();
-        assertThrows(
+        assertThrowsMatches(
             () -> executor.analyze("select unnest([1]) as a from sys.cluster group by 1"),
             IllegalArgumentException.class,
             "Table functions are not allowed in GROUP BY"
@@ -2633,5 +2634,19 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
         AnalyzedRelation rel = executor.analyze("select regexp_matches('foo', '.*')[1] from sys.cluster group by 1");
         assertThat(rel.outputs().get(0).valueType().getName(), is("text"));
+    }
+
+    @Test
+    public void test_cast_expression_with_parameterized_bit() {
+        var executor = SQLExecutor.builder(clusterService).build();
+        Symbol symbol = executor.asSymbol("B'0010'::bit(3)");
+        assertThat(symbol, isLiteral(BitString.ofRawBits("001")));
+    }
+
+    @Test
+    public void test_cast_expression_with_parameterized_varchar() {
+        var executor = SQLExecutor.builder(clusterService).build();
+        Symbol symbol = executor.asSymbol("'foo'::varchar(2)");
+        assertThat(symbol, isLiteral("fo"));
     }
 }

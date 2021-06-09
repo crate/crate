@@ -22,7 +22,7 @@
 package io.crate.auth;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isPGError;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -135,7 +135,7 @@ public class AuthenticationWithSSLIntegrationTest extends SQLIntegrationTestCase
         properties.setProperty("user", "localhost");
         properties.setProperty("ssl", "true");
 
-        assertThrows(() -> { try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}},
+        assertThrowsMatches(() -> { try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}},
                      isPGError(is("Client certificate authentication failed for user \"localhost\""),
                                INVALID_AUTHORIZATION_SPECIFICATION));
     }

@@ -21,42 +21,10 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.RandomizedContext;
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-import io.crate.common.collections.Lists2;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.testing.DataTypeTesting;
-import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedSchema;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.locationtech.spatial4j.shape.Point;
-
-import java.io.File;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -71,6 +39,47 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+
+import java.io.File;
+import java.nio.file.Paths;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import com.carrotsearch.randomizedtesting.RandomizedContext;
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.locationtech.spatial4j.shape.Point;
+
+import io.crate.common.collections.Lists2;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.sql.tree.BitString;
+import io.crate.testing.DataTypeTesting;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class TransportSQLActionTest extends SQLIntegrationTestCase {
@@ -107,7 +116,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         PlanForNode plan = plan("select * from t");
         execute("drop table t");
 
-        assertThrows(() -> execute(plan).getResult(), instanceOf(IndexNotFoundException.class));
+        assertThrowsMatches(() -> execute(plan).getResult(), instanceOf(IndexNotFoundException.class));
     }
 
     @Test
@@ -819,7 +828,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
     public void selectWhereNonExistingColumnMatchFunction() throws Exception {
         nonExistingColumnSetup();
 
-        assertThrows(() -> execute("select * from quotes where match(o['something'], 'bla')"),
+        assertThrowsMatches(() -> execute("select * from quotes where match(o['something'], 'bla')"),
                      isSQLError(is("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'undefined'"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -1381,7 +1390,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         execute("insert into t (i, l, d) values (1, 2, 90.5)");
         refresh();
 
-        assertThrows(() -> execute("select log(d, l) from t where log(d, -1) >= 0"),
+        assertThrowsMatches(() -> execute("select log(d, l) from t where log(d, -1) >= 0"),
                      isSQLError(is("log(x, b): given arguments would result in: 'NaN'"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -1395,7 +1404,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         execute("insert into t (i, l, d) values (1, 2, 90.5), (0, 4, 100)");
         execute("refresh table t");
 
-        assertThrows(() -> execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)"),
+        assertThrowsMatches(() -> execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)"),
                      isSQLError(is("log(x, b): given arguments would result in: 'NaN'"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -1533,7 +1542,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         String uniqueId = UUID.randomUUID().toString();
         String stmtStr = "select '" + uniqueId + "' from foobar";
         String stmtStrWhere = "select ''" + uniqueId + "'' from foobar";
-        assertThrows(() -> execute(stmtStr),
+        assertThrowsMatches(() -> execute(stmtStr),
                      isSQLError(containsString("Relation 'foobar' unknown"),
                                 UNDEFINED_TABLE,
                                 NOT_FOUND,
@@ -1585,7 +1594,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSelectWithSingleBulkArgRaisesUnsupportedError() {
-        assertThrows(() ->  execute("select * from sys.cluster", new Object[0][]),
+        assertThrowsMatches(() ->  execute("select * from sys.cluster", new Object[0][]),
                      isSQLError(is("Bulk operations for statements that return result sets is not supported"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -1594,7 +1603,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSelectWithBulkArgsRaisesUnsupportedError() {
-        assertThrows(() -> execute("select * from sys.cluster", new Object[][]{new Object[]{1}, new Object[]{2}}),
+        assertThrowsMatches(() -> execute("select * from sys.cluster", new Object[][]{new Object[]{1}, new Object[]{2}}),
                      isSQLError(is("Bulk operations for statements that return result sets is not supported"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -1659,7 +1668,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         execute("insert into t1 (id) values (1)");
         refresh();
 
-        assertThrows(() -> execute("select 1/0 from t1"),
+        assertThrowsMatches(() -> execute("select 1/0 from t1"),
                      isSQLError(is("/ by zero"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -1934,5 +1943,47 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
             rows[1],
             Matchers.arrayContaining(Integer.toString(numItems - 2), numItems - 2)
         );
+    }
+
+
+    @Test
+    @UseJdbc(0)
+    @UseRandomizedSchema(random = false)
+    public void test_bit_string_can_be_inserted_and_queried() throws Exception {
+        execute("create table tbl (xs bit(4))");
+        execute("insert into tbl (xs) values (B'0000'), (B'0001'), (B'0011'), (B'0111'), (B'1111'), (B'1001')");
+        assertThat(response.rowCount(), is(6L));
+        execute("refresh table tbl");
+
+        execute("SELECT _doc['xs'], xs, _raw, xs::bit(3) FROM tbl WHERE xs = B'1001'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "B'1001'| B'1001'| {\"xs\":\"CQ==\"}| B'100'\n"
+        ));
+        // use LIMIT 1 to hit a different execution path that should load `xs` differently
+        execute("SELECT _doc['xs'], xs, _raw, xs::bit(3) FROM tbl WHERE xs = B'1001' LIMIT 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "B'1001'| B'1001'| {\"xs\":\"CQ==\"}| B'100'\n"
+        ));
+
+        var properties = new Properties();
+        properties.put("user", "crate");
+        properties.put("password", "");
+        ArrayList<String> results = new ArrayList<>();
+        try (var conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
+            Statement stmt = conn.createStatement();
+            ResultSet result = stmt.executeQuery("select xs from tbl order by xs");
+            while (result.next()) {
+                String string = result.getString(1);
+                results.add(string);
+            }
+        }
+        assertThat(results, Matchers.contains(
+            "B'0000'",
+            "B'0001'",
+            "B'0011'",
+            "B'0111'",
+            "B'1001'",
+            "B'1111'"
+        ));
     }
 }

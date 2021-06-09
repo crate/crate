@@ -41,7 +41,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNIQUE_VIOLATION;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -190,7 +190,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
     public void testInsertBadIPAddress() throws Exception {
         execute("create table t (i ip) with (number_of_replicas=0)");
         ensureYellow();
-        assertThrows(() -> execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')"),
+        assertThrowsMatches(() -> execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')"),
                      isSQLError(is("Cannot cast `'192.168.1.500'` of type `text` to type `ip`"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -320,7 +320,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
             "A towel is about the most massively useful thing an interstellar hitch hiker can have."});
         refresh();
 
-        assertThrows(() -> execute("insert into test (pk_col, message) values (?, ?)", new Object[]{"1",
+        assertThrowsMatches(() -> execute("insert into test (pk_col, message) values (?, ?)", new Object[]{"1",
                          "I always thought something was fundamentally wrong with the universe."}),
                      isSQLError(is("A document with the same primary key exists already"),
                                 UNIQUE_VIOLATION,
@@ -361,7 +361,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
 
         Object[] args = new Object[]{"1", null};
-        assertThrows(() -> execute("insert into t (pk_col, message) values (?, ?)", args),
+        assertThrowsMatches(() -> execute("insert into t (pk_col, message) values (?, ?)", args),
                      isSQLError(is("\"message\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
@@ -373,7 +373,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
                 ") not null)");
         ensureYellow();
 
-        assertThrows(() -> execute("insert into test (stuff) values('{\"other_field\":\"value\"}')"),
+        assertThrowsMatches(() -> execute("insert into test (stuff) values('{\"other_field\":\"value\"}')"),
                      isSQLError(is("\"stuff['level1']\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
@@ -387,7 +387,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
                 ") not null)");
         ensureYellow();
 
-        assertThrows(() ->execute("insert into test (stuff) values('{\"level1\":{\"other_field\":\"value\"}}')"),
+        assertThrowsMatches(() ->execute("insert into test (stuff) values('{\"level1\":{\"other_field\":\"value\"}}')"),
                      isSQLError(is("\"stuff['level1']['level2']\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
@@ -400,7 +400,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
         };
         execute("insert into test (pk_col, message) values (?, ?)", args);
 
-        assertThrows(() -> execute("insert into test (pk_col, message) values (?, ?)", new Object[]{
+        assertThrowsMatches(() -> execute("insert into test (pk_col, message) values (?, ?)", new Object[]{
                          "1", "I always thought something was fundamentally wrong with the universe"}),
                      isSQLError(is("A document with the same primary key exists already"),
                                 UNIQUE_VIOLATION,
@@ -418,7 +418,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
             "This has made a lot of people very angry and been widely regarded as a bad move."
         };
 
-        assertThrows(() -> execute("insert into test (message) values (?)", args),
+        assertThrowsMatches(() -> execute("insert into test (message) values (?)", args),
                      isSQLError(is("Column `pk_col` is required but is missing from the insert statement"),
                                 INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
@@ -429,7 +429,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
                 "with (number_of_replicas=0)");
         ensureYellow();
 
-        assertThrows(() -> execute("insert into quotes (id, quote) values(?, ?)",
+        assertThrowsMatches(() -> execute("insert into quotes (id, quote) values(?, ?)",
                                    new Object[]{null, "I'd far rather be happy than right any day."}),
                      isSQLError(is("Clustered by value must not be NULL"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
@@ -439,7 +439,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
 
-        assertThrows(() -> execute("insert into quotes (quote) values(?)",
+        assertThrowsMatches(() -> execute("insert into quotes (quote) values(?)",
                                    new Object[]{"I'd far rather be happy than right any day."}),
                      isSQLError(is("Column `id` is required but is missing from the insert statement"),
                                 INTERNAL_ERROR,
@@ -824,7 +824,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
     public void testInsertFromSubQueryWithVersion() throws Exception {
         execute("create table users (name string) clustered into 1 shards");
 
-        assertThrows(() -> execute("insert into users (name) (select name from users where _version = 1)"),
+        assertThrowsMatches(() -> execute("insert into users (name) (select name from users where _version = 1)"),
                      isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -1099,7 +1099,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
                 ") with (number_of_replicas=0)");
         ensureYellow();
 
-        assertThrows(() -> execute("insert into generated_column (id, ts) values (1, null)"),
+        assertThrowsMatches(() -> execute("insert into generated_column (id, ts) values (1, null)"),
                      isSQLError(is("\"gen_col\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
@@ -1112,7 +1112,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
                 ") with (number_of_replicas=0)");
         ensureYellow();
 
-        assertThrows(() -> execute("insert into generated_column (id, gen_col) values (1, null)"),
+        assertThrowsMatches(() -> execute("insert into generated_column (id, gen_col) values (1, null)"),
                      isSQLError(is("\"gen_col\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
@@ -1235,7 +1235,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
         assertThat(response.rows()[0][0], is(4));
 
         // wrong value
-        assertThrows(() -> execute("insert into test(col1, col2) values (1, 0)"),
+        assertThrowsMatches(() -> execute("insert into test(col1, col2) values (1, 0)"),
                      isSQLError(is("Given value 0 for generated column col2 does not match calculation (col1 + 3) = 4"),
                                 INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
@@ -1247,7 +1247,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
         execute("insert into source (col1) values (1)");
         refresh();
-        assertThrows(() -> execute("insert into target (col1) (select col1 from source)"),
+        assertThrowsMatches(() -> execute("insert into target (col1) (select col1 from source)"),
                      isSQLError(containsString("Column \"col2\" is required but is missing from the insert statement"),
                                 INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
@@ -1309,7 +1309,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void testGeneratedColumnAsPrimaryKeyValueEvaluateToNull() throws Exception {
         execute("CREATE TABLE test (col1 TEXT, col2 AS try_cast(col1 AS INT) PRIMARY KEY)");
-        assertThrows(() -> execute("insert into test (col1) values ('a')"),
+        assertThrowsMatches(() -> execute("insert into test (col1) values ('a')"),
                      isSQLError(is("Primary key value must not be NULL"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
@@ -1364,7 +1364,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
         execute("insert into test (id, name) values (1, 'foo')");
         assertThat(response.rowCount(), is(1L));
-        assertThrows(() -> execute("insert into test (id, name) values (1, 'bar')"),
+        assertThrowsMatches(() -> execute("insert into test (id, name) values (1, 'bar')"),
                      isSQLError(containsString("A document with the same primary key exists already"),
                                 UNIQUE_VIOLATION,
                                 CONFLICT,

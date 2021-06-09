@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.startsWith;
@@ -45,7 +45,7 @@ public class S3RepositoryIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void test_unable_to_create_s3_repository() throws Throwable {
-        assertThrows(() -> execute(
+        assertThrowsMatches(() -> execute(
             "create repository test123 type s3 with (bucket='bucket', endpoint='https://s3.region.amazonaws.com', " +
             "protocol='https', access_key='access',secret_key='secret', base_path='test123')"),
                      isSQLError(

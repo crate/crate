@@ -32,7 +32,7 @@ import java.util.Map;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
@@ -125,7 +125,7 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
                 "middle_name", "Noel",
                 "last_name", "Adams"),
             "age", 49);
-        assertThrows(() -> execute(
+        assertThrowsMatches(() -> execute(
             "insert into ot (title, author) values (?, ?)",
             new Object[]{"Life, the Universe and Everything", authorMap}),
                      isSQLError(containsString("dynamic introduction of [middle_name] within [author.name] is not allowed"),
@@ -174,7 +174,7 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
 
     @Test
     public void updateToStrictObject() throws Exception {
-        assertThrows(() -> execute(
+        assertThrowsMatches(() -> execute(
             "update ot set author['name']['middle_name']='Noel' where author['name']['first_name']='Douglas' " +
             "and author['name']['last_name']='Adams'"),
                      isSQLError(is("Column author['name']['middle_name'] unknown"),

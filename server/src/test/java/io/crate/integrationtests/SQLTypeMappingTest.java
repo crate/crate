@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.containsString;
@@ -177,7 +177,7 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
     public void testInsertObjectField() throws Exception {
         setUpObjectTable();
 
-        assertThrows(() -> execute("insert into test12 (object_field['size']) values (127)"),
+        assertThrowsMatches(() -> execute("insert into test12 (object_field['size']) values (127)"),
                      isSQLError(is(
                          String.format(Locale.ENGLISH, "invalid table column reference \"object_field\"['size']",
                                        sqlExecutor.getCurrentSchema())),
@@ -191,7 +191,7 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
     public void testInvalidInsertIntoObject() throws Exception {
         setUpObjectTable();
 
-        assertThrows(
+        assertThrowsMatches(
             () -> execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
                 Map.of("created", true, "size", 127),
                 Map.of("path", "/dev/null", "created", 0)
@@ -203,7 +203,7 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
     public void testInvalidWhereClause() throws Exception {
         setUpSimple();
 
-        assertThrows(
+        assertThrowsMatches(
             () -> execute("delete from t1 where byte_field=129"),
             isSQLError(
                 containsString("Cannot cast `129` of type `integer` to type `char`"),
@@ -218,7 +218,7 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
     public void testInvalidWhereInWhereClause() throws Exception {
         setUpSimple();
 
-        assertThrows(
+        assertThrowsMatches(
             () -> execute("update t1 set byte_field=0 where byte_field in (129)"),
             isSQLError(
                 containsString("Cannot cast `[129]` of type `integer_array` to type `char_array`"),
@@ -314,7 +314,7 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
         execute("insert into t1 values ({a='abc'})");
         waitForMappingUpdateOnAll("t1", "o.a");
 
-        assertThrows(
+        assertThrowsMatches(
             () -> execute("insert into t1 values ({a=['123', '456']})"),
             isSQLError(
                 is("Cannot cast object element `a` with value `[123, 456]` to type `text`"),
@@ -378,7 +378,7 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
     public void testInsertNewColumnToStrictObject() throws Exception {
         setUpObjectTable();
 
-        assertThrows(() ->  execute("insert into test12 (strict_field) values (?)",
+        assertThrowsMatches(() ->  execute("insert into test12 (strict_field) values (?)",
                                     new Object[]{Map.of("another_new_col", "1970-01-01T00:00:00")}),
                      isSQLError(is("mapping set to strict, dynamic introduction of [another_new_col] within [strict_field] is not allowed"),
                          INTERNAL_ERROR,

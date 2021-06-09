@@ -37,7 +37,7 @@ import org.junit.rules.TemporaryFolder;
 import javax.annotation.Nullable;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static org.hamcrest.Matchers.containsString;
@@ -121,7 +121,7 @@ public class ReadOnlyNodeIntegrationTest extends SQLIntegrationTestCase {
     }
 
     private void assertReadOnly(String stmt, Object[] args) throws Exception {
-        assertThrows(() -> execute(stmt, args),
+        assertThrowsMatches(() -> execute(stmt, args),
                      isSQLError(containsString("Only read operations allowed on this node"),
                                 INTERNAL_ERROR,
                                 FORBIDDEN,

@@ -29,6 +29,7 @@ import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.ArraySubQueryExpression;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BetweenPredicate;
+import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.CollectionColumnType;
@@ -76,6 +77,7 @@ import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 
 import javax.annotation.Nullable;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -234,6 +236,11 @@ public final class ExpressionFormatter {
         @Override
         protected String visitStringLiteral(StringLiteral node, @Nullable List<Expression> parameters) {
             return Literals.quoteStringLiteral(node.getValue());
+        }
+
+        @Override
+        public String visitBitString(BitString bitString, List<Expression> context) {
+            return bitString.asBitString();
         }
 
         @Override

@@ -44,6 +44,7 @@ Primitive types are :ref:`scalar <gloss-scalar>` values:
 * `timestamp without time zone <timestamp without time zone_>`_
 * `date <date_>`_
 * `interval`_
+* `bit`_
 
 .. _sql_ddl_datatypes_geographic:
 
@@ -193,6 +194,66 @@ characters are allowed.
 
 .. NOTE::
    There is no difference in storage costs among all character data types.
+
+
+.. _data-type-bit:
+
+``bit``
+-------
+
+A type representing a vector of bits with a fixed size.
+
+
+Values of the type can be created using the bit string literal syntax. A bit
+string starts with the ``B`` prefix, followed by a sequence of ``0`` or ``1``
+digits quoted within single quotes ``'``.
+
+An example:
+
+::
+
+  B'00010010'
+  
+
+::
+
+  cr> CREATE TABLE metrics (bits bit(4));
+  CREATE OK, 1 row affected (... sec)
+
+
+  cr> INSERT INTO metrics (bits) VALUES (B'0110');
+  INSERT OK, 1 row affected  (... sec)
+
+
+Inserting values that are either too short or too long results in an error:
+
+::
+
+  cr> INSERT INTO metrics (bits) VALUES (B'00101');
+  SQLParseException[bit string length 5 does not match type bit(4)]
+
+
+.. hide:
+
+    cr> REFRESH TABLE metrics;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT bits from metrics;
+    +---------+
+    | bits    |
+    +---------+
+    | B'0110' |
+    +---------+
+    SELECT 1 row in set (... sec)
+
+
+.. hide:
+
+    cr> DROP TABLE metrics;
+    DROP OK, 1 row affected (... sec)
+
 
 .. _data-type-numeric:
 

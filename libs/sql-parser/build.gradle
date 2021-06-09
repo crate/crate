@@ -19,6 +19,8 @@ dependencies {
     implementation project(':libs:shared')
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
 
+    testImplementation "com.pholser:junit-quickcheck-core:${versions.quickcheck}"
+    testImplementation "com.pholser:junit-quickcheck-generators:${versions.quickcheck}"
     testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
     testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
     testImplementation "junit:junit:${versions.junit}"

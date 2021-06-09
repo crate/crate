@@ -45,6 +45,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DoubleType;
@@ -164,6 +165,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             return DocCollectorExpression.create(toSourceLookup(ref));
         }
         switch (ref.valueType().id()) {
+            case BitStringType.ID:
+                return new BitStringColumnReference(fqn, ((BitStringType) ref.valueType()).length());
             case ByteType.ID:
                 return new ByteColumnReference(fqn);
             case ShortType.ID:

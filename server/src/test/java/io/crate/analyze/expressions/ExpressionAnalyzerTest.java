@@ -383,7 +383,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (obj object as (x int))")
             .build();
-        Asserts.assertThrows(
+        Asserts.assertThrowsMatches(
             () -> e.asSymbol("obj = {x = 'foo'}"),
             ConversionException.class,
             "Cannot cast object element `x` with value `foo` to type `integer`"

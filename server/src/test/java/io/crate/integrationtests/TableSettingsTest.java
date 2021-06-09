@@ -29,7 +29,7 @@ import java.util.Map;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -88,7 +88,7 @@ public class TableSettingsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSetNonDynamicTableSetting() {
-        assertThrows(() -> execute("alter table settings_table set (\"soft_deletes.enabled\"='true')"),
+        assertThrowsMatches(() -> execute("alter table settings_table set (\"soft_deletes.enabled\"='true')"),
                      isSQLError(containsString("Can't update non dynamic settings [[index.soft_deletes.enabled]] for open indices"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -137,7 +137,7 @@ public class TableSettingsTest extends SQLIntegrationTestCase {
         // One more column exceeds the limit
         var msg = String.format(Locale.ENGLISH,
             "Limit of total fields [%d] in index [%s.test] has been exceeded", totalFields + 1, sqlExecutor.getCurrentSchema());
-        assertThrows(() -> execute("alter table test add column new_column2 int"),
+        assertThrowsMatches(() -> execute("alter table test add column new_column2 int"),
                      isSQLError(is(msg), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
@@ -179,7 +179,7 @@ public class TableSettingsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSelectConcreteDynamicSetting() {
-        assertThrows(() -> execute("select settings['routing']['allocation']['exclude']['foo'] from information_schema.tables " +
+        assertThrowsMatches(() -> execute("select settings['routing']['allocation']['exclude']['foo'] from information_schema.tables " +
             "where table_name = 'settings_table'"),
                      isSQLError(is("Column settings['routing']['allocation']['exclude']['foo'] unknown"),
                                 UNDEFINED_COLUMN,
@@ -197,7 +197,7 @@ public class TableSettingsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSetDynamicSettingGroup() {
-        assertThrows(() ->  execute("alter table settings_table set (\"routing.allocation.exclude\" = {foo = 'bar2'})"),
+        assertThrowsMatches(() ->  execute("alter table settings_table set (\"routing.allocation.exclude\" = {foo = 'bar2'})"),
                      isSQLError(is("Cannot change a dynamic group setting, only concrete settings allowed."),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -221,7 +221,7 @@ public class TableSettingsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testResetDynamicSettingGroup() {
-        assertThrows(() ->  execute("alter table settings_table reset (\"routing.allocation.exclude\")"),
+        assertThrowsMatches(() ->  execute("alter table settings_table reset (\"routing.allocation.exclude\")"),
                      isSQLError(is("Cannot change a dynamic group setting, only concrete settings allowed."),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

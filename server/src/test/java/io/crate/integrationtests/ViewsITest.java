@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
@@ -109,7 +109,7 @@ public class ViewsITest extends SQLIntegrationTestCase {
     public void testCreateViewFailsIfViewAlreadyExists() {
         execute("create view v3 as select 1");
 
-        assertThrows(() ->  execute("create view v3 as select 1"),
+        assertThrowsMatches(() ->  execute("create view v3 as select 1"),
                      isSQLError(containsString("Relation '" + sqlExecutor.getCurrentSchema() + ".v3' already exists"),
                                 DUPLICATE_TABLE,
                                 CONFLICT,
@@ -120,7 +120,7 @@ public class ViewsITest extends SQLIntegrationTestCase {
     public void testCreateViewFailsIfNameConflictsWithTable() {
         execute("create table t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
 
-        assertThrows(() -> execute("create view t1 as select 1"),
+        assertThrowsMatches(() -> execute("create view t1 as select 1"),
                      isSQLError(containsString("Relation '" + sqlExecutor.getCurrentSchema() + ".t1' already exists"),
                                 DUPLICATE_TABLE,
                                 CONFLICT,
@@ -131,7 +131,7 @@ public class ViewsITest extends SQLIntegrationTestCase {
     public void testCreateViewFailsIfNameConflictsWithPartitionedTable() {
         execute("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
 
-        assertThrows(() -> execute("create view t1 as select 1"),
+        assertThrowsMatches(() -> execute("create view t1 as select 1"),
                      isSQLError(containsString("Relation '" + sqlExecutor.getCurrentSchema() + ".t1' already exists"),
                                 DUPLICATE_TABLE,
                                 CONFLICT,
@@ -168,7 +168,7 @@ public class ViewsITest extends SQLIntegrationTestCase {
 
     @Test
     public void testDropViewFailsIfViewIsMissing() {
-        assertThrows(() -> execute("drop view v1"),
+        assertThrowsMatches(() -> execute("drop view v1"),
                      isSQLError(containsString("Relations not found: " + sqlExecutor.getCurrentSchema() + ".v1"),
                                 INTERNAL_ERROR,
                                 NOT_FOUND,
@@ -202,7 +202,7 @@ public class ViewsITest extends SQLIntegrationTestCase {
     @Test
     public void test_creating_a_self_referencing_view_is_not_allowed() throws Exception {
         execute("create view v as select * from sys.cluster");
-        assertThrows(
+        assertThrowsMatches(
             () -> execute("create or replace view v as select * from v"),
             isSQLError(
                 containsString("Creating a view that references itself is not allowed"),

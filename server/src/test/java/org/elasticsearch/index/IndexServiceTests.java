@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.elasticsearch.index.shard.IndexShardTestCase.flushShard;
@@ -416,7 +416,7 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
     }
 
     public void testIllegalFsyncInterval() {
-        assertThrows(() -> execute("create table test(x int, data string) clustered into 1 shards with (\"translog.sync_interval\" = '0ms')"),
+        assertThrowsMatches(() -> execute("create table test(x int, data string) clustered into 1 shards with (\"translog.sync_interval\" = '0ms')"),
                      isSQLError(is("failed to parse value [0ms] for setting [index.translog.sync_interval], must be >= [100ms]"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

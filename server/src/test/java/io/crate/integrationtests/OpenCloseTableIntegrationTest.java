@@ -29,7 +29,7 @@ import java.util.List;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
@@ -47,7 +47,7 @@ public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void test_open_missing_table() {
-        assertThrows(
+        assertThrowsMatches(
             () -> execute("alter table test open"),
             isSQLError(
                 is("Relation 'test' unknown"),
@@ -230,7 +230,7 @@ public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testClosePreventsInsert() throws Exception {
-        assertThrows(() -> execute("insert into t values (1), (2), (3)"),
+        assertThrowsMatches(() -> execute("insert into t values (1), (2), (3)"),
                      isSQLError(is(String.format("The relation \"%s\" doesn't support or allow INSERT operations," +
                                                  " as it is currently closed.", getFqn("t"))),
                          INTERNAL_ERROR,
@@ -240,7 +240,7 @@ public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testClosePreventsSelect() throws Exception {
-        assertThrows(() -> execute("select * from t"),
+        assertThrowsMatches(() -> execute("select * from t"),
                      isSQLError(is(String.format("The relation \"%s\" doesn't support or allow READ operations, " +
                                                  "as it is currently closed.", getFqn("t"))),
                          INTERNAL_ERROR,
@@ -250,7 +250,7 @@ public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testClosePreventsDrop() throws Exception {
-        assertThrows(() -> execute("drop table t"),
+        assertThrowsMatches(() -> execute("drop table t"),
                      isSQLError(is(String.format("The relation \"%s\" doesn't support or allow DROP operations, " +
                                                  "as it is currently closed.", getFqn("t"))),
                          INTERNAL_ERROR,
@@ -260,7 +260,7 @@ public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testClosePreventsAlter() throws Exception {
-        assertThrows(() -> execute("alter table t add column x string"),
+        assertThrowsMatches(() -> execute("alter table t add column x string"),
                      isSQLError(is(String.format("The relation \"%s\" doesn't support or allow ALTER operations, " +
                                                  "as it is currently closed.", getFqn("t"))),
                          INTERNAL_ERROR,
@@ -270,7 +270,7 @@ public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testClosePreventsRefresh() throws Exception {
-        assertThrows(() -> execute("refresh table t"),
+        assertThrowsMatches(() -> execute("refresh table t"),
                      isSQLError(is(String.format("The relation \"%s\" doesn't support or allow REFRESH operations, as " +
                                           "it is currently closed.", getFqn("t"))),
                          INTERNAL_ERROR,
@@ -280,7 +280,7 @@ public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testClosePreventsShowCreate() throws Exception {
-        assertThrows(() -> execute("show create table t"),
+        assertThrowsMatches(() -> execute("show create table t"),
                      isSQLError(is(String.format("The relation \"%s\" doesn't support or allow SHOW CREATE operations," +
                                           " as it is currently closed.", getFqn("t"))),
                          INTERNAL_ERROR,
@@ -290,7 +290,7 @@ public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testClosePreventsOptimize() throws Exception {
-        assertThrows(() -> execute("optimize table t"),
+        assertThrowsMatches(() -> execute("optimize table t"),
                      isSQLError(is(String.format("The relation \"%s\" doesn't support or allow OPTIMIZE operations, " +
                                                  "as it is currently closed.", getFqn("t"))),
                          INTERNAL_ERROR,
@@ -318,7 +318,7 @@ public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into partitioned_table values (1), (2), (3), (4), (5)");
         refresh();
         execute("alter table partitioned_table close");
-        assertThrows(() -> execute("select i from partitioned_table"),
+        assertThrowsMatches(() -> execute("select i from partitioned_table"),
                      isSQLError(is(String.format("The relation \"%s\" doesn't support or allow READ operations, " +
                                                  "as it is currently closed.", getFqn("partitioned_table"))),
                          INTERNAL_ERROR,

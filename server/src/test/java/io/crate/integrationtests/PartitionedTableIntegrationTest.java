@@ -66,7 +66,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNIQUE_VIOLATION;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
@@ -429,7 +429,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
         refresh();
 
-        assertThrows(() -> execute("insert into parted (id, name, date) values (?, ?, ?)",
+        assertThrowsMatches(() -> execute("insert into parted (id, name, date) values (?, ?, ?)",
                                    new Object[]{42, "Zaphod", 0L}),
                      isSQLError(is("A document with the same primary key exists already"),
                          UNIQUE_VIOLATION,
@@ -1535,7 +1535,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
             ") partitioned by (date) with (refresh_interval=0)");
         ensureYellow();
 
-        assertThrows(() ->  execute("refresh table parted partition(date=0)"),
+        assertThrowsMatches(() ->  execute("refresh table parted partition(date=0)"),
                      isSQLError(is(String.format("No partition for table '%s' with ident '04130' exists", getFqn("parted"))),
                          INTERNAL_ERROR,
                          NOT_FOUND,
@@ -1763,7 +1763,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() {
-        assertThrows(() -> execute("create table \"AAA\".t (" +
+        assertThrowsMatches(() -> execute("create table \"AAA\".t (" +
             "   name string," +
             "   d timestamp with time zone" +
             ") partitioned by (d) with (number_of_replicas=0)"),
@@ -2111,7 +2111,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into t1 (id) values (1)");
         refresh();
 
-        assertThrows(() ->execute("select id/0 from t1"),
+        assertThrowsMatches(() ->execute("select id/0 from t1"),
                      isSQLError(is("/ by zero"),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
@@ -2145,7 +2145,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void test_refresh_not_existing_partition() {
         execute("CREATE TABLE doc.parted (x TEXT) PARTITIONED BY (x)");
-        assertThrows(() ->  execute("REFRESH TABLE doc.parted PARTITION (x = 'hddsGNJHSGFEFZÜ')"),
+        assertThrowsMatches(() ->  execute("REFRESH TABLE doc.parted PARTITION (x = 'hddsGNJHSGFEFZÜ')"),
                      isSQLError(is("No partition for table 'doc.parted' with ident '048mgp34ed3ksii8ad3kcha6bb1po' exists"),
                          INTERNAL_ERROR,
                          NOT_FOUND,
@@ -2155,7 +2155,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void test_refresh_partition_in_non_partitioned_table() {
         execute("CREATE TABLE doc.not_parted (x TEXT)");
-        assertThrows(() ->  execute("REFRESH TABLE doc.not_parted PARTITION (x = 'n')"),
+        assertThrowsMatches(() ->  execute("REFRESH TABLE doc.not_parted PARTITION (x = 'n')"),
                      isSQLError(is("table 'doc.not_parted' is not partitioned"),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
@@ -2227,7 +2227,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         assertThat(response.rowCount(), Matchers.is(3L));
 
         // trying to perform an update on a partition with a write block
-        assertThrows(() ->  execute("update my_table set content=\'content42\' where par=1"),
+        assertThrowsMatches(() ->  execute("update my_table set content=\'content42\' where par=1"),
                      isSQLError(is("blocked by: [FORBIDDEN/8/index write (api)];"),
                          INTERNAL_ERROR,
                          INTERNAL_SERVER_ERROR,
@@ -2246,7 +2246,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         ensureGreen();
         execute("alter table my_table partition (par=1) set (\"blocks.write\"=true)");
 
-        assertThrows(() -> execute("insert into my_table (par, content) values (2, 'content42'), " +
+        assertThrowsMatches(() -> execute("insert into my_table (par, content) values (2, 'content42'), " +
                                    "(2, 'content42'), " +
                                    "(1, 'content2'), " +
                                    "(3, 'content6')"),

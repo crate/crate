@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
@@ -448,7 +448,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         assertEquals(IndexMetadata.State.CLOSE, state.getMetadata().index(metadata.getIndex()).getState());
         assertEquals("classic", state.getMetadata().index(metadata.getIndex()).getSettings().get("archived.index.similarity.BM25.type"));
         // try to open it with the broken setting - fail again!
-        assertThrows(
+        assertThrowsMatches(
             () -> execute("alter table test open"),
             isSQLError(is("Failed to verify index " + metadata.getIndex().getName()),
                        INTERNAL_ERROR,
@@ -519,7 +519,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         execute("alter table test close");
 
         // try to open it with the broken setting - fail again!
-        assertThrows(
+        assertThrowsMatches(
             () -> execute("alter table test open"),
             isSQLError(is("Failed to verify index " + metadata.getIndex().getName()),
                        INTERNAL_ERROR,

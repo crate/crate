@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 
 public class ArraySumFunctionTest extends ScalarTestCase {
 
@@ -69,7 +69,7 @@ public class ArraySumFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_array_big_numbers_no_casting_results_in_exception() {
-        assertThrows(() -> assertEvaluate("array_sum(?)", null,
+        assertThrowsMatches(() -> assertEvaluate("array_sum(?)", null,
                                 Literal.of(List.of(Long.MAX_VALUE, Long.MAX_VALUE), new ArrayType<>(DataTypes.LONG))
                             ),
             ArithmeticException.class,
@@ -111,7 +111,7 @@ public class ArraySumFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_empty_array_given_directly_throws_exception() {
-        assertThrows(() -> assertEvaluate("array_sum([])", null),
+        assertThrowsMatches(() -> assertEvaluate("array_sum([])", null),
             UnsupportedOperationException.class,
             "Unknown function: array_sum([]), no overload found for matching argument types: (undefined_array).");
     }

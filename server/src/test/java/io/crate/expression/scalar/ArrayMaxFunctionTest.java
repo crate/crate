@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 
 public class ArrayMaxFunctionTest extends ScalarTestCase {
 
@@ -60,7 +60,7 @@ public class ArrayMaxFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_empty_array_given_directly_throws_exception() {
-        assertThrows(() -> assertEvaluate("array_max([])", null),
+        assertThrowsMatches(() -> assertEvaluate("array_max([])", null),
             UnsupportedOperationException.class,
             "Unknown function: array_max([]), no overload found for matching argument types: (undefined_array).");
     }

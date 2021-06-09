@@ -25,7 +25,7 @@ import io.crate.protocols.postgres.PGErrorStatus;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Test;
 
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
@@ -61,7 +61,7 @@ public class RegexpIntegrationTest extends SQLIntegrationTestCase {
             new Object[]{"+1234567890"}
         });
         refresh();
-        assertThrows(() -> execute("select * from phone where phone ~* '+1234567890'"),
+        assertThrowsMatches(() -> execute("select * from phone where phone ~* '+1234567890'"),
                      isSQLError(containsString("Dangling meta character '+' near index"),
                                 PGErrorStatus.INTERNAL_ERROR, HttpResponseStatus.BAD_REQUEST, 4000)
         );

@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
-import static io.crate.testing.Asserts.assertThrows;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.core.Is.is;
@@ -76,7 +76,7 @@ public class CountStarIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void testSelectCountStarWithWhereClauseForUnknownCol() throws Exception {
         execute("create table test (\"name\" string) with (number_of_replicas=0)");
-        assertThrows(() -> execute("select count(*) from test where non_existant = 'Some Value'"),
+        assertThrowsMatches(() -> execute("select count(*) from test where non_existant = 'Some Value'"),
                      isSQLError(is("Column non_existant unknown"),
                                 UNDEFINED_COLUMN,
                                 NOT_FOUND,
