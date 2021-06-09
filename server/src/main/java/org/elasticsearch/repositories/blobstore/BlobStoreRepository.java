@@ -1239,7 +1239,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     // even if a repository has been manually cleared of all contents we will never reuse the same repository generation.
                     // This is motivated by the consistency behavior the S3 based blob repository implementation has to support which does
                     // not offer any consistency guarantees when it comes to overwriting the same blob name with different content.
-                    newGen = uninitializedMeta ? expectedGen + 1: metadata.pendingGeneration() + 1;
+                    newGen = uninitializedMeta ? expectedGen + 1 : metadata.pendingGeneration() + 1;
                     assert newGen > latestKnownRepoGen.get() : "Attempted new generation [" + newGen +
                         "] must be larger than latest known generation [" + latestKnownRepoGen.get() + "]";
                     return ClusterState.builder(currentState).metadata(Metadata.builder(currentState.getMetadata())
