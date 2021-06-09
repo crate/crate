@@ -47,8 +47,12 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        t1Info = SQLExecutor.tableInfo(T1, T1_DEFINITION, clusterService);
-        t4Info = SQLExecutor.tableInfo(T4, T4_DEFINITION, clusterService);
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable(T1_DEFINITION)
+            .addTable(T4_DEFINITION)
+            .build();
+        t1Info = e.resolveTableInfo(T1.fqn());
+        t4Info = e.resolveTableInfo(T4.fqn());
     }
 
     @Test
@@ -88,5 +92,16 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
         // array of object sub columns also
         assertThat(contexts.get(3).info.position(), is(4));
         assertThat(contexts.get(4).info.position(), is(5));
+    }
+
+    @Test
+    public void test_bit_type_has_character_maximum_length_set() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table bit_table (xs bit(12))")
+            .build();
+        var columns = new InformationSchemaIterables.ColumnsIterable(e.resolveTableInfo("bit_table"));
+        var contexts = StreamSupport.stream(columns.spliterator(), false).toList();
+
+        assertThat(contexts.get(0).characterMaximumLength(), is(12));
     }
 }

@@ -34,7 +34,6 @@ import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
-import io.crate.types.StringType;
 
 import java.util.Map;
 
@@ -82,18 +81,7 @@ public class InformationColumnsTableInfo {
                     return null;
                 }
             })
-            .add("character_maximum_length", INTEGER, r -> {
-                if (r.info.valueType() instanceof StringType) {
-                    var stringType = ((StringType) r.info.valueType());
-                    if (stringType.unbound()) {
-                        return null;
-                    } else {
-                        return stringType.lengthLimit();
-                    }
-                } else {
-                    return null;
-                }
-            })
+            .add("character_maximum_length", INTEGER, ColumnContext::characterMaximumLength)
             .add("character_octet_length", INTEGER, ignored -> null)
             .add("numeric_precision", INTEGER, r -> PRECISION_BY_TYPE_ID.get(r.info.valueType().id()))
             .add("numeric_precision_radix", INTEGER, r -> {
