@@ -180,8 +180,9 @@ Parameters
 
       If the URI scheme is missing, CrateDB assumes the value is a pathname and
       will prepend the :ref:`file <sql-copy-from-file>` URI scheme (i.e.,
-      ``file://``). So, for example, CrateDB will convert ``/tmp/file.json`` to
-      ``file:///tmp/file.json``.
+      ``file://``). Additionally, the value of ``output_uri`` will be `percent
+      encoded`_. So, for example, CrateDB will convert ``/tmp dir/file.json``
+      to ``file:///tmp%20dir/file.json``.
 
 
 .. _sql-copy-to-schemes:
@@ -323,6 +324,7 @@ Possible values for the ``format`` settings are:
 .. _Docker volume: https://docs.docker.com/storage/volumes/
 .. _gzip: https://www.gzip.org/
 .. _NFS: https://en.wikipedia.org/wiki/Network_File_System
+.. _percent encoded: https://en.wikipedia.org/wiki/Percent-encoding
 .. _URL encoded: https://en.wikipedia.org/wiki/Percent-encoding
 .. _well-formed URI: https://www.ietf.org/rfc/rfc2396.txt
 .. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
