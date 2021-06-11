@@ -598,7 +598,7 @@ equivalent to the SQL-conforming timestamp construct ``AT TIME ZONE zone``.
 | Name                            | Size     | Description             | Range                  |
 +=================================+==========+=========================+========================+
 | ``TIME WITH TIME zone``         | 12 bytes | time with time zone     | ``00:00:00.000000``    |
-| ``timetz``                      |          |                         | to ``23:59:59.999999`` |
+| ``TIMETZ``                      |          |                         | to ``23:59:59.999999`` |
 |                                 |          |                         | zone: -18:00 to 18:00  |
 +---------------------------------+----------+-------------------------+------------------------+
 
@@ -610,7 +610,7 @@ equivalent to the SQL-conforming timestamp construct ``AT TIME ZONE zone``.
 
 The time type consists of time followed by an optional time zone.
 
-``timetz`` is an alias for `time with time zone`.
+``TIMETZ`` is an alias for `time with time zone`.
 
 `TIME WITH TIME ZONE` literals can be constructed using a string literal
 and a cast. The syntax for string literal is as follows:
@@ -1559,9 +1559,9 @@ used instead of the CrateDB specific type names.
 
 For example, in a type cast::
 
-  cr> SELECT 10::int2 AS int2;
+  cr> SELECT 10::INT2 AS INT2;
   +------+
-  | int2 |
+  | INT2 |
   +------+
   |   10 |
   +------+
@@ -1573,15 +1573,15 @@ See the table below for a full list of aliases:
 +-------------+--------------------------+
 | Alias       | CrateDB Type             |
 +=============+==========================+
-| int2        | SMALLINT                 |
-+-------------+--------------------------+
 | SHORT       | SMALLINT                 |
 +-------------+--------------------------+
 | INT         | INTEGER                  |
 +-------------+--------------------------+
-| int4        | INTEGER                  |
+| INT2        | SMALLINT                 |
 +-------------+--------------------------+
-| int8        | BIGINT                   |
+| INT4        | INTEGER                  |
++-------------+--------------------------+
+| INT8        | BIGINT                   |
 +-------------+--------------------------+
 | LONG        | BIGINT                   |
 +-------------+--------------------------+
@@ -1592,9 +1592,9 @@ See the table below for a full list of aliases:
 | CHARACTER   | TEXT                     |
 | VARYING     |                          |
 +-------------+--------------------------+
-| name        | TEXT                     |
+| NAME        | TEXT                     |
 +-------------+--------------------------+
-| regproc     | TEXT                     |
+| REGPROC     | TEXT                     |
 +-------------+--------------------------+
 | BYTE        | CHAR                     |
 +-------------+--------------------------+
@@ -1604,7 +1604,7 @@ See the table below for a full list of aliases:
 +-------------+--------------------------+
 | TIMESTAMP   | TIMESTAMP WITH TIME ZONE |
 +-------------+--------------------------+
-| timestamptz | TIMESTAMP WITH TIME ZONE |
+| TIMESTAMPTZ | TIMESTAMP WITH TIME ZONE |
 +-------------+--------------------------+
 
 .. NOTE::
@@ -1628,41 +1628,41 @@ Internal-use types
 
 .. _type-oid:
 
-``oid``
+``OID``
   An *Object Identifier* (OID). OIDS are used internally as primary keys in the
   :ref:`PostgreSQL system catalogs <postgres_pg_catalog>`.
 
-  The ``oid`` type is mapped to the :ref:`integer
+  The ``OID`` type is mapped to the :ref:`integer
   <data-type-numeric>` data type.
 
 .. _type-regproc:
 
-``regproc``
+``REGPROC``
   An alias for the :ref:`oid <type-oid>` type.
 
-  The ``regproc`` type is used by tables in the :ref:`postgres_pg_catalog`
+  The ``REGPROC`` type is used by tables in the :ref:`postgres_pg_catalog`
   schema to reference functions in the `pg_proc`_ table.
 
-  :ref:`Casting <type_cast>` a ``regproc`` type to a :ref:`data-type-text` or
+  :ref:`Casting <type_cast>` a ``REGPROC`` type to a :ref:`data-type-text` or
   :ref:`integer <data-type-numeric>` type will result in the corresponding
   function name or ``oid`` value, respectively.
 
 .. _type-regclass:
 
-``regclass``
+``REGCLASS``
   An alias for the :ref:`oid <type-oid>` type.
 
-  The ``regclass`` type is used by tables in the :ref:`postgres_pg_catalog`
+  The ``REGCLASS`` type is used by tables in the :ref:`postgres_pg_catalog`
   schema to reference relations in the `pg_class`_ table.
 
-  :ref:`Casting <type_cast>` a ``regclass`` type to a :ref:`data-type-text` or
+  :ref:`Casting <type_cast>` a ``REGCLASS`` type to a :ref:`data-type-text` or
   :ref:`integer <data-type-numeric>` type will result in the corresponding
   relation name or ``oid`` value, respectively.
 
 .. _type-oidvector:
 
-``oidvector``
-  The ``oidvector`` type is used to represent one or more :ref:`oid <type-oid>`
+``OIDVECTOR``
+  The ``OIDVECTOR`` type is used to represent one or more :ref:`oid <type-oid>`
   values.
 
   This type is similar to an :ref:`array <data-type-array>` of integers.
