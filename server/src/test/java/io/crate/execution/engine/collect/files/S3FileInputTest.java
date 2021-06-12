@@ -52,17 +52,17 @@ public class S3FileInputTest extends ESTestCase {
 
     private static final String BUCKET_NAME = "fakeBucket";
     private static final String PREFIX = "prefix";
-    private static URI uri;
+    private static URI preGlobUri;
 
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        uri = new URI("s3://fakeBucket/prefix");
+        preGlobUri = new URI("s3://fakeBucket/prefix");
         s3FileInput = new S3FileInput(clientBuilder);
 
         when(uriPredicate.test(any(URI.class))).thenReturn(true);
         when(amazonS3.listObjects(BUCKET_NAME, PREFIX)).thenReturn(objectListing);
-        when(clientBuilder.client(uri)).thenReturn(amazonS3);
+        when(clientBuilder.client(preGlobUri)).thenReturn(amazonS3);
     }
 
     @Test
@@ -75,7 +75,7 @@ public class S3FileInputTest extends ESTestCase {
 
         when(objectListing.getObjectSummaries()).thenReturn(listObjectSummaries);
 
-        List<URI> uris = s3FileInput.listUris(uri, uriPredicate);
+        List<URI> uris = s3FileInput.listUris(null, preGlobUri, uriPredicate);
         assertThat(uris.size(), is(2));
         assertThat(uris.get(0).toString(), is("s3://fakeBucket/prefix/test1.json.gz"));
         assertThat(uris.get(1).toString(), is("s3://fakeBucket/prefix/test2.json.gz"));
@@ -85,7 +85,7 @@ public class S3FileInputTest extends ESTestCase {
     public void testListListUrlsWithCorrectKeys() throws Exception {
         when(objectListing.getObjectSummaries()).thenReturn(objectSummaries());
 
-        List<URI> uris = s3FileInput.listUris(uri, uriPredicate);
+        List<URI> uris = s3FileInput.listUris(null, preGlobUri, uriPredicate);
         assertThat(uris.size(), is(2));
         assertThat(uris.get(0).toString(), is("s3://fakeBucket/prefix/test1.json.gz"));
         assertThat(uris.get(1).toString(), is("s3://fakeBucket/prefix/test2.json.gz"));

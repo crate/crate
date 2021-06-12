@@ -38,7 +38,7 @@ class URLFileInput implements FileInput {
     }
 
     @Override
-    public List<URI> listUris(URI fileUri, Predicate<URI> uriPredicate) throws IOException {
+    public List<URI> listUris(URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate) throws IOException {
         // If the full fileUri contains a wildcard the fileUri passed as argument here is the fileUri up to the wildcard
         // for URLs listing directory contents is not supported so always return the full fileUri for now
         return Collections.singletonList(this.fileUri);
