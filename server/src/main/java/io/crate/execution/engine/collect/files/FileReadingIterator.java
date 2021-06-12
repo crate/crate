@@ -383,7 +383,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private static List<URI> getUris(FileInput fileInput, URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate) throws IOException {
         List<URI> uris;
         if (preGlobUri != null) {
-            uris = fileInput.listUris(preGlobUri, uriPredicate);
+            uris = fileInput.listUris(fileUri, preGlobUri, uriPredicate);
         } else if (uriPredicate.test(fileUri)) {
             uris = List.of(fileUri);
         } else {
@@ -419,7 +419,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
         }
     }
 
-    private static class GlobPredicate implements Predicate<URI> {
+    @VisibleForTesting
+    static class GlobPredicate implements Predicate<URI> {
         private final Pattern globPattern;
 
         GlobPredicate(URI fileUri) {

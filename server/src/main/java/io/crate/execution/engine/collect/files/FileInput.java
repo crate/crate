@@ -39,7 +39,7 @@ public interface FileInput {
      * @return a list of Uris
      * @throws IOException
      */
-    List<URI> listUris(URI fileUri, Predicate<URI> uriPredicate) throws IOException;
+    List<URI> listUris(URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate) throws IOException;
 
     InputStream getStream(URI uri) throws IOException;
 

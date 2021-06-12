@@ -26,9 +26,10 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import io.crate.external.S3ClientHelper;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -52,18 +53,18 @@ public class S3FileInput implements FileInput {
     }
 
     @Override
-    public List<URI> listUris(URI uri, Predicate<URI> uriPredicate) throws IOException {
-        String bucketName = uri.getHost();
+    public List<URI> listUris(@Nullable final URI fileUri, final URI preGlobUri, final Predicate<URI> uriPredicate) throws IOException {
+        String bucketName = preGlobUri.getHost();
         if (client == null) {
-            client = clientBuilder.client(uri);
+            client = clientBuilder.client(preGlobUri);
         }
-        String prefix = uri.getPath().length() > 1 ? uri.getPath().substring(1) : "";
+        String prefix = preGlobUri.getPath().length() > 1 ? preGlobUri.getPath().substring(1) : "";
         List<URI> uris = new ArrayList<>();
         ObjectListing list = client.listObjects(bucketName, prefix);
-        addKeyUris(uris, list, uri, uriPredicate);
+        addKeyUris(uris, list, preGlobUri, uriPredicate);
         while (list.isTruncated()) {
             list = client.listNextBatchOfObjects(list);
-            addKeyUris(uris, list, uri, uriPredicate);
+            addKeyUris(uris, list, preGlobUri, uriPredicate);
         }
 
         return uris;
