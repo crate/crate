@@ -73,6 +73,15 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
             outputs.add(scopedSymbol);
             scopedSymbols.add(scopedSymbol);
         }
+        for (int i = 0; i < relation.hiddenOutputs().size(); i++) {
+            Symbol childOutput = relation.hiddenOutputs().get(i);
+            ColumnIdent childColumn = Symbols.pathFromSymbol(childOutput);
+            ColumnIdent columnAlias = childColumn;
+            if (i + relation.outputs().size() < columnAliases.size()) {
+                columnAlias = new ColumnIdent(columnAliases.get(i));
+            }
+            aliasToColumnMapping.putIfAbsent(columnAlias, childColumn);
+        }
     }
 
     @Override

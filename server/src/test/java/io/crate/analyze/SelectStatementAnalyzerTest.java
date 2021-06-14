@@ -68,6 +68,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.testing.T3;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -2648,5 +2649,21 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService).build();
         Symbol symbol = executor.asSymbol("'foo'::varchar(2)");
         assertThat(symbol, isLiteral("fo"));
+    }
+
+    @Test
+    public void test_can_resolve_index_through_aliased_relation() throws Exception {
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (body text, INDEX body_ft using fulltext (body))")
+            .build();
+        String statement = "select * from tbl t where match (t.body_ft, 'foo')";
+        QueriedSelectRelation rel = executor.analyze(statement);
+        assertThat(rel.outputs(), Matchers.contains(
+            SymbolMatchers.isField("body")
+        ));
+        assertThat(
+            rel.where(),
+            TestingHelpers.isSQL("MATCH((t.body_ft NULL), 'foo') USING best_fields WITH ({})")
+        );
     }
 }

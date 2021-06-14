@@ -66,6 +66,7 @@ import io.crate.types.StringType;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -265,10 +266,9 @@ public class MetadataToASTNodeResolver {
 
         private List<IndexDefinition<Expression>> extractIndexDefinitions() {
             List<IndexDefinition<Expression>> elements = new ArrayList<>();
-            Iterator indexColumns = tableInfo.indexColumns();
+            Collection<IndexReference> indexColumns = tableInfo.indexColumns();
             if (indexColumns != null) {
-                while (indexColumns.hasNext()) {
-                    IndexReference indexRef = (IndexReference) indexColumns.next();
+                for (var indexRef : indexColumns) {
                     String name = indexRef.column().name();
                     List<Expression> columns = expressionsFromReferences(indexRef.columns());
                     if (indexRef.indexType().equals(Reference.IndexType.ANALYZED)) {

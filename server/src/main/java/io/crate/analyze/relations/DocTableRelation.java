@@ -42,7 +42,11 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         // System columns are excluded from `tableInfo.columns()` by default,
         // but parent relations need to be able to see them so that they're selectable.
         // E.g. in `select a._id from tbl as a`
-        super(tableInfo, concat(tableInfo.columns(), DocSysColumns.forTable(tableInfo.ident())));
+        super(
+            tableInfo,
+            List.copyOf(tableInfo.columns()),
+            concat(DocSysColumns.forTable(tableInfo.ident()), tableInfo.indexColumns())
+        );
     }
 
     @Override

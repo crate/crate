@@ -347,8 +347,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return indexColumns.get(ident);
     }
 
-    public Iterator<IndexReference> indexColumns() {
-        return indexColumns.values().iterator();
+    public Collection<IndexReference> indexColumns() {
+        return indexColumns.values();
     }
 
     @Override
