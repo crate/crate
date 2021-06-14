@@ -32,7 +32,7 @@ import java.util.List;
 public class TableRelation extends AbstractTableRelation<TableInfo> {
 
     public TableRelation(TableInfo tableInfo) {
-        super(tableInfo, List.copyOf(tableInfo.columns()));
+        super(tableInfo, List.copyOf(tableInfo.columns()), List.of());
     }
 
     @Override
