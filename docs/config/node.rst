@@ -568,7 +568,7 @@ Layer Security (TLS).
 
   ``off``
     SSL cannot be used
-  ``off``
+  ``on``
     SSL must be used
   ``dual``
     SSL may be used
