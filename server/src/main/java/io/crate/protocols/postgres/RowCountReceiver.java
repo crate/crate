@@ -21,12 +21,12 @@
 
 package io.crate.protocols.postgres;
 
+import javax.annotation.Nonnull;
+
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.netty.channel.Channel;
-
-import javax.annotation.Nonnull;
 
 class RowCountReceiver extends BaseResultReceiver {
 

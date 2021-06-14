@@ -48,24 +48,29 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.transport.BindTransportException;
 import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.Authentication;
-import io.crate.user.UserManager;
 import io.crate.common.collections.BorrowedItem;
 import io.crate.netty.CrateChannelBootstrapFactory;
 import io.crate.netty.EventLoopGroups;
-import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.protocols.ssl.SslSettings;
 import io.crate.types.DataTypes;
+import io.crate.user.UserManager;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.FixedRecvByteBufAllocator;
+import io.netty.handler.flow.FlowControlHandler;
 
 @Singleton
 public class PostgresNetty extends AbstractLifecycleComponent {
@@ -152,6 +157,10 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         }
         eventLoopGroup = eventLoopGroups.getEventLoopGroup(settings);
         bootstrap = CrateChannelBootstrapFactory.newChannelBootstrap(settings, eventLoopGroup.item());
+        // var recvByteBufAllocator = new FixedRecvByteBufAllocator((int) ByteSizeUnit.KB.toBytes(64));
+        // recvByteBufAllocator.maxMessagesPerRead(1);
+        // bootstrap.option(ChannelOption.RCVBUF_ALLOCATOR, recvByteBufAllocator);
+        // bootstrap.childOption(ChannelOption.RCVBUF_ALLOCATOR, recvByteBufAllocator);
         this.openChannels = new Netty4OpenChannelsHandler(LOGGER);
 
         bootstrap.childHandler(new ChannelInitializer<>() {
@@ -164,7 +173,9 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                     userManager::getAccessControl,
                     authentication,
                     sslContextProvider);
+                // pipeline.addLast(ReadSuppressingHandler.INSTANCE);
                 pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
+                pipeline.addLast("flow-controll", new FlowControlHandler());
                 pipeline.addLast("handler", postgresWireProtocol.handler);
             }
         });

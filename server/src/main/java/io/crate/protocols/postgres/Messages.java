@@ -106,6 +106,10 @@ public class Messages {
         buffer.writeInt(length);
         writeCString(buffer, commandTagBytes);
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);
+        // try {
+        //     channelFuture.sync();
+        // } catch (InterruptedException e) {
+        // }
         if (LOGGER.isTraceEnabled()) {
             channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentCommandComplete"));
         }

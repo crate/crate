@@ -40,10 +40,16 @@ import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.types.DataType;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelOutboundHandler;
 import io.netty.channel.ChannelPipeline;
+import io.netty.channel.DefaultMaxBytesRecvByteBufAllocator;
+import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import io.netty.util.ReferenceCountUtil;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -194,7 +200,7 @@ public class PostgresWireProtocol {
     private final Authentication authService;
     private final SslReqHandler sslReqHandler;
 
-    private DelayableWriteChannel channel;
+    private Channel channel;
     private int msgLength;
     private byte msgType;
     private Session session;
@@ -288,23 +294,39 @@ public class PostgresWireProtocol {
         }
     }
 
-    private class MessageHandler extends SimpleChannelInboundHandler<ByteBuf> {
+    private class MessageHandler extends ChannelDuplexHandler {
 
         @Override
         public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
-            channel = new DelayableWriteChannel(ctx.channel());
+            channel = ctx.channel();
         }
 
-        @Override
-        public boolean acceptInboundMessage(Object msg) throws Exception {
-            return true;
-        }
+        // @Override
+        // public void read(ChannelHandlerContext ctx) throws Exception {
+        //     boolean autoRead = channel.config().isAutoRead();
+        //     LOGGER.warn("MessageHandler.read autoRead={}", autoRead);
+        //     if (autoRead) {
+        //         super.read(ctx);
+        //     }
+        // }
 
         @Override
-        public void channelRead0(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
+        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            if (msg instanceof ByteBuf buffer) {
+                try {
+                    channelRead0(ctx, buffer);
+                } finally {
+                    ReferenceCountUtil.release(buffer);
+                }
+            } else {
+                ctx.fireChannelRead(msg);
+            }
+        }
+
+        private void channelRead0(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
             assert channel != null : "Channel must be initialized";
             try {
-                dispatchState(buffer, channel);
+                dispatchState(buffer, channel, ctx);
             } catch (Throwable t) {
                 ignoreTillSync = true;
                 try {
@@ -318,7 +340,7 @@ public class PostgresWireProtocol {
             }
         }
 
-        private void dispatchState(ByteBuf buffer, DelayableWriteChannel channel) {
+        private void dispatchState(ByteBuf buffer, Channel channel, ChannelHandlerContext ctx) {
             switch (state) {
                 case STARTUP_HEADER:
                 case MSG_HEADER:
@@ -336,14 +358,14 @@ public class PostgresWireProtocol {
                         buffer.skipBytes(msgLength);
                         return;
                     }
-                    dispatchMessage(buffer, channel);
+                    dispatchMessage(buffer, channel, ctx);
                     return;
                 default:
                     throw new IllegalStateException("Illegal state: " + state);
             }
         }
 
-        private void dispatchMessage(ByteBuf buffer, DelayableWriteChannel channel) {
+        private void dispatchMessage(ByteBuf buffer, Channel channel, ChannelHandlerContext ctx) {
             switch (msgType) {
                 case 'Q': // Query (simple)
                     handleSimpleQuery(buffer, channel);
@@ -361,7 +383,7 @@ public class PostgresWireProtocol {
                     handleDescribeMessage(buffer, channel);
                     return;
                 case 'E':
-                    handleExecute(buffer, channel);
+                    handleExecute(buffer, channel, ctx);
                     return;
                 case 'H':
                     handleFlush(channel);
@@ -630,8 +652,9 @@ public class PostgresWireProtocol {
      * Body:
      * | string portalName
      * | int32 maxRows (0 = unlimited)
+     * @param ctx
      */
-    private void handleExecute(ByteBuf buffer, DelayableWriteChannel channel) {
+    private void handleExecute(ByteBuf buffer, Channel channel, ChannelHandlerContext ctx) {
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
         String query = session.getQuery(portalName);
@@ -642,46 +665,30 @@ public class PostgresWireProtocol {
             return;
         }
         List<? extends DataType> outputTypes = session.getOutputTypes(portalName);
-        ResultReceiver resultReceiver;
+        ResultReceiver<?> resultReceiver;
         if (outputTypes == null) {
             // this is a DML query
             maxRows = 0;
             resultReceiver = new RowCountReceiver(
                 query,
-                channel.bypassDelay(),
+                channel,
                 getAccessControl.apply(session.sessionContext())
             );
         } else {
             // query with resultSet
             resultReceiver = new ResultSetReceiver(
                 query,
-                channel.bypassDelay(),
+                channel,
                 session.transactionState(),
                 getAccessControl.apply(session.sessionContext()),
                 Lists2.map(outputTypes, PGTypes::get),
                 session.getResultFormatCodes(portalName)
             );
         }
-        // .execute is going async and may execute the query in another thread-pool.
-        // The results are later sent to the clients via the `ResultReceiver` created
-        // above, The `channel.write` calls - which the `ResultReceiver` makes - may
-        // happen in a thread which is *not* a netty thread.
-        // If that is the case, netty schedules the writes intead of running them
-        // immediately. A consequence of that is that *this* thread can continue
-        // processing other messages from the client, and if this thread then sends messages to the
-        // client, these are sent immediately, overtaking the result messages of the
-        // execute that is triggered here.
-        //
-        // This would lead to out-of-order messages. For example, we could send a
-        // `parseComplete` before the `commandComplete` of the previous statement has
-        // been transmitted.
-        //
-        // To ensure clients receive messages in the correct order we delay all writes
-        // on the channel until the future below is finished.
-        CompletableFuture<?> execute = session.execute(portalName, maxRows, resultReceiver);
-        if (execute != null) {
-            channel.delayWritesUntil(execute);
-        }
+        // resultReceiver.completionFuture().whenComplete((err, res) -> {
+        //     channel.eventLoop().submit(() -> channel.read());
+        // });
+        session.execute(portalName, maxRows, resultReceiver);
     }
 
     private void handleSync(final Channel channel) {
@@ -720,7 +727,7 @@ public class PostgresWireProtocol {
     }
 
     @VisibleForTesting
-    void handleSimpleQuery(ByteBuf buffer, final DelayableWriteChannel channel) {
+    void handleSimpleQuery(ByteBuf buffer, final Channel channel) {
         String queryString = readCString(buffer);
         assert queryString != null : "query must not be nulL";
 
@@ -733,8 +740,7 @@ public class PostgresWireProtocol {
         composedFuture.whenComplete(new ReadyForQueryCallback(channel, TransactionState.IDLE));
     }
 
-    private CompletableFuture<?> handleSingleQuery(String query, DelayableWriteChannel channel) {
-
+    private CompletableFuture<?> handleSingleQuery(String query, Channel channel) {
         CompletableFuture<?> result = new CompletableFuture<>();
 
         if (query.isEmpty() || ";".equals(query)) {
@@ -752,22 +758,19 @@ public class PostgresWireProtocol {
 
             CompletableFuture<?> execute;
             if (fields == null) {
-                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel.bypassDelay(), accessControl);
+                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel, accessControl);
                 execute = session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null, describeResult.relation());
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
                     query,
-                    channel.bypassDelay(),
+                    channel,
                     TransactionState.IDLE,
                     accessControl,
                     Lists2.map(fields, x -> PGTypes.get(x.valueType())),
                     null
                 );
                 execute = session.execute("", 0, resultSetReceiver);
-            }
-            if (execute != null) {
-                channel.delayWritesUntil(execute);
             }
             return session.sync();
         } catch (Throwable t) {
@@ -781,14 +784,30 @@ public class PostgresWireProtocol {
     /**
      * FrameDecoder that makes sure that a full message is in the buffer before delegating work to the MessageHandler
      */
-    private class MessageDecoder extends ByteToMessageDecoder {
+    public class MessageDecoder extends ByteToMessageDecoder {
 
         {
             setCumulator(COMPOSITE_CUMULATOR);
         }
 
+        // @Override
+        // public boolean isSingleDecode() {
+        //     return !channel.config().isAutoRead();
+        // }
+
         @Override
         protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+            boolean autoRead = channel.config().isAutoRead();
+            LOGGER.warn("MessageDecoder.decode autoRead={}", autoRead);
+            // if (!autoRead) {
+            //     ByteBuf decode = decode(in, ctx.pipeline());
+            //     buffered = decode;
+            //     return;
+            // }
+            // if (buffered != null) {
+            //     out.add(buffered);
+            //     buffered = null;
+            // }
             ByteBuf decode = decode(in, ctx.pipeline());
             if (decode != null) {
                 out.add(decode);
@@ -829,6 +848,7 @@ public class PostgresWireProtocol {
                     buffer.markReaderIndex();
                     msgType = buffer.readByte();
                     msgLength = buffer.readInt() - 4; // exclude length itself
+                    LOGGER.trace("Decoding MsgBody: msgType={} msgLength={}", msgType, msgLength);
                     return nullOrBuffer(buffer, State.MSG_BODY);
                 case MSG_BODY:
                 case STARTUP_BODY:

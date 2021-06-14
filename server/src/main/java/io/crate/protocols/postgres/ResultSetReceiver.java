@@ -26,13 +26,19 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.crate.protocols.postgres.types.PGType;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
 
 class ResultSetReceiver extends BaseResultReceiver {
+
+    private static final Logger LOGGER = LogManager.getLogger(ResultSetReceiver.class);
 
     private final String query;
     private final Channel channel;
@@ -57,6 +63,12 @@ class ResultSetReceiver extends BaseResultReceiver {
         this.accessControl = accessControl;
         this.columnTypes = columnTypes;
         this.formatCodes = formatCodes;
+        LOGGER.warn("Disable autoRead");
+        channel.config().setAutoRead(false);
+        this.completionFuture().whenComplete((err, res) -> {
+            LOGGER.warn("Enable autoRead");
+            channel.config().setAutoRead(true);
+        });
     }
 
     @Override
@@ -72,6 +84,8 @@ class ResultSetReceiver extends BaseResultReceiver {
     public void batchFinished() {
         Messages.sendPortalSuspended(channel);
         Messages.sendReadyForQuery(channel, transactionState);
+        channel.config().setAutoRead(true);
+        LOGGER.warn("Enable autoRead (batchFinished)");
     }
 
     @Override
@@ -79,12 +93,16 @@ class ResultSetReceiver extends BaseResultReceiver {
         if (interrupted) {
             super.allFinished(true);
         } else {
-            Messages.sendCommandComplete(channel, query, rowCount).addListener(f -> super.allFinished(false));
+            Messages.sendCommandComplete(channel, query, rowCount).addListener(f -> {
+                super.allFinished(false);
+            });
         }
     }
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        Messages.sendErrorResponse(channel, accessControl, throwable).addListener(f -> super.fail(throwable));
+        Messages.sendErrorResponse(channel, accessControl, throwable).addListener(f -> {
+            super.fail(throwable);
+        });
     }
 }
