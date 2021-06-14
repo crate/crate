@@ -102,6 +102,13 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that resulted in an unknown column error if trying to access a
+  fulltext index from an aliased table. For example the following statement
+  failed::
+
+      SELECT * FROM users u WHERE MATCH (u.name_ft, 'Arthur');
+
+
 - Fixed an issue that prevented ``DEFAULT`` clauses from being evaluated per
   record in ``INSERT`` statements with multiple source values. This resulted in
   the same values being inserted when using nondeterministic functions like
