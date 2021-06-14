@@ -70,9 +70,21 @@ public interface AnalyzedRelation extends AnalyzedStatement {
 
     RelationName relationName();
 
+    /**
+     * Either the outputs that would be included by `SELECT *` or the list of
+     * symbols the user explicitly selected
+     */
     @Nonnull
     @Override
     List<Symbol> outputs();
+
+
+    /**
+     * Returns potentially hidden columns or non-selectable symbols like index references.
+     */
+    default List<Symbol> hiddenOutputs() {
+        return List.of();
+    }
 
     /**
      * Calls the consumer for each top-level symbol in the relation
