@@ -292,7 +292,7 @@ public class PostgresWireProtocol {
 
         @Override
         public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
-            channel = new DelayableWriteChannel(ctx.channel());
+            channel = new DelayableWriteChannel(new NettyPoolWriteChannel(ctx.channel()));
         }
 
         @Override
