@@ -1,4 +1,4 @@
-.. _crate_standard_sql:
+.. _appendix-compatibility:
 
 =================
 SQL compatibility
@@ -14,9 +14,13 @@ you should be aware of some unique characteristics in CrateDB's SQL dialect.
    :local:
 
 
+.. _appendix-compat-notes:
+
 Implementation notes
 ====================
 
+
+.. _appendix-compat-data-types:
 
 Data types
 ----------
@@ -51,6 +55,8 @@ how data types of `standard SQL`_ map to CrateDB :ref:`data-types`.
 +-----------------------------------+-----------------------------+
 
 
+.. _appendix-compat-create-table:
+
 Create table
 ------------
 
@@ -58,12 +64,16 @@ Create table
 sharding, replication and routing of data, and does not support inheritance.
 
 
+.. _appendix-compat-alter-table:
+
 Alter table
 -----------
 
 ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported (see
 :ref:`sql-alter-table`).
 
+
+.. _appendix-compat-sys-info:
 
 System information tables
 -------------------------
@@ -74,6 +84,8 @@ schema information and can be queried to get real-time statistical data about
 the cluster, its nodes, and their shards.
 
 
+.. _appendix-compat-blob:
+
 BLOB support
 ------------
 
@@ -81,6 +93,8 @@ BLOB support
 OBJECT``. With CrateDB, Binary Data is instead stored in separate BLOB Tables
 (see :ref:`blob_support`) which can be sharded and replicated.
 
+
+.. _appendix-compat-transactions:
 
 Transactions (``BEGIN``, ``START``, ``COMMIT``, and ``ROLLBACK``)
 -----------------------------------------------------------------
@@ -95,6 +109,8 @@ the record is modified. This version number can be used to implement patterns
 like :ref:`sql_occ`, which can be used to solve many of the use cases that
 would otherwise require traditional transactions.
 
+
+.. _appendix-compat-unsupported:
 
 Unsupported features and functions
 ==================================

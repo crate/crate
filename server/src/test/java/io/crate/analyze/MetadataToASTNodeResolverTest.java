@@ -501,4 +501,14 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
         CreateTable<?> node = MetadataToASTNodeResolver.resolveCreateTable(table);
         assertThat(SqlFormatter.formatSql(node), Matchers.containsString("\"name\" VARCHAR(10)"));
     }
+
+    @Test
+    public void test_bit_string_length_is_shown_in_show_create_table_output() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (xs bit(8))")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        CreateTable<?> node = MetadataToASTNodeResolver.resolveCreateTable(table);
+        assertThat(SqlFormatter.formatSql(node), Matchers.containsString("\"xs\" BIT(8)"));
+    }
 }

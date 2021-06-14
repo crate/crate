@@ -131,7 +131,7 @@ partitions. Nonetheless does it behave like a *normal* table.
 
 When the value to partition by references one or more
 :ref:`sql-create-table-base-columns`, their values must be supplied upon
-:ref:`ref-insert` or :ref:`sql-copy-from`. Often these values are computed on
+:ref:`sql-insert` or :ref:`sql-copy-from`. Often these values are computed on
 client side. If this is not possible, a :ref:`generated column
 <sql-create-table-generated-columns>` can be used to create a suitable
 partition value from the given values on database-side::
