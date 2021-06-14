@@ -52,6 +52,7 @@ import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedKill;
+import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.AnalyzedPrivileges;
 import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.AnalyzedResetStatement;
@@ -687,6 +688,20 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitSetTransaction(AnalyzedSetTransaction setTransaction, User context) {
+            return null;
+        }
+
+        @Override
+        public Void visitOptimizeTableStatement(AnalyzedOptimizeTable optimizeTable, User user) {
+            for (TableInfo table : optimizeTable.tables().values()) {
+                Privileges.ensureUserHasPrivilege(
+                    Privilege.Type.DDL,
+                    Privilege.Clazz.TABLE,
+                    table.ident().toString(),
+                    user,
+                    defaultSchema
+                );
+            }
             return null;
         }
     }

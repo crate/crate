@@ -191,14 +191,6 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testOptimizeNotAllowedAsNormalUser() throws Exception {
-        expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
-                                        "Superuser permissions are required");
-        analyze("optimize table users");
-    }
-
-    @Test
     public void test_set_global_statements_can_be_executed_with_al_cluster_privileges() throws Exception {
         analyze("set global stats.enabled = true");
         assertAskedForCluster(Privilege.Type.AL);
@@ -572,5 +564,11 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         analyze("create table target_schema.target_table as (select * from sys.cluster)");
         assertAskedForSchema(Privilege.Type.DDL, "target_schema");
         assertAskedForTable(Privilege.Type.DQL, "sys.cluster");
+    }
+
+    @Test
+    public void test_optimize_table_is_allowed_with_ddl_privileges_on_table() {
+        analyze("optimize table users");
+        assertAskedForTable(Privilege.Type.DDL, "doc.users");
     }
 }
