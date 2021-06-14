@@ -59,6 +59,7 @@ import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableElement;
 import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -127,6 +128,8 @@ public class MetadataToASTNodeResolver {
             } else {
                 return new ColumnType<>("varchar", List.of(stringType.lengthLimit()));
             }
+        } else if (type instanceof BitStringType bitStringType) {
+            return new ColumnType<>(type.getName(), List.of(bitStringType.length()));
         } else {
             return new ColumnType<>(type.getName());
         }
