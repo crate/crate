@@ -55,6 +55,9 @@ Deprecations
 Changes
 =======
 
+- Changed the privileges model to allow users with ``DDL`` privileges on a
+  table to use the :ref:`OPTIMIZE TABLE <sql-optimize>` statement.
+
 - Added the :ref:`bit(n) <data-type-bit>` data type.
 
 - Added support for encrypting node-to-node communication.
