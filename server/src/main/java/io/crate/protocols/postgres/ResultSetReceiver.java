@@ -67,7 +67,10 @@ class ResultSetReceiver extends BaseResultReceiver {
         channel.config().setAutoRead(false);
         this.completionFuture().whenComplete((err, res) -> {
             LOGGER.warn("Enable autoRead");
-            channel.config().setAutoRead(true);
+            channel.eventLoop().submit(() -> {
+                channel.config().setAutoRead(true);
+                channel.read();
+            });
         });
     }
 
@@ -84,7 +87,10 @@ class ResultSetReceiver extends BaseResultReceiver {
     public void batchFinished() {
         Messages.sendPortalSuspended(channel);
         Messages.sendReadyForQuery(channel, transactionState);
-        channel.config().setAutoRead(true);
+        channel.eventLoop().submit(() -> {
+            channel.config().setAutoRead(true);
+            channel.read();
+        });
         LOGGER.warn("Enable autoRead (batchFinished)");
     }
 

@@ -175,7 +175,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                     sslContextProvider);
                 // pipeline.addLast(ReadSuppressingHandler.INSTANCE);
                 pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
-                pipeline.addLast("flow-controll", new FlowControlHandler());
+                pipeline.addLast("flow-control", new FlowControlHandler());
                 pipeline.addLast("handler", postgresWireProtocol.handler);
             }
         });

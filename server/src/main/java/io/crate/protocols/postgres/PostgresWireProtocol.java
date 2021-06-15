@@ -21,42 +21,11 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.DescribeResult;
-import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.SessionContext;
-import io.crate.auth.Authentication;
-import io.crate.auth.AuthenticationMethod;
-import io.crate.auth.Protocol;
-import io.crate.auth.AccessControl;
-import io.crate.user.User;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
-import io.crate.expression.symbol.Symbol;
-import io.crate.protocols.postgres.types.PGType;
-import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.types.DataType;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelOutboundHandler;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.DefaultMaxBytesRecvByteBufAllocator;
-import io.netty.channel.RecvByteBufAllocator;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.ByteToMessageDecoder;
-import io.netty.util.ReferenceCountUtil;
+import static io.crate.protocols.SSL.getSession;
+import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
+import static io.crate.protocols.postgres.PostgresWireProtocol.State.PRE_STARTUP;
+import static io.crate.protocols.postgres.PostgresWireProtocol.State.STARTUP_HEADER;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
-
-import javax.annotation.Nullable;
-import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
@@ -71,10 +40,39 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import static io.crate.protocols.SSL.getSession;
-import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
-import static io.crate.protocols.postgres.PostgresWireProtocol.State.PRE_STARTUP;
-import static io.crate.protocols.postgres.PostgresWireProtocol.State.STARTUP_HEADER;
+import javax.annotation.Nullable;
+import javax.net.ssl.SSLSession;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
+
+import io.crate.action.sql.DescribeResult;
+import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
+import io.crate.action.sql.SessionContext;
+import io.crate.auth.AccessControl;
+import io.crate.auth.Authentication;
+import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.Protocol;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists2;
+import io.crate.expression.symbol.Symbol;
+import io.crate.protocols.postgres.types.PGType;
+import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.types.DataType;
+import io.crate.user.User;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.ByteToMessageDecoder;
+import io.netty.util.ReferenceCountUtil;
 
 
 /**
@@ -301,14 +299,14 @@ public class PostgresWireProtocol {
             channel = ctx.channel();
         }
 
-        // @Override
-        // public void read(ChannelHandlerContext ctx) throws Exception {
-        //     boolean autoRead = channel.config().isAutoRead();
-        //     LOGGER.warn("MessageHandler.read autoRead={}", autoRead);
-        //     if (autoRead) {
-        //         super.read(ctx);
-        //     }
-        // }
+        @Override
+        public void read(ChannelHandlerContext ctx) throws Exception {
+            boolean autoRead = channel.config().isAutoRead();
+            LOGGER.warn("MessageHandler.read autoRead={}", autoRead);
+            if (autoRead) {
+                super.read(ctx);
+            }
+        }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -323,10 +321,10 @@ public class PostgresWireProtocol {
             }
         }
 
-        private void channelRead0(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
+        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
             assert channel != null : "Channel must be initialized";
             try {
-                dispatchState(buffer, channel, ctx);
+                dispatchState(buffer, channel);
             } catch (Throwable t) {
                 ignoreTillSync = true;
                 try {
@@ -340,7 +338,7 @@ public class PostgresWireProtocol {
             }
         }
 
-        private void dispatchState(ByteBuf buffer, Channel channel, ChannelHandlerContext ctx) {
+        private void dispatchState(ByteBuf buffer, Channel channel) {
             switch (state) {
                 case STARTUP_HEADER:
                 case MSG_HEADER:
@@ -358,14 +356,14 @@ public class PostgresWireProtocol {
                         buffer.skipBytes(msgLength);
                         return;
                     }
-                    dispatchMessage(buffer, channel, ctx);
+                    dispatchMessage(buffer, channel);
                     return;
                 default:
                     throw new IllegalStateException("Illegal state: " + state);
             }
         }
 
-        private void dispatchMessage(ByteBuf buffer, Channel channel, ChannelHandlerContext ctx) {
+        private void dispatchMessage(ByteBuf buffer, Channel channel) {
             switch (msgType) {
                 case 'Q': // Query (simple)
                     handleSimpleQuery(buffer, channel);
@@ -383,7 +381,7 @@ public class PostgresWireProtocol {
                     handleDescribeMessage(buffer, channel);
                     return;
                 case 'E':
-                    handleExecute(buffer, channel, ctx);
+                    handleExecute(buffer, channel);
                     return;
                 case 'H':
                     handleFlush(channel);
@@ -654,7 +652,7 @@ public class PostgresWireProtocol {
      * | int32 maxRows (0 = unlimited)
      * @param ctx
      */
-    private void handleExecute(ByteBuf buffer, Channel channel, ChannelHandlerContext ctx) {
+    private void handleExecute(ByteBuf buffer, Channel channel) {
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
         String query = session.getQuery(portalName);
