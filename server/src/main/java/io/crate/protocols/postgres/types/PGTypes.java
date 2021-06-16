@@ -149,8 +149,13 @@ public class PGTypes {
 
                 PGType pgType = CRATE_TO_PG_TYPES.get(type);
                 if (pgType == null) {
-                    throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "No type mapping from '%s' to pg_type", type.getName()));
+                    PGType innerPGType = get(innerType);
+                    if (innerPGType == null) {
+                        throw new IllegalArgumentException(
+                            String.format(Locale.ENGLISH, "No type mapping from '%s' to pg_type", type.getName()));
+                    } else {
+                        return new PGArray(innerPGType.typArray(), innerPGType);
+                    }
                 }
                 return pgType;
             }

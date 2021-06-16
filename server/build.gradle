@@ -123,6 +123,7 @@ dependencies {
     testFixturesImplementation "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
     testFixturesImplementation "com.google.guava:guava:${versions.guava}"
     testFixturesImplementation "org.apache.lucene:lucene-analyzers-common:${versions.lucene}"
+    testFixturesImplementation project(':libs:pgwire')
 }
 
 task getVersion(dependsOn: 'classes', type: JavaExec) {
