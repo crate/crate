@@ -53,6 +53,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.BitStringType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -266,6 +267,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
                 );
             case IpType.ID:
             case StringType.ID:
+            case BitStringType.ID:
                 return new BinaryDocValueAggregator<>(
                     fieldTypes.get(0).name(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {

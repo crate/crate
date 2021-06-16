@@ -55,6 +55,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.AggregationTestCase;
+import io.crate.sql.tree.BitString;
+import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -363,6 +365,18 @@ public class CountAggregationTest extends AggregationTestCase {
     @Test
     public void test_count_with_ip_argument() throws Exception {
         assertThat(executeAggregation(DataTypes.IP, new Object[][]{{"127.0.0.1"}}), is(1L));
+    }
+
+    @Test
+    public void test_count_with_bitstring_argument() throws Exception {
+        BitStringType bitStringType = new BitStringType(4);
+        Object[][] rows = new Object[][] {
+            { BitString.ofRawBits("0100") },
+            { null },
+            { BitString.ofRawBits("0110") },
+        };
+        assertThat(executeAggregation(bitStringType, rows), is(2L));
+        assertHasDocValueAggregator("count", List.of(bitStringType));
     }
 
     @Test

@@ -58,12 +58,14 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.sql.tree.BitString;
 import io.crate.types.StringType;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -362,11 +364,18 @@ public abstract class AggregationTestCase extends ESTestCase {
 
     private void insertDataIntoShard(IndexShard shard,
                                      Object[][] data) throws IOException {
+        // We should adapt all this code to utilize the InsertSourceGen/IndexEnv
+        // To ensure we index the values the same way we do in real production code.
         for (int i = 0; i < data.length; i++) {
             var cell = data[i];
             XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
             for (int j = 0; j < cell.length; j++) {
-                builder.field(Integer.toString(j), cell[j]);
+                Object value = cell[j];
+                if (value instanceof BitString bs) {
+                    builder.field(Integer.toString(j), bs.bitSet().toByteArray());
+                } else {
+                    builder.field(Integer.toString(j), value);
+                }
             }
             builder.endObject();
 
@@ -405,12 +414,13 @@ public abstract class AggregationTestCase extends ESTestCase {
                         DataTypes.esMappingNameFrom(
                             ((ArrayType<?>) type).innerType().id()))
                     .endObject();
+            } else if (type instanceof BitStringType bs) {
+                builder.field("type", bs.getName());
+                builder.field("length", bs.length());
             } else if (type.id() == StringType.ID) {
-                builder
-                    .field("type", "keyword");
+                builder.field("type", "keyword");
             } else {
-                builder
-                    .field("type", DataTypes.esMappingNameFrom(type.id()));
+                builder.field("type", DataTypes.esMappingNameFrom(type.id()));
             }
             builder.endObject();
         }
