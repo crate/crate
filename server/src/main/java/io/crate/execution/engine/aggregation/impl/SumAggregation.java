@@ -21,6 +21,22 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.NumericUtils;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.index.mapper.MappedFieldType;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.common.MutableDouble;
 import io.crate.common.MutableFloat;
@@ -31,7 +47,6 @@ import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
@@ -46,20 +61,6 @@ import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.util.NumericUtils;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.index.mapper.MappedFieldType;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.List;
-import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
 
 public class SumAggregation<T extends Number> extends AggregationFunction<T, T> {
 
@@ -188,7 +189,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
     @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<Symbol> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
                                                        Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {

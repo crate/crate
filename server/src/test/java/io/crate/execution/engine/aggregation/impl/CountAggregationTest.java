@@ -21,6 +21,26 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.common.MutableLong;
 import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -28,7 +48,6 @@ import io.crate.execution.engine.aggregation.impl.templates.BinaryDocValueAggreg
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -41,25 +60,6 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 
 public class CountAggregationTest extends AggregationTestCase {
@@ -75,7 +75,7 @@ public class CountAggregationTest extends AggregationTestCase {
         );
     }
 
-    private void assertHasDocValueAggregator(List<Symbol> aggregationReferences,
+    private void assertHasDocValueAggregator(List<Reference> aggregationReferences,
                                              DocTableInfo sourceTable,
                                              Class<?> expectedAggregatorClass) {
         var aggregationFunction = (AggregationFunction<?, ?>) nodeCtx.functions().get(
