@@ -1986,4 +1986,15 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
             "B'1111'"
         ));
     }
+
+    @Test
+    public void test_can_insert_and_select_bit_string_arrays() throws Exception {
+        execute("create table tbl (xs array(bit(3)))");
+        execute("insert into tbl (xs) values ([B'010', B'110'])");
+        execute("refresh table tbl");
+        execute("select xs from tbl");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "[B'010', B'110']\n"
+        ));
+    }
 }

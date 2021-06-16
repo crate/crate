@@ -21,27 +21,38 @@
 
 package io.crate.testing;
 
+import static io.crate.action.sql.Session.UNNAMED;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.carrotsearch.randomizedtesting.RandomizedContext;
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import io.crate.auth.AccessControl;
-import io.crate.user.User;
-import io.crate.common.unit.TimeValue;
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.protocols.postgres.types.PGType;
-import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.protocols.postgres.types.PgOidVectorType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
@@ -66,34 +77,31 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.util.PGobject;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.sql.Array;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static io.crate.action.sql.Session.UNNAMED;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import io.crate.action.sql.BaseResultReceiver;
+import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
+import io.crate.auth.AccessControl;
+import io.crate.common.unit.TimeValue;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import io.crate.protocols.postgres.parser.PgArrayParser;
+import io.crate.protocols.postgres.types.BitType;
+import io.crate.protocols.postgres.types.PGArray;
+import io.crate.protocols.postgres.types.PGType;
+import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.protocols.postgres.types.PgOidVectorType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.user.User;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class SQLTransportExecutor {
 
@@ -481,6 +489,17 @@ public class SQLTransportExecutor {
             case "record":
                 value = resultSet.getObject(columnIndex, PGobject.class).getValue();
                 break;
+            case "_bit":
+                String pgBitStringArray = resultSet.getString(columnIndex);
+                if (pgBitStringArray == null) {
+                    return null;
+                }
+                byte[] bytes = pgBitStringArray.getBytes(StandardCharsets.UTF_8);
+                ByteBuf buf = Unpooled.wrappedBuffer(bytes);
+                value = PGArray.BIT_ARRAY.readTextValue(buf, bytes.length);
+                buf.release();
+                break;
+
             default:
                 value = resultSet.getObject(columnIndex);
                 break;

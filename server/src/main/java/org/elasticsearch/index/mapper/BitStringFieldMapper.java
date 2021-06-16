@@ -27,7 +27,7 @@ import java.util.Map;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
@@ -171,7 +171,7 @@ public class BitStringFieldMapper extends FieldMapper {
             fields.add(new Field(fieldType().name(), binaryValue, fieldType));
         }
         if (fieldType().hasDocValues()) {
-            fields.add(new SortedDocValuesField(fieldType().name(), binaryValue));
+            fields.add(new SortedSetDocValuesField(fieldType().name(), binaryValue));
         } else {
             createFieldNamesField(context, fields);
         }
