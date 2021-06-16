@@ -23,11 +23,17 @@ package io.crate.execution.engine.aggregation.impl;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
 import io.crate.common.MutableFloat;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.ByteType;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
@@ -211,10 +217,19 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
             size = ((FixedWidthType) partialType()).fixedSize();
         }
 
+        @Nullable
         @Override
-        public DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
-                                                           List<MappedFieldType> fieldTypes,
+        public DocValueAggregator<?> getDocValueAggregator(List<Symbol> aggregationReferences,
+                                                           Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
+                                                           DocTableInfo table,
                                                            List<Literal<?>> optionalParams) {
+            var fieldTypes = getMappedFieldTypes.apply(
+                Lists2.map(aggregationReferences, s -> ((Reference)s).column().fqn())
+            );
+            if (fieldTypes == null) {
+                return null;
+            }
+            var argumentTypes = Symbols.typeView(aggregationReferences);
             DataType<?> arg = argumentTypes.get(0);
             switch (arg.id()) {
                 case ByteType.ID:

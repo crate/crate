@@ -240,7 +240,7 @@ Removed Functionality
   total counts and sum of durations as documented in :ref:`query_stats_mbean`
   should be used instead.
 
-- Removed the deprecated ``ON DUPLICATE KEY`` syntax of :ref:`ref-insert`
+- Removed the deprecated ``ON DUPLICATE KEY`` syntax of :ref:`sql-insert`
   statements. Users can migrate to the ``ON CONFLICT`` syntax.
 
 - Removed the ``index`` thread-pool and the ``bulk`` alias for the ``write``

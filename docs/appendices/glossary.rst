@@ -402,7 +402,7 @@ S
 
 **Statement**
     Any valid SQL that serves as a database instruction (e.g., :ref:`CREATE
-    TABLE <sql-create-table>`, :ref:`INSERT <ref-insert>`, and :ref:`SELECT
+    TABLE <sql-create-table>`, :ref:`INSERT <sql-insert>`, and :ref:`SELECT
     <sql-select>`) instead of producing a value.
 
     Contrary to an :ref:`expression <gloss-expression>`.

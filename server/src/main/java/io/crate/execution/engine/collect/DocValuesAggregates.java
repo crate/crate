@@ -40,7 +40,6 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
@@ -71,6 +70,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 public class DocValuesAggregates {
 
@@ -89,10 +89,11 @@ public class DocValuesAggregates {
         }
         var aggregators = createAggregators(
             functions,
-            aggregateProjection,
+            aggregateProjection.aggregations(),
             fieldTypeLookup,
             phase.toCollect(),
-            collectTask.txnCtx().sessionSettings().searchPath()
+            collectTask.txnCtx().sessionSettings().searchPath(),
+            table
         );
         if (aggregators == null) {
             return null;
@@ -137,27 +138,12 @@ public class DocValuesAggregates {
 
     @Nullable
     @SuppressWarnings("rawtypes")
-    private static List<DocValueAggregator> createAggregators(Functions functions,
-                                                              AggregationProjection aggregateProjection,
-                                                              FieldTypeLookup fieldTypeLookup,
-                                                              List<Symbol> toCollect,
-                                                              SearchPath searchPath) {
-        return createAggregators(
-            functions,
-            aggregateProjection.aggregations(),
-            fieldTypeLookup,
-            toCollect,
-            searchPath
-        );
-    }
-
-    @Nullable
-    @SuppressWarnings("rawtypes")
     public static List<DocValueAggregator> createAggregators(Functions functions,
                                                              List<Aggregation> aggregations,
                                                              FieldTypeLookup fieldTypeLookup,
                                                              List<Symbol> toCollect,
-                                                             SearchPath searchPath) {
+                                                             SearchPath searchPath,
+                                                             DocTableInfo table) {
         ArrayList<DocValueAggregator> aggregator = new ArrayList<>(aggregations.size());
         for (int i = 0; i < aggregations.size(); i++) {
             Aggregation aggregation = aggregations.get(i);
@@ -180,23 +166,26 @@ public class DocValuesAggregates {
                     aggregationReferences.add(reference);
                 }
             }
-            var fieldTypes = new ArrayList<MappedFieldType>(aggregationReferences.size());
-            for (var reference : aggregationReferences) {
-                var mappedFieldType = fieldTypeLookup.get(((Reference) reference).column().fqn());
-                if (mappedFieldType == null || !mappedFieldType.hasDocValues()) {
-                    return null;
-                }
-                fieldTypes.add(mappedFieldType);
-            }
-
             FunctionImplementation func = functions.getQualified(aggregation, searchPath);
-            if (!(func instanceof AggregationFunction)) {
+            if (!(func instanceof AggregationFunction<?, ?> aggFunc)) {
                 throw new IllegalStateException(
                     "Expected an aggregationFunction for " + aggregation + " got: " + func);
             }
-            DocValueAggregator<?> docValueAggregator = ((AggregationFunction<?, ?>) func).getDocValueAggregator(
-                Symbols.typeView(aggregationReferences),
-                fieldTypes,
+            Function<List<String>, List<MappedFieldType>> getMappedFieldTypes = (aggRefs) -> {
+                var fieldTypes = new ArrayList<MappedFieldType>(aggRefs.size());
+                for (var reference : aggRefs) {
+                    var mappedFieldType = fieldTypeLookup.get(reference);
+                    if (mappedFieldType == null || !mappedFieldType.hasDocValues()) {
+                        return null;
+                    }
+                    fieldTypes.add(mappedFieldType);
+                }
+                return fieldTypes;
+            };
+            DocValueAggregator<?> docValueAggregator = aggFunc.getDocValueAggregator(
+                aggregationReferences,
+                getMappedFieldTypes,
+                table,
                 literals
             );
             if (docValueAggregator == null) {
