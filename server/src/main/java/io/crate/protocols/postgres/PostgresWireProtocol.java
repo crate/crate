@@ -299,14 +299,14 @@ public class PostgresWireProtocol {
             channel = ctx.channel();
         }
 
-        @Override
-        public void read(ChannelHandlerContext ctx) throws Exception {
-            boolean autoRead = channel.config().isAutoRead();
-            LOGGER.warn("MessageHandler.read autoRead={}", autoRead);
-            if (autoRead) {
-                super.read(ctx);
-            }
-        }
+        // @Override
+        // public void read(ChannelHandlerContext ctx) throws Exception {
+        //     boolean autoRead = channel.config().isAutoRead();
+        //     LOGGER.warn("MessageHandler.read autoRead={}", autoRead);
+        //     if (autoRead) {
+        //         super.read(ctx);
+        //     }
+        // }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
