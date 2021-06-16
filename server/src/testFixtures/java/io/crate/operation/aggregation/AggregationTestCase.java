@@ -584,8 +584,8 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
     }
 
-    public static List<Symbol> toReference(List<DataType<?>> dataTypes) {
-        var references = new ArrayList<Symbol>(dataTypes.size());
+    public static List<Reference> toReference(List<DataType<?>> dataTypes) {
+        var references = new ArrayList<Reference>(dataTypes.size());
         for (int i = 0; i < dataTypes.size(); i++) {
             references.add(
                 new Reference(

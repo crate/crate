@@ -21,6 +21,19 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
+import java.io.IOException;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.mapper.MappedFieldType;
+
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.MutableLong;
@@ -54,17 +67,6 @@ import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.mapper.MappedFieldType;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.List;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class CountAggregation extends AggregationFunction<MutableLong, Long> {
 
@@ -279,7 +281,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
 
     @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<Symbol> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
                                                        java.util.function.Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
