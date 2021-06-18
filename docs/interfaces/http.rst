@@ -1,18 +1,10 @@
 .. highlight:: sh
 
-.. _sql_http_endpoint:
+.. _interface-http:
 
 =============
 HTTP endpoint
 =============
-
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-Introduction
-============
 
 CrateDB provides a HTTP Endpoint that can be used to submit SQL queries. The
 endpoint is accessible under ``<servername:port>/_sql``.
@@ -55,7 +47,13 @@ A simple ``SELECT`` statement can be submitted like this::
     in this document, we use `here documents`_ (i.e. ``EOF``) for multiline
     readability.
 
-.. _parameter_substitution:
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+.. _http-param-substitution:
 
 Parameter substitution
 ======================
@@ -142,9 +140,10 @@ The same query using question marks as placeholders looks like this::
 .. NOTE::
 
     With some queries the row count is not ascertainable. In this cases
-    rowcount is ``-1``.
+    ``rowcount`` is ``-1``.
 
-.. _http_default_schema:
+
+.. _http-default-schema:
 
 Default schema
 ==============
@@ -181,6 +180,9 @@ It is possible to set a default schema while querying the CrateDB cluster via
 
 If the schema name is not specified in the header, the default ``doc`` schema
 will be used instead.
+
+
+.. _http-column-types:
 
 Column types
 ============
@@ -239,76 +241,77 @@ IDs of all currently available data types:
    :header-rows: 1
 
    * - ID
-     - Data Type
+     - Data type
      - Format
    * - 0
      - Null
-     - null
+     - ``null``
    * - 1
      - Not Supported
      -
    * - 2
      - :ref:`char <data-type-special>`
-     - single byte
+     - Single byte
    * - 3
      - :ref:`boolean <data-type-boolean>`
-     - `true` or `false`
+     - ``true`` or ``false``
    * - 4
      - :ref:`text <data-type-text>`
-     - all unicode characters allowed
+     - All unicode characters allowed
    * - 5
      - :ref:`ip <ip-type>`
-     - '0:0:0:0:0:ffff:c0a8:64', '192.169.0.55'
+     - ``0:0:0:0:0:ffff:c0a8:64``, ``192.169.0.55``
    * - 6
      - :ref:`double precision <data-type-numeric>`
      - 15 decimal digits precision
    * - 7
-     - real
+     - Real
      - 6 decimal digits precision
    * - 8
-     - smallint
+     - Smallint
      - range -32768 to 32767
    * - 9
-     - integer
-     - range -2^31 to 2^31-1
+     - Integer
+     - Range -2^31 to 2^31-1
    * - 10
-     - bigint
-     - range -2^63 to 2^63-1
+     - Bigint
+     - Range -2^63 to 2^63-1
    * - 11
      - :ref:`timestamp <timestamp_data_type>`
-     - ``bigint`` e.g. 1591808274761
+     - ``bigint``, e.g., ``1591808274761``
    * - 12
      - :ref:`object(dynamic|strict|ignored) <object_data_type>`
-     - '{"key": "value"}', { key = 'value'}
+     - ``{"key": "value"}``, ``{ key = 'value'}``
    * - 13
      - :ref:`geo_point <geo_point_data_type>`
-     - [lon_value::``double``, lat_value::``double``] e.g. [28.979999972507358,-57.33000000938773]
+     - Doubles, e.g., ``[28.979999972507358,-57.33000000938773]``
    * - 14
      - :ref:`geo_shape <geo_shape_data_type>`
-     - object[] e.g. [{"coordinates":[[[100.0,0.0],[101.0,0.0],[101.0,1.0]]],"type":"Polygon"}]
+     - Object, e.g., ``[{"coordinates":[[[100.0,0.0],[101.0,0.0],[101.0,1.0]]],"type":"Polygon"}]``
    * - 15
-     - Unchecked Object
+     - Unchecked object
      -
    * - 19
      - :ref:`regproc <oid_regproc>`
      -
    * - 20
      - :ref:`time with time zone <time-data-type>`
-     - [``bigint``, ``integer``] e.g. [70652987666, 0]
+     - ``bigint`` or ``integer``, e.g., ``[70652987666, 0]``
    * - 21
      - :ref:`oidvector <oidvector_type>`
      - An array of numbers
    * - 23
      - :ref:`regclass <oid_regclass>`
-     - OID, referring the OID of the `pg_class` table. The result is an ``INTEGER``.
+     - ``OID``, i.e., ``INTEGER``
    * - 24
      - :ref:`date <date-data-type>`
-     - range 292275054BC to 292278993AD
+     - Range ``292275054BC`` to ``292278993AD``
    * - 100
      - :ref:`array <data-type-array>`
-     - [``integer``, ``integer``] e.g. [100, 9] for a ``array(integer)``
+     - ``[100, 9]`` for ``array(integer)``
 
-.. _bulk_operations:
+
+.. _http-bulk-ops:
 
 Bulk operations
 ===============
@@ -363,6 +366,9 @@ insert three records at once::
         }
       ]
     }
+
+
+.. _http-error-handling:
 
 Error handling
 ==============
@@ -493,6 +499,9 @@ Code   Error
 ------ ---------------------------------------------------------------------
 5030   The query was killed by a ``kill`` statement
 ====== =====================================================================
+
+
+.. _http-bulk-errors:
 
 Bulk errors
 -----------

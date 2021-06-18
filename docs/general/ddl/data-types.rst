@@ -36,6 +36,62 @@ Primitive types are types with :ref:`scalar <gloss-scalar>` values:
    :depth: 2
 
 
+.. _data-types-null:
+
+Null values
+-----------
+
+A ``NULL`` represents a missing value.
+
+.. NOTE::
+
+    ``NULL`` values are not the same as ``0``, an empty string (``''``), an
+    empty object (``{}``), an empty array (``[]``), or any other kind of empty
+    or zeroed data type.
+
+
+You can use ``NULL`` values when inserting records to indicate the absence of a
+data point (i.e., the value for a specific column is not known).
+
+Similarly, CrateDB will produce ``NULL`` values when, for example, data is
+missing from a left join operation (i.e., when a row from one relation has
+no corresponding row in the joined relation).
+
+If you insert a record without specifying the value for a particular column,
+CrateDB will insert a ``NULL`` value for that column.
+
+For example::
+
+    cr> CREATE TABLE users (
+    ...   first_name TEXT,
+    ...   surname TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+Insert a record without specifying ``surname``::
+
+    cr> INSERT INTO users (first_name) VALUES ('Alice');
+    CREATE OK, 1 row affected (... sec)
+
+The resulting row will have a ``NULL`` value for ``surname``::
+
+    cr> SELECT first_name, surname
+    ... FROM users
+    ... WHERE first_name = 'Alice';
+    +------------+---------+
+    | first_name | surname |
+    +------------+---------+
+    | Alice      | NULL    |
+    +------------+---------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE users;
+    DROP OK, 1 row affected (... sec)
+
+
+
 .. _data-types-boolean-values:
 
 Boolean values

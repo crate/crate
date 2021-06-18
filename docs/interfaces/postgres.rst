@@ -1,10 +1,10 @@
-.. _postgres_wire_protocol:
+.. _interface-postgresql:
 
 ========================
 PostgreSQL wire protocol
 ========================
 
-CrateDB contains support for the `PostgreSQL wire protocol v3`_.
+CrateDB supports the `PostgreSQL wire protocol v3`_.
 
 If a node is started with postgres support enabled it will bind to port
 ``5432`` by default. To use a custom port, set the corresponding
@@ -34,31 +34,45 @@ which is why clients should generally enable ``autocommit``.
    :local:
 
 
-Server compatibility and implementation status
-==============================================
+.. _postgres-server-compat:
+
+Server compatibility
+====================
 
 CrateDB emulates PostgreSQL server version ``10.5``.
 
-Start-Up
+
+.. _postgres-start-up:
+
+Start-up
 --------
 
+
+.. _postgres-ssl:
+
 SSL Support
-...........
+'''''''''''
 
 SSL can be configured using :ref:`admin_ssl`.
 
+
+.. _postgres-auth:
+
 Authentication
-..............
+''''''''''''''
 
 Authentication methods can be configured using :ref:`admin_hba`.
 
+
+.. _postgres-parameterstatus:
+
 ParameterStatus
-...............
+'''''''''''''''
 
 After the authentication has succeeded the server has the possibility to send
-multiple ``ParameterStatus`` messages to the client.
-These are used to communicate information like ``server_version`` (emulates
-PostgreSQL 9.5) or ``server_encoding``.
+multiple ``ParameterStatus`` messages to the client.  These are used to
+communicate information like ``server_version`` (emulates PostgreSQL 9.5) or
+``server_encoding``.
 
 ``CrateDB`` also sends a message containing the ``crate_version`` parameter.
 This contains the current ``CrateDB`` version number.
@@ -66,24 +80,36 @@ This contains the current ``CrateDB`` version number.
 This information is useful for clients to detect that they're connecting to
 ``CrateDB`` instead of a PostgreSQL instance.
 
+
+.. _postgres-db-selection:
+
 Database selection
-..................
+''''''''''''''''''
 
 Since CrateDB uses schemas instead of databases, the ``database`` parameter
 sets the default schema name for future queries. If no schema is specified, the
 schema ``doc`` will be used as default. Additionally, the only supported
 charset is ``UTF8``.
 
-Query Modes
+
+.. _postgres-query-modes:
+
+Query modes
 -----------
 
+
+.. _postgres-query-modes-simple:
+
 Simple query
-............
+''''''''''''
 
 The `PostgreSQL simple query`_ protocol mode is fully implemented.
 
+
+.. _postgres-query-modes-extended:
+
 Extended query
-..............
+''''''''''''''
 
 The `PostgreSQL extended query`_ protocol mode is implemented with the
 following limitations:
@@ -94,10 +120,16 @@ following limitations:
 - To optimize the execution of bulk operations the execution of statements is
   delayed until the ``Sync`` message is received
 
+
+.. _postgres-copy:
+
 Copy operations
 ---------------
 
 CrateDB does not support the ``COPY`` sub-protocol.
+
+
+.. _postgres-fn-call:
 
 Function call
 -------------
@@ -105,14 +137,18 @@ Function call
 The :ref:`function call <sql-function-call>` sub-protocol is not supported
 since it's a legacy feature.
 
+
+.. _postgres-cancel-reqs:
+
 Canceling requests
 ------------------
 
 Operations can be cancelled using the ``KILL`` statement, hence the
-``CancelRequest`` message  is unsupported. Consequently, the server won't send
-a ``BackendKeyData`` message during connection initialization.
+``CancelRequest`` message is unsupported. Consequently, the server won't send a
+``BackendKeyData`` message during connection initialization.
 
-.. _postgres_pg_catalog:
+
+.. _postgres-pg_catalog:
 
 ``pg_catalog``
 --------------
@@ -138,10 +174,10 @@ following tables:
  - `pg_type`_
 
 
-.. _postgres_pg_type:
+.. _postgres-pg_type:
 
 ``pg_type``
-...........
+'''''''''''
 
 Some clients require the ``pg_catalog.pg_type`` in order to be able to stream
 arrays or other non-primitive types.
@@ -208,13 +244,15 @@ table available in CrateDB::
 .. NOTE::
 
    This is just a snapshot of the table.
+
    Check table :ref:`information_schema.columns <information_schema_columns>`
    to get information for all supported columns.
 
-.. _postgres_pg_oid:
+
+.. _postgres-pg_type-oid:
 
 OID types
-~~~~~~~~~
+.........
 
 *Object Identifiers* (OIDs) are used internally by PostgreSQL as primary keys
 for various system tables.
@@ -256,6 +294,8 @@ CrateDB also supports the :ref:`oidvector <type-oidvector>` type.
     (including additional type casting behaviour).
 
 
+.. _postgres-show-trans-isolation:
+
 Show transaction isolation
 --------------------------
 
@@ -270,8 +310,11 @@ is implemented::
     +-----------------------+
     SHOW 1 row in set (... sec)
 
-BEGIN/START/COMMIT statements
------------------------------
+
+.. _postgres-begin-start-comit:
+
+``BEGIN``, ``START``, and ``COMMIT`` statements
+-----------------------------------------------
 
 For compatibility with clients that use the PostgresSQL wire protocol (e.g.,
 the Golang lib/pq and pgx drivers), CrateDB will accept the :ref:`BEGIN
@@ -286,21 +329,30 @@ the Golang lib/pq and pgx drivers), CrateDB will accept the :ref:`BEGIN
     cr> COMMIT
     COMMIT OK, 0 rows affected  (... sec)
 
-CrateDB will silently ignore the ``COMMIT``, ``BEGIN``, and ``START`` TRANSACTION
-statements and all respective parameters.
+CrateDB will silently ignore the ``COMMIT``, ``BEGIN``, and ``START
+TRANSACTION`` statements and all respective parameters.
+
+
+.. _postgres-client-compat:
 
 Client compatibility
 ====================
+
+
+.. _postgres-client-jdbc:
 
 JDBC
 ----
 
 `pgjdbc`_ JDBC drivers version ``9.4.1209`` and above are compatible.
 
-Limitations
-...........
 
-- *reflection* methods like ``conn.getMetaData().getTables(...)`` won't work
+.. _postgres-client-jdbc-limit:
+
+Limitations
+'''''''''''
+
+- *Reflection* methods like ``conn.getMetaData().getTables(...)`` won't work
   since the required tables are unavailable in CrateDB.
 
   As a workaround it's possible to use ``SHOW TABLES`` or query the
@@ -328,8 +380,11 @@ Limitations
   `Extended Query`_ API from working due to a `bug
   <https://github.com/pgjdbc/pgjdbc/issues/653>`_ at `pgjdbc`_.
 
+
+.. _postgres-client-jdbc-conn:
+
 Connection failover and load balancing
-......................................
+''''''''''''''''''''''''''''''''''''''
 
 Connection failover and load balancing is supported as described here:
 `PostgreSQL JDBC connection failover`_.
@@ -338,6 +393,9 @@ Connection failover and load balancing is supported as described here:
 
    It is not recommended to use the **targetServerType** parameter since
    CrateDB has no concept of master-replica nodes.
+
+
+.. _postgres-implementation:
 
 Implementation differences
 ==========================
@@ -357,39 +415,54 @@ execution engine address different requirements (see :ref:`Clustering
 
 The listed features below cover the main differences in implementation and
 dialect between CrateDB and PostgreSQL. A detailed comparison between CrateDB's
-SQL dialect and standard SQL is defined in
-:ref:`crate_standard_sql`.
+SQL dialect and standard SQL is defined in :ref:`crate_standard_sql`.
 
-``COPY``
---------
 
-CrateDB does not support the distinct sub-protocol that is used to serve
-``COPY`` operations and provides another implementation for transferring bulk
-data using the :ref:`sql-copy-from` and :ref:`sql-copy-to` statements.
+.. _postgres-expressions:
+
+Expressions
+-----------
+
+Unlike PostgreSQL, :ref:`expressions <gloss-expression>` are not
+:ref:`evaluated <gloss-evaluation>` if the query results in 0 rows either
+because of the table is empty or by not matching the ``WHERE`` clause.
+
+
+.. _postgres-types:
+
+Data types
+----------
+
+
+.. _postgres-date-times:
+
+Dates and times
+'''''''''''''''
+
+At the moment, CrateDB does not support ``TIME`` without a time zone.
+
+Additionally, CrateDB does not support the ``INTERVAL`` input units
+``MILLENNIUM``, ``CENTURY``, ``DECADE``, ``MILLISECOND``, or ``MICROSECOND``.
+
+
+.. _postgres-objects:
 
 Objects
--------
+'''''''
 
 The definition of structured values by using ``JSON`` types, *composite types*
 or ``HSTORE`` are not supported. CrateDB alternatively allows the definition of
 nested documents (of type :ref:`type-object`) that store fieldscontaining any
 CrateDB supported data type, including nested object types.
 
-Type casts
-----------
 
-CrateDB accepts the :ref:`type_conversion` syntax for conversion of one data
-type to another.
-
-.. SEEALSO::
-
-    `PostgreSQL value expressions`_
-
-    :ref:`CrateDB value expressions <sql-value-expressions>`
-
+.. _postgres-arrays:
 
 Arrays
-------
+''''''
+
+
+.. _postgres-arrays-declare:
 
 Declaration of arrays
 .....................
@@ -406,6 +479,9 @@ shows::
     +---------------------+
     SELECT 1 row in set (... sec)
 
+
+.. _postgres-arrays-access:
+
 Accessing arrays
 ................
 
@@ -416,6 +492,24 @@ subscript is not supported.
 .. SEEALSO::
 
     `PostgreSQL Arrays`_
+
+
+.. _postgres-type-casts:
+
+Type casts
+''''''''''
+
+CrateDB accepts the :ref:`type_conversion` syntax for conversion of one data
+type to another.
+
+.. SEEALSO::
+
+    `PostgreSQL value expressions`_
+
+    :ref:`CrateDB value expressions <sql-value-expressions>`
+
+
+.. _postgres-search:
 
 Text search functions and operators
 -----------------------------------
@@ -429,12 +523,15 @@ If you are missing features, functions or dialect improvements and have a great
 use case for it, let us know on `GitHub`_. We're always improving and extending
 CrateDB and we love to hear feedback.
 
-Expression evaluation
----------------------
 
-Unlike PostgreSQL, :ref:`expressions <gloss-expression>` are not
-:ref:`evaluated <gloss-evaluation>` if the query results in 0 rows either
-because of the table is empty or by not matching the ``WHERE`` clause.
+.. _postgres-copy:
+
+``COPY``
+--------
+
+CrateDB does not support the distinct sub-protocol that is used to serve
+``COPY`` operations and provides another implementation for transferring bulk
+data using the :ref:`sql-copy-from` and :ref:`sql-copy-to` statements.
 
 
 .. _GitHub: https://github.com/crate/crate
@@ -461,5 +558,5 @@ because of the table is empty or by not matching the ``WHERE`` clause.
 .. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/head/connect.html#connection-failover
 .. _PostgreSQL JDBC Query docs: https://jdbc.postgresql.org/documentation/head/query.html
 .. _PostgreSQL simple query: https://www.postgresql.org/docs/current/static/protocol-flow.html#id-1.10.5.7.4
-.. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
 .. _PostgreSQL value expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
+.. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
