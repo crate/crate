@@ -2,3 +2,14 @@ cluster.name: testCluster
 stats.enabled: false
 psql.enabled: false
 path.logs: /some/path
+
+#this entry is needed for test cert_method_resolved_when_ssl_on_and_keystore_configured
+auth.host_based.enabled: true
+auth:
+  host_based:
+    config:
+      0:
+        protocol: transport
+        ssl: on
+        method: cert
+
