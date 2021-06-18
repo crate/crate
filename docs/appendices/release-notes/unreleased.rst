@@ -59,4 +59,6 @@ None
 Fixes
 =====
 
-None
+- Fixed a HBA SSL configuration parsing issue. The ``on`` value for the ``ssl``
+  configuration option was not recognized and got interpreted as 'true'.
+

@@ -30,14 +30,15 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
+import java.nio.file.Path;
 import java.security.cert.Certificate;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,13 +46,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
+import static io.crate.auth.AuthenticationWithSSLIntegrationTest.getAbsoluteFilePathFromClassPath;
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidAddress;
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidProtocol;
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidUser;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 
 public class HostBasedAuthenticationTest extends ESTestCase {
@@ -287,10 +289,10 @@ public class HostBasedAuthenticationTest extends ESTestCase {
     @Test
     public void testHttpSSLOption() throws Exception {
         Settings baseConfig = Settings.builder().put(HBA_1)
-            .put("auth.host_based.config.1." + HostBasedAuthentication.KEY_PROTOCOL, "http")
+            .put("auth.host_based.config.1.protocol", "http")
             .build();
 
-        SSLSession sslSession = Mockito.mock(SSLSession.class);
+        SSLSession sslSession = mock(SSLSession.class);
         when(sslSession.getPeerCertificates()).thenReturn(new Certificate[0]);
         ConnectionProperties sslConnProperties =
             new ConnectionProperties(LOCALHOST, Protocol.HTTP, sslSession);
@@ -343,5 +345,33 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         AuthenticationMethod authMethod2 = hba.resolveAuthenticationType("crate",
             new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.HTTP, null));
         assertThat(authMethod2, instanceOf(ClientCertAuth.class));
+    }
+
+
+    @Test
+    public void cert_method_resolved_when_ssl_on_and_keystore_configured() throws Exception {
+        // This test makes sure that "ssl: on" from crate.yml in test resources
+        // is correctly mapped to the corresponding enum value despite on yml treats "on" as "true".
+
+        Path config = getAbsoluteFilePathFromClassPath("org/elasticsearch/node/config").toPath();
+
+        HashMap<String, String> settings = new HashMap<>();
+        settings.put("path.home", ".");
+        settings.put("path.conf", config.toAbsolutePath().toString());
+        settings.put("stats.enabled", "false");
+
+        // Settings are intentionally created not by directly putting properties
+        // but by using InternalSettingsPreparer.prepareEnvironment to trigger yml parsing.
+        Settings finalSettings = InternalSettingsPreparer
+            .prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1").settings();
+
+        // 'on' becomes 'true' -
+        assertThat(finalSettings.get("auth.host_based.config.0.ssl"), is("true"));
+
+        HostBasedAuthentication hba = new HostBasedAuthentication(finalSettings, null);
+
+        AuthenticationMethod authMethod = hba.resolveAuthenticationType("crate",
+            new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.POSTGRES, mock(SSLSession.class)));
+        assertThat(authMethod, instanceOf(ClientCertAuth.class));
     }
 }
