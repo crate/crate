@@ -151,7 +151,7 @@ public class DocValuesAggregates {
                 return null;
             }
 
-            var aggregationReferences = new ArrayList<Symbol>(aggregation.inputs().size());
+            var aggregationReferences = new ArrayList<Reference>(aggregation.inputs().size());
             var literals = new ArrayList<Literal<?>>();
             for (var input : aggregation.inputs()) {
                 if (input instanceof Literal<?> literal) {
@@ -197,13 +197,13 @@ public class DocValuesAggregates {
         return aggregator;
     }
 
-    private static class AggregationInputToReferenceResolver extends SymbolVisitor<List<Symbol>, Symbol> {
+    private static class AggregationInputToReferenceResolver extends SymbolVisitor<List<Symbol>, Reference> {
 
         public static final AggregationInputToReferenceResolver INSTANCE =
             new AggregationInputToReferenceResolver();
 
         @Override
-        public Symbol visitFunction(io.crate.expression.symbol.Function function, List<Symbol> toCollect) {
+        public Reference visitFunction(io.crate.expression.symbol.Function function, List<Symbol> toCollect) {
             if (function.name().equals(ExplicitCastFunction.NAME)) {
                 var arg = function.arguments().get(0);
                 // Currently, it is the concrete case for the ::numeric explicit cast only.
@@ -217,12 +217,12 @@ public class DocValuesAggregates {
         }
 
         @Override
-        public Symbol visitReference(Reference reference, List<Symbol> context) {
+        public Reference visitReference(Reference reference, List<Symbol> context) {
             return reference;
         }
 
         @Override
-        public Symbol visitInputColumn(InputColumn inputColumn, List<Symbol> toCollect) {
+        public Reference visitInputColumn(InputColumn inputColumn, List<Symbol> toCollect) {
             Symbol collectSymbol = toCollect.get(inputColumn.index());
             if (collectSymbol == null) {
                 return null;

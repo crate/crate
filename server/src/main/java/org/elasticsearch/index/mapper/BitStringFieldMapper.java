@@ -27,7 +27,7 @@ import java.util.Map;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
@@ -38,6 +38,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.index.query.QueryShardContext;
 
 import io.crate.sql.tree.BitString;
@@ -162,16 +163,16 @@ public class BitStringFieldMapper extends FieldMapper {
     @Override
     protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
         XContentParser parser = context.parser();
-        byte[] bytes = parser.binaryValue();
-        if (bytes == null) {
+        if (parser.currentToken() == Token.VALUE_NULL) {
             return;
         }
+        byte[] bytes = parser.binaryValue();
         BytesRef binaryValue = new BytesRef(bytes);
         if (fieldType().isSearchable()) {
             fields.add(new Field(fieldType().name(), binaryValue, fieldType));
         }
         if (fieldType().hasDocValues()) {
-            fields.add(new SortedDocValuesField(fieldType().name(), binaryValue));
+            fields.add(new SortedSetDocValuesField(fieldType().name(), binaryValue));
         } else {
             createFieldNamesField(context, fields);
         }

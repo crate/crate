@@ -790,14 +790,14 @@ public final class XContentBuilder implements Closeable, Flushable {
     }
 
     public XContentBuilder array(String name, Object... values) throws IOException {
-        return field(name).values(values);
+        return field(name).values(values, Map.of());
     }
 
-    private XContentBuilder values(Object[] values) throws IOException {
+    private XContentBuilder values(Object[] values, Map<Class<?>, Writer> writerOverrides) throws IOException {
         if (values == null) {
             return nullValue();
         }
-        return value(Arrays.asList(values));
+        return value(Arrays.asList(values), writerOverrides);
     }
 
     public XContentBuilder value(Object value) throws IOException {
@@ -824,11 +824,11 @@ public final class XContentBuilder implements Closeable, Flushable {
         } else if (value instanceof Map) {
             @SuppressWarnings("unchecked")
             final Map<String, ?> valueMap = (Map<String, ?>) value;
-            map(valueMap);
+            map(valueMap, writerOverrides);
         } else if (value instanceof Iterable) {
-            value((Iterable<?>) value);
+            value((Iterable<?>) value, writerOverrides);
         } else if (value instanceof Object[]) {
-            values((Object[]) value);
+            values((Object[]) value, writerOverrides);
         } else if (value instanceof ToXContent) {
             value((ToXContent) value);
         } else if (value instanceof Enum<?>) {
@@ -902,10 +902,10 @@ public final class XContentBuilder implements Closeable, Flushable {
     }
 
     public XContentBuilder field(String name, Iterable<?> values) throws IOException {
-        return field(name).value(values);
+        return field(name).value(values, Map.of());
     }
 
-    private XContentBuilder value(Iterable<?> values) throws IOException {
+    private XContentBuilder value(Iterable<?> values, Map<Class<?>, Writer> writerOverrides) throws IOException {
         if (values == null) {
             return nullValue();
         }
@@ -916,7 +916,7 @@ public final class XContentBuilder implements Closeable, Flushable {
         } else {
             startArray();
             for (Object value : values) {
-                unknownValue(value, Map.of());
+                unknownValue(value, writerOverrides);
             }
             endArray();
         }

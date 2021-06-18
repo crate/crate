@@ -26,9 +26,10 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.SortedSetDocValues;
 
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.sql.tree.BitString;
 
@@ -37,7 +38,7 @@ public class BitStringColumnReference extends LuceneCollectorExpression<BitStrin
     private final String columnName;
     private final int length;
     private int docId;
-    private BinaryDocValues values;
+    private SortedSetDocValues values;
 
     public BitStringColumnReference(String columnName, int length) {
         this.columnName = columnName;
@@ -48,7 +49,11 @@ public class BitStringColumnReference extends LuceneCollectorExpression<BitStrin
     public BitString value() {
         try {
             if (values.advanceExact(docId)) {
-                var bytesRef = values.binaryValue();
+                long ord = values.nextOrd();
+                if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
+                    throw new GroupByOnArrayUnsupportedException(columnName);
+                }
+                var bytesRef = values.lookupOrd(ord);
                 var buffer = ByteBuffer.wrap(bytesRef.bytes, bytesRef.offset, bytesRef.length);
                 return new BitString(BitSet.valueOf(buffer), length);
             } else {
@@ -66,6 +71,6 @@ public class BitStringColumnReference extends LuceneCollectorExpression<BitStrin
 
     @Override
     public void setNextReader(ReaderContext context) throws IOException {
-        values = DocValues.getBinary(context.reader(), columnName);
+        values = DocValues.getSortedSet(context.reader(), columnName);
     }
 }
