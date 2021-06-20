@@ -2397,7 +2397,8 @@ public class IndexShardTests extends IndexShardTestCase {
             shardRouting,
             indexMetadata.build(),
             new InternalEngineFactory(),
-            () -> synced.set(true)
+            () -> synced.set(true),
+            RetentionLeaseSyncer.EMPTY
         );
         // add a replica
         recoverShardFromStore(primaryShard);
@@ -3516,7 +3517,7 @@ public class IndexShardTests extends IndexShardTestCase {
 
             @Override
             public void updateState(ClusterState state) {
-                
+
             }
         }, future);
         assertThat(future.actionGet(5, TimeUnit.SECONDS), is(true));
@@ -3666,6 +3667,7 @@ public class IndexShardTests extends IndexShardTestCase {
             null,
             new InternalEngineFactory(),
             () -> { },
+            RetentionLeaseSyncer.EMPTY,
             new IndexEventListener() {
                 @Override
                 public void onShardInactive(IndexShard indexShard) {
@@ -4034,7 +4036,8 @@ public class IndexShardTests extends IndexShardTestCase {
             shardRouting,
             indexMetadata.build(),
             new InternalEngineFactory(),
-            () -> synced.set(true)
+            () -> synced.set(true),
+            RetentionLeaseSyncer.EMPTY
         );
         recoverShardFromStore(primaryShard);
         IndexShard replicaShard = newShard(shardId, false);
