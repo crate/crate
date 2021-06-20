@@ -205,7 +205,11 @@ public abstract class AnalysisFactoryTestCase extends ESTestCase {
         // LUCENE-8332
         entry("concatenategraph", Void.class),
         entry("spanishminimalstem", Void.class),
-        entry("delimitedboost", Void.class)
+        entry("delimitedboost", Void.class),
+        // LUCENE-9574
+        entry("dropifflagged", Void.class),
+        // LUCENE-9575
+        entry("patterntyping", Void.class)
     );
 
     static final Map<String, Class<?>> KNOWN_CHARFILTERS = Map.of(
