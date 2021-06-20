@@ -20,7 +20,8 @@
  */
 package org.elasticsearch.index.shard;
 
-import org.apache.lucene.index.IndexNotFoundException;
+import io.crate.common.CheckedFunction;
+import io.crate.common.io.IOUtils;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
@@ -35,8 +36,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
-import io.crate.common.CheckedFunction;
-import javax.annotation.Nullable;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -44,8 +44,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.XContentType;
-import io.crate.common.io.IOUtils;
 import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
@@ -61,6 +62,7 @@ import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -73,11 +75,16 @@ import org.elasticsearch.indices.recovery.RecoverySourceHandler;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.indices.recovery.RecoveryTarget;
 import org.elasticsearch.indices.recovery.StartRecoveryRequest;
+import org.elasticsearch.repositories.ESBlobStoreTestCase;
+import org.elasticsearch.repositories.IndexId;
+import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -672,6 +679,10 @@ public abstract class IndexShardTestCase extends ESTestCase {
             if (assertConsistencyBetweenTranslogAndLucene) {
                 assertConsistentHistoryBetweenTranslogAndLucene(shard);
             }
+            final Engine engine = shard.getEngineOrNull();
+            if (engine != null) {
+                EngineTestCase.assertAtMostOneLuceneDocumentPerSequenceNumber(engine);
+            }
         } finally {
             IOUtils.close(() -> shard.close("test", false), shard.store());
         }
@@ -891,10 +902,71 @@ public abstract class IndexShardTestCase extends ESTestCase {
     }
 
     public static void assertConsistentHistoryBetweenTranslogAndLucene(IndexShard shard) throws IOException {
+        if (shard.state() != IndexShardState.POST_RECOVERY && shard.state() != IndexShardState.STARTED) {
+            return;
+        }
         final Engine engine = shard.getEngineOrNull();
         if (engine != null) {
             EngineTestCase.assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, shard.mapperService());
         }
+    }
+
+    protected void assertDocs(IndexShard shard, String... ids) throws IOException {
+        final Set<String> shardDocUIDs = getShardDocUIDs(shard);
+        assertThat(shardDocUIDs, contains(ids));
+        assertThat(shardDocUIDs, hasSize(ids.length));
+    }
+
+
+    /** Recover a shard from a snapshot using a given repository **/
+    protected void recoverShardFromSnapshot(final IndexShard shard,
+                                            final Snapshot snapshot,
+                                            final Repository repository) {
+        final Version version = Version.CURRENT;
+        final ShardId shardId = shard.shardId();
+        final String index = shardId.getIndexName();
+        final IndexId indexId = new IndexId(shardId.getIndex().getName(), shardId.getIndex().getUUID());
+        final DiscoveryNode node = getFakeDiscoNode(shard.routingEntry().currentNodeId());
+        final RecoverySource.SnapshotRecoverySource recoverySource =
+            new RecoverySource.SnapshotRecoverySource(UUIDs.randomBase64UUID(), snapshot, version, index);
+        final ShardRouting shardRouting = newShardRouting(shardId, node.getId(), true, ShardRoutingState.INITIALIZING, recoverySource);
+        shard.markAsRecovering("from snapshot", new RecoveryState(shardRouting, node, null));
+        final PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        repository.restoreShard(shard.store(),
+                                snapshot.getSnapshotId(),
+                                indexId,
+                                shard.shardId(),
+                                shard.recoveryState(),
+                                future);
+        future.actionGet();
+    }
+
+    /**
+     * Snapshot a shard using a given repository.
+     *
+     * @return new shard generation
+     */
+    protected String snapshotShard(final IndexShard shard,
+                                   final Snapshot snapshot,
+                                   final Repository repository) throws IOException {
+        final Index index = shard.shardId().getIndex();
+        final IndexId indexId = new IndexId(index.getName(), index.getUUID());
+        final IndexShardSnapshotStatus snapshotStatus = IndexShardSnapshotStatus.newInitializing(
+            ESBlobStoreTestCase.getRepositoryData(repository).shardGenerations().getShardGen(
+                indexId, shard.shardId().getId()));
+        final PlainActionFuture<String> future = PlainActionFuture.newFuture();
+        final String shardGen;
+        try (Engine.IndexCommitRef indexCommitRef = shard.acquireLastIndexCommit(true)) {
+            repository.snapshotShard(shard.store(), shard.mapperService(), snapshot.getSnapshotId(), indexId,
+                                     indexCommitRef.getIndexCommit(), snapshotStatus, true, future);
+            shardGen = future.actionGet();
+        }
+
+        final IndexShardSnapshotStatus.Copy lastSnapshotStatus = snapshotStatus.asCopy();
+        assertEquals(IndexShardSnapshotStatus.Stage.DONE, lastSnapshotStatus.getStage());
+        assertEquals(shard.snapshotStoreMetadata().size(), lastSnapshotStatus.getTotalFileCount());
+        assertNull(lastSnapshotStatus.getFailure());
+        return shardGen;
     }
 
     /**
