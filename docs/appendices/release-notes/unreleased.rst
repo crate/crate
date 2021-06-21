@@ -55,6 +55,9 @@ Deprecations
 Changes
 =======
 
+- Improved the performance of ``INSERT FROM query`` statements where the
+  ``query`` contains a ``GROUP BY`` clause.
+
 - Changed the privileges model to allow users with ``DDL`` privileges on a
   table to use the :ref:`OPTIMIZE TABLE <sql-optimize>` statement.
 
@@ -109,4 +112,10 @@ Changes
 Fixes
 =====
 
-None
+- Fixed a regression introduced in 4.5.2 which caused aggregations on virtual
+  tables using a primary key lookup to fail. An example::
+
+    SELECT count(*) FROM (
+      SELECT * FROM users WHERE id = ? AND (addr is NULL)
+    ) AS u;
+        

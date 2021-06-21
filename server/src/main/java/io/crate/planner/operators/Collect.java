@@ -84,7 +84,6 @@ public class Collect implements LogicalPlan {
 
     private static final String COLLECT_PHASE_NAME = "collect";
     final AbstractTableRelation<?> relation;
-    private final boolean preferSourceLookup;
     private final List<Symbol> outputs;
     private final List<AbstractTableRelation<?>> baseTables;
     final TableInfo tableInfo;
@@ -96,12 +95,10 @@ public class Collect implements LogicalPlan {
     public static Collect create(AbstractTableRelation<?> relation,
                                  List<Symbol> toCollect,
                                  WhereClause where,
-                                 Set<PlanHint> hints,
                                  TableStats tableStats,
                                  Row params) {
         Stats stats = tableStats.getStats(relation.tableInfo().ident());
         return new Collect(
-            hints.contains(PlanHint.PREFER_SOURCE_LOOKUP),
             relation,
             toCollect,
             where,
@@ -110,13 +107,11 @@ public class Collect implements LogicalPlan {
         );
     }
 
-    public Collect(boolean preferSourceLookup,
-                   AbstractTableRelation<?> relation,
+    public Collect(AbstractTableRelation<?> relation,
                    List<Symbol> outputs,
                    WhereClause where,
                    long numExpectedRows,
                    long estimatedRowSize) {
-        this.preferSourceLookup = preferSourceLookup;
         this.outputs = outputs;
         this.baseTables = List.of(relation);
         this.numExpectedRows = numExpectedRows;
@@ -131,6 +126,7 @@ public class Collect implements LogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -146,10 +142,10 @@ public class Collect implements LogicalPlan {
         );
         var binder = new SubQueryAndParamBinder(params, subQueryResults)
             .andThen(x -> normalizer.normalize(x, plannerContext.transactionContext()));
-        RoutedCollectPhase collectPhase = createPhase(plannerContext, binder);
+        RoutedCollectPhase collectPhase = createPhase(plannerContext, hints, binder);
         PositionalOrderBy positionalOrderBy = getPositionalOrderBy(order, outputs);
         if (positionalOrderBy != null) {
-            if (preferSourceLookup) {
+            if (hints.contains(PlanHint.PREFER_SOURCE_LOOKUP)) {
                 order = order.map(DocReferences::toSourceLookup);
             }
             collectPhase.orderBy(
@@ -232,7 +228,9 @@ public class Collect implements LogicalPlan {
         }
     }
 
-    private RoutedCollectPhase createPhase(PlannerContext plannerContext, java.util.function.Function<Symbol, Symbol> binder) {
+    private RoutedCollectPhase createPhase(PlannerContext plannerContext,
+                                           Set<PlanHint> planHints,
+                                           java.util.function.Function<Symbol, Symbol> binder) {
         WhereClause boundWhere = where.map(binder);
         if (tableInfo instanceof DocTableInfo) {
             DocTableInfo docTable = (DocTableInfo) tableInfo;
@@ -274,7 +272,7 @@ public class Collect implements LogicalPlan {
                 RoutingProvider.ShardSelection.ANY,
                 sessionContext),
             tableInfo.rowGranularity(),
-            preferSourceLookup && tableInfo instanceof DocTableInfo
+            planHints.contains(PlanHint.PREFER_SOURCE_LOOKUP) && tableInfo instanceof DocTableInfo
                 ? Lists2.map(boundOutputs, DocReferences::toSourceLookup)
                 : boundOutputs,
             Collections.emptyList(),
@@ -320,7 +318,6 @@ public class Collect implements LogicalPlan {
         }
         Stats stats = tableStats.getStats(relation.relationName());
         return new Collect(
-            preferSourceLookup,
             relation,
             newOutputs,
             where,
@@ -367,7 +364,6 @@ public class Collect implements LogicalPlan {
         return new FetchRewrite(
             replacedOutputs,
             new Collect(
-                preferSourceLookup,
                 relation,
                 newOutputs,
                 where,
@@ -402,10 +398,6 @@ public class Collect implements LogicalPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitCollect(this, context);
-    }
-
-    public boolean preferSourceLookup() {
-        return preferSourceLookup;
     }
 
     @Override

@@ -39,6 +39,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class Filter extends ForwardingLogicalPlan {
 
@@ -71,6 +72,7 @@ public final class Filter extends ForwardingLogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -79,7 +81,7 @@ public final class Filter extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
-            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+            plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
         Symbol boundQuery = SubQueryAndParamBinder.convert(query, params, subQueryResults);
         FilterProjection filterProjection = ProjectionBuilder.filterProjection(source.outputs(), boundQuery);
         if (executionPlan.resultDescription().executesOnShard()) {

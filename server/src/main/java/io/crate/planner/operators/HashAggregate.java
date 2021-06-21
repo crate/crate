@@ -49,6 +49,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 public class HashAggregate extends ForwardingLogicalPlan {
 
@@ -62,6 +63,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -70,7 +72,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
-            plannerContext, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null, params, subQueryResults);
+            plannerContext, planHints, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null, params, subQueryResults);
 
         AggregationOutputValidator.validateOutputs(aggregates);
         var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);

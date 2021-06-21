@@ -59,7 +59,6 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
                     ((AbstractTableRelation<?>) queriedDocTable.from().get(0)),
                     queriedDocTable.outputs(),
                     new WhereClause(queriedDocTable.where()),
-                    Set.of(),
                     new TableStats(),
                     null
                 ),
@@ -76,6 +75,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
         PlannerContext ctx = e.getPlannerContext(clusterService.state());
         Merge merge = (Merge) plan.build(
             ctx,
+            Set.of(),
             new ProjectionBuilder(e.nodeCtx),
             TopN.NO_LIMIT,
             0,

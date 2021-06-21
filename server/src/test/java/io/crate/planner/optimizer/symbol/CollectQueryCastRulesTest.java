@@ -21,6 +21,17 @@
 
 package io.crate.planner.optimizer.symbol;
 
+import static java.util.Collections.emptyMap;
+import static org.hamcrest.Matchers.is;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AbstractTableRelation;
@@ -45,15 +56,6 @@ import io.crate.sql.tree.ComparisonExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import static java.util.Collections.emptyMap;
-import static org.hamcrest.Matchers.is;
 
 public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest {
 
@@ -89,7 +91,6 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
 
     private void assertCollectQuery(String query, String expected) {
         var collect = new Collect(
-            false,
             tr1,
             Collections.emptyList(),
             new WhereClause(e.asSymbol(query)),
@@ -98,6 +99,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
         );
         var plan = (io.crate.planner.node.dql.Collect) collect.build(
             plannerContext,
+            Set.of(),
             new ProjectionBuilder(e.nodeCtx),
             TopN.NO_LIMIT,
             0,

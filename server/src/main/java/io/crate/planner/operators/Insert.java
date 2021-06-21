@@ -21,6 +21,15 @@
 
 package io.crate.planner.operators;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists2;
@@ -36,12 +45,6 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 public class Insert implements LogicalPlan {
 
@@ -59,6 +62,7 @@ public class Insert implements LogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -67,7 +71,16 @@ public class Insert implements LogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan sourcePlan = source.build(
-            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+            plannerContext,
+            EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP),
+            projectionBuilder,
+            limit,
+            offset,
+            order,
+            pageSizeHint,
+            params,
+            subQueryResults
+        );
         if (applyCasts != null) {
             sourcePlan.addProjection(applyCasts);
         }

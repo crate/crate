@@ -21,6 +21,18 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -46,16 +58,6 @@ import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-
-import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
 public class GroupHashAggregate extends ForwardingLogicalPlan {
 
@@ -128,6 +130,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -135,8 +138,12 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
+        if (hints.contains(PlanHint.PREFER_SOURCE_LOOKUP)) {
+            hints = new HashSet<>(hints);
+            hints.remove(PlanHint.PREFER_SOURCE_LOOKUP);
+        }
         ExecutionPlan executionPlan = source.build(
-            plannerContext, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
+            plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
             executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }

@@ -21,6 +21,15 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -35,14 +44,6 @@ import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.function.Function;
 
 
 /**
@@ -70,6 +71,7 @@ public final class Eval extends ForwardingLogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -78,7 +80,7 @@ public final class Eval extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
-            plannerContext, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
+            plannerContext, planHints, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
         if (outputs.equals(source.outputs())) {
             return executionPlan;
         }

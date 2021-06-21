@@ -42,6 +42,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ProjectSet extends ForwardingLogicalPlan {
@@ -105,6 +106,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -114,6 +116,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
                                SubQueryResults subQueryResults) {
         ExecutionPlan sourcePlan = source.build(
             plannerContext,
+            planHints,
             projectionBuilder,
             limit,
             offset,
