@@ -27,6 +27,9 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.RowGranularity;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -40,16 +43,32 @@ import java.util.Map;
 public class EvalProjection extends Projection {
 
     private final List<Symbol> outputs;
+    private final RowGranularity granularity;
 
     public EvalProjection(List<Symbol> outputs) {
+        this(outputs, RowGranularity.CLUSTER);
+    }
+
+    public EvalProjection(List<Symbol> outputs, RowGranularity granularity) {
         assert outputs.stream().noneMatch(
             s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
             : "EvalProjection doesn't support Field, Reference or SelectSymbol symbols, got: " + outputs;
         this.outputs = outputs;
+        this.granularity = granularity;
     }
 
     public EvalProjection(StreamInput in) throws IOException {
         this.outputs = Symbols.listFromStream(in);
+        if (in.getVersion().onOrAfter(Version.V_4_5_3)) {
+            this.granularity = RowGranularity.fromStream(in) ;
+        } else {
+            this.granularity = RowGranularity.CLUSTER;
+        }
+    }
+
+    @Override
+    public RowGranularity requiredGranularity() {
+        return this.granularity;
     }
 
     @Override
@@ -70,6 +89,9 @@ public class EvalProjection extends Projection {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         Symbols.toStream(outputs, out);
+        if (out.getVersion().onOrAfter(Version.V_4_5_3)) {
+            RowGranularity.toStream(granularity, out);
+        }
     }
 
     @Override
