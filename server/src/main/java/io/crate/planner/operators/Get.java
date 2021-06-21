@@ -41,6 +41,7 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.ExecutionPlan;
@@ -177,10 +178,11 @@ public class Get implements LogicalPlan {
         if (requiresAdditionalFilteringOnNonDocKeyColumns.get()) {
             toCollect = List.copyOf(toCollectSet);
             var filterProjection = ProjectionBuilder.filterProjection(toCollect, boundQuery);
+            filterProjection.requiredGranularity(RowGranularity.SHARD);
             projections.add(filterProjection);
 
             // reduce outputs which have been added for the filter projection
-            var evalProjection = new EvalProjection(InputColumn.mapToInputColumns(boundOutputs));
+            var evalProjection = new EvalProjection(InputColumn.mapToInputColumns(boundOutputs), RowGranularity.SHARD);
             projections.add(evalProjection);
         }
 
