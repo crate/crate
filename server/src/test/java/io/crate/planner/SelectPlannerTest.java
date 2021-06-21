@@ -31,6 +31,7 @@ import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -1098,5 +1099,30 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             VersioninigValidationException.class,
             VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
         );
+    }
+
+
+    @Test
+    public void test_filter_and_eval_on_get_operator_use_shard_projections() throws Exception {
+        Merge merge = e.plan("""
+            SELECT count(*) FROM (
+                SELECT
+                    name
+                FROM
+                    users
+                WHERE
+                    id = 10 AND (name = 'bar' or name IS NULL)
+                ) u
+        """);
+        Collect collect = (Collect) merge.subPlan();
+        var pkLookup = (PKLookupPhase) collect.collectPhase();
+        assertThat(pkLookup.projections(), Matchers.contains(
+            Matchers.instanceOf(FilterProjection.class),
+            Matchers.instanceOf(EvalProjection.class),
+            Matchers.instanceOf(AggregationProjection.class)
+        ));
+        for (var projection : pkLookup.projections()) {
+            assertThat(projection.requiredGranularity(), is(RowGranularity.SHARD));
+        }
     }
 }
