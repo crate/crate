@@ -36,10 +36,16 @@ Primitive types are types with :ref:`scalar <gloss-scalar>` values:
    :depth: 2
 
 
-.. _data-types-null:
+.. _data-types-nulls:
 
 Null values
 -----------
+
+
+.. _type-null:
+
+``NULL``
+''''''''
 
 A ``NULL`` represents a missing value.
 
@@ -54,8 +60,8 @@ You can use ``NULL`` values when inserting records to indicate the absence of a
 data point (i.e., the value for a specific column is not known).
 
 Similarly, CrateDB will produce ``NULL`` values when, for example, data is
-missing from a left join operation (i.e., when a row from one relation has
-no corresponding row in the joined relation).
+missing from a :ref:`outer left-join <join-types-outer>` operation (i.e., when
+a row from one relation has no corresponding row in the joined relation).
 
 If you insert a record without specifying the value for a particular column,
 CrateDB will insert a ``NULL`` value for that column.
@@ -84,6 +90,22 @@ The resulting row will have a ``NULL`` value for ``surname``::
     | Alice      | NULL    |
     +------------+---------+
     SELECT 1 row in set (... sec)
+
+You can prevent ``NULL`` values being inserted altogether with a :ref:`NOT NULL
+constraint <not_null_constraint>`, like so::
+
+    cr> CREATE TABLE users2 (
+    ...   first_name TEXT,
+    ...   surname TEXT NOT NULL
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+Now, when you try to insert a user without a surname, it will produce an
+error::
+
+    cr> INSERT INTO users2 (first_name) VALUES ('Alice');
+    SQLParseException["surname" must not be null]
+
 
 .. HIDE:
 
@@ -549,7 +571,7 @@ The ``+`` and ``-`` :ref:`operators <gloss-operator>` can be used to create
     declared beforehand.
 
 
-.. _data-types-timestamp:
+.. _type-timestamp:
 
 ``TIMESTAMP``
 '''''''''''''
@@ -710,9 +732,9 @@ Limited to 12 bytes, with a time range from ``00:00:00.000000`` to
 
 The time type consists of time followed by an optional time zone.
 
-``TIMETZ`` is an alias for `time with time zone`.
+``TIMETZ`` is an alias for ``time with time zone``.
 
-`TIME WITH TIME ZONE` literals can be constructed using a string literal
+``TIME WITH TIME ZONE`` literals can be constructed using a string literal
 and a cast. The syntax for string literal is as follows:
 
 .. code-block:: text
@@ -729,13 +751,13 @@ and a cast. The syntax for string literal is as follows:
 Where ``time-only`` can contain optional seconds, or optional minutes and
 seconds, and can use ``:`` as a separator optionally.
 
-`fraction` accepts up to 6 digits, as precision is in micro seconds.
+``fraction`` accepts up to 6 digits, as precision is in micro seconds.
 
 Time zone syntax as defined by `ISO 8601 time zone designators`_.
 
 .. NOTE::
 
-    This type cannot be used in `CREATE TABLE` or `ALTER` statements.
+    This type cannot be used in ``CREATE TABLE`` or ``ALTER`` statements.
 
 ::
 
@@ -1467,7 +1489,7 @@ Geometric points
 ----------------
 
 
-.. _type-geo-point:
+.. _type-geo_point:
 
 ``GEO_POINT``
 '''''''''''''
@@ -1507,7 +1529,7 @@ Geometric shapes
 ----------------
 
 
-.. _type-geo-shape:
+.. _type-geo_shape:
 
 ``GEO_SHAPE``
 '''''''''''''
@@ -1526,7 +1548,7 @@ objects`_.  Thus it is possible to store e.g. ``LineString`` and
     Empty ``Polygon`` and ``LineString`` geo shapes are not supported.
 
 
-.. _type-geo-shape-definition:
+.. _type-geo_shape-definition:
 
 Geo shape column definition
 ...........................
@@ -1588,7 +1610,7 @@ Both of these index types accept the following parameters:
   ``50m`` converted to ``precision`` depending on the index type.
 
 
-.. _type-geo-shape-index:
+.. _type-geo_shape-index:
 
 Geo shape index structure
 .........................
@@ -1622,7 +1644,7 @@ The main difference is that the ``geohash`` supports higher precision than the
 fractions of millimeters.
 
 
-.. _type-geo-shape-literals:
+.. _type-geo_shape-literals:
 
 Geo shape literals
 ..................
@@ -1645,7 +1667,7 @@ well::
 .. NOTE::
 
     It is not possible to detect a ``GEO_SHAPE`` type for a dynamically created
-    column. Like with :ref:`type-geo-point` type, ``GEO_SHAPE`` columns need to
+    column. Like with :ref:`type-geo_point` type, ``GEO_SHAPE`` columns need to
     be created explicitly using either :ref:`sql-create-table` or
     :ref:`sql-alter-table`.
 

@@ -237,78 +237,55 @@ Example of JSON representation of a column list of (String, Integer[])::
 IDs of all currently available data types:
 
 .. list-table::
-   :widths: 8 30 62
+   :widths: 8 30
    :header-rows: 1
 
    * - ID
      - Data type
-     - Format
    * - 0
-     - Null
-     - ``null``
+     - :ref:`NULL <type-null>`
    * - 1
-     - Not Supported
-     -
+     - Not supported
    * - 2
-     - :ref:`char <data-type-special>`
-     - Single byte
+     - :ref:`CHAR <type-char>`
    * - 3
-     - :ref:`boolean <data-type-boolean>`
-     - ``true`` or ``false``
+     - :ref:`BOOLEAN <type-boolean>`
    * - 4
-     - :ref:`text <data-type-text>`
-     - All unicode characters allowed
+     - :ref:`TEXT <type-text>`
    * - 5
-     - :ref:`ip <ip-type>`
-     - ``0:0:0:0:0:ffff:c0a8:64``, ``192.169.0.55``
+     - :ref:`IP <type-ip>`
    * - 6
-     - :ref:`double precision <data-type-numeric>`
-     - 15 decimal digits precision
+     - :ref:`DOUBLE PRECISION <type-double-precision>`
    * - 7
-     - Real
-     - 6 decimal digits precision
+     - :ref:`REAL <type-real>`
    * - 8
-     - Smallint
-     - range -32768 to 32767
+     - :ref:`SMALLINT <type-smallint>`
    * - 9
-     - Integer
-     - Range -2^31 to 2^31-1
+     - :ref:`INTEGER <type-integer>`
    * - 10
-     - Bigint
-     - Range -2^63 to 2^63-1
+     - :ref:`BIGINT <type-bigint>`
    * - 11
-     - :ref:`timestamp <timestamp_data_type>`
-     - ``bigint``, e.g., ``1591808274761``
+     - :ref:`TIMESTAMP <type-timestamp>`
    * - 12
-     - :ref:`object(dynamic|strict|ignored) <object_data_type>`
-     - ``{"key": "value"}``, ``{ key = 'value'}``
+     - :ref:`OBJECT <type-object>`
    * - 13
-     - :ref:`geo_point <geo_point_data_type>`
-     - Doubles, e.g., ``[28.979999972507358,-57.33000000938773]``
+     - :ref:`GEO_POINT <type-geo_point>`
    * - 14
-     - :ref:`geo_shape <geo_shape_data_type>`
-     - Object, e.g., ``[{"coordinates":[[[100.0,0.0],[101.0,0.0],[101.0,1.0]]],"type":"Polygon"}]``
+     - :ref:`GEO_SHAPE <type-geo_shape>`
    * - 15
      - Unchecked object
-     -
    * - 19
-     - :ref:`regproc <oid_regproc>`
-     -
+     - :ref:`REGPROC <type-regproc>`
    * - 20
-     - :ref:`time with time zone <time-data-type>`
-     - ``bigint`` or ``integer``, e.g., ``[70652987666, 0]``
+     - :ref:`TIME <type-time>`
    * - 21
-     - :ref:`oidvector <oidvector_type>`
-     - An array of numbers
+     - :ref:`OIDVECTOR <type-oidvector>`
    * - 23
-     - :ref:`regclass <oid_regclass>`
-     - ``OID``, i.e., ``INTEGER``
+     - :ref:`REGCLASS <type-regclass>`
    * - 24
-     - :ref:`date <date-data-type>`
-     - Range ``292275054BC`` to ``292278993AD``
+     - :ref:`DATE <type-date>`
    * - 100
-     - :ref:`array <data-type-array>`
-     - ``[100, 9]`` for ``array(integer)``
+     - :ref:`ARRAY <type-array>`
 
 
 .. _http-bulk-ops:
@@ -394,7 +371,7 @@ appropriate exception::
     }
 
 To get more insight into what exactly went wrong an additional ``error_trace``
-GET parameter can be specified to return the stack trace::
+``GET`` parameter can be specified to return the stack trace::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X POST '127.0.0.1:4200/_sql?error_trace=true' -d@- <<- EOF
