@@ -91,6 +91,7 @@ public interface LogicalPlan extends Plan {
      * operators implementation. Operator may choose to make use of this information, but can also ignore it.
      */
     ExecutionPlan build(PlannerContext plannerContext,
+                        Set<PlanHint> planHints,
                         ProjectionBuilder projectionBuilder,
                         int limit,
                         int offset,

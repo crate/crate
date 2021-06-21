@@ -792,6 +792,7 @@ public class InsertFromValues implements LogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,

@@ -58,7 +58,6 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
             new DocTableRelation(e.resolveTableInfo("t")),
             List.of(x, e.asSymbol("y")),
             WhereClause.MATCH_ALL,
-            Set.of(),
             tableStats,
             Row.EMPTY
         );
@@ -82,8 +81,17 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(analyzedRelation, plannerCtx);
-        ExecutionPlan build = operator.build(plannerCtx, projectionBuilder, -1, 0, null,
-                                             null, Row.EMPTY, SubQueryResults.EMPTY);
+        ExecutionPlan build = operator.build(
+            plannerCtx,
+            Set.of(),
+            projectionBuilder,
+            -1,
+            0,
+            null,
+            null,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
         assertThat((((RoutedCollectPhase) ((io.crate.planner.node.dql.Collect) build).collectPhase())).orderBy(), is(nullValue()));
     }
 }

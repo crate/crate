@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This is the {@link LogicalPlan} equivalent of the {@link MultiPhasePlan} plan.
@@ -66,6 +67,7 @@ public class MultiPhase extends ForwardingLogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -74,7 +76,7 @@ public class MultiPhase extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         return source.build(
-            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+            plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
     }
 
     @Override

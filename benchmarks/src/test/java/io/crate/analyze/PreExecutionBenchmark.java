@@ -21,16 +21,14 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.data.Row;
-import io.crate.planner.ExecutionPlan;
-import io.crate.planner.Plan;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.SubQueryResults;
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.Statement;
-import io.crate.testing.SQLExecutor;
+import static io.crate.testing.DiscoveryNodes.newNode;
+import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
+
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -49,12 +47,16 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-
-import static io.crate.testing.DiscoveryNodes.newNode;
-import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
+import io.crate.action.sql.SessionContext;
+import io.crate.data.Row;
+import io.crate.planner.ExecutionPlan;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Statement;
+import io.crate.testing.SQLExecutor;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -111,7 +113,7 @@ public class PreExecutionBenchmark {
     @Benchmark
     public ExecutionPlan measurePlanSimpleSelect() {
         return ((LogicalPlan) e.planner.plan(analyzedStatement, e.getPlannerContext(ClusterState.EMPTY_STATE)))
-            .build(plannerContext, null, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
+            .build(plannerContext, Set.of(), null, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
     }
 
     @Benchmark

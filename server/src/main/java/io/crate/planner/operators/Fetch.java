@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -108,6 +109,7 @@ public final class Fetch extends ForwardingLogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -118,6 +120,7 @@ public final class Fetch extends ForwardingLogicalPlan {
         ExecutionPlan executionPlan = Merge.ensureOnHandler(
             source.build(
                 plannerContext,
+                hints,
                 projectionBuilder,
                 limit,
                 offset,

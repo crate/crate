@@ -21,6 +21,20 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import org.elasticsearch.Version;
+
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
@@ -88,19 +102,6 @@ import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
 
 /**
  * Planner which can create a {@link ExecutionPlan} using intermediate {@link LogicalPlan} nodes.
@@ -183,7 +184,6 @@ public class LogicalPlanner {
         var planBuilder = new PlanBuilder(
             subqueryPlanner,
             txnCtx,
-            Set.of(),
             tableStats,
             subSelectPlannerContext.params()
         );
@@ -216,12 +216,11 @@ public class LogicalPlanner {
     public LogicalPlan plan(AnalyzedRelation relation,
                             PlannerContext plannerContext,
                             SubqueryPlanner subqueryPlanner,
-                            Set<PlanHint> hints) {
+                            boolean avoidTopLevelFetch) {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
         var planBuilder = new PlanBuilder(
             subqueryPlanner,
             coordinatorTxnCtx,
-            hints,
             tableStats,
             plannerContext.params()
         );
@@ -235,7 +234,7 @@ public class LogicalPlanner {
             tableStats,
             coordinatorTxnCtx
         );
-        if (fetchOptimized != prunedPlan || hints.contains(PlanHint.AVOID_TOP_LEVEL_FETCH)) {
+        if (fetchOptimized != prunedPlan || avoidTopLevelFetch) {
             return fetchOptimized;
         }
         assert logicalPlan.outputs().equals(fetchOptimized.outputs()) : "Fetch optimized plan must have the same outputs as original plan";
@@ -252,18 +251,15 @@ public class LogicalPlanner {
 
         private final SubqueryPlanner subqueryPlanner;
         private final CoordinatorTxnCtx txnCtx;
-        private final Set<PlanHint> hints;
         private final TableStats tableStats;
         private final Row params;
 
         private PlanBuilder(SubqueryPlanner subqueryPlanner,
                             CoordinatorTxnCtx txnCtx,
-                            Set<PlanHint> hints,
                             TableStats tableStats,
                             Row params) {
             this.subqueryPlanner = subqueryPlanner;
             this.txnCtx = txnCtx;
-            this.hints = hints;
             this.tableStats = tableStats;
             this.params = params;
         }
@@ -287,12 +283,12 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitDocTableRelation(DocTableRelation relation, List<Symbol> outputs) {
-            return Collect.create(relation, outputs, WhereClause.MATCH_ALL, hints, tableStats, params);
+            return Collect.create(relation, outputs, WhereClause.MATCH_ALL, tableStats, params);
         }
 
         @Override
         public LogicalPlan visitTableRelation(TableRelation relation, List<Symbol> outputs) {
-            return Collect.create(relation, outputs, WhereClause.MATCH_ALL, hints, tableStats, params);
+            return Collect.create(relation, outputs, WhereClause.MATCH_ALL, tableStats, params);
         }
 
         @Override
@@ -496,7 +492,7 @@ public class LogicalPlanner {
         ExecutionPlan executionPlan;
         try {
             executionPlan = logicalPlan.build(
-                plannerContext, executor.projectionBuilder(), -1, 0, null, null, params, subQueryResults);
+                plannerContext, Set.of(), executor.projectionBuilder(), -1, 0, null, null, params, subQueryResults);
         } catch (ConversionException e) {
             throw e;
         } catch (Exception e) {
@@ -541,7 +537,7 @@ public class LogicalPlanner {
         @Override
         public LogicalPlan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
-            LogicalPlan logicalPlan = plan(relation, context, subqueryPlanner, Set.of());
+            LogicalPlan logicalPlan = plan(relation, context, subqueryPlanner, false);
             return new RootRelationBoundary(logicalPlan);
         }
 

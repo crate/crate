@@ -21,6 +21,20 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.common.annotations.VisibleForTesting;
@@ -42,18 +56,6 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Function;
-
-import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
 
 public class WindowAgg extends ForwardingLogicalPlan {
 
@@ -133,6 +135,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -145,7 +148,6 @@ public class WindowAgg extends ForwardingLogicalPlan {
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         Function<Symbol, Symbol> toInputCols = binder.andThen(s -> InputColumns.create(s, sourceSymbols));
 
-
         List<WindowFunction> boundWindowFunctions = (List<WindowFunction>)(List) Lists2.map(windowFunctions, toInputCols);
         List<Projection> projections = new ArrayList<>();
         WindowAggProjection windowAggProjection = new WindowAggProjection(
@@ -156,6 +158,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
         projections.add(windowAggProjection);
         ExecutionPlan sourcePlan = source.build(
             plannerContext,
+            planHints,
             projectionBuilder,
             TopN.NO_LIMIT,
             TopN.NO_OFFSET,

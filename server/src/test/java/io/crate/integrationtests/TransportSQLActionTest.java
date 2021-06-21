@@ -47,7 +47,6 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -73,7 +72,6 @@ import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.sql.tree.BitString;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;

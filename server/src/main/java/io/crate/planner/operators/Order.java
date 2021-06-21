@@ -45,6 +45,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -117,6 +118,7 @@ public class Order extends ForwardingLogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -125,7 +127,7 @@ public class Order extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan plan = source.build(
-            plannerContext, projectionBuilder, limit, offset, orderBy, pageSizeHint, params, subQueryResults);
+            plannerContext, planHints, projectionBuilder, limit, offset, orderBy, pageSizeHint, params, subQueryResults);
         if (plan.resultDescription().orderBy() != null) {
             // Collect applied ORDER BY eagerly to produce a optimized execution plan;
             if (source instanceof Collect) {

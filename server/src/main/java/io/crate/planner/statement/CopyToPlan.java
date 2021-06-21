@@ -153,12 +153,11 @@ public final class CopyToPlan implements Plan {
             new DocTableRelation(boundedCopyTo.table()),
             boundedCopyTo.outputs(),
             boundedCopyTo.whereClause(),
-            Set.of(),
             tableStats,
             context.params()
         );
         LogicalPlan source = optimizeCollect(context, tableStats, collect);
-        ExecutionPlan executionPlan = source.build(context, projectionBuilder, 0, 0, null, null, params, SubQueryResults.EMPTY);
+        ExecutionPlan executionPlan = source.build(context, Set.of(), projectionBuilder, 0, 0, null, null, params, SubQueryResults.EMPTY);
         executionPlan.addProjection(projection);
 
         return Merge.ensureOnHandler(

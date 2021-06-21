@@ -770,6 +770,7 @@ public class SQLExecutor {
         if (plan instanceof LogicalPlan) {
             return (T) ((LogicalPlan) plan).build(
                 plannerContext,
+                Set.of(),
                 new ProjectionBuilder(nodeCtx),
                 TopN.NO_LIMIT,
                 0,
