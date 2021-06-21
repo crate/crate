@@ -55,6 +55,9 @@ Deprecations
 Changes
 =======
 
+- Improved the performance of ``INSERT FROM query`` statements where the
+  ``query`` contains a ``GROUP BY`` clause.
+
 - Changed the privileges model to allow users with ``DDL`` privileges on a
   table to use the :ref:`OPTIMIZE TABLE <sql-optimize>` statement.
 

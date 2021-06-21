@@ -22,6 +22,14 @@
 package io.crate.planner.consumer;
 
 
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
@@ -35,16 +43,8 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.operators.Insert;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
-import io.crate.planner.operators.PlanHint;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
 
 
 public final class InsertFromSubQueryPlanner {
@@ -102,7 +102,7 @@ public final class InsertFromSubQueryPlanner {
             statement.subQueryRelation(),
             plannerContext,
             subqueryPlanner,
-            EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP, PlanHint.AVOID_TOP_LEVEL_FETCH)
+            true
         );
         EvalProjection castOutputs = createCastProjection(statement.columns(), plannedSubQuery.outputs());
         return new Insert(plannedSubQuery, indexWriterProjection, castOutputs);

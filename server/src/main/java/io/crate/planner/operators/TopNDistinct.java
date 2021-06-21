@@ -26,6 +26,7 @@ import static io.crate.analyze.SymbolEvaluator.evaluate;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
@@ -75,6 +76,7 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limitHint,
                                int offsetHint,
@@ -84,6 +86,7 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
                                SubQueryResults subQueryResults) {
         var executionPlan = source.build(
             plannerContext,
+            planHints,
             projectionBuilder,
             TopN.NO_LIMIT,
             TopN.NO_OFFSET,

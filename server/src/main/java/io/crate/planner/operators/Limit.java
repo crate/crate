@@ -21,6 +21,16 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.analyze.SymbolEvaluator.evaluate;
+import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -38,14 +48,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import static io.crate.analyze.SymbolEvaluator.evaluate;
-import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
 public class Limit extends ForwardingLogicalPlan {
 
@@ -79,6 +81,7 @@ public class Limit extends ForwardingLogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limitHint,
                                int offsetHint,
@@ -104,7 +107,7 @@ public class Limit extends ForwardingLogicalPlan {
             0);
 
         ExecutionPlan executionPlan = source.build(
-            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+            plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
         List<DataType<?>> sourceTypes = Symbols.typeView(source.outputs());
         ResultDescription resultDescription = executionPlan.resultDescription();
         if (resultDescription.hasRemainingLimitOrOffset()

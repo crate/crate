@@ -105,13 +105,13 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             mss.from(),
             mss.where(),
             mss.joinPairs(),
-            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, Set.of()),
+            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, true),
             txnCtx.sessionContext().isHashJoinEnabled()
         );
     }
 
     private Join buildJoin(LogicalPlan operator) {
-        return (Join) operator.build(plannerCtx, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
+        return (Join) operator.build(plannerCtx, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
     }
 
     private Join plan(QueriedSelectRelation mss, TableStats tableStats) {
@@ -195,11 +195,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             mss.from(),
             mss.where(),
             mss.joinPairs(),
-            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, Set.of()),
+            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, false),
             false
         );
         Join nl = (Join) operator.build(
-            context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
+            context, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
 
         assertThat(((Collect) nl.left()).collectPhase().toCollect(), isSQL("doc.users.id"));
         assertThat(nl.resultDescription().orderBy(), notNullValue());
@@ -223,7 +223,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = logicalPlanner.plan(e.analyze("select users.id from users, locations " +
                                                          "where users.id = locations.id order by users.id"), context);
         Merge merge = (Merge) plan.build(
-            context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
+            context, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
         Join nl = (Join) merge.subPlan();
 
         assertThat(nl.resultDescription().orderBy(), notNullValue());
@@ -414,7 +414,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(mss, plannerCtx);
-        ExecutionPlan build = operator.build(plannerCtx, projectionBuilder, -1, 0, null,
+        ExecutionPlan build = operator.build(plannerCtx, Set.of(), projectionBuilder, -1, 0, null,
             null, Row.EMPTY, SubQueryResults.EMPTY);
 
         assertThat((((NestedLoopPhase) ((Join) build).joinPhase())).blockNestedLoop, is(false));

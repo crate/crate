@@ -138,6 +138,7 @@ public class NestedLoopJoin implements LogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -158,9 +159,9 @@ public class NestedLoopJoin implements LogicalPlan {
             : null;
 
         ExecutionPlan left = lhs.build(
-            plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
+            plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
         ExecutionPlan right = rhs.build(
-            plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
+            plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
 
         PositionalOrderBy orderByFromLeft = left.resultDescription().orderBy();
         boolean hasDocTables = baseTables.stream().anyMatch(r -> r instanceof DocTableRelation);

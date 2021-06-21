@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 public final class TableFunction implements LogicalPlan {
@@ -70,6 +71,7 @@ public final class TableFunction implements LogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,

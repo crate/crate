@@ -49,6 +49,7 @@ import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.operators.InsertFromValues;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Randomness;
 import org.hamcrest.Matchers;
@@ -467,5 +468,14 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             )
         );
         assertThat(projections.get(0).requiredGranularity(), is(RowGranularity.SHARD));
+    }
+
+    @Test
+    public void test_insert_from_group_by_uses_doc_values() throws Exception {
+        Merge merge = e.plan("insert into users (id) (select id from users group by 1)");
+        Collect collect = (Collect) merge.subPlan();
+        assertThat(collect.collectPhase().toCollect(), contains(
+            SymbolMatchers.isReference("id")
+        ));
     }
 }

@@ -61,6 +61,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -91,6 +92,7 @@ public class Get implements LogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limitHint,
                                int offsetHint,

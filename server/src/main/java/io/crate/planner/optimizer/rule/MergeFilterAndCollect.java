@@ -64,7 +64,6 @@ public class MergeFilterAndCollect implements Rule<Filter> {
         Stats stats = tableStats.getStats(collect.relation().tableInfo().ident());
         WhereClause newWhere = collect.where().add(filter.query());
         return new Collect(
-            collect.preferSourceLookup(),
             collect.relation(),
             collect.outputs(),
             newWhere,

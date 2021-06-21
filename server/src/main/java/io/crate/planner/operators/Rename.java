@@ -183,6 +183,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -190,7 +191,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        return source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+        return source.build(plannerContext, hints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
     }
 
     @Override

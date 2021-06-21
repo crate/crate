@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -111,6 +112,7 @@ public class HashJoin implements LogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
+                               Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
                                int offset,
@@ -119,9 +121,9 @@ public class HashJoin implements LogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan leftExecutionPlan = lhs.build(
-            plannerContext, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
+            plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
         ExecutionPlan rightExecutionPlan = rhs.build(
-            plannerContext, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
+            plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
