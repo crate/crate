@@ -112,10 +112,4 @@ Changes
 Fixes
 =====
 
-- Fixed a regression introduced in 4.5.2 which caused aggregations on virtual
-  tables using a primary key lookup to fail. An example::
-
-    SELECT count(*) FROM (
-      SELECT * FROM users WHERE id = ? AND (addr is NULL)
-    ) AS u;
-        
+None
