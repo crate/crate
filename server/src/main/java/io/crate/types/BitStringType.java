@@ -25,12 +25,19 @@ import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.Expression;
 
 public final class BitStringType extends DataType<BitString> implements Streamer<BitString>, FixedWidthType {
 
@@ -190,5 +197,11 @@ public final class BitStringType extends DataType<BitString> implements Streamer
             return false;
         }
         return true;
+    }
+
+    @Override
+    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
+                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+        return new ColumnType<>(getName(), List.of(length));
     }
 }

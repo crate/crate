@@ -21,16 +21,8 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
-import io.crate.common.collections.MapComparator;
-import io.crate.exceptions.ConversionException;
-
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import static io.crate.types.DataTypes.ALLOWED_CONVERSIONS;
+import static io.crate.types.DataTypes.UNDEFINED;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,9 +33,26 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
-import static io.crate.types.DataTypes.ALLOWED_CONVERSIONS;
-import static io.crate.types.DataTypes.UNDEFINED;
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+
+import io.crate.Streamer;
+import io.crate.common.collections.Lists2;
+import io.crate.common.collections.MapComparator;
+import io.crate.exceptions.ConversionException;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.ObjectColumnType;
 
 public class ObjectType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
@@ -140,6 +149,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         return convert(value, DataType::sanitizeValue);
     }
 
+    @SuppressWarnings("unchecked")
     private Map<String, Object> convert(Object value,
                                         BiFunction<DataType<?>, Object, Object> innerType) {
         if (value instanceof String) {
@@ -187,6 +197,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public Map<String, Object> readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
             int size = in.readInt();
@@ -247,6 +258,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void writeValueTo(StreamOutput out, Map<String, Object> v) throws IOException {
         if (v == null) {
             out.writeBoolean(false);
@@ -257,7 +269,6 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                 String key = entry.getKey();
                 out.writeString(key);
                 DataType innerType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
-                //noinspection unchecked
                 innerType.streamer().writeValueTo(out, innerType.implicitCast(entry.getValue()));
             }
         }
@@ -306,5 +317,24 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             parameters.add(type);
         }
         return parameters;
+    }
+
+    @Override
+    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
+                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+        if (convertChildColumn == null) {
+            return new ObjectColumnType<>(
+                columnPolicy.name(),
+                Lists2.map(innerTypes.entrySet(), e -> new ColumnDefinition<>(
+                    e.getKey(),
+                    null,
+                    null,
+                    e.getValue().toColumnType(columnPolicy, convertChildColumn),
+                    List.of()
+                ))
+            );
+        } else {
+            return new ObjectColumnType<>(columnPolicy.name(), convertChildColumn.get());
+        }
     }
 }
