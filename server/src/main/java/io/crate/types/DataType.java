@@ -21,15 +21,23 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
+import io.crate.Streamer;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.Expression;
 
 public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable, Comparator<T> {
 
@@ -202,5 +210,13 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     @Override
     public String toString() {
         return getName();
+    }
+
+
+    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
+                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+        assert getTypeParameters().isEmpty()
+            : "If the type parameters aren't empty, `" + getClass().getSimpleName() + "` must override `toColumnType`";
+        return new ColumnType<>(getName());
     }
 }

@@ -21,6 +21,16 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+
+import javax.annotation.Nullable;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
@@ -34,10 +44,8 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ClusteredBy;
-import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CreateTable;
@@ -49,7 +57,6 @@ import io.crate.sql.tree.IndexDefinition;
 import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.NotNullColumnConstraint;
-import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.PartitionedBy;
 import io.crate.sql.tree.PrimaryKeyConstraint;
 import io.crate.sql.tree.QualifiedName;
@@ -59,26 +66,13 @@ import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableElement;
 import io.crate.types.ArrayType;
-import io.crate.types.BitStringType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import io.crate.types.StringType;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.TreeMap;
-import java.util.function.Function;
 
 
 public class MetadataToASTNodeResolver {
 
-    public static CreateTable resolveCreateTable(DocTableInfo info) {
+    public static CreateTable<Expression> resolveCreateTable(DocTableInfo info) {
         Extractor extractor = new Extractor(info);
         return extractor.extractCreateTable();
     }
@@ -89,50 +83,6 @@ public class MetadataToASTNodeResolver {
             fqn = new SubscriptExpression(fqn, Literal.fromObject(child));
         }
         return fqn;
-    }
-
-    static ColumnType<Expression> dataTypeToColumnType(@Nullable ColumnIdent column,
-                                                       DataType<?> type,
-                                                       ColumnPolicy columnPolicy,
-                                                       @Nullable Function<ColumnIdent, List<ColumnDefinition<Expression>>> convertChildColumn) {
-        if (type.id() == ObjectType.ID) {
-            if (convertChildColumn != null) {
-                return new ObjectColumnType<>(columnPolicy.name(), convertChildColumn.apply(column));
-            }
-            List<ColumnDefinition<Expression>> childColumns = new ArrayList<>();
-            ((ObjectType) type).innerTypes().forEach(
-                (childName, childDataType) -> {
-                    childColumns.add(
-                        new ColumnDefinition<>(
-                            childName,
-                            null,
-                            null,
-                            dataTypeToColumnType(null, childDataType, columnPolicy, null),
-                            List.of())
-                    );
-                }
-            );
-            return new ObjectColumnType<>(columnPolicy.name(), childColumns);
-        } else if (type.id() == ArrayType.ID) {
-            DataType<?> innerType = ((ArrayType<?>) type).innerType();
-            return new CollectionColumnType<>(dataTypeToColumnType(
-                column,
-                innerType,
-                columnPolicy,
-                convertChildColumn
-            ));
-        } else if (type.id() == StringType.ID) {
-            StringType stringType = (StringType) type;
-            if (stringType.unbound()) {
-                return new ColumnType<>(type.getName());
-            } else {
-                return new ColumnType<>("varchar", List.of(stringType.lengthLimit()));
-            }
-        } else if (type instanceof BitStringType bitStringType) {
-            return new ColumnType<>(type.getName(), List.of(bitStringType.length()));
-        } else {
-            return new ColumnType<>(type.getName());
-        }
     }
 
     private static class Extractor {
@@ -148,7 +98,7 @@ public class MetadataToASTNodeResolver {
             // column definitions
             elements.addAll(extractColumnDefinitions(null));
             // primary key constraint
-            PrimaryKeyConstraint pk = extractPrimaryKeyConstraint();
+            PrimaryKeyConstraint<Expression> pk = extractPrimaryKeyConstraint();
             if (pk != null) {
                 elements.add(pk);
             }
@@ -186,11 +136,9 @@ public class MetadataToASTNodeResolver {
                     }
                 }
 
-                final ColumnType<Expression> columnType = dataTypeToColumnType(
-                    ident,
-                    info.valueType(),
+                final ColumnType<Expression> columnType = info.valueType().toColumnType(
                     info.columnPolicy(),
-                    this::extractColumnDefinitions
+                    () -> extractColumnDefinitions(ident)
                 );
                 List<ColumnConstraint<Expression>> constraints = new ArrayList<>();
                 if (!info.isNullable()) {
@@ -199,7 +147,7 @@ public class MetadataToASTNodeResolver {
                 if (info.indexType().equals(Reference.IndexType.NO)
                     && info.valueType().id() != ObjectType.ID
                     && !(info.valueType().id() == ArrayType.ID &&
-                         ((ArrayType) info.valueType()).innerType().id() == ObjectType.ID)) {
+                         ((ArrayType<?>) info.valueType()).innerType().id() == ObjectType.ID)) {
                     constraints.add(IndexColumnConstraint.off());
                 } else if (info.indexType().equals(Reference.IndexType.ANALYZED)) {
                     String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);

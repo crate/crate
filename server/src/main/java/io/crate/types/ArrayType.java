@@ -21,16 +21,6 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
-import io.crate.protocols.postgres.parser.PgArrayParser;
-import io.crate.protocols.postgres.parser.PgArrayParsingException;
-
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentFactory;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -41,6 +31,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentFactory;
+
+import io.crate.Streamer;
+import io.crate.protocols.postgres.parser.PgArrayParser;
+import io.crate.protocols.postgres.parser.PgArrayParsingException;
+import io.crate.sql.tree.CollectionColumnType;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.Expression;
 
 /**
  * A type which contains a collection of elements of another type.
@@ -158,6 +165,7 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private String anyValueToString(Object value) {
         if (value == null) {
             return null;
@@ -184,6 +192,7 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Nullable
+    @SuppressWarnings("unchecked")
     private static <T> List<T> convert(@Nullable Object value, Function<Object, T> innerType) {
         if (value == null) {
             return null;
@@ -313,5 +322,11 @@ public class ArrayType<T> extends DataType<List<T>> {
                 innerType.streamer().writeValueTo(out, value);
             }
         }
+    }
+
+    @Override
+    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
+                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+        return new CollectionColumnType<>(innerType.toColumnType(columnPolicy, convertChildColumn));
     }
 }

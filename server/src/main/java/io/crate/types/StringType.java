@@ -24,6 +24,10 @@ package io.crate.types;
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.Expression;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
@@ -39,6 +43,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
 
 import static io.crate.common.StringUtils.isBlank;
 
@@ -269,5 +276,15 @@ public class StringType extends DataType<String> implements Streamer<String> {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), lengthLimit);
+    }
+
+    @Override
+    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
+                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+        if (unbound()) {
+            return new ColumnType<>(getName());
+        } else {
+            return new ColumnType<>("varchar", List.of(lengthLimit));
+        }
     }
 }
