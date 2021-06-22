@@ -508,11 +508,6 @@ The meaning of the fields of the are as follows:
   | means that the client can be authenticated regardless of SSL/TLS is used
   | or not.
 
-  .. NOTE::
-
-      **auth.host_based.config.${order}.ssl** is available only for ``pg``
-      protocol.
-
 Example of config groups:
 
 .. code-block:: yaml
