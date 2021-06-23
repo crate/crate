@@ -199,7 +199,6 @@ distributions {
                     include 'NOTICE'
                     include 'README.rst'
                 }
-                from("src/main/dist")
                 from(project.buildDir.path + "/releaseNotes") {
                     include 'CHANGES.txt'
                 }
