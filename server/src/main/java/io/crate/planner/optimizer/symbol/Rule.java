@@ -27,11 +27,13 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import org.elasticsearch.Version;
 
+import javax.annotation.Nullable;
+
 public interface Rule<T> {
 
     Pattern<T> pattern();
 
-    Symbol apply(T symbol, Captures captures, NodeContext nodeCtx);
+    Symbol apply(T symbol, Captures captures, NodeContext nodeCtx, @Nullable Symbol parentNode);
 
     /**
      * @return The version all nodes in the cluster must have to be able to use this optimization.

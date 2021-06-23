@@ -21,13 +21,6 @@
 
 package io.crate.planner.optimizer.symbol.rule;
 
-import static io.crate.expression.operator.Operators.COMPARISON_OPERATORS;
-import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-
-import java.util.List;
-import java.util.Optional;
-
 import io.crate.common.collections.Lists2;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
@@ -41,6 +34,13 @@ import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
 import io.crate.planner.optimizer.symbol.Rule;
 import io.crate.types.DataType;
+
+import java.util.List;
+import java.util.Optional;
+
+import static io.crate.expression.operator.Operators.COMPARISON_OPERATORS;
+import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 
 public class MoveReferenceCastToLiteralCastInsideOperators implements Rule<Function> {
@@ -75,7 +75,8 @@ public class MoveReferenceCastToLiteralCastInsideOperators implements Rule<Funct
     @Override
     public Symbol apply(Function operator,
                         Captures captures,
-                        NodeContext nodeCtx) {
+                        NodeContext nodeCtx,
+                        Symbol parentNode) {
         var literal = operator.arguments().get(1);
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);

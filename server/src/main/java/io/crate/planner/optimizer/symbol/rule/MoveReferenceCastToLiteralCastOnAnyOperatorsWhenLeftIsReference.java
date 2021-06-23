@@ -67,7 +67,8 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference imp
     @Override
     public Symbol apply(Function operator,
                         Captures captures,
-                        NodeContext nodeCtx) {
+                        NodeContext nodeCtx,
+                        Symbol parentNode) {
         var literal = operator.arguments().get(1);
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);
