@@ -42,14 +42,15 @@ import io.crate.types.DataTypes;
 public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "ignore3vl";
+    public static final Signature SIGNATURE = Signature.scalar(
+        NAME,
+        DataTypes.BOOLEAN.getTypeSignature(),
+        DataTypes.BOOLEAN.getTypeSignature()
+    );
 
     public static void register(ScalarFunctionModule module) {
         module.register(
-            Signature.scalar(
-                NAME,
-                DataTypes.BOOLEAN.getTypeSignature(),
-                DataTypes.BOOLEAN.getTypeSignature()
-            ),
+            SIGNATURE,
             Ignore3vlFunction::new
         );
     }

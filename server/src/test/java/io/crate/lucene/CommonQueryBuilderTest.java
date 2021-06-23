@@ -36,6 +36,8 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.DocValuesFieldExistsQuery;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointInSetQuery;
 import org.apache.lucene.search.PointRangeQuery;
@@ -54,7 +56,6 @@ import java.util.Map;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -96,8 +97,14 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testWhereRefEqRef() throws Exception {
+        // 3vl
         Query query = convert("name = name");
-        assertThat(query, instanceOf(GenericFunctionQuery.class));
+        assertThat(query, instanceOf(ConstantScoreQuery.class));
+        ConstantScoreQuery scoreQuery = (ConstantScoreQuery) query;
+        assertThat(scoreQuery.getQuery(), instanceOf(DocValuesFieldExistsQuery.class));
+        // 2vl
+        query = convert("ignore3vl(name = name)");
+        assertThat(query, instanceOf(MatchAllDocsQuery.class));
     }
 
     @Test

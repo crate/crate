@@ -36,11 +36,13 @@ import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastInsi
 import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference;
 import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference;
 import io.crate.planner.optimizer.symbol.rule.MoveSubscriptOnReferenceCastToLiteralCastInsideOperators;
+import io.crate.planner.optimizer.symbol.rule.SimplifyEqualsOperationOnIdenticalReferences;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 
 import java.util.List;
+import java.util.Stack;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -56,7 +58,8 @@ public class Optimizer {
                 MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference::new,
                 MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference::new,
                 MoveSubscriptOnReferenceCastToLiteralCastInsideOperators::new,
-                MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators::new
+                MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators::new,
+                SimplifyEqualsOperationOnIdenticalReferences::new
             )
         );
         return optimizer.optimize(query);
@@ -114,7 +117,7 @@ public class Optimizer {
                     if (isTraceEnabled) {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
                     }
-                    Symbol transformedNode = rule.apply(match.value(), match.captures(), nodeCtx);
+                    Symbol transformedNode = rule.apply(match.value(), match.captures(), nodeCtx, visitor.getParentFunction());
                     if (transformedNode != null) {
                         if (isTraceEnabled) {
                             LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the symbol");
@@ -132,14 +135,22 @@ public class Optimizer {
     }
 
     private class Visitor extends FunctionCopyVisitor<Void> {
+        private Stack<io.crate.expression.symbol.Function> visitedFunctions = new Stack<>();
 
         @Override
         public Symbol visitFunction(io.crate.expression.symbol.Function symbol, Void context) {
+            visitedFunctions.push(symbol);
             var maybeTransformedSymbol = tryApplyRules(symbol);
             if (symbol.equals(maybeTransformedSymbol) == false) {
                 return maybeTransformedSymbol;
             }
-            return super.visitFunction(symbol, context);
+            var sym = super.visitFunction(symbol, context);
+            visitedFunctions.pop();
+            return sym;
+        }
+
+        public Symbol getParentFunction() {
+            return visitedFunctions.size() < 2 ? null : visitedFunctions.get(visitedFunctions.size() - 2);
         }
     }
 

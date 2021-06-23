@@ -71,7 +71,8 @@ public class MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators implemen
     @Override
     public Symbol apply(Function operator,
                         Captures captures,
-                        NodeContext nodeCtx) {
+                        NodeContext nodeCtx,
+                        Symbol parentNode) {
         var literal = operator.arguments().get(1);
         var castFunction = captures.get(castCapture);
         var function = castFunction.arguments().get(0);
