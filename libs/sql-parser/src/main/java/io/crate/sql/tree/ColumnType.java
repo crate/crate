@@ -75,8 +75,9 @@ public class ColumnType<T> extends Expression {
         return Objects.hash(name, parameters);
     }
 
+    @SuppressWarnings("unchecked")
     public <U> ColumnType<U> map(Function<? super T, ? extends U> mapper) {
-        return new ColumnType<>(name, parameters);
+        return (ColumnType<U>) this;
     }
 
     public <U> ColumnType<U> mapExpressions(ColumnType<U> mappedType,

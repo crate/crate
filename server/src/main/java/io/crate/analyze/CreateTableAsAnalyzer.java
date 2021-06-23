@@ -21,10 +21,16 @@
 
 package io.crate.analyze;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.common.collections.Lists2;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
@@ -34,11 +40,6 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.TableElement;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
 
 public final class CreateTableAsAnalyzer {
 
@@ -70,7 +71,7 @@ public final class CreateTableAsAnalyzer {
             new StatementAnalysisContext(paramTypeHints, Operation.READ, txnCtx));
 
         List<TableElement<Expression>> tableElements =
-            Lists2.map(analyzedSourceQuery.outputs(), SymbolToColumnDefinitionConverter::symbolToColumnDefinition);
+            Lists2.map(analyzedSourceQuery.outputs(), Symbols::toColumnDefinition);
 
         CreateTable<Expression> createTable = new CreateTable<Expression>(
             createTableAs.name(),

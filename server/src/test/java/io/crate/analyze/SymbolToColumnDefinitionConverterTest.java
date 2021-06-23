@@ -21,8 +21,22 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.NodeMatchers.isCollectionColumnType;
+import static io.crate.testing.NodeMatchers.isColumnDefinition;
+import static io.crate.testing.NodeMatchers.isColumnPolicy;
+import static io.crate.testing.NodeMatchers.isColumnType;
+import static io.crate.testing.NodeMatchers.isObjectColumnType;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.junit.Test;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.collections.Lists2;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -31,18 +45,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-
-import static io.crate.testing.NodeMatchers.isCollectionColumnType;
-import static io.crate.testing.NodeMatchers.isColumnDefinition;
-import static io.crate.testing.NodeMatchers.isColumnPolicy;
-import static io.crate.testing.NodeMatchers.isColumnType;
-import static io.crate.testing.NodeMatchers.isObjectColumnType;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 
 public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServiceUnitTest {
 
@@ -53,7 +55,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
         AnalyzedRelation analyzedRelation = e.analyze(
             "select * from tbl"
         );
-        return Lists2.map(analyzedRelation.outputs(), SymbolToColumnDefinitionConverter::symbolToColumnDefinition);
+        return Lists2.map(analyzedRelation.outputs(), Symbols::toColumnDefinition);
     }
 
     @Test
@@ -161,7 +163,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "select col_default_object from tbl"
         );
         var actual = Lists2.map(analyzedRelation.outputs(),
-                                SymbolToColumnDefinitionConverter::symbolToColumnDefinition);
+                                Symbols::toColumnDefinition);
 
         assertThat(
             actual.get(0),
@@ -240,7 +242,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "from tbl";
         var analyzedRelation = e.analyze(selectStmt);
         var actual =
-            Lists2.map(analyzedRelation.outputs(), SymbolToColumnDefinitionConverter::symbolToColumnDefinition);
+            Lists2.map(analyzedRelation.outputs(), Symbols::toColumnDefinition);
 
         assertThat(
             actual,
@@ -343,7 +345,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "from tbl";
         var analyzedRelation = e.analyze(selectStmt);
         var actual =
-            Lists2.map(analyzedRelation.outputs(), SymbolToColumnDefinitionConverter::symbolToColumnDefinition);
+            Lists2.map(analyzedRelation.outputs(), Symbols::toColumnDefinition);
 
         assertThat(
             actual,
@@ -392,7 +394,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "from tbl_view";
         var analyzedRelation = e.analyze(selectStmt);
         var actual =
-            Lists2.map(analyzedRelation.outputs(), SymbolToColumnDefinitionConverter::symbolToColumnDefinition);
+            Lists2.map(analyzedRelation.outputs(), Symbols::toColumnDefinition);
 
         assertThat(
             actual,
@@ -440,7 +442,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "   from tbl) as A";
         var analyzedRelation = e.analyze(selectStmt);
         var actual =
-            Lists2.map(analyzedRelation.outputs(), SymbolToColumnDefinitionConverter::symbolToColumnDefinition);
+            Lists2.map(analyzedRelation.outputs(), Symbols::toColumnDefinition);
 
         assertThat(
             actual,
@@ -472,8 +474,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "   cast(port['http']as boolean) from sys.nodes limit 1 ";
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
         var analyzedRelation = e.analyze(selectStmt);
-        var actual = Lists2.map(analyzedRelation.outputs(),
-                                SymbolToColumnDefinitionConverter::symbolToColumnDefinition);
+        var actual = Lists2.map(analyzedRelation.outputs(), Symbols::toColumnDefinition);
 
         assertThat(
             actual,

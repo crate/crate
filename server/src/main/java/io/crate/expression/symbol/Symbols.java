@@ -21,20 +21,8 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
-import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionType;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
-import io.crate.types.DataType;
-import io.crate.types.TypeSignature;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
@@ -43,7 +31,24 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.Streamer;
+import io.crate.common.collections.Lists2;
+import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.Expression;
+import io.crate.types.DataType;
+import io.crate.types.TypeSignature;
 
 public class Symbols {
 
@@ -224,5 +229,14 @@ public class Symbols {
         public Boolean visitReference(Reference symbol, ColumnIdent column) {
             return column.equals(symbol.column());
         }
+    }
+
+    public static ColumnDefinition<Expression> toColumnDefinition(Symbol symbol) {
+        return new ColumnDefinition<>(
+            pathFromSymbol(symbol).sqlFqn(), // allow ObjectTypes to return col name in subscript notation
+            null,
+            null,
+            symbol.valueType().toColumnType(ColumnPolicy.STRICT, null),
+            List.of());
     }
 }
