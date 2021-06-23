@@ -470,6 +470,45 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_alter_cluster_reroute_retry_works_for_normal_user_with_AL_privileges() {
+        analyze("alter cluster reroute retry failed", user);
+        assertAskedForCluster(Privilege.Type.AL);
+    }
+
+    @Test
+    public void test_alter_cluster_gc_dangling_artifacts_works_for_normal_user_with_AL_privileges() {
+        analyze("alter cluster gc dangling artifacts", user);
+        assertAskedForCluster(Privilege.Type.AL);
+    }
+
+    @Test
+    public void test_alter_cluster_swap_table_works_for_normal_user_with_AL_privileges() {
+        // pre-configured user has all privileges
+        analyze("alter cluster swap table doc.t1 to doc.t2 with (drop_source = true)", user);
+        assertAskedForCluster(Privilege.Type.AL);
+    }
+
+    @Test
+    public void test_alter_cluster_swap_table_works_for_normal_user_with_no_AI_with_DDL_on_both_tables() {
+        // custom user has only DML privileges
+        var customUser = new User("normal", Set.of(), Set.of(), null) {
+            @Override
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+                validationCallArguments.add(Lists.newArrayList(type, clazz, ident, user.name()));
+                if (Privilege.Type.DDL == type) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        };
+        analyze("alter cluster swap table doc.t1 to doc.t2 with (drop_source = true)", customUser);
+        assertAskedForCluster(Privilege.Type.AL); // first checks AL and if user doesn't have it, checks both DDL-s
+        assertAskedForTable(Privilege.Type.DDL, "doc.t2", customUser);
+        assertAskedForTable(Privilege.Type.DDL, "doc.t1", customUser);
+    }
+
+    @Test
     public void test_a_user_with_al_on_cluster_privileges_can_create_other_users() {
         analyze("create user joe");
         assertAskedForCluster(Privilege.Type.AL);
