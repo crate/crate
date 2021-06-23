@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.common.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -138,6 +139,10 @@ public class RepositoriesService implements ClusterStateApplier {
 
                         for (RepositoryMetadata repositoryMetadata : repositories.repositories()) {
                             if (repositoryMetadata.name().equals(newRepositoryMetadata.name())) {
+                                if (newRepositoryMetadata.equalsIgnoreGenerations(repositoryMetadata)) {
+                                    // Previous version is the same as this one no update is needed.
+                                    return currentState;
+                                }
                                 found = true;
                                 repositoriesMetadata.add(newRepositoryMetadata);
                             } else {
@@ -274,11 +279,15 @@ public class RepositoriesService implements ClusterStateApplier {
     @Override
     public void applyClusterState(ClusterChangedEvent event) {
         try {
+            final ClusterState state = event.state();
             RepositoriesMetadata oldMetadata = event.previousState().getMetadata().custom(RepositoriesMetadata.TYPE);
-            RepositoriesMetadata newMetadata = event.state().getMetadata().custom(RepositoriesMetadata.TYPE);
+            RepositoriesMetadata newMetadata = state.getMetadata().custom(RepositoriesMetadata.TYPE);
 
             // Check if repositories got changed
-            if ((oldMetadata == null && newMetadata == null) || (oldMetadata != null && oldMetadata.equals(newMetadata))) {
+            if ((oldMetadata == null && newMetadata == null) || (oldMetadata != null && oldMetadata.equalsIgnoreGenerations(newMetadata))) {
+                for (Repository repo : repositories.values()) {
+                    repo.updateState(state);
+                }
                 return;
             }
 
@@ -329,6 +338,9 @@ public class RepositoriesService implements ClusterStateApplier {
                         builder.put(repositoryMetadata.name(), repository);
                     }
                 }
+            }
+            for (Repository repo : builder.values()) {
+                repo.updateState(state);
             }
             repositories = Collections.unmodifiableMap(builder);
         } catch (Exception ex) {
@@ -398,12 +410,15 @@ public class RepositoriesService implements ClusterStateApplier {
             throw new RepositoryException(repositoryMetadata.name(),
                 "repository type [" + repositoryMetadata.type() + "] does not exist");
         }
+        Repository repository = null;
         try {
-            Repository repository = factory.create(repositoryMetadata, typesRegistry::get);
+            repository = factory.create(repositoryMetadata);
             repository.start();
             return repository;
         } catch (Exception e) {
-            LOGGER.warn(() -> new ParameterizedMessage("failed to create repository [{}][{}]", repositoryMetadata.type(), repositoryMetadata.name()), e);
+            IOUtils.closeWhileHandlingException(repository);
+            LOGGER.warn(new ParameterizedMessage("failed to create repository [{}][{}]",
+                repositoryMetadata.type(), repositoryMetadata.name()), e);
             throw new RepositoryException(repositoryMetadata.name(), "failed to create repository", e);
         }
     }

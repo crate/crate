@@ -198,6 +198,11 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
     protected synchronized void doClose() {
     }
 
+
+    public ThreadPool threadPool() {
+        return threadPool;
+    }
+
     /**
      * The current cluster state.
      * Should be renamed to appliedClusterState

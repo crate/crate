@@ -20,13 +20,13 @@
 package org.elasticsearch.repositories.azure;
 
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.repositories.TypeSettings;
 
@@ -48,7 +48,7 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
     @Override
     public Map<String, Repository.Factory> getRepositories(Environment env,
                                                            NamedXContentRegistry namedXContentRegistry,
-                                                           ThreadPool threadPool) {
+                                                           ClusterService clusterService) {
         return Collections.singletonMap(
             AzureRepository.TYPE,
             new Repository.Factory() {
@@ -63,10 +63,9 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
                 public Repository create(RepositoryMetadata metadata) throws Exception {
                     return new AzureRepository(
                         metadata,
-                        env,
                         namedXContentRegistry,
                         azureStoreService,
-                        threadPool
+                        clusterService
                     );
                 }
             }

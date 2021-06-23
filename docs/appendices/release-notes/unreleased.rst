@@ -112,10 +112,6 @@ Changes
 Fixes
 =====
 
-- Fixed a regression introduced in 4.5.2 which caused aggregations on virtual
-  tables using a primary key lookup to fail. An example::
+- Fixed a HBA SSL configuration parsing issue. The ``on`` value for the ``ssl``
+  configuration option was not recognized and got interpreted as 'true'.
 
-    SELECT count(*) FROM (
-      SELECT * FROM users WHERE id = ? AND (addr is NULL)
-    ) AS u;
-        

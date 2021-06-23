@@ -52,11 +52,22 @@ public final class RepositoryData {
      * The generation value indicating the repository has no index generational files.
      */
     public static final long EMPTY_REPO_GEN = -1L;
+
+    /**
+     * The generation value indicating that the repository generation is unknown.
+     */
+    public static final long UNKNOWN_REPO_GEN = -2L;
+
+    /**
+     * The generation value indicating that the repository generation could not be determined.
+     */
+    public static final long CORRUPTED_REPO_GEN = -3L;
+
     /**
      * An instance initialized for an empty repository.
      */
     public static final RepositoryData EMPTY = new RepositoryData(EMPTY_REPO_GEN,
-        Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY);
+                                                                  Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY);
 
     /**
      * The generational id of the index file from which the repository data was read.
@@ -79,6 +90,9 @@ public final class RepositoryData {
      */
     private final Map<IndexId, Set<SnapshotId>> indexSnapshots;
 
+    /**
+     * Shard generations.
+     */
     private final ShardGenerations shardGenerations;
 
     public RepositoryData(long genId,
