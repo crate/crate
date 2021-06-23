@@ -38,6 +38,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
@@ -51,7 +52,7 @@ public class HostBasedAuthentication implements Authentication {
     private static final String KEY_USER = "user";
     private static final String KEY_ADDRESS = "address";
     private static final String KEY_METHOD = "method";
-    static final String KEY_PROTOCOL = "protocol";
+    private static final String KEY_PROTOCOL = "protocol";
 
     enum SSL {
         REQUIRED("on"),
@@ -63,6 +64,18 @@ public class HostBasedAuthentication implements Authentication {
 
         SSL(String value) {
             this.VALUE = value;
+        }
+
+        static SSL parseValue(String value) {
+            return switch (value.toLowerCase(Locale.ENGLISH)) {
+                // allow true/false as well because YAML `on` is interpreted as true
+                case "on" -> REQUIRED;
+                case "true" -> REQUIRED;
+                case "off" -> NEVER;
+                case "false" -> NEVER;
+                case "optional" -> OPTIONAL;
+                default -> throw new IllegalArgumentException(value + " is not a valid HBA SSL setting");
+            };
         }
     }
 
@@ -198,11 +211,15 @@ public class HostBasedAuthentication implements Authentication {
         }
 
         static boolean isValidConnection(String hbaConnectionMode, ConnectionProperties connectionProperties) {
-            return hbaConnectionMode == null ||
-                   hbaConnectionMode.isEmpty() ||
-                   hbaConnectionMode.equals(SSL.OPTIONAL.VALUE) ||
-                   (hbaConnectionMode.equals(SSL.NEVER.VALUE) && !connectionProperties.hasSSL()) ||
-                   (hbaConnectionMode.equals(SSL.REQUIRED.VALUE) && connectionProperties.hasSSL());
+            if (hbaConnectionMode == null || hbaConnectionMode.isEmpty()) {
+                return true;
+            }
+            SSL sslMode = SSL.parseValue(hbaConnectionMode);
+            return switch (sslMode) {
+                case OPTIONAL -> true;
+                case NEVER -> !connectionProperties.hasSSL();
+                case REQUIRED -> connectionProperties.hasSSL();
+            };
         }
 
         private static long inetAddressToInt(InetAddress address) {
