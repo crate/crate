@@ -2397,8 +2397,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shardRouting,
             indexMetadata.build(),
             new InternalEngineFactory(),
-            () -> synced.set(true),
-            RetentionLeaseSyncer.EMPTY
+            () -> synced.set(true)
         );
         // add a replica
         recoverShardFromStore(primaryShard);
@@ -4036,8 +4035,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shardRouting,
             indexMetadata.build(),
             new InternalEngineFactory(),
-            () -> synced.set(true),
-            RetentionLeaseSyncer.EMPTY
+            () -> synced.set(true)
         );
         recoverShardFromStore(primaryShard);
         IndexShard replicaShard = newShard(shardId, false);

@@ -349,7 +349,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             .settings(indexSettings)
             .primaryTerm(0, primaryTerm)
             .putMapping("default", "{ \"properties\": {} }");
-        return newShard(shardRouting, metadata.build(), engineFactory, () -> {}, RetentionLeaseSyncer.EMPTY, listeners);
+        return newShard(shardRouting, metadata.build(), engineFactory, () -> {}, listeners);
     }
 
     /**
@@ -397,7 +397,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                   Runnable globalCheckpointSyncer) throws IOException {
         ShardRouting shardRouting = TestShardRouting.newShardRouting(shardId, nodeId, primary, ShardRoutingState.INITIALIZING,
             primary ? RecoverySource.EmptyStoreRecoverySource.INSTANCE : RecoverySource.PeerRecoverySource.INSTANCE);
-        return newShard(shardRouting, indexMetadata, new InternalEngineFactory(), globalCheckpointSyncer, RetentionLeaseSyncer.EMPTY);
+        return newShard(shardRouting, indexMetadata, new InternalEngineFactory(), globalCheckpointSyncer);
     }
 
     /**
@@ -411,7 +411,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
     protected IndexShard newShard(
             ShardRouting routing, IndexMetadata indexMetadata, EngineFactory engineFactory, IndexingOperationListener... listeners)
         throws IOException {
-        return newShard(routing, indexMetadata, engineFactory, () -> {}, RetentionLeaseSyncer.EMPTY, listeners);
+        return newShard(routing, indexMetadata, engineFactory, () -> {}, listeners);
     }
 
     /**
@@ -426,7 +426,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                   IndexMetadata indexMetadata,
                                   @Nullable EngineFactory engineFactory,
                                   Runnable globalCheckpointSyncer,
-                                  RetentionLeaseSyncer retentionLeaseSyncer,
                                   IndexingOperationListener... listeners) throws IOException {
         // add node id as name to settings for proper logging
         final ShardId shardId = routing.shardId();
@@ -439,7 +438,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             null,
             engineFactory,
             globalCheckpointSyncer,
-            retentionLeaseSyncer,
+            RetentionLeaseSyncer.EMPTY,
             EMPTY_EVENT_LISTENER,
             listeners
         );
