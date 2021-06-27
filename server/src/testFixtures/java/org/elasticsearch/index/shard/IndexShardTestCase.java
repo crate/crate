@@ -46,6 +46,7 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
@@ -856,6 +857,20 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 listener.onResponse(new PrimaryReplicaSyncer.ResyncTask(1, "type", "action", "desc", null)),
             currentClusterStateVersion.incrementAndGet(),
             inSyncIds, newRoutingTable);
+    }
+
+    private Store.MetadataSnapshot getMetadataSnapshotOrEmpty(IndexShard replica) throws IOException {
+        Store.MetadataSnapshot result;
+        try {
+            result = replica.snapshotStoreMetadata();
+        } catch (IndexNotFoundException e) {
+            // OK!
+            result = Store.MetadataSnapshot.EMPTY;
+        } catch (IOException e) {
+            logger.warn("failed read store, treating as empty", e);
+            result = Store.MetadataSnapshot.EMPTY;
+        }
+        return result;
     }
 
     public static Set<String> getShardDocUIDs(final IndexShard shard) throws IOException {
