@@ -460,6 +460,37 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                   @Nullable CheckedFunction<IndexSettings, Store, IOException> storeProvider,
                                   @Nullable EngineFactory engineFactory,
                                   Runnable globalCheckpointSyncer,
+                                  IndexEventListener indexEventListener,
+                                  IndexingOperationListener... listeners) throws IOException {
+        return newShard(
+            routing,
+            shardPath,
+            indexMetadata,
+            storeProvider,
+            engineFactory,
+            globalCheckpointSyncer,
+            RetentionLeaseSyncer.EMPTY,
+            indexEventListener,
+            listeners
+        );
+    }
+
+    /**
+     * creates a new initializing shard.
+     * @param routing                       shard routing to use
+     * @param shardPath                     path to use for shard data
+     * @param indexMetadata                 indexMetadata for the shard, including any mapping
+     * @param storeProvider                 an optional custom store provider to use. If null a default file based store will be created
+     * @param globalCheckpointSyncer        callback for syncing global checkpoints
+     * @param indexEventListener            index event listener
+     * @param listeners                     an optional set of listeners to add to the shard
+     */
+    protected IndexShard newShard(ShardRouting routing,
+                                  ShardPath shardPath,
+                                  IndexMetadata indexMetadata,
+                                  @Nullable CheckedFunction<IndexSettings, Store, IOException> storeProvider,
+                                  @Nullable EngineFactory engineFactory,
+                                  Runnable globalCheckpointSyncer,
                                   RetentionLeaseSyncer retentionLeaseSyncer,
                                   IndexEventListener indexEventListener,
                                   IndexingOperationListener... listeners) throws IOException {
@@ -527,11 +558,16 @@ public abstract class IndexShardTestCase extends ESTestCase {
      * @param listeners new listerns to use for the newly created shard
      */
     protected IndexShard reinitShard(IndexShard current, ShardRouting routing, IndexingOperationListener... listeners) throws IOException {
-        return reinitShard(
-            current,
+        closeShards(current);
+        return newShard(
             routing,
-            current.indexSettings.getIndexMetadata(),
+            current.shardPath(),
+            current.indexSettings().getIndexMetadata(),
+            null,
             current.engineFactory,
+            current.getGlobalCheckpointSyncer(),
+            current.getRetentionLeaseSyncer(),
+            EMPTY_EVENT_LISTENER,
             listeners
         );
     }
