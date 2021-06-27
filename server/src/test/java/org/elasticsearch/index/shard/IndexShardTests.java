@@ -3666,7 +3666,6 @@ public class IndexShardTests extends IndexShardTestCase {
             null,
             new InternalEngineFactory(),
             () -> { },
-            RetentionLeaseSyncer.EMPTY,
             new IndexEventListener() {
                 @Override
                 public void onShardInactive(IndexShard indexShard) {
