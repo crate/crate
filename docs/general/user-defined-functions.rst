@@ -425,9 +425,9 @@ passed as array-like objects.
 
 
 .. _ECMAScript 2019: https://262.ecma-international.org/10.0/index.html
-.. _GraalVM JavaScript: https://www.graalvm.org/docs/reference-manual/languages/js/
-.. _GraalVM Polyglot API: https://www.graalvm.org/docs/reference-manual/polyglot/
-.. _GraalVM Security Guide: https://www.graalvm.org/docs/security-guide/
+.. _GraalVM JavaScript: https://www.graalvm.org/reference-manual/js/
+.. _GraalVM Polyglot API: https://www.graalvm.org/reference-manual/embed-languages/
+.. _GraalVM Security Guide: https://www.graalvm.org/security-guide/
 .. _join: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
 .. _map: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
 .. _reduce: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce

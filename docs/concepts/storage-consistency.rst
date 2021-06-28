@@ -108,9 +108,10 @@ to disc just for replica :ref:`recovery <gloss-shard-recovery>` purposes.
 Addressing documents
 ====================
 
-Every document has an `internal identifier`_. By default this identifier
-is derived from the primary key. Documents living in tables without a primary
-key are assigned a unique auto-generated ID automatically when created.
+Every document has an :ref:`internal identifier
+<sql_administration_system_column_id>`. By default this identifier is derived
+from the primary key. Documents living in tables without a primary key are
+assigned a unique auto-generated ID automatically when created.
 
 Each document is :ref:`routed <sharding-routing>` to one specific shard
 according to the :ref:`routing column <gloss-routing-column>`. All rows that
@@ -236,5 +237,4 @@ flow for an ``ALTER TABLE`` statement which changes the schema of a table:
 .. _Lucene: https://lucene.apache.org/core/
 .. _WAL: https://en.wikipedia.org/wiki/Write-ahead_logging
 .. _Optimistic Concurrency Control: https://crate.io/docs/crate/reference/sql/occ.html
-.. _internal identifier: https://crate.io/docs/crate/reference/sql/administration/system_columns.html#sql-administration-system-column-id
 .. _refresh: https://crate.io/docs/crate/reference/sql/refresh.html
