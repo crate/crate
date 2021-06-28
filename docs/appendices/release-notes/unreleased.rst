@@ -59,6 +59,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused the ``NOW()`` function to get normalized to a
+  literal value when used as part of a generated column or ``DEFAULT``
+  expression in a ``CREATE TABLE`` statement.
+
 - Fixed a HBA SSL configuration parsing issue. The ``on`` value for the ``ssl``
   configuration option was not recognized and got interpreted as 'true'.
 

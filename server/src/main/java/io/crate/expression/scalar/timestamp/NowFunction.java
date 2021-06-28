@@ -42,7 +42,7 @@ public final class NowFunction extends Scalar<Long, Object> {
             Signature.scalar(
                 NAME,
                 DataTypes.TIMESTAMPZ.getTypeSignature()
-            ),
+            ).withFeatures(Scalar.NO_FEATURES),
             NowFunction::new
         );
     }

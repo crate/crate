@@ -1412,4 +1412,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             Matchers.startsWith("Aggregation functions are not allowed in generated columns: max(x)")
         );
     }
+
+    @Test
+    public void test_now_function_is_not_normalized_to_literal_in_create_table() throws Exception {
+        BoundCreateTable stmt = analyze("create table tbl (ts timestamp with time zone default now())");
+        assertThat(mapToSortedString(stmt.mappingProperties()), Matchers.startsWith(
+            "ts={default_expr=now()"
+        ));
+    }
 }
