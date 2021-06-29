@@ -1438,4 +1438,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "ts={default_expr=now()"
         ));
     }
+
+    @Test
+    public void test_current_user_function_is_not_normalized_to_literal_in_create_table() throws Exception {
+        BoundCreateTable stmt = analyze("create table tbl (user_name text default current_user)");
+        assertThat(mapToSortedString(stmt.mappingProperties()), Matchers.startsWith(
+            "user_name={default_expr=CURRENT_USER, position=1, type=keyword}"
+        ));
+    }
 }

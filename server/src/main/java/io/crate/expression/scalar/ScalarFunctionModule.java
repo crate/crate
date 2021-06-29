@@ -88,11 +88,14 @@ import io.crate.expression.scalar.timestamp.NowFunction;
 import io.crate.expression.scalar.timestamp.TimezoneFunction;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.user.scalar.UserFunction;
 
 public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImplementation> {
 
     @Override
     public void configureFunctions() {
+        UserFunction.register(this);
+
         NegateFunctions.register(this);
         CollectionCountFunction.register(this);
         CollectionAverageFunction.register(this);
