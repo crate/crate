@@ -38,7 +38,7 @@ public class UserFunctionTest extends AbstractScalarFunctionsTest {
 
     @Before
     private void prepare() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, new UsersScalarFunctionModule());
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER);
     }
 
     @Test

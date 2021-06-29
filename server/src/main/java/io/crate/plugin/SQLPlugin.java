@@ -97,7 +97,6 @@ import io.crate.settings.CrateSetting;
 import io.crate.user.UserManagementModule;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
-import io.crate.user.scalar.UsersScalarFunctionModule;
 
 public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
@@ -182,7 +181,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new SysNodeChecksModule());
         modules.add(new UserManagementModule());
         modules.add(new AuthenticationModule(settings));
-        modules.add(new UsersScalarFunctionModule());
         return modules;
     }
 
