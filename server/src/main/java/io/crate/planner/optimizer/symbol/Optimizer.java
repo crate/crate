@@ -41,8 +41,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
-import java.util.Stack;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -135,13 +136,14 @@ public class Optimizer {
     }
 
     private class Visitor extends FunctionCopyVisitor<Void> {
-        private Stack<io.crate.expression.symbol.Function> visitedFunctions = new Stack<>();
+        private Deque<io.crate.expression.symbol.Function> visitedFunctions = new ArrayDeque<>();
 
         @Override
         public Symbol visitFunction(io.crate.expression.symbol.Function symbol, Void context) {
             visitedFunctions.push(symbol);
             var maybeTransformedSymbol = tryApplyRules(symbol);
             if (symbol.equals(maybeTransformedSymbol) == false) {
+                visitedFunctions.pop();
                 return maybeTransformedSymbol;
             }
             var sym = super.visitFunction(symbol, context);
@@ -150,7 +152,13 @@ public class Optimizer {
         }
 
         public Symbol getParentFunction() {
-            return visitedFunctions.size() < 2 ? null : visitedFunctions.get(visitedFunctions.size() - 2);
+            if (visitedFunctions.size() < 2) {
+                return null;
+            }
+            var current = visitedFunctions.pop();
+            var parent = visitedFunctions.peek();
+            visitedFunctions.push(current);
+            return parent;
         }
     }
 
