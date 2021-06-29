@@ -267,6 +267,7 @@ public class InsertFromValues implements LogicalPlan {
                     validatorsCache);
             } catch (Throwable t) {
                 consumer.accept(null, t);
+                return;
             }
         }
         validatorsCache.clear();
