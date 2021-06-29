@@ -1228,7 +1228,6 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertGeneratedPrimaryKeyValueGiven() throws Exception {
         execute("create table test(col1 integer primary key, col2 as col1 + 3 primary key)");
-        ensureYellow();
         execute("insert into test(col1, col2) values (1, 4)");
         refresh();
         execute("select col2 from test");
@@ -1238,6 +1237,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThrows(() -> execute("insert into test(col1, col2) values (1, 0)"),
                      isSQLError(is("Given value 0 for generated column col2 does not match calculation (col1 + 3) = 4"),
                                 INTERNAL_ERROR, BAD_REQUEST, 4000));
+
+        execute("refresh table test");
+        execute("select count(*) from test");
+        assertThat("Second insert was rejected", response.rows()[0][0], is(1L));
     }
 
     @Test
