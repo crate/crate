@@ -83,6 +83,6 @@ public class SimplifyEqualsOperationOnIdenticalReferences implements Rule<Functi
                 )
             );
         }
-        return operator;
+        return null;
     }
 }

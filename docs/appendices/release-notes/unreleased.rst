@@ -54,6 +54,8 @@ Deprecations
 
 Changes
 =======
+- Improved the performance of ``SELECT`` statements with ``WHERE`` conditions
+  that are in the form of ``WHERE COL=COL``.
 
 - Improved the performance of ``INSERT FROM query`` statements where the
   ``query`` contains a ``GROUP BY`` clause.
