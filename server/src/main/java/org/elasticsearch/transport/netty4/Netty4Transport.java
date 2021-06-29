@@ -27,6 +27,12 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
+import io.netty.channel.*;
+import io.netty.handler.ssl.OptionalSslHandler;
+import io.netty.util.ReferenceCountUtil;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.FutureListener;
+import io.netty.util.concurrent.GenericFutureListener;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
@@ -59,17 +65,6 @@ import io.crate.protocols.ssl.SslSettings.SSLMode;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.AdaptiveRecvByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerAdapter;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.FixedRecvByteBufAllocator;
-import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.epoll.EpollSocketChannel;
@@ -311,29 +306,31 @@ public class Netty4Transport extends TcpTransport {
 
         private void maybeInjectSSL(Channel ch) throws Exception, AssertionError {
             SSLMode sslMode = SslSettings.SSL_TRANSPORT_MODE.get(settings);
+            logger.info("In init client channel, ch.hash {}, pipeline.hash {}\n SSL MODE = {}, ch = {}",
+                ch.hashCode(),
+                ch.pipeline().hashCode(),
+                sslMode.name(),
+               ch
+            );
             switch (sslMode) {
                 case OFF:
                     break;
 
                 case DUAL: {
-                    InetSocketAddress address = node.getAddress().address();
-                    var probeResult = ConnectionTest.probeDualMode(address);
-                    switch (probeResult) {
-                        case SSL_AVAILABLE:
-                            SslContext sslContext = sslContextProvider.clientContext();
-                            SslHandler sslHandler = sslContext.newHandler(ch.alloc());
-                            ch.pipeline().addLast(sslHandler);
-                            break;
+                    SslContext sslContext = sslContextProvider.clientContext();
+                    SslHandler sslHandler = sslContext.newHandler(ch.alloc());
+                    sslHandler.setHandshakeTimeoutMillis(10 * 1000L);
+                    sslHandler.engine().setUseClientMode(true);
 
-                        case SSL_MISSING:
-                            if (logger.isDebugEnabled()) {
-                                logger.debug("SSL Dual mode enabled, target node doesn't use SSL", node.getHostName());
-                            }
-                            break;
-
-                        default:
-                            throw new AssertionError("Unexpected probeResult: " + probeResult);
-                    }
+                    sslHandler.handshakeFuture().addListener(future -> {
+                        logger.info("client handshake status and isSuccess {} {}", sslHandler.engine().getHandshakeStatus(), future.isSuccess());
+                        if (!future.isSuccess()) {
+                            logger.error("client handshake failed", future.cause());
+                            ch.pipeline().remove(sslHandler);
+                        }
+                    });
+                    ch.pipeline().addLast(sslHandler);
+                    sslHandler.engine().beginHandshake();
                     break;
                 }
 
@@ -361,18 +358,28 @@ public class Netty4Transport extends TcpTransport {
         @Override
         protected void initChannel(Channel ch) throws Exception {
             SSLMode sslMode = SslSettings.SSL_TRANSPORT_MODE.get(settings);
+            logger.info("In init server channel, ch.hash {}, pipeline.hash {}\n SSL MODE = {}, ch = {}",
+                ch.hashCode(),
+                ch.pipeline().hashCode(),
+                sslMode.name(),
+                ch
+            );
             switch (sslMode) {
                 case OFF:
+                    logger.info("server channel - SSL OFF");
                     break;
 
-                case DUAL:
-                    ch.pipeline().addLast(DualModeSSLHandler.NAME, new DualModeSSLHandler(logger, sslContextProvider));
+                case DUAL: {
+                    ch.pipeline().addLast(new OptionalSslHandler(sslContextProvider.getServerContext(Protocol.TRANSPORT)));
+                    logger.info("server channel - SSL Dual mode enabled");
                     break;
+                }
 
                 case ON: {
                     SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
                     SslHandler sslHandler = sslContext.newHandler(ch.alloc());
                     ch.pipeline().addLast(sslHandler);
+                    logger.info("server channel - SSL ON mode enabled");
                     break;
                 }
                 default:

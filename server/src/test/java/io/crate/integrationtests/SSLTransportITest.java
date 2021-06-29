@@ -29,6 +29,7 @@ import java.nio.file.Paths;
 import javax.net.ssl.SSLContext;
 
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.transport.Transport;
 import org.junit.BeforeClass;
@@ -39,7 +40,7 @@ import io.crate.protocols.ssl.ConnectionTest.ProbeResult;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, supportsDedicatedMasters = false, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 4, supportsDedicatedMasters = false, numClientNodes = 0)
 public class SSLTransportITest extends SQLIntegrationTestCase {
 
     private static Path keyStoreFile;
@@ -62,7 +63,7 @@ public class SSLTransportITest extends SQLIntegrationTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.builder()
+        Builder builder = Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put("auth.host_based.enabled", true)
             .put("auth.host_based.config.a.method", "cert")
@@ -72,14 +73,28 @@ public class SSLTransportITest extends SQLIntegrationTestCase {
             .put("auth.host_based.config.c.protocol", "http")
             .put("auth.host_based.config.d.method", "trust")
             .put("auth.host_based.config.d.protocol", "pg")
-            .put(sslSettings)
-            .build();
+            .put(sslSettings);
+
+        if (nodeOrdinal == 1) {
+            builder.put(SslSettings.SSL_TRANSPORT_MODE.getKey(), "on");
+        }
+        if (nodeOrdinal == 2) {
+            builder.put(SslSettings.SSL_TRANSPORT_MODE.getKey(), "dual");
+        }
+        if (nodeOrdinal == 3) {
+            builder.put(SslSettings.SSL_TRANSPORT_MODE.getKey(), "dual");
+        }
+        return builder.build();
     }
 
     @Test
     public void test_nodes_connect_with_ssl() throws Exception {
+        // This test covers all kinds of client-server pairs where SSL must be used.
+        // 2 dual nodes, 2 ssl-off node setup covers dual->on, dual->dual, on->dual, on->on connections.
+        // Pairs which must be connected without SSL are tested
+        // in SSLDualModeTransportITest
         execute("select count(*) from sys.nodes");
-        assertThat(response.rows()[0][0], is(2L));
+        assertThat(response.rows()[0][0], is(4L));
 
         SslContextProvider sslContextProvider = new SslContextProvider(sslSettings);
         SSLContext sslContext = sslContextProvider.jdkSSLContext();

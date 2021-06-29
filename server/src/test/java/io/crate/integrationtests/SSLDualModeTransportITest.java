@@ -40,7 +40,7 @@ import io.crate.protocols.ssl.ConnectionTest.ProbeResult;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, supportsDedicatedMasters = false, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 3, supportsDedicatedMasters = false, numClientNodes = 0)
 public class SSLDualModeTransportITest extends SQLIntegrationTestCase {
 
     private static Path keyStoreFile;
@@ -67,7 +67,10 @@ public class SSLDualModeTransportITest extends SQLIntegrationTestCase {
             .put(super.nodeSettings(nodeOrdinal))
             .put(sslSettings);
 
-        if (nodeOrdinal > 0) {
+        if (nodeOrdinal == 1) {
+            builder.put(SslSettings.SSL_TRANSPORT_MODE.getKey(), "off");
+        }
+        if (nodeOrdinal == 2) {
             builder.put(SslSettings.SSL_TRANSPORT_MODE.getKey(), "off");
         }
         return builder.build();
@@ -75,24 +78,16 @@ public class SSLDualModeTransportITest extends SQLIntegrationTestCase {
 
     @Test
     public void test_dual_mode_on_first_node_allows_cluster_to_form_if_other_nodes_have_no_ssl() throws Exception {
+        // This test covers all kinds of client-server pairs where SSL must not be used.
+        // 1 dual node, 2 ssl-off node setup covers dual->off, off->dual, off->off connections.
+        // Pairs which must be connected by SSL are tested in SSLTransportITest
         execute("select count(*) from sys.nodes");
-        assertThat(response.rows()[0][0], is(2L));
+        assertThat(response.rows()[0][0], is(3L));
 
         SslContextProvider sslContextProvider = new SslContextProvider(sslSettings);
         SSLContext sslContext = sslContextProvider.jdkSSLContext();
-        String[] nodeNames = internalCluster().getNodeNames();
-        String nodeName1 = nodeNames[0];
-        {
-            var transport = internalCluster().getInstance(Transport.class, nodeName1);
-            var publishAddress = transport.boundAddress().publishAddress();
-            var address = publishAddress.address();
-            ProbeResult probeResult = ConnectionTest.probeSSL(sslContext, address);
-            assertThat(probeResult, is(ProbeResult.SSL_AVAILABLE));
-        }
 
-        String nodeName2 = nodeNames[1];
-        {
-            var transport = internalCluster().getInstance(Transport.class, nodeName2);
+        for (var transport : internalCluster().getInstances(Transport.class)) {
             var publishAddress = transport.boundAddress().publishAddress();
             var address = publishAddress.address();
             ProbeResult probeResult = ConnectionTest.probeSSL(sslContext, address);
