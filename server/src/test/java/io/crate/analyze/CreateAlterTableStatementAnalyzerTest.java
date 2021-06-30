@@ -1430,4 +1430,20 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "xs={length=1, position=1, type=bit}"
         ));
     }
+
+    @Test
+    public void test_now_function_is_not_normalized_to_literal_in_create_table() throws Exception {
+        BoundCreateTable stmt = analyze("create table tbl (ts timestamp with time zone default now())");
+        assertThat(mapToSortedString(stmt.mappingProperties()), Matchers.startsWith(
+            "ts={default_expr=now()"
+        ));
+    }
+
+    @Test
+    public void test_current_user_function_is_not_normalized_to_literal_in_create_table() throws Exception {
+        BoundCreateTable stmt = analyze("create table tbl (user_name text default current_user)");
+        assertThat(mapToSortedString(stmt.mappingProperties()), Matchers.startsWith(
+            "user_name={default_expr=CURRENT_USER, position=1, type=keyword}"
+        ));
+    }
 }

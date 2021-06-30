@@ -120,6 +120,13 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused ``INSERT FROM VALUE`` statements to insert
+  records, despite failing validation and returning an error to the client.
+
+- Fixed an issue that caused the ``NOW()`` and ``CURRENT_USER`` functions to
+  get normalized to a literal value when used as part of a generated column or
+  ``DEFAULT`` expression in a ``CREATE TABLE`` statement.
+
 - Fixed a HBA SSL configuration parsing issue. The ``on`` value for the ``ssl``
   configuration option was not recognized and got interpreted as 'true'.
 
