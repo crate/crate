@@ -105,7 +105,7 @@ New Scalars
   that returns the sum of all elements in an array.
 
 - Added the :ref:`array_avg <scalar-array-avg>` scalar function that returns
-  the sum of all elements in an array.
+  the average of all elements in an array.
 
 
 Administration and Operations improvements
