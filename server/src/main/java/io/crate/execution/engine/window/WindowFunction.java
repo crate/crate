@@ -26,6 +26,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.metadata.FunctionImplementation;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public interface WindowFunction extends FunctionImplementation {
@@ -34,12 +35,13 @@ public interface WindowFunction extends FunctionImplementation {
      * Computes the window function for the row identified by the provided {@param rowIdx}.
      * This method should be called sequentially for all the rows in a window, with each's row corresponding window
      * frame state {@link WindowFrameState}.
-     *
-     * @param rowIdx       the 0-indexed id of the current partition
+     *  @param rowIdx       the 0-indexed id of the current partition
      * @param currentFrame the frame the row identified by {@param rowIdx} is part of.
+     * @param ignoreNulls
      */
     Object execute(int rowIdx,
                    WindowFrameState currentFrame,
                    List<? extends CollectExpression<Row, ?>> expressions,
+                   @Nullable Boolean ignoreNulls,
                    Input... args);
 }

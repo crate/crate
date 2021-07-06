@@ -188,6 +188,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_ignore_nulls_and_respect_nulls_options() {
+        printStatement("SELECT avg(x) IGNORE NULLS OVER w1, avg(x) RESPECT NULLS OVER w2 FROM t WINDOW w1 AS (), w2 AS ()");
+    }
+
+    @Test
     public void test_over_does_not_reference_window_definitions_from_window_clause() {
         printStatement("SELECT x FROM t WINDOW w AS ()");
         printStatement("SELECT avg(x) OVER () FROM t WINDOW w AS () ");

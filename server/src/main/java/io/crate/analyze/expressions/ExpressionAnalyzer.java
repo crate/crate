@@ -156,6 +156,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
 
+
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
  * <p>
@@ -272,13 +273,13 @@ public class ExpressionAnalyzer {
             List<Symbol> outerArguments = List.of(collectSetFunction);
             try {
                 return allocateBuiltinOrUdfFunction(
-                    schema, nodeName, outerArguments, null, windowDefinition, context);
+                    schema, nodeName, outerArguments, null, node.ignoreNulls(), windowDefinition, context);
             } catch (UnsupportedOperationException ex) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
             }
         } else {
-            return allocateBuiltinOrUdfFunction(schema, name, arguments, filter, windowDefinition, context);
+            return allocateBuiltinOrUdfFunction(schema, name, arguments, filter, node.ignoreNulls(), windowDefinition, context);
         }
     }
 
@@ -1082,10 +1083,11 @@ public class ExpressionAnalyzer {
                                                 String functionName,
                                                 List<Symbol> arguments,
                                                 Symbol filter,
+                                                @Nullable Boolean ignoreNulls,
                                                 WindowDefinition windowDefinition,
                                                 ExpressionAnalysisContext context) {
         return allocateBuiltinOrUdfFunction(
-            schema, functionName, arguments, filter, context, windowDefinition, coordinatorTxnCtx, nodeCtx);
+            schema, functionName, arguments, filter, ignoreNulls, context, windowDefinition, coordinatorTxnCtx, nodeCtx);
     }
 
     private Symbol allocateFunction(String functionName,
@@ -1101,7 +1103,7 @@ public class ExpressionAnalyzer {
                                           CoordinatorTxnCtx coordinatorTxnCtx,
                                           NodeContext nodeCtx) {
         return allocateBuiltinOrUdfFunction(
-            null, functionName, arguments, filter, context, null, coordinatorTxnCtx, nodeCtx);
+            null, functionName, arguments, filter, null, context, null, coordinatorTxnCtx, nodeCtx);
     }
 
     /**
@@ -1122,6 +1124,7 @@ public class ExpressionAnalyzer {
                                                        String functionName,
                                                        List<Symbol> arguments,
                                                        @Nullable Symbol filter,
+                                                       @Nullable Boolean ignoreNulls,
                                                        ExpressionAnalysisContext context,
                                                        @Nullable WindowDefinition windowDefinition,
                                                        CoordinatorTxnCtx coordinatorTxnCtx,
@@ -1143,20 +1146,36 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedOperationException(
                     "Only aggregate functions allow a FILTER clause");
             }
-            newFunction = new Function(signature, castArguments, boundSignature.getReturnType().createType(), filter);
-        } else {
-            if (signature.getKind() != FunctionType.WINDOW && signature.getKind() != FunctionType.AGGREGATE) {
+            if (ignoreNulls != null) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
-                    "OVER clause was specified, but %s is neither a window nor an aggregate function.",
+                    "%s cannot accept RESPECT or IGNORE NULLS flag.",
                     functionName));
+            }
+            newFunction = new Function(signature, castArguments, boundSignature.getReturnType().createType(), filter);
+        } else {
+            if (signature.getKind() != FunctionType.WINDOW) {
+                if (signature.getKind() != FunctionType.AGGREGATE) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "OVER clause was specified, but %s is neither a window nor an aggregate function.",
+                        functionName));
+                } else {
+                    if (ignoreNulls != null) {
+                        throw new IllegalArgumentException(String.format(
+                            Locale.ENGLISH,
+                            "%s cannot accept RESPECT or IGNORE NULLS flag.",
+                            functionName));
+                    }
+                }
             }
             newFunction = new WindowFunction(
                 signature,
                 castArguments,
                 boundSignature.getReturnType().createType(),
                 filter,
-                windowDefinition);
+                windowDefinition,
+                ignoreNulls);
         }
         return newFunction;
     }

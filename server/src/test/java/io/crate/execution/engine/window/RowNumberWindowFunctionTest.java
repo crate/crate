@@ -22,6 +22,7 @@
 package io.crate.execution.engine.window;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.testing.Asserts;
 import org.junit.Test;
 
 import java.util.List;
@@ -89,5 +90,19 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
                        new Object[]{4, 4},
                        new Object[]{5, 5},
                        new Object[]{null, null});
+    }
+
+    @Test
+    public void testIgnoreNullsFlagThrows() {
+        Asserts.assertThrowsMatches(
+            () -> assertEvaluate(
+                "row_number() ignore nulls over()",
+                null,
+                List.of(new ColumnIdent("x")),
+                new Object[] {1}
+            ),
+            IllegalArgumentException.class,
+            "row_number cannot accept RESPECT or IGNORE NULLS flag."
+        );
     }
 }

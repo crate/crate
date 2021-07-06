@@ -31,7 +31,10 @@ import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
@@ -45,34 +48,138 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
  */
 public class OffsetValueFunctions implements WindowFunction {
 
+    private Object getValueAtOffsetIgnoringNulls(int idxInPartition,
+                                                 int offset,
+                                                 WindowFrameState currentFrame,
+                                                 List<? extends CollectExpression<Row, ?>> expressions,
+                                                 Input[] args) {
+        if (cachedNonNullIndex == null) {
+            cachedNonNullIndex = findNonNullOffsetFromCurrentIndex(idxInPartition,
+                                                                   offset,
+                                                                   currentFrame,
+                                                                   expressions,
+                                                                   args);
+        } else {
+            if (resolvedDirection > 0) {
+                var curValue = getValueAtTargetIndex(idxInPartition, currentFrame, expressions, args);
+                if (curValue != null) {
+                    moveCacheToNextNonNull(currentFrame, expressions, args);
+                }
+            } else {
+                var prevValue = getValueAtTargetIndex(idxInPartition - 1, currentFrame, expressions, args);
+                if (prevValue != null) {
+                    moveCacheToNextNonNull(currentFrame, expressions, args);
+                }
+            }
+        }
+        return getValueAtTargetIndex(cachedNonNullIndex, currentFrame, expressions, args);
+    }
 
-    private enum OffsetDirection {
-        FORWARD {
-            @Override
-            int getTargetIndex(int idxInPartition, int offset) {
-                return idxInPartition + offset;
+    private void moveCacheToNextNonNull(WindowFrameState currentFrame,
+                                        List<? extends CollectExpression<Row, ?>> expressions,
+                                        Input[] args) {
+        if (cachedNonNullIndex == null) {
+            return;
+        }
+        /* from cached index, search from left to right for a non-null element.
+           for 'lag', cache index will never go past idxInPartition(current index).
+           for 'lead', cache index may reach upperBoundExclusive. */
+        for (int i = cachedNonNullIndex + 1; i <= currentFrame.upperBoundExclusive(); i++) {
+            if (i == currentFrame.upperBoundExclusive()) {
+                cachedNonNullIndex = null;
+                break;
             }
-        },
-        BACKWARD {
-            @Override
-            int getTargetIndex(int idxInPartition, int offset) {
-                return idxInPartition - offset;
+            Object value = getValueAtTargetIndex(i, currentFrame, expressions, args);
+            if (value != null) {
+                cachedNonNullIndex = i;
+                break;
             }
-        };
-        abstract int getTargetIndex(int idxInPartition, int offset);
+        }
+    }
+
+    private Integer findNonNullOffsetFromCurrentIndex(int idxInPartition,
+                                                      int offset,
+                                                      WindowFrameState currentFrame,
+                                                      List<? extends CollectExpression<Row, ?>> expressions,
+                                                      Input[] args) {
+        /* Search for 'offset' number of non-null elements in 'resolvedDirection' and return the index if found.
+           If index goes out of bound, an exception will be thrown and eventually invoke getDefaultOrNull(...) */
+        for (int i = 1, counter = 0; ; i++) {
+            Object value = getValueAtTargetIndex(getTargetIndex(idxInPartition, i), currentFrame, expressions, args);
+            if (value != null) {
+                counter++;
+                if (counter == offset) {
+                    return getTargetIndex(idxInPartition, i);
+                }
+            }
+        }
+    }
+
+    private Object getValueAtOffset(int idxAtPartition,
+                                    int offset,
+                                    WindowFrameState currentFrame,
+                                    List<? extends CollectExpression<Row, ?>> expressions,
+                                    boolean ignoreNulls,
+                                    Input[] args) {
+        if (ignoreNulls == false) {
+            var targetIndex = getTargetIndex(idxAtPartition, offset);
+            return getValueAtTargetIndex(targetIndex, currentFrame, expressions, args);
+        } else {
+            if (offset == 0) {
+                throw new IllegalArgumentException("offset 0 is not a valid argument if ignore nulls flag is set");
+            }
+            return getValueAtOffsetIgnoringNulls(idxAtPartition, offset, currentFrame, expressions, args);
+        }
+    }
+
+    private Object getValueAtTargetIndex(Integer targetIndex,
+                                                WindowFrameState currentFrame,
+                                                List<? extends CollectExpression<Row, ?>> expressions,
+                                                Input[] args) {
+        if (targetIndex == null) {
+            throw new IndexOutOfBoundsException();
+        }
+        Row row;
+        if (indexToRow.containsKey(targetIndex)) {
+            row = indexToRow.get(targetIndex);
+        } else {
+            Object[] rowCells = currentFrame.getRowInPartitionAtIndexOrNull(targetIndex);
+            if (rowCells == null) {
+                throw new IndexOutOfBoundsException();
+            }
+            row = new RowN(rowCells);
+            indexToRow.putIfAbsent(targetIndex, row);
+        }
+        for (CollectExpression<Row, ?> expression : expressions) {
+            expression.setNextRow(row);
+        }
+        return args[0].value();
+    }
+
+    private int getTargetIndex(int idxInPartition, int offset) {
+        return idxInPartition + offset * resolvedDirection;
     }
 
     private static final String LAG_NAME = "lag";
     private static final String LEAD_NAME = "lead";
+    private static final int LAG_DEFAULT_OFFSET = -1;
+    private static final int LEAD_DEFAULT_OFFSET = 1;
+    private final int directionMultiplier;
 
-    private final OffsetDirection offsetDirection;
     private final Signature signature;
     private final Signature boundSignature;
+    private Integer cachedOffset;
+    private int resolvedDirection;
+    /* cachedNonNullIndex and idxInPartition forms an offset window containing 'offset' number of non-null elements and any number of nulls.
+       The main perf. benefits will be seen when series of nulls are present.
+       In the cases where idxInPartition is near the bounds that the cache cannot point to the valid index, it will hold a null. */
+    private Integer cachedNonNullIndex;
+    private Map<Integer, Row> indexToRow;
 
-    private OffsetValueFunctions(Signature signature, Signature boundSignature, OffsetDirection offsetDirection) {
+    private OffsetValueFunctions(Signature signature, Signature boundSignature, int directionMultiplier) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.offsetDirection = offsetDirection;
+        this.directionMultiplier = directionMultiplier;
     }
 
     @Override
@@ -89,29 +196,40 @@ public class OffsetValueFunctions implements WindowFunction {
     public Object execute(int idxInPartition,
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
-                          Input... args) {
+                          @Nullable Boolean ignoreNulls,
+                          Input[] args) {
+        boolean ignoreNullsOrFalse = ignoreNulls != null && ignoreNulls;
         final int offset;
         if (args.length > 1) {
             Object offsetValue = args[1].value();
-            if (offsetValue == null) {
-                return null;
-            } else {
+            if (offsetValue != null) {
                 offset = ((Number) offsetValue).intValue();
+            } else {
+                return null;
             }
         } else {
             offset = 1;
         }
-
-        var lagRowCells = currentFrame
-            .getRowInPartitionAtIndexOrNull(offsetDirection.getTargetIndex(idxInPartition, offset));
-        if (lagRowCells != null) {
-            var lagRow = new RowN(lagRowCells);
-            for (CollectExpression<Row, ?> expression : expressions) {
-                expression.setNextRow(lagRow);
+        if (idxInPartition == 0) {
+            indexToRow = new HashMap<>(currentFrame.size());
+        }
+        // if the offset is changed compared to the previous iteration, cache will be cleared
+        if (idxInPartition == 0 || (cachedOffset != null && cachedOffset != offset)) {
+            if (offset != 0) {
+                resolvedDirection = offset / Math.abs(offset) * directionMultiplier;
             }
-
-            return args[0].value();
-        } else {
+            cachedNonNullIndex = null;
+        }
+        cachedOffset = offset;
+        final int cachedOffsetMagnitude = Math.abs(cachedOffset);
+        try {
+            return getValueAtOffset(idxInPartition,
+                                    cachedOffsetMagnitude,
+                                    currentFrame,
+                                    expressions,
+                                    ignoreNullsOrFalse,
+                                    args);
+        } catch (IndexOutOfBoundsException e) {
             return getDefaultOrNull(args);
         }
     }
@@ -135,7 +253,7 @@ public class OffsetValueFunctions implements WindowFunction {
                 new OffsetValueFunctions(
                     signature,
                     boundSignature,
-                    OffsetDirection.FORWARD
+                    LEAD_DEFAULT_OFFSET
                 )
         );
         module.register(
@@ -149,7 +267,7 @@ public class OffsetValueFunctions implements WindowFunction {
                 new OffsetValueFunctions(
                     signature,
                     boundSignature,
-                    OffsetDirection.FORWARD
+                    LEAD_DEFAULT_OFFSET
                 )
         );
         module.register(
@@ -164,7 +282,7 @@ public class OffsetValueFunctions implements WindowFunction {
                 new OffsetValueFunctions(
                     signature,
                     boundSignature,
-                    OffsetDirection.FORWARD
+                    LEAD_DEFAULT_OFFSET
                 )
         );
 
@@ -178,7 +296,7 @@ public class OffsetValueFunctions implements WindowFunction {
                 new OffsetValueFunctions(
                     signature,
                     boundSignature,
-                    OffsetDirection.BACKWARD
+                    LAG_DEFAULT_OFFSET
                 )
         );
         module.register(
@@ -192,7 +310,7 @@ public class OffsetValueFunctions implements WindowFunction {
                 new OffsetValueFunctions(
                     signature,
                     boundSignature,
-                    OffsetDirection.BACKWARD
+                    LAG_DEFAULT_OFFSET
                 )
         );
         module.register(
@@ -207,7 +325,7 @@ public class OffsetValueFunctions implements WindowFunction {
                 new OffsetValueFunctions(
                     signature,
                     boundSignature,
-                    OffsetDirection.BACKWARD
+                    LAG_DEFAULT_OFFSET
                 )
         );
     }

@@ -24,6 +24,7 @@ package io.crate.window;
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.module.ExtraFunctionsModule;
+import io.crate.testing.Asserts;
 import org.junit.Test;
 
 import java.util.List;
@@ -181,5 +182,19 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
             new Object[] {1, 0},
             new Object[] {2, 0},
             new Object[] {3, 0});
+    }
+
+    @Test
+    public void testIgnoreNullsFlagThrows() {
+        Asserts.assertThrowsMatches(
+            () -> assertEvaluate(
+                "rank() ignore nulls over()",
+                null,
+                List.of(new ColumnIdent("x")),
+                new Object[] {1}
+            ),
+            IllegalArgumentException.class,
+            "rank cannot accept RESPECT or IGNORE NULLS flag."
+        );
     }
 }

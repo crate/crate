@@ -57,6 +57,10 @@ Changes
 - Added the :ref:`JSON type <data-type-json>`.
 - Added the :ref:`date_bin <date-bin>` scalar function that truncates timestamp
   into specified interval aligned with specified origin.
+- Introduced ``RESPECT NULLS`` and ``IGNORE NULLS`` flags to window function
+  calls. The following window functions can now utilize the flags: ``LEAD``,
+  ``LAG``, ``NTH_VALUE``, ``FIRST_VALUE``, and ``LAST_VALUE``.
+
 
 Fixes
 =====
