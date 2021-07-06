@@ -49,6 +49,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
+import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
@@ -61,7 +62,6 @@ import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import io.crate.action.FutureActionListener;
-import io.crate.action.LimitedExponentialBackoff;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.relations.AbstractTableRelation;
@@ -705,7 +705,7 @@ public class InsertFromValues implements LogicalPlan {
                     scheduler,
                     l -> shardUpsertAction.execute(request, l),
                     listener,
-                    LimitedExponentialBackoff.limitedExponential(nodeLimit)
+                    BackoffPolicy.limitedDynamic(nodeLimit)
                 )
             );
         }

@@ -19,10 +19,12 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.common.unit.TimeValue;
-
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.limits.ConcurrencyLimit;
 
 /**
  * Provides a backoff policy for bulk requests. Whenever a bulk request is rejected due to resource constraints (i.e. the client's internal
@@ -42,6 +44,56 @@ import java.util.NoSuchElementException;
  * Note that backoff policies are exposed as <code>Iterables</code> in order to be consumed multiple times.
  */
 public abstract class BackoffPolicy implements Iterable<TimeValue> {
+
+    private static final int DEFAULT_RETRY_LIMIT = 10;
+
+    public static BackoffPolicy unlimitedDynamic(ConcurrencyLimit concurrencyLimit) {
+        return new BackoffPolicy() {
+
+            @Override
+            public Iterator<TimeValue> iterator() {
+                return new Iterator<>() {
+
+                    @Override
+                    public boolean hasNext() {
+                        return true;
+                    }
+
+                    @Override
+                    public TimeValue next() {
+                        return TimeValue.timeValueNanos(concurrencyLimit.getLastRtt(TimeUnit.NANOSECONDS));
+                    }
+                };
+            }
+        };
+    }
+
+    public static BackoffPolicy limitedDynamic(ConcurrencyLimit concurrencyLimit) {
+        return new BackoffPolicy() {
+
+            int iterations = 0;
+
+            @Override
+            public Iterator<TimeValue> iterator() {
+                return new Iterator<>() {
+
+                    @Override
+                    public boolean hasNext() {
+                        return iterations < DEFAULT_RETRY_LIMIT;
+                    }
+
+                    @Override
+                    public TimeValue next() {
+                        if (!hasNext()) {
+                            throw new NoSuchElementException("BackoffPolicy iterator exhausted");
+                        }
+                        return TimeValue.timeValueNanos(concurrencyLimit.getLongRtt(TimeUnit.NANOSECONDS));
+                    }
+                };
+            }
+        };
+    }
+
 
     /**
      * Creates an new exponential backoff policy with a default configuration of 50 ms initial wait period and 8 retries taking

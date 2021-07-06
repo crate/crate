@@ -44,6 +44,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
+import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -53,7 +54,6 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.action.FutureActionListener;
-import io.crate.action.LimitedExponentialBackoff;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.TypeGuessEstimateRowSize;
@@ -216,7 +216,7 @@ public class ShardingUpsertExecutor
                 scheduler,
                 l -> requestExecutor.execute(request, l),
                 listener,
-                LimitedExponentialBackoff.limitedExponential(nodeLimit)
+                BackoffPolicy.unlimitedDynamic(nodeLimit)
             );
             requestExecutor.execute(request, listener);
         }

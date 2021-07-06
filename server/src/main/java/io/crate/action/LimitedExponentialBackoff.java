@@ -23,17 +23,13 @@ package io.crate.action;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.bulk.BackoffPolicy;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.concurrent.limits.ConcurrencyLimit;
 
 
 public class LimitedExponentialBackoff extends BackoffPolicy {
-
-    private static final int MAX_ITERS = 10_000;
 
     private final int firstDelayInMS;
     private final int maxIterations;
@@ -54,33 +50,6 @@ public class LimitedExponentialBackoff extends BackoffPolicy {
      */
     public static BackoffPolicy limitedExponential(int maxDelayInMS) {
         return new LimitedExponentialBackoff(10, Integer.MAX_VALUE, maxDelayInMS);
-    }
-
-    public static BackoffPolicy limitedExponential(ConcurrencyLimit concurrencyLimit) {
-        return new BackoffPolicy() {
-
-            int iterations = 0;
-
-            @Override
-            public Iterator<TimeValue> iterator() {
-                return new Iterator<>() {
-
-                    @Override
-                    public boolean hasNext() {
-                        return iterations < MAX_ITERS;
-                    }
-
-                    @Override
-                    public TimeValue next() {
-                        if (!hasNext()) {
-                            throw new NoSuchElementException("Iterator is exhausted");
-                        }
-                        iterations++;
-                        return TimeValue.timeValueNanos(concurrencyLimit.getLastRtt(TimeUnit.NANOSECONDS));
-                    }
-                };
-            }
-        };
     }
 
     private static class LimitedExponentialBackoffIterator implements Iterator<TimeValue> {
