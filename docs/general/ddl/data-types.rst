@@ -674,7 +674,7 @@ much slower compared to operations on the integer or floating-point types.
 
 The ``NUMERIC`` type can be configured with the ``precision`` and
 ``scale``. The ``precision`` value of a numeric is the total count of
-significant digits in the unscaled numeric value.  The ``scale`` value of a
+significant digits in the unscaled numeric value. The ``scale`` value of a
 numeric is the count of decimal digits in the fractional part, to the right of
 the decimal point. For example, the number 123.45 has a precision of ``5`` and
 a scale of ``2``. Integers have a scale of zero.
@@ -927,25 +927,19 @@ Timestamps can be expressed as string literals (e.g.,
 Internally, CrateDB stores timestamps as :ref:`BIGINT <type-bigint>`
 values, which are limited to eight bytes.
 
-.. CAUTION::
-
-    Due to internal date parsing, the full ``BIGINT`` range is not supported
-    for timestamp values. The valid range of dates is from ``292275054BC`` to
-    ``292278993AD``.
-
-    When inserting timestamps smaller than ``-999999999999999`` (equals to
-    ``-29719-04-05T22:13:20.001Z``) or bigger than ``999999999999999`` (equals
-    to ``33658-09-27T01:46:39.999Z``) rounding issues may occur.
-
 If you cast a :ref:`BIGINT <type-bigint>` to a ``TIMEZONE``, the integer value
-will be interpreted as the number of milliseconds since the Unix epoch::
+will be interpreted as the number of milliseconds since the Unix epoch.
 
-    cr> SELECT 1000::TIMESTAMP AS ts;
-    +------+
-    |   ts |
-    +------+
-    | 1000 |
-    +------+
+Using the :ref:`date_format() <scalar-date_format>` function, for readability::
+
+    cr> SELECT
+    ...     date_format(0::TIMESTAMP) AS ts_0,
+    ...     date_format(1000::TIMESTAMP) AS ts_1;
+    +-----------------------------+-----------------------------+
+    | ts_0                        | ts_1                        |
+    +-----------------------------+-----------------------------+
+    | 1970-01-01T00:00:00.000000Z | 1970-01-01T00:00:01.000000Z |
+    +-----------------------------+-----------------------------+
     SELECT 1 row in set (... sec)
 
 If you cast a :ref:`REAL <type-real>` or a :ref:`DOUBLE PRECISION
@@ -953,13 +947,25 @@ If you cast a :ref:`REAL <type-real>` or a :ref:`DOUBLE PRECISION
 interpreted as the number of seconds since the Unix epoch, with fractional
 values approximated to the nearest millisecond::
 
-    cr> SELECT 1.5::TIMESTAMP AS ts;
-    +------+
-    |   ts |
-    +------+
-    | 1500 |
-    +------+
+    cr> SELECT
+    ...     date_format(0::TIMESTAMP) AS ts_0,
+    ...     date_format(1.5::TIMESTAMP) AS ts_1;
+    +-----------------------------+-----------------------------+
+    | ts_0                        | ts_1                        |
+    +-----------------------------+-----------------------------+
+    | 1970-01-01T00:00:00.000000Z | 1970-01-01T00:00:01.500000Z |
+    +-----------------------------+-----------------------------+
     SELECT 1 row in set (... sec)
+
+.. CAUTION::
+
+    Due to internal date parsing, the full ``BIGINT`` range is not supported
+    for timestamp values. The valid range of dates is from ``292275054BC`` to
+    ``292278993AD``.
+
+    When inserting timestamps smaller than ``-999999999999999`` (equal to
+    ``-29719-04-05T22:13:20.001Z``) or bigger than ``999999999999999`` (equal
+    to ``33658-09-27T01:46:39.999Z``) rounding issues may occur.
 
 A ``TIMESTAMP`` can be further defined as:
 
@@ -1014,8 +1020,8 @@ Example::
     +----------+----------+
     SELECT 1 row in set (... sec)
 
-You can use :ref:`data_format() <date_format>` to to make the output easier to
-read::
+You can use :ref:`data_format() <scalar-date_format>` to to make the output
+easier to read::
 
     cr> SELECT
     ...     date_format('%Y-%m-%dT%H:%i', ts_tz_1) AS ts_tz_1,
@@ -1090,7 +1096,7 @@ Example::
     cr> REFRESH TABLE my_table;
     REFRESH OK, 1 row affected (... sec)
 
-Using the :ref:`data_format() <date_format>` function, for readability::
+Using the :ref:`data_format() <scalar-date_format>` function, for readability::
 
     cr> SELECT
     ...     date_format('%Y-%m-%dT%H:%i', ts_1) AS ts_1,
@@ -1180,7 +1186,7 @@ Example::
     cr> REFRESH TABLE my_table;
     REFRESH OK, 1 row affected (... sec)
 
-Using the :ref:`data_format() <date_format>` function, for readability::
+Using the :ref:`data_format() <scalar-date_format>` function, for readability::
 
     cr> SELECT date_format(
     ...     '%Y-%m-%dT%H:%i', ts_tz AT TIME ZONE '+01:00'
@@ -1246,7 +1252,7 @@ Example::
     cr> REFRESH TABLE my_table;
     REFRESH OK, 1 row affected (... sec)
 
-Using the :ref:`data_format() <date_format>` function, for readability::
+Using the :ref:`data_format() <scalar-date_format>` function, for readability::
 
     cr> SELECT date_format(
     ...     '%Y-%m-%dT%H:%i', ts AT TIME ZONE '+01:00'
@@ -1292,13 +1298,6 @@ since midnight along with a time zone offset.
 Limited to 12 bytes, with a time range from ``00:00:00.000000`` to
 ``23:59:59.999999`` and a time zone range from ``-18:00`` to ``18:00``.
 
-.. NOTE::
-
-
-    The ``TIME`` type is only supported as a type literal (i.e., for use in
-    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
-    <data-types-casting-exp>`, as below).
-
 .. CAUTION::
 
     CrateDB does not support ``TIME`` by itself or ``TIME WITHOUT TIME ZONE``.
@@ -1307,6 +1306,12 @@ Limited to 12 bytes, with a time range from ``00:00:00.000000`` to
     This behaviour does not comply with standard SQL and is incompatible with
     PostgreSQL. This behavior may change in a future version of CrateDB (see
     `tracking issue #11491`_).
+
+.. NOTE::
+
+    The ``DATE`` type is only supported as a type literal (i.e., for use in
+    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
+    <data-types-casting-exp>`, as below).
 
 Times can be expressed as string literals (e.g., ``'13:00:00'``) with the
 following syntax:
@@ -1379,45 +1384,25 @@ Here's an example that uses fractional seconds::
 
 .. CAUTION::
 
-   The current implementation of the ``TIME`` data type has the following
-   limitations:
+    The current implementation of the ``TIME`` type has the following
+    limitations:
 
-   - ``TIME`` types cannot be :ref:`cast <data-types-casting-exp>` to
-     :ref:`TEXT <type-text>` types
+    .. rst-class:: open
 
-   - ``TIME`` types cannot be used in :ref:`arithmetic expressions
-     <arithmetic>`
+    - ``TIME`` types cannot be :ref:`cast <data-types-casting-exp>` to any
+      other types (including :ref:`TEXT <type-text>`)
 
-   can't perform arithmatic
-   SELECT '13:00:00'::TIMETZ - '1:00:00'::TIMETZ;
-   can't cast back to string
-   can't cast to interval
-   SELECT '13:00:00'::TIMETZ - interval '2 hour';
+    - ``TIME`` types cannot be used in :ref:`arithmetic expressions
+      <arithmetic>` (e.g., with ``TIME``, ``DATE``, and
+      ``INTERVAL`` types)
 
+    - ``TIME`` types cannot be used with time and date scalar functions (e.g.,
+      :ref:`date_format() <scalar-date_format>` and :ref:`extract()
+      <scalar-extract>`)
 
-.. NOTE::
-
-    This type cannot be used in ``CREATE TABLE`` or ``ALTER`` statements.
-
-::
-
-    cr> SELECT '13:59:59.999999'::TIMETZ;
-    +------------------+
-    | 13:59:59.999999  |
-    +------------------+
-    | [50399999999, 0] |
-    +------------------+
-    SELECT 1 row in set (... sec)
-
-::
-
-    cr> SELECT '13:59:59.999999+02:00'::TIMETZ;
-    +-----------------------+
-    | 13:59:59.999999+02:00 |
-    +-----------------------+
-    | [50399999999, 7200]   |
-    +-----------------------+
-    SELECT 1 row in set (... sec)
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. This behavior may change in a future version of CrateDB (see
+    `tracking issue #11528`_).
 
 
 .. _type-date:
@@ -1425,34 +1410,110 @@ Here's an example that uses fractional seconds::
 ``DATE``
 ''''''''
 
-**TODO: continue editing here**
+A ``DATE`` expresses a specific year, month and a day in `UTC`_.
 
-The ``DATE`` type holds a date in UTC with a year, month and a day.
+Internally, CrateDB stores dates as :ref:`BIGINT <type-bigint>` values, which
+are limited to eight bytes.
 
-Limited to eight bytes, with a range from ``292275054BC`` to ``292278993AD`` .
+If you cast a :ref:`BIGINT <type-bigint>` to a ``DATE``, the integer value will
+be interpreted as the number of milliseconds since the Unix epoch. If you cast
+a :ref:`REAL <type-real>` or a :ref:`DOUBLE PRECISION <type-double-precision>`
+to a ``DATE``, the numeric value wil be interpreted as the number of seconds
+since the Unix epoch.
+
+.. CAUTION::
+
+    Due to internal date parsing, the full ``BIGINT`` range is not supported
+    for timestamp values. The valid range of dates is from ``292275054BC`` to
+    ``292278993AD``.
+
+    When inserting dates smaller than ``-999999999999999`` (equal to
+    ``-29719-04-05``) or bigger than ``999999999999999`` (equal
+    to ``33658-09-27``) rounding issues may occur.
+
+.. _type-date-warning:
+
+.. WARNING::
+
+    The ``DATE`` type was not designed to allow time-of-day information (i.e.,
+    it is supposed to have a resolution of one day).
+
+    However, CrateDB allows you violate that constraint by casting any number
+    of milliseconds within limits to a ``DATE`` type. The result is then
+    returned as a :ref:`TIMESTAMP <type-timestamp>`. When used in conjunction
+    with :ref:`arithmetic expressions <arithmetic>`, these ``TIMESTAMP`` values
+    may produce unexpected results.
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. This behavior may change in a future version of CrateDB (see
+    `tracking issue #11528`_).
+
+.. CAUTION::
+
+    The current implementation of the ``DATE`` type has the following
+    limitations:
+
+    .. rst-class:: open
+
+    - ``DATE`` types cannot be added or subtracted to or from other ``DATE``
+      types as expected (i.e., to calculate the difference between the two in
+      a number of days).
+
+      Doing so will convert both ``DATE`` values into ``TIMESTAMP`` values
+      before performing the operation, resulting in a ``TIMESTAMP`` value
+      corresponding to a full date and time (see :ref:`WARNING
+      <type-date-warning>` above).
+
+    - :ref:`Numeric data types <data-types-numeric>` cannot be added to or
+      subtracted from ``DATE`` types as expected (e.g., to increase the date by
+      ``n`` days).
+
+      Doing so will, for example, convert the ``DATE`` into a ``TIMESTAMP`` and
+      increase the value by ``n`` milliseconds (see :ref:`WARNING
+      <type-date-warning>` above).
+
+    - :ref:`TIME <type-time>` types cannot be added to or subtracted from
+      ``DATE`` types.
+
+    - :ref:`INTERVAL <type-interval>` types cannot be added to or subtracted
+      from ``DATE`` types.
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. This behavior may change in a future version of CrateDB (see
+    `tracking issue #11528`_).
 
 .. NOTE::
 
-    The storage of the ``DATE`` data type is not supported. Therefore,
-    it is not possible to create tables with ``DATE`` fields.
+    The ``DATE`` type is only supported as a type literal (i.e., for use in
+    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
+    <data-types-casting-exp>`, as below).
 
-The ``DATE`` data type can be used to represent values with a year, month and a day.
+Dates can be expressed as string literals (e.g., ``'2021-03-09'``) with the
+following syntax:
 
-To construct values of the type ``DATE`` you can cast a string literal
-or a numeric literal to ``DATE``. If a numeric value is used, it must contain
-the number of milliseconds since ``1970-01-01T00:00:00Z``.
+.. code-block:: text
 
-The string format for dates is `YYYY-MM-DD`. For example `2021-03-09`.
-This format is the only currently supported for PostgreSQL clients.
+    yyyy-MM-dd
 
-::
+.. SEEALSO::
 
-    cr> SELECT '2021-03-09'::DATE AS cd;
-    +---------------+
-    |            cd |
-    +---------------+
-    | 1615248000000 |
-    +---------------+
+    For more information about date and time formatting, see `Java 15\:
+    Patterns for Formatting and Parsing`_.
+
+For example, using the :ref:`data_format() <scalar-date_format>` function, for
+readability::
+
+
+    cr> SELECT
+    ...    date_format(
+    ...        '%Y-%m-%d',
+    ...        '2021-03-09'::DATE
+    ...    ) AS date;
+    +------------+
+    | date       |
+    +------------+
+    | 2021-03-09 |
+    +------------+
     SELECT 1 row in set (... sec)
 
 
@@ -1461,7 +1522,7 @@ This format is the only currently supported for PostgreSQL clients.
 ``INTERVAL``
 ''''''''''''
 
-The ``INTERVAL`` type represents a span of time.
+An ``INTERVAL`` represents a span of time.
 
 .. NOTE::
 
@@ -1483,17 +1544,6 @@ Where ``unit`` can be any of the following:
 - ``HOUR``
 - ``MINUTE``
 - ``SECOND``
-
-.. CAUTION::
-
-    The ``INTERVAL`` data type does not currently support the input units
-    ``MILLENNIUM``, ``CENTURY``, ``DECADE``, ``MILLISECOND``, or
-    ``MICROSECOND``.
-
-    This behaviour does not comply with standard SQL and is incompatible with
-    PostgreSQL. This behavior may change in a future version of CrateDB (see `tracking issue
-    #11490`_).
-
 
 For example::
 
@@ -1526,10 +1576,15 @@ of zero to six digits)::
     +--------------+
     SELECT 1 row in set (... sec)
 
-.. NOTE::
+.. CAUTION::
 
-    CrateDB does not support the PostgreSQL input units ``MILLENNIUM``,
-    ``CENTURY``, ``DECADE``, ``MILLISECOND``, or ``MICROSECOND``.
+    The ``INTERVAL`` data type does not currently support the input units
+    ``MILLENNIUM``, ``CENTURY``, ``DECADE``, ``MILLISECOND``, or
+    ``MICROSECOND``.
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. This behavior may change in a future version of CrateDB (see
+    `tracking issue #11490`_).
 
 You can also use the following syntax to express an interval::
 
@@ -1625,8 +1680,8 @@ IP addresses
 
 A string representation of an IPv4 or IPv6 address.
 
-Internally IP addresses are stored as ``BIGINT``, allowing expected sorting,
-filtering, and aggregation.
+Internally IP addresses are stored as ``BIGINT`` values, allowing expected
+sorting, filtering, and aggregation.
 
 For example::
 
@@ -1646,8 +1701,8 @@ For example::
 ::
 
     cr> INSERT INTO my_table_ips (fqdn, ip_addr)
-    ... VALUES ('localhost', 'not.a.real.ip');
-    SQLParseException[Cannot cast `'not.a.real.ip'` of type `text` to type `ip`]
+    ... VALUES ('localhost', 'fake.ip');
+    SQLParseException[Cannot cast `'fake.ip'` of type `text` to type `ip`]
 
 ::
 
@@ -1729,7 +1784,9 @@ similarities. However, objects can be :ref:`inserted as JSON strings
 
 Syntax::
 
-    <columnName> OBJECT [ ({DYNAMIC|STRICT|IGNORED}) ] [ AS ( <columnDefinition>* ) ]
+    <columnName> OBJECT
+        [ ({DYNAMIC|STRICT|IGNORED}) ]
+        [ AS ( <columnDefinition>* ) ]
 
 For example::
 
@@ -1979,21 +2036,33 @@ type under the same key.
 An example::
 
     cr> CREATE TABLE metrics (
-    ...   id TEXT PRIMARY KEY,
-    ...   payload OBJECT(IGNORED) as (
-    ...     tag TEXT
-    ...   )
+    ...     id TEXT PRIMARY KEY,
+    ...     payload OBJECT(IGNORED) as (
+    ...         tag TEXT
+    ...     )
     ... );
     CREATE OK, 1 row affected (... sec)
 
 ::
 
-    cr> INSERT INTO metrics (id, payload) VALUES ('1', {"tag"='AT', "value"=30});
+    cr> INSERT INTO metrics (
+    ...     id,
+    ...     payload
+    ... ) VALUES (
+    ...     '1',
+    ...     {"tag"='AT', "value"=30}
+    ... );
     INSERT OK, 1 row affected (... sec)
 
 ::
 
-    cr> INSERT INTO metrics (id, payload) VALUES ('2', {"tag"='AT', "value"='str'});
+    cr> INSERT INTO metrics (
+    ...      id,
+    ...      payload
+    ... ) VALUES (
+    ...     '2',
+    ...     {"tag"='AT', "value"='str'}
+    ... );
     INSERT OK, 1 row affected (... sec)
 
 .. HIDE:
@@ -2142,7 +2211,7 @@ for a value::
 
 Combined::
 
-    { id = 1, name = 'foo', tags = ['apple', 'banana', 'pear'], size = 3.1415, valid = ? }
+    { id = 1, name = 'foo', tags = ['apple'], size = 3.1415, valid = ? }
 
 .. NOTE::
 
@@ -2151,7 +2220,8 @@ Combined::
 
 .. SEEALSO::
 
-    :ref:`Selecting values from inner objects and nested objects <sql_dql_objects>`
+    :ref:`Selecting values from inner objects and nested objects
+    <sql_dql_objects>`
 
 
 .. _data-types-object-json:
@@ -2197,7 +2267,7 @@ Camel case keys::
 
 Nested object::
 
-    '{ "nested_obj_colmn": { "int_col": 1234, "str_col": "text value" } }'::object
+    '{ "nested_obj_col": { "int_col": 1234, "str_col": "foo" } }'::object
 
 .. NOTE::
 
@@ -2448,7 +2518,7 @@ A ``geo_shape`` is a :ref:`geographic data type <data-types-geo>` used to store
 2D shapes defined as `GeoJSON geometry objects`_.
 
 A ``GEO_SHAPE`` column can store different kinds of `GeoJSON geometry
-objects`_.  Thus it is possible to store e.g. ``LineString`` and
+objects`_. Thus it is possible to store e.g. ``LineString`` and
 ``MultiPolygon`` shapes in the same column.
 
 .. NOTE::
@@ -2508,7 +2578,8 @@ geographical queries.
 
 The default definition for the column type is::
 
-    <columnName> GEO_SHAPE INDEX USING geohash WITH (precision='50m', distance_error_pct=0.025)
+    <columnName> GEO_SHAPE INDEX USING geohash
+        WITH (precision='50m', distance_error_pct=0.025)
 
 There are two geographic index types: ``geohash`` (the default) and
 ``quadtree``. These indices are only allowed on ``geo_shape`` columns. For more
@@ -2599,10 +2670,16 @@ Columns with the ``GEO_SHAPE`` type are represented and inserted as object
 containing a valid `GeoJSON`_ geometry object::
 
     {
-      type = 'Polygon',
-      coordinates = [
-         [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ]
-      ]
+        type = 'Polygon',
+        coordinates = [
+            [
+                [100.0, 0.0],
+                [101.0, 0.0],
+                [101.0, 1.0],
+                [100.0, 1.0],
+                [100.0, 0.0]
+            ]
+        ]
     }
 
 Alternatively a `WKT`_ string can be used to represent a ``GEO_SHAPE`` as
@@ -2909,7 +2986,7 @@ Example usages, initializing an ``INTEGER`` and a ``TIMESTAMP`` constant:
 .. NOTE::
 
   This cast operation is limited to :ref:`primitive data types
-  <data-types-primitive>` only.  For complex types such as ``ARRAY`` or
+  <data-types-primitive>` only. For complex types such as ``ARRAY`` or
   ``OBJECT`` use the :ref:`type_cast` syntax.
 
 
@@ -2937,5 +3014,6 @@ Example usages, initializing an ``INTEGER`` and a ``TIMESTAMP`` constant:
 .. _Coordinated Universal Time: https://en.wikipedia.org/wiki/Coordinated_Universal_Time
 .. _Unix epoch: https://en.wikipedia.org/wiki/Unix_time
 .. _tracking issue #11491: https://github.com/crate/crate/issues/11491
-.. _tracking issue #11491: https://github.com/crate/crate/issues/11491
 .. _tracking issue #11490: https://github.com/crate/crate/issues/11490
+.. _tracking issue #11528: https://github.com/crate/crate/issues/11528
+.. _The PostgreSQL DATE type: https://www.postgresql.org/docs/current/datatype-datetime.html
