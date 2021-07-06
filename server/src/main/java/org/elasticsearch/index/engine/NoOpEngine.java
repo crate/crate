@@ -64,7 +64,7 @@ public final class NoOpEngine extends ReadOnlyEngine {
         final Directory directory = commit.getDirectory();
         final List<IndexCommit> indexCommits = DirectoryReader.listCommits(directory);
         final IndexCommit indexCommit = indexCommits.get(indexCommits.size() - 1);
-        return new DirectoryReader(directory, new LeafReader[0], null) {
+        return new DirectoryReader(directory, new LeafReader[0]) {
             @Override
             protected DirectoryReader doOpenIfChanged() throws IOException {
                 return null;
