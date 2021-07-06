@@ -41,5 +41,6 @@ public interface WindowFunction extends FunctionImplementation {
     Object execute(int rowIdx,
                    WindowFrameState currentFrame,
                    List<? extends CollectExpression<Row, ?>> expressions,
+                   boolean ignoreNulls,
                    Input... args);
 }

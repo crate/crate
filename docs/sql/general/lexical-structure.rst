@@ -166,6 +166,7 @@ quoted if used as identifiers::
     | group             |
     | having            |
     | if                |
+    | ignore            |
     | in                |
     | index             |
     | inner             |
@@ -193,6 +194,7 @@ quoted if used as identifiers::
     | persistent        |
     | recursive         |
     | reset             |
+    | respect           |
     | returns           |
     | revoke            |
     | right             |
@@ -216,7 +218,7 @@ quoted if used as identifiers::
     | where             |
     | with              |
     +-------------------+
-    SELECT 95 rows in set (... sec)
+    SELECT 97 rows in set (... sec)
 
 Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example below
 are *identifiers*, which identify names of tables, columns, and other database

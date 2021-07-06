@@ -65,6 +65,7 @@ public class RankFunctions implements WindowFunction {
     public Object execute(int idxInPartition,
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
+                          boolean ignoreNulls,
                           Input... args) {
         if (idxInPartition == 0) {
             rank = 1;

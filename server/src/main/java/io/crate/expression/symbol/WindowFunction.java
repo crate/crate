@@ -43,10 +43,12 @@ import static io.crate.metadata.FunctionType.WINDOW;
 public class WindowFunction extends Function {
 
     private final WindowDefinition windowDefinition;
+    private final boolean ignoreNulls;
 
     public WindowFunction(StreamInput in) throws IOException {
         super(in);
         windowDefinition = new WindowDefinition(in);
+        ignoreNulls = false;
     }
 
     public WindowFunction(Signature signature,
@@ -54,14 +56,29 @@ public class WindowFunction extends Function {
                           DataType<?> returnType,
                           @Nullable Symbol filter,
                           WindowDefinition windowDefinition) {
+        /////////////////////possible to remove
+        this(signature, arguments, returnType, filter, windowDefinition, false);
+    }
+
+    public WindowFunction(Signature signature,
+                          List<Symbol> arguments,
+                          DataType<?> returnType,
+                          @Nullable Symbol filter,
+                          WindowDefinition windowDefinition,
+                          boolean ignoreNulls) {
         super(signature, arguments, returnType, filter);
         assert signature.getKind() == WINDOW || signature.getKind() == AGGREGATE :
             "only window and aggregate functions are allowed to be modelled over a window";
         this.windowDefinition = windowDefinition;
+        this.ignoreNulls = ignoreNulls;
     }
 
     public WindowDefinition windowDefinition() {
         return windowDefinition;
+    }
+
+    public boolean ignoreNulls() {
+        return ignoreNulls;
     }
 
     @Override

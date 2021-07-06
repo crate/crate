@@ -207,4 +207,23 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
             new Object[]{1},
             new Object[]{2});
     }
+
+    @Test
+    public void testLastValueWithIgnoreNulls() throws Throwable {
+        assertEvaluate(
+            "last_value(x) ignore nulls over(order by x nulls last)",
+            contains(new Object[] {1, 2, 2, 2}),
+            List.of(new ColumnIdent("x")),
+            new Object[] {1},
+            new Object[] {2},
+            new Object[] {null},
+            new Object[] {null}
+        );
+        assertEvaluate(
+            "last_value(x) ignore nulls over(order by x nulls last)",
+            contains(new Object[] {null}),
+            List.of(new ColumnIdent("x")),
+            new Object[] {null}
+        );
+    }
 }

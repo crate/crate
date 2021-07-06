@@ -21,30 +21,7 @@
 
 package io.crate.analyze.expressions;
 
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.HOUR;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
-import static java.util.stream.Collectors.toList;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Lists;
-
-import org.joda.time.Period;
-
 import io.crate.analyze.DataTypeAnalyzer;
 import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.NegateLiterals;
@@ -155,6 +132,26 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
+import org.joda.time.Period;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.HOUR;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
+import static java.util.stream.Collectors.toList;
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -272,13 +269,13 @@ public class ExpressionAnalyzer {
             List<Symbol> outerArguments = List.of(collectSetFunction);
             try {
                 return allocateBuiltinOrUdfFunction(
-                    schema, nodeName, outerArguments, null, windowDefinition, context);
+                    schema, nodeName, outerArguments, null, node.ignoreNulls(), windowDefinition, context);
             } catch (UnsupportedOperationException ex) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
             }
         } else {
-            return allocateBuiltinOrUdfFunction(schema, name, arguments, filter, windowDefinition, context);
+            return allocateBuiltinOrUdfFunction(schema, name, arguments, filter, node.ignoreNulls(), windowDefinition, context);
         }
     }
 
@@ -1082,10 +1079,11 @@ public class ExpressionAnalyzer {
                                                 String functionName,
                                                 List<Symbol> arguments,
                                                 Symbol filter,
+                                                boolean ignoreNulls,
                                                 WindowDefinition windowDefinition,
                                                 ExpressionAnalysisContext context) {
         return allocateBuiltinOrUdfFunction(
-            schema, functionName, arguments, filter, context, windowDefinition, coordinatorTxnCtx, nodeCtx);
+            schema, functionName, arguments, filter, ignoreNulls, context, windowDefinition, coordinatorTxnCtx, nodeCtx);
     }
 
     private Symbol allocateFunction(String functionName,
@@ -1101,7 +1099,7 @@ public class ExpressionAnalyzer {
                                           CoordinatorTxnCtx coordinatorTxnCtx,
                                           NodeContext nodeCtx) {
         return allocateBuiltinOrUdfFunction(
-            null, functionName, arguments, filter, context, null, coordinatorTxnCtx, nodeCtx);
+            null, functionName, arguments, filter, false, context, null, coordinatorTxnCtx, nodeCtx);
     }
 
     /**
@@ -1122,6 +1120,7 @@ public class ExpressionAnalyzer {
                                                        String functionName,
                                                        List<Symbol> arguments,
                                                        @Nullable Symbol filter,
+                                                       boolean ignoreNulls,
                                                        ExpressionAnalysisContext context,
                                                        @Nullable WindowDefinition windowDefinition,
                                                        CoordinatorTxnCtx coordinatorTxnCtx,
@@ -1156,7 +1155,8 @@ public class ExpressionAnalyzer {
                 castArguments,
                 boundSignature.getReturnType().createType(),
                 filter,
-                windowDefinition);
+                windowDefinition,
+                ignoreNulls);
         }
         return newFunction;
     }

@@ -55,6 +55,7 @@ public class RowNumberWindowFunction implements WindowFunction {
     public Object execute(int idxInPartition,
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
+                          boolean ignoreNulls,
                           Input... args) {
         return idxInPartition + 1;
     }

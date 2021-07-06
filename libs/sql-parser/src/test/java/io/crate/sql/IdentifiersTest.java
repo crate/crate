@@ -24,10 +24,10 @@ package io.crate.sql;
 
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-
-import java.util.List;
 
 public class IdentifiersTest {
 
@@ -37,7 +37,7 @@ public class IdentifiersTest {
         // Either add the new term to `nonReserved` in `SqlBase.4g` or add a breaking changes entry and adapt this test.
         assertThat(
             (int) Identifiers.KEYWORDS.stream().filter(Identifiers.Keyword::isReserved).count(),
-            is(95)
+            is(97)
         );
     }
 

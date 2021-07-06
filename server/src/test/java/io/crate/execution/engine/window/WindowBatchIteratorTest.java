@@ -82,6 +82,7 @@ public class WindowBatchIteratorTest {
                     Runnable::run,
                     Collections.singletonList(rowNumberWindowFunction()),
                     Collections.emptyList(),
+                    new boolean[]{false},
                     new Input[0]);
             }
         );
@@ -105,6 +106,7 @@ public class WindowBatchIteratorTest {
                     Runnable::run,
                     Collections.singletonList(rowNumberWindowFunction()),
                     Collections.emptyList(),
+                    new boolean[]{false},
                     new Input[0]);
             }
         );
@@ -125,6 +127,7 @@ public class WindowBatchIteratorTest {
             Runnable::run,
             List.of(frameBoundsWindowFunction()),
             List.of(),
+            new boolean[]{false},
             args).get(5, TimeUnit.SECONDS).spliterator(), false)
             .collect(toList());
         var expectedBounds = tuple(0, 10);
@@ -146,6 +149,7 @@ public class WindowBatchIteratorTest {
             Runnable::run,
             List.of(frameBoundsWindowFunction()),
             List.of(),
+            new boolean[]{false},
             args
         ).get(5, TimeUnit.SECONDS);
         assertThat(
@@ -192,6 +196,7 @@ public class WindowBatchIteratorTest {
             Runnable::run,
             List.of(frameBoundsWindowFunction()),
             List.of(),
+            new boolean[]{false},
             args
         ).get(5, TimeUnit.SECONDS);
         assertThat(
@@ -239,6 +244,7 @@ public class WindowBatchIteratorTest {
             Runnable::run,
             List.of(frameBoundsWindowFunction()),
             List.of(),
+            new boolean[]{false},
             args
         ).get(5, TimeUnit.SECONDS);
         assertThat(
@@ -311,6 +317,7 @@ public class WindowBatchIteratorTest {
             Runnable::run,
             List.of(frameBoundsWindowFunction()),
             List.of(),
+            new boolean[]{false},
             args
         ).get(5, TimeUnit.SECONDS);
         assertThat(
@@ -345,6 +352,7 @@ public class WindowBatchIteratorTest {
             Runnable::run,
             List.of(rowNumberWindowFunction()),
             List.of(),
+            new boolean[]{false},
             new Input[][]{new Input[0]}
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
@@ -370,6 +378,7 @@ public class WindowBatchIteratorTest {
             Runnable::run,
             List.of(firstCellValue()),
             List.of(),
+            new boolean[]{false},
             args
         ).get(5, TimeUnit.SECONDS);
         assertThat(
@@ -384,7 +393,11 @@ public class WindowBatchIteratorTest {
     private static WindowFunction firstCellValue() {
         return new WindowFunction() {
             @Override
-            public Object execute(int idxInPartition, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
+            public Object execute(int idxInPartition,
+                                  WindowFrameState currentFrame,
+                                  List<? extends CollectExpression<Row, ?>> expressions,
+                                  boolean ignoreNulls,
+                                  Input... args) {
                 return currentFrame.getRows().iterator().next()[0];
             }
 
@@ -403,7 +416,11 @@ public class WindowBatchIteratorTest {
     private static WindowFunction frameBoundsWindowFunction() {
         return new WindowFunction() {
             @Override
-            public Object execute(int idxInPartition, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
+            public Object execute(int idxInPartition,
+                                  WindowFrameState currentFrame,
+                                  List<? extends CollectExpression<Row, ?>> expressions,
+                                  boolean ignoreNulls,
+                                  Input... args) {
                 return tuple(currentFrame.lowerBound(), currentFrame.upperBoundExclusive());
             }
 
@@ -422,7 +439,11 @@ public class WindowBatchIteratorTest {
     private static WindowFunction rowNumberWindowFunction() {
         return new WindowFunction() {
             @Override
-            public Object execute(int idxInPartition, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
+            public Object execute(int idxInPartition,
+                                  WindowFrameState currentFrame,
+                                  List<? extends CollectExpression<Row, ?>> expressions,
+                                  boolean ignoreNulls,
+                                  Input... args) {
                 return idxInPartition + 1; // sql row numbers are 1-indexed;
             }
 

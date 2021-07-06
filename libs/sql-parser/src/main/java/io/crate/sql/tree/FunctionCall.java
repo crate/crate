@@ -32,9 +32,10 @@ public class FunctionCall extends Expression {
     private final List<Expression> arguments;
     private final Optional<Window> window;
     private final Optional<Expression> filter;
+    private final boolean ignoreNulls;
 
     public FunctionCall(QualifiedName name, List<Expression> arguments) {
-        this(name, false, arguments, Optional.empty(), Optional.empty());
+        this(name, false, arguments, Optional.empty(), Optional.empty(), false);
     }
 
     public FunctionCall(QualifiedName name,
@@ -42,11 +43,21 @@ public class FunctionCall extends Expression {
                         List<Expression> arguments,
                         Optional<Window> window,
                         Optional<Expression> filter) {
+        this(name, distinct, arguments, window, filter, false);
+    }
+
+    public FunctionCall(QualifiedName name,
+                        boolean distinct,
+                        List<Expression> arguments,
+                        Optional<Window> window,
+                        Optional<Expression> filter,
+                        boolean ignoreNulls) {
         this.name = name;
         this.distinct = distinct;
         this.arguments = arguments;
         this.window = window;
         this.filter = filter;
+        this.ignoreNulls = ignoreNulls;
     }
 
     public QualifiedName getName() {
@@ -69,6 +80,10 @@ public class FunctionCall extends Expression {
         return filter;
     }
 
+    public boolean ignoreNulls() {
+        return ignoreNulls;
+    }
+
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitFunctionCall(this, context);
@@ -87,11 +102,12 @@ public class FunctionCall extends Expression {
                Objects.equals(name, that.name) &&
                Objects.equals(arguments, that.arguments) &&
                Objects.equals(window, that.window) &&
-               Objects.equals(filter, that.filter);
+               Objects.equals(filter, that.filter) &&
+               Objects.equals(ignoreNulls, that.ignoreNulls);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, distinct, arguments, window, filter);
+        return Objects.hash(name, distinct, arguments, window, filter, ignoreNulls);
     }
 }

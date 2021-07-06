@@ -213,6 +213,54 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         );
     }
 
+    @Test
+    public void ignoreNullsTests() throws Throwable {
+        assertEvaluate(
+            "lag(x) ignore nulls over()",
+            contains(new Object[]{null, null, 1, 2}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{null},
+            new Object[]{1},
+            new Object[]{2},
+            new Object[]{3}
+        );
+        assertEvaluate(
+            "lag(x) ignore nulls over()",
+            contains(new Object[]{null, 1, 1, 1}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{null},
+            new Object[]{null},
+            new Object[]{2}
+        );
+        assertEvaluate(
+            "lag(x) ignore nulls over()",
+            contains(new Object[]{null, 1, 2, 2}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{2},
+            new Object[]{null},
+            new Object[]{null}
+        );
+        assertEvaluate(
+            "lag(x,3,123) ignore nulls over()",
+            contains(new Object[]{123, 123, 123, 123, 1, 1, 1, 2, 3, 3, 4, 4}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{2},
+            new Object[]{null},
+            new Object[]{3},
+            new Object[]{null},
+            new Object[]{null},
+            new Object[]{4},
+            new Object[]{5},
+            new Object[]{null},
+            new Object[]{6},
+            new Object[]{null},
+            new Object[]{7}
+        );
+    }
+
     private static final List<ColumnIdent> INTERVAL_COLS = List.of(new ColumnIdent("x"), new ColumnIdent("y"));
 
     private static final Object[][] INTERVAL_DATA = new Object[][]{
