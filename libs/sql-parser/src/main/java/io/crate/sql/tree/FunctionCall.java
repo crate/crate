@@ -21,6 +21,7 @@
 
 package io.crate.sql.tree;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -32,21 +33,25 @@ public class FunctionCall extends Expression {
     private final List<Expression> arguments;
     private final Optional<Window> window;
     private final Optional<Expression> filter;
+    @Nullable
+    private final Boolean ignoreNulls;
 
     public FunctionCall(QualifiedName name, List<Expression> arguments) {
-        this(name, false, arguments, Optional.empty(), Optional.empty());
+        this(name, false, arguments, Optional.empty(), Optional.empty(), null);
     }
 
     public FunctionCall(QualifiedName name,
                         boolean distinct,
                         List<Expression> arguments,
                         Optional<Window> window,
-                        Optional<Expression> filter) {
+                        Optional<Expression> filter,
+                        @Nullable Boolean ignoreNulls) {
         this.name = name;
         this.distinct = distinct;
         this.arguments = arguments;
         this.window = window;
         this.filter = filter;
+        this.ignoreNulls = ignoreNulls;
     }
 
     public QualifiedName getName() {
@@ -69,6 +74,11 @@ public class FunctionCall extends Expression {
         return filter;
     }
 
+    @Nullable
+    public Boolean ignoreNulls() {
+        return ignoreNulls;
+    }
+
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitFunctionCall(this, context);
@@ -87,11 +97,12 @@ public class FunctionCall extends Expression {
                Objects.equals(name, that.name) &&
                Objects.equals(arguments, that.arguments) &&
                Objects.equals(window, that.window) &&
-               Objects.equals(filter, that.filter);
+               Objects.equals(filter, that.filter) &&
+               Objects.equals(ignoreNulls, that.ignoreNulls);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, distinct, arguments, window, filter);
+        return Objects.hash(name, distinct, arguments, window, filter, ignoreNulls);
     }
 }

@@ -208,7 +208,8 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
             replacedFunctionArgs,
             windowFunction.valueType(),
             filterWithReplacedArgs,
-            windowFunction.windowDefinition().map(x -> x.accept(this, sourceSymbols))
+            windowFunction.windowDefinition().map(x -> x.accept(this, sourceSymbols)),
+            windowFunction.ignoreNulls()
         );
     }
 

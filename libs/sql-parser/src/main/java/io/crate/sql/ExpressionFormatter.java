@@ -344,6 +344,14 @@ public final class ExpressionFormatter {
                     .append(formatExpression(filter))
                     .append(")"));
 
+            if (node.ignoreNulls() != null) {
+                if (node.ignoreNulls() == Boolean.TRUE) {
+                    builder.append(" IGNORE NULLS");
+                } else {
+                    builder.append(" RESPECT NULLS");
+                }
+            }
+
             node.getWindow()
                 .ifPresent(window -> builder
                     .append(" OVER ")

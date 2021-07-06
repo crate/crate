@@ -33,10 +33,10 @@ The synopsis of a window function call is one of the following
 
 ::
 
-   function_name ([expression [, expression ... ]])
+   function_name ( { * | [ expression [, expression ... ] ] } )
                  [ FILTER ( WHERE condition ) ]
+                 [ { RESPECT | IGNORE } NULLS ]
                  over_clause
-   function_name ( * ) [ FILTER ( WHERE condition ) ] over_clause
 
 where ``function_name`` is a name of a :ref:`general-purpose window
 <window-functions-general-purpose>` or :ref:`aggregate function
@@ -47,6 +47,13 @@ If ``FILTER`` is specified, then only the rows that met the :ref:`WHERE
 <sql-select-where>` condition are supplied to the window function. Only window
 functions that are :ref:`aggregates <aggregation>` accept the ``FILTER``
 clause.
+
+If ``IGNORE NULLS`` option is specified, then the null values are excluded from
+the window function executions. The window functions that support this option
+are: :ref:`window-functions-lead`, :ref:`window-functions-lag`,
+:ref:`window-functions-first-value`, :ref:`window-functions-last-value`,
+and :ref:`window-functions-nth-value`. If a function supports this option and
+it is not specified, then ``RESPECT NULLS`` is set by default.
 
 The :ref:`window-definition-over` clause is what declares a function to be a
 window function.
