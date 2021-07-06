@@ -64,7 +64,7 @@ public class PerFieldMappingPostingFormatCodec extends Lucene87Codec {
 
     @Override
     public DocValuesFormat getDocValuesFormatForField(String field) {
-        return new Lucene80DocValuesFormat(Lucene80DocValuesFormat.Mode.BEST_COMPRESSION);
+        return new Lucene80DocValuesFormat(Lucene80DocValuesFormat.Mode.BEST_SPEED);
     }
 
 }
