@@ -40,11 +40,11 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import io.crate.action.FutureActionListener;
-import io.crate.action.LimitedExponentialBackoff;
 import io.crate.concurrent.limits.ConcurrencyLimit;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -145,7 +145,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
             scheduler,
             l -> operation.accept(request, l),
             listener,
-            LimitedExponentialBackoff.limitedExponential(nodeLimit)
+            BackoffPolicy.unlimitedDynamic(nodeLimit)
         );
     }
 

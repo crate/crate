@@ -143,11 +143,14 @@ public final class ConcurrencyLimit {
         return System.nanoTime();
     }
 
-    public final synchronized void onSample(long startTime, boolean didDrop) {
+    public final void onSample(long startTime, boolean didDrop) {
         long rtt = System.nanoTime() - startTime;
-        int newLimit = update(rtt, numInflight.decrementAndGet(), didDrop);
-        if (newLimit != limit) {
-            limit = newLimit;
+        int decrementedNumInflight = numInflight.decrementAndGet();
+        synchronized (this) {
+            int newLimit = update(rtt, decrementedNumInflight, didDrop);
+            if (newLimit != limit) {
+                limit = newLimit;
+            }
         }
     }
 
@@ -185,12 +188,13 @@ public final class ConcurrencyLimit {
         newLimit = Math.max(minLimit, Math.min(maxLimit, newLimit));
 
         if ((int)estimatedLimit != newLimit) {
-            LOG.debug("New limit={} shortRtt={} ms longRtt={} ms queueSize={} gradient={}",
+            LOG.debug("New limit={} lastRtt={} ms longRtt={} ms queueSize={} gradient={} inflight={}",
                     (int)newLimit,
                     getLastRtt(TimeUnit.MICROSECONDS) / 1000.0,
-                    getRttNoLoad(TimeUnit.MICROSECONDS) / 1000.0,
+                    getLongRtt(TimeUnit.MICROSECONDS) / 1000.0,
                     queueSize,
-                    gradient);
+                    gradient,
+                    inflight);
         }
 
         estimatedLimit = newLimit;
@@ -202,7 +206,7 @@ public final class ConcurrencyLimit {
         return units.convert(lastRtt, TimeUnit.NANOSECONDS);
     }
 
-    public long getRttNoLoad(TimeUnit units) {
+    public long getLongRtt(TimeUnit units) {
         return units.convert((long) longRtt.get(), TimeUnit.NANOSECONDS);
     }
 
