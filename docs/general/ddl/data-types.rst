@@ -69,19 +69,30 @@ CrateDB will insert a ``NULL`` value for that column.
 For example::
 
     cr> CREATE TABLE users (
-    ...   first_name TEXT,
-    ...   surname TEXT
+    ...     first_name TEXT,
+    ...     surname TEXT
     ... );
     CREATE OK, 1 row affected (... sec)
 
 Insert a record without specifying ``surname``::
 
-    cr> INSERT INTO users (first_name) VALUES ('Alice');
+    cr> INSERT INTO users (
+    ...     first_name
+    ... ) VALUES (
+    ...     'Alice'
+    ... );
     CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
 
 The resulting row will have a ``NULL`` value for ``surname``::
 
-    cr> SELECT first_name, surname
+    cr> SELECT
+    ...     first_name,
+    ...     surname
     ... FROM users
     ... WHERE first_name = 'Alice';
     +------------+---------+
@@ -91,27 +102,34 @@ The resulting row will have a ``NULL`` value for ``surname``::
     +------------+---------+
     SELECT 1 row in set (... sec)
 
+.. HIDE:
+
+    cr> DROP TABLE users;
+    DROP OK, 1 row affected (... sec)
+
 You can prevent ``NULL`` values being inserted altogether with a :ref:`NOT NULL
 constraint <not_null_constraint>`, like so::
 
-    cr> CREATE TABLE users2 (
-    ...   first_name TEXT,
-    ...   surname TEXT NOT NULL
+    cr> CREATE TABLE users_with_surnames (
+    ...     first_name TEXT,
+    ...     surname TEXT NOT NULL
     ... );
     CREATE OK, 1 row affected (... sec)
 
 Now, when you try to insert a user without a surname, it will produce an
 error::
 
-    cr> INSERT INTO users2 (first_name) VALUES ('Alice');
+    cr> INSERT INTO users_with_surnames (
+    ...     first_name
+    ... ) VALUES (
+    ...     'Alice'
+    ... );
     SQLParseException["surname" must not be null]
-
 
 .. HIDE:
 
-    cr> DROP TABLE users;
+    cr> DROP TABLE users_with_surnames;
     DROP OK, 1 row affected (... sec)
-
 
 
 .. _data-types-boolean-values:
@@ -128,14 +146,38 @@ A basic boolean type accepting ``true`` and ``false`` as values.
 
 Example::
 
-    cr> CREATE TABLE my_bool_table (
-    ...   first_column BOOLEAN
+    cr> CREATE TABLE my_table (
+    ...     first_column BOOLEAN
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
     ... );
     CREATE OK, 1 row affected (... sec)
 
 .. HIDE:
 
-    cr> DROP TABLE my_bool_table;
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +------------+
+    | TODO       |
+    +------------+
+    | Alice      |
+    +------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
     DROP OK, 1 row affected (... sec)
 
 
@@ -178,20 +220,35 @@ of the character data type results in an error.
 
 ::
 
-    cr> CREATE TABLE users (id VARCHAR, name VARCHAR(6));
+    cr> CREATE TABLE users (
+    ...     id VARCHAR,
+    ...     name VARCHAR(6)
+    ... );
     CREATE OK, 1 row affected (... sec)
 
 ::
 
-    cr> INSERT INTO users (id, name) VALUES ('1361', 'john doe');
-    SQLParseException['john doe' is too long for the text type of length: 6]
+    cr> INSERT INTO users (
+    ...     id,
+    ...     name
+    ... ) VALUES (
+    ...     '1',
+    ...     'Alice Smith'
+    ... );
+    SQLParseException['Alice Smith' is too long for the text type of length: 6]
 
 If the excess characters are all spaces, the string literal will be truncated
 to the specified length.
 
 ::
 
-    cr> INSERT INTO users (id, name) VALUES ('1', 'john     ');
+    cr> INSERT INTO users (
+    ...     id,
+    ...     name
+    ... ) VALUES (
+    ...     '2',
+    ...     'Bob     '
+    ... );
     INSERT OK, 1 row affected (... sec)
 
 .. HIDE:
@@ -201,11 +258,15 @@ to the specified length.
 
 ::
 
-    cr> SELECT id, name, char_length(name) AS name_length FROM users;
+    cr> SELECT
+    ...    id,
+    ...    name,
+    ...    char_length(name) AS name_length
+    ... FROM users;
     +----+------+-------------+
     | id | name | name_length |
     +----+------+-------------+
-    | 1  | john |           6 |
+    | 1  | Bob  |           3 |
     +----+------+-------------+
     SELECT 1 row in set (... sec)
 
@@ -214,12 +275,12 @@ will be truncated to ``n`` characters without raising an error.
 
 ::
 
-    cr> SELECT 'john doe'::VARCHAR(4) AS name;
-    +------+
-    | name |
-    +------+
-    | john |
-    +------+
+    cr> SELECT 'Alice Smith'::VARCHAR(5) AS name;
+    +-------+
+    | name  |
+    +-------+
+    | Alice |
+    +-------+
     SELECT 1 row in set (... sec)
 
 ``CHARACTER VARYING`` and ``VARCHAR`` without the length specifier are
@@ -242,8 +303,34 @@ characters are allowed.
 
 ::
 
-    cr> CREATE TABLE users (name TEXT);
+    cr> CREATE TABLE users (
+    ...     name TEXT
+    ... );
     CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO users (
+    ...     name
+    ... ) VALUES (
+    ...     'Alice'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE users;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM users;
+    +-------+
+    | name  |
+    +-------+
+    | Alice |
+    +-------+
+    SELECT 1 row in set (... sec)
 
 .. HIDE:
 
@@ -276,50 +363,49 @@ The optional length specification ``n`` is a positive :ref:`integer
 values that have to be stored or cast. The minimum length is ``1``. The maximum
 length is defined by the upper :ref:`integer <data-type-numeric>` range.
 
-An example:
+For example::
 
-::
-
-  B'00010010'
-
-
-::
-
-  cr> CREATE TABLE metrics (bits BIT(4));
+  cr> CREATE TABLE my_table (
+  ...     bit_mask BIT(4)
+  ... );
   CREATE OK, 1 row affected (... sec)
 
-
-  cr> INSERT INTO metrics (bits) VALUES (B'0110');
-  INSERT OK, 1 row affected  (... sec)
-
-
-Inserting values that are either too short or too long results in an error:
-
 ::
 
-  cr> INSERT INTO metrics (bits) VALUES (B'00101');
-  SQLParseException[bit string length 5 does not match type bit(4)]
+  cr> INSERT INTO my_table (
+  ...     bit_mask
+  ... ) VALUES (
+  ...     B'0110'
+  ... );
+  INSERT OK, 1 row affected  (... sec)
 
+.. HIDE:
 
-.. hide:
-
-    cr> REFRESH TABLE metrics;
+    cr> REFRESH TABLE my_table;
     REFRESH OK, 1 row affected (... sec)
 
 ::
 
-    cr> SELECT bits FROM metrics;
-    +---------+
-    | bits    |
-    +---------+
-    | B'0110' |
-    +---------+
+    cr> SELECT bit_mask FROM my_table;
+    +----------+
+    | bit_mask |
+    +----------+
+    | B'0110'  |
+    +----------+
     SELECT 1 row in set (... sec)
 
+Inserting values that are either too short or too long results in an error::
 
-.. hide:
+  cr> INSERT INTO my_table (
+  ...     bit_mask
+  ... ) VALUES (
+  ...    B'00101'
+  ... );
+  SQLParseException[bit string length 5 does not match type bit(4)]
 
-    cr> DROP TABLE metrics;
+.. HIDE:
+
+    cr> DROP TABLE my_table;
     DROP OK, 1 row affected (... sec)
 
 
@@ -356,7 +442,10 @@ CrateDB supports the following numeric types:
     ``-Infinity`` (negative infinity), and ``-0`` (signed zero) are all
     supported::
 
-        cr> SELECT 0.0 / 0.0 AS a, 1.0 / 0.0 as B, 1.0 / -0.0 AS c;
+        cr> SELECT
+        ...     0.0 / 0.0 AS a,
+        ...     1.0 / 0.0 AS B,
+        ...     1.0 / -0.0 AS c;
         +-----+----------+-----------+
         | a   | b        | c         |
         +-----+----------+-----------+
@@ -369,21 +458,44 @@ CrateDB supports the following numeric types:
 
     For instance::
 
-        cr> CREATE TABLE my_table3 (
-        ...   first_column INTEGER,
-        ...   second_column BIGINT,
-        ...   third_column SMALLINT,
-        ...   fourth_column DOUBLE PRECISION,
-        ...   fifth_column REAL,
-        ...   sixth_column CHAR
+        cr> CREATE TABLE my_table (
+        ...     column_1 INTEGER,
+        ...     column_2 BIGINT,
+        ...     column_3 SMALLINT,
+        ...     column_4 DOUBLE PRECISION,
+        ...     column_5 REAL,
+        ...     column_6 CHAR
         ... );
         CREATE OK, 1 row affected (... sec)
 
     ::
 
-        cr> INSERT INTO my_table3 (fourth_column, fifth_column)
-        ... VALUES ('NaN', 'Infinity');
+        cr> INSERT INTO my_table (
+        ...     column_4,
+        ...     column_5
+        ... ) VALUES (
+        ...     'NaN',
+        ...     'Infinity'
+        ... );
         INSERT OK, 1 row affected (... sec)
+
+    ::
+
+        cr> SELECT
+        ...     column_4,
+        ...     column_5
+        ... FROM my_table;
+        +----------+----------+
+        | column_4 | column_5 |
+        +----------+----------+
+        | NaN      | Infinity |
+        +----------+----------+
+        SELECT 1 row in set (... sec)
+
+    .. HIDE:
+
+        cr> DROP TABLE my_table;
+        DROP OK, 1 row affected (... sec)
 
 
 .. _type-smallint:
@@ -395,12 +507,41 @@ A small integer.
 
 Limited to two bytes, with a range from -32,768 to 32,767.
 
-Example:
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     number SMALLINT
+    ... );
+    CREATE OK, 1 row affected (... sec)
 
 ::
 
-  cr> CREATE TABLE my_table2_1 (first_column SMALLINT);
-  CREATE OK, 1 row affected (... sec)
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     32767
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT number FROM my_table;
+    +--------+
+    | number |
+    +--------+
+    | 32767  |
+    +--------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
 
 
 .. _type-integer:
@@ -412,12 +553,41 @@ An integer.
 
 Limited to four bytes, with a range from -2^31 to 2^31-1.
 
-Example:
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     number INTEGER
+    ... );
+    CREATE OK, 1 row affected (... sec)
 
 ::
 
-  cr> CREATE TABLE my_table2_2 (first_column INTEGER);
-  CREATE OK, 1 row affected (... sec)
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     2147483647
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT number FROM my_table;
+    +------------+
+    | number     |
+    +------------+
+    | 2147483647 |
+    +------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
 
 
 .. _type-bigint:
@@ -433,8 +603,39 @@ Example:
 
 ::
 
-  cr> CREATE TABLE my_table2_3 (first_column BIGINT);
-  CREATE OK, 1 row affected (... sec)
+    cr> CREATE TABLE my_table (
+    ...     number BIGINT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     9223372036854775807
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT number FROM my_table;
+    +---------------------+
+    | number              |
+    +---------------------+
+    | 9223372036854775807 |
+    +---------------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
 
 
 .. _type-numeric:
@@ -450,9 +651,9 @@ Variable size, with up to 131072 digits before the decimal point and up to
 For example, using a :ref:`cast from a string literal
 <data-types-casting-str>`::
 
-    cr> SELECT NUMERIC(5, 2) '123.45' AS num limit 100;
+    cr> SELECT NUMERIC(5, 2) '123.45' AS number;
     +--------+
-    | num    |
+    | number |
     +--------+
     | 123.45 |
     +--------+
@@ -461,8 +662,10 @@ For example, using a :ref:`cast from a string literal
 .. NOTE::
 
     The ``NUMERIC`` type is only supported as a type literal (i.e., for use in
-    SQL :ref:`expressions <gloss-expression>`, as above). You cannot create
-    table columns of type ``NUMERIC``.
+    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
+    <data-types-casting-exp>`, as above).
+
+    You cannot create table columns of type ``NUMERIC``.
 
 This type is usually used when it is important to preserve exact precision
 or handle values that exceed the range of the numeric types of the fixed
@@ -499,17 +702,76 @@ more detailed information about its behaviour, see `BigDecimal documentation`_.
 ``REAL``
 ''''''''
 
-An inexact number with variable precision supporting `single-precision
-floating-point`_ values.
+An inexact `single-precision floating-point`_ value.
 
-Limited to four bytes, with six decimal digits precision.
+Limited to four bytes, with six to nine decimal digits precision.
 
 Example:
 
 ::
 
-  cr> CREATE TABLE my_table2_4 (first_column REAL);
-  CREATE OK, 1 row affected (... sec)
+    cr> CREATE TABLE my_table (
+    ...     number REAL
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     3.4028235e+38
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. TIP::
+
+    ``3.4028235+38`` represents the value 3.4028235 × 10\ :sup:`38`
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT number FROM my_table;
+    +---------------+
+    | number        |
+    +---------------+
+    | 3.4028235e+38 |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+You can insert values which exceed the maximum precision, like so::
+
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     3.4028234664e+38
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+However, the recorded value will be an approximation of the original (i.e., the
+additional precision is lost)::
+
+    cr> SELECT number FROM my_table;
+    +---------------+
+    | number        |
+    +---------------+
+    | 3.4028235e+38 |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
 
 .. SEEALSO::
 
@@ -524,14 +786,75 @@ Example:
 An inexact number with variable precision supporting `double-precision
 floating-point`_ values.
 
-Limited to eight bytes, with 15 decimal digits precision.
+Limited to eight bytes, with 15 to 17 decimal digits precision.
 
 Example:
 
 ::
 
-  cr> CREATE TABLE my_table2_5 (first_column DOUBLE PRECISION);
-  CREATE OK, 1 row affected (... sec)
+    cr> CREATE TABLE my_table (
+    ...     number DOUBLE PRECISION
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     1.7976931348623157e+308
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. TIP::
+
+    ``1.7976931348623157e+308`` represents the value 1.7976931348623157 × 10\
+    :sup:`308`
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT number FROM my_table;
+    +-------------------------+
+    | TODO                    |
+    +-------------------------+
+    | 1.7976931348623157e+308 |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
+You can insert values which exceed the maximum precision, like so::
+
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     1.79769313486231572014e+308
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+However, the recorded value will be an approximation of the original (i.e., the
+additional precision is lost)::
+
+    cr> SELECT number FROM my_table;
+    +-------------------------+
+    | number                  |
+    +-------------------------+
+    | 1.7976931348623157e+308 |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
 
 .. SEEALSO::
 
@@ -549,8 +872,9 @@ CrateDB supports the following types for dates and times:
    :local:
    :depth: 2
 
-The ``+`` and ``-`` :ref:`operators <gloss-operator>` can be used to create
-:ref:`arithmetic expressions <arithmetic>` with temporal operands:
+With a few exceptions (noted below) the ``+`` and ``-`` :ref:`operators
+<gloss-operator>` can be used to create :ref:`arithmetic expressions
+<arithmetic>` with temporal operands:
 
 +---------------+----------------+---------------+
 | Operand       | Operator       | Operand       |
@@ -566,8 +890,9 @@ The ``+`` and ``-`` :ref:`operators <gloss-operator>` can be used to create
 
 .. NOTE::
 
-    If a column is dynamically created, the type detection will not recognize
-    date and time types, meaning that date and time type columns must always be
+    If an object column is :ref:`dynamically created
+    <type-object-columns-dynamic>`, the type detection will not recognize date
+    and time types, meaning that date and time type columns must always be
     declared beforehand.
 
 
@@ -576,92 +901,46 @@ The ``+`` and ``-`` :ref:`operators <gloss-operator>` can be used to create
 ``TIMESTAMP``
 '''''''''''''
 
-**TODO: example of creating a table with this type**
+A timestamp expresses a specific date and time as the number of milliseconds
+since the `Unix epoch`_ (i.e., ``1970-01-01T00:00:00Z``).
 
-The ``TIMESTAMP`` type holds the concatenation of a date and time, followed by
-an optional time zone.
-
-For example::
-
-    cr> SELECT '1970-01-02T00:00:00'::TIMESTAMP AS ts;
-    +----------+
-    |       ts |
-    +----------+
-    | 82800000 |
-    +----------+
-    SELECT 1 row in set (... sec)
-
-Internally, timestamp values are mapped to the UTC milliseconds since
-``1970-01-01T00:00:00Z`` stored as ``BIGINT``. Timestamps are always returned
-as ``BIGINT`` values.
-
-Timestamps are limited to eight bytes. Due to internal date parsing, the full
-``BIGINT`` range is not supported for timestamp values. The valid range of
-dates is from ``292275054BC`` to ``292278993AD``.
-
-The syntax for timestamp string literals is as follows:
+Timestamps can be expressed as string literals (e.g.,
+``'1970-01-02T00:00:00'``) with the following syntax:
 
 .. code-block:: text
 
     date-element [time-separator [time-element [offset]]]
 
-    time-separator: 'T' | ' '
     date-element:   yyyy-MM-dd
+    time-separator: 'T' | ' '
     time-element:   HH:mm:ss [fraction]
     fraction:       '.' digit+
     offset:         {+ | -} HH [:mm] | 'Z'
 
-For more detailed information about the date and time elements, see
-`pattern letters and symbols`_.
+.. SEEALSO::
+
+    For more information about date and time formatting, see `Java 15\:
+    Patterns for Formatting and Parsing`_.
+
+    Time zone syntax as defined by `ISO 8601 time zone designators`_.
+
+Internally, CrateDB stores timestamps as :ref:`BIGINT <type-bigint>`
+values, which are limited to eight bytes.
 
 .. CAUTION::
 
+    Due to internal date parsing, the full ``BIGINT`` range is not supported
+    for timestamp values. The valid range of dates is from ``292275054BC`` to
+    ``292278993AD``.
+
     When inserting timestamps smaller than ``-999999999999999`` (equals to
-    ``-29719-04-05T22:13:20.001Z``) or bigger than ``999999999999999`` (equals to
-    ``33658-09-27T01:46:39.999Z``) rounding issues may occur.
+    ``-29719-04-05T22:13:20.001Z``) or bigger than ``999999999999999`` (equals
+    to ``33658-09-27T01:46:39.999Z``) rounding issues may occur.
 
+If you cast a :ref:`BIGINT <type-bigint>` to a ``TIMEZONE``, the integer value
+will be interpreted as the number of milliseconds since the Unix epoch::
 
-The ``TIMESTAMP`` type can be specified ``WITHOUT TIME ZONE``::
-
-    cr> SELECT '1970-01-02T00:00:00+0200'::TIMESTAMP WITHOUT TIME ZONE AS ts,
-    ...        '1970-01-02T00:00:00+0400'::TIMESTAMP WITHOUT TIME ZONE AS ts,
-    ...        '1970-01-02T00:00:00Z'::TIMESTAMP WITHOUT TIME ZONE AS ts,
-    ...        '1970-01-02 00:00:00Z'::TIMESTAMP WITHOUT TIME ZONE AS ts_sql_format;
-    +----------+----------+----------+---------------+
-    |       ts |       ts |       ts | ts_sql_format |
-    +----------+----------+----------+---------------+
-    | 86400000 | 86400000 | 86400000 |      86400000 |
-    +----------+----------+----------+---------------+
-    SELECT 1 row in set (... sec)
-
-A ``TIMESTAMP`` without a timezone will be converted to `Coordinated Universal
-Time`_ (UTC) without the ``offset``.
-
-.. NOTE::
-
-    ``TIMESTAMP WITHOUT TIME ZONE`` is equivalent to ``TIMESTAMP``.
-
-If you specify ``WITH TIME ZONE``, the ``TIMESTAMP`` will be converted to UTC
-using the ``offset`` value (e.g., ``+0100`` for plus one hour or ``Z`` for
-UTC)::
-
-    cr> select '1970-01-02T00:00:00+0100'::timestamp with time zone as ts_z,
-    ...        '1970-01-02T00:00:00Z'::timestamp with time zone ts_z,
-    ...        '1970-01-02T00:00:00'::timestamp with time zone ts_z,
-    ...        '1970-01-02 00:00:00'::timestamp with time zone ts_z_sql_format;
-    +----------+----------+----------+-----------------+
-    |     ts_z |     ts_z |     ts_z | ts_z_sql_format |
-    +----------+----------+----------+-----------------+
-    | 82800000 | 86400000 | 86400000 |        86400000 |
-    +----------+----------+----------+-----------------+
-    SELECT 1 row in set (... sec)
-
-
-Timestamps will also accept a ``BIGINT`` representing UTC milliseconds since
-the epoch or a ``REAL`` or ``DOUBLE PRECISION`` representing UTC seconds since
-the epoch with milliseconds as fractions::
-
-    cr> SELECT 1.0::TIMESTAMP WITH TIME ZONE AS ts;
+    cr> SELECT 1000::TIMESTAMP AS ts;
     +------+
     |   ts |
     +------+
@@ -669,35 +948,337 @@ the epoch with milliseconds as fractions::
     +------+
     SELECT 1 row in set (... sec)
 
-The addition of ``AT TIME ZONE`` to the data type :ref:`expressions
-<gloss-expression>` will convert a timestamp *without* time zone to or from a
-timestamp *with* time zone::
+If you cast a :ref:`REAL <type-real>` or a :ref:`DOUBLE PRECISION
+<type-double-precision>` to a ``TIMESTAMP``, the numeric value wil be
+interpreted as the number of seconds since the Unix epoch, with fractional
+values approximated to the nearest millisecond::
 
-    cr> SELECT '1970-01-02T00:00:00'::TIMESTAMP AT TIME ZONE '+01:00' AS ts_z;
-    +----------+
-    |     ts_z |
-    +----------+
-    | 90000000 |
-    +----------+
+    cr> SELECT 1.5::TIMESTAMP AS ts;
+    +------+
+    |   ts |
+    +------+
+    | 1500 |
+    +------+
     SELECT 1 row in set (... sec)
 
-The return types are as follows:
+A ``TIMESTAMP`` can be further defined as:
 
-.. csv-table::
-   :header: "Expression", "Return Type", "Description"
+.. contents::
+   :local:
+   :depth: 1
 
-   "``TIMESTAMP WITHOUT TIME ZONE AT TIME ZONE zone``", "``TIMESTAMP WITH TIME
-   ZONE``", "Add the time ``zone`` to the given ``TIMESTAMP``"
-   "``TIMESTAMP WITH TIME ZONE AT TIME ZONE zone``", "``TIMESTAMP WITHOUT TIME
-   ZONE``", "Remove the time ``zone`` from the given ``TIMESTAMP``"
 
-The time ``zone`` is specified as a string (e.g., ``Europe/Madrid`` or
-``+02:00``).
+.. _type-timestamp-with-tz:
+
+``WITH TIME ZONE``
+..................
+
+If you define a timestamp as ``TIMESTAMP WITH TIME ZONE``, CrateDB will convert
+string literals to `Coordinated Universal Time`_ (UTC) using the ``offset``
+value (e.g., ``+01:00`` for plus one hour or ``Z`` for UTC).
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     ts_tz_1 TIMESTAMP WITH TIME ZONE,
+    ...     ts_tz_2 TIMESTAMP WITH TIME ZONE
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     ts_tz_1,
+    ...     ts_tz_2
+    ... ) VALUES (
+    ...     '1970-01-02T00:00:00',
+    ...     '1970-01-02T00:00:00+01:00'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT
+    ...     ts_tz_1,
+    ...     ts_tz_2
+    ... FROM my_table;
+    +----------+----------+
+    |  ts_tz_1 |  ts_tz_2 |
+    +----------+----------+
+    | 86400000 | 82800000 |
+    +----------+----------+
+    SELECT 1 row in set (... sec)
+
+You can use :ref:`data_format() <date_format>` to to make the output easier to
+read::
+
+    cr> SELECT
+    ...     date_format('%Y-%m-%dT%H:%i', ts_tz_1) AS ts_tz_1,
+    ...     date_format('%Y-%m-%dT%H:%i', ts_tz_2) AS ts_tz_2
+    ... FROM my_table;
+    +------------------+------------------+
+    | ts_tz_1          | ts_tz_2          |
+    +------------------+------------------+
+    | 1970-01-02T00:00 | 1970-01-01T23:00 |
+    +------------------+------------------+
+    SELECT 1 row in set (... sec)
+
+Notice that ``ts_tz_2`` is smaller than ``ts_tz_1`` by one hour. CrateDB used
+the ``+01:00`` offset (i.e., *ahead of UTC by one hour*) to convert the second
+timestamp into UTC prior to insertion. Contrast this with the behavior of
+:ref:`WITHOUT TIME ZONE <type-timestamp-without-tz>`.
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
 
 .. NOTE::
 
-    ``AT TIME ZONE zone`` is equivalent to :ref:`TIMEZONE(zone, timestamp)
-    <scalar-timezone>`.
+    ``TIMESTAMPTZ`` is an alias for ``TIMESTAMP WITH TIME ZONE``.
+
+.. CAUTION::
+
+    In the absence of an explicit :ref:`WITH TIME ZONE
+    <type-timestamp-with-tz>` or :ref:`WITHOUT TIME ZONE
+    <type-timestamp-without-tz>`, CrateDB will interpret ``TIMEZONE`` as an
+    alias for ``TIMESTAMP WITH TIME ZONE``.
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. CrateDB 4.0 :ref:`deprecated this alias <v4.0.0-deprecations>`
+    and behavior may change in a future version of CrateDB (see `tracking issue
+    #11491`_). To avoid issued, we recommend that you always specify ``WITH
+    TIME ZONE`` or ``WITHOUT TIME ZONE``.
+
+
+.. _type-timestamp-without-tz:
+
+``WITHOUT TIME ZONE``
+.....................
+
+If you define a timestamp as ``TIMESTAMP WITHOUT TIME ZONE``, CrateDB will
+convert string literals to `Coordinated Universal Time`_ (UTC) without using
+the ``offset`` value (i.e., any time zone information present is stripped prior
+to insertion).
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     ts_1 TIMESTAMP WITHOUT TIME ZONE,
+    ...     ts_2 TIMESTAMP WITHOUT TIME ZONE
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     ts_1,
+    ...     ts_2
+    ... ) VALUES (
+    ...     '1970-01-02T00:00:00',
+    ...     '1970-01-02T00:00:00+01:00'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+Using the :ref:`data_format() <date_format>` function, for readability::
+
+    cr> SELECT
+    ...     date_format('%Y-%m-%dT%H:%i', ts_1) AS ts_1,
+    ...     date_format('%Y-%m-%dT%H:%i', ts_2) AS ts_2
+    ... FROM my_table;
+    +------------------+------------------+
+    | ts_1             | ts_2             |
+    +------------------+------------------+
+    | 1970-01-02T00:00 | 1970-01-02T00:00 |
+    +------------------+------------------+
+    SELECT 1 row in set (... sec)
+
+Notice that ``ts_1`` and ``ts_2`` are identical. CrateDB ignored the ``+01:00``
+offset (i.e., *ahead of UTC by one hour*) when processing the second string
+literal. Contrast this with the behavior of :ref:`WITH TIME ZONE
+<type-timestamp-with-tz>`.
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+.. CAUTION::
+
+    In the absence of an explicit :ref:`WITH TIME ZONE
+    <type-timestamp-with-tz>` or :ref:`WITHOUT TIME ZONE
+    <type-timestamp-without-tz>`, CrateDB will interpret ``TIMEZONE`` as an
+    alias for ``TIMESTAMP WITH TIME ZONE``.
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. CrateDB 4.0 :ref:`deprecated this alias <v4.0.0-deprecations>`
+    and behavior may change in a future version of CrateDB (see `tracking issue
+    #11491`_). To avoid issued, we recommend that you always specify ``WITH
+    TIME ZONE`` or ``WITHOUT TIME ZONE``.
+
+
+.. _type-timestamp-at-tz:
+
+``AT TIME ZONE``
+................
+
+You can use the ``AT TIME ZONE`` clause to modify a timestamp in one of two
+different ways:
+
+.. contents::
+   :local:
+   :depth: 1
+
+.. NOTE::
+
+    The ``AT TIME ZONE`` type is only supported as a type literal (i.e., for
+    use in SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
+    <data-types-casting-exp>`, as below).
+
+    You cannot create table columns of type ``NUMERIC``.
+
+
+.. _type-timestamp-tz-at-tz-convert:
+
+Convert a timestamp time zone
+`````````````````````````````
+
+If you use ``AT TIME ZONE tz`` with a ``TIMESTAMP WITH TIME ZONE``, CrateDB
+will convert timestamp to time zone ``tz`` and cast the return value as a
+:ref:`TIMESTAMP WITHOUT TIME ZONE <type-timestamp-without-tz>` (which discards
+the the time zone information). This process effectively allows you to correct
+the offset used to calculate UTC.
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     ts_tz TIMESTAMP WITH TIME ZONE
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     ts_tz
+    ... ) VALUES (
+    ...     '1970-01-02T00:00:00'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+Using the :ref:`data_format() <date_format>` function, for readability::
+
+    cr> SELECT date_format(
+    ...     '%Y-%m-%dT%H:%i', ts_tz AT TIME ZONE '+01:00'
+    ... ) AS ts
+    ... FROM my_table;
+    +------------------+
+    | ts               |
+    +------------------+
+    | 1970-01-02T01:00 |
+    +------------------+
+    SELECT 1 row in set (... sec)
+
+.. TIP::
+
+    The ``AT TIME ZONE`` clause does the same as the :ref:`timezone()
+    <scalar-timezone>` function::
+
+        cr> SELECT date_format(
+        ...     '%Y-%m-%dT%H:%i', timezone('+01:00', ts_tz)
+        ... ) AS ts
+        ... FROM my_table;
+        +------------------+------------------+
+        | ts_1             | ts_2             |
+        +------------------+------------------+
+        | 1970-01-02T01:00 | 1970-01-02T01:00 |
+        +------------------+------------------+
+        SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+
+.. _type-timestamp-at-tz-add:
+
+Add a timestamp time zone
+`````````````````````````
+
+If you use ``AT TIME ZONE`` with a :ref:`TIMESTAMP WITHOUT TIME ZONE
+<type-timestamp-with-tz>`, CrateDB will add the missing time zone information,
+recalculate the timestamp in UTC, and cast the return value as a
+:ref:`TIMESTAMP WITH TIME ZONE <type-timestamp-without-tz>`.
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     ts TIMESTAMP WITHOUT TIME ZONE
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     ts
+    ... ) VALUES (
+    ...     '1970-01-02T00:00:00'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+Using the :ref:`data_format() <date_format>` function, for readability::
+
+    cr> SELECT date_format(
+    ...     '%Y-%m-%dT%H:%i', ts AT TIME ZONE '+01:00'
+    ... ) AS ts_tz
+    ... FROM my_table;
+    +------------------+
+    | ts_tz            |
+    +------------------+
+    | 1970-01-01T23:00 |
+    +------------------+
+    SELECT 1 row in set (... sec)
+
+.. TIP::
+
+    The ``AT TIME ZONE`` clause does the same as the :ref:`timezone()
+    <scalar-timezone>` function::
+
+        cr> SELECT date_format(
+        ...     '%Y-%m-%dT%H:%i', timezone('+01:00', ts)
+        ... ) AS ts_tz
+        ... FROM my_table;
+        +------------------+
+        | ts_tz            |
+        +------------------+
+        | 1970-01-01T23:00 |
+        +------------------+
+        SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
 
 
 .. _type-time:
@@ -705,37 +1286,30 @@ The time ``zone`` is specified as a string (e.g., ``Europe/Madrid`` or
 ``TIME``
 ''''''''
 
-**TODO: WITH TIME ZONE appears to be non-optional. waiting on feedback to
-confirm before editing this section any further**
-
-**TODO: example of creating a table with this type**
-
-The ``TIME`` type holds a time followed by an optional time zone.
-
-For example::
-
-    cr> SELECT '13:59:59'::TIME AS t;
-    +----------+
-    |        t |
-    +----------+
-    | 82800000 |
-    +----------+
-    SELECT 1 row in set (... sec)
-
-
-.. contents::
-   :local:
-   :depth: 1
+A ``TIME`` expresses a specific time as the number of milliseconds
+since midnight along with a time zone offset.
 
 Limited to 12 bytes, with a time range from ``00:00:00.000000`` to
 ``23:59:59.999999`` and a time zone range from ``-18:00`` to ``18:00``.
 
-The time type consists of time followed by an optional time zone.
+.. NOTE::
 
-``TIMETZ`` is an alias for ``time with time zone``.
 
-``TIME WITH TIME ZONE`` literals can be constructed using a string literal
-and a cast. The syntax for string literal is as follows:
+    The ``TIME`` type is only supported as a type literal (i.e., for use in
+    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
+    <data-types-casting-exp>`, as below).
+
+.. CAUTION::
+
+    CrateDB does not support ``TIME`` by itself or ``TIME WITHOUT TIME ZONE``.
+    You must always specify ``TIME WITH TIME ZONE`` or its alias ``TIMETZ``.
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. This behavior may change in a future version of CrateDB (see
+    `tracking issue #11491`_).
+
+Times can be expressed as string literals (e.g., ``'13:00:00'``) with the
+following syntax:
 
 .. code-block:: text
 
@@ -747,13 +1321,79 @@ and a cast. The syntax for string literal is as follows:
     offset:       {+ | -} time-only | geo-region
     geo-region:   As defined by ISO 8601.
 
+Above, ``fraction`` accepts up to six digits, with a precision in microseconds.
 
-Where ``time-only`` can contain optional seconds, or optional minutes and
-seconds, and can use ``:`` as a separator optionally.
+.. SEEALSO::
 
-``fraction`` accepts up to 6 digits, as precision is in micro seconds.
+    For more information about time formatting, see `Java 15\: Patterns for
+    Formatting and Parsing`_.
 
-Time zone syntax as defined by `ISO 8601 time zone designators`_.
+    Time zone syntax as defined by `ISO 8601 time zone designators`_.
+
+For example::
+
+    cr> SELECT '13:00:00'::TIMETZ AS t_tz;
+    +------------------+
+    | t_tz             |
+    +------------------+
+    | [46800000000, 0] |
+    +------------------+
+    SELECT 1 row in set (... sec)
+
+The value of first element is the number of milliseconds since midnight. The
+value of the second element is the number of seconds corresponding to the time
+zone offset (zero in this instance, as no time zone was specified).
+
+For example, with a ``+01:00`` time zone::
+
+    cr> SELECT '13:00:00+01:00'::TIMETZ AS t_tz;
+    +---------------------+
+    | t_tz                |
+    +---------------------+
+    | [46800000000, 3600] |
+    +---------------------+
+    SELECT 1 row in set (... sec)
+
+The time zone offset is calculated as 3600 seconds, which is equivalent to an
+hour.
+
+Negative time zone offsets will return negative seconds::
+
+    cr> SELECT '13:00:00-01:00'::TIMETZ AS t_tz;
+    +----------------------+
+    | t_tz                 |
+    +----------------------+
+    | [46800000000, -3600] |
+    +----------------------+
+    SELECT 1 row in set (... sec)
+
+Here's an example that uses fractional seconds::
+
+    cr> SELECT '13:59:59.999999'::TIMETZ as t_tz;
+    +------------------+
+    | 13:59:59.999999  |
+    +------------------+
+    | [50399999999, 0] |
+    +------------------+
+    SELECT 1 row in set (... sec)
+
+.. CAUTION::
+
+   The current implementation of the ``TIME`` data type has the following
+   limitations:
+
+   - ``TIME`` types cannot be :ref:`cast <data-types-casting-exp>` to
+     :ref:`TEXT <type-text>` types
+
+   - ``TIME`` types cannot be used in :ref:`arithmetic expressions
+     <arithmetic>`
+
+   can't perform arithmatic
+   SELECT '13:00:00'::TIMETZ - '1:00:00'::TIMETZ;
+   can't cast back to string
+   can't cast to interval
+   SELECT '13:00:00'::TIMETZ - interval '2 hour';
+
 
 .. NOTE::
 
@@ -761,7 +1401,7 @@ Time zone syntax as defined by `ISO 8601 time zone designators`_.
 
 ::
 
-    cr> SELECT '13:59:59.999999'::timetz;
+    cr> SELECT '13:59:59.999999'::TIMETZ;
     +------------------+
     | 13:59:59.999999  |
     +------------------+
@@ -771,7 +1411,7 @@ Time zone syntax as defined by `ISO 8601 time zone designators`_.
 
 ::
 
-    cr> SELECT '13:59:59.999999+02:00'::timetz;
+    cr> SELECT '13:59:59.999999+02:00'::TIMETZ;
     +-----------------------+
     | 13:59:59.999999+02:00 |
     +-----------------------+
@@ -807,7 +1447,7 @@ This format is the only currently supported for PostgreSQL clients.
 
 ::
 
-    cr> SELECT '2021-03-09'::date AS cd;
+    cr> SELECT '2021-03-09'::DATE AS cd;
     +---------------+
     |            cd |
     +---------------+
@@ -826,8 +1466,10 @@ The ``INTERVAL`` type represents a span of time.
 .. NOTE::
 
     The ``INTERVAL`` type is only supported as a type literal (i.e., for use in
-    SQL :ref:`expressions <gloss-expression>`, as above). You cannot create
-    table columns of type ``INTERVAL``.
+    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
+    <data-types-casting-exp>`, as above).
+
+    You cannot create table columns of type ``INTERVAL``.
 
 The basic syntax is::
 
@@ -841,6 +1483,17 @@ Where ``unit`` can be any of the following:
 - ``HOUR``
 - ``MINUTE``
 - ``SECOND``
+
+.. CAUTION::
+
+    The ``INTERVAL`` data type does not currently support the input units
+    ``MILLENNIUM``, ``CENTURY``, ``DECADE``, ``MILLISECOND``, or
+    ``MICROSECOND``.
+
+    This behaviour does not comply with standard SQL and is incompatible with
+    PostgreSQL. This behavior may change in a future version of CrateDB (see `tracking issue
+    #11490`_).
+
 
 For example::
 
@@ -861,7 +1514,6 @@ Intervals can be positive or negative::
     | -1 day 00:00:00 |
     +-----------------+
     SELECT 1 row in set (... sec)
-
 
 When using ``SECOND``, you can define fractions of a seconds (with a precision
 of zero to six digits)::
@@ -997,6 +1649,43 @@ For example::
     ... VALUES ('localhost', 'not.a.real.ip');
     SQLParseException[Cannot cast `'not.a.real.ip'` of type `text` to type `ip`]
 
+::
+
+    cr> CREATE TABLE my_table (
+    ...     TODO TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +--------------+
+    | TODO         |
+    +--------------+
+    | TODO         |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+
 IP addresses support the :ref:`operator <gloss-operator>` ``<<``, which checks
 for subnet inclusion using `CIDR notation`_. The left-hand :ref:`operand
 <gloss-operand>` must be of type :ref:`ip <ip-type>` and the right-hand must be
@@ -1057,10 +1746,47 @@ For example::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-.. hide:
+.. HIDE:
 
     cr> DROP TABLE my_table11;
     DROP OK, 1 row affected (... sec)
+
+::
+
+    cr> CREATE TABLE my_table (
+    ...     TODO TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +--------------+
+    | TODO         |
+    +--------------+
+    | TODO         |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
 
 The only required syntax is ``OBJECT``.
 
@@ -1097,10 +1823,47 @@ Example::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-.. hide:
+.. HIDE:
 
     cr> DROP TABLE my_table12;
     DROP OK, 1 row affected (... sec)
+
+::
+
+    cr> CREATE TABLE my_table (
+    ...     TODO TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +--------------+
+    | TODO         |
+    +--------------+
+    | TODO         |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
 
 Objects with a ``STRICT`` column policy and no ``columnDefinition`` will be
 have one unusable column that will always be null.
@@ -1145,6 +1908,43 @@ which is exactly the same as::
 
     cr> DROP TABLE my_table14;
     DROP OK, 1 row affected (... sec)
+
+::
+
+    cr> CREATE TABLE my_table (
+    ...     TODO TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +--------------+
+    | TODO         |
+    +--------------+
+    | TODO         |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
 
 New columns added to ``DYNAMIC`` objects are, once added, usable as usual
 subcolumns. One can retrieve them, sort by them and use them in where clauses.
@@ -1211,6 +2011,43 @@ An example::
     | {"tag": "AT", "value": "str"} |
     +-------------------------------+
     SELECT 2 rows in set (... sec)
+
+::
+
+    cr> CREATE TABLE my_table (
+    ...     TODO TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +--------------+
+    | TODO         |
+    +--------------+
+    | TODO         |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
 
 .. NOTE::
 
@@ -1395,6 +2232,42 @@ Array types are defined as follows::
     ... );
     CREATE OK, 1 row affected (... sec)
 
+::
+
+    cr> CREATE TABLE my_table (
+    ...     TODO TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +--------------+
+    | TODO         |
+    +--------------+
+    | TODO         |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
 
 An alternative is the following syntax to refer to arrays::
 
@@ -1522,6 +2395,43 @@ Create table example::
     ... ) WITH (number_of_replicas = 0)
     CREATE OK, 1 row affected (... sec)
 
+::
+
+    cr> CREATE TABLE my_table (
+    ...     TODO TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +--------------+
+    | TODO         |
+    +--------------+
+    | TODO         |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+
 
 .. _data-type-geo-shape:
 
@@ -1546,6 +2456,42 @@ objects`_.  Thus it is possible to store e.g. ``LineString`` and
     3D coordinates are not supported.
 
     Empty ``Polygon`` and ``LineString`` geo shapes are not supported.
+
+::
+
+    cr> CREATE TABLE my_table (
+    ...     TODO TEXT
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> INSERT INTO my_table (
+    ...     TODO
+    ... ) VALUES (
+    ...     'TODO'
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+TODO::
+
+    cr> SELECT * FROM my_table;
+    +--------------+
+    | TODO         |
+    +--------------+
+    | TODO         |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
 
 
 .. _type-geo_shape-definition:
@@ -1978,7 +2924,7 @@ Example usages, initializing an ``INTEGER`` and a ``TIMESTAMP`` constant:
 .. _IEEE 754: https://ieeexplore.ieee.org/document/30711/?arnumber=30711&filter=AND(p_Publication_Number:2355)
 .. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
 .. _ISO 8601 time zone designators: https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
-.. _pattern letters and symbols: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/time/format/DateTimeFormatter.html
+.. _Java 15\: Patterns for Formatting and Parsing: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/time/format/DateTimeFormatter.html#patterns
 .. _pg_class: https://www.postgresql.org/docs/10/static/catalog-pg-class.html
 .. _pg_proc: https://www.postgresql.org/docs/10/static/catalog-pg-proc.html
 .. _PostgreSQL interval format: https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-INTERVAL-INPUT
@@ -1987,3 +2933,9 @@ Example usages, initializing an ``INTEGER`` and a ``TIMESTAMP`` constant:
 .. _Trie: https://en.wikipedia.org/wiki/Trie
 .. _Tries: https://en.wikipedia.org/wiki/Trie
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text
+.. _UTC: `Coordinated Universal Time`_
+.. _Coordinated Universal Time: https://en.wikipedia.org/wiki/Coordinated_Universal_Time
+.. _Unix epoch: https://en.wikipedia.org/wiki/Unix_time
+.. _tracking issue #11491: https://github.com/crate/crate/issues/11491
+.. _tracking issue #11491: https://github.com/crate/crate/issues/11491
+.. _tracking issue #11490: https://github.com/crate/crate/issues/11490
