@@ -1678,74 +1678,72 @@ IP addresses
 ``IP``
 ''''''
 
-A string representation of an IPv4 or IPv6 address.
+An ``IP`` is a string representation of an `IP adddress`_ (IPv4 or IPv6).
 
 Internally IP addresses are stored as ``BIGINT`` values, allowing expected
 sorting, filtering, and aggregation.
 
 For example::
 
-    cr> CREATE TABLE my_table_ips (
-    ...   fqdn TEXT,
-    ...   ip_addr IP
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-::
-
-    cr> INSERT INTO my_table_ips (fqdn, ip_addr)
-    ... VALUES ('localhost', '127.0.0.1'),
-    ...        ('router.local', '0:0:0:0:0:ffff:c0a8:64');
-    INSERT OK, 2 rows affected (... sec)
-
-::
-
-    cr> INSERT INTO my_table_ips (fqdn, ip_addr)
-    ... VALUES ('localhost', 'fake.ip');
-    SQLParseException[Cannot cast `'fake.ip'` of type `text` to type `ip`]
-
-::
-
     cr> CREATE TABLE my_table (
-    ...     TODO TEXT
+    ...     fqdn TEXT,
+    ...     ip_addr IP
     ... );
     CREATE OK, 1 row affected (... sec)
 
-TODO::
+::
 
     cr> INSERT INTO my_table (
-    ...     TODO
+    ...     fqdn,
+    ...     ip_addr
     ... ) VALUES (
-    ...     'TODO'
+    ...     'localhost',
+    ...     '127.0.0.1'
+    ... ), (
+    ...     'router.local',
+    ...     '0:0:0:0:0:ffff:c0a8:64'
     ... );
-    CREATE OK, 1 row affected (... sec)
+    INSERT OK, 2 rows affected (... sec)
 
 .. HIDE:
 
     cr> REFRESH TABLE my_table;
     REFRESH OK, 1 row affected (... sec)
 
-TODO::
+::
 
-    cr> SELECT * FROM my_table;
-    +--------------+
-    | TODO         |
-    +--------------+
-    | TODO         |
-    +--------------+
-    SELECT 1 row in set (... sec)
+    cr> SELECT fqdn, ip_addr FROM my_table;
+    +--------------+---------------+
+    | fqdn         | ip_addr       |
+    +--------------+---------------+
+    | router.local | 192.168.0.100 |
+    | localhost    | 127.0.0.1     |
+    +--------------+---------------+
+    SELECT 2 rows in set (... sec)
+
+The ``fqdn`` column (see `Fully Qualified Domain Name`_) will accept any value
+because it was specified as :ref:`TEXT <type-text>`. However, trying to insert
+``fake.ip`` won't work, because it is not a correctly formatted ``IP``
+address::
+
+    cr> INSERT INTO my_table (
+    ...     fqdn,
+    ...     ip_addr
+    ... ) VALUES (
+    ...     'localhost',
+    ...     'fake.ip'
+    ... );
+    SQLParseException[Cannot cast `'fake.ip'` of type `text` to type `ip`]
 
 .. HIDE:
 
     cr> DROP TABLE my_table;
     DROP OK, 1 row affected (... sec)
 
-
-IP addresses support the :ref:`operator <gloss-operator>` ``<<``, which checks
+IP addresses support the ``<<`` :ref:`operator <gloss-operator>`, which checks
 for subnet inclusion using `CIDR notation`_. The left-hand :ref:`operand
-<gloss-operand>` must be of type :ref:`ip <ip-type>` and the right-hand must be
-of type :ref:`text <data-type-text>` (e.g., ``'192.168.1.5' <<
-'192.168.1/24'``).
+<gloss-operand>` must an :ref:`IP <ip-type>` type and the right-hand must be
+:ref:`TEXT <data-type-text>` type (e.g., ``'192.168.1.5' << '192.168.1/24'``).
 
 
 .. _data-types-container:
@@ -1788,63 +1786,6 @@ Syntax::
         [ ({DYNAMIC|STRICT|IGNORED}) ]
         [ AS ( <columnDefinition>* ) ]
 
-For example::
-
-    cr> CREATE TABLE my_table11 (
-    ...   title TEXT,
-    ...   col1 OBJECT,
-    ...   col3 OBJECT(STRICT) as (
-    ...     age INTEGER,
-    ...     name TEXT,
-    ...     col31 OBJECT AS (
-    ...       birthday TIMESTAMP WITH TIME ZONE
-    ...     )
-    ...   )
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-.. HIDE:
-
-    cr> DROP TABLE my_table11;
-    DROP OK, 1 row affected (... sec)
-
-::
-
-    cr> CREATE TABLE my_table (
-    ...     TODO TEXT
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-TODO::
-
-    cr> INSERT INTO my_table (
-    ...     TODO
-    ... ) VALUES (
-    ...     'TODO'
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-.. HIDE:
-
-    cr> REFRESH TABLE my_table;
-    REFRESH OK, 1 row affected (... sec)
-
-TODO::
-
-    cr> SELECT * FROM my_table;
-    +--------------+
-    | TODO         |
-    +--------------+
-    | TODO         |
-    +--------------+
-    SELECT 1 row in set (... sec)
-
-.. HIDE:
-
-    cr> DROP TABLE my_table;
-    DROP OK, 1 row affected (... sec)
-
-
 The only required syntax is ``OBJECT``.
 
 The column policy (``DYNAMIC``, ``STRICT``, or ``IGNORED``) is optional and
@@ -1853,6 +1794,71 @@ defaults to :ref:`DYNAMIC <type-object-columns-dynamic>`.
 If the optional list of subcolumns (``columnDefinition``) is omitted, the
 object will have no schema. CrateDB will create a schema for :ref:`DYNAMIC
 <type-object-columns-dynamic>` objects upon first insert.
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     title TEXT,
+    ...     quotation OBJECT,
+    ...     protagonist OBJECT(STRICT) AS (
+    ...         age INTEGER,
+    ...         first_name TEXT,
+    ...         details OBJECT AS (
+    ...             birthday TIMESTAMP WITH TIME ZONE
+    ...         )
+    ...     )
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     title,
+    ...     quotation,
+    ...     protagonist
+    ... ) VALUES (
+    ...     'Alice in Wonderland',
+    ...     {
+    ...         "words" = 'Curiouser and curiouser!',
+    ...         "length" = 3
+    ...     },
+    ...     {
+    ...         "age" = '10',
+    ...         "first_name" = 'Alice',
+    ...         "details" = {
+    ...             "birthday" = '1852-05-04T00:00Z'::TIMESTAMPTZ
+    ...         }
+    ...     }
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT
+    ...     protagonist['first_name'] AS name,
+    ...     date_format(
+    ...         '%D %b %Y',
+    ...         'GMT',
+    ...         protagonist['details']['birthday']
+    ...      ) AS born,
+    ...     protagonist['age'] AS age
+    ... FROM my_table;
+    +-------+--------------+-----+
+    | name  | born         | age |
+    +-------+--------------+-----+
+    | Alice | 4th May 1852 |  10 |
+    +-------+--------------+-----+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
 
 
 .. _type-object-column-policy:
@@ -1871,59 +1877,39 @@ subcolumn that is not defined upfront by ``columnDefinition``.
 
 Example::
 
-    cr> CREATE TABLE my_table12 (
-    ...   title TEXT,
-    ...   author OBJECT(STRICT) AS (
-    ...     name TEXT,
-    ...     birthday TIMESTAMP WITH TIME ZONE
-    ...   )
+    cr> CREATE TABLE my_table (
+    ...     title TEXT,
+    ...     protagonist OBJECT(STRICT) AS (
+    ...         name TEXT
+    ...     )
     ... );
     CREATE OK, 1 row affected (... sec)
-
-.. HIDE:
-
-    cr> DROP TABLE my_table12;
-    DROP OK, 1 row affected (... sec)
 
 ::
 
-    cr> CREATE TABLE my_table (
-    ...     TODO TEXT
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-TODO::
-
     cr> INSERT INTO my_table (
-    ...     TODO
+    ...     title,
+    ...     protagonist
     ... ) VALUES (
-    ...     'TODO'
+    ...     'Alice in Wonderland',
+    ...     {
+    ...         "age" = '10',
+    ...     }
     ... );
-    CREATE OK, 1 row affected (... sec)
+    SQLParseException[line 8:5: no viable alternative at input 'VALUES (\n    'Alice in Wonderland',\n    {\n        "age" = '10',\n    }']
 
-.. HIDE:
-
-    cr> REFRESH TABLE my_table;
-    REFRESH OK, 1 row affected (... sec)
-
-TODO::
-
-    cr> SELECT * FROM my_table;
-    +--------------+
-    | TODO         |
-    +--------------+
-    | TODO         |
-    +--------------+
-    SELECT 1 row in set (... sec)
+The insert above failed because the ``protagonist`` column defines a ``name``
+column and does not define an ``age`` column.
 
 .. HIDE:
 
     cr> DROP TABLE my_table;
     DROP OK, 1 row affected (... sec)
 
+.. NOTE::
 
-Objects with a ``STRICT`` column policy and no ``columnDefinition`` will be
-have one unusable column that will always be null.
+    Objects with a ``STRICT`` column policy and no ``columnDefinition`` will be
+    have one unusable column that will always be null.
 
 
 .. _type-object-columns-dynamic:
@@ -1934,51 +1920,69 @@ have one unusable column that will always be null.
 If the column policy is configured as ``DYNAMIC`` (the default), inserts may
 dynamically add new subcolumns to the object definition.
 
-Examples::
-
-    cr> CREATE TABLE my_table13 (
-    ...   title TEXT,
-    ...   author OBJECT AS (
-    ...     name TEXT,
-    ...     birthday TIMESTAMP WITH TIME ZONE
-    ...   )
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-.. HIDE:
-
-    cr> DROP TABLE my_table13;
-    DROP OK, 1 row affected (... sec)
-
-which is exactly the same as::
-
-    cr> CREATE TABLE my_table14 (
-    ...   title TEXT,
-    ...   author OBJECT(DYNAMIC) AS (
-    ...     name TEXT,
-    ...     birthday TIMESTAMP WITH TIME ZONE
-    ...   )
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-.. HIDE:
-
-    cr> DROP TABLE my_table14;
-    DROP OK, 1 row affected (... sec)
-
-::
+Example::
 
     cr> CREATE TABLE my_table (
-    ...     TODO TEXT
+    ...     title TEXT,
+    ...     quotation OBJECT
     ... );
     CREATE OK, 1 row affected (... sec)
 
-TODO::
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+The following statement is equivalent to the above::
+
+    cr> CREATE TABLE my_table (
+    ...     title TEXT,
+    ...     quotation OBJECT(DYNAMIC)
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+The following statement is also equivalent to the above::
+
+    cr> CREATE TABLE my_table (
+    ...     title TEXT,
+    ...     quotation OBJECT(DYNAMIC) AS (
+    ...         words TEXT,
+    ...         length SMALLINT
+    ...     )
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+You can insert using the existing columns::
 
     cr> INSERT INTO my_table (
-    ...     TODO
+    ...     title,
+    ...     quotation
     ... ) VALUES (
-    ...     'TODO'
+    ...     'Alice in Wonderland',
+    ...     {
+    ...         "words" = 'Curiouser and curiouser!',
+    ...         "length" = 3
+    ...     }
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+Or you can add new columns::
+
+    cr> INSERT INTO my_table (
+    ...     title,
+    ...     quotation
+    ... ) VALUES (
+    ...     'Alice in Wonderland',
+    ...     {
+    ...         "words" = 'DRINK ME',
+    ...         "length" = 2,
+    ...         "chapter" = 1
+    ...     }
     ... );
     CREATE OK, 1 row affected (... sec)
 
@@ -1987,37 +1991,43 @@ TODO::
     cr> REFRESH TABLE my_table;
     REFRESH OK, 1 row affected (... sec)
 
-TODO::
+All rows have the same columns (including newly added columns), but missing
+records will be returned as :ref:`NULL <type-null>` values::
 
-    cr> SELECT * FROM my_table;
-    +--------------+
-    | TODO         |
-    +--------------+
-    | TODO         |
-    +--------------+
-    SELECT 1 row in set (... sec)
+    cr> SELECT
+    ...     quotation['chapter'] as chapter,
+    ...     quotation['words'] as quote
+    ... FROM my_table
+    ... ORDER BY chapter ASC;
+    +---------+--------------------------+
+    | chapter | quote                    |
+    +---------+--------------------------+
+    |       1 | DRINK ME                 |
+    |    NULL | Curiouser and curiouser! |
+    +---------+--------------------------+
+    SELECT 2 rows in set (0.114 sec)
+
+New columns are usable like any other subcolumn. You can retrieve them, sort by
+them, and use them in where clauses.
 
 .. HIDE:
 
     cr> DROP TABLE my_table;
-    DROP OK, 1 row affected (... sec)
-
-
-New columns added to ``DYNAMIC`` objects are, once added, usable as usual
-subcolumns. One can retrieve them, sort by them and use them in where clauses.
+    REFRESH OK, 1 row affected (... sec)
 
 .. NOTE::
 
     Adding new columns to an object with a ``DYNAMIC`` policy will affect the
-    schema of the table. Once a column is added, it shows up in the
-    ``information_schema.columns`` table and its type and attributes are fixed.
-    They will have the type that was guessed by their inserted/updated value
-    and they will always be analyzed as-is with the :ref:`plain
-    <plain-analyzer>`, which means the column will be indexed but not tokenized
-    in the case of ``TEXT`` columns.
+    schema of the table.
 
-    If a new column ``a`` was added with type ``INTEGER``, adding strings to
-    this column will result in an error.
+    Once a column is added, it shows up in the ``information_schema.columns``
+    table and its type and attributes are fixed. If a new column ``a`` was
+    added with type ``INTEGER``, adding strings to the column will result in an
+    error.
+
+    Dynamically added columns will always be analyzed as-is with the
+    :ref:`plain analyzer <plain-analyzer>`, which means the column will be
+    indexed but not tokenized in the case of ``TEXT`` columns.
 
 
 .. _type-object-columns-ignored:
@@ -2025,54 +2035,71 @@ subcolumns. One can retrieve them, sort by them and use them in where clauses.
 ``IGNORED``
 ```````````
 
-The third option is ``IGNORED``. Explicitly defined columns within an
-``IGNORED`` object behave the same as those within object columns declared as
-``DYNAMIC`` or ``STRICT`` (e.g., column constraints are still enforced, columns
-that would be indexed are still indexed, and so on). The difference is that
-with ``IGNORED``, dynamically added columns do not result in a schema update
-and the values won't be indexed. This allows you to store values with a mixed
-type under the same key.
+If the column policy is configured as ``IGNORED``, inserts may dynamically add
+new subcolumns to the object definition. However, dynamically added subcolumns
+do not cause a schema update and the values contained will not be indexed.
 
-An example::
+Because dynamically created columns are not recorded in the schema, you can
+insert mixed types into them. For example, one row may insert an integer and
+the next row may insert an object. Objects with a :ref:`STRICT
+<type-object-columns-strict>` or :ref:`DYNAMIC <type-object-columns-dynamic>`
+column policy do not allow this.
 
-    cr> CREATE TABLE metrics (
-    ...     id TEXT PRIMARY KEY,
-    ...     payload OBJECT(IGNORED) as (
-    ...         tag TEXT
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     title TEXT,
+    ...     protagonist OBJECT(IGNORED) AS (
+    ...         name TEXT,
+    ...         chapter SMALLINT
     ...     )
     ... );
     CREATE OK, 1 row affected (... sec)
 
 ::
 
-    cr> INSERT INTO metrics (
-    ...     id,
-    ...     payload
+    cr> INSERT INTO my_table (
+    ...     title,
+    ...     protagonist
     ... ) VALUES (
-    ...     '1',
-    ...     {"tag"='AT', "value"=30}
+    ...     'Alice in Wonderland',
+    ...     {
+    ...         "name" = 'Alice',
+    ...         "chapter" = 1,
+    ...         "size" = {
+    ...             "value" = 10,
+    ...             "units" = 'inches'
+    ...         }
+    ...     }
     ... );
-    INSERT OK, 1 row affected (... sec)
 
 ::
 
-    cr> INSERT INTO metrics (
-    ...      id,
-    ...      payload
+    cr> INSERT INTO my_table (
+    ...     title,
+    ...     protagonist
     ... ) VALUES (
-    ...     '2',
-    ...     {"tag"='AT', "value"='str'}
+    ...     'Alice in Wonderland',
+    ...     {
+    ...         "name" = 'Alice',
+    ...         "chapter" = 2,
+    ...         "size" = 'As big as a room'
+    ...     }
     ... );
-    INSERT OK, 1 row affected (... sec)
 
 .. HIDE:
 
-    cr> REFRESH TABLE metrics;
+    cr> REFRESH TABLE my_table;
     REFRESH OK, 1 row affected (... sec)
 
 ::
 
-    cr> SELECT payload FROM metrics ORDER BY id;
+    cr> SELECT
+    ...     protagonist['name'] as name,
+    ...     protagonist['chapter'] as chapter,
+    ...     pg_typeof(protagonist['size']) as size
+    ... FROM my_table
+    ... ORDER BY protagonist['chapter'] ASC;
     +-------------------------------+
     | payload                       |
     +-------------------------------+
@@ -3017,3 +3044,5 @@ Example usages, initializing an ``INTEGER`` and a ``TIMESTAMP`` constant:
 .. _tracking issue #11490: https://github.com/crate/crate/issues/11490
 .. _tracking issue #11528: https://github.com/crate/crate/issues/11528
 .. _The PostgreSQL DATE type: https://www.postgresql.org/docs/current/datatype-datetime.html
+.. _Fully Qualified Domain Name: https://en.wikipedia.org/wiki/Fully_qualified_domain_name
+.. _IP adddress: https://en.wikipedia.org/wiki/IP_address
