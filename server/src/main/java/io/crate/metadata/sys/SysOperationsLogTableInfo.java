@@ -37,7 +37,7 @@ public class SysOperationsLogTableInfo {
     static SystemTable<OperationContextLog> create() {
         return SystemTable.<OperationContextLog>builder(IDENT)
             .add("id", STRING, l -> String.valueOf(l.id()))
-            .add("job_id", STRING, l -> String.valueOf(l.id()))
+            .add("job_id", STRING, l -> l.jobId().toString())
             .add("name", STRING, OperationContextLog::name)
             .add("started", TIMESTAMPZ, OperationContextLog::started)
             .add("ended", TIMESTAMPZ, OperationContextLog::ended)
