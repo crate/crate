@@ -48,7 +48,6 @@ import org.elasticsearch.transport.TransportSettings;
 
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Authentication;
-import io.crate.auth.Protocol;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.BorrowedItem;
 import io.crate.netty.EventLoopGroups;
@@ -289,9 +288,13 @@ public class Netty4Transport extends TcpTransport {
     protected class ClientChannelInitializer extends ChannelInitializer<Channel> {
 
         private final DiscoveryNode node;
+        private ConnectionTest.ProbeResult probeResult;
 
         public ClientChannelInitializer(DiscoveryNode node) {
             this.node = node;
+            if (SslSettings.SSL_TRANSPORT_MODE.get(settings) == SSLMode.DUAL) {
+                probeResult = ConnectionTest.probeDualMode(node.getAddress().address());
+            }
         }
 
         @Override
@@ -316,18 +319,17 @@ public class Netty4Transport extends TcpTransport {
                     break;
 
                 case DUAL: {
-                    InetSocketAddress address = node.getAddress().address();
-                    var probeResult = ConnectionTest.probeDualMode(address);
                     switch (probeResult) {
                         case SSL_AVAILABLE:
                             SslContext sslContext = sslContextProvider.clientContext();
                             SslHandler sslHandler = sslContext.newHandler(ch.alloc());
+                            sslHandler.engine().setUseClientMode(true);
                             ch.pipeline().addLast(sslHandler);
                             break;
 
                         case SSL_MISSING:
                             if (logger.isDebugEnabled()) {
-                                logger.debug("SSL Dual mode enabled, target node doesn't use SSL", node.getHostName());
+                                logger.debug("SSL Dual mode enabled, target node doesn't use SSL {}", node.getHostName());
                             }
                             break;
 
@@ -340,6 +342,7 @@ public class Netty4Transport extends TcpTransport {
                 case ON: {
                     SslContext sslContext = sslContextProvider.clientContext();
                     SslHandler sslHandler = sslContext.newHandler(ch.alloc());
+                    sslHandler.engine().setUseClientMode(true);
                     ch.pipeline().addLast(sslHandler);
                     break;
                 }
@@ -366,13 +369,11 @@ public class Netty4Transport extends TcpTransport {
                     break;
 
                 case DUAL:
-                    ch.pipeline().addLast(DualModeSSLHandler.NAME, new DualModeSSLHandler(logger, sslContextProvider));
+                    ch.pipeline().addLast(DualProbeAwareHandler.NAME, new DualProbeAwareHandler(logger, sslContextProvider, true));
                     break;
 
                 case ON: {
-                    SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
-                    SslHandler sslHandler = sslContext.newHandler(ch.alloc());
-                    ch.pipeline().addLast(sslHandler);
+                    ch.pipeline().addLast(DualProbeAwareHandler.NAME, new DualProbeAwareHandler(logger, sslContextProvider, false));
                     break;
                 }
                 default:
