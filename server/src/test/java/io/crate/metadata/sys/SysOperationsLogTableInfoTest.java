@@ -21,29 +21,34 @@
 
 package io.crate.metadata.sys;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import java.util.UUID;
+import java.util.function.LongSupplier;
+
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Test;
+
+import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.SystemTable;
+import io.crate.metadata.ColumnIdent;
 
-import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.TIMESTAMPZ;
+public class SysOperationsLogTableInfoTest {
 
-public class SysOperationsLogTableInfo {
+    @Test
+    public void test_job_id_returns_job_id_of_operation_context_log() {
+        var table = SysOperationsLogTableInfo.create();
+        var expressionFactory = table.expressions().get(new ColumnIdent("job_id"));
+        var expression = expressionFactory.create();
 
-    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "operations_log");
-
-    static SystemTable<OperationContextLog> create() {
-        return SystemTable.<OperationContextLog>builder(IDENT)
-            .add("id", STRING, l -> String.valueOf(l.id()))
-            .add("job_id", STRING, l -> l.jobId().toString())
-            .add("name", STRING, OperationContextLog::name)
-            .add("started", TIMESTAMPZ, OperationContextLog::started)
-            .add("ended", TIMESTAMPZ, OperationContextLog::ended)
-            .add("used_bytes", LONG, OperationContextLog::usedBytes)
-            .add("error", STRING, OperationContextLog::errorMessage)
-            .withRouting((state, routingProvider, sessionContext) -> Routing.forTableOnAllNodes(IDENT, state.getNodes()))
-            .build();
+        int id = 1;
+        UUID jobId = UUID.randomUUID();
+        String name = "Dummy";
+        long started = 1;
+        LongSupplier bytesUsed = () -> 10;
+        String errorMessage = null;
+        expression.setNextRow(new OperationContextLog(new OperationContext(id, jobId, name, started, bytesUsed), errorMessage));
+        Object value = (String) expression.value();
+        assertThat(value, Matchers.is(jobId.toString()));
     }
 }

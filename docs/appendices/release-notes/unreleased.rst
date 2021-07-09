@@ -138,6 +138,10 @@ Administration and Operations improvements
 Fixes
 =====
 
+- Fixed a regression that caused the ``job_id`` column within the
+  ``sys.operations_log`` table to return the ``id`` values instead of the
+  ``job_id`` values.
+
 - Fixed an issue that could result in a ``IOException: can not write type ...``
   error when combining values of type ``TIMETZ``, ``NUMERIC``, ``GEO_POINT`` or
   ``INTERVAL`` with values of type ``UNDEFINED``.
