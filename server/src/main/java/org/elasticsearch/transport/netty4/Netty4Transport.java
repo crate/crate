@@ -321,6 +321,9 @@ public class Netty4Transport extends TcpTransport {
                 case DUAL: {
                     switch (probeResult) {
                         case SSL_AVAILABLE:
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("SSL Dual mode enabled, target node use SSL {}", node.getHostName());
+                            }
                             SslContext sslContext = sslContextProvider.clientContext();
                             SslHandler sslHandler = sslContext.newHandler(ch.alloc());
                             sslHandler.engine().setUseClientMode(true);
