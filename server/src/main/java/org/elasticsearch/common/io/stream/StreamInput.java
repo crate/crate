@@ -19,26 +19,7 @@
 
 package org.elasticsearch.common.io.stream;
 
-import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.index.IndexFormatTooNewException;
-import org.apache.lucene.index.IndexFormatTooOldException;
-import org.apache.lucene.store.AlreadyClosedException;
-import org.apache.lucene.store.LockObtainFailedException;
-import org.apache.lucene.util.ArrayUtil;
-import org.apache.lucene.util.BitUtil;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.CharsRef;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.Version;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.geo.GeoPoint;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
+import static org.elasticsearch.ElasticsearchException.readStackTrace;
 
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
@@ -46,6 +27,9 @@ import java.io.FileNotFoundException;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.DirectoryNotEmptyException;
@@ -72,7 +56,32 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntFunction;
 
-import static org.elasticsearch.ElasticsearchException.readStackTrace;
+import javax.annotation.Nullable;
+
+import org.apache.lucene.index.CorruptIndexException;
+import org.apache.lucene.index.IndexFormatTooNewException;
+import org.apache.lucene.index.IndexFormatTooOldException;
+import org.apache.lucene.store.AlreadyClosedException;
+import org.apache.lucene.store.LockObtainFailedException;
+import org.apache.lucene.util.ArrayUtil;
+import org.apache.lucene.util.BitUtil;
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.CharsRef;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.geo.GeoPoint;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.Period;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.types.TimeTZ;
 
 /**
  * A stream from this node to another node. Technically, it can also be streamed to a byte array but that is mostly for testing.
@@ -664,6 +673,14 @@ public abstract class StreamInput extends InputStream {
                 return readGeoPoint();
             case 23:
                 return readZonedDateTime();
+            case 24:
+                return readBigDecimal();
+            case 25:
+                return readTimeTZ();
+            case 26:
+                return readPeriod();
+            case 27:
+                return new PointImpl(readDouble(), readDouble(), JtsSpatialContext.GEO);
             default:
                 throw new IOException("Can't read unknown type [" + type + "]");
         }
@@ -690,6 +707,33 @@ public abstract class StreamInput extends InputStream {
     private ZonedDateTime readZonedDateTime() throws IOException {
         final String timeZoneId = readString();
         return ZonedDateTime.ofInstant(Instant.ofEpochMilli(readLong()), ZoneId.of(timeZoneId));
+    }
+
+    private BigDecimal readBigDecimal() throws IOException {
+        int scale = readVInt();
+        int precision = readVInt();
+        byte[] bytes = readByteArray();
+        MathContext mathContext = precision == 0 ? MathContext.UNLIMITED : new MathContext(precision);
+        return new BigDecimal(new BigInteger(bytes), scale, mathContext);
+    }
+
+    private TimeTZ readTimeTZ() throws IOException {
+        long microsFromMidnight = readLong();
+        int secondsFromUTC = readInt();
+        return new TimeTZ(microsFromMidnight, secondsFromUTC);
+    }
+
+    private Period readPeriod() throws IOException {
+        return new Period(
+            readVInt(),
+            readVInt(),
+            readVInt(),
+            readVInt(),
+            readVInt(),
+            readVInt(),
+            readVInt(),
+            readVInt()
+        );
     }
 
     private Object[] readArray() throws IOException {
