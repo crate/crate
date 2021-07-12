@@ -138,6 +138,10 @@ Administration and Operations improvements
 Fixes
 =====
 
+- Fixed an issue that could result in a ``IOException: can not write type ...``
+  error when combining values of type ``TIMETZ``, ``NUMERIC``, ``GEO_POINT`` or
+  ``INTERVAL`` with values of type ``UNDEFINED``.
+
 - Fixed an issue that caused ``INSERT FROM VALUE`` statements to insert
   records, despite failing validation and returning an error to the client.
 
