@@ -22,6 +22,7 @@
 
 package io.crate.testing;
 
+
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.generators.BiasedNumbers;
@@ -40,6 +41,7 @@ import io.crate.types.IntegerType;
 import io.crate.types.IntervalType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
+import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 import io.crate.types.Regclass;
 import io.crate.types.RegclassType;
@@ -50,6 +52,7 @@ import org.joda.time.Period;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -149,6 +152,11 @@ public class DataTypeTesting {
             case IntervalType.ID:
                 return () -> {
                     return (T) new Period().withSeconds(RandomNumbers.randomIntBetween(random, 0, Integer.MAX_VALUE));
+                };
+
+            case NumericType.ID:
+                return () -> {
+                    return (T) new BigDecimal(random.nextDouble());
                 };
 
         }
