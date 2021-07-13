@@ -1,30 +1,19 @@
-.. _sql:
-
 ==========
 SQL syntax
 ==========
 
-You can use :ref:`Structured Query Language <crate_standard_sql>` (SQL) to
-query your data.
+CrateDB uses `SQL`_ to query documents.
 
-This section of the documentation provides a complete SQL syntax
-reference for CrateDB.
+This section of the documentation provides a full SQL syntax reference.
 
 .. NOTE::
 
-   For introductions to CrateDB functionality, we recommend you consult the
-   appropriate top-level section of the documentation. The SQL syntax reference
-   assumes a basic familiarity with the relevant parts of CrateDB.
+   If you’re just getting started with a particular part of CrateDB, we
+   recommend you consult the appropriate top-level section of the
+   documentation. The SQL syntax reference assumes a basic familiarity with the
+   relevant parts of CrateDB.
 
-.. SEEALSO::
-
-    :ref:`General use: Data definition <ddl>`
-
-    :ref:`General use: Data manipulation <dml>`
-
-    :ref:`General use: Querying <dql>`
-
-    :ref:`General use: Built-in functions and operators <builtins>`
+.. _`SQL`: https://en.wikipedia.org/wiki/Sql
 
 .. toctree::
     :maxdepth: 2

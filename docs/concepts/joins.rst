@@ -20,10 +20,8 @@ to work with huge datasets.
    :local:
 
 
-.. _join-types:
-
-Join types
-==========
+Types of join
+=============
 
 A join is a relational operation that merges two data sets based on certain
 properties. :ref:`joins_figure_1` (Inspired by `this article`_) shows which
@@ -40,8 +38,6 @@ elements appear in which join.
    join, and cross join of a set L and R.
 
 
-.. _join-types-cross:
-
 Cross join
 ----------
 
@@ -51,8 +47,6 @@ consists of all possible permutations of each tuple of the relation *L* with
 every tuple of the relation *R*.
 
 
-.. _join-types-inner:
-
 Inner join
 ----------
 
@@ -60,7 +54,7 @@ An :ref:`inner join <inner-joins>` is a join of two or more relations that
 returns only tuples that satisfy the join condition.
 
 
-.. _join-types-equi:
+.. _joins_equi_join:
 
 Equi Join
 .........
@@ -70,8 +64,6 @@ uses equality comparisons in the join condition. The equi join of the relation
 *L* and *R* combines tuple *l* of relation *L* with a tuple *r* of the relation
 *R* if the join attributes of both tuples are identical.
 
-
-.. _join-types-outer:
 
 Outer join
 ----------
@@ -94,10 +86,8 @@ An outer join has following types:
     tuples produced by left and right outer joins.
 
 
-.. _join-algos:
-
-Join algorithms
-===============
+Joins in CrateDB
+================
 
 CrateDB supports (a) CROSS JOIN, (b) INNER JOIN, (c) EQUI JOIN, (d) LEFT JOIN,
 (e) RIGHT JOIN and (f) FULL JOIN. All of these join types are executed using
@@ -107,7 +97,7 @@ join algorithm <joins_hash_join>`. Special optimizations, according to the
 specific use cases, are applied to improve execution performance.
 
 
-.. _join-algos-nested-loop:
+.. _joins_nested_loop:
 
 Nested loop join
 ----------------
@@ -126,8 +116,6 @@ are concatenated and added into the returned virtual relation::
 *Listing 1. Nested loop join algorithm.*
 
 
-.. _join-algos-nested-loop-prim:
-
 Primitive nested loop
 .....................
 
@@ -140,7 +128,7 @@ of collecting data from shards the rows can be the result of a previous join or
 :ref:`table function <table-functions>`.
 
 
-.. _join-algos-nested-loop-dist:
+.. _joins_distributed_nested_loop:
 
 Distributed nested loop
 .......................
@@ -162,6 +150,10 @@ return the results to the requesting client (see :ref:`joins_figure_2`).
    Nodes that are holding the smaller shards broadcast the data to the
    processing nodes which then return the results to the requesting node.
 
+
+Pre-ordering and limits optimization
+''''''''''''''''''''''''''''''''''''
+
 Queries can be optimized if they contain (a) ORDER BY, (b) LIMIT, or (c) if
 INNER/EQUI JOIN. In any of these cases, the nested loop can be terminated
 earlier:
@@ -174,7 +166,7 @@ Consequently, the number of rows is significantly reduced allowing the
 operation to complete much faster.
 
 
-.. _join-algos-hash:
+.. _joins_hash_join:
 
 Hash join
 ---------
@@ -182,8 +174,6 @@ Hash join
 The Hash Join algorithm is used to execute certains types of joins in a more
 perfomant way than :ref:`Nested Loop <joins_nested_loop>`.
 
-
-.. _join-algos-hash-basic:
 
 Basic algorithm
 ...............
@@ -210,7 +200,7 @@ left and right relation is returned.
    Basic hash join algorithm
 
 
-.. _join-algos-hash-block:
+.. _joins_block_hash_join:
 
 Block hash join
 ...............
@@ -238,8 +228,6 @@ iterate over the rows of the right table multiple times, and it is the default
 algorithm used for Hash Join execution by CrateDB.
 
 
-.. _join-algos-hash-block-switch:
-
 Switch tables optimization
 ''''''''''''''''''''''''''
 
@@ -249,8 +237,6 @@ two relations participating in the join. Therefore, if originally the right
 relation is larger than the left the query planner performs a switch to take
 advantage of this detail and execute the hash join with better performance.
 
-
-.. _join-algos-hash-dist:
 
 Distributed block hash join
 ...........................
@@ -287,16 +273,12 @@ for joins on complex subqueries that contain ``LIMIT`` and/or ``OFFSET``.
    Distributed hash join algorithm
 
 
-.. _join-optim:
+Optimizations
+-------------
 
-Join optimizations
-==================
-
-
-.. _join-optim-optim-query-fetch:
 
 Query then fetch
-----------------
+................
 
 Join operations on large relation can be extremely slow especially if the join
 is executed with a :ref:`Nested Loop <joins_nested_loop>`. - which means that
@@ -309,10 +291,8 @@ required document IDs. Next, as soon as the final data set is ready, CrateDB
 fetches the selected fields and returns the data to the client.
 
 
-.. _join-optim-optim-push-down:
-
 Push-down query optimization
-----------------------------
+.............................
 
 Complex queries such as Listing 2 require the planner to decide when to filter,
 sort, and merge in order to efficiently execute the plan. In this case, the
@@ -346,8 +326,8 @@ optimized.*
    before joining.
 
 
-.. _hash table: https://en.wikipedia.org/wiki/Hash_table
-.. _here: http://www.dcs.ed.ac.uk/home/tz/phd/thesis.pdf
+.. _this article: https://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins
 .. _information_schema: https://crate.io/docs/reference/sql/information_schema.html
 .. _system tables: https://crate.io/docs/reference/sql/system.html
-.. _this article: https://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins
+.. _here: http://www.dcs.ed.ac.uk/home/tz/phd/thesis.pdf
+.. _hash table: https://en.wikipedia.org/wiki/Hash_table
