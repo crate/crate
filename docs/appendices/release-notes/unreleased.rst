@@ -59,21 +59,4 @@ None
 Fixes
 =====
 
-- Fixed a regression that caused the ``job_id`` column within the
-  ``sys.operations_log`` table to return the ``id`` values instead of the
-  ``job_id`` values.
-
-- Fixed an issue that could result in a ``IOException: can not write type ...``
-  error when combining values of type ``TIMETZ``, ``NUMERIC``, ``GEO_POINT`` or
-  ``INTERVAL`` with values of type ``UNDEFINED``.
-
-- Fixed an issue that caused ``INSERT FROM VALUE`` statements to insert
-  records, despite failing validation and returning an error to the client.
-
-- Fixed an issue that caused the ``NOW()`` and ``CURRENT_USER`` functions to
-  get normalized to a literal value when used as part of a generated column or
-  ``DEFAULT`` expression in a ``CREATE TABLE`` statement.
-
-- Fixed a HBA SSL configuration parsing issue. The ``on`` value for the ``ssl``
-  configuration option was not recognized and got interpreted as 'true'.
-
+None
