@@ -135,6 +135,25 @@ Administration and Operations improvements
 - Added support of hostnames in HBA configuration.
 
 
+Administration Console
+----------------------
+
+- Removed all analytics (UDC, Segment)
+
+- Removed the "Notifications" section in the statusbar
+
+- Removed min-width for columns in console to reduce scrolling
+
+- Changed syntax highlighting in console. Keywords in double quotes are now longer
+  highlighted. Types are highlighted with a different color.
+
+- Activated codemirror code hints for keywords.
+
+- Changed the look of the Scrollbar to appear more modern.
+
+- Added length limit for ``varchar(n)`` and ``bit(n)`` types in table view.
+
+
 Fixes
 =====
 
