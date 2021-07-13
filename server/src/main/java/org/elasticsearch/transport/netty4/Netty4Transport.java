@@ -52,7 +52,6 @@ import io.crate.auth.Protocol;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.BorrowedItem;
 import io.crate.netty.EventLoopGroups;
-import io.crate.protocols.ssl.ConnectionTest;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslSettings.SSLMode;
@@ -248,7 +247,7 @@ public class Netty4Transport extends TcpTransport {
     protected Netty4TcpChannel initiateChannel(DiscoveryNode node) throws IOException {
         InetSocketAddress address = node.getAddress().address();
         Bootstrap bootstrapWithHandler = clientBootstrap.clone();
-        bootstrapWithHandler.handler((ChannelHandler) new ClientChannelInitializer(node));
+        bootstrapWithHandler.handler(new ClientChannelInitializer());
         bootstrapWithHandler.remoteAddress(address);
         ChannelFuture connectFuture = bootstrapWithHandler.connect();
 
@@ -288,12 +287,6 @@ public class Netty4Transport extends TcpTransport {
 
     protected class ClientChannelInitializer extends ChannelInitializer<Channel> {
 
-        private final DiscoveryNode node;
-
-        public ClientChannelInitializer(DiscoveryNode node) {
-            this.node = node;
-        }
-
         @Override
         protected void initChannel(Channel ch) throws Exception {
             maybeInjectSSL(ch);
@@ -311,41 +304,11 @@ public class Netty4Transport extends TcpTransport {
 
         private void maybeInjectSSL(Channel ch) throws Exception, AssertionError {
             SSLMode sslMode = SslSettings.SSL_TRANSPORT_MODE.get(settings);
-            switch (sslMode) {
-                case OFF:
-                    break;
-
-                case DUAL: {
-                    InetSocketAddress address = node.getAddress().address();
-                    var probeResult = ConnectionTest.probeDualMode(address);
-                    switch (probeResult) {
-                        case SSL_AVAILABLE:
-                            SslContext sslContext = sslContextProvider.clientContext();
-                            SslHandler sslHandler = sslContext.newHandler(ch.alloc());
-                            ch.pipeline().addLast(sslHandler);
-                            break;
-
-                        case SSL_MISSING:
-                            if (logger.isDebugEnabled()) {
-                                logger.debug("SSL Dual mode enabled, target node doesn't use SSL", node.getHostName());
-                            }
-                            break;
-
-                        default:
-                            throw new AssertionError("Unexpected probeResult: " + probeResult);
-                    }
-                    break;
-                }
-
-                case ON: {
-                    SslContext sslContext = sslContextProvider.clientContext();
-                    SslHandler sslHandler = sslContext.newHandler(ch.alloc());
-                    ch.pipeline().addLast(sslHandler);
-                    break;
-                }
-
-                default:
-                    throw new AssertionError("Unexpected SSLMode: " + sslMode);
+            if (sslMode == SSLMode.ON) {
+                SslContext sslContext = sslContextProvider.clientContext();
+                SslHandler sslHandler = sslContext.newHandler(ch.alloc());
+                sslHandler.engine().setUseClientMode(true);
+                ch.pipeline().addLast(sslHandler);
             }
         }
     }
@@ -361,22 +324,10 @@ public class Netty4Transport extends TcpTransport {
         @Override
         protected void initChannel(Channel ch) throws Exception {
             SSLMode sslMode = SslSettings.SSL_TRANSPORT_MODE.get(settings);
-            switch (sslMode) {
-                case OFF:
-                    break;
-
-                case DUAL:
-                    ch.pipeline().addLast(DualModeSSLHandler.NAME, new DualModeSSLHandler(logger, sslContextProvider));
-                    break;
-
-                case ON: {
-                    SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
-                    SslHandler sslHandler = sslContext.newHandler(ch.alloc());
-                    ch.pipeline().addLast(sslHandler);
-                    break;
-                }
-                default:
-                    throw new AssertionError("Unexpected SSLMode: " + sslMode);
+            if (sslMode == SSLMode.ON) {
+                SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
+                SslHandler sslHandler = sslContext.newHandler(ch.alloc());
+                ch.pipeline().addLast(sslHandler);
             }
 
             if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)) {
@@ -390,7 +341,6 @@ public class Netty4Transport extends TcpTransport {
             ch.pipeline().addLast("size", new Netty4SizeHeaderFrameDecoder());
             ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(Netty4Transport.this));
         }
-
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {

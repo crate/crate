@@ -21,20 +21,15 @@ You can enable SSL on a per-protocol basis:
   Authentication <admin_hba>`.
 
 - If you enable SSL for the CrateDB transport protocol (used for intra-node
-  communication), nodes can operate in two modes:
-
-  1. Only accept SSL connections (:ref:`ssl.transport.mode
-     <ssl.transport.mode>` set to ``on``)
-
-  2. Accept SSL and non-SSL connections (:ref:`ssl.transport.mode
-     <ssl.transport.mode>` set to ``dual``)
+  communication), nodes only accept SSL connections (:ref:`ssl.transport.mode
+  <ssl.transport.mode>` set to ``on``).
 
 .. TIP::
 
-   You can use ``dual`` SSL mode and :ref:`Host-Based Authentication
-   <admin_hba_node>` to configure a multi-zone cluster that allows
-   non-encrypted traffic between nodes in the same zone but enforces encryption
-   for nodes communicating between zones.
+   You can use ``on`` SSL mode to configure a multi-zone cluster to ensure
+   encryption for nodes communicating between zones. Please note, that SSL has
+   to be ``on`` in all nodes as communication is point-2-point, and intra-zone
+   communication will also be encrypted.
 
 .. rubric:: Table of contents
 
@@ -55,7 +50,7 @@ Once the ``keystore`` (and optional ``truststore``) is created, continue with
 the following steps:
 
  - Set ``ssl.psql.enabled`` or ``ssl.http.enabled`` to ``true``.
- - Set ``ssl.transport.mode`` to ``dual`` or ``on``.
+ - Set ``ssl.transport.mode`` to ``on``.
  - :ref:`ssl_configure_keystore`
  - (Optional) :ref:`ssl_configure_truststore`
 
