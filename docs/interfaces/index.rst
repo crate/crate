@@ -1,27 +1,25 @@
-.. _protocols:
+.. _interfaces:
 
 =================
 Client interfaces
 =================
 
-There are two ways for clients to talk to CrateDB. This section of the documentation covers both from a
-client implementation perspective.
-
-.. SEEALSO::
-
-   `Connecting to CrateDB`_ — Includes an introduction to the web admin
-   UI, the CrateDB shell, and the CrateDB HTTP endpoint
-
-   `Client Libraries`_ — Officially supported clients and community supported
-   clients
-
-.. _Connecting to CrateDB: https://crate.io/docs/crate/tutorials/en/latest/first-use.html
-.. _Client Libraries: https://crate.io/docs/crate/clients-tools/en/latest/
-
-.. rubric:: Table of contents
+CrateDB has two primary client interfaces:
 
 .. toctree::
     :maxdepth: 1
 
     http
     postgres
+
+.. SEEALSO::
+
+   `Connecting to CrateDB`_ — Includes an introduction to the web admin UI, the
+   CrateDB shell, and the CrateDB HTTP endpoint
+
+   `Client Libraries`_ — Officially supported clients and community supported
+   clients
+
+
+.. _Connecting to CrateDB: https://crate.io/docs/crate/tutorials/en/latest/first-use.html
+.. _Client Libraries: https://crate.io/docs/crate/clients-tools/en/latest/
