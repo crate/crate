@@ -41,13 +41,13 @@ Released on 2019/06/25.
    :local:
 
 
-.. _version_4.0.0_upgrade_notes:
+.. _v4.0.0-upgrade-notes:
 
 Upgrade Notes
 =============
 
 
-.. _discovery-changes:
+.. _v4.0.0-discovery-changes:
 
 Discovery Changes
 -----------------
@@ -109,9 +109,13 @@ Due to this some discovery settings are added, renamed and removed.
    or CMD arguments upfront.
 
 
+.. _v4.0.0-breaking:
+
 Breaking Changes
 ================
 
+
+.. _v4.0.0-breaking-general:
 
 General
 -------
@@ -153,6 +157,8 @@ General
 - Dropped support for Java versions < 11
 
 
+.. _v4.0.0-breaking-rm-settings:
+
 Removed Settings
 ----------------
 
@@ -180,6 +186,8 @@ Removed Settings
 - The ``zen1`` related discovery settings mentioned in
   :ref:`discovery-changes`.
 
+
+.. _v4.0.0-breaking-sys:
 
 System table changes
 --------------------
@@ -226,6 +234,8 @@ System table changes
   ``STRING`` with value ``NEVER`` or ``ALWAYS`` for SQL standard compatibility.
 
 
+.. _v4.0.0-breaking-rm-function:
+
 Removed Functionality
 ---------------------
 
@@ -258,6 +268,8 @@ Removed Functionality
   without clean shutdown.
 
 
+.. _v4.0.0-deprecations:
+
 Deprecations
 ============
 
@@ -278,9 +290,13 @@ Deprecations
 - Marked LowerCase tokenizer as deprecated.
 
 
+.. _v4.0.0-changes:
+
 Changes
 =======
 
+
+.. _v4.0.0-changes-compat:
 
 SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------
@@ -350,6 +366,8 @@ SQL Standard and PostgreSQL compatibility improvements
   string if it is needed.
 
 
+.. _v4.0.0-changes-users-acl:
+
 Users and Access Control
 ------------------------
 
@@ -365,6 +383,8 @@ Users and Access Control
   :ref:`administration-privileges`.
 
 
+.. _v4.0.0-changes-snapshots:
+
 Repositories and Snapshots
 --------------------------
 
@@ -376,6 +396,8 @@ Repositories and Snapshots
 
 - Improved resiliency of the :ref:`sql-create-snapshot` operation.
 
+
+.. _v4.0.0-changes-perf-resiliency:
 
 Performance and resiliency improvements
 ---------------------------------------
@@ -408,6 +430,8 @@ Performance and resiliency improvements
 - Added a new optimization that allows to run predicates on top of views or
   sub-queries more efficiently in some cases.
 
+
+.. _v4.0.0_changes-others:
 
 Others
 ------
