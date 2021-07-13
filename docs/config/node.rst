@@ -565,13 +565,6 @@ Layer Security (TLS).
     SSL cannot be used
   ``on``
     SSL must be used
-  ``dual``
-    SSL may be used
-
-  .. SEEALSO::
-
-      :ref:`Host-Based Authentication: Node-to-node communication
-      <admin_hba_node>`
 
 .. _ssl.keystore_filepath:
 
