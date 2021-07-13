@@ -1,0 +1,137 @@
+.. _version_4.6.0:
+
+=============
+Version 4.6.0
+=============
+
+Released on 2021-07-13.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 4.6.0.
+
+    We recommend that you upgrade to the latest 4.3 release before moving to
+    4.6.0.
+
+    A rolling upgrade from 4.5.x to 4.6.0 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+Deprecations
+============
+
+- Deprecated the :ref:`node.max_local_storage_nodes
+  <node.max_local_storage_nodes>` setting.
+
+
+Changes
+=======
+
+
+Performance Improvements
+------------------------
+
+- Improved the performance of the :ref`hyperloglog_distinct
+  <aggregation-hyperloglog-distinct>` aggregation function.
+
+- Improved the performance of ``SELECT`` statements with ``WHERE`` conditions
+  that are in the form of ``WHERE COL=COL``.
+
+- Improved the performance of ``INSERT FROM query`` statements where the
+  ``query`` contains a ``GROUP BY`` clause.
+
+- Improved the internal throttling mechanism used for ``INSERT FROM QUERY`` and
+  ``COPY FROM`` operations. This should lead to these queries utilizing more
+  resources if the cluster can spare them.
+
+- Added an optimization that improves the performance of ``count()``
+  aggregations on object columns that have at least one inner column with a
+  ``NOT NULL`` constraint.
+
+
+SQL Statements and Compatibility
+--------------------------------
+
+- Added the :ref:`bit(n) <data-type-bit>` data type.
+
+- CrateDB now accepts the ``START TRANSACTION`` statement for :ref:`PostgreSQL
+  wire protocol <postgres_wire_protocol>` compatibility. However, CrateDB does
+  not support transactions and will silently ignore this statement.
+
+- Added support for directory-level wild card expansion for URIs passed to
+  ``COPY FROM`` statements.
+
+
+New Scalars
+-----------
+
+- Added :ref:`array_to_string <scalar-array-to-string>` scalar function
+  that concatenates array elements into a single string using a separator and
+  an optional null-string.
+
+- Added :ref:`array_min <scalar-array-min>` and :ref:`array_max
+  <scalar-array-max>` scalar functions returning the minimal and maximal
+  element in array respectively.
+
+- Added the :ref:`array_sum <scalar-array-sum>` scalar function
+  that returns the sum of all elements in an array.
+
+- Added the :ref:`array_avg <scalar-array-avg>` scalar function that returns
+  the average of all elements in an array.
+
+
+Administration and Operations improvements
+------------------------------------------
+
+- Users can now read tables within the ``pg_catalog`` schema without explicit
+  ``DQL`` permission. They will only see records the user has privileges on.
+
+- Users with AL privileges (or DDL on both tables) can now run the following
+  ALTER CLUSTER commands:
+  ``ALTER CLUSTER SWAP TABLE source TO target``,
+  ``ALTER CLUSTER REROUTE RETRY FAILED``,
+  ``ALTER CLUSTER GC DANGLING ARTIFACTS``.
+
+- Added support for encrypting node-to-node communication.
+
+- Changed the privileges model to allow users with ``DDL`` privileges on a
+  table to use the :ref:`OPTIMIZE TABLE <sql-optimize>` statement.
+
+- Included the shard information for closed tables in ``sys.shards`` table.
+
+- Added a ``closed`` column to :ref:`sys-shards <sys-shards>` exposing
+  the state of the table associated with the shard.
+
+- Added support for reading ``cgroup`` information in the ``cgroup v2`` format.
+
+- Added support of hostnames in HBA configuration.
+
+
+Administration Console
+----------------------
+
+- Removed all analytics (UDC, Segment)
+
+- Removed the "Notifications" section in the statusbar
+
+- Removed min-width for columns in console to reduce scrolling
+
+- Changed syntax highlighting in console. Keywords in double quotes are now longer
+  highlighted. Types are highlighted with a different color.
+
+- Activated codemirror code hints for keywords.
+
+- Changed the look of the Scrollbar to appear more modern.
+
+- Added length limit for ``varchar(n)`` and ``bit(n)`` types in table view.
