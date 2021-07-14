@@ -83,7 +83,7 @@ public class MockRepository extends FsRepository {
 
                 @Override
                 public TypeSettings settings() {
-                    return null;
+                    return new TypeSettings(List.of(), optionalSettings());
                 }
             });
         }
