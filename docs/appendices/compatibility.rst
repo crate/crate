@@ -4,9 +4,15 @@
 SQL compatibility
 =================
 
-CrateDB aims to provide a `SQL implementation`_ that is familiar to anyone who
-has used databases that provide a standards-compliant SQL language. However,
-you should be aware of some unique characteristics in CrateDB's SQL dialect.
+CrateDB provides a :ref:`standards-based <sql_supported_features>` SQL
+implementation similar to many other SQL databases. In particular, CrateDB aims
+for compatibility with :ref:`PostgreSQL <postgres_wire_protocol>`. However,
+CrateDB's SQL dialect does have some unique characteristics, documented on this
+page.
+
+.. SEEALSO::
+
+    :ref:`SQL: Syntax reference <sql>`
 
 .. rubric:: Table of contents
 
