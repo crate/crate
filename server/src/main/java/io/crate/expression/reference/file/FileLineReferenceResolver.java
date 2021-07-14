@@ -43,11 +43,11 @@ public final class FileLineReferenceResolver {
     private FileLineReferenceResolver() {
     }
 
-    public static LineCollectorExpression<?> getImplementation(Reference refInfo) {
-        ColumnIdent columnIdent = refInfo.column();
+    public static LineCollectorExpression<?> getImplementation(Reference ref) {
+        ColumnIdent columnIdent = ref.column();
         Supplier<LineCollectorExpression<?>> supplier = EXPRESSION_BUILDER.get(columnIdent.name());
         if (supplier == null) {
-            return new ColumnExtractingLineExpression(columnIdent);
+            return new ColumnExtractingLineExpression(columnIdent, ref.valueType());
         }
         return supplier.get();
     }

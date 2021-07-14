@@ -23,19 +23,22 @@ package io.crate.expression.reference.file;
 
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.metadata.ColumnIdent;
+import io.crate.types.DataType;
 
 public class ColumnExtractingLineExpression extends LineCollectorExpression<Object> {
 
     private final ColumnIdent columnIdent;
+    private final DataType<?> type;
     private LineContext context;
 
-    public ColumnExtractingLineExpression(ColumnIdent columnIdent) {
+    public ColumnExtractingLineExpression(ColumnIdent columnIdent, DataType<?> type) {
         this.columnIdent = columnIdent;
+        this.type = type;
     }
 
     @Override
     public Object value() {
-        return context.get(columnIdent);
+        return type.implicitCast(context.get(columnIdent));
     }
 
     @Override

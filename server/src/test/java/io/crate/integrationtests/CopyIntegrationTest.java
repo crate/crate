@@ -820,4 +820,29 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             printedTable(response.rows()),
             is("1| foo\n2| NULL\n3| NULL\n"));
     }
+
+    @Test
+    public void test_can_import_data_requiring_cast_from_csv_into_partitioned_table() throws Exception {
+        execute("""
+            create table tbl (
+                ts timestamp with time zone not null,
+                ts_month timestamp with time zone generated always as date_trunc('month', ts)
+            ) partitioned by (ts_month)
+        """);
+        List<String> lines = List.of(
+            "ts",
+            "1626188198073"
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("COPY tbl FROM ? WITH (format = 'csv', shared = true)",
+            new Object[]{Paths.get(file.toURI()).toUri().toString()}
+        );
+        execute("refresh table tbl");
+        execute("SELECT * FROM tbl");
+        assertThat(printedTable(response.rows()), is(
+            "1626188198073| 1625097600000\n"
+        ));
+    }
 }
