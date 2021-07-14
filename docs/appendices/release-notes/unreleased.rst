@@ -61,4 +61,6 @@ None
 Fixes
 =====
 
-None
+- Fixed an issue that caused a class cast error when trying to import records
+  from a ``CSV`` file into a partitioned table using the ``COPY FROM``
+  statement.
