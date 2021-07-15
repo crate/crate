@@ -194,7 +194,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     private static final String SNAPSHOT_CODEC = "snapshot";
 
-    private static final String INDEX_FILE_PREFIX = "index-";
+    static final String INDEX_FILE_PREFIX = "index-";
 
     private static final String INDEX_LATEST_BLOB = "index.latest";
 
@@ -208,7 +208,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     private static final String INDEX_METADATA_CODEC = "index-metadata";
 
-    private static final String SNAPSHOT_NAME_FORMAT = SNAPSHOT_PREFIX + "%s.dat";
+    static final String SNAPSHOT_NAME_FORMAT = SNAPSHOT_PREFIX + "%s.dat";
 
     private static final String SNAPSHOT_INDEX_PREFIX = "index-";
 
