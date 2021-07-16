@@ -63,7 +63,8 @@ public final class SslSettings {
 
     public enum SSLMode {
         ON,
-        OFF;
+        OFF,
+        LEGACY;
 
         static SSLMode parse(String value) {
             return switch (value.toLowerCase(Locale.ENGLISH)) {
@@ -72,6 +73,7 @@ public final class SslSettings {
                 case "true" -> ON;
                 case "off" -> OFF;
                 case "false" -> OFF;
+                case "legacy" -> LEGACY;
                 default -> throw new IllegalArgumentException(value + " is not a valid SSL mode setting");
             };
         }
@@ -79,7 +81,7 @@ public final class SslSettings {
 
     public static final Setting<SSLMode> SSL_TRANSPORT_MODE = new Setting<SSLMode>(
         SSL_TRANSPORT_MODE_NAME,
-        settings -> SSLMode.OFF.name(),
+        settings -> SSLMode.LEGACY.name(),
         SSLMode::parse,
         DataTypes.STRING,
         Setting.Property.NodeScope
