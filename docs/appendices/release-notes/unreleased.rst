@@ -55,6 +55,8 @@ Changes
 =======
 
 - Added the :ref:`JSON type <data-type-json>`.
+- Added the :ref:`date_bin <date-bin>` scalar function that truncates timestamp
+  into specified interval aligned with specified origin.
 
 Fixes
 =====
