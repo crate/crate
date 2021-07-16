@@ -774,6 +774,90 @@ If you don't specify a time zone, ``truncate`` uses UTC time::
     +---------------+---------------+
     SELECT 3 rows in set (... sec)
 
+.. _date-bin:
+
+``date_bin(interval, timestamp, origin)``
+-----------------------------------------
+
+
+``date_bin`` "bins" the input timestamp to the specified interval, aligned with
+a specified origin.
+
+``interval`` is an expression of type ``interval``.
+``Timestamp`` and ``origin`` are expressions of type
+``timestamp with time zone`` or ``timestamp without time zone``.
+The return type matches the timestamp and origin types and will be either
+``timestamp with time zone`` or ``timestamp without time zone``.
+
+The return value marks the beginning of the bin into which the input timestamp
+is placed.
+
+If you use an interval with a single unit like ``1 second`` or ``1 minute``,
+this function returns the same result as :ref:`date_trunc <scalar-date-trunc>`.
+
+If the interval is ``1 week``, ``date_bin`` only returns the same result as
+``date_trunc`` if the origin is a Monday.
+
+If at least one argument is ``NULL``, the return value is ``NULL``. The
+interval cannot be zero. Negative intervals are allowed and are treated the
+same as positive intervals. Intervals having month or year units are not
+supported due to varying length of those units.
+
+A timestamp can be binned to an interval of arbitrary length
+aligned with a custom origin.
+
+Examples:
+
+::
+
+    cr> SELECT date_bin('2 hours'::INTERVAL, ts,
+    ... '2021-01-01T05:00:00Z'::TIMESTAMP) as bin,
+    ... date_format('%y-%m-%d %h:%i',
+    ... date_bin('2 hours'::INTERVAL, ts, '2021-01-01T05:00:00Z'::TIMESTAMP))
+    ... formatted_bin
+    ... FROM unnest(ARRAY[
+    ... '2021-01-01T08:30:10Z',
+    ... '2021-01-01T08:38:10Z',
+    ... '2021-01-01T18:18:10Z',
+    ... '2021-01-01T18:18:10Z'
+    ... ]::TIMESTAMP[]) as tbl (ts);
+    +---------------+----------------+
+    |           bin | formatted_bin  |
+    +---------------+----------------+
+    | 1609484400000 | 21-01-01 07:00 |
+    | 1609484400000 | 21-01-01 07:00 |
+    | 1609520400000 | 21-01-01 05:00 |
+    | 1609520400000 | 21-01-01 05:00 |
+    +---------------+----------------+
+    SELECT 4 rows in set (... sec)
+
+.. TIP::
+
+    0 can be used as a shortcut for unix zero as the origin::
+
+        cr> select date_bin('2 hours' :: INTERVAL,
+        ... '2021-01-01T08:30:10Z' :: timestamp without time ZONE, 0) as bin;
+        +---------------+
+        |           bin |
+        +---------------+
+        | 1609488000000 |
+        +---------------+
+        SELECT 1 row in set (... sec)
+
+    Please note, that implicit cast treats numbers as is, i.e as a timestamp in
+    that zone and if timestamp is in non-UTC zone you might want to set numeric
+    origin to the same zone.
+
+        cr> select date_bin('4 hours' :: INTERVAL,
+        ... '2020-01-01T09:00:00+0200'::timestamp with time zone,
+        ... TIMEZONE('+02:00', 0)) as bin;
+        +---------------+
+        |           bin |
+        +---------------+
+        | 1577858400000 |
+        +---------------+
+        SELECT 1 row in set (... sec)
+
 ``extract(field from source)``
 ------------------------------
 
