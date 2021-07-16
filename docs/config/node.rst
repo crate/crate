@@ -556,13 +556,16 @@ Layer Security (TLS).
 .. _ssl.transport.mode:
 
 **ssl.transport.mode**
-  | *Default:* ``off``
+  | *Default:* ``legacy``
   | *Runtime:* ``no``
 
   For communication between nodes, choose:
 
   ``off``
     SSL cannot be used
+  ``legacy``
+    SSL is not used. If HBA is enabled, transport connections won't be verified
+    Any reachable host can establish a connection.
   ``on``
     SSL must be used
 
