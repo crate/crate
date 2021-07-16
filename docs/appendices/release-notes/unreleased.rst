@@ -69,3 +69,6 @@ Fixes
 - Fixed an issue that caused a class cast error when trying to import records
   from a ``CSV`` file into a partitioned table using the ``COPY FROM``
   statement.
+- Fixed an issue that caused a node with default config to fail on startup with
+  error "No valid auth.host_based entry found".
+

@@ -330,7 +330,7 @@ public class Netty4Transport extends TcpTransport {
                 ch.pipeline().addLast(sslHandler);
             }
 
-            if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)) {
+            if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings) && sslMode != SSLMode.LEGACY) {
                 ch.pipeline().addLast("hba", new HostBasedAuthHandler(authentication));
             }
             addClosedExceptionLogger(ch);
