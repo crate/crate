@@ -54,9 +54,8 @@ None
 Changes
 =======
 
-
-None
-
+- Added the :ref:`date_bin <date-bin>` scalar function that truncates timestamp
+  into specified interval aligned with specified origin.
 
 Fixes
 =====
