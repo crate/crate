@@ -1,6 +1,6 @@
 .. highlight:: psql
 
-.. _scalar-functions:
+.. _builtins-scalar:
 
 ================
 Scalar functions
@@ -15,10 +15,13 @@ Scalar functions are :ref:`functions <gloss-function>` that return
    :local:
 
 
+.. _scalar-string:
+
 String functions
 ================
 
-.. _scalar_concat:
+
+.. _scalar-concat:
 
 ``concat('first_arg', second_arg, [ parameter , ... ])``
 --------------------------------------------------------
@@ -47,6 +50,9 @@ You can also use the ``||`` :ref:`operator <gloss-operator>`::
     | foobar |
     +--------+
     SELECT 1 row in set (... sec)
+
+
+.. _scalar-format:
 
 ``format('format_string', parameter, [ parameter , ... ])``
 -----------------------------------------------------------
@@ -83,6 +89,9 @@ Returns: ``text``
     +------+
     SELECT 2 rows in set (... sec)
 
+
+.. _scalar-substr:
+
 ``substr('string', from, [ count ])``
 -------------------------------------
 
@@ -101,7 +110,8 @@ Returns: ``text``
     +--------+
     SELECT 1 row in set (... sec)
 
-.. _scalar_char_length:
+
+.. _scalar-char_length:
 
 ``char_length('string')``
 -------------------------
@@ -132,6 +142,7 @@ Each character counts only once, regardless of its byte size.
     +-------------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-length:
 
 ``length(text)``
@@ -141,7 +152,8 @@ Returns the number of characters in a string.
 
 The same as :ref:`char_length <scalar_char_length>`.
 
-.. _scalar_bit_length:
+
+.. _scalar-bit_length:
 
 ``bit_length('string')``
 ------------------------
@@ -175,7 +187,8 @@ Returns: ``integer``
     +------------+
     SELECT 1 row in set (... sec)
 
-.. _scalar_octet_length:
+
+.. _scalar-octet_length:
 
 ``octet_length('string')``
 --------------------------
@@ -204,7 +217,8 @@ Returns: ``integer``
     +--------------+
     SELECT 1 row in set (... sec)
 
-.. _scalar_ascii:
+
+.. _scalar-ascii:
 
 ``ascii(string)``
 -----------------
@@ -224,7 +238,8 @@ Returns: ``int``
     +----+--------+
     SELECT 1 row in set (... sec)
 
-.. _scalar_chr:
+
+.. _scalar-chr:
 
 ``chr(int)``
 ------------
@@ -245,6 +260,8 @@ Returns: ``string``
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-lower:
+
 ``lower('string')``
 -------------------
 
@@ -262,6 +279,9 @@ Returns: ``text``
     | transformme |
     +-------------+
     SELECT 1 row in set (... sec)
+
+
+.. _scalar-upper:
 
 ``upper('string')``
 -------------------
@@ -281,6 +301,7 @@ Returns: ``text``
     +-------------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-initcap:
 
 ``initcap('string')``
@@ -293,15 +314,16 @@ Returns: ``text``
 
 ::
 
-   cr> select initcap('heLlo WORLD') AS initcap;
-   +-------------+
-   | initcap     |
-   +-------------+
-   | Hello World |
-   +-------------+
-    SELECT 1 row in set (... sec)
+    cr> select initcap('heLlo WORLD') AS initcap;
+    +-------------+
+    | initcap     |
+    +-------------+
+    | Hello World |
+    +-------------+
+     SELECT 1 row in set (... sec)
 
-.. _sha1:
+
+.. _scalar-sha1:
 
 ``sha1('string')``
 ------------------
@@ -320,6 +342,9 @@ Computes the SHA1 checksum of the given string.
     +------------------------------------------+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-md5:
+
 ``md5('string')``
 -----------------
 
@@ -328,6 +353,7 @@ Returns: ``text``
 Computes the MD5 checksum of the given string.
 
 See :ref:`sha1 <sha1>` for an example.
+
 
 .. _scalar-replace:
 
@@ -338,24 +364,25 @@ Replaces all occurrences of ``from`` in ``text`` with ``to``.
 
 ::
 
-   cr> select replace('Hello World', 'World', 'Stranger') AS hello;
-   +----------------+
-   | hello          |
-   +----------------+
-   | Hello Stranger |
-   +----------------+
-   SELECT 1 row in set (... sec)
+    cr> select replace('Hello World', 'World', 'Stranger') AS hello;
+    +----------------+
+    | hello          |
+    +----------------+
+    | Hello Stranger |
+    +----------------+
+    SELECT 1 row in set (... sec)
+
 
 .. _scalar-translate:
 
 ``translate(string, from, to)``
 -------------------------------
 
-Performs several single-character, one-to-one translation in one operation.  It
+Performs several single-character, one-to-one translation in one operation. It
 translates ``string`` by replacing the characters in the ``from`` set,
 one-to-one positionally, with their counterparts in the ``to`` set. If ``from``
 is longer than ``to``, the function removes the occurrences of the extra
-characters in ``from``.  If there are repeated characters in ``from``, only the
+characters in ``from``. If there are repeated characters in ``from``, only the
 first mapping is considered.
 
 Synopsis::
@@ -382,116 +409,120 @@ Examples::
     +-------------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-trim:
 
 ``trim({LEADING | TRAILING | BOTH} 'str_arg_1' FROM 'str_arg_2')``
 ------------------------------------------------------------------
 
-Removes the longest string containing characters from ``str_arg_1``
-(``' '`` by default) from the start, end, or both ends
-(``BOTH`` is the default) of ``str_arg_2``.
+Removes the longest string containing characters from ``str_arg_1`` (``' '`` by
+default) from the start, end, or both ends (``BOTH`` is the default) of
+``str_arg_2``.
 
 Synopsis::
 
     trim([ [ {LEADING | TRAILING | BOTH} ] [ str_arg_1 ] FROM ] str_arg_2)
 
-Examples
-::
+Examples::
 
-   cr> select trim(BOTH 'ab' from 'abcba') AS trim;
-   +------+
-   | trim |
-   +------+
-   | c    |
-   +------+
-   SELECT 1 row in set (... sec)
-
-::
-
-   cr> select trim('ab' from 'abcba') AS trim;
-   +------+
-   | trim |
-   +------+
-   | c    |
-   +------+
-   SELECT 1 row in set (... sec)
+    cr> select trim(BOTH 'ab' from 'abcba') AS trim;
+    +------+
+    | trim |
+    +------+
+    | c    |
+    +------+
+    SELECT 1 row in set (... sec)
 
 ::
 
-   cr> select trim('   abcba   ') AS trim;
-   +-------+
-   | trim  |
-   +-------+
-   | abcba |
-   +-------+
-   SELECT 1 row in set (... sec)
+    cr> select trim('ab' from 'abcba') AS trim;
+    +------+
+    | trim |
+    +------+
+    | c    |
+    +------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select trim('   abcba   ') AS trim;
+    +-------+
+    | trim  |
+    +-------+
+    | abcba |
+    +-------+
+    SELECT 1 row in set (... sec)
+
 
 .. _scalar-ltrim:
 
 ``ltrim(text, [ trimmingText ])``
 ---------------------------------
 
-Removes set of characters which are matching ``trimmingText`` (``' '``
-by default) to the left of ``text``.
+Removes set of characters which are matching ``trimmingText`` (``' '`` by
+default) to the left of ``text``.
 
 ::
 
-   cr> select ltrim('xxxzzzabcba', 'xz') AS ltrim;
-   +-------+
-   | ltrim |
-   +-------+
-   | abcba |
-   +-------+
-   SELECT 1 row in set (... sec)
+    cr> select ltrim('xxxzzzabcba', 'xz') AS ltrim;
+    +-------+
+    | ltrim |
+    +-------+
+    | abcba |
+    +-------+
+    SELECT 1 row in set (... sec)
+
 
 .. _scalar-rtrim:
 
 ``rtrim(text, [ trimmingText ])``
 ---------------------------------
 
-Removes set of characters which are matching ``trimmingText`` (``' '``
-by default) to the right of ``text``.
+Removes set of characters which are matching ``trimmingText`` (``' '`` by
+default) to the right of ``text``.
 
 ::
 
-   cr> select rtrim('abcbaxxxzzz', 'xz') AS rtrim;
-   +-------+
-   | rtrim |
-   +-------+
-   | abcba |
-   +-------+
-   SELECT 1 row in set (... sec)
+    cr> select rtrim('abcbaxxxzzz', 'xz') AS rtrim;
+    +-------+
+    | rtrim |
+    +-------+
+    | abcba |
+    +-------+
+    SELECT 1 row in set (... sec)
 
-.. _scalar-quote-ident:
+
+.. _scalar-quote_ident:
 
 ``quote_ident(text)``
 ---------------------
 
 Returns: ``text``
 
-Quotes a provided string argument. Quotes are added only if necessary.
-For example, if the string contains non-identifier characters, keywords or
-would be case-folded. Embedded quotes are properly doubled.
+Quotes a provided string argument. Quotes are added only if necessary. For
+example, if the string contains non-identifier characters, keywords or would be
+case-folded. Embedded quotes are properly doubled.
 
 The quoted string can be used as an identifier in an SQL statement.
 
 ::
 
-   cr> select quote_ident('Column name') AS quoted;
-   +---------------+
-   | quoted        |
-   +---------------+
-   | "Column name" |
-   +---------------+
-   SELECT 1 row in set (... sec)
+    cr> select quote_ident('Column name') AS quoted;
+    +---------------+
+    | quoted        |
+    +---------------+
+    | "Column name" |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
 
 .. _scalar-left:
 
 ``left('string', len)``
 -----------------------
 
-Returns the first ``len`` characters of ``string`` when ``len`` > 0,
-otherwise all but last ``len`` characters.
+Returns the first ``len`` characters of ``string`` when ``len`` > 0, otherwise
+all but last ``len`` characters.
 
 Synopsis::
 
@@ -499,55 +530,57 @@ Synopsis::
 
 Examples::
 
-   cr> select left('crate.io', 5) AS col;
-   +-------+
-   | col   |
-   +-------+
-   | crate |
-   +-------+
-   SELECT 1 row in set (... sec)
+    cr> select left('crate.io', 5) AS col;
+    +-------+
+    | col   |
+    +-------+
+    | crate |
+    +-------+
+    SELECT 1 row in set (... sec)
 
 ::
 
-   cr> select left('crate.io', -3) AS col;
-   +-------+
-   | col   |
-   +-------+
-   | crate |
-   +-------+
-   SELECT 1 row in set (... sec)
+    cr> select left('crate.io', -3) AS col;
+    +-------+
+    | col   |
+    +-------+
+    | crate |
+    +-------+
+    SELECT 1 row in set (... sec)
+
 
 .. _scalar-right:
 
 ``right('string', len)``
 ------------------------
 
-Returns the last ``len`` characters in ``string`` when ``len`` > 0,
-otherwise all but first ``len`` characters.
+Returns the last ``len`` characters in ``string`` when ``len`` > 0, otherwise
+all but first ``len`` characters.
 
 Synopsis::
 
-  right(string, len)
+    right(string, len)
 
 Examples::
 
-      cr> select right('crate.io', 2) AS col;
-      +-----+
-      | col |
-      +-----+
-      | io  |
-      +-----+
-      SELECT 1 row in set (... sec)
+    cr> select right('crate.io', 2) AS col;
+    +-----+
+    | col |
+    +-----+
+    | io  |
+    +-----+
+    SELECT 1 row in set (... sec)
 
 ::
 
-      cr> select right('crate.io', -6) AS col;
-      +-----+
-      | col |
-      +-----+
-      | io  |
-      +-----+
-      SELECT 1 row in set (... sec)
+    cr> select right('crate.io', -6) AS col;
+    +-----+
+    | col |
+    +-----+
+    | io  |
+    +-----+
+    SELECT 1 row in set (... sec)
+
 
 .. _scalar-lpad:
 
@@ -564,13 +597,14 @@ Synopsis::
 
 Example::
 
-   cr> select lpad(' I like CrateDB!!', 41, 'yes! ') AS col;
-   +-------------------------------------------+
-   | col                                       |
-   +-------------------------------------------+
-   | yes! yes! yes! yes! yes! I like CrateDB!! |
-   +-------------------------------------------+
-   SELECT 1 row in set (... sec)
+    cr> select lpad(' I like CrateDB!!', 41, 'yes! ') AS col;
+    +-------------------------------------------+
+    | col                                       |
+    +-------------------------------------------+
+    | yes! yes! yes! yes! yes! I like CrateDB!! |
+    +-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
 
 .. _scalar-rpad:
 
@@ -587,18 +621,19 @@ Synopsis::
 
 Example::
 
-   cr> select rpad('Do you like Crate?', 38, ' yes!') AS col;
-   +----------------------------------------+
-   | col                                    |
-   +----------------------------------------+
-   | Do you like Crate? yes! yes! yes! yes! |
-   +----------------------------------------+
-   SELECT 1 row in set (... sec)
+    cr> select rpad('Do you like Crate?', 38, ' yes!') AS col;
+    +----------------------------------------+
+    | col                                    |
+    +----------------------------------------+
+    | Do you like Crate? yes! yes! yes! yes! |
+    +----------------------------------------+
+    SELECT 1 row in set (... sec)
 
 .. NOTE::
 
-   In both cases, the scalar functions lpad and rpad, do now accept a len
-   greater than 50000.
+    In both cases, the scalar functions lpad and rpad, do now accept a len
+    greater than 50000.
+
 
 .. _scalar-encode:
 
@@ -664,13 +699,14 @@ Returns: ``text``
 
 ::
 
-   cr> select repeat('ab', 3) AS repeat;
-   +--------+
-   | repeat |
-   +--------+
-   | ababab |
-   +--------+
-   SELECT 1 row in set (... sec)
+    cr> select repeat('ab', 3) AS repeat;
+    +--------+
+    | repeat |
+    +--------+
+    | ababab |
+    +--------+
+    SELECT 1 row in set (... sec)
+
 
 .. _scalar-split_part:
 
@@ -678,12 +714,14 @@ Returns: ``text``
 -----------------------------------
 
 Splits a string into parts using a delimiter and returns the part at the given
-index.  The first part is addressed by index ``1``.
+index. The first part is addressed by index ``1``.
 
 Special Cases:
 
 * Returns the empty string if the index is greater than the number of parts.
+
 * If any of the arguments is ``NULL``, the result is ``NULL``.
+
 * If the delimiter is the empty string, the input string is considered as
   consisting of exactly one part.
 
@@ -695,13 +733,13 @@ Synopsis::
 
 Example::
 
-   cr> select split_part('ab--cdef--gh', '--', 2) AS part;
-   +------+
-   | part |
-   +------+
-   | cdef |
-   +------+
-   SELECT 1 row in set (... sec)
+    cr> select split_part('ab--cdef--gh', '--', 2) AS part;
+    +------+
+    | part |
+    +------+
+    | cdef |
+    +------+
+    SELECT 1 row in set (... sec)
 
 
 .. _scalar-date-time:
@@ -709,7 +747,8 @@ Example::
 Date and time functions
 =======================
 
-.. _scalar-date-trunc:
+
+.. _scalar-date_trunc:
 
 ``date_trunc('interval', ['timezone',] timestamp)``
 ---------------------------------------------------
@@ -721,19 +760,12 @@ Limits a timestamps precision to a given interval.
 Valid intervals are:
 
 * ``second``
-
 * ``minute``
-
 * ``hour``
-
 * ``day``
-
 * ``week``
-
 * ``month``
-
 * ``quarter``
-
 * ``year``
 
 Valid values for ``timezone`` are either the name of a time zone (for example
@@ -774,6 +806,9 @@ If you don't specify a time zone, ``truncate`` uses UTC time::
     +---------------+---------------+
     SELECT 3 rows in set (... sec)
 
+
+.. _scalar-extract:
+
 ``extract(field from source)``
 ------------------------------
 
@@ -783,22 +818,7 @@ timestamp.
 
 The return type depends on the used ``field``.
 
-Synopsis
-........
-
-::
-
-    EXTRACT( field FROM expression )
-
-:field:
-  An identifier or string literal which identifies the part of the timestamp
-  that should be extracted.
-
-:expression:
-  An expression that resolves to a timestamp data type with or without
-  timezone or is castable to timestamp data types.
-
-::
+Example::
 
     cr> select extract(day from '2014-08-23') AS day;
     +-----+
@@ -808,11 +828,20 @@ Synopsis
     +-----+
     SELECT 1 row in set (... sec)
 
-``source`` must be an expression that returns a timestamp. In case the
-expression has a different return type but is known to be castable to timestamp
-an implicit cast will be attempted.
+Synopsis::
 
-``field`` is an identifier that selects which part of the timestamp to extract.
+    EXTRACT( field FROM source )
+
+``field``
+  An identifier or string literal which identifies the part of the timestamp
+  that should be extracted.
+
+``source``
+  An expression that resolves to a timestamp data type with or without timezone
+  or is castable to timestamp data types. In the case the expression has a
+  different return type but is known to be castable to timestamp an implicit
+  cast will be attempted.
+
 The following fields are supported:
 
 ``CENTURY``
@@ -881,10 +910,8 @@ The following fields are supported:
   | The number of seconds since Jan 1, 1970.
   | Can be negative if earlier than Jan 1, 1970.
 
-.. _`available time zones`: https://www.joda.org/joda-time/timezones.html
-.. _`Joda-Time`: https://www.joda.org/joda-time/
 
-.. _current_time:
+.. _scalar-current_time:
 
 ``CURRENT_TIME``
 ----------------
@@ -895,21 +922,23 @@ handled. Clock time is looked up at most once within the scope of a single
 query, to ensure that multiple occurrences of ``CURRENT_TIME`` :ref:`evaluate
 <gloss-evaluation>` to the same value.
 
-synopsis::
+Synopsis::
 
     CURRENT_TIME [ ( precision ) ]
 
-``precision`` must be a positive integer between 0 and 6. The default value is
-6. It determines the number of fractional seconds to output. A value of 0 means
-the time will have second precision, no fractional seconds (microseconds)
-are given.
+``precision``
+  Must be a positive integer between 0 and 6. The default value is 6. It
+  determines the number of fractional seconds to output. A value of 0 means the
+  time will have second precision, no fractional seconds (microseconds) are
+  given.
 
 .. NOTE::
-   No guarantee is provided about the accuracy of the underlying clock,
-   results may be limited to millisecond precision, depending on the
-   system.
 
-.. _current_timestamp:
+    No guarantee is provided about the accuracy of the underlying clock,
+    results may be limited to millisecond precision, depending on the system.
+
+
+.. _scalar-current_timestamp:
 
 ``CURRENT_TIMESTAMP``
 ---------------------
@@ -922,10 +951,11 @@ Synopsis::
 
     CURRENT_TIMESTAMP [ ( precision ) ]
 
-Here, ``precision`` must be a positive integer between ``0`` and ``3``. The
-default value is ``3``. This value determines the number of fractional seconds
-to output. A value of ``0`` means the timestamp will have second precision, no
-fractional seconds (milliseconds) are given.
+``precision``
+  Must be a positive integer between ``0`` and ``3``. The default value is
+  ``3``. This value determines the number of fractional seconds to output. A
+  value of ``0`` means the timestamp will have second precision, no fractional
+  seconds (milliseconds) are given.
 
 .. TIP::
 
@@ -946,7 +976,7 @@ fractional seconds (milliseconds) are given.
     depends on the system clock and the JVM implementation.
 
 
-.. _curdate:
+.. _scalar-curdate:
 
 ``CURDATE()``
 ----------------
@@ -954,26 +984,29 @@ fractional seconds (milliseconds) are given.
 The ``CURDATE()`` scalar function is an alias of the :ref:`current_date`
 expression. See :ref:`current_date`.
 
-synopsis::
+Synopsis::
 
     CURDATE()
 
-.. _current_date:
+
+.. _scalar-current_date:
 
 ``CURRENT_DATE``
 ----------------
 
-The ``CURRENT_DATE`` expression returns the date in UTC timezone
-at the time the SQL statement was handled.
-Clock time is looked up at most once within the scope of a single query, to
-ensure that multiple occurrences of ``CURRENT_DATE`` evaluate to the
-same value.
+The ``CURRENT_DATE`` expression returns the date in UTC timezone at the time
+the SQL statement was handled.
 
-synopsis::
+Clock time is looked up at most once within the scope of a single query, to
+ensure that multiple occurrences of ``CURRENT_DATE`` evaluate to the same
+value.
+
+Synopsis::
 
     CURRENT_DATE
 
-.. _now:
+
+.. _scalar-now:
 
 ``now()``
 ---------
@@ -986,8 +1019,10 @@ Returns: ``timestamp with time zone``
 
 Synopsis::
 
-  now()
+    now()
 
+
+.. _scalar-date_format:
 
 ``date_format([format_string, [timezone,]] timestamp)``
 -------------------------------------------------------
@@ -997,10 +1032,7 @@ The ``date_format`` function formats a timestamp as string according to the
 
 Returns: ``text``
 
-Synopsis
-........
-
-::
+Synopsis::
 
     DATE_FORMAT( [ format_string, [ timezone, ] ] timestamp )
 
@@ -1008,49 +1040,55 @@ The only mandatory argument is the ``timestamp`` value to format. It can be any
 :ref:`expression <gloss-expression>` that is safely convertible to timestamp
 data type with or without timezone.
 
-Format
-......
-
 The syntax for the ``format_string`` is 100% compatible to the syntax of the
 `MySQL date_format`_ function. For reference, the format is listed in detail
-below [#MySQL-Docs]_:
+below:
 
-.. csv-table:: date_format Format
+.. csv-table::
    :header: "Format Specifier", "Description"
 
-   ``%a``,	"Abbreviated weekday name (Sun..Sat)"
-   ``%b``,	"Abbreviated month name (Jan..Dec)"
-   ``%c``,	"Month in year, numeric (0..12)"
-   ``%D``,	"Day of month as ordinal number (1st, 2nd, ... 24th)"
-   ``%d``,	"Day of month, padded to 2 digits (00..31)"
-   ``%e``,	"Day of month (0..31)"
-   ``%f``,	"Microseconds, padded to 6 digits (000000..999999)"
-   ``%H``,	"Hour in 24-hour clock, padded to 2 digits (00..23)"
-   ``%h``,	"Hour in 12-hour clock, padded to 2 digits (01..12)"
-   ``%I``,	"Hour in 12-hour clock, padded to 2 digits (01..12)"
-   ``%i``,	"Minutes, numeric (00..59)"
-   ``%j``,	"Day of year, padded to 3 digits (001..366)"
-   ``%k``,	"Hour in 24-hour clock (0..23)"
-   ``%l``,	"Hour in 12-hour clock (1..12)"
-   ``%M``,	"Month name (January..December)"
-   ``%m``,	"Month in year, numeric, padded to 2 digits (00..12)"
-   ``%p``,	"AM or PM"
-   ``%r``,	"Time, 12-hour (hh:mm:ss followed by AM or PM)"
-   ``%S``,	"Seconds, padded to 2 digits (00..59)"
-   ``%s``,	"Seconds, padded to 2 digits (00..59)"
-   ``%T``,	"Time, 24-hour (hh:mm:ss)"
-   ``%U``,	"Week number, sunday as first day of the week, first week of the year (01) is the one starting in this year, week 00 starts in last year (00..53)"
-   ``%u``,	"Week number, monday as first day of the week, first week of the year (01) is the one with at least 4 days in this year (00..53)"
-   ``%V``,	"Week number, sunday as first day of the week, first week of the year (01) is the one starting in this year, uses the week number of the last year, if the week started in last year (01..53)"
-   ``%v``,	"Week number, monday as first day of the week, first week of the year (01) is the one with at least 4 days in this year, uses the week number of the last year, if the week started in last year (01..53)"
-   ``%W``,	"Weekday name (Sunday..Saturday)"
-   ``%w``,	"Day of the week (0=Sunday..6=Saturday)"
-   ``%X``,	"weekyear, sunday as first day of the week, numeric, four digits; used with %V"
-   ``%x``,	"weekyear, monday as first day of the week, numeric, four digits; used with %v"
-   ``%Y``,	"Year, numeric, four digits"
-   ``%y``,	"Year, numeric, two digits"
-   ``%%``,	"A literal '%' character"
-   ``%x``,	"x, for any 'x' not listed above"
+   ``%a``, "Abbreviated weekday name (Sun..Sat)"
+   ``%b``, "Abbreviated month name (Jan..Dec)"
+   ``%c``, "Month in year, numeric (0..12)"
+   ``%D``, "Day of month as ordinal number (1st, 2nd, ... 24th)"
+   ``%d``, "Day of month, padded to 2 digits (00..31)"
+   ``%e``, "Day of month (0..31)"
+   ``%f``, "Microseconds, padded to 6 digits (000000..999999)"
+   ``%H``, "Hour in 24-hour clock, padded to 2 digits (00..23)"
+   ``%h``, "Hour in 12-hour clock, padded to 2 digits (01..12)"
+   ``%I``, "Hour in 12-hour clock, padded to 2 digits (01..12)"
+   ``%i``, "Minutes, numeric (00..59)"
+   ``%j``, "Day of year, padded to 3 digits (001..366)"
+   ``%k``, "Hour in 24-hour clock (0..23)"
+   ``%l``, "Hour in 12-hour clock (1..12)"
+   ``%M``, "Month name (January..December)"
+   ``%m``, "Month in year, numeric, padded to 2 digits (00..12)"
+   ``%p``, "AM or PM"
+   ``%r``, "Time, 12-hour (hh:mm:ss followed by AM or PM)"
+   ``%S``, "Seconds, padded to 2 digits (00..59)"
+   ``%s``, "Seconds, padded to 2 digits (00..59)"
+   ``%T``, "Time, 24-hour (hh:mm:ss)"
+   ``%U``, "Week number, sunday as first day of the week, first week of the
+   year (01) is the one starting in this year, week 00 starts in last year
+   (00..53)"
+   ``%u``, "Week number, monday as first day of the week, first week of the
+   year (01) is the one with at least 4 days in this year (00..53)"
+   ``%V``, "Week number, sunday as first day of the week, first week of the
+   year (01) is the one starting in this year, uses the week number of the last
+   year, if the week started in last year (01..53)"
+   ``%v``, "Week number, monday as first day of the week, first week of the
+   year (01) is the one with at least 4 days in this year, uses the week number
+   of the last year, if the week started in last year (01..53)"
+   ``%W``, "Weekday name (Sunday..Saturday)"
+   ``%w``, "Day of the week (0=Sunday..6=Saturday)"
+   ``%X``, "weekyear, sunday as first day of the week, numeric, four digits;
+   used with %V"
+   ``%x``, "weekyear, monday as first day of the week, numeric, four digits;
+   used with %v"
+   ``%Y``, "Year, numeric, four digits"
+   ``%y``, "Year, numeric, two digits"
+   ``%%``, "A literal '%' character"
+   ``%x``, "x, for any 'x' not listed above"
 
 If no ``format_string`` is given the default format will be used::
 
@@ -1065,11 +1103,6 @@ If no ``format_string`` is given the default format will be used::
     | 1970-01-01T00:00:00.000000Z |
     +-----------------------------+
     SELECT 1 row in set (... sec)
-
-.. _date-format-timezone:
-
-Timezone
-........
 
 Valid values for ``timezone`` are either the name of a time zone (for example
 'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00'). To
@@ -1096,6 +1129,7 @@ The ``timezone`` will be ``UTC`` if not provided::
     +------------------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-timezone:
 
 ``timezone(timezone, timestamp)``
@@ -1104,10 +1138,7 @@ The ``timezone`` will be ``UTC`` if not provided::
 The timezone scalar function converts values of ``timestamp`` without time zone
 to/from timestamp with time zone.
 
-Synopsis
-........
-
-::
+Synopsis::
 
     TIMEZONE(timezone, timestamp)
 
@@ -1116,19 +1147,27 @@ It has two variants depending on the type of ``timestamp``:
 .. csv-table::
    :header: "Type of timestamp", "Return Type", "Description"
 
-   "timestamp without time zone OR bigint", "timestamp with time zone", "Treat \
+   "timestamp without time zone OR bigint", "timestamp with time zone", "Treat
    given timestamp without time zone as located in the specified timezone"
-   "timestamp with time zone", "timestamp without time zone", "Convert given \
+   "timestamp with time zone", "timestamp without time zone", "Convert given
    timestamp with time zone to the new timezone with no time zone designation"
 
 ::
 
     cr> select
-    ... 257504400000 as no_tz,
-    ... date_format('%Y-%m-%d %h:%i', 257504400000) as no_tz_str,
-    ... timezone('Europe/Madrid', 257504400000) as in_madrid,
-    ... date_format('%Y-%m-%d %h:%i', timezone('Europe/Madrid',
-    ... 257504400000)) as in_madrid_str;
+    ...     257504400000 as no_tz,
+    ...     date_format(
+    ...         '%Y-%m-%d %h:%i', 257504400000
+    ...     ) as no_tz_str,
+    ...     timezone(
+    ...         'Europe/Madrid', 257504400000
+    ...     ) as in_madrid,
+    ...     date_format(
+    ...         '%Y-%m-%d %h:%i',
+    ...         timezone(
+    ...             'Europe/Madrid', 257504400000
+    ...         )
+    ...     ) as in_madrid_str;
     +--------------+------------------+--------------+------------------+
     |        no_tz | no_tz_str        |    in_madrid | in_madrid_str    |
     +--------------+------------------+--------------+------------------+
@@ -1139,10 +1178,17 @@ It has two variants depending on the type of ``timestamp``:
 ::
 
     cr> select
-    ... timezone('Europe/Madrid',
-    ... '1978-02-28T10:00:00.000+01:00'::timestamp with time zone) as epoque,
-    ... date_format('%Y-%m-%d %h:%i', timezone('Europe/Madrid',
-    ... '1978-02-28T10:00:00.000+01:00'::timestamp with time zone)) as epoque_str;
+    ...     timezone(
+    ...         'Europe/Madrid',
+    ...         '1978-02-28T10:00:00+01:00'::timestamp with time zone
+    ...     ) as epoque,
+    ...     date_format(
+    ...          '%Y-%m-%d %h:%i',
+    ...          timezone(
+    ...              'Europe/Madrid',
+    ...              '1978-02-28T10:00:00+01:00'::timestamp with time zone
+    ...          )
+    ...     ) as epoque_str;
     +--------------+------------------+
     |       epoque | epoque_str       |
     +--------------+------------------+
@@ -1153,10 +1199,17 @@ It has two variants depending on the type of ``timestamp``:
 ::
 
     cr> select
-    ... timezone('Europe/Madrid',
-    ... '1978-02-28T10:00:00.000+01:00'::timestamp without time zone) as epoque,
-    ... date_format('%Y-%m-%d %h:%i', timezone('Europe/Madrid',
-    ... '1978-02-28T10:00:00.000+01:00'::timestamp without time zone)) as epoque_str;
+    ...     timezone(
+    ...         'Europe/Madrid',
+    ...         '1978-02-28T10:00:00+01:00'::timestamp without time zone
+    ...     ) as epoque,
+    ...     date_format(
+    ...         '%Y-%m-%d %h:%i',
+    ...         timezone(
+    ...             'Europe/Madrid',
+    ...             '1978-02-28T10:00:00+01:00'::timestamp without time zone
+    ...         )
+    ...     ) as epoque_str;
     +--------------+------------------+
     |       epoque | epoque_str       |
     +--------------+------------------+
@@ -1164,135 +1217,144 @@ It has two variants depending on the type of ``timestamp``:
     +--------------+------------------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-to_char:
 
 ``to_char(expression, format_string)``
 --------------------------------------
 
-The ``to_char`` function converts a ``timestamp`` or ``interval`` value to
-a string, based on a given format string.
+The ``to_char`` function converts a ``timestamp`` or ``interval`` value to a
+string, based on a given format string.
 
 Returns: ``text``
 
-Synopsis
-........
-
-::
+Synopsis::
 
     TO_CHAR( expression, format_string )
 
-``expression`` can be any value with the type of ``timestamp`` (with or without
-a timezone) or ``interval``.
-
-Format
-......
+Here, ``expression`` can be any value with the type of ``timestamp`` (with or
+without a timezone) or ``interval``.
 
 The syntax for the ``format_string`` differs based the type of the
-:ref:`expression <gloss-expression>`.  For ``timestamp`` expressions, the
+:ref:`expression <gloss-expression>`. For ``timestamp`` expressions, the
 ``format_string`` is a template string containing any of the following symbols:
 
-+-------------------------------------------+---------------------------------------------------------------------------+
-| Pattern                                   | Description                                                               |
-+===========================================+===========================================================================+
-| ``HH`` / ``HH12``                         | Hour of day (01-12)                                                       |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``HH24``                                  | Hour of day (00-23)                                                       |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``MI``                                    | Minute (00-59)                                                            |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``SS``                                    | Second (00-59)                                                            |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``MS``                                    | Millisecond (000-999)                                                     |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``US``                                    | Microsecond (000000-999999)                                               |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``FF1``                                   | Tenth of second (0-9)                                                     |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``FF2``                                   | Hundredth of second (00-99)                                               |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``FF3``                                   | Millisecond (000-999)                                                     |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``FF4``                                   | Tenth of millisecond (0000-9999)                                          |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``FF5``                                   | Hundredth of millisecond (00000-99999)                                    |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``FF6``                                   | Microsecond (000000-999999)                                               |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``SSSS`` / ``SSSSS``                      | Seconds past midnight (0-86399)                                           |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``AM`` / ``am`` / ``PM`` / ``pm``         | Meridiem indicator                                                        |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``A.M.`` / ``a.m.`` / ``P.M.`` / ``p.m.`` | Meridiem indicator (with periods)                                         |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``Y,YYY``                                 | 4 digit year with comma                                                   |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``YYYY``                                  | 4 digit year                                                              |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``YYY``                                   | Last 3 digits of year                                                     |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``YY``                                    | Last 2 digits of year                                                     |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``Y``                                     | Last digit of year                                                        |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``IYYY``                                  | 4 digit ISO-8601 week-numbering year                                      |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``IYY``                                   | Last 3 digits of ISO-8601 week-numbering year                             |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``IY``                                    | Last 2 digits of ISO-8601 week-numbering year                             |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``I``                                     | Last digit of ISO-8601 week-numbering year                                |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``BC`` / ``bc`` / ``AD`` / ``ad``         | Era indicator                                                             |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``B.C.`` / ``b.c.`` / ``A.D.`` / ``a.d.`` | Era indicator with periods                                                |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``MONTH`` / ``Month`` / ``month``         | Full month name (uppercase/capitalized/lowercase) padded to 9 characters  |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``MON`` / ``Mon`` / ``mon``               | Short month name (uppercase/capitalized/lowercase) padded to 9 characters |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``MM``                                    | Month number (01-12)                                                      |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``DAY`` / ``Day`` / ``day``               | Full day name (uppercase/capitalized/lowercase) padded to 9 characters    |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``DY`` / ``Dy`` / ``dy``                  | Short, 3 character day name (uppercase/capitalized/lowercase)             |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``DDD``                                   | Day of year (001-366)                                                     |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``IDDD``                                  | Day of ISO-8601 week-numbering year, where the first Monday of the        |
-|                                           | first ISO week is day 1 (001-371)                                         |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``DD``                                    | Day of month (01-31)                                                      |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``D``                                     | Day of the week, from Sunday (1) to Saturday (7)                          |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``ID``                                    | ISO-8601 day of the week, from Monday (1) to Sunday (7)                   |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``W``                                     | Week of month (1-5)                                                       |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``WW``                                    | Week number of year (1-53)                                                |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``IW``                                    | Week number of ISO-8601 week-numbering year (01-53)                       |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``CC``                                    | Century                                                                   |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``J``                                     | Julian Day                                                                |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``Q``                                     | Quarter                                                                   |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``RM`` / ``rm``                           | Month in Roman numerals (uppercase/lowercase)                             |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``TZ`` / ``tz``                           | Time-zone abbreviation (uppercase/lowercase)                              |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``TZH``                                   | Time-zone hours                                                           |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``TZM``                                   | Time-zone minutes                                                         |
-+-------------------------------------------+---------------------------------------------------------------------------+
-| ``OF``                                    | Time-zone offset from UTC                                                 |
-+-------------------------------------------+---------------------------------------------------------------------------+
++-----------------------+-----------------------------------------------------+
+| Pattern               | Description                                         |
++=======================+=====================================================+
+| ``HH`` / ``HH12``     | Hour of day (01-12)                                 |
++-----------------------+-----------------------------------------------------+
+| ``HH24``              | Hour of day (00-23)                                 |
++-----------------------+-----------------------------------------------------+
+| ``MI``                | Minute (00-59)                                      |
++-----------------------+-----------------------------------------------------+
+| ``SS``                | Second (00-59)                                      |
++-----------------------+-----------------------------------------------------+
+| ``MS``                | Millisecond (000-999)                               |
++-----------------------+-----------------------------------------------------+
+| ``US``                | Microsecond (000000-999999)                         |
++-----------------------+-----------------------------------------------------+
+| ``FF1``               | Tenth of second (0-9)                               |
++-----------------------+-----------------------------------------------------+
+| ``FF2``               | Hundredth of second (00-99)                         |
++-----------------------+-----------------------------------------------------+
+| ``FF3``               | Millisecond (000-999)                               |
++-----------------------+-----------------------------------------------------+
+| ``FF4``               | Tenth of millisecond (0000-9999)                    |
++-----------------------+-----------------------------------------------------+
+| ``FF5``               | Hundredth of millisecond (00000-99999)              |
++-----------------------+-----------------------------------------------------+
+| ``FF6``               | Microsecond (000000-999999)                         |
++-----------------------+-----------------------------------------------------+
+| ``SSSS`` / ``SSSSS``  | Seconds past midnight (0-86399)                     |
++-----------------------+-----------------------------------------------------+
+| ``AM`` / ``am`` /     | Meridiem indicator                                  |
+| ``PM`` / ``pm``       |                                                     |
++-----------------------+-----------------------------------------------------+
+| ``A.M.`` / ``a.m.`` / | Meridiem indicator (with periods)                   |
+| ``P.M.`` / ``p.m.``   |                                                     |
++-----------------------+-----------------------------------------------------+
+| ``Y,YYY``             | 4 digit year with comma                             |
++-----------------------+-----------------------------------------------------+
+| ``YYYY``              | 4 digit year                                        |
++-----------------------+-----------------------------------------------------+
+| ``YYY``               | Last 3 digits of year                               |
++-----------------------+-----------------------------------------------------+
+| ``YY``                | Last 2 digits of year                               |
++-----------------------+-----------------------------------------------------+
+| ``Y``                 | Last digit of year                                  |
++-----------------------+-----------------------------------------------------+
+| ``IYYY``              | 4 digit ISO-8601 week-numbering year                |
++-----------------------+-----------------------------------------------------+
+| ``IYY``               | Last 3 digits of ISO-8601 week-numbering year       |
++-----------------------+-----------------------------------------------------+
+| ``IY``                | Last 2 digits of ISO-8601 week-numbering year       |
++-----------------------+-----------------------------------------------------+
+| ``I``                 | Last digit of ISO-8601 week-numbering year          |
++-----------------------+-----------------------------------------------------+
+| ``BC`` / ``bc`` /     | Era indicator                                       |
+| ``AD`` / ``ad``       |                                                     |
++-----------------------+-----------------------------------------------------+
+| ``B.C.`` / ``b.c.`` / | Era indicator with periods                          |
+| ``A.D.`` / ``a.d.``   |                                                     |
++-----------------------+-----------------------------------------------------+
+| ``MONTH`` / ``Month`` | Full month name (uppercase, capitalized, lowercase) |
+| / ``month``           | padded to 9 characters                              |
++-----------------------+-----------------------------------------------------+
+| ``MON`` / ``Mon`` /   | Short month name (uppercase, capitalized,           |
+| ``mon``               | lowercase)padded to 9 characters                    |
++-----------------------+-----------------------------------------------------+
+| ``MM``                | Month number (01-12)                                |
++-----------------------+-----------------------------------------------------+
+| ``DAY`` / ``Day`` /   | Full day name (uppercase, capitalized, lowercase)   |
+| ``day``               | padded to 9 characters                              |
++-----------------------+-----------------------------------------------------+
+| ``DY`` / ``Dy`` /     | Short, 3 character day name                         |
+| ``dy``                | (uppercase, capitalized, lowercase)                 |
++-----------------------+-----------------------------------------------------+
+| ``DDD``               | Day of year (001-366)                               |
++-----------------------+-----------------------------------------------------+
+| ``IDDD``              | Day of ISO-8601 week-numbering year, where the      |
+|                       | first Monday of the first ISO week is day 1         |
+|                       | (001-371)                                           |
++-----------------------+-----------------------------------------------------+
+| ``DD``                | Day of month (01-31)                                |
++-----------------------+-----------------------------------------------------+
+| ``D``                 | Day of the week, from Sunday (1) to Saturday (7)    |
++-----------------------+-----------------------------------------------------+
+| ``ID``                | ISO-8601 day of the week, from Monday (1) to Sunday |
+|                       | (7)                                                 |
++-----------------------+-----------------------------------------------------+
+| ``W``                 | Week of month (1-5)                                 |
++-----------------------+-----------------------------------------------------+
+| ``WW``                | Week number of year (1-53)                          |
++-----------------------+-----------------------------------------------------+
+| ``IW``                | Week number of ISO-8601 week-numbering year (01-53) |
++-----------------------+-----------------------------------------------------+
+| ``CC``                | Century                                             |
++-----------------------+-----------------------------------------------------+
+| ``J``                 | Julian Day                                          |
++-----------------------+-----------------------------------------------------+
+| ``Q``                 | Quarter                                             |
++-----------------------+-----------------------------------------------------+
+| ``RM`` / ``rm``       | Month in Roman numerals (uppercase, lowercase)      |
++-----------------------+-----------------------------------------------------+
+| ``TZ`` / ``tz``       | Time-zone abbreviation (uppercase, lowercase)       |
++-----------------------+-----------------------------------------------------+
+| ``TZH``               | Time-zone hours                                     |
++-----------------------+-----------------------------------------------------+
+| ``TZM``               | Time-zone minutes                                   |
++-----------------------+-----------------------------------------------------+
+| ``OF``                | Time-zone offset from UTC                           |
++-----------------------+-----------------------------------------------------+
 
-::
+Example::
 
-    cr> select to_char(timestamp '1970-01-01T17:31:12', 'Day, Month DD - HH12:MI AM YYYY AD') as ts;
+    cr> select
+    ...     to_char(
+    ...         timestamp '1970-01-01T17:31:12',
+    ...         'Day, Month DD - HH12:MI AM YYYY AD'
+    ...     ) as ts;
     +-----------------------------------------+
     | ts                                      |
     +-----------------------------------------+
@@ -1302,11 +1364,13 @@ The syntax for the ``format_string`` differs based the type of the
 
 For ``interval`` expressions, the formatting string accepts the same tokens as
 ``timestamp`` expressions. The function then uses the timestamp of the
-specified interval added to the timestamp of ``0000/01/01 00:00:00``:
+specified interval added to the timestamp of ``0000/01/01 00:00:00``::
 
-::
-
-    cr> select to_char(interval '1 year 3 weeks 200 minutes', 'YYYY MM DD HH12:MI:SS') as interval;
+    cr> select
+    ...     to_char(
+    ...         interval '1 year 3 weeks 200 minutes',
+    ...         'YYYY MM DD HH12:MI:SS'
+    ...     ) as interval;
     +---------------------+
     | interval            |
     +---------------------+
@@ -1315,10 +1379,13 @@ specified interval added to the timestamp of ``0000/01/01 00:00:00``:
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-geo:
+
 Geo functions
 =============
 
-.. _scalar_distance:
+
+.. _scalar-distance:
 
 ``distance(geo_point1, geo_point2)``
 ------------------------------------
@@ -1349,16 +1416,17 @@ the other argument must be a column reference.
 
 .. NOTE::
 
-   The algorithm of the calculation which is used when the distance function is
-   used as part of the result column list has a different precision than what
-   is stored inside the index which is utilized if the distance function is
-   part of a WHERE clause.
+    The algorithm of the calculation which is used when the distance function
+    is used as part of the result column list has a different precision than
+    what is stored inside the index which is utilized if the distance function
+    is part of a WHERE clause.
 
-   For example if ``select distance(...)`` returns 0.0 an equality check with
-   ``where distance(...) = 0`` might not yield anything at all due to the
-   precision difference.
+    For example if ``select distance(...)`` returns 0.0 an equality check with
+    ``where distance(...) = 0`` might not yield anything at all due to the
+    precision difference.
 
-.. _scalar_within:
+
+.. _scalar-within:
 
 ``within(shape1, shape2)``
 --------------------------
@@ -1387,7 +1455,8 @@ type casting from strings in WKT representation to geo point and geo shapes::
 
 This function can always be used within the ``WHERE`` clause.
 
-.. _scalar_intersects:
+
+.. _scalar-intersects:
 
 ``intersects(geo_shape, geo_shape)``
 ------------------------------------
@@ -1426,6 +1495,9 @@ Example::
 Due to a limitation on the :ref:`geo_shape_data_type` datatype this function
 cannot be used in the :ref:`ORDER BY <sql-select-order-by>` clause.
 
+
+.. _scalar-latitude-longitude:
+
 ``latitude(geo_point)`` and ``longitude(geo_point)``
 ----------------------------------------------------
 
@@ -1439,8 +1511,13 @@ casting of geo points.
 
 Example::
 
-    cr> select mountain, height, longitude(coordinates) as "lon", latitude(coordinates) as "lat"
-    ... from sys.summits order by height desc limit 1;
+    cr> select
+    ...     mountain,
+    ...     height,
+    ...     longitude(coordinates) as "lon",
+    ...     latitude(coordinates) as "lat"
+    ... from sys.summits
+    ... order by height desc limit 1;
     +------------+--------+---------+---------+
     | mountain   | height |     lon |     lat |
     +------------+--------+---------+---------+
@@ -1451,13 +1528,18 @@ Example::
 Below is an example of the latitude/longitude functions which make use of the
 implicit type casting from strings to geo point::
 
-    cr> select latitude('POINT (10 20)') AS lat, longitude([10.0, 20.0]) AS long;
+    cr> select
+    ...    latitude('POINT (10 20)') AS lat,
+    ...    longitude([10.0, 20.0]) AS long;
     +------+------+
     |  lat | long |
     +------+------+
     | 20.0 | 10.0 |
     +------+------+
     SELECT 1 row in set (... sec)
+
+
+.. _scalar-geohash:
 
 ``geohash(geo_point)``
 ----------------------
@@ -1472,7 +1554,11 @@ information of the implicit type casting of geo points.
 
 Example::
 
-    cr> select mountain, height, geohash(coordinates) as "geohash" from sys.summits
+    cr> select
+    ...     mountain,
+    ...     height,
+    ...     geohash(coordinates) as "geohash"
+    ... from sys.summits
     ... order by height desc limit 1;
     +------------+--------+--------------+
     | mountain   | height | geohash      |
@@ -1481,13 +1567,17 @@ Example::
     +------------+--------+--------------+
     SELECT 1 row in set (... sec)
 
-.. _mathematical_functions:
+
+.. _scalar-math:
 
 Mathematical functions
 ======================
 
 All mathematical functions can be used within ``WHERE`` and ``ORDER BY``
 clauses.
+
+
+.. _scalar-abs:
 
 ``abs(number)``
 ---------------
@@ -1502,6 +1592,7 @@ number::
     | 214748.0998 | 0 | 214748 |
     +-------------+---+--------+
     SELECT 1 row in set (... sec)
+
 
 .. _scalar-ceil:
 
@@ -1525,10 +1616,13 @@ return value will be of type ``bigint``::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-ceiling:
+
 ``ceiling(number)``
 -------------------
 
 This is an alias for :ref:`ceil <scalar-ceil>`.
+
 
 .. _scalar-degrees:
 
@@ -1549,6 +1643,7 @@ Returns: ``double precision``
     +-------------------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-exp:
 
 ``exp(number)``
@@ -1568,6 +1663,7 @@ Returns: Same as input type.
     | 2.718281828459045 |
     +-------------------+
     SELECT 1 row in set (... sec)
+
 
 .. _scalar-floor:
 
@@ -1593,6 +1689,9 @@ See below for an example::
     +-------+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-ln:
+
 ``ln(number)``
 --------------
 
@@ -1615,6 +1714,9 @@ See below for an example::
     An error is returned for arguments which lead to undefined or illegal
     results. E.g. ln(0) results in ``minus infinity``, and therefore, an error
     is returned.
+
+
+.. _scalar-log:
 
 ``log(x : number, b : number)``
 -------------------------------
@@ -1649,8 +1751,9 @@ The second argument (``b``) is optional. If not present, base 10 is used::
     results. E.g. log(0) results in ``minus infinity``, and therefore, an error
     is returned.
 
-    The same is true for arguments which lead to a ``division by zero``, as
-    e.g. log(10, 1) does.
+    The same is true for arguments which lead to a ``division by zero``, as,
+    e.g., log(10, 1) does.
+
 
 .. _scalar-modulus:
 
@@ -1671,11 +1774,16 @@ Returns: Same as argument types.
     +-----+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-mod:
+
 ``mod(y, x)``
 -----------------
 
 This is an alias for :ref:`modulus <scalar-modulus>`.
 
+
+.. _scalar-power:
 
 ``power(a: number, b: number)``
 -------------------------------
@@ -1698,6 +1806,7 @@ See below for an example::
     +-----+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-radians:
 
 ``radians(double precision)``
@@ -1716,6 +1825,9 @@ Returns: ``double precision``
     | 0.7853981633974483 |
     +--------------------+
     SELECT 1 row in set (... sec)
+
+
+.. _scalar-random:
 
 ``random()``
 ------------
@@ -1764,6 +1876,7 @@ See below for an example::
     +-------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-trunc:
 
 ``trunc(number[, precision])``
@@ -1794,6 +1907,9 @@ See below for examples::
     +-------+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-sqrt:
+
 ``sqrt(number)``
 ----------------
 
@@ -1810,6 +1926,9 @@ See below for an example::
     |  5.0 |
     +------+
     SELECT 1 row in set (... sec)
+
+
+.. _scalar-sin:
 
 ``sin(number)``
 ---------------
@@ -1828,6 +1947,9 @@ See below for an example::
     +--------------------+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-asin:
+
 ``asin(number)``
 ----------------
 
@@ -1844,6 +1966,9 @@ See below for an example::
     | 1.5707963267948966 |
     +--------------------+
     SELECT 1 row in set (... sec)
+
+
+.. _scalar-cos:
 
 ``cos(number)``
 ---------------
@@ -1862,6 +1987,9 @@ See below for an example::
     +--------------------+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-acos:
+
 ``acos(number)``
 ----------------
 
@@ -1879,6 +2007,9 @@ See below for an example::
     +-------------------+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-tan:
+
 ``tan(number)``
 ---------------
 
@@ -1895,6 +2026,7 @@ See below for an example::
     | 1.5574077246549023 |
     +--------------------+
     SELECT 1 row in set (... sec)
+
 
 .. _scalar-cot:
 
@@ -1917,6 +2049,9 @@ See below for an example::
     +--------------------+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-atan:
+
 ``atan(number)``
 ----------------
 
@@ -1933,6 +2068,7 @@ See below for an example::
     | 0.7853981633974483 |
     +--------------------+
     SELECT 1 row in set (... sec)
+
 
 .. _scalar-atan2:
 
@@ -1953,6 +2089,7 @@ Returns: ``double precision``
     +--------------------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-pi:
 
 ``pi()``
@@ -1972,6 +2109,7 @@ Returns: ``double precision``
     +-------------------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-regexp:
 
 Regular expression functions
@@ -1984,10 +2122,11 @@ See the API documentation for more details.
 
 .. NOTE::
 
-   Be aware that, in contrast to the functions, the :ref:`regular expression
-   operator <sql_dql_regexp>` uses `Lucene Regular Expressions`_.
+    Be aware that, in contrast to the functions, the :ref:`regular expression
+    operator <sql_dql_regexp>` uses `Lucene Regular Expressions`_.
 
-.. _Lucene Regular Expressions: https://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
+
+.. _scalar-regexp_replace:
 
 ``regexp_replace(source, pattern, replacement [, flags])``
 ----------------------------------------------------------
@@ -2010,12 +2149,15 @@ string. The expression ``$0`` will insert the whole matching ``source``.
 By default, only the first occurrence of a subsequence matching ``pattern``
 will be replaced. If all occurrences shall be replaced use the ``g`` flag.
 
+
+.. _scalar-regexp_replace-flags:
+
 Flags
 .....
 
 ``regexp_replace`` supports a number of flags as optional parameters. These
-flags are given as a string containing any of the characters listed
-below. Order does not matter.
+flags are given as a string containing any of the characters listed below.
+Order does not matter.
 
 +-------+---------------------------------------------------------------------+
 | Flag  | Description                                                         |
@@ -2040,12 +2182,20 @@ below. Order does not matter.
 |       | not only the first                                                  |
 +-------+---------------------------------------------------------------------+
 
+
+.. _scalar-regexp_replace-examples:
+
 Examples
 ........
 
 ::
 
-   cr> select name, regexp_replace(name, '(\w+)\s(\w+)+', '$1 - $2') as replaced from locations
+   cr> select
+   ...     name,
+   ...     regexp_replace(
+   ...         name, '(\w+)\s(\w+)+', '$1 - $2'
+   ...      ) as replaced
+   ... from locations
    ... order by name limit 5;
     +---------------------+-----------------------+
     | name                | replaced              |
@@ -2060,7 +2210,10 @@ Examples
 
 ::
 
-   cr> select regexp_replace('alcatraz', '(foo)(bar)+', '$1baz') as replaced;
+   cr> select
+   ...     regexp_replace(
+   ...         'alcatraz', '(foo)(bar)+', '$1baz'
+   ...     ) as replaced;
     +----------+
     | replaced |
     +----------+
@@ -2070,7 +2223,12 @@ Examples
 
 ::
 
-   cr> select name, regexp_replace(name, '([A-Z]\w+) .+', '$1', 'ig') as replaced from locations
+   cr> select
+   ...     name,
+   ...     regexp_replace(
+   ...         name, '([A-Z]\w+) .+', '$1', 'ig'
+   ...     ) as replaced
+   ... from locations
    ... order by name limit 5;
     +---------------------+--------------+
     | name                | replaced     |
@@ -2083,8 +2241,14 @@ Examples
     +---------------------+--------------+
     SELECT 5 rows in set (... sec)
 
+
+.. _scalar-arrays:
+
 Array functions
 ===============
+
+
+.. _scalar-array_cat:
 
 ``array_cat(first_array, second_array)``
 ----------------------------------------
@@ -2095,7 +2259,8 @@ Returns: ``array``
 
 ::
 
-    cr> select array_cat([1,2,3],[3,4,5,6]) AS array_cat;
+    cr> select
+    ...     array_cat([1,2,3],[3,4,5,6]) AS array_cat;
     +-----------------------+
     | array_cat             |
     +-----------------------+
@@ -2107,12 +2272,18 @@ It can be used to append elements to array fields
 
 ::
 
-    cr> create table array_cat_example (list array(integer));
+    cr> create table array_cat_example (
+    ...     list array(integer)
+    ... );
     CREATE OK, 1 row affected (... sec)
 
 ::
 
-    cr> insert into array_cat_example (list) values ([1,2,3]);
+    cr> insert into array_cat_example (
+    ...     list
+    ... ) values (
+    ...     [1,2,3]
+    ... );
     INSERT OK, 1 row affected (... sec)
 
 .. Hidden: refresh array_cat_example
@@ -2122,7 +2293,8 @@ It can be used to append elements to array fields
 
 ::
 
-    cr> update array_cat_example set list = array_cat(list, [4, 5, 6]);
+    cr> update array_cat_example
+    ... set list = array_cat(list, [4, 5, 6]);
     UPDATE OK, 1 row affected (... sec)
 
 .. Hidden: refresh array_cat_example
@@ -2142,22 +2314,26 @@ It can be used to append elements to array fields
 
 .. NOTE::
 
-   Appending to arrays with array_cat in updates is handy, but unfortunately
-   not isolated. We use optimistic concurrency control to ensure that your
-   update operation used the latest state of the row. But only 3 retry attempts
-   are made by fetching the newest version again and if they all fail, the
-   query fails.
+    Appending to arrays with array_cat in updates is handy, but unfortunately
+    not isolated. We use optimistic concurrency control to ensure that your
+    update operation used the latest state of the row. But only 3 retry
+    attempts are made by fetching the newest version again and if they all
+    fail, the query fails.
 
 You can also use the concat :ref:`operator <gloss-operator>` ``||`` with
 arrays::
 
-    cr> select [1,2,3] || [4,5,6] || [7,8,9] AS arr;
+    cr> select
+    ...     [1,2,3] || [4,5,6] || [7,8,9] AS arr;
     +-----------------------------+
     | arr                         |
     +-----------------------------+
     | [1, 2, 3, 4, 5, 6, 7, 8, 9] |
     +-----------------------------+
     SELECT 1 row in set (... sec)
+
+
+.. _scalar-array_unique:
 
 ``array_unique(first_array, [ second_array])``
 ----------------------------------------------
@@ -2169,7 +2345,11 @@ Returns: ``array``
 
 ::
 
-    cr> select array_unique([1, 2, 3], [3, 4, 4]) AS arr;
+    cr> select
+    ...     array_unique(
+    ...         [1, 2, 3],
+    ...         [3, 4, 4]
+    ...     ) AS arr;
     +--------------+
     | arr          |
     +--------------+
@@ -2182,13 +2362,20 @@ based on the type precedence.
 
 ::
 
-    cr> select array_unique([10, 20], [10.0, 20.3]) AS arr;
+    cr> select
+    ...      array_unique(
+    ...          [10, 20],
+    ...          [10.0, 20.3]
+    ...      ) AS arr;
     +--------------------+
     | arr                |
     +--------------------+
     | [10.0, 20.0, 20.3] |
     +--------------------+
     SELECT 1 row in set (... sec)
+
+
+.. _scalar-array_difference:
 
 ``array_difference(first_array, second_array)``
 -----------------------------------------------
@@ -2200,7 +2387,11 @@ Returns: ``array``
 
 ::
 
-    cr> select array_difference([1,2,3,4,5,6,7,8,9,10],[2,3,6,9,15]) AS arr;
+    cr> select
+    ...     array_difference(
+    ...         [1,2,3,4,5,6,7,8,9,10],
+    ...         [2,3,6,9,15]
+    ...     ) AS arr;
     +---------------------+
     | arr                 |
     +---------------------+
@@ -2212,12 +2403,18 @@ It can be used to remove elements from array fields.
 
 ::
 
-    cr> create table array_difference_example (list array(integer));
+    cr> create table array_difference_example (
+    ...     list array(integer)
+    ... );
     CREATE OK, 1 row affected (... sec)
 
 ::
 
-    cr> insert into array_difference_example (list) values ([1,2,3,4,5,6,7,8,9,10]);
+    cr> insert into array_difference_example (
+    ...     list
+    ... ) values (
+    ...     [1,2,3,4,5,6,7,8,9,10]
+    ... );
     INSERT OK, 1 row affected (... sec)
 
 .. Hidden: refresh array_difference_example
@@ -2227,7 +2424,10 @@ It can be used to remove elements from array fields.
 
 ::
 
-    cr> update array_difference_example set list = array_difference(list, [6]);
+    cr> update array_difference_example
+    ... set list = array_difference(
+    ...     list, [6]
+    ... );
     UPDATE OK, 1 row affected (... sec)
 
 .. Hidden: refresh array_difference_example
@@ -2246,6 +2446,8 @@ It can be used to remove elements from array fields.
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-array:
+
 ``array(subquery)``
 -------------------
 
@@ -2258,7 +2460,8 @@ Returns: ``array``
 
     :ref:`Array construction with subquery <sql_expressions_array_subquery>`
 
-.. _scalar-array-upper:
+
+.. _scalar-array_upper:
 
 ``array_upper(anyarray, dimension)``
 ------------------------------------
@@ -2278,7 +2481,8 @@ Returns: ``integer``
     +------+
     SELECT 1 row in set (... sec)
 
-.. _scalar-array-length:
+
+.. _scalar-array_length:
 
 ``array_length(anyarray, dimension)``
 -------------------------------------
@@ -2298,7 +2502,8 @@ Returns: ``integer``
     +-----+
     SELECT 1 row in set (... sec)
 
-.. _scalar-array-lower:
+
+.. _scalar-array_lower:
 
 ``array_lower(anyarray, dimension)``
 ------------------------------------
@@ -2319,19 +2524,23 @@ Returns: ``integer``
     +------+
     SELECT 1 row in set (... sec)
 
-.. _scalar-array-to-string:
+
+.. _scalar-array_to_string:
 
 ``array_to_string(anyarray, separator, [ null_string ])``
 ---------------------------------------------------------
 
-The ``array_to_string`` function concatenates elements of the given array
-into a single string using the ``separator``.
+The ``array_to_string`` function concatenates elements of the given array into
+a single string using the ``separator``.
 
 Returns: ``text``
 
 ::
 
-    cr> select array_to_string(['Arthur', 'Ford', 'Trillian'], ',') AS str;
+    cr> select
+    ...     array_to_string(
+    ...         ['Arthur', 'Ford', 'Trillian'], ','
+    ...     ) AS str;
     +----------------------+
     | str                  |
     +----------------------+
@@ -2341,7 +2550,10 @@ Returns: ``text``
 
 If the ``separator`` argument is ``NULL``, the result is ``NULL``::
 
-    cr> select array_to_string(['Arthur', 'Ford', 'Trillian'], NULL) AS str;
+    cr> select
+    ...     array_to_string(
+    ...         ['Arthur', 'Ford', 'Trillian'], NULL
+    ...     ) AS str;
     +------+
     |  str |
     +------+
@@ -2352,7 +2564,10 @@ If the ``separator`` argument is ``NULL``, the result is ``NULL``::
 If ``null_string`` is provided and is not ``NULL``, then ``NULL`` elements of
 the array are replaced by that string, otherwise they are omitted::
 
-    cr> select array_to_string(['Arthur', NULL, 'Trillian'], ',', 'Ford') AS str;
+    cr> select
+    ...     array_to_string(
+    ...         ['Arthur', NULL, 'Trillian'], ',', 'Ford'
+    ...     ) AS str;
     +----------------------+
     | str                  |
     +----------------------+
@@ -2362,7 +2577,10 @@ the array are replaced by that string, otherwise they are omitted::
 
 ::
 
-    cr> select array_to_string(['Arthur', NULL, 'Trillian'], ',') AS str;
+    cr> select
+    ...     array_to_string(
+    ...         ['Arthur', NULL, 'Trillian'], ','
+    ...     ) AS str;
     +-----------------+
     | str             |
     +-----------------+
@@ -2372,7 +2590,10 @@ the array are replaced by that string, otherwise they are omitted::
 
 ::
 
-    cr> select array_to_string(['Arthur', NULL, 'Trillian'], ',', NULL) AS str;
+    cr> select
+    ...     array_to_string(
+    ...         ['Arthur', NULL, 'Trillian'], ',', NULL
+    ...     ) AS str;
     +-----------------+
     | str             |
     +-----------------+
@@ -2380,7 +2601,8 @@ the array are replaced by that string, otherwise they are omitted::
     +-----------------+
     SELECT 1 row in set (... sec)
 
-.. _scalar-string-to-array:
+
+.. _scalar-string_to_array:
 
 ``string_to_array(string, separator, [ null_string ])``
 -------------------------------------------------------
@@ -2411,8 +2633,11 @@ Returns: ``array(text)``
     +------------------------------+
     SELECT 1 row in set (... sec)
 
-separator
-.........
+
+.. _scalar-string_to_array-separator:
+
+``separator``
+.............
 
 If the ``separator`` argument is NULL, each character of the input string
 becomes a separate element in the resulting array.
@@ -2440,13 +2665,17 @@ as a one-element array.
     +-----------------+
     SELECT 1 row in set (... sec)
 
-null_string
-...........
+
+.. _scalar-string_to_array-null_string:
+
+``null_string``
+...............
 
 If the ``null_string`` argument is omitted or NULL, none of the substrings of
 the input will be replaced by NULL.
 
-.. _scalar-array-min:
+
+.. _scalar-array_min:
 
 ``array_min(array)``
 --------------------
@@ -2466,7 +2695,8 @@ function supports arrays of any of the :ref:`primitive types
     +-----+
     SELECT 1 row in set (... sec)
 
-.. _scalar-array-max:
+
+.. _scalar-array_max:
 
 ``array_max(array)``
 --------------------
@@ -2486,15 +2716,15 @@ function supports arrays of any of the :ref:`primitive types
     +-----+
     SELECT 1 row in set (... sec)
 
-.. _scalar-array-sum:
+
+.. _scalar-array_sum:
 
 ``array_sum(array)``
 --------------------
 
 Returns the sum of array elements that are not ``NULL``. If ``array`` is
 ``NULL`` or an empty array, the function returns ``NULL``. This function
-supports arrays of any :ref:`numeric types
-<data-type-numeric>`. 
+supports arrays of any :ref:`numeric types <data-type-numeric>`.
 
 For ``real`` and ``double precison`` arguments, the return type is equal to the
 argument type. For ``char``, ``smallint``, ``integer``, and ``bigint``
@@ -2517,16 +2747,21 @@ The sum on the bigint array will result in an overflow in the following query:
 
 ::
 
-    cr> SELECT array_sum([9223372036854775807,9223372036854775807]) as sum;
+    cr> SELECT
+    ...     array_sum(
+    ...         [9223372036854775807, 9223372036854775807]
+    ...     ) as sum;
     ArithmeticException[long overflow]
 
-To address the overflow of the sum of the given array elements,
-we cast the array to the numeric data type:
+To address the overflow of the sum of the given array elements, we cast the
+array to the numeric data type:
 
 ::
 
-    cr>  SELECT array_sum([9223372036854775807,9223372036854775807] :: numeric[])
-    ... as sum;
+    cr>  SELECT
+    ...     array_sum(
+    ...         [9223372036854775807, 9223372036854775807]::numeric[]
+    ...     ) as sum;
     +----------------------+
     |                  sum |
     +----------------------+
@@ -2534,7 +2769,8 @@ we cast the array to the numeric data type:
     +----------------------+
     SELECT 1 row in set (... sec)
 
-.. _scalar-array-avg:
+
+.. _scalar-array_avg:
 
 ``array_avg(array)``
 --------------------
@@ -2557,10 +2793,14 @@ arguments, the return type is ``numeric``.
     +-----+
     SELECT 1 row in set (... sec)
 
-.. _scalar-conditional-functions-expressions:
+
+.. _scalar-conditional-fn-exp:
 
 Conditional functions and expressions
 =====================================
+
+
+.. _scalar-case-when-then-end:
 
 ``CASE WHEN ... THEN ... END``
 ------------------------------
@@ -2571,10 +2811,10 @@ be used wherever an expression is valid.
 
 ::
 
-  CASE WHEN condition THEN result
-       [WHEN ...]
-       [ELSE result]
-  END
+    CASE WHEN condition THEN result
+         [WHEN ...]
+         [ELSE result]
+    END
 
 Each *condition* expression must result in a boolean value. If the condition's
 result is true, the value of the *result* expression that follows the condition
@@ -2594,8 +2834,7 @@ true, the result is null.
     cr> refresh table case_example
     REFRESH OK, 1 row affected (... sec)
 
-Example:
-::
+Example::
 
     cr> select id,
     ...   case when id = 0 then 'zero'
@@ -2613,19 +2852,15 @@ Example:
     +----+--------+
     SELECT 4 rows in set (... sec)
 
-As a variant, a ``case`` expression can be written using the *simple* form:
+As a variant, a ``case`` expression can be written using the *simple* form::
 
-::
+    CASE expression
+         WHEN value THEN result
+         [WHEN ...]
+         [ELSE result]
+    END
 
-  CASE expression
-       WHEN value THEN result
-       [WHEN ...]
-       [ELSE result]
-  END
-
-Example:
-
-::
+Example::
 
     cr> select id,
     ...   case id when 0 then 'zero'
@@ -2652,6 +2887,9 @@ Example:
     cr> drop table case_example;
     DROP OK, 1 row affected (... sec)
 
+
+.. _scalar-if:
+
 ``if(condition, result [, default])``
 -------------------------------------
 
@@ -2675,7 +2913,11 @@ instead.
 
 ::
 
-   cr> select id, if(id = 0, 'zero', 'other') as description from if_example order by id;
+    cr> select
+    ...     id,
+    ...     if(id = 0, 'zero', 'other') as description
+    ... from if_example
+    ... order by id;
     +----+-------------+
     | id | description |
     +----+-------------+
@@ -2690,6 +2932,9 @@ instead.
 
     cr> drop table if_example;
     DROP OK, 1 row affected (... sec)
+
+
+.. _scalar-coalesce:
 
 ``coalesce('first_arg', second_arg [, ... ])``
 ----------------------------------------------
@@ -2712,6 +2957,9 @@ Returns: same type as arguments
     +--------------+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-greatest:
+
 ``greatest('first_arg', second_arg[ , ... ])``
 ----------------------------------------------
 
@@ -2731,6 +2979,9 @@ Returns: same type as arguments
     |        2 |
     +----------+
     SELECT 1 row in set (... sec)
+
+
+.. _scalar-least:
 
 ``least('first_arg', second_arg[ , ... ])``
 -------------------------------------------
@@ -2752,6 +3003,9 @@ Returns: same type as arguments
     +-------+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-nullif:
+
 ``nullif('first_arg', second_arg)``
 -----------------------------------
 
@@ -2772,12 +3026,14 @@ Returns: same type as arguments
     +--------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-sysinfo:
 
 System information functions
 ============================
 
-.. _scalar_current_schema:
+
+.. _scalar-current_schema:
 
 ``CURRENT_SCHEMA``
 ------------------
@@ -2812,7 +3068,8 @@ Example::
     +----------------+
     SELECT 1 row in set (... sec)
 
-.. _current_schemas:
+
+.. _scalar-current_schemas:
 
 ``CURRENT_SCHEMAS(boolean)``
 ----------------------------
@@ -2839,7 +3096,8 @@ Example::
     +-----------------------+
     SELECT 1 row in set (... sec)
 
-.. _current_user:
+
+.. _scalar-current_user:
 
 ``CURRENT_USER``
 ----------------
@@ -2863,7 +3121,8 @@ Example::
     +-------+
     SELECT 1 row in set (... sec)
 
-.. _user:
+
+.. _scalar-user:
 
 ``USER``
 --------
@@ -2886,7 +3145,8 @@ Example::
     +-------+
     SELECT 1 row in set (... sec)
 
-.. _session_user:
+
+.. _scalar-session_user:
 
 ``SESSION_USER``
 ----------------
@@ -2920,14 +3180,17 @@ Example::
     have a a special SQL syntax, meaning that they must be called without
     trailing parenthesis (``()``).
 
+
+.. _scalar-pg_backend_pid:
+
 ``pg_backend_pid()``
 --------------------
 
 The ``pg_backend_pid()`` system information function is implemented for
 enhanced compatibility with PostgreSQL. CrateDB will always return ``-1`` as
 there isn't a single process attached to one query. This is different to
-PostgreSQL, where this represents the process ID of the server process
-attached to the current session.
+PostgreSQL, where this represents the process ID of the server process attached
+to the current session.
 
 Returns: ``integer``
 
@@ -2946,7 +3209,7 @@ Example::
     SELECT 1 row in set (... sec)
 
 
-.. _scalar_pg_postmaster_start_time:
+.. _scalar-pg_postmaster_start_time:
 
 ``pg_postmaster_start_time()``
 ------------------------------
@@ -2954,7 +3217,7 @@ Example::
 Returns the server start time as ``timestamp with time zone``.
 
 
-.. _scalar_current_database:
+.. _scalar-current_database:
 
 ``current_database()``
 ----------------------
@@ -2970,7 +3233,8 @@ which in CrateDB will always be ``crate``::
     +-------+
     SELECT 1 row in set (... sec)
 
-.. _scalar_current_setting:
+
+.. _scalar-current_setting:
 
 ``current_setting(text [,boolean])``
 ------------------------------------
@@ -2987,9 +3251,7 @@ Synopsis::
 If no setting exists for ``setting_name``, current_setting throws an error,
 unless ``missing_ok`` argument is provided and is true.
 
-
 Examples::
-
 
     cr> select current_setting('search_path') AS search_path;
     +-----------------+
@@ -3015,8 +3277,10 @@ Examples::
     SELECT 1 row in set (... sec)
 
 
-``pg_get_expr``
----------------
+.. _scalar-pg_get_expr:
+
+``pg_get_expr()``
+-----------------
 
 The function ``pg_get_expr`` is implemented to improve compatibility with
 clients that use the PostgreSQL wire protocol. The function always returns
@@ -3036,15 +3300,15 @@ Example::
     +------+
     SELECT 1 row in set (... sec)
 
-.. _pg_get_userbyid:
 
-``pg_get_userbyid``
--------------------
+.. _scalar-pg_get_userbyid:
+
+``pg_get_userbyid()``
+---------------------
 
 The function ``pg_get_userbyid`` is implemented to improve compatibility with
-clients that use the PostgreSQL wire protocol. The function always returns
-the default CrateDB user for non-null arguments, otherwise, ``null`` is
-returned.
+clients that use the PostgreSQL wire protocol. The function always returns the
+default CrateDB user for non-null arguments, otherwise, ``null`` is returned.
 
 Returns: ``text``
 
@@ -3062,10 +3326,11 @@ Example::
     +-------+
     SELECT 1 row in set (... sec)
 
-.. _pg_typeof:
 
-``pg_typeof``
--------------
+.. _scalar-pg_typeof:
+
+``pg_typeof()``
+---------------
 
 The function ``pg_typeof`` returns the text representation of the value's data
 type passed to it.
@@ -3088,10 +3353,11 @@ Example:
     +---------------+
     SELECT 1 row in set (... sec)
 
-.. _pg_function_is_visible:
 
-``pg_function_is_visible``
---------------------------
+.. _scalar-pg_function_is_visible:
+
+``pg_function_is_visible()``
+----------------------------
 
 The function ``pg_function_is_visible`` returns true for OIDs that refer to a
 system or a user defined function.
@@ -3114,10 +3380,11 @@ Example:
     +------------------------+
     SELECT 1 row in set (... sec)
 
-.. _pg_get_function_result:
 
-``pg_get_function_result``
---------------------------
+.. _scalar-pg_get_function_result:
+
+``pg_get_function_result()``
+----------------------------
 
 The function ``pg_get_function_result`` returns the text representation of the
 return value's data type of the function referred by the OID.
@@ -3140,10 +3407,11 @@ Example:
     +-------------------------+
     SELECT 1 row in set (... sec)
 
-.. _version:
 
-``version``
------------
+.. _scalar-version:
+
+``version()``
+-------------
 
 Returns the CrateDB version information.
 
@@ -3166,7 +3434,7 @@ Example:
     SELECT 1 row in set (... sec)
 
 
-.. _obj_description:
+.. _scalar-obj_description:
 
 ``obj_description(integer, text)``
 ----------------------------------
@@ -3191,7 +3459,7 @@ Example:
     SELECT 1 row in set (... sec)
 
 
-.. _format_type:
+.. _scalar-format_type:
 
 ``format_type(integer, integer)``
 ---------------------------------
@@ -3227,10 +3495,13 @@ If the given ``OID`` is not know, ``???`` is returned::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-special:
+
 Special functions
 =================
 
-.. _ignore3vl:
+
+.. _scalar-ignore3vl:
 
 ``ignore3vl(boolean)``
 ----------------------
@@ -3242,7 +3513,7 @@ to ``FALSE``, ``TRUE`` to ``TRUE`` and ``NULL`` to ``FALSE``.
 
 Returns: ``boolean``
 
-.. hide:
+.. HIDE:
 
     cr> CREATE TABLE IF NOT EXISTS doc.t(
     ...     int_array_col array(integer)
@@ -3263,13 +3534,13 @@ Returns: ``boolean``
     logic`_, cannot be translated to an optimized query in the internal storage
     engine, and therefore can degrade performance. E.g.::
 
-      SELECT * FROM t
-      WHERE NOT 5 = ANY(t.int_array_col);
+        SELECT * FROM t
+        WHERE NOT 5 = ANY(t.int_array_col);
 
     If we can ignore the `3-valued logic`_, we can write the query as::
 
-      SELECT * FROM t
-      WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col));
+        SELECT * FROM t
+        WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col));
 
     which will yield better performance (in execution time) than before.
 
@@ -3277,35 +3548,34 @@ Returns: ``boolean``
 
     If there are ``NULL`` values in the ``long_array_col``, in the case that
     ``5 = ANY(t.long_array_col)`` evaluates to ``NULL``, without the
-    ``ignore3vl``, it would be evaluated as ``NOT NULL`` => ``NULL``,
-    resulting to zero matched rows. With the ``IGNORE3VL`` in place it will
-    be evaluated as ``NOT FALSE`` => ``TRUE`` resulting to all rows matching
-    the filter. E.g::
+    ``ignore3vl``, it would be evaluated as ``NOT NULL`` => ``NULL``, resulting
+    to zero matched rows. With the ``IGNORE3VL`` in place it will be evaluated
+    as ``NOT FALSE`` => ``TRUE`` resulting to all rows matching the
+    filter. E.g::
 
-      cr> SELECT * FROM t
-      ... WHERE NOT 5 = ANY(t.int_array_col);
-      +---------------+
-      | int_array_col |
-      +---------------+
-      +---------------+
-      SELECT 0 rows in set (... sec)
+        cr> SELECT * FROM t
+        ... WHERE NOT 5 = ANY(t.int_array_col);
+        +---------------+
+        | int_array_col |
+        +---------------+
+        +---------------+
+        SELECT 0 rows in set (... sec)
 
     ::
 
-      cr> SELECT * FROM t
-      ... WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col));
-      +-----------------+
-      | int_array_col   |
-      +-----------------+
-      | [1, 2, 3, null] |
-      +-----------------+
-      SELECT 1 row in set (... sec)
+        cr> SELECT * FROM t
+        ... WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col));
+        +-----------------+
+        | int_array_col   |
+        +-----------------+
+        | [1, 2, 3, null] |
+        +-----------------+
+        SELECT 1 row in set (... sec)
 
-.. hide:
+.. HIDE:
 
-   cr> DROP TABLE IF EXISTS doc.t;
-   DROP OK, 1 row affected (... sec)
-
+    cr> DROP TABLE IF EXISTS doc.t;
+    DROP OK, 1 row affected (... sec)
 
 Synopsis::
 
@@ -3313,7 +3583,10 @@ Synopsis::
 
 Example::
 
-    cr> SELECT ignore3vl(true) as v1, ignore3vl(false) as v2, ignore3vl(null) as v3;
+    cr> SELECT
+    ...     ignore3vl(true) as v1,
+    ...     ignore3vl(false) as v2,
+    ...     ignore3vl(null) as v3;
     +------+-------+-------+
     | v1   | v2    | v3    |
     +------+-------+-------+
@@ -3321,16 +3594,15 @@ Example::
     +------+-------+-------+
     SELECT 1 row in set (... sec)
 
-.. rubric:: Footnotes
 
-.. [#MySQL-Docs] https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
-
-
-.. _`3-valued logic`: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
-.. _`CrateDB PDO`: https://crate.io/docs/pdo/en/latest/connect.html
-.. _`formatter`: https://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
-.. _`Haversine formula`: https://en.wikipedia.org/wiki/Haversine_formula
-.. _`MySQL date_format`: https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
+.. _3-valued logic: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
+.. _available time zones: https://www.joda.org/joda-time/timezones.html
+.. _CrateDB PDO: https://crate.io/docs/pdo/en/latest/connect.html
+.. _formatter: https://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
+.. _Haversine formula: https://en.wikipedia.org/wiki/Haversine_formula
 .. _Java DateTimeFormatter: https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
 .. _Java DecimalFormat: https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html
 .. _Java Regular Expressions: https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
+.. _Joda-Time: https://www.joda.org/joda-time/
+.. _Lucene Regular Expressions: https://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
+.. _MySQL date_format: https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format

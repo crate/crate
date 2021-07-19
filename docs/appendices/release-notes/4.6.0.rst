@@ -76,18 +76,18 @@ SQL Statements and Compatibility
 New Scalars
 -----------
 
-- Added :ref:`array_to_string <scalar-array-to-string>` scalar function
+- Added :ref:`array_to_string <scalar-array_to_string>` scalar function
   that concatenates array elements into a single string using a separator and
   an optional null-string.
 
-- Added :ref:`array_min <scalar-array-min>` and :ref:`array_max
-  <scalar-array-max>` scalar functions returning the minimal and maximal
+- Added :ref:`array_min <scalar-array_min>` and :ref:`array_max
+  <scalar-array_max>` scalar functions returning the minimal and maximal
   element in array respectively.
 
-- Added the :ref:`array_sum <scalar-array-sum>` scalar function
+- Added the :ref:`array_sum <scalar-array_sum>` scalar function
   that returns the sum of all elements in an array.
 
-- Added the :ref:`array_avg <scalar-array-avg>` scalar function that returns
+- Added the :ref:`array_avg <scalar-array_avg>` scalar function that returns
   the average of all elements in an array.
 
 
