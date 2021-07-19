@@ -18,19 +18,30 @@
  */
 package org.elasticsearch.snapshots;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
+import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.RepositoryException;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 
 public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCase {
 
@@ -89,6 +100,88 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
         logger.info("--> make sure snapshot doesn't exist");
         expectThrows(SnapshotMissingException.class, () -> client.admin().cluster().prepareGetSnapshots(repoName)
+            .addSnapshots(snapshot).get().getSnapshots());
+    }
+
+    @Repeat(iterations = 20)
+    public void testFindDanglingLatestGeneration() throws Exception {
+        Path repo = randomRepoPath();
+        final String repoName = "test-repo";
+        logger.info("-->  creating repository at {}", repo.toAbsolutePath());
+        assertAcked(client().admin().cluster().preparePutRepository(repoName)
+                        .setType("fs").setSettings(Settings.builder()
+                                                       .put("location", repo)
+                                                       .put("compress", false)
+                                                       .put("chunk_size", randomIntBetween(100, 1000), ByteSizeUnit.BYTES)));
+
+        execute("create table doc.test1(x integer)");
+        execute("create table doc.test2(x integer)");
+
+        logger.info("--> indexing some data");
+
+        execute("insert into doc.test1 values(1),(2)");
+        execute("insert into doc.test2 values(1),(2)");
+
+        final String snapshot = "test-snap";
+
+        logger.info("--> creating snapshot");
+        CreateSnapshotResponse createSnapshotResponse = client().admin().cluster().prepareCreateSnapshot(repoName, snapshot)
+            .setWaitForCompletion(true).setIndices("test*").get();
+        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), greaterThan(0));
+        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
+                   equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
+
+        final Repository repository = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
+
+        logger.info("--> move index-N blob to next generation");
+        final RepositoryData repositoryData = getRepositoryData(repository);
+        final long beforeMoveGen = repositoryData.getGenId();
+        Files.move(repo.resolve("index-" + beforeMoveGen), repo.resolve("index-" + (beforeMoveGen + 1)));
+
+        logger.info("--> set next generation as pending in the cluster state");
+        final PlainActionFuture<Void> csUpdateFuture = PlainActionFuture.newFuture();
+        internalCluster().getCurrentMasterNodeInstance(ClusterService.class).submitStateUpdateTask("set pending generation",
+            new ClusterStateUpdateTask() {
+                @Override
+                public ClusterState execute(ClusterState currentState) {
+                    return ClusterState.builder(currentState).metadata(
+                    Metadata.builder(currentState.getMetadata())
+                    .putCustom(
+                        RepositoriesMetadata.TYPE,
+                        currentState.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE).withUpdatedGeneration(
+                        repository.getMetadata().name(), beforeMoveGen, beforeMoveGen + 1)).build()).build();
+                }
+
+                @Override
+                public void onFailure(String source, Exception e) {
+                    csUpdateFuture.onFailure(e);
+                }
+
+                @Override
+                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
+                    csUpdateFuture.onResponse(null);
+                }
+        }
+        );
+        csUpdateFuture.get();
+
+        logger.info("--> full cluster restart");
+        internalCluster().fullRestart();
+        ensureGreen();
+
+        Repository repositoryAfterRestart = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
+
+        logger.info("--> verify index-N blob is found at the new location");
+        assertThat(getRepositoryData(repositoryAfterRestart).getGenId(), is(beforeMoveGen + 1));
+
+        logger.info("--> delete snapshot");
+        client().admin().cluster().prepareDeleteSnapshot(repoName, snapshot).get();
+
+        logger.info("--> verify index-N blob is found at the expected location");
+        assertThat(getRepositoryData(repositoryAfterRestart).getGenId(), is(beforeMoveGen + 2));
+
+        logger.info("--> make sure snapshot doesn't exist");
+        expectThrows(SnapshotMissingException.class, () -> client().admin().cluster().prepareGetSnapshots(repoName)
             .addSnapshots(snapshot).get().getSnapshots());
     }
 
