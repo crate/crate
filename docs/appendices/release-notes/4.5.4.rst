@@ -1,0 +1,52 @@
+.. _version_4.5.4:
+
+=============
+Version 4.5.4
+=============
+
+Released on 2021-07-13.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.5.4.
+
+    We recommend that you upgrade to the latest 4.4 release before moving to
+    4.5.4.
+
+    A rolling upgrade from 4.4.0+ to 4.5.4 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_4.5.0` release notes for a full list of changes in the
+4.5 series.
+
+Fixes
+=====
+
+- Fixed a regression that caused the ``job_id`` column within the
+  ``sys.operations_log`` table to return the ``id`` values instead of the
+  ``job_id`` values.
+
+- Fixed an issue that could result in a ``IOException: can not write type ...``
+  error when combining values of type ``TIMETZ``, ``NUMERIC``, ``GEO_POINT`` or
+  ``INTERVAL`` with values of type ``UNDEFINED``.
+
+- Fixed an issue that caused ``INSERT FROM VALUE`` statements to insert
+  records, despite failing validation and returning an error to the client.
+
+- Fixed an issue that caused the ``NOW()`` and ``CURRENT_USER`` functions to
+  get normalized to a literal value when used as part of a generated column or
+  ``DEFAULT`` expression in a ``CREATE TABLE`` statement.
+
+- Fixed a HBA SSL configuration parsing issue. The ``on`` value for the ``ssl``
+  configuration option was not recognized and got interpreted as 'true'.

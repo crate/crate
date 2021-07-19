@@ -210,8 +210,8 @@ Node-to-node communication
 You can use the :ref:`Host-Based Authentication <admin_hba>` mechanism for
 node-to-node communication.
 
-For example, if you wanted to configure a `multi-zone cluster`_, you could do
-this:
+For example, if you wanted to configure a `multi-zone cluster`_, you should
+enable certificate authentication like this:
 
 .. code-block:: yaml
 
@@ -220,21 +220,9 @@ this:
         enabled: true
         config:
           0:
-            address: 192.168.0.0/24
-            protocol: transport
-            method: trust
-          1:
             protocol: transport
             ssl: on
             method: cert
-
-Here, communication between nodes in the same zone (i.e., matching the
-``192.168.0.0/24`` netmask) can happen without SSL. In contrast, communication
-between nodes in different zones (i.e., any non-matching network address) must
-happen via :ref:`SSL <admin_ssl>`.
-
-This example would require that you set :ref:`ssl.transport.mode
-<ssl.transport.mode>` to ``dual``.
 
 .. NOTE::
 

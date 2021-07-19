@@ -644,6 +644,9 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                 BytesArray message = new BytesArray(e.getMessage().getBytes(StandardCharsets.UTF_8));
                 outboundHandler.sendBytes(channel, message, ActionListener.wrap(() -> CloseableChannel.closeChannel(channel)));
             }
+        } else if (e instanceof StreamCorruptedException) {
+            logger.warn(() -> new ParameterizedMessage("{}, [{}], closing connection", e.getMessage(), channel));
+            CloseableChannel.closeChannel(channel, false);
         } else {
             logger.warn(() -> new ParameterizedMessage("exception caught on transport layer [{}], closing connection", channel), e);
             // close the channel, which will cause a node to be disconnected if relevant
@@ -783,11 +786,17 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                     "HTTP port) of a remote node is specified in the configuration");
             }
 
-            throw new StreamCorruptedException("invalid internal transport message format, got ("
-                + Integer.toHexString(headerBuffer.get(0) & 0xFF) + ","
-                + Integer.toHexString(headerBuffer.get(1) & 0xFF) + ","
-                + Integer.toHexString(headerBuffer.get(2) & 0xFF) + ","
-                + Integer.toHexString(headerBuffer.get(3) & 0xFF) + ")");
+            String firstBytes = "("
+                    + Integer.toHexString(headerBuffer.get(0) & 0xFF) + ","
+                    + Integer.toHexString(headerBuffer.get(1) & 0xFF) + ","
+                    + Integer.toHexString(headerBuffer.get(2) & 0xFF) + ","
+                    + Integer.toHexString(headerBuffer.get(3) & 0xFF) + ")";
+
+            if (appearsToBeTLS(headerBuffer)) {
+                throw new StreamCorruptedException("SSL/TLS request received but SSL/TLS is not enabled on this node, got " + firstBytes);
+            }
+
+            throw new StreamCorruptedException("invalid internal transport message format, got " + firstBytes);
         }
         final int messageLength = headerBuffer.getInt(TcpHeader.MARKER_BYTES_SIZE);
         if (messageLength == TransportKeepAlive.PING_DATA_SIZE) {
@@ -818,6 +827,10 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
     private static boolean appearsToBeHTTPResponse(BytesReference headerBuffer) {
         return bufferStartsWith(headerBuffer, "HTTP");
+    }
+
+    private static boolean appearsToBeTLS(BytesReference headerBuffer) {
+        return headerBuffer.get(0) == 0x16 && headerBuffer.get(1) == 0x03;
     }
 
     private static boolean bufferStartsWith(BytesReference buffer, String method) {

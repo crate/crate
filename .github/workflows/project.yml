@@ -1,0 +1,16 @@
+---
+name: Add PR to CrateDB project board
+on:
+  pull_request:
+    types: [opened]
+
+
+jobs:
+  automate-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add PR to CrateDB project board
+        run: gh pr edit $PR_LINK --add-project "CrateDB"
+        env:
+          PR_LINK: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{ secrets.JENKINS_USER_TOKEN }}

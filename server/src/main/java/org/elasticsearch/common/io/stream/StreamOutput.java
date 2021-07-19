@@ -24,6 +24,7 @@ import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.DirectoryNotEmptyException;
@@ -63,9 +64,12 @@ import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.io.stream.Writeable.Writer;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.joda.time.DateTimeZone;
+import org.joda.time.Period;
 import org.joda.time.ReadableInstant;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.types.TimeTZ;
 
 /**
  * A stream from another node to this node. Technically, it can also be streamed from a byte array but that is mostly for testing.
@@ -671,6 +675,37 @@ public abstract class StreamOutput extends OutputStream {
             final ZonedDateTime zonedDateTime = (ZonedDateTime) v;
             o.writeString(zonedDateTime.getZone().getId());
             o.writeLong(zonedDateTime.toInstant().toEpochMilli());
+        }),
+        Map.entry(BigDecimal.class, (o, v) -> {
+            o.writeByte((byte) 24);
+            BigDecimal bigDecimal = (BigDecimal) v;
+            o.writeVInt(bigDecimal.scale());
+            o.writeVInt(bigDecimal.precision());
+            o.writeByteArray(bigDecimal.unscaledValue().toByteArray());
+        }),
+        Map.entry(TimeTZ.class, (o, v) -> {
+            o.writeByte((byte) 25);
+            TimeTZ value = (TimeTZ) v;
+            o.writeLong(value.getMicrosFromMidnight());
+            o.writeInt(value.getSecondsFromUTC());
+        }),
+        Map.entry(Period.class, (o, v) -> {
+            o.writeByte((byte) 26);
+            Period value = (Period) v;
+            o.writeVInt(value.getYears());
+            o.writeVInt(value.getMonths());
+            o.writeVInt(value.getWeeks());
+            o.writeVInt(value.getDays());
+            o.writeVInt(value.getHours());
+            o.writeVInt(value.getMinutes());
+            o.writeVInt(value.getSeconds());
+            o.writeVInt(value.getMillis());
+        }),
+        Map.entry(PointImpl.class, (o, v) -> {
+            o.writeByte((byte) 27);
+            PointImpl value = (PointImpl) v;
+            o.writeDouble(value.getX());
+            o.writeDouble(value.getY());
         })
     );
 

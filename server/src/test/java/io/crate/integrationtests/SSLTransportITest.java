@@ -34,8 +34,8 @@ import org.elasticsearch.transport.Transport;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.crate.protocols.ssl.ConnectionTest;
-import io.crate.protocols.ssl.ConnectionTest.ProbeResult;
+import io.crate.test.utils.ConnectionTest;
+import io.crate.test.utils.ConnectionTest.ProbeResult;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 

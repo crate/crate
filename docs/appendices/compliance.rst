@@ -1,18 +1,24 @@
 .. highlight:: psql
+
 .. _sql_supported_features:
 
 =======================
 SQL standard compliance
 =======================
 
-This section provides a list of features that CrateDB supports and to what
-extent it conforms to the current SQL standard `ISO/IEC 9075`_ "Database
-Language SQL".
+This page documents the standard SQL (`ISO/IEC 9075`_) features that
+CrateDB supports, along with implementation notes and any associated caveats.
 
-This list is approximate and features that are listed as supported might be
-nonconforming in their implementation. However, the main reference
-documentation of CrateDB always contains the most accurate information about
-what CrateDB supports, what they are and how to use them.
+.. CAUTION::
+
+    This list is approximate and features that are listed as supported might be
+    nonconforming in their implementation. However, the main reference
+    documentation always contains the most accurate information about
+    the features CrateDB supports and how to use them.
+
+.. SEEALSO::
+
+    :ref:`SQL compatibility <crate_standard_sql>`
 
 .. csv-filter::
    :header: ID,Package,#,Description,Supported,Verified,Comments

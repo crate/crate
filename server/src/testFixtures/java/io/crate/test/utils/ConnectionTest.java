@@ -19,30 +19,31 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.reference.file;
 
-import io.crate.execution.engine.collect.files.LineCollectorExpression;
-import io.crate.metadata.ColumnIdent;
-import io.crate.types.DataType;
+package io.crate.test.utils;
 
-public class ColumnExtractingLineExpression extends LineCollectorExpression<Object> {
+import java.net.InetSocketAddress;
 
-    private final ColumnIdent columnIdent;
-    private final DataType<?> type;
-    private LineContext context;
+import javax.net.ssl.SSLContext;
 
-    public ColumnExtractingLineExpression(ColumnIdent columnIdent, DataType<?> type) {
-        this.columnIdent = columnIdent;
-        this.type = type;
+
+public final class ConnectionTest {
+
+    public enum ProbeResult {
+        SSL_AVAILABLE,
+        SSL_MISSING,
     }
 
-    @Override
-    public Object value() {
-        return type.implicitCast(context.get(columnIdent));
-    }
+    public static ProbeResult probeSSL(SSLContext sslContext, InetSocketAddress address) {
+        var socketFactory = sslContext.getSocketFactory();
+        try (var socket = socketFactory.createSocket(address.getHostName(), address.getPort())) {
+            // need to write something to trigger SSL handshake
+            var out = socket.getOutputStream(); // Closed by outer try-with-resources.
+            out.write(1);
 
-    @Override
-    public void startCollect(LineContext context) {
-        this.context = context;
+            return ProbeResult.SSL_AVAILABLE;
+        } catch (Exception ignored) {
+            return ProbeResult.SSL_MISSING;
+        }
     }
 }
