@@ -209,21 +209,145 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testLastValueWithIgnoreNulls() throws Throwable {
+    public void testLastValueIgnoringNullsEmptyOver() throws Throwable {
         assertEvaluate(
-            "last_value(x) ignore nulls over(order by x nulls last)",
-            contains(new Object[] {1, 2, 2, 2}),
+            "last_value(x) ignore nulls over()",
+            contains(new Object[] {null, null}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {null,1},
+            new Object[] {null,2}
+        );
+        assertEvaluate(
+            "last_value(x) ignore nulls over()",
+            contains(new Object[] {2, 2, 2, 2}),
             List.of(new ColumnIdent("x")),
-            new Object[] {1},
-            new Object[] {2},
+            new Object[] {1,1},
+            new Object[] {null,2},
+            new Object[] {null,3},
+            new Object[] {2,4}
+        );
+    }
+
+    @Test
+    public void testFirstValueIgnoringNullsEmptyOver() throws Throwable {
+        assertEvaluate(
+            "first_value(x) ignore nulls over()",
+            contains(new Object[] {null, null}),
+            List.of(new ColumnIdent("x")),
             new Object[] {null},
             new Object[] {null}
         );
         assertEvaluate(
-            "last_value(x) ignore nulls over(order by x nulls last)",
-            contains(new Object[] {null}),
+            "first_value(x) ignore nulls over()",
+            contains(new Object[] {1, 1, 1, 1}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {1,1},
+            new Object[] {null,2},
+            new Object[] {2,3},
+            new Object[] {null,4}
+        );
+    }
+
+    @Test
+    public void testNthValueIgnoringNullsEmptyOver() throws Throwable {
+        assertEvaluate(
+            "nth_value(x,3) ignore nulls over()",
+            contains(new Object[] {null, null}),
             List.of(new ColumnIdent("x")),
+            new Object[] {null},
             new Object[] {null}
+        );
+        assertEvaluate(
+            "nth_value(x,1) ignore nulls over()",
+            contains(new Object[] {1, 1}),
+            List.of(new ColumnIdent("x")),
+            new Object[] {null},
+            new Object[] {1}
+        );
+        assertEvaluate(
+            "nth_value(x,2) ignore nulls over()",
+            contains(new Object[] {2, 2, 2, 2}),
+            List.of(new ColumnIdent("x")),
+            new Object[] {1},
+            new Object[] {null},
+            new Object[] {2},
+            new Object[] {null}
+        );
+    }
+
+    @Test
+    public void testNthValueIgnoringNullsAndWindowingClause() throws Throwable {
+        assertEvaluate(
+            "nth_value(x,1) ignore nulls over(order by y range between current row and unbounded following)",
+            contains(new Object[] {1, 2, 2, 3}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {1,1},
+            new Object[] {null,2},
+            new Object[] {2,3},
+            new Object[] {3,4}
+        );
+        assertEvaluate(
+            "nth_value(x,2) ignore nulls over(order by y range between current row and unbounded following)",
+            contains(new Object[] {2, 3, 3, null}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {1,1},
+            new Object[] {null,2},
+            new Object[] {2,3},
+            new Object[] {3,4}
+        );
+        assertEvaluate(
+            "nth_value(x,1) ignore nulls over(order by y range between current row and current row)",
+            contains(new Object[] {1, null, 2, null}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {1,1},
+            new Object[] {null,2},
+            new Object[] {2,3},
+            new Object[] {null,4}
+        );
+    }
+
+    @Test
+    public void testFirstValueIgnoringNullsAndWindowingClause() throws Throwable {
+        assertEvaluate(
+            "first_value(x) ignore nulls over(order by y range between current row and unbounded following)",
+            contains(new Object[] {1, 2, 2, 3}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {1,1},
+            new Object[] {null,2},
+            new Object[] {2,3},
+            new Object[] {3,4}
+        );
+        assertEvaluate(
+            "first_value(x) ignore nulls over(order by y range between unbounded preceding and unbounded following)",
+            contains(new Object[] {2, 2, 2, 2}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {null,1},
+            new Object[] {null,2},
+            new Object[] {2,3},
+            new Object[] {null,4}
+        );
+    }
+
+    @Test
+    public void testLastValueIgnoringNullsAndWindowingClause() throws Throwable {
+        assertEvaluate(
+            "last_value(x) ignore nulls over(order by y range between unbounded preceding and current row)",
+            contains(new Object[] {null, 1, 1, 1, 3}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {null,1},
+            new Object[] {1,2},
+            new Object[] {null,3},
+            new Object[] {null,4},
+            new Object[] {3,5}
+        );
+        assertEvaluate(
+            "last_value(x) ignore nulls over(order by y range between unbounded preceding and unbounded following)",
+            contains(new Object[] {2, 2, 2, 2}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {null,1},
+            new Object[] {null,2},
+            new Object[] {2,3},
+            new Object[] {null,4}
         );
     }
 }

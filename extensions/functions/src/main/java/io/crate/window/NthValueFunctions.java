@@ -32,7 +32,6 @@ import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
 
 import java.util.List;
-import java.util.function.BiFunction;
 
 import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
@@ -40,9 +39,121 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class NthValueFunctions implements WindowFunction {
 
-    public static final String LAST_VALUE_NAME = "last_value";
-    private static final String FIRST_VALUE_NAME = "first_value";
-    private static final String NTH_VALUE = "nth_value";
+    private enum Implementation {
+        FIRST_VALUE {
+            @Override
+            public Object execute(int adjustForShrinkingWindow,
+                                  WindowFrameState currentFrame,
+                                  List<? extends CollectExpression<Row, ?>> expressions,
+                                  boolean ignoreNulls,
+                                  Input... args) {
+                if (ignoreNulls) {
+                    for (int i = adjustForShrinkingWindow; i < currentFrame.upperBoundExclusive(); i++) {
+                        Object[] nthRowCells = currentFrame.getRowInFrameAtIndexOrNull(i);
+                        if (nthRowCells != null) {
+                            Object value = extractValueFromRow(nthRowCells, expressions, args);
+                            if (value != null) {
+                                return value;
+                            }
+                        }
+                    }
+                } else {
+                    return extractValueAtIndex(adjustForShrinkingWindow,
+                                               currentFrame,
+                                               expressions,
+                                               args);
+                }
+                return null;
+            }
+        },
+        LAST_VALUE {
+            @Override
+            public Object execute(int adjustForShrinkingWindow,
+                                  WindowFrameState currentFrame,
+                                  List<? extends CollectExpression<Row, ?>> expressions,
+                                  boolean ignoreNulls,
+                                  Input... args) {
+                if (ignoreNulls) {
+                    for (int i = adjustForShrinkingWindow + currentFrame.size() - 1; i >= 0; i--) {
+                        Object[] nthRowCells = currentFrame.getRowInFrameAtIndexOrNull(i);
+                        if (nthRowCells != null) {
+                            Object value = extractValueFromRow(nthRowCells, expressions, args);
+                            if (value != null) {
+                                return value;
+                            }
+                        }
+                    }
+                } else {
+                    return extractValueAtIndex(adjustForShrinkingWindow + currentFrame.size() - 1,
+                                               currentFrame,
+                                               expressions,
+                                               args);
+                }
+                return null;
+            }
+        },
+        NTH_VALUE {
+            @Override
+            public Object execute(int adjustForShrinkingWindow,
+                                  WindowFrameState currentFrame,
+                                  List<? extends CollectExpression<Row, ?>> expressions,
+                                  boolean ignoreNulls,
+                                  Input... args) {
+                Number position = (Number) args[1].value();
+                if (position == null) {
+                    return null;
+                }
+                int iPosition = position.intValue();
+                if (ignoreNulls) {
+                    for (int i = adjustForShrinkingWindow, counter = 0; i < currentFrame.upperBoundExclusive(); i++) {
+                        Object[] nthRowCells = currentFrame.getRowInFrameAtIndexOrNull(i);
+                        if (nthRowCells != null) {
+                            Object value = extractValueFromRow(nthRowCells, expressions, args);
+                            if (value != null) {
+                                counter++;
+                                if (counter == iPosition) {
+                                    return value;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    return extractValueAtIndex(adjustForShrinkingWindow + iPosition - 1,
+                                               currentFrame,
+                                               expressions,
+                                               args);
+                }
+                return null;
+            }
+        };
+
+        public abstract Object execute(int adjustForShrinkingWindow,
+                                       WindowFrameState currentFrame,
+                                       List<? extends CollectExpression<Row, ?>> expressions,
+                                       boolean ignoreNulls,
+                                       Input[] args);
+
+        protected Object extractValueFromRow(Object[] nthRowCells,
+                                   List<? extends CollectExpression<Row, ?>> expressions,
+                                   Input... args) {
+            Row nthRowInFrame = new RowN(nthRowCells);
+            for (CollectExpression<Row, ?> expression : expressions) {
+                expression.setNextRow(nthRowInFrame);
+            }
+            return args[0].value();
+        }
+
+        protected Object extractValueAtIndex(int index,
+                                             WindowFrameState currentFrame,
+                                             List<? extends CollectExpression<Row, ?>> expressions,
+                                             Input[] args) {
+            Object[] nthRowCells = currentFrame.getRowInFrameAtIndexOrNull(index);
+            if (nthRowCells == null) {
+                return null;
+            }
+            return extractValueFromRow(nthRowCells, expressions, args);
+        }
+    }
 
     public static void register(ExtraFunctionsModule module) {
         module.register(
@@ -55,7 +166,7 @@ public class NthValueFunctions implements WindowFunction {
                 new NthValueFunctions(
                     signature,
                     boundSignature,
-                    (frame, inputs) -> 0
+                    Implementation.FIRST_VALUE
                 )
         );
 
@@ -69,13 +180,13 @@ public class NthValueFunctions implements WindowFunction {
                 new NthValueFunctions(
                     signature,
                     boundSignature,
-                    (frame, inputs) -> frame.size() - 1
+                    Implementation.LAST_VALUE
                 )
         );
 
         module.register(
             Signature.window(
-                NTH_VALUE,
+                NTH_VALUE_NAME,
                 parseTypeSignature("E"),
                 DataTypes.INTEGER.getTypeSignature(),
                 parseTypeSignature("E")
@@ -84,31 +195,28 @@ public class NthValueFunctions implements WindowFunction {
                 new NthValueFunctions(
                     signature,
                     boundSignature,
-                    (frame, inputs) -> {
-                        Number position = (Number) inputs[1].value();
-                        if (position == null) {
-                            // treating a null position as an out-of-bounds position
-                            return -1;
-                        }
-                        return position.intValue() - 1;
-                    }
+                    Implementation.NTH_VALUE
                 )
         );
     }
 
+    public static final String FIRST_VALUE_NAME = "first_value";
+    public static final String LAST_VALUE_NAME = "last_value";
+    public static final String NTH_VALUE_NAME = "nth_value";
+
+    private final Implementation implementation;
     private final Signature signature;
     private final Signature boundSignature;
-    private final BiFunction<WindowFrameState, Input[], Integer> frameIndexSupplier;
     private int seenFrameLowerBound = -1;
     private int seenFrameUpperBound = -1;
     private Object resultForCurrentFrame = null;
 
     private NthValueFunctions(Signature signature,
                               Signature boundSignature,
-                              BiFunction<WindowFrameState, Input[], Integer> frameIndexSupplier) {
+                              Implementation implementation) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.frameIndexSupplier = frameIndexSupplier;
+        this.implementation = implementation;
     }
 
     @Override
@@ -129,10 +237,8 @@ public class NthValueFunctions implements WindowFunction {
                           Input... args) {
         boolean shrinkingWindow = isLowerBoundIncreasing(currentFrame, seenFrameLowerBound);
         if (idxInPartition == 0 || currentFrame.upperBoundExclusive() > seenFrameUpperBound || shrinkingWindow) {
-            seenFrameLowerBound = currentFrame.lowerBound();
-            seenFrameUpperBound = currentFrame.upperBoundExclusive();
 
-            int index = frameIndexSupplier.apply(currentFrame, args);
+            int adjustForShrinkingWindow = 0;
             if (shrinkingWindow) {
                 // consecutive shrinking frames (lower bound increments) will can have the following format :
                 //         frame 1: 1 2 3 with lower bound 0
@@ -142,22 +248,16 @@ public class NthValueFunctions implements WindowFunction {
                 // If we want the 2nd value (index = 1) in every frame we have to request the index _after_  the frame's
                 // lower bound (in our example, to get the 2nd value in the second frame, namely "3", the requested
                 // index needs to be 2)
-                index = currentFrame.lowerBound() + index;
+                adjustForShrinkingWindow = currentFrame.lowerBound();
             }
 
-            Object[] nthRowCells = currentFrame.getRowInFrameAtIndexOrNull(index);
-            if (nthRowCells == null) {
-                resultForCurrentFrame = null;
-                return null;
-            }
-
-            Row nthRowInFrame = new RowN(nthRowCells);
-            for (CollectExpression<Row, ?> expression : expressions) {
-                expression.setNextRow(nthRowInFrame);
-            }
-            if (ignoreNulls == false || args[0].value() != null) {
-                resultForCurrentFrame = args[0].value();
-            }
+            resultForCurrentFrame = implementation.execute(adjustForShrinkingWindow,
+                                                           currentFrame,
+                                                           expressions,
+                                                           ignoreNulls,
+                                                           args);
+            seenFrameLowerBound = currentFrame.lowerBound();
+            seenFrameUpperBound = currentFrame.upperBoundExclusive();
         }
 
         return resultForCurrentFrame;
