@@ -1,0 +1,26 @@
+---
+name: Create Github release on tag
+on:
+  create
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release
+        if: github.event.create.ref_type == 'tag'
+        run: |
+          (
+          cat <<EOF
+          Release notes:
+
+          - https://crate.io/docs/crate/reference/en/latest/appendices/release-notes/${VERSION}.html
+
+          Download on:
+
+          - https://crate.io/download
+          EOF
+          ) > notes.md
+          gh release create $VERSION --title $VERSION --prerelease -F notes.md
+        env:
+          VERSION: ${{ github.event.create.ref }}
