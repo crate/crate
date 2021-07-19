@@ -22,24 +22,29 @@ About
 CrateDB is a distributed SQL database that makes it simple to store and analyze
 massive amounts of machine data in real-time.
 
-CrateDB offers the scalability and flexibility typically associated with a
-NoSQL database, is designed to run on inexpensive commodity servers and can be
-deployed and run on any sort of network - from personal computers to
-multi-region hybrid clouds.
+CrateDB offers the `benefits`_ of an SQL database *and* the scalability and
+flexibility typically associated with NoSQL databases. Modest CrateDB clusters
+can ingest tens of thousands of records per second without breaking a
+sweat. You can run ad-hoc queries using standard SQL. CrateDB's blazing-fast
+distributed query execution engine parallelizes query workload across the whole
+cluster.
 
-The smallest CrateDB clusters can easily ingest tens of thousands of records
-per second. The data can be queried, ad-hoc, in parallel across the whole
-cluster in real time.
+CrateDB is well suited to `containerization`_, can be `scaled horizontally`_
+using ephemeral virtual machines (e.g., `Kubernetes`_, `AWS`_, and `Azure`_)
+with `no shared state`_. You can deploy and run CrateDB on any network—from
+personal computers to `multi-region hybrid clouds and the edge`_.
 
 
 Features
 ========
 
-- Standard SQL interface available via HTTP API and PostgreSQL wire protocol.
+- Use standard `SQL`_ via the `PostgreSQL wire protocol` or an `HTTP API`.
 
-- Dynamic schemas, queryable objects, geospatial features, time series data
-  support, and realtime full-text search providing functionality for handling
-  both relational and document oriented nested data structures.
+- Dynamic table schemas and queryable objects provide
+  document-oriented features in addition to the relational features of SQL.
+
+- Geospatial data types and search capability, time-series support, and realtime fulltext
+  search.
 
 - Horizontally scalable, highly available and fault tolerant clusters that run
   very well in virtualized and containerised environments.
@@ -63,13 +68,17 @@ CrateDB provides an `Admin UI`_:
 Try CrateDB
 ===========
 
-The fastest way to try CrateDB out is by running::
+The fastest way to try CrateDB out is by running:
 
-    $ bash -c "$(curl -L try.crate.io)"
+.. code-block:: console
 
-Or spin up the official `Docker image`_::
+    sh$ bash -c "$(curl -L try.crate.io)"
 
-    $ docker run --publish 4200:4200 --publish 5432:5432 crate -Cdiscovery.type=single-node
+Or spin up the official `Docker image`_:
+
+.. code-block:: console
+
+    sh$ docker run --publish 4200:4200 --publish 5432:5432 crate -Cdiscovery.type=single-node
 
 Visit the `getting started`_ page to see all the available download and install
 options.
@@ -103,27 +112,43 @@ Looking for more help?
 - Check out our `support channels`_.
 
 - `Crate.io`_ also offers `CrateDB Cloud`_, a fully-managed *CrateDB Database
-  as a Service* (DBaaS). The `CrateDB Cloud Tutorials`_ will get you started
+  as a Service* (DBaaS). The `CrateDB Cloud Tutorials`_ will get you started.
 
 
 .. _Admin UI: https://crate.io/docs/crate/admin-ui/
+.. _AWS: https://crate.io/docs/crate/howtos/en/latest/deployment/cloud/aws/index.html
+.. _Azure: https://crate.io/docs/crate/howtos/en/latest/deployment/cloud/azure.html
 .. _beginner tutorials: https://crate.io/docs/crate/tutorials/
+.. _benefits: https://crate.io/cratedb-comparison/
 .. _clients and tools: https://crate.io/docs/crate/clients-tools/en/latest/
+.. _containerization: https://crate.io/docs/crate/howtos/en/latest/deployment/containers/docker.html
 .. _contribution docs: CONTRIBUTING.rst
 .. _Crate.io: https://crate.io/
 .. _CrateDB clients and tools: https://crate.io/docs/crate/clients-tools/
 .. _CrateDB Cloud Tutorials: https://crate.io/docs/cloud/
 .. _CrateDB Cloud: https://crate.io/products/cratedb-cloud/
-.. _CrateDB Kubernetes Operator Documentation: https://crate-operator.readthedocs.io/
-.. _CrateDB Kubernetes Operator: https://github.com/crate/crate-operator
 .. _CrateDB on Docker how-to guide: https://crate.io/docs/crate/howtos/en/latest/deployment/containers/docker.html
 .. _CrateDB on Kubernetes how-to guide: https://crate.io/docs/crate/howtos/en/latest/deployment/containers/kubernetes.html
 .. _CrateDB shell: https://crate.io/docs/crate/crash/
 .. _developer docs: devs/docs/index.rst
 .. _Docker image: https://hub.docker.com/_/crate/
+.. _document-oriented: https://en.wikipedia.org/wiki/Document-oriented_database
+.. _Dynamic table schemas: https://crate.io/docs/crate/reference/en/master/general/ddl/column-policy.html#column-policy
+.. _fulltext search: https://crate.io/docs/crate/reference/en/4.5/general/dql/fulltext.html
+.. _geospatial features: https://crate.io/docs/crate/reference/en/master/general/dql/geo.html
 .. _getting started: https://crate.io/docs/crate/tutorials/en/latest/install-run/
 .. _how-to guides: https://crate.io/docs/crate/howtos/
+.. _HTTP API: https://crate.io/docs/crate/reference/en/4.5/interfaces/http.html
 .. _introductory docs: https://crate.io/docs/crate/tutorials/
+.. _Kubernetes: https://crate.io/docs/crate/howtos/en/latest/deployment/containers/kubernetes.html
+.. _multi-region hybrid clouds and the edge: https://crate.io/products/cratedb-edge/
+.. _no shared state: https://en.wikipedia.org/wiki/Shared-nothing_architecture
+.. _PostgreSQL wire protocol: https://crate.io/docs/crate/reference/en/4.5/interfaces/postgres.html
+.. _queryable objects: https://crate.io/docs/crate/reference/en/master/general/dql/selects.html#container-data-types
 .. _reference manual: https://crate.io/docs/crate/reference/
+.. _relational: https://en.wikipedia.org/wiki/Relational_model
+.. _scaled horizontally: https://stackoverflow.com/questions/11707879/difference-between-scaling-horizontally-and-vertically-for-databases
+.. _standard SQL: https://crate.io/docs/crate/reference/en/4.5/sql/index.html
 .. _support channels: https://crate.io/support/
+.. _time-series data: https://crate.io/docs/crate/tutorials/en/latest/normalize-intervals.html
 .. _web console: https://crate.io/docs/crate/admin-ui/en/latest/console.html#sql-console
