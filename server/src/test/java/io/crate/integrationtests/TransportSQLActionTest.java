@@ -1935,4 +1935,18 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             Matchers.arrayContaining(Integer.toString(numItems - 2), numItems - 2)
         );
     }
+
+    @Test
+    public void test_can_select_and_order_by_doc_expression() throws Exception {
+        execute("create table tbl (x int)");
+        execute("insert into tbl (x) values (1), (2), (3)");
+        execute("refresh table tbl");
+        execute("select _doc['x'] from tbl order by 1");
+        assertThat(printedTable(response.rows()), is(
+            "1\n" +
+            "2\n" +
+            "3\n"
+        ));
+
+    }
 }
