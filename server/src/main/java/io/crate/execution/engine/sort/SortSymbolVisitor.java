@@ -49,6 +49,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
@@ -116,27 +117,34 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
      * the implementation is similar to how ES 2.4 SortParseElement worked
      */
     @Override
-    public SortField visitReference(final Reference symbol, final SortSymbolContext context) {
+    public SortField visitReference(Reference ref, final SortSymbolContext context) {
         // can't use the SortField(fieldName, type) constructor
         // because values are saved using docValues and therefore they're indexed in lucene as binary and not
         // with the reference valueType.
         // this is why we use a custom comparator source with the same logic as ES
 
-        ColumnIdent columnIdent = symbol.column();
+
+        // Always prefer doc-values. Should be faster for sorting and otherwise we'd
+        // default to the `NullFieldComparatorSource` - leading to `null` values.
+        if (ref.column().isChildOf(DocSysColumns.DOC)) {
+            ref = (Reference) DocReferences.inverseSourceLookup(ref);
+        }
+
+        ColumnIdent columnIdent = ref.column();
         if (DocSysColumns.SCORE.equals(columnIdent)) {
             return !context.reverseFlag ? SORT_SCORE_REVERSE : SORT_SCORE;
         }
         if (DocSysColumns.RAW.equals(columnIdent) || DocSysColumns.ID.equals(columnIdent)) {
-            return customSortField(DocSysColumns.nameForLucene(columnIdent), symbol, context);
+            return customSortField(DocSysColumns.nameForLucene(columnIdent), ref, context);
         }
-        if (symbol.isColumnStoreDisabled()) {
-            return customSortField(symbol.toString(), symbol, context);
+        if (ref.isColumnStoreDisabled()) {
+            return customSortField(ref.toString(), ref, context);
         }
 
         MappedFieldType fieldType = fieldTypeLookup.get(columnIdent.fqn());
         if (fieldType == null) {
             FieldComparatorSource fieldComparatorSource = new NullFieldComparatorSource(NullSentinelValues.nullSentinelForScoreDoc(
-                symbol.valueType(),
+                ref.valueType(),
                 context.reverseFlag,
                 context.nullFirst
             ));
@@ -144,11 +152,11 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 columnIdent.fqn(),
                 fieldComparatorSource,
                 context.reverseFlag);
-        } else if (symbol.valueType().equals(DataTypes.IP)) {
-            return customSortField(symbol.toString(), symbol, context);
+        } else if (ref.valueType().equals(DataTypes.IP)) {
+            return customSortField(ref.toString(), ref, context);
         } else {
             return mappedSortField(
-                symbol,
+                ref,
                 fieldType,
                 context.reverseFlag,
                 NullValueOrder.fromFlag(context.nullFirst)
