@@ -575,10 +575,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitAliasedRelation(AliasedRelation node, StatementAnalysisContext context) {
         context.startRelation(true);
         AnalyzedRelation childRelation = node.getRelation().accept(this, context);
+        List<String> columnAliases = new ArrayList<>(node.getColumnNames());
+        if (childRelation instanceof TableFunctionRelation) {
+            if (childRelation.outputs().size() == 1) {
+                columnAliases.add(node.getAlias());
+            }
+        }
         AnalyzedRelation aliasedRelation = new AliasedAnalyzedRelation(
             childRelation,
             new RelationName(null, node.getAlias()),
-            node.getColumnNames()
+            columnAliases
         );
         context.endRelation();
         context.currentRelationContext().addSourceRelation(aliasedRelation);
