@@ -194,7 +194,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     private static final String SNAPSHOT_CODEC = "snapshot";
 
-    private static final String INDEX_FILE_PREFIX = "index-";
+    static final String INDEX_FILE_PREFIX = "index-";
 
     private static final String INDEX_LATEST_BLOB = "index.latest";
 
@@ -208,7 +208,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     private static final String INDEX_METADATA_CODEC = "index-metadata";
 
-    private static final String SNAPSHOT_NAME_FORMAT = SNAPSHOT_PREFIX + "%s.dat";
+    static final String SNAPSHOT_NAME_FORMAT = SNAPSHOT_PREFIX + "%s.dat";
 
     private static final String SNAPSHOT_INDEX_PREFIX = "index-";
 
@@ -1214,13 +1214,12 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     final RepositoryMetadata meta = getRepoMetadata(currentState);
                     final String repoName = metadata.name();
                     final long genInState = meta.generation();
-                    // TODO: Remove all usages of this variable, instead initialize the generation when loading RepositoryData
-                    final boolean uninitializedMeta = meta.generation() == RepositoryData.UNKNOWN_REPO_GEN;
+                    final boolean uninitializedMeta = meta.generation() == RepositoryData.UNKNOWN_REPO_GEN || bestEffortConsistency;
                     if (uninitializedMeta == false && meta.pendingGeneration() != genInState) {
                         LOGGER.info("Trying to write new repository data over unfinished write, repo [{}] is at " +
                             "safe generation [{}] and pending generation [{}]", meta.name(), genInState, meta.pendingGeneration());
                     }
-                    assert expectedGen == RepositoryData.EMPTY_REPO_GEN || RepositoryData.UNKNOWN_REPO_GEN == meta.generation()
+                    assert expectedGen == RepositoryData.EMPTY_REPO_GEN || uninitializedMeta
                         || expectedGen == meta.generation() :
                         "Expected non-empty generation [" + expectedGen + "] does not match generation tracked in [" + meta + "]";
                     // If we run into the empty repo generation for the expected gen, the repo is assumed to have been cleared of
@@ -1231,7 +1230,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     // even if a repository has been manually cleared of all contents we will never reuse the same repository generation.
                     // This is motivated by the consistency behavior the S3 based blob repository implementation has to support which does
                     // not offer any consistency guarantees when it comes to overwriting the same blob name with different content.
-                    newGen = uninitializedMeta ? expectedGen + 1 : metadata.pendingGeneration() + 1;
+                    final long nextPendingGen = metadata.pendingGeneration() + 1;
+                    newGen = uninitializedMeta ? Math.max(expectedGen + 1, nextPendingGen) : nextPendingGen;
                     assert newGen > latestKnownRepoGen.get() : "Attempted new generation [" + newGen +
                         "] must be larger than latest known generation [" + latestKnownRepoGen.get() + "]";
                     return ClusterState.builder(currentState)
