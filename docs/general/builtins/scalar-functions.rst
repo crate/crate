@@ -774,6 +774,67 @@ If you don't specify a time zone, ``truncate`` uses UTC time::
     +---------------+---------------+
     SELECT 3 rows in set (... sec)
 
+.. _date-bin:
+
+``date_bin(interval, timestamp)``
+---------------------------------
+
+Returns: bigint - timestamp that has the starting value of the interval. If
+timestamp is given with zone, returned timestamp will also be in that zone,
+otherwise returned value is UTC timestamp. If at least one argument is NULL,
+return value is NULL. Interval cannot be less than or equal to zero.
+
+Interval argument can be bigint - bucket length in milliseconds or
+:ref:`interval <interval_data_type>`.
+
+Timestamp argument can be bigint (milliseconds in UTC),
+:ref:`TIMESTAMP WITHOUT TIME ZONE <datetime-without-time-zone>` or
+:ref:`TIMESTAMP WITH TIME ZONE <datetime-with-time-zone>`
+
+The following example shows how to use the ``time_bucket`` function to truncate
+a timestamp to a minute precision::
+
+    cr> select date_bin(60000,
+    ... '2021-01-01T00:00:30Z' :: timestamp without time zone) as bucket;
+    +---------------+
+    |        bucket |
+    +---------------+
+    | 1609459200000 |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+Custom length interval can be used as a bucket. In the example below
+timestamp 08:30:10Z gets truncated to 06:00:00 (1609480800000)::
+
+    cr> select date_bin('3 hours' :: INTERVAL,
+    ... '2021-01-01T08:30:10Z'::timestamp without time zone) as bucket;
+    +---------------+
+    |        bucket |
+    +---------------+
+    | 1609480800000 |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+.. TIP::
+
+    date_bin with 2 bigint arguments can be used not only for timestamps but
+    also for splitting any integral numbers by intervals and identifying
+    interval index::
+
+        cr> select date_bin(20, unnest([10, 20, 30, 40, 50, 60])) / 20
+        ... as interval_index;
+        +----------------+
+        | interval_index |
+        +----------------+
+        |              0 |
+        |              1 |
+        |              1 |
+        |              2 |
+        |              2 |
+        |              3 |
+        +----------------+
+        SELECT 6 rows in set (... sec)
+
 ``extract(field from source)``
 ------------------------------
 
