@@ -1,0 +1,43 @@
+.. _version_4.5.5:
+
+=============
+Version 4.5.5
+=============
+
+Released on 2021-07-20.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.5.5.
+
+    We recommend that you upgrade to the latest 4.4 release before moving to
+    4.5.5.
+
+    A rolling upgrade from 4.4.0+ to 4.5.5 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_4.5.0` release notes for a full list of changes in the
+4.5 series.
+
+Fixes
+=====
+
+- Fixed an issue that could lead to ``NULL`` values getting returned when using
+  a ``_doc['columnName']`` expression in the ``ORDER BY`` clause.
+  Prior to 4.6.0 this also affected ``INSERT INTO`` statements on top level
+  columns.
+
+- Fixed an issue that caused a class cast error when trying to import records
+  from a ``CSV`` file into a partitioned table using the ``COPY FROM``
+  statement.

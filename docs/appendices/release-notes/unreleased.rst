@@ -59,11 +59,4 @@ None
 Fixes
 =====
 
-- Fixed an issue that could lead to ``NULL`` values getting returned when using
-  a ``_doc['columnName']`` expression in the ``ORDER BY`` clause.
-  Prior to 4.6.0 this also affected ``INSERT INTO`` statements on top level
-  columns.
-
-- Fixed an issue that caused a class cast error when trying to import records
-  from a ``CSV`` file into a partitioned table using the ``COPY FROM``
-  statement.
+None
