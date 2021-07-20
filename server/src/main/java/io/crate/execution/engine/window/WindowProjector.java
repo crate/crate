@@ -77,6 +77,7 @@ public class WindowProjector {
         ArrayList<WindowFunction> windowFunctions = new ArrayList<>(numWindowFunctions);
         ArrayList<CollectExpression<Row, ?>> windowFuncArgsExpressions = new ArrayList<>(numWindowFunctions);
         Input[][] windowFuncArgsInputs = new Input[numWindowFunctions][];
+        boolean[] ignoreNulls = new boolean[numWindowFunctions];
 
         for (int idx = 0; idx < numWindowFunctions; idx++) {
             var windowFunctionSymbol = windowFunctionSymbols.get(idx);
@@ -119,6 +120,7 @@ public class WindowProjector {
             }
             windowFuncArgsExpressions.addAll(ctx.expressions());
             windowFuncArgsInputs[idx] = ctx.topLevelInputs().toArray(new Input[0]);
+            ignoreNulls[idx] = windowFunctionSymbol.ignoreNulls();
         }
         var windowDefinition = projection.windowDefinition();
         var partitions = windowDefinition.partitions();
@@ -158,6 +160,7 @@ public class WindowProjector {
             executor,
             windowFunctions,
             windowFuncArgsExpressions,
+            ignoreNulls,
             windowFuncArgsInputs
         );
     }

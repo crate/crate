@@ -210,6 +210,7 @@ public class RowsBatchIteratorBenchmark {
             Runnable::run,
             List.of(lastValueIntFunction),
             List.of(),
+            new boolean[]{false},
             new Input[]{input}
         );
         BatchIterators.collect(batchIterator, Collectors.summingInt(x -> { blackhole.consume(x); return 1; })).get();

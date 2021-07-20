@@ -161,7 +161,8 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
             processedFunction.arguments(),
             processedFunction.valueType(),
             processNullable(windowFunction.filter(), context),
-            windowFunction.windowDefinition().map(s -> s.accept(this, context))
+            windowFunction.windowDefinition().map(s -> s.accept(this, context)),
+            windowFunction.ignoreNulls()
         );
     }
 

@@ -21,21 +21,6 @@
 
 package io.crate.expression.eval;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.data.Input;
 import io.crate.expression.NestableInput;
@@ -50,11 +35,24 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.NodeContext;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 
 
 /**
@@ -248,7 +246,8 @@ public class EvaluatingNormalizer {
                 normalizedFunction.arguments(),
                 normalizedFunction.valueType(),
                 normalizedFunction.filter(),
-                function.windowDefinition().map(s -> s.accept(this, context))
+                function.windowDefinition().map(s -> s.accept(this, context)),
+                function.ignoreNulls()
             );
         }
     }

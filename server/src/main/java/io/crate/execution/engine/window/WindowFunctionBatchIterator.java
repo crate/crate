@@ -86,6 +86,7 @@ public final class WindowFunctionBatchIterator {
                                         Executor executor,
                                         List<WindowFunction> windowFunctions,
                                         List<? extends CollectExpression<Row, ?>> argsExpressions,
+                                        boolean[] ignoreNulls,
                                         Input[]... args) {
         // As optimization we use 1 list that acts both as inputs(source) and as outputs.
         // The window function results are injected during the computation into spare cells that are eagerly created
@@ -108,6 +109,7 @@ public final class WindowFunctionBatchIterator {
                     executor,
                     windowFunctions,
                     argsExpressions,
+                    ignoreNulls,
                     args
                 ))
                 .thenApply(rows -> Iterables.transform(rows, Buckets.arrayToSharedRow()::apply)),
@@ -134,6 +136,7 @@ public final class WindowFunctionBatchIterator {
         Executor executor,
         List<WindowFunction> windowFunctions,
         List<? extends CollectExpression<Row, ?>> argsExpressions,
+        boolean[] ignoreNulls,
         Input[]... args) {
 
         Function<List<Object[]>, Iterable<Object[]>> computeWindowsFn = sortedRows -> computeWindowFunctions(
@@ -144,6 +147,7 @@ public final class WindowFunctionBatchIterator {
             numCellsInSourceRow,
             windowFunctions,
             argsExpressions,
+            ignoreNulls,
             args);
         Comparator<Object[]> cmpPartitionThenOrderBy = joinCmp(cmpPartitionBy, cmpOrderBy);
         if (cmpPartitionThenOrderBy == null) {
@@ -163,11 +167,11 @@ public final class WindowFunctionBatchIterator {
                                                              int numCellsInSourceRow,
                                                              List<WindowFunction> windowFunctions,
                                                              List<? extends CollectExpression<Row, ?>> argsExpressions,
+                                                             boolean[] ignoreNulls,
                                                              Input[]... args) {
         return () -> new Iterator<>() {
 
             private boolean isTraceEnabled = LOGGER.isTraceEnabled();
-
             private final int start = 0;
             private final int end = sortedRows.size();
             private final WindowFrameState frame = new WindowFrameState(start, end, sortedRows);
@@ -197,7 +201,7 @@ public final class WindowFunctionBatchIterator {
                 int wEnd = computeFrameEnd.apply(pStart, pEnd, i, sortedRows);
                 frame.updateBounds(pStart, pEnd, wBegin, wEnd);
                 final Object[] row = computeAndInjectResults(
-                    sortedRows, numCellsInSourceRow, windowFunctions, frame, i, idxInPartition, argsExpressions, args);
+                    sortedRows, numCellsInSourceRow, windowFunctions, frame, i, idxInPartition, argsExpressions, ignoreNulls, args);
 
                 if (isTraceEnabled) {
                     LOGGER.trace(
@@ -230,11 +234,12 @@ public final class WindowFunctionBatchIterator {
                                                     int idx,
                                                     int idxInPartition,
                                                     List<? extends CollectExpression<Row, ?>> argsExpressions,
+                                                    boolean[] ignoreNulls,
                                                     Input[]... args) {
         Object[] row = rows.get(idx);
         for (int c = 0; c < windowFunctions.size(); c++) {
             WindowFunction windowFunction = windowFunctions.get(c);
-            Object result = windowFunction.execute(idxInPartition, frame, argsExpressions, args[c]);
+            Object result = windowFunction.execute(idxInPartition, frame, argsExpressions, ignoreNulls[c], args[c]);
             row[numCellsInSourceRow + c] = result;
         }
         return row;
