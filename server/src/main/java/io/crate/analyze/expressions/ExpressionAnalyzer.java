@@ -1079,7 +1079,7 @@ public class ExpressionAnalyzer {
                                                 String functionName,
                                                 List<Symbol> arguments,
                                                 Symbol filter,
-                                                boolean ignoreNulls,
+                                                Boolean ignoreNulls,
                                                 WindowDefinition windowDefinition,
                                                 ExpressionAnalysisContext context) {
         return allocateBuiltinOrUdfFunction(
@@ -1099,7 +1099,7 @@ public class ExpressionAnalyzer {
                                           CoordinatorTxnCtx coordinatorTxnCtx,
                                           NodeContext nodeCtx) {
         return allocateBuiltinOrUdfFunction(
-            null, functionName, arguments, filter, false, context, null, coordinatorTxnCtx, nodeCtx);
+            null, functionName, arguments, filter, null, context, null, coordinatorTxnCtx, nodeCtx);
     }
 
     /**
@@ -1120,7 +1120,7 @@ public class ExpressionAnalyzer {
                                                        String functionName,
                                                        List<Symbol> arguments,
                                                        @Nullable Symbol filter,
-                                                       boolean ignoreNulls,
+                                                       Boolean ignoreNulls,
                                                        ExpressionAnalysisContext context,
                                                        @Nullable WindowDefinition windowDefinition,
                                                        CoordinatorTxnCtx coordinatorTxnCtx,
@@ -1150,13 +1150,22 @@ public class ExpressionAnalyzer {
                     "OVER clause was specified, but %s is neither a window nor an aggregate function.",
                     functionName));
             }
+            if (signature.getKind() != FunctionType.WINDOW && signature.getKind() == FunctionType.AGGREGATE) {
+                if (ignoreNulls != null) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "RESPECT/IGNORE NULLS flag is not acceptable to %s.",
+                        functionName
+                    ));
+                }
+            }
             newFunction = new WindowFunction(
                 signature,
                 castArguments,
                 boundSignature.getReturnType().createType(),
                 filter,
                 windowDefinition,
-                ignoreNulls);
+                ignoreNulls != null && ignoreNulls);
         }
         return newFunction;
     }

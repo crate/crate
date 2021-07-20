@@ -1778,7 +1778,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             visitCollection(context.expr(), Expression.class),
             visitIfPresent(context.over(), Window.class),
             visitIfPresent(context.filter(), Expression.class),
-            context.IGNORE(0) != null
+            context.IGNORE() == null && context.RESPECT() == null ? null : context.IGNORE() != null
         );
     }
 

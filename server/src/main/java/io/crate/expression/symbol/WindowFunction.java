@@ -55,15 +55,6 @@ public class WindowFunction extends Function {
                           List<Symbol> arguments,
                           DataType<?> returnType,
                           @Nullable Symbol filter,
-                          WindowDefinition windowDefinition) {
-        /////////////////////possible to remove
-        this(signature, arguments, returnType, filter, windowDefinition, false);
-    }
-
-    public WindowFunction(Signature signature,
-                          List<Symbol> arguments,
-                          DataType<?> returnType,
-                          @Nullable Symbol filter,
                           WindowDefinition windowDefinition,
                           boolean ignoreNulls) {
         super(signature, arguments, returnType, filter);

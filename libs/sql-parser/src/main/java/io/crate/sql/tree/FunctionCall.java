@@ -32,10 +32,10 @@ public class FunctionCall extends Expression {
     private final List<Expression> arguments;
     private final Optional<Window> window;
     private final Optional<Expression> filter;
-    private final boolean ignoreNulls;
+    private final Boolean ignoreNulls;
 
     public FunctionCall(QualifiedName name, List<Expression> arguments) {
-        this(name, false, arguments, Optional.empty(), Optional.empty(), false);
+        this(name, false, arguments, Optional.empty(), Optional.empty(), null);
     }
 
     public FunctionCall(QualifiedName name,
@@ -43,7 +43,7 @@ public class FunctionCall extends Expression {
                         List<Expression> arguments,
                         Optional<Window> window,
                         Optional<Expression> filter) {
-        this(name, distinct, arguments, window, filter, false);
+        this(name, distinct, arguments, window, filter, null);
     }
 
     public FunctionCall(QualifiedName name,
@@ -51,7 +51,7 @@ public class FunctionCall extends Expression {
                         List<Expression> arguments,
                         Optional<Window> window,
                         Optional<Expression> filter,
-                        boolean ignoreNulls) {
+                        Boolean ignoreNulls) {
         this.name = name;
         this.distinct = distinct;
         this.arguments = arguments;
@@ -80,7 +80,7 @@ public class FunctionCall extends Expression {
         return filter;
     }
 
-    public boolean ignoreNulls() {
+    public Boolean ignoreNulls() {
         return ignoreNulls;
     }
 

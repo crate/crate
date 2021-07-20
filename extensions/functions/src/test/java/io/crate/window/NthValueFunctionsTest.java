@@ -350,4 +350,17 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
             new Object[] {null,4}
         );
     }
+
+    @Test
+    public void testFirstValueRespectNulls() throws Throwable {
+        assertEvaluate(
+            "first_value(x) respect nulls over()",
+            contains(new Object[] {null, null, null, null}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            new Object[] {null,1},
+            new Object[] {1,2},
+            new Object[] {null,3},
+            new Object[] {null,4}
+        );
+    }
 }

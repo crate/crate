@@ -243,10 +243,10 @@ valueExpression
 primaryExpression
     : parameterOrLiteral                                                             #defaultParamOrLiteral
     | explicitFunction                                                               #explicitFunctionDefault
-    | qname '(' ASTERISK ')' filter? ((IGNORE|RESPECT)? NULLS)* over?                #functionCall
+    | qname '(' ASTERISK ')' filter? over?                                           #functionCall
     | ident                                                                          #columnReference
     | qname '(' (setQuant? expr (',' expr)*)? ')' filter?
-        ((IGNORE|RESPECT)? NULLS)* over?                                             #functionCall
+        ((IGNORE|RESPECT)? NULLS)? over?                                             #functionCall
     | subqueryExpression                                                             #subqueryExpressionDefault
     | '(' base=primaryExpression ')' '.' fieldName=ident                             #recordSubscript
     | '(' expr ')'                                                                   #nestedExpression
