@@ -60,6 +60,5 @@ None
 Fixes
 =====
 
-- Fixed an issue that caused a node with default config to fail on startup with
-  error "No valid auth.host_based entry found".
+None
 
