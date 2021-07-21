@@ -95,4 +95,9 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
         }
         throw new ClassCastException("Can't cast '" + value + "' to " + getName());
     }
+
+    @Override
+    public boolean supportsStorage() {
+        return false;
+    }
 }
