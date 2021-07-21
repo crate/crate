@@ -266,4 +266,9 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     public int hashCode() {
         return Objects.hash(super.hashCode(), scale, precision);
     }
+
+    @Override
+    public boolean supportsStorage() {
+        return false;
+    }
 }

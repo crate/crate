@@ -68,7 +68,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testWhereRefEqNullWithDifferentTypes() throws Exception {
         for (DataType<?> type : DataTypes.PRIMITIVE_TYPES) {
-            if (DataTypes.STORAGE_UNSUPPORTED.contains(type)) {
+            if (!type.supportsStorage()) {
                 continue;
             }
             // ensure the test is operating on a fresh, empty cluster state (no existing tables)

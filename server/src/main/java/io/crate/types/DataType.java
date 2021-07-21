@@ -212,6 +212,13 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return getName();
     }
 
+    /**
+     * Returns true if the type can be used in DDL statements and data can be persisted to disk
+     **/
+    public boolean supportsStorage() {
+        return true;
+    }
+
 
     public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
                                                @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {

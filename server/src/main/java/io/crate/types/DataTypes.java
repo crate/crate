@@ -134,15 +134,6 @@ public final class DataTypes {
             .collect(toSet());
 
 
-    public static final Set<DataType<?>> STORAGE_UNSUPPORTED = Set.of(
-        INTERVAL,
-        TIMETZ,
-        OIDVECTOR,
-        NUMERIC,
-        DATE,
-        REGCLASS
-    );
-
     public static final List<DataType<?>> NUMERIC_PRIMITIVE_TYPES = List.of(
         DOUBLE,
         FLOAT,
