@@ -31,6 +31,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -71,10 +72,12 @@ class JsonType extends PGType<Object> {
 
     @Override
     protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
+        if (value instanceof String str) {
+            return str.getBytes(StandardCharsets.UTF_8);
+        }
         try {
             XContentBuilder builder = JsonXContent.contentBuilder();
-            if (value instanceof List) {
-                List values = ((List) value);
+            if (value instanceof List<?> values) {
                 builder.startArray();
                 for (Object o : values) {
                     builder.value(o);

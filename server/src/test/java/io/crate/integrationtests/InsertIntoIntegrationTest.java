@@ -27,6 +27,8 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -1620,5 +1622,19 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
             "SELECT id, ?, 0 from source LIMIT ?",
             new Object[] { 7, 12 }
         );
+    }
+
+    @Test
+    public void test_can_insert_into_object_column_using_json_cast() throws Exception {
+        execute("create table tbl (obj object(dynamic) as (x int, y int))");
+        execute("insert into tbl (obj) values (?::json)", new Object[] { "{\"x\": 10, \"y\": 20}" });
+        assertThat(response.rowCount(), is(1L));
+        execute("refresh table tbl");
+        execute("select obj, obj::json from tbl");
+
+        assertThat(printedTable(response.rows()), Matchers.oneOf(
+            "{x=10, y=20}| {x=10, y=20}\n",
+            "{x=10, y=20}| {\"x\":10,\"y\":20}\n"
+        ));
     }
 }
