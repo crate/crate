@@ -272,4 +272,14 @@ public class CastFunctionTest extends ScalarTestCase {
         // would just skip the 2nd cast
         assertEvaluate("12.12::numeric(4, 2)::numeric(3, 1)", is(new BigDecimal("12.1")));
     }
+
+    @Test
+    public void test_can_cast_object_to_json() throws Exception {
+        assertEvaluate("{x = 10}::json", is("{\"x\":10}"));
+    }
+
+    @Test
+    public void test_can_cast_json_to_object() throws Exception {
+        assertEvaluate("('{\"x\":  10}'::json)::object", is(Map.of("x", 10)));
+    }
 }

@@ -28,6 +28,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IpType;
+import io.crate.types.JsonType;
 import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 import io.crate.types.OidVectorType;
@@ -57,6 +58,7 @@ public class SizeEstimatorFactory {
 
             case StringType.ID:
             case IpType.ID:
+            case JsonType.ID:
                 return (SizeEstimator<T>) StringSizeEstimator.INSTANCE;
 
             case ArrayType.ID:
