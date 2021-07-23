@@ -95,7 +95,7 @@ Collecting stats
   | *Default:* ``true`` (Include everything)
   | *Runtime:* ``yes``
 
-  An :ref:expression <gloss-expression>` to determine if a job should be
+  An :ref:`expression <gloss-expression>` to determine if a job should be
   recorded into ``sys.jobs_log``.  The expression must :ref:`evaluate
   <gloss-evaluation>` to a boolean. If it evaluates to ``true`` the statement
   will show up in ``sys.jobs_log`` until it's evicted due to one of the other
