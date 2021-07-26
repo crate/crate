@@ -282,4 +282,9 @@ public class CastFunctionTest extends ScalarTestCase {
     public void test_can_cast_json_to_object() throws Exception {
         assertEvaluate("('{\"x\":  10}'::json)::object", is(Map.of("x", 10)));
     }
+
+    @Test
+    public void test_can_cast_text_to_json_array() throws Exception {
+        assertEvaluate("'[{\"x\": 10}, {\"x\": 20}]'::json[]", is(List.of("{\"x\":10}", "{\"x\":20}")));
+    }
 }

@@ -38,9 +38,14 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.Streamer;
+import io.crate.common.collections.Lists2;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.parser.PgArrayParsingException;
 import io.crate.sql.tree.CollectionColumnType;
@@ -128,17 +133,17 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Override
     public List<T> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        return convert(value, innerType::implicitCast);
+        return convert(value, innerType, innerType::implicitCast);
     }
 
     @Override
     public List<T> explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        return convert(value, innerType::explicitCast);
+        return convert(value, innerType, innerType::explicitCast);
     }
 
     @Override
     public List<T> sanitizeValue(Object value) {
-        return convert(value, innerType::sanitizeValue);
+        return convert(value, innerType, innerType::sanitizeValue);
     }
 
     public List<String> fromAnyArray(Object[] values) throws IllegalArgumentException {
@@ -193,33 +198,48 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Nullable
     @SuppressWarnings("unchecked")
-    private static <T> List<T> convert(@Nullable Object value, Function<Object, T> innerType) {
+    private static <T> List<T> convert(@Nullable Object value, DataType<T> innerType, Function<Object, T> convertInner) {
         if (value == null) {
             return null;
         }
-        ArrayList<T> result;
-        if (value instanceof Collection) {
-            Collection<?> values = (Collection<?>) value;
-            result = new ArrayList<>(values.size());
-            for (Object o : values) {
-                result.add(innerType.apply(o));
-            }
-        } else if (value instanceof String) {
-            //noinspection unchecked
+        if (value instanceof Collection<?> values) {
+            return Lists2.map(values, convertInner);
+        } else if (value instanceof String string) {
+            byte[] utf8Bytes = string.getBytes(StandardCharsets.UTF_8);
             try {
                 return (List<T>) PgArrayParser.parse(
-                    ((String) value).getBytes(StandardCharsets.UTF_8),
-                    bytes -> innerType.apply(new String(bytes, StandardCharsets.UTF_8))
+                    utf8Bytes,
+                    bytes -> convertInner.apply(new String(bytes, StandardCharsets.UTF_8))
                 );
             } catch (PgArrayParsingException e) {
-                throw new IllegalArgumentException("Cannot parse `" + value + "` as array", e);
+                if (innerType instanceof JsonType) {
+                    try {
+                        return (List<T>) parseJsonList(utf8Bytes);
+                    } catch (IOException ioEx) {
+                        throw new UncheckedIOException(ioEx);
+                    }
+                } else {
+                    throw new IllegalArgumentException("Cannot parse `" + value + "` as array", e);
+                }
             }
         } else {
-            Object[] values = (Object[]) value;
-            result = new ArrayList<>(values.length);
-            for (Object o : values) {
-                result.add(innerType.apply(o));
-            }
+            return convertObjectArray((Object[]) value, convertInner);
+        }
+    }
+
+    private static List<String> parseJsonList(byte[] utf8Bytes) throws IOException {
+        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            utf8Bytes
+        );
+        return Lists2.map(parser.list(), StringType.INSTANCE::explicitCast);
+    }
+
+    private static <T> ArrayList<T> convertObjectArray(Object[] values, Function<Object, T> convertInner) {
+        ArrayList<T> result = new ArrayList<>(values.length);
+        for (Object o : values) {
+            result.add(convertInner.apply(o));
         }
         return result;
     }
