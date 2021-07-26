@@ -19,36 +19,28 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
+
 package io.crate.types;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Map;
 
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentFactory;
 
 import io.crate.Streamer;
 
-/**
- * Type that encapsulates the name and oid of a relation.
- **/
-public final class RegclassType extends DataType<Regclass> implements Streamer<Regclass> {
+public final class JsonType extends DataType<String> implements Streamer<String> {
 
-    public static final RegclassType INSTANCE = new RegclassType();
-    public static final int ID = 23;
+    public static final int ID = 26;
+    public static final JsonType INSTANCE = new JsonType();
 
     @Override
-    public int compare(Regclass o1, Regclass o2) {
+    public int compare(String o1, String o2) {
         return o1.compareTo(o2);
-    }
-
-    @Override
-    public Regclass readValueFrom(StreamInput in) throws IOException {
-        return in.readOptionalWriteable(Regclass::new);
-    }
-
-    @Override
-    public void writeValueTo(StreamOutput out, Regclass v) throws IOException {
-        out.writeOptionalWriteable(v);
     }
 
     @Override
@@ -58,46 +50,54 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
 
     @Override
     public Precedence precedence() {
-        return Precedence.REGCLASS;
+        return Precedence.UNCHECKED_OBJECT;
     }
 
     @Override
     public String getName() {
-        return "regclass";
+        return "json";
     }
 
     @Override
-    public Streamer<Regclass> streamer() {
+    public Streamer<String> streamer() {
         return this;
     }
 
     @Override
-    public Regclass sanitizeValue(Object value) {
-        if (value == null) {
-            return null;
-        }
-        return (Regclass) value;
+    public String sanitizeValue(Object value) {
+        return (String) value;
     }
 
     @Override
-    public Regclass implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Regclass) {
-            return (Regclass) value;
-        }
-        if (value instanceof Integer) {
-            return new Regclass((int) value, value.toString());
-        }
-        if (value instanceof String) {
-            return Regclass.fromRelationName(value.toString());
-        }
-        throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+    public String readValueFrom(StreamInput in) throws IOException {
+        return in.readOptionalString();
+    }
+
+    @Override
+    public void writeValueTo(StreamOutput out, String v) throws IOException {
+        out.writeOptionalString(v);
     }
 
     @Override
     public boolean supportsStorage() {
         return false;
+    }
+
+    @Override
+    public String implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return (String) value;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public String explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value instanceof Map<?, ?> map) {
+            try {
+                return Strings.toString(XContentFactory.jsonBuilder().map((Map<String, ?>) map));
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+        return (String) value;
     }
 }

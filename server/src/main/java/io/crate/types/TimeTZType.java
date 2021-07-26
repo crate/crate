@@ -123,4 +123,9 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
             "%s cannot be used in insert statements",
             TimeTZType.class.getSimpleName()));
     }
+
+    @Override
+    public boolean supportsStorage() {
+        return false;
+    }
 }

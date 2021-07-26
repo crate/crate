@@ -37,6 +37,8 @@ import com.carrotsearch.randomizedtesting.generators.BiasedNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
+import org.elasticsearch.common.network.InetAddresses;
+import org.elasticsearch.common.network.NetworkAddress;
 import org.joda.time.Period;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
@@ -63,32 +65,6 @@ import io.crate.types.RegclassType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.network.NetworkAddress;
-import org.joda.time.Period;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.shape.impl.PointImpl;
-
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.function.Supplier;
-import org.joda.time.Period;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.shape.impl.PointImpl;
-
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.function.Supplier;
 
 public class DataTypeTesting {
 
@@ -100,11 +76,9 @@ public class DataTypeTesting {
         // ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.INTERVAL); Member of DataTypes.STORAGE_UNSUPPORTED
         ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.UNTYPED_OBJECT);
 
-        // DATE type is also not supported, iteration based exclusion is used in case there are new unsupported types in PRIMITIVES or added explicitly like INTERVAL above.
-        ALL_TYPES_EXCEPT_ARRAYS.removeIf(DataTypes.STORAGE_UNSUPPORTED :: contains);
-
-
+        ALL_TYPES_EXCEPT_ARRAYS.removeIf(x -> !x.supportsStorage());
     }
+
     public static DataType<?> randomType() {
         return RandomPicks.randomFrom(RandomizedContext.current().getRandom(), ALL_TYPES_EXCEPT_ARRAYS);
     }

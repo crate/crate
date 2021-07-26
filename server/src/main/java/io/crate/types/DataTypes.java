@@ -134,15 +134,6 @@ public final class DataTypes {
             .collect(toSet());
 
 
-    public static final Set<DataType<?>> STORAGE_UNSUPPORTED = Set.of(
-        INTERVAL,
-        TIMETZ,
-        OIDVECTOR,
-        NUMERIC,
-        DATE,
-        REGCLASS
-    );
-
     public static final List<DataType<?>> NUMERIC_PRIMITIVE_TYPES = List.of(
         DOUBLE,
         FLOAT,
@@ -188,7 +179,8 @@ public final class DataTypes {
             entry(RegclassType.ID, in -> REGCLASS),
             entry(OidVectorType.ID, in -> OIDVECTOR),
             entry(DateType.ID, in -> DATE),
-            entry(BitStringType.ID, BitStringType::new)
+            entry(BitStringType.ID, BitStringType::new),
+            entry(JsonType.ID, in -> JsonType.INSTANCE)
         )
     );
 
@@ -221,7 +213,8 @@ public final class DataTypes {
                 RegprocType.ID,
                 RegclassType.ID,
                 TimeTZType.ID,
-                BitStringType.ID
+                BitStringType.ID,
+                JsonType.ID
             ),
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
@@ -232,9 +225,10 @@ public final class DataTypes {
         entry(UNDEFINED.id(), Set.of()), // actually convertible to every type, see NullType
         entry(GEO_POINT.id(), Set.of()),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.ID)),
-        entry(ObjectType.ID, Set.of(GEO_SHAPE.id())),
+        entry(ObjectType.ID, Set.of(GEO_SHAPE.id(), JsonType.ID)),
         entry(ArrayType.ID, Set.of()), // convertability handled in ArrayType
-        entry(BitStringType.ID, Set.of(BitStringType.ID))
+        entry(BitStringType.ID, Set.of(BitStringType.ID)),
+        entry(JsonType.ID, Set.of(ObjectType.ID))
     );
 
     /**
@@ -415,7 +409,8 @@ public final class DataTypes {
         entry("timestamp", TIMESTAMPZ),
         entry("interval", INTERVAL),
         entry(DATE.getName(), DATE),
-        entry(BitStringType.INSTANCE_ONE.getName(), BitStringType.INSTANCE_ONE)
+        entry(BitStringType.INSTANCE_ONE.getName(), BitStringType.INSTANCE_ONE),
+        entry(JsonType.INSTANCE.getName(), JsonType.INSTANCE)
     );
 
     public static DataType<?> ofName(String typeName) {

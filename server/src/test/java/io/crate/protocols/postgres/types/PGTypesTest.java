@@ -72,6 +72,7 @@ public class PGTypesTest extends ESTestCase {
         assertThat("Crate IP type is mapped to PG varchar", PGTypes.get(DataTypes.IP),
             instanceOf(VarCharType.class));
         assertThat(PGTypes.get(DataTypes.NUMERIC), instanceOf(NumericType.class));
+        assertThat(PGTypes.get(io.crate.types.JsonType.INSTANCE), instanceOf(JsonType.class));
 
     }
 
