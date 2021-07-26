@@ -32,7 +32,7 @@ task unpackDistTar(dependsOn: [project(':app').installDist, deleteCrateDist]) {
 def ignoreDiskThreshold() {
     def file = new File("$projectDir/tmp/crate/config/crate.yml")
     file.write(file.text.replaceAll(
-        '# cluster.routing.allocation.disk.threshold_enabled: true',
+        '#cluster.routing.allocation.disk.threshold_enabled: true',
         'cluster.routing.allocation.disk.threshold_enabled: false')
     )
 }
