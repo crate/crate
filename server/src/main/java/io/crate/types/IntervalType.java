@@ -147,4 +147,8 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
         return 32;
     }
 
+    @Override
+    public boolean supportsStorage() {
+        return false;
+    }
 }

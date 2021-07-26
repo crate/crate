@@ -54,8 +54,7 @@ None
 Changes
 =======
 
-None
-
+- Added the :ref:`JSON type <data-type-json>`.
 
 Fixes
 =====
