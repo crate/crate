@@ -631,6 +631,7 @@ should be crossed out as well.
 - [x] 29235a637f7 Wait for events in waitForRelocation (#45074)
 - [x] 42a331c59ba Remove Unused Features Field on StreamOutput (#44667)
 - [x] f20414dd7d9 Optimize some StreamOutput Operations (#44660)
+- [x] 4b8fd4e76f1 Remove blobExists Method from BlobContainer (#44472)
 - [x] f00b658130d Remove RemoteClusterConnection.ConnectedNodes (#44235)
 - [x] 433b3458522 Fix port range allocation with large worker IDs (#44213)
 - [x] c40b77b771b Simplify port usage in transport tests (#44157)
