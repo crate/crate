@@ -29,7 +29,7 @@ from cr8.run_crate import CrateNode
 from crate.client.http import Client
 from crate.client.exceptions import ProgrammingError, ConnectionError
 from testutils.paths import crate_path
-from testutils.ports import bind_range, bind_port
+from testutils.ports import bind_range
 
 
 def decommission(client, node):
