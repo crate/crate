@@ -1,0 +1,70 @@
+name: 🐢 Slow Performance
+description: Report a performance issue
+body:
+  - type: input
+    id: cratedb_version
+    attributes:
+      label: CrateDB version
+      placeholder: 4.6.1
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: CrateDB setup information
+      description: Number of nodes, HEAP setting, tell us if you're using special master/data/client node configuration
+      placeholder: |-
+
+        Number of nodes: 1
+        CRATE_HEAP_SIZE: 4g
+        CRATE_JAVA_OPTS: empty
+        Memory of the nodes:
+        Disk setup:
+        crate.yml contents:
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Observed behavior
+      description: Describe the behavior you're observing. Please be specific
+      placeholder: |-
+
+        Please include the following information if possible:
+
+          - Log snippets during the timeframe of the issue
+          - GC logs
+          - Metrics of the JVM/CrateDB. See:
+            - https://crate.io/a/monitoring-cratedb-with-prometheus-and-grafana/
+            - https://crate.io/a/look-youre-monitoring-distributed-java-application/
+            - https://crate.io/docs/crate/reference/en/master/admin/monitoring.html
+
+        We may ask for a JFR recording. You can retrieve one using the following command:
+
+          /path/to/cratedb/jdk/bin/jcmd <CRATEDB_PID> JFR.start name=recording duration=2m filename=$(pwd)/recording.jfr settings=profile
+
+        Please don't share this file publicly. The recording contains environment variables and may leak sensitive information.
+
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      description: How can we see what you're seeing? Please be specific
+      placeholder: |-
+        1. Create a table with the schema:
+        2. Insert records:
+        3. Run the query:
+
+        Amount of records in the table:
+        Number of shards in the cluster:
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |-
+        ## Thanks 🙏
+    validations:
+      required: false
