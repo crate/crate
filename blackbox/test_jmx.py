@@ -104,7 +104,9 @@ class JmxClient:
         if stderr.startswith(restart_msg):
             stderr = stderr[len(restart_msg):]
         # Bean name is printed in the first line. Remove it
-        return (stdout[len(bean) + 1:], stderr)
+        stdout = stdout[len(bean) + 1:]
+        stdout = stdout.replace(attribute, '').strip()
+        return (stdout, stderr)
 
 
 class JmxIntegrationTest(unittest.TestCase):
@@ -200,18 +202,17 @@ class JmxIntegrationTest(unittest.TestCase):
         jmx_client = JmxClient(JMX_PORT)
         stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=ThreadPools', 'Search')
-        self.assertEqual(
-            '\n'.join((line.strip() for line in stdout.split('\n'))),
-            '''\
-active:          0
-completed:       1
-largestPoolSize: 1
-name:            search
-poolSize:        1
-queueSize:       0
-rejected:        0
-
-''')
+        lines = [line.strip() for line in stdout.split('\n')]
+        expected = [
+            'active:          0',
+            'completed:       1',
+            'largestPoolSize: 1',
+            'name:            search',
+            'poolSize:        1',
+            'queueSize:       0',
+            'rejected:        0',
+        ]
+        self.assertSequenceEqual(expected, lines)
         self.assertEqual(stderr, '')
 
     def test_parent_breaker(self):
