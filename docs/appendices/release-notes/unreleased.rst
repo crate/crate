@@ -61,5 +61,6 @@ Changes
 Fixes
 =====
 
-None
+- Fixed an issue that caused NPE on SELECT queries filtered by dynamic field of
+  the ignored object followed by a DELETE query.
 
