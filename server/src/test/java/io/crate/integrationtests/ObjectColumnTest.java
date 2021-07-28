@@ -115,6 +115,16 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
         assertEquals(detailMap, response.rows()[0][1]);
         assertEquals(4.8d, response.rows()[0][2]);
         assertEquals("1982-01-01", response.rows()[0][3]);
+
+        // Additional check to get zero rows after deletion
+        // and following access with filter on non-indexed, dynamic field of the ignored object.
+        // See https://github.com/crate/crate/issues/11600
+        execute("delete from ot");
+        execute("refresh table ot");
+        // num_pages is indexed as it's specified in Setup.setUpObjectTable, filtering by any other field to verify that
+        // SourceParser.parse is null safe.
+        execute("select * from ot where details['isbn'] = '978-0345391827'");
+        assertEquals(0, response.rowCount());
     }
 
     @Test
