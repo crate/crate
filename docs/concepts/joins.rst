@@ -101,9 +101,9 @@ Join algorithms
 
 CrateDB supports (a) CROSS JOIN, (b) INNER JOIN, (c) EQUI JOIN, (d) LEFT JOIN,
 (e) RIGHT JOIN and (f) FULL JOIN. All of these join types are executed using
-the :ref:`nested loop join algorithm <joins_nested_loop>` except for the
-:ref:`Equi Joins <joins_equi_join>` which are executed using the :ref:`hash
-join algorithm <joins_hash_join>`. Special optimizations, according to the
+the :ref:`nested loop join algorithm <join-algos-nested-loop>` except for the
+:ref:`Equi Joins <join-types-equi>` which are executed using the :ref:`hash
+join algorithm <join-algos-hash>`. Special optimizations, according to the
 specific use cases, are applied to improve execution performance.
 
 
@@ -180,7 +180,7 @@ Hash join
 ---------
 
 The Hash Join algorithm is used to execute certains types of joins in a more
-perfomant way than :ref:`Nested Loop <joins_nested_loop>`.
+perfomant way than :ref:`Nested Loop <join-algos-nested-loop>`.
 
 
 .. _join-algos-hash-basic:
@@ -270,7 +270,7 @@ of nodes in the cluster, is applied and the resulting number defines the node
 to which this row should be sent. As a result each node of the cluster receives
 a subset of the whole data set which is ensured (by the hashing and modulo) to
 contain all candidate matching rows. Each node in turn performs a :ref:`block
-hash join <joins_block_hash_join>` on this subset and sends its result tuples
+hash join <join-algos-hash-block>` on this subset and sends its result tuples
 to the handler node (where the client issued the query). Finally, the handler
 node receives those intermediate results, merges them and applies any pending
 ``ORDER BY``, ``LIMIT`` and ``OFFSET`` and sends the final result to the
@@ -299,7 +299,7 @@ Query then fetch
 ----------------
 
 Join operations on large relation can be extremely slow especially if the join
-is executed with a :ref:`Nested Loop <joins_nested_loop>`. - which means that
+is executed with a :ref:`Nested Loop <join-algos-nested-loop>`. - which means that
 the runtime complexity grows quadratically (O(n*m)). Specifically for
 :ref:`cross joins <cross-joins>` this results in large amounts of data sent
 over the network and loaded into memory at the handler node. CrateDB reduces

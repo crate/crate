@@ -18,7 +18,7 @@ CrateDB supports, along with implementation notes and any associated caveats.
 
 .. SEEALSO::
 
-    :ref:`SQL compatibility <crate_standard_sql>`
+    :ref:`SQL compatibility <appendix-compatibility>`
 
 .. csv-filter::
    :header: ID,Package,#,Description,Supported,Verified,Comments

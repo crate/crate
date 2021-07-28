@@ -19,7 +19,7 @@ Released on 2019/06/25.
     When restarting, CrateDB will migrate indexes to a newer format. Depending
     on the amount of data, this may delay node start-up time.
 
-    Please consult the :ref:`version_4.0.0_upgrade_notes` before upgrading.
+    Please consult the :ref:`v4.0.0-upgrade-notes` before upgrading.
 
 .. WARNING::
 
@@ -184,7 +184,7 @@ Removed Settings
   ``concurrent_streams`` as it is no longer supported.
 
 - The ``zen1`` related discovery settings mentioned in
-  :ref:`discovery-changes`.
+  :ref:`v4.0.0-discovery-changes`.
 
 
 .. _v4.0.0-breaking-sys:
