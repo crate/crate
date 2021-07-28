@@ -634,7 +634,7 @@ Arrays
 CrateDB supports :ref:`arrays <data-type-array>`. It is possible to select and
 query array elements.
 
-For example, you might :ref:`insert <inserting_data>` an array like so::
+For example, you might :ref:`insert <dml-inserting-data>` an array like so::
 
     cr> insert into locations (id, name, position, kind, landmarks)
     ... values (14, 'Frogstar', 4, 'Star System',

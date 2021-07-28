@@ -11,7 +11,7 @@ CrateDB accepts the ``START TRANSACTION`` statement for compatibility with the
 not support transactions and will silently ignore this statement.
 .. SEEALSO::
 
-    :ref:`Appendix: SQL compatibility <crate_standard_sql>`
+    :ref:`Appendix: SQL compatibility <appendix-compatibility>`
 
 .. rubric:: Table of contents
 
