@@ -118,6 +118,32 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(0) // inserting object requires other treatment for PostgreSQL
+    public void test_predicate_on_ignored_object_returns_zero_rows_after_delete() throws Exception {
+        Map<String, Object> detailMap = new HashMap<>();
+        detailMap.put("num_pages", 240);
+        detailMap.put("isbn", "978-0345391827");
+
+        execute("insert into ot (details) values (?)",
+            new Object[]{
+                detailMap
+            });
+        refresh();
+        execute("select * from ot where details['isbn'] = '978-0345391827'");
+        assertEquals(1, response.rowCount());
+
+        // Check to get zero rows after deletion
+        // and following access with filter on non-indexed, dynamic field of the ignored object.
+        // See https://github.com/crate/crate/issues/11600
+        execute("delete from ot");
+        execute("refresh table ot");
+        // num_pages is indexed as it's specified in Setup.setUpObjectTable, filtering by any other field to verify that
+        // SourceParser.parse is null safe.
+        execute("select * from ot where details['isbn'] = '978-0345391827'");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
     public void testAddColumnToStrictObject() throws Exception {
         Map<String, Object> authorMap = Map.of(
             "name", Map.of(
