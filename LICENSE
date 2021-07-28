@@ -176,98 +176,22 @@
 
    END OF TERMS AND CONDITIONS
 
-   APPENDIX: How to apply the Apache License to your work.
-
-      To apply the Apache License to your work, attach the following
-      boilerplate notice, with the fields enclosed by brackets "[]"
-      replaced with your own identifying information. (Don't include
-      the brackets!)  The text should be enclosed in the appropriate
-      comment syntax for the file format. We also recommend that a
-      file or class name and description of purpose be included on the
-      same "printed page" as the copyright notice for easier
-      identification within third-party archives.
-
-   Copyright [yyyy] [name of copyright owner]
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-
 ===============================================================================
 
-For the `blackbox/docs` directory:
+This section describes all third-party components bundled with the CrateDB
+source code.
 
-The source files for the documentation are licensed under the Apache License
-Version 2.0. These source files are used by the project maintainers to build
-online documentation for end-users:
+As a general guideline, it is a policy of the Apache Software Foundation that
+all bundled third-party components should be available under a category A
+license (https://www.apache.org/legal/resolved.html#category-a).
 
-  <https://crate.io/docs/crate/reference/en/latest/>
+The "server" directory contains source code that originates from the Apache
+Lucene and Elasticsearch projects.
 
-If you want to make contributions to the documentation, it may be necessary for
-you to build the documentation yourself by following the instructions in the
-`DEVELOP.rst` file. If you do this, a number of third-party software components
-are necessary.
-
-We do not ship the source code for these optional third-party software
-components or their dependencies, so we cannot make any guarantees about the
-licensing status of these components.
-
-However, for convenience, the documentation build system explicitly references
-the following software components (grouped by license):
-
-PSF License:
-
- - Python 3 <https://docs.python.org/3/license.html>
-
-MIT License:
-
- - pip <https://pypi.org/project/pip/>
- - setuptools <https://pypi.org/project/setuptools/>
- - sphinx-autobuild <https://pypi.org/project/sphinx-autobuild/>
- - tqdm <https://pypi.org/project/tqdm/>
-
-BSD License:
-
- - alabaster <https://pypi.org/project/alabaster/>
- - sphinx <https://pypi.org/project/Sphinx/>
-
-Apache License 2.0:
-
- - sphinx-csv-filter <https://pypi.org/project/sphinx-csv-filter/>
- - crash <https://pypi.org/project/crash/>
- - crate <https://pypi.org/project/crate/>
- - crate-docs-theme <https://pypi.org/project/crate-docs-theme/>
-
-Zope Public License:
-
- - zope.testrunner <https://pypi.org/project/zope.testrunner/>
-
-GNU Lesser General Public License:
-
- - psycopg2-binary <https://pypi.org/project/psycopg2-binary/>
-
-Please note that each of these components may specify its own dependencies and
-those dependencies may be licensed differently.
-
-
-================================================================================
-
-For the `es` directory:
-
-This directory contains source code that originates from Elastic.
+-------------------------------------------------------------------------------
 
 Elasticsearch
-Copyright 2009-2020 Elasticsearch
-
+Copyright 2009-2021 Elasticsearch B.V.
 
 Licensed under the Apache License, Version 2.0 (see above for full license
 text).
@@ -276,6 +200,19 @@ Elasticsearch bundles a number of third-party components. For a full list of
 the respective licenses, consult the relevant LICENSE.txt files included with
 the source code.
 
-As a general guideline, it is a policy of the Apache Software Foundation that
-all bundled third-party components should be available under a category A
-license (https://www.apache.org/legal/resolved.html#category-a).
+-------------------------------------------------------------------------------
+
+Apache Lucene
+
+Licensed to the Apache Software Foundation (ASF) under one or more contributor
+license agreements.
+
+The ASF licenses Apache Lucene to You under the Apache License, Version 2.0
+(the "License"); you may not use it except in compliance with the License.
+
+-------------------------------------------------------------------------------
+
+To get a quick overview about licenses of all bundled third-party build-time
+dependencies, please also see the "3RD-PARTY-NOTICES.md" file.
+
+===============================================================================
