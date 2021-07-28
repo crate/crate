@@ -1,0 +1,117 @@
+/*
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.elasticsearch.snapshots;
+
+import io.crate.common.unit.TimeValue;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.snapshots.mockstore.MockRepository;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.disruption.NetworkDisruption;
+import org.elasticsearch.test.transport.MockTransportService;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
+public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
+
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        var plugins = new ArrayList<>(super.nodePlugins());
+        plugins.add(MockRepository.Plugin.class);
+        plugins.add(MockTransportService.TestPlugin.class);
+        return plugins;
+    }
+
+    public void testRetryPostingSnapshotStatusMessages() throws Exception {
+        String masterNode = internalCluster().startMasterOnlyNode();
+        String dataNode = internalCluster().startDataOnlyNode();
+
+        logger.info("-->  creating repository");
+        assertAcked(client().admin().cluster().preparePutRepository("repo")
+                        .setType("mock").setSettings(Settings.builder()
+                                                         .put("location", randomRepoPath())
+                                                         .put("compress", randomBoolean())
+                                                         .put("chunk_size", randomIntBetween(100, 1000), ByteSizeUnit.BYTES)));
+
+        final int shards = between(1, 10);
+        execute("create table doc.test(x integer) clustered into ? shards with (number_of_replicas=0)", new Object[]{shards});
+
+        ensureGreen();
+        final int numDocs = scaledRandomIntBetween(50, 100);
+        for (int i = 0; i < numDocs; i++) {
+            execute("insert into doc.test values(?)", new Object[]{i});
+        }
+
+        logger.info("--> blocking repository");
+        String blockedNode = blockNodeWithIndex("repo", "test");
+        dataNodeClient().admin().cluster().prepareCreateSnapshot("repo", "snapshot")
+            .setWaitForCompletion(false)
+            .setIndices("test")
+            .get();
+        waitForBlock(blockedNode, "repo", TimeValue.timeValueSeconds(60));
+
+        final SnapshotId snapshotId = client().admin().cluster().prepareGetSnapshots("repo").setSnapshots("snapshot")
+            .get().getSnapshots().get(0).snapshotId();
+
+        logger.info("--> start disrupting cluster");
+        final NetworkDisruption networkDisruption = new NetworkDisruption(new NetworkDisruption.TwoPartitions(masterNode, dataNode),
+                                                                          NetworkDisruption.NetworkDelay.random(random()));
+        internalCluster().setDisruptionScheme(networkDisruption);
+        networkDisruption.startDisrupting();
+
+        logger.info("--> unblocking repository");
+        unblockNode("repo", blockedNode);
+
+        // Retrieve snapshot status from the data node.
+        SnapshotShardsService snapshotShardsService = internalCluster().getInstance(SnapshotShardsService.class, blockedNode);
+        assertBusy(() -> {
+            final Snapshot snapshot = new Snapshot("repo", snapshotId);
+            List<IndexShardSnapshotStatus.Stage> stages = snapshotShardsService.currentSnapshotShards(snapshot)
+                .values().stream().map(status -> status.asCopy().getStage()).collect(Collectors.toList());
+            assertThat(stages, hasSize(shards));
+            assertThat(stages, everyItem(equalTo(IndexShardSnapshotStatus.Stage.DONE)));
+        }, 30L, TimeUnit.SECONDS);
+
+        logger.info("--> stop disrupting cluster");
+        networkDisruption.stopDisrupting();
+        internalCluster().clearDisruptionScheme(true);
+
+        assertBusy(() -> {
+            execute("select state, array_length(failures,0) from sys.snapshots where name='snapshot'");
+            assertThat(response.rowCount(), is(1L));
+            assertThat(response.rows()[0][0], is("SUCCESS"));
+            assertThat(response.rows()[0][1], is(nullValue()));
+        }, 30L, TimeUnit.SECONDS);
+    }
+}
