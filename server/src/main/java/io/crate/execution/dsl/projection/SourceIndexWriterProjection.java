@@ -27,6 +27,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -44,7 +45,9 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     private static final String OVERWRITE_DUPLICATES = "overwrite_duplicates";
     private static final boolean OVERWRITE_DUPLICATES_DEFAULT = false;
+    private static final String FAIL_FAST = "fail_fast";
 
+    private final boolean failFast;
     private final Boolean overwriteDuplicates;
     private final Reference rawSourceReference;
     private final InputColumn rawSourceSymbol;
@@ -79,10 +82,16 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         this.rawSourceSymbol = rawSourcePtr;
         this.outputs = outputs;
         overwriteDuplicates = settings.getAsBoolean(OVERWRITE_DUPLICATES, OVERWRITE_DUPLICATES_DEFAULT);
+        this.failFast = settings.getAsBoolean(FAIL_FAST, false);
     }
 
     SourceIndexWriterProjection(StreamInput in) throws IOException {
         super(in);
+        if (in.getVersion().onOrAfter(Version.V_4_7_0)) {
+            failFast = in.readBoolean();
+        } else {
+            failFast = false;
+        }
         overwriteDuplicates = in.readBoolean();
         rawSourceReference = Reference.fromStream(in);
         rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
@@ -147,12 +156,13 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                Objects.equals(rawSourceReference, that.rawSourceReference) &&
                Objects.equals(rawSourceSymbol, that.rawSourceSymbol) &&
                Arrays.equals(includes, that.includes) &&
-               Arrays.equals(excludes, that.excludes);
+               Arrays.equals(excludes, that.excludes) &&
+               failFast == that.failFast;
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(super.hashCode(), overwriteDuplicates, rawSourceReference, rawSourceSymbol);
+        int result = Objects.hash(super.hashCode(), overwriteDuplicates, rawSourceReference, rawSourceSymbol, failFast);
         result = 31 * result + Arrays.hashCode(includes);
         result = 31 * result + Arrays.hashCode(excludes);
         return result;
@@ -162,6 +172,9 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
 
+        if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
+            out.writeBoolean(failFast);
+        }
         out.writeBoolean(overwriteDuplicates);
         Reference.toStream(rawSourceReference, out);
         Symbols.toStream(rawSourceSymbol, out);
@@ -189,5 +202,9 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     public boolean overwriteDuplicates() {
         return overwriteDuplicates;
+    }
+
+    public boolean failFast() {
+        return failFast;
     }
 }

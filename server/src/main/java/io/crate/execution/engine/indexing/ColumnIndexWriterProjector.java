@@ -142,7 +142,9 @@ public class ColumnIndexWriterProjector implements Projector {
             transportActionProvider.transportBulkCreateIndicesAction(),
             targetTableNumShards,
             targetTableNumReplicas,
-            upsertResultContext
+            upsertResultContext,
+            upsertResults -> false,
+            UpsertResults::resultsToFailure
         );
     }
 

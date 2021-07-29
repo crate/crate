@@ -85,6 +85,10 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
         return lineNumber;
     }
 
+    public boolean returnSummaryOnFailOnly() {
+        return AbstractIndexWriterProjection.OUTPUTS.equals(outputs());
+    }
+
     @Override
     public ProjectionType projectionType() {
         return ProjectionType.INDEX_WRITER_RETURN_SUMMARY;

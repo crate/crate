@@ -451,7 +451,8 @@ public class ProjectionToProjectorVisitor
             projection.autoCreateIndices(),
             projection.overwriteDuplicates(),
             context.jobId,
-            upsertResultContext
+            upsertResultContext,
+            projection.failFast()
         );
     }
 

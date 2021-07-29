@@ -114,6 +114,10 @@ Changes
 - Added the :ref:`scalar-area` scalar function that calculates the area for a
   ``GEO_SHAPE``.
 
+- Added ``FAIL_FAST`` option to ``COPY FROM`` statement that when it is set to
+  true, any errors observed while processing the statement will trigger an
+  exception and the on-going executions will terminate in best effort.
+
 - Added support of ``numeric`` type to the ``avg`` aggregation function.
 
 - Enabled HTTP connections to preserve :ref:`session settings <conf-session>`

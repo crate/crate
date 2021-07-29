@@ -22,6 +22,8 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
+import io.crate.execution.engine.collect.files.FileReadingIterator;
+import io.crate.execution.engine.collect.sources.FileCollectSource;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -33,6 +35,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
@@ -47,6 +50,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
@@ -844,5 +848,275 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(printedTable(response.rows()), is(
             "1626188198073| 1625097600000\n"
         ));
+    }
+
+    @Test
+    public void test_copy_from_with_fail_fast_property_with_one_node_configuration() throws Exception {
+
+        // a single uri with 'shared = true' implies that one node will be involved at all times.
+
+        Path tmpDir = newTempDir(LifecycleScope.TEST);
+        Path target = Files.createDirectories(tmpDir.resolve("target"));
+        tmpFileWithLines(Arrays.asList(("{\"a\":987654321},".repeat(200) + "{\"a\":\"fail here\"}," +
+                                        "{\"a\":123456789},".repeat(200)).split(",")),
+                         "data1.json",
+                         target);
+
+        execute("CREATE TABLE t (a int)");
+        execute(
+            "COPY t FROM ? WITH (bulk_size = 1, fail_fast = false, shared = true)",
+            new Object[]{target.toUri().toString() + "*"});
+        refresh();
+        execute("select * from t");
+        assertThat(response.rowCount(), is(400L));
+
+        int maxTry = 100;
+        while (maxTry-- > 0) {
+            execute("drop table if exists t");
+            execute("CREATE TABLE t (a int)");
+            try {
+                execute(
+                    "COPY t FROM ? WITH (bulk_size = 1, fail_fast = true, shared = true)",
+                    new Object[]{target.toUri().toString() + "*"});
+                fail();
+            } catch (Exception e) {
+                String exceptionMessage = e.getMessage();
+                if (exceptionMessage == null || exceptionMessage.contains("failed to parse field") == false) {
+                    fail();
+                }
+            }
+            refresh();
+            execute("select * from t");
+            if (response.rowCount() < 400L) {
+                return;
+            }
+        }
+        fail();
+    }
+
+    @Test
+    public void test_copy_from_with_fail_fast_property_set_to_true_and_share_set_to_false() throws Exception {
+
+        // 'shared = false' will cause fail_fast to occur from all nodes
+
+        Path tmpDir = newTempDir(LifecycleScope.TEST);
+        Path target = Files.createDirectories(tmpDir.resolve("target"));
+        tmpFileWithLines(Arrays.asList(("{\"a\":987654321},".repeat(200) + "{\"a\":\"fail here\"}," +
+                                        "{\"a\":123456789},".repeat(200)).split(",")),
+                         "data1.json",
+                         target);
+
+        execute("CREATE TABLE t (a int)");
+        execute(
+            "COPY t FROM ? WITH (bulk_size = 1, fail_fast = false, shared = false)",
+            new Object[]{target.toUri().toString() + "*"});
+        refresh();
+        execute("select * from t");
+        assertThat(response.rowCount(), is(400L * cluster().numDataNodes()));
+
+        int maxTry = 100;
+        while (maxTry-- > 0) {
+            execute("drop table if exists t");
+            execute("CREATE TABLE t (a int)");
+            try {
+                execute(
+                    "COPY t FROM ? WITH (bulk_size = 1, fail_fast = true, shared = false)",
+                    new Object[]{target.toUri().toString() + "*"});
+                fail();
+            } catch (Exception e) {
+                String exceptionMessage = e.getMessage();
+                if (exceptionMessage == null || exceptionMessage.contains("failed to parse field") == false) {
+                    fail();
+                }
+            }
+            refresh();
+            execute("select * from t");
+            if (response.rowCount() < 400L * cluster().numDataNodes()) {
+                return;
+            }
+        }
+        fail();
+    }
+
+    private URI generateURIToBeConsumedByProvidedReaderNumber(Path target, List<String> data, int readerNumber, int numReaders) throws IOException {
+
+        int maxTry = 100;
+        URI uri;
+        while (maxTry-- > 0) {
+            File file = new File(target.toFile(), UUID.randomUUID().toString());
+            uri = FileReadingIterator.toURI(file.toPath().toUri().toString());
+            if (FileReadingIterator.moduloPredicateImpl(uri, readerNumber, numReaders)) {
+                Files.write(file.toPath(), data, StandardCharsets.UTF_8);
+                return uri;
+            }
+        }
+        return null;
+    }
+
+    @Test
+    public void test_copy_from_with_fail_fast_property_can_kill_all_nodes_with_failure_from_single_node() throws Exception {
+
+        execute("create table tbl (a int)");
+        ensureGreen();
+        execute("select distinct node['name'], node['id'] from sys.shards where table_name = 'tbl'");
+        List<String> nodeNames = new ArrayList<>();
+        List<String> nodeIds = new ArrayList<>();
+        for (int i = 0; i < response.rowCount(); i++) {
+            nodeNames.add((String) response.rows()[i][0]);
+            nodeIds.add((String) response.rows()[i][1]);
+        }
+
+        for (int i = 0; i < nodeIds.size(); i++) {
+
+            // each node is assigned a readerNumber and based on URI.hashCode(), readerNumber, numReaders, the URIs will be assigned to a particular node to be consumed.
+            int readerNumber = FileCollectSource.getReaderNumber(nodeIds, nodeIds.get(i));
+
+            Path target = folder.newFolder().toPath();
+            URI failingUri = generateURIToBeConsumedByProvidedReaderNumber(
+                target,
+                Arrays.asList(("{\"a\":987654321}," + "{\"a\":\"fail here\"}").split(",")),
+                readerNumber, // making sure that every node gets a turn to consume failing uri.
+                nodeIds.size());
+            URI passingUri = generateURIToBeConsumedByProvidedReaderNumber(
+                target,
+                Arrays.asList("{\"a\":123456789},".repeat(10000).split(",")),
+                (readerNumber+1) % nodeIds.size(), // even with #nodes > 2, it does not matter who gets the passing uri.
+                nodeIds.size());
+            if (failingUri == null || passingUri == null) {
+                fail("two uris should be available to be copied from");
+            }
+            if (FileReadingIterator.moduloPredicateImpl(failingUri, readerNumber, nodeIds.size()) ==
+                FileReadingIterator.moduloPredicateImpl(passingUri, readerNumber, nodeIds.size())) {
+                fail("the two uris should not be consumed by the same node"); // the goal is to observe kill signals to spread across the nodes
+            }
+
+            String exceptionMessage = null;
+            try {
+                execute("copy tbl from ? with (shared=true, fail_fast=true, bulk_size=2) return summary",
+                        new Object[]{target.toUri().toString() + "*"});
+                fail();
+            } catch (Exception e) {
+                exceptionMessage = e.getMessage();
+                if (exceptionMessage == null || exceptionMessage.contains("failed to parse field") == false) {
+                    fail();
+                }
+            }
+
+            refresh();
+
+            // bulk_size is 2 and with the failing URI containing 1 passing and 1 failing record, the 1 passing record must be inserted
+            execute("select count(*) from tbl where a = '987654321'");
+            assertEquals(1L, (long) response.rows()[0][0]);
+
+            // if the count is not less than 10000L, it is unclear whether fail_fast had any effect.
+            execute("select count(*) from tbl where a = '123456789'");
+            assertTrue((long) response.rows()[0][0] < 10000L);
+
+            // parse the exception message to retrieve the nodeName that observed the URI error and trigger the kill signals
+            int begin = exceptionMessage.indexOf("NODE: ");
+            if (begin == -1) {
+                fail("something went wrong with the expected exception message");
+            }
+            int end = exceptionMessage.indexOf("\n[URI");
+            if (end == -1) {
+                fail("something went wrong with the expected exception message");
+            }
+            String nodeName = exceptionMessage.substring(begin + "NODE: ".length(), end);
+
+            if (nodeName.equals(nodeNames.get(i)) == false) {
+                fail("nodeNames.get(i) should've been assigned to ingest the failing URI then should've triggered the failure");
+                // the purpose of this is to test that fail_fast can be triggered from handlerNode as well as non-handlerNodes
+                // since the handleNode will execute a CollectTask and a DownstreamRXTask whereas other data nodes will execute a CollectTask only
+            }
+
+            execute("delete from tbl");
+            refresh();
+        }
+    }
+
+    @Test
+    public void test_copy_from_fail_fast_with_passing_uris_only() throws IOException {
+
+        Path tmpDir = newTempDir(LifecycleScope.TEST);
+        Path target = Files.createDirectories(tmpDir.resolve("target"));
+        tmpFileWithLines(Collections.singletonList(("{\"a\":123}")),
+                         "passing1.json",
+                         target);
+        tmpFileWithLines(Arrays.asList(("{\"a\":123},".repeat(2).split(","))),
+                         "passing2.json",
+                         target);
+        tmpFileWithLines(Arrays.asList(("{\"a\":123},".repeat(3).split(","))),
+                         "passing3.json",
+                         target);
+
+        execute("CREATE TABLE t (a int)");
+
+        execute("COPY t FROM ? WITH (fail_fast = true, shared = false)", new Object[]{target.toUri().toString() + "*"});
+        refresh();
+        execute("select * from t");
+        assertThat(response.rowCount(), is(6L * cluster().numDataNodes()));
+
+        execute("COPY t FROM ? WITH (fail_fast = true, shared = false) return summary", new Object[]{target.toUri().toString() + "*"});
+        refresh();
+        execute("select * from t");
+        assertThat(response.rowCount(), is(6L * cluster().numDataNodes() * 2));
+    }
+
+    @Test
+    public void test_copy_from_fail_fast_with_passing_and_failing_uris() throws IOException {
+
+        Path tmpDir = newTempDir(LifecycleScope.TEST);
+        Path target = Files.createDirectories(tmpDir.resolve("target"));
+        tmpFileWithLines(Collections.singletonList(("{\"a\":123}")),
+                         "passing1.json",
+                         target);
+        tmpFileWithLines(Arrays.asList(("{\"a\":123},".repeat(2).split(","))),
+                         "passing2.json",
+                         target);
+        tmpFileWithLines(Arrays.asList(("{\"a\":123},".repeat(3).split(","))),
+                         "passing3.json",
+                         target);
+        tmpFileWithLines(Arrays.asList(("{\"a\":987654321},".repeat(2) + "{\"a\":\"fail here\"}," +
+                                        "{\"a\":123456789},".repeat(3)).split(",")),
+                         "failing1.json",
+                         target);
+        tmpFileWithLines(Arrays.asList(("{\"a\":987654321},".repeat(4) + "{\"b\":\"fail here\"}," +
+                                        "{\"a\":123456789},".repeat(5)).split(",")),
+                         "failing2.json",
+                         target);
+
+        String expectedMessage = "[URI: failing1.json, ERRORS: {failed to parse field [a] of type [integer]={count=1, line_numbers=[3]}}]" +
+                                 "[URI: failing2.json, ERRORS: {mapping set to strict, dynamic introduction of [b] within [default] is not allowed={count=1, line_numbers=[5]}}]" +
+                                 "[URI: passing1.json, ERRORS: {}][URI: passing2.json, ERRORS: {}][URI: passing3.json, ERRORS: {}]";
+
+        execute("CREATE TABLE t (a int)");
+
+        try {
+            execute("COPY t FROM ? WITH (fail_fast = true, shared = false)",
+                    new Object[]{target.toUri().toString() + "*"});
+        } catch (Exception e) {
+            String exceptionMessage = e.getMessage();
+            if (e.getMessage() == null || e.getMessage().isEmpty()) {
+                fail("expect a message from this exception");
+            }
+            exceptionMessage = exceptionMessage.replaceAll("file:///.*/target/", "").replaceAll("],","]");
+            exceptionMessage = Arrays.stream(exceptionMessage.split("\n")).filter(s -> s.startsWith("[URI:")).sorted().collect(
+                Collectors.joining());
+            assertThat(exceptionMessage, is(expectedMessage));
+        }
+
+        try {
+            execute("COPY t FROM ? WITH (fail_fast = true, shared = false) return summary",
+                    new Object[]{target.toUri().toString() + "*"});
+        } catch (Exception e) {
+            String exceptionMessage = e.getMessage();
+            if (e.getMessage() == null || e.getMessage().isEmpty()) {
+                fail("expect a message from this exception");
+            }
+            exceptionMessage = exceptionMessage.replaceAll("file:///.*/target/", "").replaceAll("],","]");
+            exceptionMessage = Arrays.stream(exceptionMessage.split("\n")).filter(s -> s.startsWith("[URI:")).sorted().collect(
+                Collectors.joining());
+            assertThat(exceptionMessage, is(expectedMessage));
+        }
     }
 }
