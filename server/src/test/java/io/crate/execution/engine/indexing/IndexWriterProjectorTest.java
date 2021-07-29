@@ -117,7 +117,8 @@ public class IndexWriterProjectorTest extends SQLIntegrationTestCase {
             false,
             false,
             UUID.randomUUID(),
-            UpsertResultContext.forRowCount()
+            UpsertResultContext.forRowCount(),
+            false
         );
 
         BatchIterator rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 100)

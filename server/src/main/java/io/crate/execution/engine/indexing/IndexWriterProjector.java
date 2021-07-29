@@ -59,6 +59,7 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class IndexWriterProjector implements Projector {
@@ -92,7 +93,8 @@ public class IndexWriterProjector implements Projector {
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates,
                                 UUID jobId,
-                                UpsertResultContext upsertResultContext) {
+                                UpsertResultContext upsertResultContext,
+                                boolean failFast) {
         Input<String> source;
         if (includes == null && excludes == null) {
             //noinspection unchecked
@@ -117,6 +119,10 @@ public class IndexWriterProjector implements Projector {
         Function<String, ShardUpsertRequest.Item> itemFactory =
             id -> new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null, null, null);
 
+        Predicate<UpsertResults> earlyTerminationCondition = results -> failFast && results.containsErrors();
+
+        Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator = UpsertResults::resultsToFailure;
+
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
             nodeJobsCounter,
@@ -136,7 +142,9 @@ public class IndexWriterProjector implements Projector {
             transportCreatePartitionsAction,
             targetTableNumShards,
             targetTableNumReplicas,
-            upsertResultContext
+            upsertResultContext,
+            earlyTerminationCondition,
+            earlyTerminationExceptionGenerator
         );
     }
 

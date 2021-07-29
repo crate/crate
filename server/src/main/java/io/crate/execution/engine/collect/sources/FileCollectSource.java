@@ -23,6 +23,7 @@ package io.crate.execution.engine.collect.sources;
 
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -91,7 +92,8 @@ public class FileCollectSource implements CollectSource {
         ));
     }
 
-    private static int getReaderNumber(Collection<String> nodeIds, String localNodeId) {
+    @VisibleForTesting
+    public static int getReaderNumber(Collection<String> nodeIds, String localNodeId) {
         String[] readers = nodeIds.toArray(new String[0]);
         Arrays.sort(readers);
         return Arrays.binarySearch(readers, localNodeId);

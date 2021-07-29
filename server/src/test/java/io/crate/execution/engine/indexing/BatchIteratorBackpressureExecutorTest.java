@@ -82,6 +82,8 @@ public class BatchIteratorBackpressureExecutorTest extends ESTestCase {
             (a, b) -> a + b,
             0,
             shouldPause,
+            null,
+            null,
             ignored -> 1L
         );
         CompletableFuture<Integer> result = executor.consumeIteratorAndExecute();

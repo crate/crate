@@ -305,7 +305,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         }
     }
 
-    private List<UriWithGlob> getUrisWithGlob(Collection<String> fileUris) {
+    private static List<UriWithGlob> getUrisWithGlob(Collection<String> fileUris) {
         List<UriWithGlob> uris = new ArrayList<>(fileUris.size());
         for (String fileUri : fileUris) {
             URI uri = toURI(fileUri);
@@ -344,7 +344,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
         return uris;
     }
 
-    private URI toURI(String fileUri) {
+    @VisibleForTesting
+    public static URI toURI(String fileUri) {
         if (fileUri.startsWith("/")) {
             // using Paths.get().toUri instead of new URI(...) as it also encodes umlauts and other special characters
             return Paths.get(fileUri).toUri();
@@ -396,13 +397,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         Predicate<URI> moduloPredicate;
         boolean sharedStorage = Objects.requireNonNullElse(shared, fileInput.sharedStorageDefault());
         if (sharedStorage) {
-            moduloPredicate = input -> {
-                int hash = input.hashCode();
-                if (hash == Integer.MIN_VALUE) {
-                    hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
-                }
-                return Math.abs(hash) % numReaders == readerNumber;
-            };
+            moduloPredicate = input -> moduloPredicateImpl(input, this.readerNumber, this.numReaders);
         } else {
             moduloPredicate = MATCH_ALL_PREDICATE;
         }
@@ -411,6 +406,15 @@ public class FileReadingIterator implements BatchIterator<Row> {
             return moduloPredicate.and(globPredicate);
         }
         return moduloPredicate;
+    }
+
+    @VisibleForTesting
+    public static boolean moduloPredicateImpl(URI input, int readerNumber, int numReaders) {
+        int hash = input.hashCode();
+        if (hash == Integer.MIN_VALUE) {
+            hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
+        }
+        return Math.abs(hash) % numReaders == readerNumber;
     }
 
     private void raiseIfKilled() {

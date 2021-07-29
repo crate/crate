@@ -85,7 +85,10 @@ public class UpsertResultContext {
             sourceUriFailureInput,
             lineNumberInput,
             ctxSourceInfo.expressions(),
-            UpsertResultCollectors.newSummaryCollector(discoveryNode));
+            projection.returnSummaryOnFailOnly() ?
+                UpsertResultCollectors.newSummaryOnFailOrRowCountOnSuccessCollector(discoveryNode) :
+                UpsertResultCollectors.newSummaryCollector(discoveryNode)
+        );
     }
 
 

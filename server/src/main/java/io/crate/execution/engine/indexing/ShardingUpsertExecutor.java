@@ -99,6 +99,8 @@ public class ShardingUpsertExecutor
     private final String localNode;
     private final BlockBasedRamAccounting ramAccounting;
     private volatile boolean createPartitionsRequestOngoing = false;
+    private final Predicate<UpsertResults> earlyTerminationCondition;
+    private final Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator;
 
     ShardingUpsertExecutor(ClusterService clusterService,
                            NodeLimits nodeJobsCounter,
@@ -118,7 +120,9 @@ public class ShardingUpsertExecutor
                            TransportCreatePartitionsAction createPartitionsAction,
                            int targetTableNumShards,
                            int targetTableNumReplicas,
-                           UpsertResultContext upsertResultContext) {
+                           UpsertResultContext upsertResultContext,
+                           Predicate<UpsertResults> earlyTerminationCondition,
+                           Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator) {
         this.localNode = clusterService.state().getNodes().getLocalNodeId();
         this.nodeLimits = nodeJobsCounter;
         this.queryCircuitBreaker = queryCircuitBreaker;
@@ -146,6 +150,8 @@ public class ShardingUpsertExecutor
             clusterService.state().nodes().getDataNodes().size());
         this.resultCollector = upsertResultContext.getResultCollector();
         isDebugEnabled = LOGGER.isDebugEnabled();
+        this.earlyTerminationCondition = earlyTerminationCondition;
+        this.earlyTerminationExceptionGenerator = earlyTerminationExceptionGenerator;
     }
 
     public CompletableFuture<UpsertResults> execute(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests) {
@@ -293,7 +299,9 @@ public class ShardingUpsertExecutor
                 resultCollector.combiner(),
                 resultCollector.supplier().get(),
                 shouldPause,
-                req -> getMaxLastRttInMs(req)
+                earlyTerminationCondition,
+                earlyTerminationExceptionGenerator,
+                this::getMaxLastRttInMs
             );
         return executor.consumeIteratorAndExecute()
             .thenApply(upsertResults -> resultCollector.finisher().apply(upsertResults))

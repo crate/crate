@@ -21,13 +21,18 @@
 
 package io.crate.execution.engine.indexing;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.Test;
 
 import io.crate.data.Row;
 import io.crate.testing.TestingHelpers;
+
+import java.util.Map;
 
 public class UpsertResultsTest {
 
@@ -45,5 +50,49 @@ public class UpsertResultsTest {
             "19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, " +
             "36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]}}\n"
         ));
+    }
+
+    @Test
+    public void testContainsAnyErrorMethod() {
+        UpsertResults upsertResults = new UpsertResults();
+        assertThat(upsertResults.containsErrors(), is(false));
+        upsertResults.addResult(1);
+        assertThat(upsertResults.containsErrors(), is(false));
+        upsertResults.addResult("dummyUri2", "failure test", 1);
+        assertThat(upsertResults.containsErrors(), is(true));
+    }
+
+    @Test
+    public void testResultToFailureMessageFormat() {
+        UpsertResults upsertResults = new UpsertResults();
+        assertThat(UpsertResults.resultsToFailure(upsertResults).getMessage(), is("Job killed. "));
+
+        upsertResults.addResult("file:///t5.json", "failed to parse", 5);
+        upsertResults.addResult("file:///t6.json", "failed to parse", 6);
+        assertThat(UpsertResults.resultsToFailure(upsertResults).getMessage(), is("""
+                                                                                      Job killed.\s
+                                                                                      [URI: file:///t6.json, ERRORS: {failed to parse={count=1, line_numbers=[6]}}],
+                                                                                      [URI: file:///t5.json, ERRORS: {failed to parse={count=1, line_numbers=[5]}}]"""));
+
+        upsertResults = new UpsertResults(Map.of("id", "RMU1uSbNQCijZR6PqtJEKg", "name", "Alplerspitz"));
+        assertThat(UpsertResults.resultsToFailure(upsertResults).getMessage(), is("Job killed. NODE: Alplerspitz"));
+
+        upsertResults.addResult("file:///t.json",
+                                "mapping set to strict, dynamic introduction of [b] within [default] is not allowed",
+                                2);
+        upsertResults.addResult("file:///t.json",
+                                "mapping set to strict, dynamic introduction of [b] within [default] is not allowed",
+                                3);
+        upsertResults.addResult("file:///t2.json", "failed to parse", 4);
+        upsertResults.addResult("file:///t2.json", "failed to parse", 5);
+        String message = UpsertResults.resultsToFailure(upsertResults).getMessage();
+        assertThat(
+            message, containsString(
+                """
+                    Job killed. NODE: Alplerspitz
+                    [URI: file:///t.json, ERRORS: {mapping set to strict, dynamic introduction of [b] within [default] is not allowed={count=2, line_numbers=[2, 3]}}],
+                    [URI: file:///t2.json, ERRORS: {failed to parse={count=2, line_numbers=[4, 5]}}]"""
+            )
+        );
     }
 }
