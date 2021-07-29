@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class SourceParserTest extends ESTestCase {
 
@@ -49,17 +48,7 @@ public class SourceParserTest extends ESTestCase {
         """));
 
         assertThat(result.get("x"), is(10));
-        assertThat(result.get("y"), nullValue());
-    }
-
-    @Test
-    public void test_extract_null_argument_returns_null() throws Exception {
-        SourceParser sourceParser = new SourceParser();
-        var column = new ColumnIdent("_doc", List.of("x"));
-        sourceParser.register(column, DataTypes.INTEGER);
-        Map<String, Object> result = sourceParser.parse(null);
-
-        assertThat(result, is(nullValue()));
+        assertThat(result.get("y"), Matchers.nullValue());
     }
 
     @Test
@@ -74,7 +63,7 @@ public class SourceParserTest extends ESTestCase {
         """));
 
         assertThat(Maps.getByPath(result, "obj.x"), is(1));
-        assertThat(Maps.getByPath(result, "obj.y"), nullValue());
+        assertThat(Maps.getByPath(result, "obj.y"), Matchers.nullValue());
         assertThat(Maps.getByPath(result, "obj.z"), is(3L));
     }
 

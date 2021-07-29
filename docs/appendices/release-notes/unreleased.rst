@@ -61,6 +61,6 @@ Changes
 Fixes
 =====
 
-- Fixed an issue that caused NPE on SELECT queries filtered by dynamic field of
-  the ignored object followed by a DELETE query.
-
+- Fixed an issue that could cause a ``NullPointerException`` if a user invoked
+  a ``SELECT`` statement with a predicate on a ``OBJECT (ignored)`` column
+  immediately after a ``DELETE`` statement.
