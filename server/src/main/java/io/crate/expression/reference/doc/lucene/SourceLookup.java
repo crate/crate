@@ -94,9 +94,6 @@ public final class SourceLookup {
     }
 
     static Object extractValue(final Map<?, ?> map, List<String> path, int pathStartIndex) {
-        if (map == null) {
-            return null;
-        }
         assert path instanceof RandomAccess : "path should support RandomAccess for fast index optimized loop";
         Map<?, ?> m = map;
         Object tmp = null;

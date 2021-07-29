@@ -21,7 +21,6 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -31,7 +30,8 @@ import java.util.Map;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 public class SourceLookupTest {
@@ -41,12 +41,6 @@ public class SourceLookupTest {
         Map<String, Map<String, Integer>> map = singletonMap("x", singletonMap("y", 10));
         Object o = SourceLookup.extractValue(map, Arrays.asList("x", "y"), 0);
         assertThat(o, is(10));
-    }
-
-    @Test
-    public void test_extract_from_null_returns_null() {
-        Object o = SourceLookup.extractValue(null, Arrays.asList("x", "y"), 0);
-        assertThat(o, CoreMatchers.is(nullValue()));
     }
 
     @Test

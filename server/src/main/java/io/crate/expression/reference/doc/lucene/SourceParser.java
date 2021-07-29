@@ -93,9 +93,6 @@ public final class SourceParser {
     }
 
     public Map<String, Object> parse(BytesReference bytes) {
-        if (bytes == null) {
-            return null;
-        }
         try (InputStream inputStream = XContentHelper.getUncompressedInputStream(bytes)) {
             XContentParser parser = XContentType.JSON.xContent().createParser(
                 NamedXContentRegistry.EMPTY,

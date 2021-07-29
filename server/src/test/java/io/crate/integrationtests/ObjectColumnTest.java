@@ -115,8 +115,24 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
         assertEquals(detailMap, response.rows()[0][1]);
         assertEquals(4.8d, response.rows()[0][2]);
         assertEquals("1982-01-01", response.rows()[0][3]);
+    }
 
-        // Additional check to get zero rows after deletion
+    @Test
+    @UseJdbc(0) // inserting object requires other treatment for PostgreSQL
+    public void test_predicate_on_ignored_object_returns_zero_rows_after_delete() throws Exception {
+        Map<String, Object> detailMap = new HashMap<>();
+        detailMap.put("num_pages", 240);
+        detailMap.put("isbn", "978-0345391827");
+
+        execute("insert into ot (details) values (?)",
+            new Object[]{
+                detailMap
+            });
+        refresh();
+        execute("select * from ot where details['isbn'] = '978-0345391827'");
+        assertEquals(1, response.rowCount());
+
+        // Check to get zero rows after deletion
         // and following access with filter on non-indexed, dynamic field of the ignored object.
         // See https://github.com/crate/crate/issues/11600
         execute("delete from ot");
