@@ -82,14 +82,28 @@ public class AverageAggregationTest extends AggregationTestCase {
 
     @Test
     public void testDouble() throws Exception {
-        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
-        assertEquals(0.5d, result);
+        Object[][] data = new Object[100][];
+        for (int i = 0; i < 100; i++) {
+                data[i] = new Object[]{10000.1d};
+        }
+
+        // AverageAggregation returns double
+        double result = (double) executeAggregation(DataTypes.DOUBLE, data);
+
+        assertEquals(10000.1d, result, 0d);
     }
 
     @Test
     public void testFloat() throws Exception {
-        Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
-        assertEquals(0.5d, result);
+        Object[][] data = new Object[100][];
+        for (int i = 0; i < 100; i++) {
+            data[i] = new Object[]{10000.1f};
+        }
+
+        //AverageAggregation returns double
+        double result = (double) executeAggregation(DataTypes.FLOAT, data);
+
+        assertEquals(10000.1f, result, 0f);
     }
 
     @Test

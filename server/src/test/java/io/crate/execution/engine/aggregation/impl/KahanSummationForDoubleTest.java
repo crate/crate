@@ -42,6 +42,6 @@ public class KahanSummationForDoubleTest extends AggregationTestCase {
         }
 
         // The same operations using '+' returns 1.9999999999999998
-        assertEquals(total, 2.0d, 0.0d);
+        assertEquals(2.0d, total, 0.0d);
     }
 }
