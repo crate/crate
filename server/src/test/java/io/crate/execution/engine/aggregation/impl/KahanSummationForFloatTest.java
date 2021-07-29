@@ -42,6 +42,6 @@ public class KahanSummationForFloatTest extends AggregationTestCase {
         }
 
         // The same operations using '+' returns 2.0000002
-        assertEquals(total, 2.0f, 0.0f);
+        assertEquals(2.0f, total, 0.0f);
     }
 }
