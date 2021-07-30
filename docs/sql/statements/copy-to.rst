@@ -11,7 +11,7 @@ data to a file.
 
 .. SEEALSO::
 
-    :ref:`Data manipulation: Import and export <importing_data>`
+    :ref:`Data manipulation: Import and export <dml-import-export>`
 
     :ref:`SQL syntax: COPY FROM <sql-copy-from>`
 

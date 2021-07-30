@@ -7,7 +7,7 @@ Altering tables
 .. NOTE::
 
    ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported.
-   See :ref:`crate_standard_sql`.
+   See :ref:`appendix-compatibility`.
 
 .. rubric:: Table of contents
 
