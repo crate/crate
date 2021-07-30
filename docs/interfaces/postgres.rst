@@ -341,7 +341,7 @@ execution engine address different requirements (see :ref:`Clustering
 The listed features below cover the main differences in implementation and
 dialect between CrateDB and PostgreSQL. A detailed comparison between CrateDB's
 SQL dialect and standard SQL is defined in
-:ref:`crate_standard_sql`.
+:ref:`appendix-compatibility`.
 
 ``COPY``
 --------
