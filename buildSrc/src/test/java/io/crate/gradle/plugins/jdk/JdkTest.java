@@ -86,7 +86,7 @@ public class JdkTest {
     public void testUnknownVendor() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-            "unknown vendor [unknown] for jdk [testjdk], must be one of [adoptopenjdk]");
+            "unknown vendor [unknown] for jdk [testjdk], must be one of [adoptopenjdk, adoptium]");
         createJdk(createProject(),
             "testjdk",
             "unknown",
