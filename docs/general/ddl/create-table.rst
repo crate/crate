@@ -7,8 +7,8 @@ Creating tables
 Tables are the basic building blocks of a relational database. A table can hold
 multiple rows (i.e., records), with each row having multiple columns and each
 column holding a single data element (i.e., value). You can :ref:`query <dql>`
-tables to :ref:`insert data <inserting_data>`, :ref:`select <sql_dql_queries>`
-(i.e., retrieve) data, and :ref:`delete data <dml_deleting_data>`.
+tables to :ref:`insert data <dml-inserting-data>`, :ref:`select <sql_dql_queries>`
+(i.e., retrieve) data, and :ref:`delete data <dml-deleting-data>`.
 
 .. rubric:: Table of contents
 
@@ -228,7 +228,7 @@ of functionality that CrateDB supports. For example:
 
   By partitioning a table, you can segment some :ref:`SQL statements
   <gloss-statement>` (e.g., those used for :ref:`table optimization
-  <optimize>`, :ref:`import and export <importing_data>`, and :ref:`backup and
+  <optimize>`, :ref:`import and export <dml-importing-data>`, and :ref:`backup and
   restore <snapshot-restore>`) by constraining them to one or more partitions.
 
   .. SEEALSO::
