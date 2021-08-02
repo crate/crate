@@ -61,5 +61,6 @@ Changes
 Fixes
 =====
 
-None
-
+- Fixed an issue that could cause a ``NullPointerException`` if a user invoked
+  a ``SELECT`` statement with a predicate on a ``OBJECT (ignored)`` column
+  immediately after a ``DELETE`` statement.

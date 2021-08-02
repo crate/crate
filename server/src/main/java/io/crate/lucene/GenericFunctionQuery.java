@@ -41,6 +41,7 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.util.Bits;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -140,11 +141,15 @@ class GenericFunctionQuery extends Query {
 
         private final Input<Boolean> condition;
         private final LuceneCollectorExpression[] expressions;
+        private final Bits liveDocs;
 
         FilteredTwoPhaseIterator(LeafReader reader,
                                  Input<Boolean> condition,
                                  LuceneCollectorExpression[] expressions) {
             super(DocIdSetIterator.all(reader.maxDoc()));
+            this.liveDocs = reader.getLiveDocs() == null
+                                ? new Bits.MatchAllBits(reader.maxDoc())
+                                : reader.getLiveDocs();
             this.condition = condition;
             this.expressions = expressions;
         }
@@ -152,6 +157,9 @@ class GenericFunctionQuery extends Query {
         @Override
         public boolean matches() throws IOException {
             int doc = approximation.docID();
+            if (!liveDocs.get(doc)) {
+                return false;
+            }
             for (LuceneCollectorExpression expression : expressions) {
                 expression.setNextDocId(doc);
             }
