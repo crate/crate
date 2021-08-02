@@ -144,6 +144,14 @@ public class JdkDownloadPlugin implements Plugin<Project> {
                 "+" +
                 jdk.build() +
                 "/[module]/[classifier]/jdk/hotspot/normal/adoptopenjdk";
+        } else if (jdk.vendor().equals("adoptium")) {
+            repoUrl = "https://api.adoptium.net/v3/binary/version/";
+            artifactPattern =
+                "jdk-" +
+                jdk.baseVersion() +
+                "+" +
+                jdk.build() +
+                "/[module]/[classifier]/jdk/hotspot/normal/adoptium";
         } else {
             throw new GradleException("Unknown JDK vendor [" + jdk.vendor() + "]");
         }
