@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
 
 public class Jdk implements Buildable, Iterable<File> {
 
-    private static final List<String> ALLOWED_VENDORS = List.of("adoptopenjdk");
+    private static final List<String> ALLOWED_VENDORS = List.of("adoptopenjdk", "adoptium");
     private static final List<String> ALLOWED_OS = List.of("linux", "windows", "mac");
     private static final List<String> ALLOWED_ARCH = List.of("x64", "aarch64");
     private static final Pattern VERSION_PATTERN = Pattern.compile(
