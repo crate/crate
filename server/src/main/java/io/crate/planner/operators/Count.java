@@ -49,6 +49,7 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.CountPlan;
+import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
@@ -103,7 +104,7 @@ public class Count implements LogicalPlan {
         CountPhase countPhase = new CountPhase(
             plannerContext.nextExecutionPhaseId(),
             routing,
-            boundWhere.queryOrFallback(),
+            Optimizer.optimizeCasts(boundWhere.queryOrFallback(), plannerContext),
             DistributionInfo.DEFAULT_BROADCAST
         );
         MergePhase mergePhase = new MergePhase(

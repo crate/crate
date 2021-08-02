@@ -1125,4 +1125,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             assertThat(projection.requiredGranularity(), is(RowGranularity.SHARD));
         }
     }
+
+    @Test
+    public void test_queries_in_count_operator_are_optimized() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (xs array(varchar(1)))")
+            .build();
+
+        CountPlan plan = e.plan("select count(*) from tbl where 'a' = ANY(xs)");
+        assertThat(plan.countPhase().where(), isSQL("(_cast('a', 'text(1)') = ANY(doc.tbl.xs))"));
+    }
 }
