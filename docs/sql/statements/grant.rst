@@ -17,7 +17,7 @@ Synopsis
 .. code-block:: psql
 
   GRANT { { DQL | DML | DDL | AL [,...] } | ALL [ PRIVILEGES ] }
-  [ON {SCHEMA | TABLE} identifier [, ...]]
+  [ON {SCHEMA | TABLE | VIEW} identifier [, ...]]
   TO user_name [, ...];
 
 Description
@@ -26,8 +26,8 @@ Description
 ``GRANT`` is a management statement to grant one or many privileges
 on the whole cluster or on a specific object to one or many existing users.
 
-``ON {SCHEMA | TABLE}`` is optional, if not specified the privilege will be
-granted on the ``CLUSTER`` level.
+``ON {SCHEMA | TABLE | VIEW}`` is optional, if not specified the privilege will
+be granted on the ``CLUSTER`` level.
 
 For usage of the ``GRANT`` statement see :ref:`administration-privileges`.
 
@@ -37,8 +37,8 @@ Parameters
 :identifier:
   The identifier of the corresponding object.
 
-  If ``TABLE`` is specified the ``identifier`` should include the
-  table's full qualified name. Otherwise the table will be looked up in
+  If ``TABLE`` or ``VIEW`` is specified the ``identifier`` should include the
+  object's full qualified name. Otherwise it will be looked up in
   the current schema.
 
 :user_name:

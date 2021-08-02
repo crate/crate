@@ -18,7 +18,7 @@ Synopsis
 .. code-block:: psql
 
   REVOKE { { DQL | DML | DDL | AL [,...] } | ALL [ PRIVILEGES ] }
-  [ON {SCHEMA | TABLE} identifier [, ...]]
+  [ON {SCHEMA | TABLE | VIEW} identifier [, ...]]
   FROM user_name [, ...];
 
 Description
@@ -27,8 +27,8 @@ Description
 ``REVOKE`` is a management statement to revoke previously granted privileges
 on a specific object from one or many existing users.
 
-``ON {SCHEMA | TABLE}`` is optional, if not specified the privilege will be
-revoked on the ``CLUSTER`` level.
+``ON {SCHEMA | TABLE | VIEW}`` is optional, if not specified the privilege will
+be revoked on the ``CLUSTER`` level.
 
 For usage of the ``REVOKE`` statement see :ref:`administration-privileges`.
 
@@ -38,8 +38,8 @@ Parameters
 :identifier:
   The identifier of the corresponding object.
 
-  If ``TABLE`` is specified the ``identifier`` should include the
-  table's full qualified name. Otherwise the table will be looked up in
+  If ``TABLE`` or ``VIEW`` is specified the ``identifier`` should include the
+  object's full qualified name. Otherwise it will be looked up in
   the current schema.
 
 :user_name:
