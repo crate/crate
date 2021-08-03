@@ -245,7 +245,8 @@ primaryExpression
     | explicitFunction                                                               #explicitFunctionDefault
     | qname '(' ASTERISK ')' filter? over?                                           #functionCall
     | ident                                                                          #columnReference
-    | qname '(' (setQuant? expr (',' expr)*)? ')' filter? over?                      #functionCall
+    | qname '(' (setQuant? expr (',' expr)*)? ')' filter?
+        ((IGNORE|RESPECT) NULLS)? over?                                              #functionCall
     | subqueryExpression                                                             #subqueryExpressionDefault
     | '(' base=primaryExpression ')' '.' fieldName=ident                             #recordSubscript
     | '(' expr ')'                                                                   #nestedExpression
@@ -675,7 +676,7 @@ nonReserved
     : ALIAS | ANALYZE | ANALYZER | AT | AUTHORIZATION | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CHECK | CLUSTERED
     | COLUMNS | COPY | CURRENT |  DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
-    | GRAPHVIZ | HOUR | IGNORED | ILIKE | INTERVAL | KEY | KILL | LICENSE | LOGICAL | LOCAL
+    | GRAPHVIZ | HOUR | IGNORED | IGNORE | RESPECT | ILIKE | INTERVAL | KEY | KILL | LICENSE | LOGICAL | LOCAL
     | MATERIALIZED | MINUTE | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED
     | PARTITIONS | PLAIN | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
     | SHARDS | SHOW | STORAGE | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME | ZONE | WITHOUT
@@ -723,6 +724,8 @@ IS: 'IS';
 NULL: 'NULL';
 TRUE: 'TRUE';
 FALSE: 'FALSE';
+IGNORE: 'IGNORE';
+RESPECT: 'RESPECT';
 NULLS: 'NULLS';
 FIRST: 'FIRST';
 LAST: 'LAST';

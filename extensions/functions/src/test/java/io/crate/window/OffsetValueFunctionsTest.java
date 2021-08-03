@@ -24,6 +24,7 @@ package io.crate.window;
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.module.ExtraFunctionsModule;
+import io.crate.testing.Asserts;
 import org.junit.Test;
 
 import java.util.List;
@@ -171,6 +172,22 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
             new Object[]{3},
             new Object[]{4}
         );
+        assertEvaluate(
+            "lead(x,-3,123) ignore nulls over(RANGE BETWEEN CURRENT ROW and CURRENT ROW)",
+            contains(new Object[]{123, 123, 123, 123, 1, 1, 1, 2, 3, 3, 4, 4}),
+            List.of(new ColumnIdent("x")),
+            new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
+        );
+    }
+
+    @Test
+    public void testLeadWithIgnoreNullsOperatesOnPartitionAndIgnoresFrameRange() throws Throwable {
+        assertEvaluate(
+            "lead(x,-3,123) ignore nulls over(RANGE BETWEEN CURRENT ROW and CURRENT ROW)",
+            contains(new Object[]{123, 123, 123, 123, 1, 1, 1, 2, 3, 3, 4, 4}),
+            List.of(new ColumnIdent("x")),
+            new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
+        );
     }
 
     @Test
@@ -200,16 +217,143 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testLeadOverCurrentRowUnboundedFollowingWithDefaultValue() throws Throwable {
+    public void testLagIgnoringNullsWithNullsAtLeftCorner() throws Throwable {
         assertEvaluate(
-            "lead(x, 2, 42) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)",
-            contains(new Object[]{2, 3, 4, 42, 42}),
+            "lag(x) ignore nulls over()",
+            contains(new Object[]{null, null, null, 2}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{null},
+            new Object[]{null},
+            new Object[]{2},
+            new Object[]{3}
+        );
+    }
+
+    @Test
+    public void testLagIgnoringNullsWithNullsAtCenter() throws Throwable {
+        assertEvaluate(
+            "lag(x) ignore nulls over()",
+            contains(new Object[]{null, 1, 1, 1}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{null},
+            new Object[]{null},
+            new Object[]{2}
+        );
+    }
+
+    @Test
+    public void testLagIgnoringNullsWithNullsAtRightCorner() throws Throwable {
+        assertEvaluate(
+            "lag(x) ignore nulls over()",
+            contains(new Object[]{null, 1, 2, 2}),
             List.of(new ColumnIdent("x")),
             new Object[]{1},
             new Object[]{2},
+            new Object[]{null},
+            new Object[]{null}
+        );
+    }
+
+    @Test
+    public void testLagIgnoringNullsWithMultipleGroupsOfNulls() throws Throwable {
+        assertEvaluate(
+            "lag(x,3,123) ignore nulls over()",
+            contains(new Object[]{123, 123, 123, 123, 1, 1, 1, 2, 3, 3, 4, 4}),
+            List.of(new ColumnIdent("x")),
+            new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
+        );
+    }
+
+    @Test
+    public void testLeadIgnoringNullsWithNullsAtLeftCorner() throws Throwable {
+        assertEvaluate(
+            "lead(x) ignore nulls over()",
+            contains(new Object[]{2, 2, 3, null}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{null},
+            new Object[]{null},
             new Object[]{2},
-            new Object[]{3},
-            new Object[]{4}
+            new Object[]{3}
+        );
+    }
+
+    @Test
+    public void testLeadIgnoringNullsWithNullsAtCenter() throws Throwable {
+        assertEvaluate(
+            "lead(x) ignore nulls over()",
+            contains(new Object[]{2, 2, 2, null}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{null},
+            new Object[]{null},
+            new Object[]{2}
+        );
+    }
+
+    @Test
+    public void testLeadIgnoringNullsWithNullsAtRightCorner() throws Throwable {
+        assertEvaluate(
+            "lead(x) ignore nulls over()",
+            contains(new Object[]{2, null, null, null}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{2},
+            new Object[]{null},
+            new Object[]{null}
+        );
+    }
+
+    @Test
+    public void testLeadIgnoringNullsWithMultipleGroupsOfNulls() throws Throwable {
+        assertEvaluate(
+            "lead(x,3,123) ignore nulls over()",
+            contains(new Object[]{4, 5, 5, 6, 6, 6, 7, 123, 123, 123, 123, 123}),
+            List.of(new ColumnIdent("x")),
+            new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
+        );
+    }
+
+    @Test
+    public void testLagIgnoringNullsWithOffsetLargerThanWindow() throws Throwable {
+        assertEvaluate(
+            "lag(x,40,123) ignore nulls over()",
+            contains(new Object[]{123, 123, 123, 123, 123, 123, 123, 123, 123, 123, 123, 123, 123}),
+            List.of(new ColumnIdent("x")),
+            new Object[][]{{null}, {1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
+        );
+    }
+
+    @Test
+    public void testLeadWithNegativeOffsetIgnoringNullsWithMultipleGroupsOfNulls() throws Throwable {
+        assertEvaluate(
+            "lead(x,-3,123) ignore nulls over()",
+            contains(new Object[]{123, 123, 123, 123, 1, 1, 1, 2, 3, 3, 4, 4}),
+            List.of(new ColumnIdent("x")),
+            new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
+        );
+    }
+
+    @Test
+    public void testLagWithNegativeOffsetIgnoringNullsWithMultipleGroupsOfNulls() throws Throwable {
+        assertEvaluate(
+            "lag(x,-2,123) ignore nulls over()",
+            contains(new Object[]{3, 4, 4, 5, 5, 5, 6, 7, 7, 123, 123, 123}),
+            List.of(new ColumnIdent("x")),
+            new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
+        );
+    }
+
+    @Test
+    public void testLagWithIgnoreNullsAndZeroOffsetThrows() throws Throwable {
+        Asserts.assertThrowsMatches(
+            () -> assertEvaluate(
+                "lag(x,0,123) ignore nulls over()",
+                null,
+                List.of(new ColumnIdent("x")),
+                new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}),
+            IllegalArgumentException.class,
+            "offset 0 is not a valid argument if ignore nulls flag is set"
         );
     }
 

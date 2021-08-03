@@ -29,6 +29,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -43,25 +44,39 @@ import static io.crate.metadata.FunctionType.WINDOW;
 public class WindowFunction extends Function {
 
     private final WindowDefinition windowDefinition;
+    @Nullable
+    private final Boolean ignoreNulls;
 
     public WindowFunction(StreamInput in) throws IOException {
         super(in);
         windowDefinition = new WindowDefinition(in);
+        if (in.getVersion().onOrAfter(Version.V_4_7_0)) {
+            ignoreNulls = in.readOptionalBoolean();
+        } else {
+            ignoreNulls = null;
+        }
     }
 
     public WindowFunction(Signature signature,
                           List<Symbol> arguments,
                           DataType<?> returnType,
                           @Nullable Symbol filter,
-                          WindowDefinition windowDefinition) {
+                          WindowDefinition windowDefinition,
+                          @Nullable Boolean ignoreNulls) {
         super(signature, arguments, returnType, filter);
         assert signature.getKind() == WINDOW || signature.getKind() == AGGREGATE :
             "only window and aggregate functions are allowed to be modelled over a window";
         this.windowDefinition = windowDefinition;
+        this.ignoreNulls = ignoreNulls;
     }
 
     public WindowDefinition windowDefinition() {
         return windowDefinition;
+    }
+
+    @Nullable
+    public Boolean ignoreNulls() {
+        return ignoreNulls;
     }
 
     @Override
@@ -78,6 +93,9 @@ public class WindowFunction extends Function {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         windowDefinition.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
+            out.writeOptionalBoolean(ignoreNulls);
+        }
     }
 
     @Override
@@ -92,17 +110,24 @@ public class WindowFunction extends Function {
             return false;
         }
         WindowFunction that = (WindowFunction) o;
-        return windowDefinition.equals(that.windowDefinition);
+        return Objects.equals(ignoreNulls, that.ignoreNulls) && windowDefinition.equals(that.windowDefinition);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), windowDefinition);
+        return Objects.hash(super.hashCode(), windowDefinition, ignoreNulls);
     }
 
     @Override
     public String toString(Style style) {
         var builder = new StringBuilder(super.toString(style));
+        if (ignoreNulls != null) {
+            if (ignoreNulls) {
+                builder.append(" IGNORE NULLS");
+            } else {
+                builder.append(" RESPECT NULLS");
+            }
+        }
         builder.append(" OVER (");
 
         var partitions = windowDefinition.partitions();

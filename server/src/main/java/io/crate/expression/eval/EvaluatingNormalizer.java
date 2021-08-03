@@ -248,7 +248,8 @@ public class EvaluatingNormalizer {
                 normalizedFunction.arguments(),
                 normalizedFunction.valueType(),
                 normalizedFunction.filter(),
-                function.windowDefinition().map(s -> s.accept(this, context))
+                function.windowDefinition().map(s -> s.accept(this, context)),
+                function.ignoreNulls()
             );
         }
     }

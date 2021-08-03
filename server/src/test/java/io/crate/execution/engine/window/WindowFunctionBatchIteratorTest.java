@@ -66,6 +66,7 @@ public class WindowFunctionBatchIteratorTest extends ESTestCase {
                 public Object execute(int idxInPartition,
                                       WindowFrameState currentFrame,
                                       List<? extends CollectExpression<Row, ?>> expressions,
+                                      Boolean ignoreNulls,
                                       Input... args) {
                     return idxInPartition + 1;
                 }
@@ -81,6 +82,7 @@ public class WindowFunctionBatchIteratorTest extends ESTestCase {
                 }
             }),
             Collections.emptyList(),
+            new Boolean[]{null},
             new Input[][] { new Input[0] }
         ).get(5, TimeUnit.SECONDS);
         assertThat(

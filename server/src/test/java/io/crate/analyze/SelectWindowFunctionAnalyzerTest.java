@@ -102,6 +102,25 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
     }
 
     @Test
+    public void testAggregatesCannotAcceptIgnoreOrRespectNullsFlag() {
+        var exception = assertThrows(IllegalArgumentException.class,
+                     () -> e.analyze("select avg(x) ignore nulls OVER() from t"));
+        assertEquals("avg cannot accept RESPECT or IGNORE NULLS flag.", exception.getMessage());
+        //without over clause
+        var exception2 = assertThrows(IllegalArgumentException.class,
+                                     () -> e.analyze("select avg(x) ignore nulls from t"));
+        assertEquals("avg cannot accept RESPECT or IGNORE NULLS flag.", exception2.getMessage());
+    }
+
+    @Test
+    public void testNonAggregateAndNonWindowFunctionCannotAcceptIgnoreOrRespectNullsFlag() {
+        //without over clause
+        var exception = assertThrows(IllegalArgumentException.class,
+                                     () -> e.analyze("select abs(x) ignore nulls from t"));
+        assertEquals("abs cannot accept RESPECT or IGNORE NULLS flag.", exception.getMessage());
+    }
+
+    @Test
     public void testOverWithOrderByClause() {
         QueriedSelectRelation analysis = e.analyze("select avg(x) OVER (ORDER BY x) from t");
 

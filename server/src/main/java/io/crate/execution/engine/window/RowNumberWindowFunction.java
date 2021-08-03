@@ -27,6 +27,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class RowNumberWindowFunction implements WindowFunction {
@@ -55,7 +56,11 @@ public class RowNumberWindowFunction implements WindowFunction {
     public Object execute(int idxInPartition,
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
+                          @Nullable Boolean ignoreNulls,
                           Input... args) {
+        if (ignoreNulls != null) {
+            throw new IllegalArgumentException("row_number cannot accept RESPECT or IGNORE NULLS flag.");
+        }
         return idxInPartition + 1;
     }
 
