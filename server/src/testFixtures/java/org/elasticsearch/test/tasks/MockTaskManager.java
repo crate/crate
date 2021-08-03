@@ -19,20 +19,18 @@
 
 package org.elasticsearch.test.tasks;
 
+import java.util.Collection;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.logging.log4j.util.Supplier;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskAwareRequest;
 import org.elasticsearch.tasks.TaskManager;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.Collection;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * A mock task manager that allows adding listeners for events
@@ -46,8 +44,8 @@ public class MockTaskManager extends TaskManager {
 
     private final Collection<MockTaskManagerListener> listeners = new CopyOnWriteArrayList<>();
 
-    public MockTaskManager(Settings settings, ThreadPool threadPool) {
-        super(settings, threadPool);
+    public MockTaskManager() {
+        super();
     }
 
     @Override

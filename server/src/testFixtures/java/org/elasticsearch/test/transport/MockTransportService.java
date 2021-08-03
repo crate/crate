@@ -203,11 +203,11 @@ public final class MockTransportService extends TransportService {
     }
 
     @Override
-    protected TaskManager createTaskManager(Settings settings, ThreadPool threadPool) {
+    protected TaskManager createTaskManager(Settings settings) {
         if (MockTaskManager.USE_MOCK_TASK_MANAGER_SETTING.get(settings)) {
-            return new MockTaskManager(settings, threadPool);
+            return new MockTaskManager();
         } else {
-            return super.createTaskManager(settings, threadPool);
+            return super.createTaskManager(settings);
         }
     }
 
