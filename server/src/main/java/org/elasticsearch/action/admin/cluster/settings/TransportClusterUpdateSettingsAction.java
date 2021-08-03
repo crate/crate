@@ -37,7 +37,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -97,7 +96,8 @@ public class TransportClusterUpdateSettingsAction extends TransportMasterNodeAct
     }
 
     @Override
-    protected void masterOperation(Task task, final ClusterUpdateSettingsRequest request, final ClusterState state,
+    protected void masterOperation(final ClusterUpdateSettingsRequest request,
+                                   final ClusterState state,
                                    final ActionListener<ClusterUpdateSettingsResponse> listener) {
         final SettingsUpdater updater = new SettingsUpdater(clusterSettings);
         clusterService.submitStateUpdateTask(

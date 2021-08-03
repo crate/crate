@@ -33,9 +33,6 @@ import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.tasks.TaskId;
-import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportService;
 
@@ -49,7 +46,6 @@ public class PrimaryReplicaSyncer {
 
     private static final Logger LOGGER = LogManager.getLogger(PrimaryReplicaSyncer.class);
 
-    private final TaskManager taskManager;
     private final SyncAction syncAction;
 
     public static final ByteSizeValue DEFAULT_CHUNK_SIZE = new ByteSizeValue(512, ByteSizeUnit.KB);
@@ -58,12 +54,11 @@ public class PrimaryReplicaSyncer {
 
     @Inject
     public PrimaryReplicaSyncer(TransportService transportService, TransportResyncReplicationAction syncAction) {
-        this(transportService.getTaskManager(), syncAction);
+        this(syncAction);
     }
 
     // for tests
-    public PrimaryReplicaSyncer(TaskManager taskManager, SyncAction syncAction) {
-        this.taskManager = taskManager;
+    public PrimaryReplicaSyncer(SyncAction syncAction) {
         this.syncAction = syncAction;
     }
 
@@ -149,20 +144,17 @@ public class PrimaryReplicaSyncer {
 
     private void resync(final ShardId shardId, final String primaryAllocationId, final long primaryTerm, final Translog.Snapshot snapshot,
                         long startingSeqNo, long maxSeqNo, long maxSeenAutoIdTimestamp, ActionListener<ResyncTask> listener) {
-        ResyncRequest request = new ResyncRequest(shardId, primaryAllocationId);
-        ResyncTask resyncTask = (ResyncTask) taskManager.register("transport", "resync", request); // it's not transport :-)
+        ResyncTask resyncTask = new ResyncTask();
         ActionListener<Void> wrappedListener = new ActionListener<Void>() {
             @Override
             public void onResponse(Void ignore) {
                 resyncTask.setPhase("finished");
-                taskManager.unregister(resyncTask);
                 listener.onResponse(resyncTask);
             }
 
             @Override
             public void onFailure(Exception e) {
                 resyncTask.setPhase("finished");
-                taskManager.unregister(resyncTask);
                 listener.onFailure(e);
             }
         };
@@ -186,7 +178,9 @@ public class PrimaryReplicaSyncer {
     }
 
     public interface SyncAction {
-        void sync(ResyncReplicationRequest request, Task parentTask, String primaryAllocationId, long primaryTerm,
+        void sync(ResyncReplicationRequest request,
+                  String primaryAllocationId,
+                  long primaryTerm,
                   ActionListener<ReplicationResponse> listener);
     }
 
@@ -281,7 +275,7 @@ public class PrimaryReplicaSyncer {
                 LOGGER.trace("{} sending batch of [{}][{}] (total sent: [{}], skipped: [{}])", shardId, operations.size(),
                     new ByteSizeValue(size), totalSentOps.get(), totalSkippedOps.get());
                 firstMessage.set(false);
-                syncAction.sync(request, task, primaryAllocationId, primaryTerm, this);
+                syncAction.sync(request, primaryAllocationId, primaryTerm, this);
             } else if (closed.compareAndSet(false, true)) {
                 LOGGER.trace("{} resync completed (total sent: [{}], skipped: [{}])", shardId, totalSentOps.get(), totalSkippedOps.get());
                 listener.onResponse(null);
@@ -300,11 +294,6 @@ public class PrimaryReplicaSyncer {
         }
 
         @Override
-        public Task createTask(long id, String type, String action, TaskId parentTaskId) {
-            return new ResyncTask(id, type, action, getDescription(), parentTaskId);
-        }
-
-        @Override
         public String getDescription() {
             return toString();
         }
@@ -315,14 +304,13 @@ public class PrimaryReplicaSyncer {
         }
     }
 
-    public static class ResyncTask extends Task {
+    public static class ResyncTask {
         private volatile String phase = "starting";
         private volatile int totalOperations;
         private volatile int resyncedOperations;
         private volatile int skippedOperations;
 
-        public ResyncTask(long id, String type, String action, String description, TaskId parentTaskId) {
-            super(id, type, action, description, parentTaskId);
+        public ResyncTask() {
         }
 
         /**

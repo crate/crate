@@ -60,7 +60,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -109,8 +108,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
     }
 
     @Override
-    protected void masterOperation(Task task,
-                                   SchemaUpdateRequest request,
+    protected void masterOperation(SchemaUpdateRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
         // ideally we'd handle the index mapping update together with the template update in a single clusterStateUpdateTask

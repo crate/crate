@@ -52,7 +52,6 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogCorruptedException;
 import org.elasticsearch.indices.recovery.RecoveriesCollection.RecoveryRef;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.TransportChannel;
@@ -292,7 +291,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                     // on the underlying transport. It's unclear if we need this here at all after moving to async execution but
                     // the issues that a missing call to this could cause are sneaky and hard to debug. If we don't need it on this
                     // call we can potentially remove it altogether which we should do it in a major release only with enough
-                    // time to test. This shoudl be done for 7.0 if possible
+                    // time to test. This should be done for 7.0 if possible
                     transportService.sendRequest(
                         request.sourceNode(),
                         PeerRecoverySourceService.Actions.START_RECOVERY,
@@ -458,7 +457,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
     class PrepareForTranslogOperationsRequestHandler implements TransportRequestHandler<RecoveryPrepareForTranslogOperationsRequest> {
 
         @Override
-        public void messageReceived(RecoveryPrepareForTranslogOperationsRequest request, TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(RecoveryPrepareForTranslogOperationsRequest request, TransportChannel channel) throws Exception {
             try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId())) {
                 final ActionListener<TransportResponse> listener =
                     new ChannelActionListener<>(channel, Actions.PREPARE_TRANSLOG, request);
@@ -473,7 +472,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
     class FinalizeRecoveryRequestHandler implements TransportRequestHandler<RecoveryFinalizeRecoveryRequest> {
 
         @Override
-        public void messageReceived(RecoveryFinalizeRecoveryRequest request, TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(RecoveryFinalizeRecoveryRequest request, TransportChannel channel) throws Exception {
             try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId())) {
                 final ActionListener<TransportResponse> listener =
                     new ChannelActionListener<>(channel, Actions.FINALIZE, request);
@@ -489,7 +488,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
     class HandoffPrimaryContextRequestHandler implements TransportRequestHandler<RecoveryHandoffPrimaryContextRequest> {
 
         @Override
-        public void messageReceived(final RecoveryHandoffPrimaryContextRequest request, final TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(final RecoveryHandoffPrimaryContextRequest request, final TransportChannel channel) throws Exception {
             try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId())) {
                 recoveryRef.target().handoffPrimaryContext(request.primaryContext());
             }
@@ -501,8 +500,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
     class TranslogOperationsRequestHandler implements TransportRequestHandler<RecoveryTranslogOperationsRequest> {
 
         @Override
-        public void messageReceived(final RecoveryTranslogOperationsRequest request, final TransportChannel channel,
-                                    Task task) throws IOException {
+        public void messageReceived(final RecoveryTranslogOperationsRequest request, final TransportChannel channel) throws IOException {
             try (RecoveryRef recoveryRef =
                      onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId())) {
                 final ClusterStateObserver observer = new ClusterStateObserver(clusterService, null, LOGGER);
@@ -520,7 +518,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                         @Override
                         public void onNewClusterState(ClusterState state) {
                             try {
-                                messageReceived(request, channel, task);
+                                messageReceived(request, channel);
                             } catch (Exception e) {
                                 listener.onFailure(e);
                             }
@@ -568,7 +566,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
     class FilesInfoRequestHandler implements TransportRequestHandler<RecoveryFilesInfoRequest> {
 
         @Override
-        public void messageReceived(RecoveryFilesInfoRequest request, TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(RecoveryFilesInfoRequest request, TransportChannel channel) throws Exception {
             try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId())) {
                 final ActionListener<TransportResponse> listener = new ChannelActionListener<>(channel, Actions.FILES_INFO, request);
                 recoveryRef.target().receiveFileInfo(
@@ -581,7 +579,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
     class CleanFilesRequestHandler implements TransportRequestHandler<RecoveryCleanFilesRequest> {
 
         @Override
-        public void messageReceived(RecoveryCleanFilesRequest request, TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(RecoveryCleanFilesRequest request, TransportChannel channel) throws Exception {
             try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId())) {
                 final ActionListener<TransportResponse> listener = new ChannelActionListener<>(channel, Actions.CLEAN_FILES, request);
                 recoveryRef.target().cleanFiles(
@@ -600,7 +598,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
         final AtomicLong bytesSinceLastPause = new AtomicLong();
 
         @Override
-        public void messageReceived(final RecoveryFileChunkRequest request, TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(final RecoveryFileChunkRequest request, TransportChannel channel) throws Exception {
             try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId())) {
                 final RecoveryTarget recoveryTarget = recoveryRef.target();
                 final RecoveryState.Index indexState = recoveryTarget.state().getIndex();

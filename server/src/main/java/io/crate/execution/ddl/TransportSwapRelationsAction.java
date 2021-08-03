@@ -40,7 +40,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -87,8 +86,7 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
     }
 
     @Override
-    protected void masterOperation(Task task,
-                                   SwapRelationsRequest request,
+    protected void masterOperation(SwapRelationsRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
         AtomicReference<String[]> indexNamesAfterRelationSwap = new AtomicReference<>(null);

@@ -39,7 +39,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -75,8 +74,7 @@ public class TransportAlterUserAction extends TransportMasterNodeAction<AlterUse
     }
 
     @Override
-    protected void masterOperation(Task task,
-                                   AlterUserRequest request,
+    protected void masterOperation(AlterUserRequest request,
                                    ClusterState state,
                                    ActionListener<WriteUserResponse> listener) {
         clusterService.submitStateUpdateTask("alter_user [" + request.userName() + "]",

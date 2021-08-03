@@ -34,7 +34,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -71,8 +70,7 @@ public class TransportClusterRerouteAction extends TransportMasterNodeAction<Clu
     }
 
     @Override
-    protected void masterOperation(Task task,
-                                   final ClusterRerouteRequest request,
+    protected void masterOperation(final ClusterRerouteRequest request,
                                    final ClusterState state,
                                    final ActionListener<ClusterRerouteResponse> listener) {
         ActionListener<ClusterRerouteResponse> logWrapper = ActionListener.map(

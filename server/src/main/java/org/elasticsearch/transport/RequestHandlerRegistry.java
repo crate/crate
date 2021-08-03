@@ -19,12 +19,10 @@
 
 package org.elasticsearch.transport;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.tasks.TaskManager;
-
-import java.io.IOException;
 
 public class RequestHandlerRegistry<Request extends TransportRequest> {
 
@@ -33,11 +31,13 @@ public class RequestHandlerRegistry<Request extends TransportRequest> {
     private final boolean forceExecution;
     private final boolean canTripCircuitBreaker;
     private final String executor;
-    private final TaskManager taskManager;
     private final Writeable.Reader<Request> requestReader;
 
-    public RequestHandlerRegistry(String action, Writeable.Reader<Request> requestReader, TaskManager taskManager,
-                                  TransportRequestHandler<Request> handler, String executor, boolean forceExecution,
+    public RequestHandlerRegistry(String action,
+                                  Writeable.Reader<Request> requestReader,
+                                  TransportRequestHandler<Request> handler,
+                                  String executor,
+                                  boolean forceExecution,
                                   boolean canTripCircuitBreaker) {
         this.action = action;
         this.requestReader = requestReader;
@@ -45,7 +45,6 @@ public class RequestHandlerRegistry<Request extends TransportRequest> {
         this.forceExecution = forceExecution;
         this.canTripCircuitBreaker = canTripCircuitBreaker;
         this.executor = executor;
-        this.taskManager = taskManager;
     }
 
     public String getAction() {
@@ -57,16 +56,7 @@ public class RequestHandlerRegistry<Request extends TransportRequest> {
     }
 
     public void processMessageReceived(Request request, TransportChannel channel) throws Exception {
-        final Task task = taskManager.register(channel.getChannelType(), action, request);
-        boolean success = false;
-        try {
-            handler.messageReceived(request, new TaskTransportChannel(taskManager, task, channel), task);
-            success = true;
-        } finally {
-            if (success == false) {
-                taskManager.unregister(task);
-            }
-        }
+        handler.messageReceived(request, channel);
     }
 
     public boolean isForceExecution() {

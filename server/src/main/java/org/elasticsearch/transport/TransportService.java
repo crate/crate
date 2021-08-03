@@ -19,38 +19,9 @@
 
 package org.elasticsearch.transport;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionListenerResponseHandler;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.regex.Regex;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import io.crate.common.io.IOUtils;
-import org.elasticsearch.node.NodeClosedException;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.tasks.TaskCancelledException;
-import org.elasticsearch.tasks.TaskManager;
-import org.elasticsearch.threadpool.Scheduler;
-import org.elasticsearch.threadpool.ThreadPool;
+import static org.elasticsearch.common.settings.Setting.timeSetting;
+import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_EXCLUDE_SETTING;
+import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_INCLUDE_SETTING;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -67,9 +38,38 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static org.elasticsearch.common.settings.Setting.timeSetting;
-import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_EXCLUDE_SETTING;
-import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_INCLUDE_SETTING;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.regex.Regex;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.node.NodeClosedException;
+import org.elasticsearch.tasks.TaskCancelledException;
+import org.elasticsearch.threadpool.Scheduler;
+import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 public class TransportService extends AbstractLifecycleComponent implements TransportMessageListener, TransportConnectionListener {
 
@@ -86,7 +86,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     protected final ConnectionManager connectionManager;
     protected final ThreadPool threadPool;
     protected final ClusterName clusterName;
-    protected final TaskManager taskManager;
     private final Function<BoundTransportAddress, DiscoveryNode> localNodeFactory;
     private final Transport.ResponseHandlers responseHandlers;
 
@@ -169,7 +168,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         setTracerLogInclude(TRACE_LOG_INCLUDE_SETTING.get(settings));
         setTracerLogExclude(TRACE_LOG_EXCLUDE_SETTING.get(settings));
         tracerLog = Loggers.getLogger(LOGGER, ".tracer");
-        taskManager = createTaskManager(settings);
         responseHandlers = transport.getResponseHandlers();
         if (clusterSettings != null) {
             clusterSettings.addSettingsUpdateConsumer(TRACE_LOG_INCLUDE_SETTING, this::setTracerLogInclude);
@@ -181,7 +179,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             false,
             false,
             HandshakeRequest::new,
-            (request, channel, task) -> channel.sendResponse(
+            (request, channel) -> channel.sendResponse(
                 new HandshakeResponse(localNode, clusterName, localNode.getVersion())));
     }
 
@@ -191,13 +189,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         return localNode;
     }
 
-    public TaskManager getTaskManager() {
-        return taskManager;
-    }
-
-    protected TaskManager createTaskManager(Settings settings) {
-        return new TaskManager();
-    }
 
     /**
      * The executor service for this transport service.
@@ -564,30 +555,32 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
     }
 
-    public final <T extends TransportResponse> void sendChildRequest(final DiscoveryNode node, final String action,
-                                                                     final TransportRequest request, final Task parentTask,
+    public final <T extends TransportResponse> void sendChildRequest(final DiscoveryNode node,
+                                                                     final String action,
+                                                                     final TransportRequest request,
                                                                      final TransportRequestOptions options,
                                                                      final TransportResponseHandler<T> handler) {
         try {
             Transport.Connection connection = getConnection(node);
-            sendChildRequest(connection, action, request, parentTask, options, handler);
+            sendChildRequest(connection, action, request, options, handler);
         } catch (NodeNotConnectedException ex) {
             // the caller might not handle this so we invoke the handler
             handler.handleException(ex);
         }
     }
 
-    public <T extends TransportResponse> void sendChildRequest(final Transport.Connection connection, final String action,
-                                                               final TransportRequest request, final Task parentTask,
+    public <T extends TransportResponse> void sendChildRequest(final Transport.Connection connection,
+                                                               final String action,
+                                                               final TransportRequest request,
                                                                final TransportResponseHandler<T> handler) {
-        sendChildRequest(connection, action, request, parentTask, TransportRequestOptions.EMPTY, handler);
+        sendChildRequest(connection, action, request, TransportRequestOptions.EMPTY, handler);
     }
 
-    public <T extends TransportResponse> void sendChildRequest(final Transport.Connection connection, final String action,
-                                                               final TransportRequest request, final Task parentTask,
+    public <T extends TransportResponse> void sendChildRequest(final Transport.Connection connection,
+                                                               final String action,
+                                                               final TransportRequest request,
                                                                final TransportRequestOptions options,
                                                                final TransportResponseHandler<T> handler) {
-        request.setParentTask(localNode.getId(), parentTask.getId());
         try {
             sendRequest(connection, action, request, options, handler);
         } catch (TaskCancelledException ex) {
@@ -796,7 +789,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                           TransportRequestHandler<Request> handler) {
         validateActionName(action);
         RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
-            action, requestReader, taskManager, handler, executor, false, true);
+            action, requestReader, handler, executor, false, true);
         transport.registerRequestHandler(reg);
     }
 
@@ -818,7 +811,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                           TransportRequestHandler<Request> handler) {
         validateActionName(action);
         RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
-            action, requestReader, taskManager, handler, executor, forceExecution, canTripCircuitBreaker);
+            action, requestReader, handler, executor, forceExecution, canTripCircuitBreaker);
         transport.registerRequestHandler(reg);
     }
 

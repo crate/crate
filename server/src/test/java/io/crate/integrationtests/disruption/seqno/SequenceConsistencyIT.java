@@ -45,12 +45,6 @@ import static org.hamcrest.Matchers.is;
 @SQLIntegrationTestCase.Slow
 public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
 
-    @Override
-    protected Collection<Class<? extends Plugin>> nodePlugins() {
-        final HashSet<Class<? extends Plugin>> classes = new HashSet<>(super.nodePlugins());
-        classes.add(MockTransportService.TestPlugin.class);
-        return classes;
-    }
 
     @Test
     public void testPrimaryTermIsIncreasedOnReplicaPromotion() throws Throwable {

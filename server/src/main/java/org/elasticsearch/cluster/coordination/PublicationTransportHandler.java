@@ -99,7 +99,7 @@ public class PublicationTransportHandler {
             false,
             false,
             BytesTransportRequest::new,
-            (request, channel, task) -> channel.sendResponse(handleIncomingPublishRequest(request))
+            (request, channel) -> channel.sendResponse(handleIncomingPublishRequest(request))
         );
 
         transportService.registerRequestHandler(
@@ -108,7 +108,7 @@ public class PublicationTransportHandler {
             false,
             false,
             ApplyCommitRequest::new,
-            (request, channel, task) -> handleApplyCommit.accept(request, transportCommitCallback(channel))
+            (request, channel) -> handleApplyCommit.accept(request, transportCommitCallback(channel))
         );
     }
 

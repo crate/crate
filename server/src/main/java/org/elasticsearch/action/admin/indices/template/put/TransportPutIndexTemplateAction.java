@@ -34,7 +34,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -77,8 +76,7 @@ public class TransportPutIndexTemplateAction extends TransportMasterNodeAction<P
     }
 
     @Override
-    public void masterOperation(Task task, final
-                                PutIndexTemplateRequest request,
+    public void masterOperation(final PutIndexTemplateRequest request,
                                 final ClusterState state,
                                 final ActionListener<AcknowledgedResponse> listener) {
         String cause = request.cause();

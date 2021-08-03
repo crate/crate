@@ -40,7 +40,6 @@ import org.elasticsearch.common.inject.spi.Message;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.RepositoryException;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
@@ -91,7 +90,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             indexNameExpressionResolver) {
             @Override
-            protected void doExecute(Task task, DeleteRepositoryRequest request, ActionListener<AcknowledgedResponse> listener) {
+            protected void doExecute(DeleteRepositoryRequest request, ActionListener<AcknowledgedResponse> listener) {
                 deleteRepoCalled.set(true);
                 listener.onResponse(mock(AcknowledgedResponse.class));
             }
@@ -105,7 +104,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             indexNameExpressionResolver) {
             @Override
-            protected void doExecute(Task task, PutRepositoryRequest request, ActionListener<AcknowledgedResponse> listener) {
+            protected void doExecute(PutRepositoryRequest request, ActionListener<AcknowledgedResponse> listener) {
                 listener.onFailure(new RepositoryException(request.name(), "failure"));
             }
         };

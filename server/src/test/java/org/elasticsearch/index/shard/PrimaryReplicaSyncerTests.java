@@ -46,7 +46,6 @@ import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.TestTranslog;
 import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.tasks.TaskManager;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -60,18 +59,16 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
     @Test
     public void testSyncerSendsOffCorrectDocuments() throws Exception {
         IndexShard shard = newStartedShard(true);
-        TaskManager taskManager = new TaskManager();
         AtomicBoolean syncActionCalled = new AtomicBoolean();
         List<ResyncReplicationRequest> resyncRequests = new ArrayList<>();
         PrimaryReplicaSyncer.SyncAction syncAction =
-            (request, parentTask, allocationId, primaryTerm, listener) -> {
+            (request, allocationId, primaryTerm, listener) -> {
                 logger.info("Sending off {} operations", request.getOperations().length);
                 syncActionCalled.set(true);
                 resyncRequests.add(request);
-                assertThat(parentTask, instanceOf(PrimaryReplicaSyncer.ResyncTask.class));
                 listener.onResponse(new ReplicationResponse());
             };
-        PrimaryReplicaSyncer syncer = new PrimaryReplicaSyncer(taskManager, syncAction);
+        PrimaryReplicaSyncer syncer = new PrimaryReplicaSyncer(syncAction);
         syncer.setChunkSize(new ByteSizeValue(randomIntBetween(1, 10)));
 
         int numDocs = randomInt(10);
@@ -143,15 +140,12 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         IndexShard shard = newStartedShard(true);
         AtomicBoolean syncActionCalled = new AtomicBoolean();
         PrimaryReplicaSyncer.SyncAction syncAction =
-            (request, parentTask, allocationId, primaryTerm, listener) -> {
+            (request, allocationId, primaryTerm, listener) -> {
                 logger.info("Sending off {} operations", request.getOperations().length);
                 syncActionCalled.set(true);
                 threadPool.generic().execute(() -> listener.onResponse(new ReplicationResponse()));
             };
-        PrimaryReplicaSyncer syncer = new PrimaryReplicaSyncer(
-            new TaskManager(),
-            syncAction
-        );
+        PrimaryReplicaSyncer syncer = new PrimaryReplicaSyncer(syncAction);
         syncer.setChunkSize(new ByteSizeValue(1)); // every document is sent off separately
 
         int numDocs = 10;
@@ -225,13 +219,12 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         Engine.HistorySource source =
             shard.indexSettings.isSoftDeleteEnabled() ? Engine.HistorySource.INDEX : Engine.HistorySource.TRANSLOG;
         doReturn(TestTranslog.newSnapshotFromOperations(operations)).when(shard).getHistoryOperations(anyString(), eq(source), anyLong());
-        TaskManager taskManager = new TaskManager();
         List<Translog.Operation> sentOperations = new ArrayList<>();
-        PrimaryReplicaSyncer.SyncAction syncAction = (request, parentTask, allocationId, primaryTerm, listener) -> {
+        PrimaryReplicaSyncer.SyncAction syncAction = (request, allocationId, primaryTerm, listener) -> {
             sentOperations.addAll(Arrays.asList(request.getOperations()));
             listener.onResponse(new ReplicationResponse());
         };
-        PrimaryReplicaSyncer syncer = new PrimaryReplicaSyncer(taskManager, syncAction);
+        PrimaryReplicaSyncer syncer = new PrimaryReplicaSyncer(syncAction);
         syncer.setChunkSize(new ByteSizeValue(randomIntBetween(1, 10)));
         PlainActionFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainActionFuture<>();
         syncer.resync(shard, fut);

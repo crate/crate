@@ -39,7 +39,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.discovery.MasterNotDiscoveredException;
 import org.elasticsearch.node.NodeClosedException;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.TransportException;
@@ -90,8 +89,7 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
 
     protected abstract Response read(StreamInput in) throws IOException;
 
-    protected abstract void masterOperation(Task task, Request request, ClusterState state,
-                                            ActionListener<Response> listener) throws Exception;
+    protected abstract void masterOperation(Request request, ClusterState state, ActionListener<Response> listener) throws Exception;
 
     protected boolean localExecute(Request request) {
         return false;
@@ -100,8 +98,8 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
     protected abstract ClusterBlockException checkBlock(Request request, ClusterState state);
 
     @Override
-    protected void doExecute(Task task, final Request request, ActionListener<Response> listener) {
-        new AsyncSingleAction(task, request, listener).start();
+    protected void doExecute(final Request request, ActionListener<Response> listener) {
+        new AsyncSingleAction(request, listener).start();
     }
 
     class AsyncSingleAction {
@@ -109,14 +107,9 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
         private final ActionListener<Response> listener;
         private final Request request;
         private volatile ClusterStateObserver observer;
-        private final Task task;
 
-        AsyncSingleAction(Task task, Request request, ActionListener<Response> listener) {
-            this.task = task;
+        AsyncSingleAction(Request request, ActionListener<Response> listener) {
             this.request = request;
-            if (task != null) {
-                request.setParentTask(clusterService.localNode().getId(), task.getId());
-            }
             this.listener = listener;
         }
 
@@ -160,7 +153,7 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
                             }
                         });
                         threadPool.executor(executor)
-                            .execute(ActionRunnable.wrap(delegate, l -> masterOperation(task, request, clusterState, l)));
+                            .execute(ActionRunnable.wrap(delegate, l -> masterOperation(request, clusterState, l)));
                     }
                 } else {
                     if (nodes.getMasterNode() == null) {

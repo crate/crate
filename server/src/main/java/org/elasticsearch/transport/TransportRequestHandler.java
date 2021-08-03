@@ -19,9 +19,8 @@
 
 package org.elasticsearch.transport;
 
-import org.elasticsearch.tasks.Task;
 
 public interface TransportRequestHandler<T extends TransportRequest> {
 
-    void messageReceived(final T request, final TransportChannel channel, Task task) throws Exception;
+    void messageReceived(final T request, final TransportChannel channel) throws Exception;
 }

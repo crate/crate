@@ -31,7 +31,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
-import org.elasticsearch.action.support.replication.ReplicationTask;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
@@ -45,8 +44,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponseHandler;
@@ -88,17 +85,17 @@ public class RetentionLeaseSyncAction extends
     }
 
     @Override
-    protected void doExecute(Task parentTask, Request request, ActionListener<ReplicationResponse> listener) {
+    protected void doExecute(Request request, ActionListener<ReplicationResponse> listener) {
         assert false : "use RetentionLeaseSyncAction#sync";
     }
 
     final void sync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases,
                     ActionListener<ReplicationResponse> listener) {
         final Request request = new Request(shardId, retentionLeases);
-        final ReplicationTask task = (ReplicationTask) taskManager.register("transport", "retention_lease_sync", request);
-        transportService.sendChildRequest(clusterService.localNode(), transportPrimaryAction,
+        transportService.sendChildRequest(
+            clusterService.localNode(),
+            transportPrimaryAction,
             new ConcreteShardRequest<>(request, primaryAllocationId, primaryTerm),
-            task,
             transportOptions,
             new TransportResponseHandler<ReplicationResponse>() {
                 @Override
@@ -113,8 +110,6 @@ public class RetentionLeaseSyncAction extends
 
                 @Override
                 public void handleResponse(ReplicationResponse response) {
-                    task.setPhase("finished");
-                    taskManager.unregister(task);
                     listener.onResponse(response);
                 }
 
@@ -123,8 +118,6 @@ public class RetentionLeaseSyncAction extends
                     if (ExceptionsHelper.unwrap(e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
                         getLogger().warn(new ParameterizedMessage("{} retention lease sync failed", shardId), e);
                     }
-                    task.setPhase("finished");
-                    taskManager.unregister(task);
                     listener.onFailure(e);
                 }
             });
@@ -180,11 +173,6 @@ public class RetentionLeaseSyncAction extends
         public void writeTo(final StreamOutput out) throws IOException {
             super.writeTo(Objects.requireNonNull(out));
             retentionLeases.writeTo(out);
-        }
-
-        @Override
-        public Task createTask(long id, String type, String action, TaskId parentTaskId) {
-            return new ReplicationTask(id, type, action, "retention_lease_sync shardId=" + shardId, parentTaskId);
         }
 
         @Override

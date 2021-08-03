@@ -92,7 +92,7 @@ public abstract class PeerFinder {
 
         transportService.registerRequestHandler(REQUEST_PEERS_ACTION_NAME, Names.GENERIC, false, false,
             PeersRequest::new,
-            (request, channel, task) -> channel.sendResponse(handlePeersRequest(request)));
+            (request, channel) -> channel.sendResponse(handlePeersRequest(request)));
     }
 
     public void activate(final DiscoveryNodes lastAcceptedNodes) {
