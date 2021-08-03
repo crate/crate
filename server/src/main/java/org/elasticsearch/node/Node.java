@@ -796,7 +796,6 @@ public class Node implements Closeable {
             pluginsService.filterPlugins(Plugin.class).stream()
                 .flatMap(p -> p.getBootstrapChecks().stream()).collect(Collectors.toList()));
 
-        clusterService.addStateApplier(transportService.getTaskManager());
         // start after transport service so the local disco is known
         discovery.start(); // start before cluster service so that it can set initial state on ClusterApplierService
         clusterService.start();
