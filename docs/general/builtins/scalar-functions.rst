@@ -500,7 +500,7 @@ default) to the right of ``text``.
 Returns: ``text``
 
 Quotes a provided string argument. Quotes are added only if necessary. For
-example, if the string contains non-identifier characters, keywords or would be
+example, if the string contains non-identifier characters, keywords, or would be
 case-folded. Embedded quotes are properly doubled.
 
 The quoted string can be used as an identifier in an SQL statement.
@@ -631,8 +631,8 @@ Example::
 
 .. NOTE::
 
-    In both cases, the scalar functions lpad and rpad, do now accept a len
-    greater than 50000.
+    In both cases, the scalar functions ``lpad`` and ``rpad`` do now accept a
+    length greater than 50000.
 
 
 .. _scalar-encode:
@@ -875,9 +875,9 @@ Examples:
         +---------------+
         SELECT 1 row in set (... sec)
 
-    Please note, that implicit cast treats numbers as is, i.e as a timestamp in
-    that zone and if timestamp is in non-UTC zone you might want to set numeric
-    origin to the same zone.
+    Please note, that implicit cast treats numbers as is, i.e. as a timestamp
+    in that zone and if timestamp is in non-UTC zone you might want to set
+    numeric origin to the same zone::
 
         cr> select date_bin('4 hours' :: INTERVAL,
         ... '2020-01-01T09:00:00+0200'::timestamp with time zone,
@@ -1503,8 +1503,8 @@ the other argument must be a column reference.
     what is stored inside the index which is utilized if the distance function
     is part of a WHERE clause.
 
-    For example if ``select distance(...)`` returns 0.0 an equality check with
-    ``where distance(...) = 0`` might not yield anything at all due to the
+    For example, if ``select distance(...)`` returns 0.0, an equality check
+    with ``where distance(...) = 0`` might not yield anything at all due to the
     precision difference.
 
 
