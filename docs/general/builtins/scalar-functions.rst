@@ -1,5 +1,6 @@
 .. highlight:: psql
 
+.. _scalar-functions:
 .. _builtins-scalar:
 
 ================
@@ -150,7 +151,7 @@ Each character counts only once, regardless of its byte size.
 
 Returns the number of characters in a string.
 
-The same as :ref:`char_length <scalar_char_length>`.
+The same as :ref:`char_length <scalar-char_length>`.
 
 
 .. _scalar-bit_length:
@@ -352,7 +353,7 @@ Returns: ``text``
 
 Computes the MD5 checksum of the given string.
 
-See :ref:`sha1 <sha1>` for an example.
+See :ref:`sha1 <scalar-sha1>` for an example.
 
 
 .. _scalar-replace:
@@ -824,7 +825,7 @@ The return value marks the beginning of the bin into which the input timestamp
 is placed.
 
 If you use an interval with a single unit like ``1 second`` or ``1 minute``,
-this function returns the same result as :ref:`date_trunc <scalar-date-trunc>`.
+this function returns the same result as :ref:`date_trunc <scalar-date_trunc>`.
 
 If the interval is ``1 week``, ``date_bin`` only returns the same result as
 ``date_trunc`` if the origin is a Monday.
@@ -1042,7 +1043,7 @@ Synopsis::
 .. TIP::
 
     To get an offset value of ``CURRENT_TIMESTAMP`` (e.g., this same time one
-    day ago), you can add or subtract an :ref:`interval <interval_data_type>`,
+    day ago), you can add or subtract an :ref:`interval <type-interval>`,
     like so::
 
         CURRENT_TIMESTAMP - '1 day'::interval
@@ -1063,8 +1064,8 @@ Synopsis::
 ``CURDATE()``
 ----------------
 
-The ``CURDATE()`` scalar function is an alias of the :ref:`current_date`
-expression. See :ref:`current_date`.
+The ``CURDATE()`` scalar function is an alias of the :ref:`scalar-current_date`
+expression.
 
 Synopsis::
 
@@ -1481,7 +1482,7 @@ distances between 2 points on a sphere based on their latitude and longitude.
 The return value is the distance in meters.
 
 Below is an example of the distance function where both points are specified
-using WKT. See :ref:`geo_point_data_type` for more information on the implicit
+using WKT. See :ref:`data-types-geo` for more information on the implicit
 type casting of geo points::
 
     cr> select distance('POINT (10 20)', 'POINT (11 21)') AS col;
@@ -1547,7 +1548,7 @@ Returns: ``boolean``
 
 The ``intersects`` function returns true if both argument shapes share some
 points or area, they *overlap*. This also includes two shapes where one lies
-:ref:`within <scalar_within>` the other.
+:ref:`within <scalar-within>` the other.
 
 If ``false`` is returned, both shapes are considered *disjoint*.
 
@@ -1574,7 +1575,7 @@ Example::
     +------------+----------+
     SELECT 1 row in set (... sec)
 
-Due to a limitation on the :ref:`geo_shape_data_type` datatype this function
+Due to a limitation on the :ref:`data-types-geo-shape` datatype this function
 cannot be used in the :ref:`ORDER BY <sql-select-order-by>` clause.
 
 
@@ -1588,7 +1589,7 @@ Returns: ``double precision``
 The ``latitude`` and ``longitude`` function return the coordinates of latitude
 or longitude of a point, or ``NULL`` if not available. The input must be a
 column of type ``geo_point``, a valid WKT string or a ``double precision``
-array. See :ref:`geo_point_data_type` for more information on the implicit type
+array. See :ref:`data-types-geo` for more information on the implicit type
 casting of geo points.
 
 Example::
@@ -1631,7 +1632,7 @@ Returns: ``text``
 Returns a `GeoHash <https://en.wikipedia.org/wiki/Geohash>`_ representation
 based on full precision (12 characters) of the input point, or ``NULL`` if not
 available. The input has to be a column of type ``geo_point``, a valid WKT
-string or a ``double precision`` array. See :ref:`geo_point_data_type` for more
+string or a ``double precision`` array. See :ref:`data-types-geo` for more
 information of the implicit type casting of geo points.
 
 Example::
@@ -2793,7 +2794,7 @@ the input will be replaced by NULL.
 The ``array_min`` function returns the smallest element in ``array``. If
 ``array`` is ``NULL`` or an empty array, the function returns ``NULL``. This
 function supports arrays of any of the :ref:`primitive types
-<sql_ddl_datatypes_primitives>`.
+<data-types-primitive>`.
 
 ::
 
@@ -2814,7 +2815,7 @@ function supports arrays of any of the :ref:`primitive types
 The ``array_max`` function returns the largest element in ``array``. If
 ``array`` is ``NULL`` or an empty array, the function returns ``NULL``. This
 function supports arrays of any of the :ref:`primitive types
-<sql_ddl_datatypes_primitives>`.
+<data-types-primitive>`.
 
 ::
 
@@ -2834,7 +2835,7 @@ function supports arrays of any of the :ref:`primitive types
 
 Returns the sum of array elements that are not ``NULL``. If ``array`` is
 ``NULL`` or an empty array, the function returns ``NULL``. This function
-supports arrays of any :ref:`numeric types <data-type-numeric>`.
+supports arrays of any :ref:`numeric types <type-numeric>`.
 
 For ``real`` and ``double precison`` arguments, the return type is equal to the
 argument type. For ``char``, ``smallint``, ``integer``, and ``bigint``
@@ -2887,7 +2888,7 @@ array to the numeric data type:
 
 Returns the average of all values in ``array`` that are not ``NULL`` If
 ``array`` is ``NULL`` or an empty array, the function returns ``NULL``. This
-function supports arrays of any :ref:`numeric types <data-type-numeric>`.
+function supports arrays of any :ref:`numeric types <type-numeric>`.
 
 For ``real`` and ``double precison`` arguments, the return type is equal to the
 argument type. For ``char``, ``smallint``, ``integer``, and ``bigint``
@@ -3156,7 +3157,7 @@ Returns: ``text``
 
 The default schema can be set when using the `JDBC client
 <https://crate.io/docs/jdbc/en/latest/connect.html>`_ and :ref:`HTTP clients
-<http_default_schema>` such as `CrateDB PDO`_.
+<http-default-schema>` such as `CrateDB PDO`_.
 
 .. NOTE::
 

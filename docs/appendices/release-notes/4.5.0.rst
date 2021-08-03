@@ -100,8 +100,8 @@ New scalar and window functions
 - Added the :ref:`gen_random_text_uuid() <scalar-gen_random_text_uuid>` scalar
   function.
 
-- Added the :ref:`pg_postmaster_start_time() <scalar_pg_postmaster_start_time>`
+- Added the :ref:`pg_postmaster_start_time() <scalar-pg_postmaster_start_time>`
   scalar function.
 
-- Added :ref:`CURDATE` and :ref:`CURRENT_DATE` :ref:`scalar functions
-  <scalar-functions>`.
+- Added :ref:`CURDATE <scalar-curdate>` and :ref:`CURRENT_DATE
+  <scalar-current_date>` :ref:`scalar functions <scalar-functions>`.

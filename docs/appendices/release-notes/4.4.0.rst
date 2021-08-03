@@ -61,10 +61,10 @@ SQL and PostgreSQL compatibility improvements
 ---------------------------------------------
 
 - Added :ref:`arithmetic operation <arithmetic>` support for the :ref:`numeric
-  <numeric_type>` type.
+  <type-numeric>` type.
 
-- Added support for the :ref:`numeric <numeric_type>` data type and allow the
-  ``sum`` aggregation on the :ref:`numeric <numeric_type>` type.  Note that the
+- Added support for the :ref:`numeric <type-numeric>` data type and allow the
+  ``sum`` aggregation on the :ref:`numeric <type-numeric>` type.  Note that the
   storage of the ``numeric`` data type is not supported.
 
 - Extended the ``RowDescription`` message that can be sent while communicating
@@ -73,7 +73,7 @@ SQL and PostgreSQL compatibility improvements
   table. This improves compatibility with clients which make use of these
   attributes.
 
-- Changed the :ref:`format_type <format_type>` function to use the PostgreSQL
+- Changed the :ref:`format_type <scalar-format_type>` function to use the PostgreSQL
   compatible type name notation with ``[]`` suffixes for arrays, instead of
   ``_array``.
 

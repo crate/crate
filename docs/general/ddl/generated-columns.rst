@@ -91,7 +91,7 @@ against the result of applying the generation expression::
 Last modified dates
 ===================
 
-Because :ref:`current_timestamp` is non-deterministic, you can use this
+Because :ref:`scalar-current_timestamp` is non-deterministic, you can use this
 expression to record a last modified date that is set when the row is first
 inserted, and subsequently updated every time the row is updated::
 

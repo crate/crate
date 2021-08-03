@@ -78,8 +78,8 @@ information about the currently registered license.
 | ``license``                | The current CrateDB license information | ``OBJECT``                   |
 |                            |  or NULL on CrateDB CE.                 |                              |
 +----------------------------+-----------------------------------------+------------------------------+
-| ``license['expiry_date']`` | The :ref:`date-time-types` on which     | ``TIMESTAMP WITH TIME ZONE`` |
-|                            | the license expires.                    |                              |
+| ``license['expiry_date']`` | The :ref:`data-types-dates-times`       | ``TIMESTAMP WITH TIME ZONE`` |
+|                            | on which the license expires.           |                              |
 +----------------------------+-----------------------------------------+------------------------------+
 | ``license['issued_to']``   | The organisation for which the license  | ``TEXT``                     |
 |                            | is issued.                              |                              |
@@ -1232,7 +1232,7 @@ Table schema
 | ``username``     | The user who is executing the statement.         | ``TEXT``                     |
 +------------------+--------------------------------------------------+------------------------------+
 
-The field ``username`` corresponds to the :ref:`SESSION_USER <session_user>`
+The field ``username`` corresponds to the :ref:`SESSION_USER <scalar-session_user>`
 that is performing the query::
 
     cr> select stmt, username, started from sys.jobs where stmt like 'sel% from %jobs%';

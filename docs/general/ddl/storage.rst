@@ -15,7 +15,7 @@ Beside of storing the row data as-is (and indexing each value by default), each
 value term is stored into a `Column Store`_ by default. The usage of a `Column
 Store`_ is greatly improving global aggregations and groupings and enables
 ordering possiblity as the data for one column is packed at one place. Using the
-`Column Store`_ limits the values of :ref:`data-type-text` columns to a maximal
+`Column Store`_ limits the values of :ref:`type-text` columns to a maximal
 length of 32766 bytes.
 
 Turning off the `Column Store`_ in conjunction of :ref:`turning off indexing
@@ -45,11 +45,11 @@ Supported data types
 Controlling if values are stored into a `Column Store`_ is only supported on
 following data types:
 
- - :ref:`data-type-text`
+ - :ref:`type-text`
 
-For all other :ref:`sql_ddl_datatypes_primitives`, it is enabled by default and
+For all other :ref:`data-types-primitive`, it is enabled by default and
 cannot be disabled. :ref:`data-types-container` and
-:ref:`sql_ddl_datatypes_geographic` do not support storing values into a
+:ref:`data-types-geo` do not support storing values into a
 `Column Store`_ at all.
 
 .. _Column Store: https://en.wikipedia.org/wiki/Column-oriented_DBMS

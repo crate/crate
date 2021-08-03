@@ -130,8 +130,8 @@ more than ``offset`` minus (for ``PRECEDING``) or plus (for ``FOLLOWING``) the
 current row's ordering column value. Because the value of ``offset`` is
 substracted/added to the values of the ordering column, only type combinations
 that support addition/substraction operations are allowed. For instance, when
-the ordering column is of type :ref:`timestamp <timestamp_data_type>`, the
-``offset`` expression can be an :ref:`interval <interval_data_type>`.
+the ordering column is of type :ref:`timestamp <type-timestamp>`, the
+``offset`` expression can be an :ref:`interval <type-interval>`.
 
 The :ref:`window-definition-over` clause defines the ``window`` containing the
 appropriate rows which will take part in the ``window function`` computation.

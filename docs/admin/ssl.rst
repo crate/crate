@@ -12,11 +12,11 @@ You can enable SSL on a per-protocol basis:
 
 .. rst-class:: open
 
-- If you enable SSL for :ref:`HTTP <sql_http_endpoint>`, all connections will
+- If you enable SSL for :ref:`HTTP <interface-http>`, all connections will
   require HTTPS.
 
 - By default, if you enable SSL for the :ref:`PostgreSQL wire protocol
-  <postgres_wire_protocol>`, clients can negotiate on a per-connection basis
+  <interface-postgresql>`, clients can negotiate on a per-connection basis
   whether to use SSL. However, you can enforce SSL via :ref:`Host-Based
   Authentication <admin_hba>`.
 

@@ -14,7 +14,8 @@ minio>=5.0.0
 dnslib
 
 # Documentation
-sphinx==3.3.1
+sphinx>=3.5,<5
+docutils==0.16
 sphinx-csv-filter>=0.2.0
 crate-docs-theme>=0.12.0
 

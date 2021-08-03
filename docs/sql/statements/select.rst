@@ -403,9 +403,9 @@ Character-string data is sorted by its UTF-8 representation.
 
     Sorting can only be applied on indexed fields.
 
-    Additionally, sorting on :ref:`geo_point_data_type`,
-    :ref:`geo_shape_data_type`, :ref:`data-type-array`, and
-    :ref:`object_data_type` is not supported.
+    Additionally, sorting on :ref:`data-types-geo-point`,
+    :ref:`data-types-geo-shape`, :ref:`data-types-arrays`, and
+    :ref:`data-types-objects` is not supported.
 
 .. SEEALSO::
 

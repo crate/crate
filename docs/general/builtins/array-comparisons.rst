@@ -97,7 +97,7 @@ The operator returns ``NULL`` if:
     When doing ``NOT <value> = ANY(<array_col>)``, query performance may be
     degraded because special handling is required to implement the `3-valued
     logic`_. To achieve better performance, consider using the :ref:`ignore3vl
-    function <ignore3vl>`.
+    function <scalar-ignore3vl>`.
 
 
 .. _all_array_comparison:

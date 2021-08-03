@@ -16,20 +16,20 @@ Introduction
 ============
 
 CrateDB can be used to store and query geographical information of many kinds
-using the :ref:`geo_point_data_type` and :ref:`geo_shape_data_type` types. With
+using the :ref:`data-types-geo-point` and :ref:`data-types-geo-shape` types. With
 these it is possible to store geographical locations, ways, shapes, areas and
 other entities. These can be queried for distance, containment, intersection
 and so on, making it possible to create apps and services with rich
 geographical features.
 
-:ref:`Geographic shapes <geo_shape_data_type>` are stored using special
-indices. :ref:`Geographic points <geo_point_data_type>` are represented by
+:ref:`Geographic shapes <data-types-geo-shape>` are stored using special
+indices. :ref:`Geographic points <data-types-geo-point>` are represented by
 their coordinates. They are represented as columns of the respective datatypes.
 
-Geographic indices for :ref:`geo_shape <geo_shape_data_type>` columns are used
+Geographic indices for :ref:`geo_shape <data-types-geo-shape>` columns are used
 in order to speed up geographic searches even on complex shapes. This indexing
 process results in a representation that is not exact (See :ref:`geo_shape
-<geo_shape_data_type>` for details). CrateDB does not operate on vector shapes
+<data-types-geo-shape>` for details). CrateDB does not operate on vector shapes
 but on a kind of a grid with the given precision as resolution.
 
 Creating tables containing geographic information is straightforward::
@@ -46,7 +46,7 @@ Creating tables containing geographic information is straightforward::
 This table will contain the shape of a country and the location of its capital
 alongside with other metadata. The shape is indexed with a maximum precision of
 100 meters using a ``geohash`` index (For more information, see
-:ref:`geo_shape_data_type_index`).
+:ref:`type-geo_shape-index`).
 
 Let's insert Austria::
 
@@ -105,12 +105,12 @@ Let's insert Austria::
    cr> REFRESH TABLE countries;
    REFRESH OK, 1 row affected  (... sec)
 
-:ref:`Geographic points <geo_point_data_type>` can be inserted as a ``double
+:ref:`Geographic points <data-types-geo-point>` can be inserted as a ``double
 precision`` array with longitude and latitude values as seen above or by using
 a `WKT`_ string.
 
-:ref:`Geographic shapes <geo_shape_data_type>` can be inserted as `GeoJSON`_
-:ref:`object literal <data-type-object-literals>` or parameter as seen above
+:ref:`Geographic shapes <data-types-geo-shape>` can be inserted as `GeoJSON`_
+:ref:`object literal <type-geo_shape-literals>` or parameter as seen above
 and as `WKT`_ string.
 
 When it comes to get some meaningful insights into your geographical data
@@ -128,7 +128,7 @@ Fast queries that leverage the geographic index are done using the
 The ``MATCH`` predicate can be used to perform multiple kinds of searches on
 indices or indexed columns. While it can be used to perform :ref:`fulltext
 searches <sql_dql_fulltext_search>` on analyzed indices of type
-:ref:`data-type-text`, it is also handy for operating on geographic indices,
+:ref:`type-text`, it is also handy for operating on geographic indices,
 querying for relations between geographical shapes and points.
 
 ::
@@ -220,11 +220,11 @@ Exact queries
 *Exact* queries are done using the following :ref:`scalar functions
 <scalar-functions>`:
 
- * :ref:`scalar_intersects`
+ * :ref:`scalar-intersects`
 
- * :ref:`scalar_within`
+ * :ref:`scalar-within`
 
- * :ref:`scalar_distance`
+ * :ref:`scalar-distance`
 
 They are exact, but this comes at the price of performance.
 

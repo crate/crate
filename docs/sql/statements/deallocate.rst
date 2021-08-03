@@ -25,7 +25,7 @@ Description
 DEALLOCATE is used to deallocate a previously prepared SQL statement and free
 the reserved resources. It is not meant to be explicitly issued by a user but
 it's used by some clients (e.g. `libpq`_) over :ref:`Postgres Wire Protocol
-<postgres_wire_protocol>` as an alternative way of deallocating a prepared
+<interface-postgresql>` as an alternative way of deallocating a prepared
 statement to the protocol's ``Close (F)`` message.
 
 Parameters
