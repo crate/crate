@@ -41,7 +41,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
-import org.elasticsearch.common.blobstore.BlobStoreException;
 import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
 import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 import io.crate.common.collections.Tuple;
@@ -81,15 +80,6 @@ class S3BlobContainer extends AbstractBlobContainer {
     }
 
     @Override
-    public boolean blobExists(String blobName) {
-        try (AmazonS3Reference clientReference = blobStore.clientReference()) {
-            return clientReference.client().doesObjectExist(blobStore.bucket(), buildKey(blobName));
-        } catch (final Exception e) {
-            throw new BlobStoreException("Failed to check if blob [" + blobName + "] exists", e);
-        }
-    }
-
-    @Override
     public InputStream readBlob(String blobName) throws IOException {
         try (AmazonS3Reference clientReference = blobStore.clientReference()) {
             final S3Object s3Object = clientReference.client().getObject(blobStore.bucket(), buildKey(blobName));
@@ -118,9 +108,6 @@ class S3BlobContainer extends AbstractBlobContainer {
 
     @Override
     public void deleteBlob(String blobName) throws IOException {
-        if (blobExists(blobName) == false) {
-            throw new NoSuchFileException("Blob [" + blobName + "] does not exist");
-        }
         deleteBlobIgnoringIfNotExists(blobName);
     }
 

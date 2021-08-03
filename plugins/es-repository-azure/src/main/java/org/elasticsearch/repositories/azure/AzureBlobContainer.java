@@ -50,8 +50,7 @@ public class AzureBlobContainer extends AbstractBlobContainer {
         this.keyPath = path.buildAsString();
     }
 
-    @Override
-    public boolean blobExists(String blobName) {
+    private boolean blobExists(String blobName) {
         logger.trace("blobExists({})", blobName);
         try {
             return blobStore.blobExists(buildKey(blobName));
