@@ -55,9 +55,20 @@ Changes
 =======
 
 - Added the :ref:`JSON type <data-type-json>`.
+- Added the :ref:`date_bin <date-bin>` scalar function that truncates timestamp
+  into specified interval aligned with specified origin.
 
 Fixes
 =====
 
-None
+- Fixed an issue in the execution plan generation for ``SELECT COUNT(*) FROM
+  ...`` statements with predicates like ``'a' in ANY(varchar_array_column)``.
+  Such predicates resulted in a cast on the column (``'a' in
+  ANY(varchar_array_column::array(varchar(1)))``), leading to poor performance
+  because the indices couldn't get utilized. This fix significantly improves
+  the performance of such queries. In a test over 100000 records, the query
+  runtime improved from 320ms to 2ms.
 
+- Fixed an issue that could cause a ``NullPointerException`` if a user invoked
+  a ``SELECT`` statement with a predicate on a ``OBJECT (ignored)`` column
+  immediately after a ``DELETE`` statement.

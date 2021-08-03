@@ -4,7 +4,7 @@
 SQL syntax
 ==========
 
-You can use :ref:`Structured Query Language <crate_standard_sql>` (SQL) to
+You can use :ref:`Structured Query Language <appendix-compatibility>` (SQL) to
 query your data.
 
 This section of the documentation provides a complete SQL syntax

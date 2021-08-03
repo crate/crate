@@ -8,7 +8,7 @@ Released on 2020-01-30.
 
 .. NOTE::
 
-    Please consult the :ref:`version_4.0.0_upgrade_notes` before upgrading from
+    Please consult the :ref:`v4.0.0-upgrade-notes` before upgrading from
     CrateDB 3.x or earlier.
     Before upgrading to 4.0.12 you should be running a CrateDB cluster that is
     at least on 3.0.7.

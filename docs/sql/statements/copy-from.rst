@@ -11,7 +11,7 @@ from a file into a table.
 
 .. SEEALSO::
 
-    :ref:`Data manipulation: Import and export <importing_data>`
+    :ref:`Data manipulation: Import and export <dml-import-export>`
 
     :ref:`SQL syntax: COPY TO <sql-copy-to>`
 
@@ -84,7 +84,7 @@ Example CSV data::
     1,"Don't panic"
     2,"Ford, you're turning into a penguin. Stop it."
 
-See also: :ref:`importing_data`.
+See also: :ref:`dml-importing-data`.
 
 
 .. _sql-copy-from-type-checks:
