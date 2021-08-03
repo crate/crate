@@ -169,7 +169,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         setTracerLogInclude(TRACE_LOG_INCLUDE_SETTING.get(settings));
         setTracerLogExclude(TRACE_LOG_EXCLUDE_SETTING.get(settings));
         tracerLog = Loggers.getLogger(LOGGER, ".tracer");
-        taskManager = createTaskManager(settings, threadPool);
+        taskManager = createTaskManager(settings);
         responseHandlers = transport.getResponseHandlers();
         if (clusterSettings != null) {
             clusterSettings.addSettingsUpdateConsumer(TRACE_LOG_INCLUDE_SETTING, this::setTracerLogInclude);
@@ -195,8 +195,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         return taskManager;
     }
 
-    protected TaskManager createTaskManager(Settings settings, ThreadPool threadPool) {
-        return new TaskManager(settings, threadPool);
+    protected TaskManager createTaskManager(Settings settings) {
+        return new TaskManager();
     }
 
     /**

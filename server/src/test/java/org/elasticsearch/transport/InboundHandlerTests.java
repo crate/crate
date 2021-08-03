@@ -55,7 +55,7 @@ public class InboundHandlerTests extends ESTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        taskManager = new TaskManager(Settings.EMPTY, threadPool);
+        taskManager = new TaskManager();
         channel = new FakeTcpChannel(randomBoolean(), buildNewFakeTransportAddress().address(), buildNewFakeTransportAddress().address());
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
         InboundMessage.Reader reader = new InboundMessage.Reader(version, namedWriteableRegistry);

@@ -20,16 +20,16 @@
 package org.elasticsearch.tasks;
 
 import static io.crate.common.unit.TimeValue.timeValueMillis;
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_MAX_HEADER_SIZE;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+
+import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,11 +38,9 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateApplier;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.common.unit.TimeValue;
 
 /**
  * Task Manager service for keeping track of currently running tasks on the nodes
@@ -53,11 +51,7 @@ public class TaskManager implements ClusterStateApplier {
 
     private static final TimeValue WAIT_FOR_COMPLETION_POLL = timeValueMillis(100);
 
-    private final ThreadPool threadPool;
-
     private final ConcurrentMap<Long, Task> tasks = ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
-
-    private final ConcurrentMap<Long, CancellableTaskHolder> cancellableTasks = ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
     private final AtomicLong taskIdGenerator = new AtomicLong();
 
@@ -65,11 +59,7 @@ public class TaskManager implements ClusterStateApplier {
 
     private DiscoveryNodes lastDiscoveryNodes = DiscoveryNodes.EMPTY_NODES;
 
-    private final ByteSizeValue maxHeaderSize;
-
-    public TaskManager(Settings settings, ThreadPool threadPool) {
-        this.threadPool = threadPool;
-        this.maxHeaderSize = SETTING_HTTP_MAX_HEADER_SIZE.get(settings);
+    public TaskManager() {
     }
 
     /**
@@ -83,115 +73,35 @@ public class TaskManager implements ClusterStateApplier {
             LOGGER.trace("register {} [{}] [{}] [{}]", task.getId(), type, action, task.getDescription());
         }
 
-        if (task instanceof CancellableTask) {
-            registerCancellableTask(task);
-        } else {
-            Task previousTask = tasks.put(task.getId(), task);
-            assert previousTask == null;
-        }
+        Task previousTask = tasks.put(task.getId(), task);
+        assert previousTask == null;
         return task;
     }
 
-    private void registerCancellableTask(Task task) {
-        CancellableTask cancellableTask = (CancellableTask) task;
-        CancellableTaskHolder holder = new CancellableTaskHolder(cancellableTask);
-        CancellableTaskHolder oldHolder = cancellableTasks.put(task.getId(), holder);
-        assert oldHolder == null;
-        // Check if this task was banned before we start it
-        if (task.getParentTaskId().isSet() && banedParents.isEmpty() == false) {
-            String reason = banedParents.get(task.getParentTaskId());
-            if (reason != null) {
-                try {
-                    holder.cancel(reason);
-                    throw new IllegalStateException("Task cancelled before it started: " + reason);
-                } finally {
-                    // let's clean up the registration
-                    unregister(task);
-                }
-            }
-        }
-    }
-
-    /**
-     * Cancels a task
-     * <p>
-     * Returns true if cancellation was started successful, null otherwise.
-     *
-     * After starting cancellation on the parent task, the task manager tries to cancel all children tasks
-     * of the current task. Once cancellation of the children tasks is done, the listener is triggered.
-     */
-    public boolean cancel(CancellableTask task, String reason, Runnable listener) {
-        CancellableTaskHolder holder = cancellableTasks.get(task.getId());
-        if (holder != null) {
-            LOGGER.trace("cancelling task with id {}", task.getId());
-            return holder.cancel(reason, listener);
-        }
-        return false;
-    }
 
     /**
      * Unregister the task
      */
     public Task unregister(Task task) {
         LOGGER.trace("unregister task for id: {}", task.getId());
-        if (task instanceof CancellableTask) {
-            CancellableTaskHolder holder = cancellableTasks.remove(task.getId());
-            if (holder != null) {
-                holder.finish();
-                return holder.getTask();
-            } else {
-                return null;
-            }
-        } else {
-            return tasks.remove(task.getId());
-        }
+        return tasks.remove(task.getId());
     }
 
     /**
      * Returns the list of currently running tasks on the node
      */
     public Map<Long, Task> getTasks() {
-        HashMap<Long, Task> taskHashMap = new HashMap<>(this.tasks);
-        for (CancellableTaskHolder holder : cancellableTasks.values()) {
-            taskHashMap.put(holder.getTask().getId(), holder.getTask());
-        }
-        return Collections.unmodifiableMap(taskHashMap);
+        return Collections.unmodifiableMap(this.tasks);
     }
 
-
-    /**
-     * Returns the list of currently running tasks on the node that can be cancelled
-     */
-    public Map<Long, CancellableTask> getCancellableTasks() {
-        HashMap<Long, CancellableTask> taskHashMap = new HashMap<>();
-        for (CancellableTaskHolder holder : cancellableTasks.values()) {
-            taskHashMap.put(holder.getTask().getId(), holder.getTask());
-        }
-        return Collections.unmodifiableMap(taskHashMap);
-    }
 
     /**
      * Returns a task with given id, or null if the task is not found.
      */
+    @Nullable
     public Task getTask(long id) {
         Task task = tasks.get(id);
-        if (task != null) {
-            return task;
-        } else {
-            return getCancellableTask(id);
-        }
-    }
-
-    /**
-     * Returns a cancellable task with given id, or null if the task is not found.
-     */
-    public CancellableTask getCancellableTask(long id) {
-        CancellableTaskHolder holder = cancellableTasks.get(id);
-        if (holder != null) {
-            return holder.getTask();
-        } else {
-            return null;
-        }
+        return task;
     }
 
     /**
@@ -216,14 +126,6 @@ public class TaskManager implements ClusterStateApplier {
             if (lastDiscoveryNodes.nodeExists(parentTaskId.getNodeId())) {
                 // Only set the ban if the node is the part of the cluster
                 banedParents.put(parentTaskId, reason);
-            }
-        }
-
-        // Now go through already running tasks and cancel them
-        for (Map.Entry<Long, CancellableTaskHolder> taskEntry : cancellableTasks.entrySet()) {
-            CancellableTaskHolder holder = taskEntry.getValue();
-            if (holder.hasParent(parentTaskId)) {
-                holder.cancel(reason);
             }
         }
     }
@@ -255,17 +157,6 @@ public class TaskManager implements ClusterStateApplier {
                     }
                 }
             }
-            // Cancel cancellable tasks for the nodes that are gone
-            for (Map.Entry<Long, CancellableTaskHolder> taskEntry : cancellableTasks.entrySet()) {
-                CancellableTaskHolder holder = taskEntry.getValue();
-                CancellableTask task = holder.getTask();
-                TaskId parentTaskId = task.getParentTaskId();
-                if (parentTaskId.isSet() && lastDiscoveryNodes.nodeExists(parentTaskId.getNodeId()) == false) {
-                    if (task.cancelOnParentLeaving()) {
-                        holder.cancel("Coordinating node [" + parentTaskId.getNodeId() + "] left the cluster");
-                    }
-                }
-            }
         }
     }
 
@@ -285,85 +176,4 @@ public class TaskManager implements ClusterStateApplier {
         }
         throw new ElasticsearchTimeoutException("Timed out waiting for completion of [{}]", task);
     }
-
-    private static class CancellableTaskHolder {
-
-        private static final String TASK_FINISHED_MARKER = "task finished";
-
-        private final CancellableTask task;
-
-        private volatile String cancellationReason = null;
-
-        private volatile Runnable cancellationListener = null;
-
-        CancellableTaskHolder(CancellableTask task) {
-            this.task = task;
-        }
-
-        /**
-         * Marks task as cancelled.
-         * <p>
-         * Returns true if cancellation was successful, false otherwise.
-         */
-        public boolean cancel(String reason, Runnable listener) {
-            final boolean cancelled;
-            synchronized (this) {
-                assert reason != null;
-                if (cancellationReason == null) {
-                    cancellationReason = reason;
-                    cancellationListener = listener;
-                    cancelled = true;
-                } else {
-                    // Already cancelled by somebody else
-                    cancelled = false;
-                }
-            }
-            if (cancelled) {
-                task.cancel(reason);
-            }
-            return cancelled;
-        }
-
-        /**
-         * Marks task as cancelled.
-         * <p>
-         * Returns true if cancellation was successful, false otherwise.
-         */
-        public boolean cancel(String reason) {
-            return cancel(reason, null);
-        }
-
-        /**
-         * Marks task as finished.
-         */
-        public void finish() {
-            Runnable listener = null;
-            synchronized (this) {
-                if (cancellationReason != null) {
-                    // The task was cancelled, we need to notify the listener
-                    if (cancellationListener != null) {
-                        listener = cancellationListener;
-                        cancellationListener = null;
-                    }
-                } else {
-                    cancellationReason = TASK_FINISHED_MARKER;
-                }
-            }
-            // We need to call the listener outside of the synchronised section to avoid potential bottle necks
-            // in the listener synchronization
-            if (listener != null) {
-                listener.run();
-            }
-
-        }
-
-        public boolean hasParent(TaskId parentTaskId) {
-            return task.getParentTaskId().equals(parentTaskId);
-        }
-
-        public CancellableTask getTask() {
-            return task;
-        }
-    }
-
 }
