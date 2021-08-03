@@ -61,7 +61,7 @@ Breaking Changes
 - Columns aren't implicitly cast to a type anymore. Whenever columns are
   compared to Literals (e.g. 'string', 1, 1.2), these literals will be
   converted to the column type but not vice-versa. The column can still be
-  manually cast to a type by using a :ref:`cast function <type_cast>`.
+  manually cast to a type by using a :ref:`cast function <data-types-casting>`.
 
 - Table ``information_schema.table_constraints`` is now returning
   ``constraint_name`` as type string instead of type array. Constraint type

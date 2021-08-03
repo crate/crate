@@ -388,12 +388,12 @@ infinite recursion of your mind, beware!)::
 |                               | <gloss-expression>` of the column             |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``character_maximum_length``  | If the data type is a :ref:`character type    | ``INTEGER``   |
-|                               | <character-data-types>` then return the       |               |
+|                               | <data-types-character-data>` then return the  |               |
 |                               | declared length limit; otherwise ``NULL``.    |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``character_octet_length``    | Not implemented (always returns ``NULL``)     | ``INTEGER``   |
 |                               |                                               |               |
-|                               | Please refer to :ref:`data-type-text` type    |               |
+|                               | Please refer to :ref:`type-text` type         |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``numeric_precision``         | Indicates the number of significant digits    | ``INTEGER``   |
 |                               | for a numeric ``data_type``. For all other    |               |

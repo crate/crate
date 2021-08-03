@@ -95,7 +95,7 @@ schema, the current session schema is used::
 .. NOTE::
 
    In order to improve the PostgreSQL server compatibility CrateDB allows the
-   creation of user defined functions against the :ref:`postgres_pg_catalog`
+   creation of user defined functions against the :ref:`postgres-pg_catalog`
    schema. However, the creation of user defined functions against the
    read-only :ref:`system-information` and :ref:`information_schema` schemas is
    prohibited.

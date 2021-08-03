@@ -69,8 +69,8 @@ Authentication methods can be configured using :ref:`admin_hba`.
 ParameterStatus
 '''''''''''''''
 
-After the authentication has succeeded the server has the possibility to send
-multiple ``ParameterStatus`` messages to the client.  These are used to
+After the authentication succeeded, the server has the possibility to send
+multiple ``ParameterStatus`` messages to the client. These are used to
 communicate information like ``server_version`` (emulates PostgreSQL 9.5) or
 ``server_encoding``.
 
@@ -121,12 +121,13 @@ following limitations:
   delayed until the ``Sync`` message is received
 
 
-.. _postgres-copy:
+.. _postgres-copy-na:
 
 Copy operations
 ---------------
 
-CrateDB does not support the ``COPY`` sub-protocol.
+CrateDB does not support the ``COPY`` sub-protocol, see also
+:ref:`postgres-copy`.
 
 
 .. _postgres-fn-call:
@@ -273,8 +274,8 @@ CrateDB also supports the :ref:`oidvector <type-oidvector>` type.
 
 .. NOTE::
 
-    Casting a :ref:`string <character-data-types>` or an :ref:`integer
-    <data-type-numeric>` to the ``regproc`` type does not result in a function
+    Casting a :ref:`string <data-types-character-data>` or an :ref:`integer
+    <type-numeric>` to the ``regproc`` type does not result in a function
     lookup (as it does with PostgreSQL).
 
     Instead:
@@ -373,7 +374,7 @@ Limitations
 - Transaction limitations as described above.
 
 - Having ``escape processing`` enabled could prevent the usage of :ref:`Object
-  Literals <data-type-object-literals>` in case an object key's starting
+  Literals <data-types-object-literals>` in case an object key's starting
   character clashes with a JDBC escape keyword (see also `JDBC escape syntax
   <https://docs.oracle.com/javadb/10.10.1.2/ref/rrefjdbc1020262.html>`_).
   Currently, disabling ``escape processing`` will remedy this, but prevent the
@@ -418,6 +419,16 @@ dialect between CrateDB and PostgreSQL. A detailed comparison between CrateDB's
 SQL dialect and standard SQL is defined in :ref:`appendix-compatibility`.
 
 
+.. _postgres-copy:
+
+Copy operations
+---------------
+
+CrateDB does not support the distinct sub-protocol that is used to serve
+``COPY`` operations and provides another implementation for transferring bulk
+data using the :ref:`sql-copy-from` and :ref:`sql-copy-to` statements.
+
+
 .. _postgres-expressions:
 
 Expressions
@@ -452,7 +463,7 @@ Objects
 
 The definition of structured values by using ``JSON`` types, *composite types*
 or ``HSTORE`` are not supported. CrateDB alternatively allows the definition of
-nested documents (of type :ref:`type-object`) that store fieldscontaining any
+nested documents (of type :ref:`type-object`) that store fields containing any
 CrateDB supported data type, including nested object types.
 
 
@@ -499,7 +510,7 @@ subscript is not supported.
 Type casts
 ''''''''''
 
-CrateDB accepts the :ref:`type_conversion` syntax for conversion of one data
+CrateDB accepts the :ref:`data-types-casting` syntax for conversion of one data
 type to another.
 
 .. SEEALSO::
@@ -523,15 +534,6 @@ If you are missing features, functions or dialect improvements and have a great
 use case for it, let us know on `GitHub`_. We're always improving and extending
 CrateDB and we love to hear feedback.
 
-
-.. _postgres-copy:
-
-``COPY``
---------
-
-CrateDB does not support the distinct sub-protocol that is used to serve
-``COPY`` operations and provides another implementation for transferring bulk
-data using the :ref:`sql-copy-from` and :ref:`sql-copy-to` statements.
 
 
 .. _GitHub: https://github.com/crate/crate

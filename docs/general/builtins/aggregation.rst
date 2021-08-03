@@ -355,8 +355,8 @@ of distinct non-null values using the `HyperLogLog++`_ algorithm.
 The return value data type is always a ``bigint``.
 
 The first argument can be a reference to a column of all
-:ref:`sql_ddl_datatypes_primitives`. :ref:`data-types-container` and
-:ref:`sql_ddl_datatypes_geographic` are not supported.
+:ref:`data-types-primitive`. :ref:`data-types-container` and
+:ref:`data-types-geo` are not supported.
 
 The optional second argument defines the used ``precision`` for the
 `HyperLogLog++`_ algorithm. This allows to trade memory for accuracy, valid
@@ -658,7 +658,7 @@ exceeded an ``ArithmeticException`` will be raised.
 If the ``sum`` aggregation on a numeric data type with the fixed length can
 potentially exceed its range it is possible to handle the overflow by casting
 the :ref:`function <gloss-function>` argument to the :ref:`numeric type
-<numeric_type>` with an arbitrary precision.
+<type-numeric>` with an arbitrary precision.
 
 .. Hidden: create user visits table
 
@@ -744,7 +744,7 @@ Limitations
 
  - Aggregate functions can only be applied to columns with a :ref:`plain index
    <sql_ddl_index_plain>`, which is the default for all :ref:`primitive type
-   <sql_ddl_datatypes_primitives>` columns.
+   <data-types-primitive>` columns.
 
 
 .. _Aggregate function: https://en.wikipedia.org/wiki/Aggregate_function

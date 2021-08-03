@@ -119,8 +119,8 @@ SQL Improvements
   <table-functions-generate-series>` :ref:`table function <table-functions>`
   which can generate a series of numbers.
 
-- Implemented the :ref:`ARRAY_UPPER <scalar-array-upper>`, :ref:`ARRAY_LENGTH
-  <scalar-array-length>` and :ref:`ARRAY_LOWER <scalar-array-lower>` scalar
+- Implemented the :ref:`ARRAY_UPPER <scalar-array_upper>`, :ref:`ARRAY_LENGTH
+  <scalar-array_length>` and :ref:`ARRAY_LOWER <scalar-array_lower>` scalar
   functions that return the upper and respectively lower bound of a given array
   dimension.
 
@@ -139,17 +139,17 @@ SQL Improvements
   the first letter of every word while turning all others into lowercase.
 
 - Added the :ref:`scalar <gloss-scalar>` expression :ref:`CURRENT_DATABASE
-  <scalar_current_database>` which returns the current database.
+  <scalar-current_database>` which returns the current database.
 
 - :ref:`Functions <gloss-function>` like :ref:`CURRENT_SCHEMA
-  <scalar_current_schema>` and :ref:`CURRENT_USER <current_user>` which depend
-  on the active session can now be used as :ref:`generated columns
+  <scalar-current_schema>` and :ref:`CURRENT_USER <scalar-current_user>`,
+  which depend on the active session can now be used as :ref:`generated columns
   <ddl-generated-columns>`.
 
 - Added support for using :ref:`table functions <table-functions>` in the
   ``SELECT`` list of a query.
 
-- :ref:`geo_shape <geo_shape_data_type>` columns can now be casted to
+- :ref:`geo_shape <data-types-geo-shape>` columns can now be casted to
   ``object`` with ``cast`` in addition to ``try_cast``.
 
 - Improved the handling of :ref:`function expressions <sql-function-call>`
@@ -170,11 +170,11 @@ SQL Improvements
 PostgreSQL Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Added the :ref:`pg_catalog.pg_database <postgres_pg_catalog>` table.
+- Added the :ref:`pg_catalog.pg_database <postgres-pg_catalog>` table.
 
 - Added ``pg_class``, ``pg_namespace``, ``pg_attribute``, ``pg_attrdef``,
   ``pg_index`` and ``pg_constraint`` tables to the :ref:`pg_catalog
-  <postgres_pg_catalog>` schema for improved compatibility with PostgreSQL.
+  <postgres-pg_catalog>` schema for improved compatibility with PostgreSQL.
 
 - Improved the compatibility with PostgreSQL clients that use the ``text`` type
   for parameter encoding.
@@ -186,7 +186,7 @@ PostgreSQL Compatibility
 - Expand the :ref:`search_path <conf-session-search-path>` setting to accept a
   list of schemas that will be searched when a relation (table, view or
   :ref:`user-defined function <user-defined-functions>`) is referenced without
-  specifying a schema. The system :ref:`pg_catalog <postgres_pg_catalog>`
+  specifying a schema. The system :ref:`pg_catalog <postgres-pg_catalog>`
   schema is implicitly included as the first one in the path.
 
 

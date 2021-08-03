@@ -279,9 +279,9 @@ Deprecations
   :ref:`_primary_term <sql_administration_system_columns_primary_term>`
   columns.
 
-- Deprecate the usage of the :ref:`TIMESTAMP <data-type-aliases>` data type as
-  a timestamp with time zone, use :ref:`TIMESTAMP WITH TIME ZONE
-  <datetime-with-time-zone>` or :ref:`TIMESTAMPTZ <data-type-aliases>`
+- Deprecate the usage of the ``TIMESTAMP`` :ref:`alias data type <data-types-postgres-aliases>`
+  as a timestamp with time zone, use the :ref:`TIMESTAMP WITH TIME ZONE
+  <type-timestamp-with-tz>` or the ``TIMESTAMPTZ`` data type alias
   instead. The ``TIMESTAMP`` data type will be an equivalent to data type
   without time zone in future ``CrateDB`` releases.
 
@@ -316,19 +316,19 @@ SQL Standard and PostgreSQL compatibility improvements
 
 - Added support for `SQL Standard Timestamp Format
   <https://crate.io/docs/sql-99/en/latest/chapters/08.html#timestamp-literal>`_
-  to the :ref:`date-time-types`.
+  to the :ref:`data-types-dates-times`.
 
-- Added the :ref:`TIMESTAMP WITHOUT TIME ZONE <datetime-without-time-zone>`
+- Added the :ref:`TIMESTAMP WITHOUT TIME ZONE <type-timestamp-without-tz>`
   data type.
 
-- Added the :ref:`TIMESTAMPTZ <data-type-aliases>` alias for the
-  :ref:`TIMESTAMP WITH TIME ZONE <datetime-with-time-zone>` data type.
+- Added the :ref:`TIMESTAMPTZ <data-types-postgres-aliases>` alias for the
+  :ref:`TIMESTAMP WITH TIME ZONE <type-timestamp-with-tz>` data type.
 
-- Added support for the :ref:`type 'string' <type_cast_from_string_literal>`
+- Added support for the :ref:`type 'string' <data-types-casting-str>`
   cast :ref:`operator <gloss-operator>`, which is used to initialize a constant
   of an arbitrary type.
 
-- Added the :ref:`pg_get_userbyid` :ref:`scalar function <scalar-functions>` to
+- Added the :ref:`scalar-pg_get_userbyid` :ref:`scalar function <scalar-functions>` to
   enhance PostgreSQL compatibility.
 
 - Enabled scalar function :ref:`evaluation <gloss-evaluation>` when used
@@ -339,30 +339,30 @@ SQL Standard and PostgreSQL compatibility improvements
   statement.
 
 - Added information for the internal PostgreSQL data type: ``name`` in
-  :ref:`pg_catalog.pg_type <postgres_pg_type>` for improved PostgreSQL
+  :ref:`pg_catalog.pg_type <postgres-pg_type>` for improved PostgreSQL
   compatibility.
 
-- Added the :ref:`pg_catalog.pg_settings <postgres_pg_catalog>` table.
+- Added the :ref:`pg_catalog.pg_settings <postgres-pg_catalog>` table.
 
 - Added support for :ref:`sql_escape_string_literals`.
 
 - Added :ref:`trim <scalar-trim>` scalar function that trims the (leading,
   trailing or both) set of characters from an input string.
 
-- Added :ref:`string_to_array <scalar-string-to-array>` scalar function that
+- Added :ref:`string_to_array <scalar-string_to_array>` scalar function that
   splits an input string into an array of string elements using a separator and
   a null-string.
 
 - Added missing PostgreSQL type mapping for the ``array(ip)`` collection type.
 
-- Added :ref:`current_setting <scalar_current_setting>` system information
+- Added :ref:`current_setting <scalar-current_setting>` system information
   scalar function that yields the current value of the setting.
 
 - Allow :ref:`user-defined-functions` to be registered against the
-  ``pg_catalog`` schema. This also extends :ref:`scalar_current_schema` to be
+  ``pg_catalog`` schema. This also extends :ref:`scalar-current_schema` to be
   addressable with ``pg_catalog`` included.
 
-- Added :ref:`quote_ident <scalar-quote-ident>` scalar function that quotes a
+- Added :ref:`quote_ident <scalar-quote_ident>` scalar function that quotes a
   string if it is needed.
 
 

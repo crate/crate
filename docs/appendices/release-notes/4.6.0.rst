@@ -66,7 +66,7 @@ SQL Statements and Compatibility
 - Added the :ref:`bit(n) <data-type-bit>` data type.
 
 - CrateDB now accepts the ``START TRANSACTION`` statement for :ref:`PostgreSQL
-  wire protocol <postgres_wire_protocol>` compatibility. However, CrateDB does
+  wire protocol <interface-postgresql>` compatibility. However, CrateDB does
   not support transactions and will silently ignore this statement.
 
 - Added support for directory-level wild card expansion for URIs passed to

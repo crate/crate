@@ -38,7 +38,7 @@ Here's an example statement::
 
 This statement creates a table named ``my_table`` with two columns named
 ``first_column`` and ``second_column`` with types :ref:`integer
-<data-type-numeric>` and :ref:`text <data-type-text>`.
+<type-numeric>` and :ref:`text <type-text>`.
 
 A table can be dropped (i.e., deleted) by using the :ref:`drop-table`
 statement::

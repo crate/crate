@@ -188,7 +188,7 @@ Changes
      SELECT x, COUNT(*) FROM (SELECT x FROM t LIMIT 1) AS tt GROUP BY x;
 
  - Implemented hash sum :ref:`scalar functions <scalar-functions>` (MD5, SHA1).
-   Please see :ref:`sha1 <sha1>`.
+   Please see :ref:`sha1 <scalar-sha1>`.
 
  - Various admin UI improvements.
 

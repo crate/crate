@@ -137,7 +137,7 @@ are removed from the result set::
 
 .. note::
 
-   Using ``DISTINCT`` is only supported on :ref:`sql_ddl_datatypes_primitives`.
+   Using ``DISTINCT`` is only supported on :ref:`data-types-primitive`.
 
 
 .. _sql_dql_where_clause:
@@ -612,7 +612,7 @@ This behaviour applies to:
     When using the ``NOT`` with ``ANY``, the performance of the query may be
     poor because special handling is required to implement the `3-valued
     logic`_. For better performance, consider using the :ref:`ignore3vl
-    <ignore3vl>` function.
+    <scalar-ignore3vl>` function.
 
     Additionally, When using ``NOT`` with ``LIKE ANY`` or ``NOT LIKE ANY``, the
     default maximum size of the array can be 8192. To use larger arrays, you
@@ -631,7 +631,7 @@ Container data types
 Arrays
 ------
 
-CrateDB supports :ref:`arrays <data-type-array>`. It is possible to select and
+CrateDB supports :ref:`arrays <data-types-arrays>`. It is possible to select and
 query array elements.
 
 For example, you might :ref:`insert <dml-inserting-data>` an array like so::
@@ -697,7 +697,7 @@ element, see :ref:`sql_dql_any_array`.
 Objects
 -------
 
-CrateDB supports :ref:`objects <object_data_type>`. It is possible to select
+CrateDB supports :ref:`objects <data-types-objects>`. It is possible to select
 and query object properties.
 
 For example, you might insert an object like so::
@@ -862,11 +862,11 @@ There are two limitations to be aware of:
 
     This works by:
 
-    1. :ref:`Type casting <type_cast>` the second array (i.e.,
+    1. :ref:`Type casting <data-types-casting>` the second array (i.e.,
        ``foo[n1]['bar']``) to a string using the ``<expression>::text`` syntax,
        which is equivalent to ``cast(<expression> as text)``
 
-    2. Creating a temporary :ref:`array <data-type-array>` (in-memory and
+    2. Creating a temporary :ref:`array <data-types-arrays>` (in-memory and
        addressable) from that string using the ``<expression>[]`` syntax, which
        is equivalent to ``array(expression``)
 

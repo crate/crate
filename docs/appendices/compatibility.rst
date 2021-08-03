@@ -6,7 +6,7 @@ SQL compatibility
 
 CrateDB provides a :ref:`standards-based <sql_supported_features>` SQL
 implementation similar to many other SQL databases. In particular, CrateDB aims
-for compatibility with :ref:`PostgreSQL <postgres_wire_protocol>`. However,
+for compatibility with :ref:`PostgreSQL <interface-postgresql>`. However,
 CrateDB's SQL dialect does have some unique characteristics, documented on this
 page.
 
@@ -160,7 +160,7 @@ supported:
 
 - Mathematical functions
 
-  - Certain functions supported (see :ref:`mathematical_functions`)
+  - Certain functions supported (see :ref:`scalar-math`)
 
 - Set returning functions
 

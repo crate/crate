@@ -86,7 +86,7 @@ list.
 
 If the :ref:`expression <gloss-expression>` for any column is not of the
 correct data type, CrateDB will attempt automatic :ref:`type conversion
-<type_conversion>`.
+<data-types-casting>`.
 
 The optional ``RETURNING`` clause causes the ``INSERT`` statement to compute
 and return values from each row inserted (or updated, in the case of ``ON
@@ -103,8 +103,8 @@ that CrateDB supplied from defaults, such as as :ref:`_id
     values for insertion when used with the ``query`` parameter.
 
     For example, this use of `unnest`_ produces a single column (``foo``) with
-    incompatible data types (:ref:`numeric <data-type-numeric>` and
-    :ref:`character <character-data-types>`, respectively)::
+    incompatible data types (:ref:`numeric <type-numeric>` and
+    :ref:`character <data-types-character-data>`, respectively)::
 
         SELECT unnest([{foo=1}, {foo='a string'}])
 

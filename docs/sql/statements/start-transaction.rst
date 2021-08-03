@@ -7,7 +7,7 @@
 =====================
 
 CrateDB accepts the ``START TRANSACTION`` statement for compatibility with the
-:ref:`PostgreSQL wire protocol <postgres_wire_protocol>`. However, CrateDB does
+:ref:`PostgreSQL wire protocol <interface-postgresql>`. However, CrateDB does
 not support transactions and will silently ignore this statement.
 .. SEEALSO::
 

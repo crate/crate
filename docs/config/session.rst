@@ -30,7 +30,7 @@ eg:
   SHOW search_path;
 
 Besides using ``SHOW``, it is also possible to use the :ref:`current_setting
-<scalar_current_setting>` :ref:`scalar function <scalar-functions>`.
+<scalar-current_setting>` :ref:`scalar function <scalar-functions>`.
 
 
 Supported session settings
@@ -54,7 +54,7 @@ Supported session settings
 
      This setting mirrors the PostgreSQL `search_path`_ setting.
 
-     Some :ref:`PostgreSQL clients <postgres_wire_protocol>` require access to
+     Some :ref:`PostgreSQL clients <interface-postgresql>` require access to
      various tables in the ``pg_catalog`` schema. Usually, this is to extract
      information about built-in data types or :ref:`functions
      <gloss-function>`.

@@ -289,7 +289,7 @@ The following restrictions apply:
   clause
 
 - Partition columns must only contain :ref:`primitive types
-  <sql_ddl_datatypes_primitives>`
+  <data-types-primitive>`
 
 - Partition columns may not be inside an object array
 

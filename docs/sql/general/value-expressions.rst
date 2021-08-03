@@ -214,7 +214,7 @@ enclosed in curly brackets::
 
 .. SEEALSO::
 
-    :ref:`data-type-object-literals`
+    :ref:`data-types-object-literals`
 
 
 .. _sql-array-constructor:
@@ -230,7 +230,7 @@ optionally prefixed with ``ARRAY``::
 
 .. SEEALSO::
 
-    :ref:`data-type-array-literals`
+    :ref:`data-types-array-literals`
 
 .. _sql_expressions_array_subquery:
 

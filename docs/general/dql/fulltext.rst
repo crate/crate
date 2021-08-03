@@ -33,13 +33,13 @@ Synopsis
 The MATCH predicate performs a fulltext search on one or more indexed columns
 or indices and supports different matching techniques. It can also be used to
 perform :ref:`geographical searches <sql_dql_geo_search>` on
-:ref:`geo_shape_data_type` indices.
+:ref:`data-types-geo-shape` indices.
 
 The actual applicability of the MATCH predicate depends on the index's type. In
 fact, the availability of certain ``match_types`` and ``match_parameters``
 depend on the index. This section however, only covers the usage of the MATCH
 predicate on ``fulltext`` indices on ``text`` columns. To use MATCH on
-:ref:`geo_shape_data_type` indices, see :ref:`sql_dql_geo_search`.
+:ref:`data-types-geo-shape` indices, see :ref:`sql_dql_geo_search`.
 
 In order to use fulltext searches on a column, a :ref:`fulltext index with an
 analyzer <sql_ddl_index_fulltext>` must be created for this column. See

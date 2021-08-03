@@ -76,7 +76,7 @@ E
     <ddl-generated-columns-expressions>`
 
     :ref:`Scalar functions: Conditional functions and expressions
-    <scalar-conditional-functions-expressions>`
+    <scalar-conditional-fn-exp>`
 
     :ref:`Aggregation: Aggregation expressions <aggregation-expressions>`
 
@@ -90,9 +90,9 @@ F
 
 **Function**
     A token (e.g., :ref:`replace <scalar-replace>`) that takes zero or more
-    arguments (e.g., three :ref:`strings <character-data-types>`), performs a
-    specific task, and may return one or more values (e.g., a modified
-    string). Functions that return more than one value are called
+    arguments (e.g., three :ref:`strings <data-types-character-data>`),
+    performs a specific task, and may return one or more values (e.g., a
+    modified string). Functions that return more than one value are called
     :ref:`multi-valued functions <gloss-multi-valued-functions>`.
 
     Functions may be :ref:`called <sql-function-call>` in an SQL statement,
@@ -172,14 +172,14 @@ N
 
 **Nonscalar**
     A :ref:`data type <data-types>` that can have more than one value
-    (e.g., :ref:`arrays <data-type-array>` and :ref:`objects
-    <object_data_type>`).
+    (e.g., :ref:`arrays <data-types-arrays>` and :ref:`objects
+    <data-types-objects>`).
 
     Contrary to a :ref:`scalar <gloss-scalar>`.
 
     .. SEEALSO::
 
-        :ref:`sql_ddl_datatypes_geographic`
+        :ref:`data-types-geo`
 
         :ref:`data-types-container`
 
@@ -341,13 +341,13 @@ S
 
 **Scalar**
     A :ref:`data type <data-types>` with a single value (e.g., :ref:`numbers
-    <data-type-numeric>` and :ref:`strings <data-type-varchar>`).
+    <type-numeric>` and :ref:`strings <data-type-varchar>`).
 
     Contrary to a :ref:`nonscalar <gloss-nonscalar>`.
 
     .. SEEALSO::
 
-        :ref:`sql_ddl_datatypes_primitives`
+        :ref:`data-types-primitive`
 
 .. _gloss-shard-allocation:
 

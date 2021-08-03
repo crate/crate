@@ -118,19 +118,19 @@ SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------
 
 - Added :ref:`scalar function <scalar-functions>` :ref:`CURRENT_TIME
-  <current_time>`, that returns the system's time as microseconds since
+  <scalar-current_time>`, that returns the system's time as microseconds since
   midnight UTC, at the time the SQL statement is handled. The actual return
-  type is the new data type :ref:`timetz <time-data-type>`.
+  type is the new data type :ref:`timetz <type-timestamp-with-tz>`.
 
-- Added new type :ref:`time with time zone <time-data-type>`, a.k.a ``timetz``,
+- Added new type :ref:`time with time zone <type-timestamp-with-tz>`, a.k.a ``timetz``,
   which is to be used as return type for :ref:`time related functions
   <scalar-date-time>` such as the future ``current_time``.
 
-- Added the :ref:`oidvector_type` data type which is used in some
-  :ref:`postgres_pg_catalog` tables.
+- Added the :ref:`type-oidvector` data type which is used in some
+  :ref:`postgres-pg_catalog` tables.
 
-- Added the :ref:`oid_regproc` alias data type that is used to reference
-  :ref:`functions <gloss-function>` in the :ref:`postgres_pg_catalog` tables.
+- Added the :ref:`type-regproc` alias data type that is used to reference
+  :ref:`functions <gloss-function>` in the :ref:`postgres-pg_catalog` tables.
 
 - Added the :ref:`varchar(n) and character varying(n) <data-type-varchar>`
   types, where ``n`` is an optional length limit.
@@ -139,15 +139,15 @@ SQL Standard and PostgreSQL compatibility improvements
   :ref:`server_version <conf-session-server_version>` read-only session
   settings.
 
-- Added the :ref:`pg_catalog.pg_proc <postgres_pg_catalog>` table.
+- Added the :ref:`pg_catalog.pg_proc <postgres-pg_catalog>` table.
 
-- Added the :ref:`pg_catalog.pg_range <postgres_pg_catalog>` table.
+- Added the :ref:`pg_catalog.pg_range <postgres-pg_catalog>` table.
 
-- Added the :ref:`pg_catalog.pg_enum <postgres_pg_catalog>` table.
+- Added the :ref:`pg_catalog.pg_enum <postgres-pg_catalog>` table.
 
 - Added the :ref:`information_schema.character_sets <character_sets>` table.
 
-- Added :ref:`postgres_pg_type` columns: ``typbyval``, ``typcategory``,
+- Added :ref:`postgres-pg_type` columns: ``typbyval``, ``typcategory``,
   ``typowner``, ``typisdefined``, ``typrelid``, ``typndims``, ``typcollation``,
   ``typinput``, ``typoutput``, and ``typndefault`` for improved PostgreSQL
   compatibility.
@@ -187,7 +187,7 @@ Functions and operators
   :ref:`user-defined functions <user-defined-functions>`. This change upgrades
   ``ECMAScript`` support from ``5.1`` to ``10.0``.
 
-- Added the :ref:`chr <scalar_chr>` :ref:`scalar function <scalar-functions>`.
+- Added the :ref:`chr <scalar-chr>` :ref:`scalar function <scalar-functions>`.
 
 - Added :ref:`length <scalar-length>` and :ref:`repeat <scalar-repeat>` scalar
   functions.
@@ -197,7 +197,7 @@ Functions and operators
 
 - Added the :ref:`trunc <scalar-trunc>` scalar function.
 
-- Added the :ref:`now <now>` scalar function.
+- Added the :ref:`now <scalar-now>` scalar function.
 
 - Added a ``mod`` alias for the :ref:`modulus <scalar-modulus>` function for
   improved PostgreSQL compatibility.
@@ -222,15 +222,15 @@ Functions and operators
 - Added the :ref:`encode(bytea, format) <scalar-encode>` and :ref:`decode(text,
   format) <scalar-decode>` scalar functions.
 
-- Added the :ref:`ascii <scalar_ascii>` scalar function.
+- Added the :ref:`ascii <scalar-ascii>` scalar function.
 
-- Added the :ref:`obj_description(integer, text) <obj_description>` scalar
+- Added the :ref:`obj_description(integer, text) <scalar-obj_description>` scalar
   function for improved PostgreSQL compatibility.
 
-- Added the :ref:`format_type(integer, integer) <format_type>` scalar function
+- Added the :ref:`format_type(integer, integer) <scalar-format_type>` scalar function
   for improved PostgreSQL compatibility.
 
-- Added the :ref:`version() <version>` system information scalar function.
+- Added the :ref:`version() <scalar-version>` system information scalar function.
 
 
 New statements and clauses

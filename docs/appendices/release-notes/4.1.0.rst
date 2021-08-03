@@ -34,7 +34,7 @@ Breaking Changes
   types ``integer`` and ``bigint`` to throw an exception instead of rolling
   over from positive to negative or the other way around.
 
-- Remap CrateDB :ref:`object_data_type` array data type from the PostgreSQL
+- Remap CrateDB :ref:`data-types-objects` array data type from the PostgreSQL
   JSON to JSON array type. That might effect some drivers that use the
   PostgreSQL wire protocol to insert data into tables with object array typed
   columns. For instance, when using the ``Npgsql`` driver, it is not longer
@@ -44,7 +44,7 @@ Breaking Changes
   strings that represent the objects. See the ``Npgsql`` documentation for more
   details.
 
-- Changed how columns of type :ref:`geo_point_data_type` are being communicated
+- Changed how columns of type :ref:`data-types-geo` are being communicated
   to PostgreSQL clients.
 
   Before, clients were told that those columns are double arrays. Now, they are
@@ -148,24 +148,24 @@ Functions and operators
 
 - Added a :ref:`PG_GET_KEYWORDS <pg_catalog.pg_get_keywords>` table function.
 
-- Extended :ref:`CONCAT <scalar_concat>` to do implicit casts, so that calls
+- Extended :ref:`CONCAT <scalar-concat>` to do implicit casts, so that calls
   like ``SELECT 't' || 5`` are supported.
 
 - Added support for casting values of type ``object`` to ``text``. This casting
   will cause the object to be converted to a JSON string.
 
-- Added support for casting to :ref:`geo_point_data_type`,
-  :ref:`geo_shape_data_type` and :ref:`object_data_type` array data types.
+- Added support for casting to :ref:`data-types-geo`,
+  :ref:`data-types-geo-shape` and :ref:`data-types-objects` array data types.
 
   For example::
 
       cast(['POINT(2 3)','POINT(1 3)'] AS array(geo_point))
 
-- Added the :ref:`PG_TYPEOF <pg_typeof>` system function.
+- Added the :ref:`PG_TYPEOF <scalar-pg_typeof>` system function.
 
-- Added the :ref:`INTERVAL <interval_data_type>` data type and extended
+- Added the :ref:`INTERVAL <type-interval>` data type and extended
   :ref:`table-functions-generate-series` to work with timestamps and the new
-  :ref:`INTERVAL <interval_data_type>` type.
+  :ref:`INTERVAL <type-interval>` type.
 
 - Added :ref:`LPAD <scalar-lpad>` and :ref:`RPAD <scalar-rpad>` scalar
   functions.
@@ -178,7 +178,7 @@ Functions and operators
 
 - Added :ref:`TIMEZONE <scalar-timezone>` scalar function.
 
-- Added :ref:`AT TIME ZONE <timestamp-at-time-zone>` syntax.
+- Added :ref:`AT TIME ZONE <type-timestamp-at-tz>` syntax.
 
 - Added support for the operator :ref:`ILIKE <sql_dql_like>`, the case
   insensitive complement to ``LIKE``.
@@ -188,7 +188,7 @@ Functions and operators
 
   Statements like ``192.168.0.0 << 192.168.0.1/24`` :ref:`evaluate
   <gloss-evaluation>` as true, meaning ``SELECT ip FROM ips_table WHERE ip <<
-  192.168.0.1/24`` returns matching :ref:`IP addresses <ip-type>`.
+  192.168.0.1/24`` returns matching :ref:`IP addresses <type-ip>`.
 
 
 New statements and clauses

@@ -304,7 +304,7 @@ Supported bulk SQL statements are:
  - Update
  - Delete
 
-Instead of the ``args`` (:ref:`parameter_substitution`) key, use the key
+Instead of the ``args`` (:ref:`http-param-substitution`) key, use the key
 ``bulk_args``. This allows to specify a list of lists, containing all the
 records which shall be processed. The inner lists need to match the specified
 columns.

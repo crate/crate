@@ -51,5 +51,5 @@ Fixes
   future versions of CrateDB.
 
 - Arithmetic operations now work on :ref:`expressions <gloss-expression>` of
-  type :ref:`timestamp without time zone <date-time-types>`, to make it
+  type :ref:`timestamp without time zone <data-types-dates-times>`, to make it
   consistent with ``timestamp with time zone``.
