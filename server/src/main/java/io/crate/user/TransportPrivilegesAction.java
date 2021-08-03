@@ -37,7 +37,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -84,8 +83,7 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     }
 
     @Override
-    protected void masterOperation(Task task,
-                                   PrivilegesRequest request,
+    protected void masterOperation(PrivilegesRequest request,
                                    ClusterState state,
                                    ActionListener<PrivilegesResponse> listener) throws Exception {
         clusterService.submitStateUpdateTask("grant_privileges",

@@ -30,7 +30,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.IndexShardClosedException;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
@@ -137,7 +136,7 @@ public class BlobRecoveryTarget {
 
     class StartRecoveryRequestHandler implements TransportRequestHandler<BlobStartRecoveryRequest> {
         @Override
-        public void messageReceived(BlobStartRecoveryRequest request, TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(BlobStartRecoveryRequest request, TransportChannel channel) throws Exception {
             LOGGER.info("[{}] StartRecoveryRequestHandler start recovery with recoveryId {}",
                         request.shardId().getId(), request.recoveryId);
 
@@ -159,7 +158,7 @@ public class BlobRecoveryTarget {
 
     private class TransferChunkRequestHandler implements TransportRequestHandler<BlobRecoveryChunkRequest> {
         @Override
-        public void messageReceived(BlobRecoveryChunkRequest request, TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(BlobRecoveryChunkRequest request, TransportChannel channel) throws Exception {
 
             BlobRecoveryStatus onGoingRecovery = onGoingBlobRecoveries.get(request.recoveryId());
             if (onGoingRecovery == null) {
@@ -198,7 +197,7 @@ public class BlobRecoveryTarget {
 
     private class StartPrefixSyncRequestHandler implements TransportRequestHandler<BlobStartPrefixSyncRequest> {
         @Override
-        public void messageReceived(BlobStartPrefixSyncRequest request, TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(BlobStartPrefixSyncRequest request, TransportChannel channel) throws Exception {
             BlobRecoveryStatus status = onGoingBlobRecoveries.get(request.recoveryId());
             if (status == null) {
                 throw new IllegalBlobRecoveryStateException(
@@ -217,7 +216,7 @@ public class BlobRecoveryTarget {
 
     private class StartTransferRequestHandler implements TransportRequestHandler<BlobRecoveryStartTransferRequest> {
         @Override
-        public void messageReceived(BlobRecoveryStartTransferRequest request, TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(BlobRecoveryStartTransferRequest request, TransportChannel channel) throws Exception {
             BlobRecoveryStatus status = onGoingBlobRecoveries.get(request.recoveryId());
             LOGGER.debug("received BlobRecoveryStartTransferRequest for file {} with size {}",
                          request.path(), request.size());
@@ -254,7 +253,7 @@ public class BlobRecoveryTarget {
 
     private class DeleteFileRequestHandler implements TransportRequestHandler<BlobRecoveryDeleteRequest> {
         @Override
-        public void messageReceived(BlobRecoveryDeleteRequest request, TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(BlobRecoveryDeleteRequest request, TransportChannel channel) throws Exception {
             BlobRecoveryStatus status = onGoingBlobRecoveries.get(request.recoveryId());
             if (status.canceled()) {
                 throw new IndexShardClosedException(status.shardId());
@@ -268,7 +267,7 @@ public class BlobRecoveryTarget {
 
     private class FinalizeRecoveryRequestHandler implements TransportRequestHandler<BlobFinalizeRecoveryRequest> {
         @Override
-        public void messageReceived(BlobFinalizeRecoveryRequest request, TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(BlobFinalizeRecoveryRequest request, TransportChannel channel) throws Exception {
 
             BlobRecoveryStatus status = onGoingBlobRecoveries.get(request.recoveryId);
 

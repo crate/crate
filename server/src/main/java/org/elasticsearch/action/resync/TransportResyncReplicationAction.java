@@ -37,7 +37,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.PrimaryReplicaSyncer;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponseHandler;
@@ -130,14 +129,15 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
     }
 
     @Override
-    public void sync(ResyncReplicationRequest request, Task parentTask, String primaryAllocationId, long primaryTerm,
+    public void sync(ResyncReplicationRequest request,
+                     String primaryAllocationId,
+                     long primaryTerm,
                      ActionListener<ReplicationResponse> listener) {
         // skip reroute phase
         transportService.sendChildRequest(
             clusterService.localNode(),
             transportPrimaryAction,
             new ConcreteShardRequest<>(request, primaryAllocationId, primaryTerm),
-            parentTask,
             transportOptions,
             new TransportResponseHandler<ReplicationResponse>() {
 

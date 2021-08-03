@@ -19,7 +19,11 @@
 
 package org.elasticsearch.action.support.replication;
 
-import io.crate.common.unit.TimeValue;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.admin.indices.refresh.TransportShardRefreshAction;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -27,13 +31,9 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.transport.TransportRequest;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+import io.crate.common.unit.TimeValue;
 
 /**
  * Requests that are run on a particular replica, first on the primary and then on the replicas like
@@ -191,10 +191,6 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
         out.writeVLong(routedBasedOnClusterVersion);
     }
 
-    @Override
-    public Task createTask(long id, String type, String action, TaskId parentTaskId) {
-        return new ReplicationTask(id, type, action, getDescription(), parentTaskId);
-    }
 
     /**
      * Sets the target shard id for the request. The shard id is set when a

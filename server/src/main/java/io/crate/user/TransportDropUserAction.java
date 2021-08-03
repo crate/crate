@@ -36,7 +36,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -71,8 +70,7 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
     }
 
     @Override
-    protected void masterOperation(Task task,
-                                   DropUserRequest request,
+    protected void masterOperation(DropUserRequest request,
                                    ClusterState state,
                                    ActionListener<WriteUserResponse> listener) throws Exception {
         clusterService.submitStateUpdateTask("drop_user [" + request.userName() + "]",

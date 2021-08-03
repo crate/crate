@@ -36,7 +36,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -80,8 +79,7 @@ public class TransportPutMappingAction extends TransportMasterNodeAction<PutMapp
     }
 
     @Override
-    protected void masterOperation(Task task,
-                                   final PutMappingRequest request,
+    protected void masterOperation(final PutMappingRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
         try {

@@ -33,7 +33,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -73,9 +72,9 @@ public class TransportDeleteIndexAction extends TransportMasterNodeAction<Delete
     }
 
     @Override
-    protected void doExecute(Task task, DeleteIndexRequest request, ActionListener<AcknowledgedResponse> listener) {
+    protected void doExecute(DeleteIndexRequest request, ActionListener<AcknowledgedResponse> listener) {
         destructiveOperations.failDestructive(request.indices());
-        super.doExecute(task, request, listener);
+        super.doExecute(request, listener);
     }
 
     @Override
@@ -84,8 +83,7 @@ public class TransportDeleteIndexAction extends TransportMasterNodeAction<Delete
     }
 
     @Override
-    protected void masterOperation(Task task,
-                                   final DeleteIndexRequest request,
+    protected void masterOperation(final DeleteIndexRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
         final Set<Index> concreteIndices = new HashSet<>(Arrays.asList(indexNameExpressionResolver.concreteIndices(state, request)));

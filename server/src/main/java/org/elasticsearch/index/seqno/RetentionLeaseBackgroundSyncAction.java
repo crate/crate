@@ -31,7 +31,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
-import org.elasticsearch.action.support.replication.ReplicationTask;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -44,8 +43,6 @@ import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.NodeClosedException;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponseHandler;
@@ -89,16 +86,16 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
     }
 
     @Override
-    protected void doExecute(Task task, Request request, ActionListener<ReplicationResponse> listener) {
+    protected void doExecute(Request request, ActionListener<ReplicationResponse> listener) {
         assert false : "use RetentionLeaseBackgroundSyncAction#backgroundSync";
     }
 
     final void backgroundSync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases) {
         final Request request = new Request(shardId, retentionLeases);
-        final ReplicationTask task = (ReplicationTask) taskManager.register("transport", "retention_lease_background_sync", request);
-        transportService.sendChildRequest(clusterService.localNode(), transportPrimaryAction,
+        transportService.sendChildRequest(
+            clusterService.localNode(),
+            transportPrimaryAction,
             new ConcreteShardRequest<>(request, primaryAllocationId, primaryTerm),
-            task,
             transportOptions,
             new TransportResponseHandler<ReplicationResponse>() {
                 @Override
@@ -113,14 +110,10 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
 
                 @Override
                 public void handleResponse(ReplicationResponse response) {
-                    task.setPhase("finished");
-                    taskManager.unregister(task);
                 }
 
                 @Override
                 public void handleException(TransportException e) {
-                    task.setPhase("finished");
-                    taskManager.unregister(task);
                     if (ExceptionsHelper.unwrap(e, NodeClosedException.class) != null) {
                         // node shutting down
                         return;
@@ -180,11 +173,6 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
         public void writeTo(final StreamOutput out) throws IOException {
             super.writeTo(Objects.requireNonNull(out));
             retentionLeases.writeTo(out);
-        }
-
-        @Override
-        public Task createTask(long id, String type, String action, TaskId parentTaskId) {
-            return new ReplicationTask(id, type, action, "retention_lease_background_sync shardId=" + shardId, parentTaskId);
         }
 
         @Override

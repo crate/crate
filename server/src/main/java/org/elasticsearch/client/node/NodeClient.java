@@ -27,7 +27,6 @@ import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.support.AbstractClient;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
@@ -70,10 +69,10 @@ public class NodeClient extends AbstractClient {
      * interface.
      */
     public <Request extends TransportRequest,
-            Response extends TransportResponse> Task executeLocally(ActionType<Response> action,
+            Response extends TransportResponse> void executeLocally(ActionType<Response> action,
                                                                     Request request,
                                                                     ActionListener<Response> listener) {
-        return transportAction(action).execute(request, listener);
+        transportAction(action).execute(request, listener);
     }
 
     /**

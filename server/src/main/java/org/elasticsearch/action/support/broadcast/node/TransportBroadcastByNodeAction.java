@@ -42,7 +42,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.NodeShouldNotConnectException;
 import org.elasticsearch.transport.TransportChannel;
@@ -211,12 +210,11 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
     protected abstract ClusterBlockException checkRequestBlock(ClusterState state, Request request, String[] concreteIndices);
 
     @Override
-    protected void doExecute(Task task, Request request, ActionListener<Response> listener) {
-        new AsyncAction(task, request, listener).start();
+    protected void doExecute(Request request, ActionListener<Response> listener) {
+        new AsyncAction(request, listener).start();
     }
 
     protected class AsyncAction {
-        private final Task task;
         private final Request request;
         private final ActionListener<Response> listener;
         private final ClusterState clusterState;
@@ -226,8 +224,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
         private final AtomicInteger counter = new AtomicInteger();
         private List<NoShardAvailableActionException> unavailableShardExceptions = new ArrayList<>();
 
-        protected AsyncAction(Task task, Request request, ActionListener<Response> listener) {
-            this.task = task;
+        protected AsyncAction(Request request, ActionListener<Response> listener) {
             this.request = request;
             this.listener = listener;
 
@@ -297,9 +294,6 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
         private void sendNodeRequest(final DiscoveryNode node, List<ShardRouting> shards, final int nodeIndex) {
             try {
                 NodeRequest nodeRequest = new NodeRequest(node.getId(), request, shards);
-                if (task != null) {
-                    nodeRequest.setParentTask(clusterService.localNode().getId(), task.getId());
-                }
                 transportService.sendRequest(node, transportNodeBroadcastAction, nodeRequest, new TransportResponseHandler<NodeResponse>() {
 
                     @Override
@@ -378,7 +372,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
 
     class BroadcastByNodeTransportRequestHandler implements TransportRequestHandler<NodeRequest> {
         @Override
-        public void messageReceived(final NodeRequest request, TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(final NodeRequest request, TransportChannel channel) throws Exception {
             List<ShardRouting> shards = request.getShards();
             final int totalShards = shards.size();
             if (logger.isTraceEnabled()) {

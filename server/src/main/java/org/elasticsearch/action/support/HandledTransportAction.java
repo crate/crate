@@ -22,7 +22,6 @@ package org.elasticsearch.action.support;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
@@ -48,7 +47,7 @@ public abstract class HandledTransportAction<Request extends TransportRequest, R
                                      boolean canTripCircuitBreaker,
                                      TransportService transportService,
                                      Writeable.Reader<Request> requestReader) {
-        super(actionName,transportService.getTaskManager());
+        super(actionName);
         transportService.registerRequestHandler(
             actionName,
             ThreadPool.Names.SAME,
@@ -61,9 +60,8 @@ public abstract class HandledTransportAction<Request extends TransportRequest, R
 
     class TransportHandler implements TransportRequestHandler<Request> {
         @Override
-        public final void messageReceived(final Request request, final TransportChannel channel, Task task) throws Exception {
-            // We already got the task created on the network layer - no need to create it again on the transport layer
-            execute(task, request, new ChannelActionListener<>(channel, actionName, request));
+        public final void messageReceived(final Request request, final TransportChannel channel) throws Exception {
+            execute(request, new ChannelActionListener<>(channel, actionName, request));
         }
     }
 }

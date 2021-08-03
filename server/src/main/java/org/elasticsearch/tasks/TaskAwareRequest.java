@@ -43,13 +43,6 @@ public interface TaskAwareRequest {
     TaskId getParentTask();
 
     /**
-     * Returns the task object that should be used to keep track of the processing of the request.
-     */
-    default Task createTask(long id, String type, String action, TaskId parentTaskId) {
-        return new Task(id, type, action, getDescription(), parentTaskId);
-    }
-
-    /**
      * Returns optional description of the request to be displayed by the task manager
      */
     default String getDescription() {

@@ -128,11 +128,11 @@ public class JoinHelper {
         };
 
         transportService.registerRequestHandler(JOIN_ACTION_NAME, ThreadPool.Names.GENERIC, false, false, JoinRequest::new,
-            (request, channel, task) -> joinHandler.accept(request, transportJoinCallback(request, channel)));
+            (request, channel) -> joinHandler.accept(request, transportJoinCallback(request, channel)));
 
         transportService.registerRequestHandler(START_JOIN_ACTION_NAME, Names.GENERIC, false, false,
             StartJoinRequest::new,
-            (request, channel, task) -> {
+            (request, channel) -> {
                 final DiscoveryNode destination = request.getSourceNode();
                 sendJoinRequest(destination, Optional.of(joinLeaderInTerm.apply(request)));
                 channel.sendResponse(Empty.INSTANCE);
@@ -142,7 +142,7 @@ public class JoinHelper {
             VALIDATE_JOIN_ACTION_NAME,
             ThreadPool.Names.GENERIC,
             ValidateJoinRequest::new,
-            (request, channel, task) -> {
+            (request, channel) -> {
                 final ClusterState localState = currentStateSupplier.get();
                 if (localState.metadata().clusterUUIDCommitted() &&
                     localState.metadata().clusterUUID().equals(request.getState().metadata().clusterUUID()) == false) {

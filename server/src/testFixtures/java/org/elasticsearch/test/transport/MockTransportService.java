@@ -19,42 +19,6 @@
 
 package org.elasticsearch.test.transport;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.ClusterModule;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import io.crate.common.io.IOUtils;
-import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.tasks.TaskManager;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.tasks.MockTaskManager;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.ConnectTransportException;
-import org.elasticsearch.transport.ConnectionManager;
-import org.elasticsearch.transport.ConnectionProfile;
-import org.elasticsearch.transport.MockTcpTransport;
-import org.elasticsearch.transport.RequestHandlerRegistry;
-import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportService;
-import org.elasticsearch.transport.TransportSettings;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -72,6 +36,41 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterModule;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.ConnectTransportException;
+import org.elasticsearch.transport.ConnectionManager;
+import org.elasticsearch.transport.ConnectionProfile;
+import org.elasticsearch.transport.MockTcpTransport;
+import org.elasticsearch.transport.RequestHandlerRegistry;
+import org.elasticsearch.transport.Transport;
+import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportRequestOptions;
+import org.elasticsearch.transport.TransportService;
+import org.elasticsearch.transport.TransportSettings;
+
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 /**
  * A mock delegate service that allows to simulate different network topology failures.
@@ -91,10 +90,6 @@ public final class MockTransportService extends TransportService {
     private final List<Runnable> onStopListeners = new CopyOnWriteArrayList<>();
 
     public static class TestPlugin extends Plugin {
-        @Override
-        public List<Setting<?>> getSettings() {
-            return Arrays.asList(MockTaskManager.USE_MOCK_TASK_MANAGER_SETTING);
-        }
     }
 
     public static MockTransportService createNewService(Settings settings,
@@ -200,15 +195,6 @@ public final class MockTransportService extends TransportService {
         transportAddresses.addAll(Arrays.asList(boundTransportAddress.boundAddresses()));
         transportAddresses.add(boundTransportAddress.publishAddress());
         return transportAddresses.toArray(new TransportAddress[transportAddresses.size()]);
-    }
-
-    @Override
-    protected TaskManager createTaskManager(Settings settings) {
-        if (MockTaskManager.USE_MOCK_TASK_MANAGER_SETTING.get(settings)) {
-            return new MockTaskManager();
-        } else {
-            return super.createTaskManager(settings);
-        }
     }
 
     /**

@@ -27,7 +27,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.NodeShouldNotConnectException;
 import org.elasticsearch.transport.TransportChannel;
@@ -79,8 +78,8 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
     }
 
     @Override
-    protected void doExecute(Task task, NodesRequest request, ActionListener<NodesResponse> listener) {
-        new AsyncAction(task, request, listener).start();
+    protected void doExecute(NodesRequest request, ActionListener<NodesResponse> listener) {
+        new AsyncAction(request, listener).start();
     }
 
     protected boolean transportCompress() {
@@ -128,7 +127,7 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
 
     protected abstract NodeResponse read(StreamInput in) throws IOException;
 
-    protected abstract NodeResponse nodeOperation(NodeRequest request, Task task);
+    protected abstract NodeResponse nodeOperation(NodeRequest request);
 
     class AsyncAction {
 
@@ -136,10 +135,8 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
         private final ActionListener<NodesResponse> listener;
         private final AtomicReferenceArray<Object> responses;
         private final AtomicInteger counter = new AtomicInteger();
-        private final Task task;
 
-        AsyncAction(Task task, NodesRequest request, ActionListener<NodesResponse> listener) {
-            this.task = task;
+        AsyncAction(NodesRequest request, ActionListener<NodesResponse> listener) {
             this.request = request;
             this.listener = listener;
             this.responses = new AtomicReferenceArray<>(request.concreteNodes().length);
@@ -163,9 +160,6 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
                 final String nodeId = node.getId();
                 try {
                     TransportRequest nodeRequest = newNodeRequest(request);
-                    if (task != null) {
-                        nodeRequest.setParentTask(clusterService.localNode().getId(), task.getId());
-                    }
                     transportService.sendRequest(
                         node,
                         transportNodeAction,
@@ -233,8 +227,8 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
     class NodeTransportHandler implements TransportRequestHandler<NodeRequest> {
 
         @Override
-        public void messageReceived(NodeRequest request, TransportChannel channel, Task task) throws Exception {
-            channel.sendResponse(nodeOperation(request, task));
+        public void messageReceived(NodeRequest request, TransportChannel channel) throws Exception {
+            channel.sendResponse(nodeOperation(request));
         }
     }
 

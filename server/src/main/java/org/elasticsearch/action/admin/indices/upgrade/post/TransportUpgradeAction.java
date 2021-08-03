@@ -39,7 +39,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -176,7 +175,7 @@ public class TransportUpgradeAction extends TransportBroadcastByNodeAction<Upgra
     }
 
     @Override
-    protected void doExecute(Task task, UpgradeRequest request, final ActionListener<UpgradeResponse> listener) {
+    protected void doExecute(UpgradeRequest request, final ActionListener<UpgradeResponse> listener) {
         ActionListener<UpgradeResponse> settingsUpdateListener = new ActionListener<UpgradeResponse>() {
             @Override
             public void onResponse(UpgradeResponse upgradeResponse) {
@@ -196,7 +195,7 @@ public class TransportUpgradeAction extends TransportBroadcastByNodeAction<Upgra
                 listener.onFailure(e);
             }
         };
-        super.doExecute(task, request, settingsUpdateListener);
+        super.doExecute(request, settingsUpdateListener);
     }
 
     private void updateSettings(final UpgradeResponse upgradeResponse, final ActionListener<UpgradeResponse> listener) {

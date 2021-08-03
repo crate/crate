@@ -19,24 +19,19 @@
 
 package org.elasticsearch.action.support;
 
+import static org.elasticsearch.action.support.PlainActionFuture.newFuture;
+
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
-
-import static org.elasticsearch.action.support.PlainActionFuture.newFuture;
 
 public abstract class TransportAction<Request extends TransportRequest, Response extends TransportResponse> {
 
     protected final String actionName;
-    protected final TaskManager taskManager;
 
-    protected TransportAction(String actionName,
-                              TaskManager taskManager) {
+    protected TransportAction(String actionName) {
         this.actionName = actionName;
-        this.taskManager = taskManager;
     }
 
     public final ActionFuture<Response> execute(Request request) {
@@ -45,46 +40,13 @@ public abstract class TransportAction<Request extends TransportRequest, Response
         return future;
     }
 
-    /**
-     * Use this method when the transport action call should result in creation of a new task associated with the call.
-     *
-     * This is a typical behavior.
-     */
-    public final Task execute(Request request, ActionListener<Response> listener) {
-        /*
-         * While this version of execute could delegate to the TaskListener
-         * version of execute that'd add yet another layer of wrapping on the
-         * listener and prevent us from using the listener bare if there isn't a
-         * task. That just seems like too many objects. Thus the two versions of
-         * this method.
-         */
-        Task task = taskManager.register("transport", actionName, request);
-        execute(task, request, new ActionListener<Response>() {
-            @Override
-            public void onResponse(Response response) {
-                taskManager.unregister(task);
-                listener.onResponse(response);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                taskManager.unregister(task);
-                listener.onFailure(e);
-            }
-        });
-        return task;
-    }
-
-    /**
-     * Use this method when the transport action should continue to run in the context of the current task
-     */
-    public final void execute(Task task, Request request, ActionListener<Response> listener) {
+    public final void execute(Request request, ActionListener<Response> listener) {
         try {
-            doExecute(task, request, listener);
+            doExecute(request, listener);
         } catch (Exception e) {
             listener.onFailure(e);
         }
     }
 
-    protected abstract void doExecute(Task task, Request request, ActionListener<Response> listener);
+    protected abstract void doExecute(Request request, ActionListener<Response> listener);
 }

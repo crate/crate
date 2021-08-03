@@ -61,7 +61,6 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequestDeduplicator;
@@ -594,7 +593,8 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
         }
 
         @Override
-        protected void masterOperation(Task task, UpdateIndexShardSnapshotStatusRequest request, ClusterState state,
+        protected void masterOperation(UpdateIndexShardSnapshotStatusRequest request,
+                                       ClusterState state,
                                        ActionListener<UpdateIndexShardSnapshotStatusResponse> listener) {
             innerUpdateSnapshotState(request, listener);
         }

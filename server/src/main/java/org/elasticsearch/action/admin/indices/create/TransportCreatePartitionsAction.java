@@ -75,7 +75,6 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.joda.time.DateTime;
@@ -154,8 +153,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     }
 
     @Override
-    protected void masterOperation(Task task,
-                                   final CreatePartitionsRequest request,
+    protected void masterOperation(final CreatePartitionsRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) throws ElasticsearchException {
 

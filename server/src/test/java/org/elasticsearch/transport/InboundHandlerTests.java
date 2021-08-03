@@ -30,7 +30,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
-import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -48,14 +47,12 @@ public class InboundHandlerTests extends ESTestCase {
     private final TestThreadPool threadPool = new TestThreadPool(getClass().getName());
     private final Version version = Version.CURRENT;
 
-    private TaskManager taskManager;
     private InboundHandler handler;
     private FakeTcpChannel channel;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        taskManager = new TaskManager();
         channel = new FakeTcpChannel(randomBoolean(), buildNewFakeTransportAddress().address(), buildNewFakeTransportAddress().address());
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
         InboundMessage.Reader reader = new InboundMessage.Reader(version, namedWriteableRegistry);
@@ -88,8 +85,14 @@ public class InboundHandlerTests extends ESTestCase {
     @Test
     public void testPing() throws Exception {
         AtomicReference<TransportChannel> channelCaptor = new AtomicReference<>();
-        RequestHandlerRegistry<TestRequest> registry = new RequestHandlerRegistry<>("test-request", TestRequest::new, taskManager,
-            (request, channel, task) -> channelCaptor.set(channel), ThreadPool.Names.SAME, false, true);
+        RequestHandlerRegistry<TestRequest> registry = new RequestHandlerRegistry<>(
+            "test-request",
+            TestRequest::new,
+            (request, channel) -> channelCaptor.set(channel),
+            ThreadPool.Names.SAME,
+            false,
+            true
+        );
         handler.registerRequestHandler(registry);
 
         handler.inboundMessage(channel, BytesArray.EMPTY);
@@ -133,11 +136,17 @@ public class InboundHandlerTests extends ESTestCase {
                 return new TestResponse(in);
             }
         }, null, action));
-        RequestHandlerRegistry<TestRequest> registry = new RequestHandlerRegistry<>(action, TestRequest::new, taskManager,
-            (request, channel, task) -> {
+        RequestHandlerRegistry<TestRequest> registry = new RequestHandlerRegistry<>(
+            action,
+            TestRequest::new,
+            (request, channel) -> {
                 channelCaptor.set(channel);
                 requestCaptor.set(request);
-            }, ThreadPool.Names.SAME, false, true);
+            },
+            ThreadPool.Names.SAME,
+            false,
+            true
+        );
         handler.registerRequestHandler(registry);
         String requestValue = randomAlphaOfLength(10);
         OutboundMessage.Request request = new OutboundMessage.Request(

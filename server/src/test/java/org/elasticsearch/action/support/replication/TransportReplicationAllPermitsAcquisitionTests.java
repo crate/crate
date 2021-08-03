@@ -265,7 +265,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                 final TransportReplicationAction.ConcreteShardRequest<Request> primaryRequest
                     = new TransportReplicationAction.ConcreteShardRequest<>(request(), allocationId(), primaryTerm());
                 TransportReplicationAction.AsyncPrimaryAction asyncPrimaryAction =
-                    singlePermitAction.new AsyncPrimaryAction(primaryRequest, listener, null) {
+                    singlePermitAction.new AsyncPrimaryAction(primaryRequest, listener) {
                         @Override
                         protected void doRun() throws Exception {
                             if (delayed) {
@@ -318,7 +318,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             final TransportReplicationAction.ConcreteShardRequest<Request> primaryRequest
                 = new TransportReplicationAction.ConcreteShardRequest<>(request(), allocationId(), primaryTerm());
             TransportReplicationAction.AsyncPrimaryAction asyncPrimaryAction =
-                allPermitsAction.new AsyncPrimaryAction(primaryRequest, allPermitFuture, null) {
+                allPermitsAction.new AsyncPrimaryAction(primaryRequest, allPermitFuture) {
                     @Override
                     void runWithPrimaryShardReference(final TransportReplicationAction.PrimaryShardReference reference) {
                         assertEquals("All permits must be acquired",

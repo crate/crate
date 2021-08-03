@@ -43,7 +43,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.discovery.MasterNotDiscoveredException;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
@@ -102,7 +101,7 @@ public class LocalAllocateDangledIndices {
 
     class AllocateDangledRequestHandler implements TransportRequestHandler<AllocateDangledRequest> {
         @Override
-        public void messageReceived(final AllocateDangledRequest request, final TransportChannel channel, Task task) throws Exception {
+        public void messageReceived(final AllocateDangledRequest request, final TransportChannel channel) throws Exception {
             String[] indexNames = new String[request.indices.length];
             for (int i = 0; i < request.indices.length; i++) {
                 indexNames[i] = request.indices[i].getIndex().getName();

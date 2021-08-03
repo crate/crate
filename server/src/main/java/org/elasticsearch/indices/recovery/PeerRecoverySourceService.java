@@ -44,7 +44,6 @@ import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
@@ -137,9 +136,7 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
     class StartRecoveryTransportRequestHandler implements TransportRequestHandler<StartRecoveryRequest> {
 
         @Override
-        public void messageReceived(final StartRecoveryRequest request,
-                                    final TransportChannel channel,
-                                    Task task) throws Exception {
+        public void messageReceived(final StartRecoveryRequest request, final TransportChannel channel) throws Exception {
             recover(request, new ChannelActionListener<>(channel, Actions.START_RECOVERY, request));
         }
     }

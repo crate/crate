@@ -97,7 +97,7 @@ public class LeaderChecker {
         this.onLeaderFailure = onLeaderFailure;
 
         transportService.registerRequestHandler(LEADER_CHECK_ACTION_NAME, Names.SAME, false, false, LeaderCheckRequest::new,
-            (request, channel, task) -> {
+            (request, channel) -> {
                 handleLeaderCheck(request);
                 channel.sendResponse(Empty.INSTANCE);
             });

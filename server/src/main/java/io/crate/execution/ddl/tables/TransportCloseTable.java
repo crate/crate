@@ -78,7 +78,6 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotInProgressException;
 import org.elasticsearch.snapshots.SnapshotsService;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -134,8 +133,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     }
 
     @Override
-    protected void masterOperation(Task task,
-                                   CloseTableRequest request,
+    protected void masterOperation(CloseTableRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
         assert state.nodes().getMinNodeVersion().onOrAfter(Version.V_4_3_0)

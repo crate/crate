@@ -21,18 +21,18 @@
 
 package io.crate.integrationtests;
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Collection;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SysNodeResiliencyIntegrationTest extends SQLIntegrationTestCase {
