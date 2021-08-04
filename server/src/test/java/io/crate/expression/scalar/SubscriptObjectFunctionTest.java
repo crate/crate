@@ -21,7 +21,9 @@
 
 package io.crate.expression.scalar;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Literal;
+import io.crate.testing.Asserts;
 import org.junit.Test;
 
 import java.util.Map;
@@ -55,7 +57,7 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSubscriptOnObjectLiteralWithNonExistingKey() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(ColumnUnknownException.class);
         assertEvaluate("subscript_obj(obj, 'y')", 10L, Literal.of(Map.of("x", 10L)));
     }
 
@@ -77,5 +79,27 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
     @Test
     public void test_subscript_obj_with_null_child() throws Exception {
         assertEvaluate("subscript_obj({x=null}, 'x', 'y')", null);
+    }
+
+    @Test
+    public void testEvaluateNestedObjectWithUnknownObjectkeysWithSessionSetting() throws Exception {
+        // missing key in the very front
+        sqlExpressions.setErrorOnUnknownObjectKey(true);
+        Asserts.assertThrowsMatches(
+            () -> assertEvaluate("subscript_obj(subscript_obj({x={y=10}}, 'y'), 'y')", null),
+            ColumnUnknownException.class,
+            "The object `{x={y=10}}` does not contain the key `y`"
+        );
+        sqlExpressions.setErrorOnUnknownObjectKey(false);
+        assertEvaluate("subscript_obj(subscript_obj({x={y=10}}, 'y'), 'y')", null);
+        // missing key in the middle
+        sqlExpressions.setErrorOnUnknownObjectKey(true);
+        Asserts.assertThrowsMatches(
+            () -> assertEvaluate("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['x']['z']", null),
+            ColumnUnknownException.class,
+            "The object `{y={z=test}}` does not contain the key `x`"
+        );
+        sqlExpressions.setErrorOnUnknownObjectKey(false);
+        assertEvaluate("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['x']['z']", null);
     }
 }

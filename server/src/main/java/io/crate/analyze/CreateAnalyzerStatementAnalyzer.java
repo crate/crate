@@ -74,7 +74,7 @@ class CreateAnalyzerStatementAnalyzer {
             this.charFilters = new HashMap<>();
             this.tokenFilters = new HashMap<>();
 
-            this.exprContext = new ExpressionAnalysisContext();
+            this.exprContext = new ExpressionAnalysisContext(transactionContext.sessionContext());
             this.exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
                 transactionContext,
                 nodeCtx,

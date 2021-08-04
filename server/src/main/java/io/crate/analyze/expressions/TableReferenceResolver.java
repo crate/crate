@@ -59,7 +59,10 @@ public class TableReferenceResolver implements FieldProvider<Reference> {
     }
 
     @Override
-    public Reference resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
+    public Reference resolveField(QualifiedName qualifiedName,
+                                  @Nullable List<String> path,
+                                  Operation operation,
+                                  boolean errorOnUnknownObjectKey) {
         ColumnIdent columnIdent = columnIdent(qualifiedName, path);
         for (Reference reference : tableReferences) {
             if (reference.column().equals(columnIdent)) {

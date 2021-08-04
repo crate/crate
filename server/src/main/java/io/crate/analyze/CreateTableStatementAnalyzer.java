@@ -63,7 +63,7 @@ public final class CreateTableStatementAnalyzer {
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
-        var exprCtx = new ExpressionAnalysisContext();
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
         Function<Expression, Symbol> exprMapper = y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx);
 
         // 1st phase, map and analyze everything EXCEPT:

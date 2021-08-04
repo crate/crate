@@ -76,7 +76,9 @@ Changes
 
 - Added a new ``table_partitions`` column to the :ref:`sys.snapshots
   <sys-snapshots>` table.
-
+- Added ``error_on_unknown_object_key`` session setting. This will either allow
+  or suppress an error when unknown object keys are queried from dynamic
+  objects.
 - Added ``float4`` type as alias to ``real`` and ``float8`` type as alias to
   ``double precision``
 

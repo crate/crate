@@ -49,7 +49,7 @@ class SetStatementAnalyzer {
             FieldProvider.FIELDS_AS_LITERAL,
             null
         );
-        SetStatement<Symbol> statement = node.map(x -> exprAnalyzer.convert(x, new ExpressionAnalysisContext()));
+        SetStatement<Symbol> statement = node.map(x -> exprAnalyzer.convert(x, new ExpressionAnalysisContext(txnCtx.sessionContext())));
 
         if (node.scope() == SetStatement.Scope.LICENSE) {
             if (node.assignments().size() != AnalyzedSetLicenseStatement.LICENSE_TOKEN_NUM) {

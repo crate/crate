@@ -39,6 +39,7 @@ public class SessionContext {
 
     private SearchPath searchPath;
     private boolean hashJoinEnabled = true;
+    private boolean errorOnUnknownObjectKey = true;
     private Set<Class<? extends Rule<?>>> excludedOptimizerRules;
 
     /**
@@ -82,8 +83,16 @@ public class SessionContext {
         return hashJoinEnabled;
     }
 
+    public boolean errorOnUnknownObjectKey() {
+        return errorOnUnknownObjectKey;
+    }
+
     public void setHashJoinEnabled(boolean hashJoinEnabled) {
         this.hashJoinEnabled = hashJoinEnabled;
+    }
+
+    public void setErrorOnUnknownObjectKey(boolean errorOnUnknownObjectKey) {
+        this.errorOnUnknownObjectKey = errorOnUnknownObjectKey;
     }
 
     public User authenticatedUser() {

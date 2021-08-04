@@ -156,7 +156,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
 
-
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
  * <p>
@@ -669,13 +668,16 @@ public class ExpressionAnalyzer {
 
                 Symbol name;
                 try {
-                    name = fieldProvider.resolveField(qualifiedName, parts, operation);
+                    name = fieldProvider.resolveField(qualifiedName, parts, operation, context.errorOnUnknownObjectKey());
                 } catch (ColumnUnknownException e) {
                     if (operation != Operation.READ) {
                         throw e;
                     }
                     try {
-                        Symbol base = fieldProvider.resolveField(qualifiedName, List.of(), operation);
+                        Symbol base = fieldProvider.resolveField(qualifiedName,
+                                                                 List.of(),
+                                                                 operation,
+                                                                 context.errorOnUnknownObjectKey());
                         if (base instanceof Reference) {
                             throw e;
                         }
@@ -840,9 +842,9 @@ public class ExpressionAnalyzer {
             if (base instanceof QualifiedNameReference) {
                 QualifiedName name = ((QualifiedNameReference) base).getName();
                 try {
-                    return fieldProvider.resolveField(name, path, operation);
+                    return fieldProvider.resolveField(name, path, operation, context.errorOnUnknownObjectKey());
                 } catch (ColumnUnknownException e) {
-                    var baseSymbol = fieldProvider.resolveField(name, List.of(), operation);
+                    var baseSymbol = fieldProvider.resolveField(name,List.of(), operation, context.errorOnUnknownObjectKey());
                     var subscriptFunction = SubscriptFunctions.tryCreateSubscript(baseSymbol, path);
                     if (subscriptFunction == null) {
                         throw e;
@@ -878,7 +880,7 @@ public class ExpressionAnalyzer {
                 return visitSubscriptExpression(subscript, context);
             }
 
-            return fieldProvider.resolveField(node.getName(), null, operation);
+            return fieldProvider.resolveField(node.getName(), null, operation, context.errorOnUnknownObjectKey());
         }
 
         @Override

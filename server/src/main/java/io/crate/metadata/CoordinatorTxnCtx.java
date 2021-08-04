@@ -63,7 +63,8 @@ public final class CoordinatorTxnCtx implements TransactionContext {
         return new SessionSettings(sessionContext.sessionUser().name(),
                                    sessionContext.searchPath(),
                                    sessionContext.isHashJoinEnabled(),
-                                   sessionContext.excludedOptimizerRules());
+                                   sessionContext.excludedOptimizerRules(),
+                                   sessionContext.errorOnUnknownObjectKey());
     }
 
     public SessionContext sessionContext() {

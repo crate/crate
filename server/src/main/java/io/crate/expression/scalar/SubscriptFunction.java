@@ -22,6 +22,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -31,11 +32,11 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import org.elasticsearch.common.TriFunction;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 
 import static io.crate.expression.scalar.SubscriptObjectFunction.tryToInferReturnTypeFromObjectTypeAndArguments;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
@@ -129,11 +130,11 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
 
     private final Signature signature;
     private final Signature boundSignature;
-    private final BiFunction<Object, Object, Object> lookup;
+    private final TriFunction<Object, Object, Boolean, Object> lookup;
 
     private SubscriptFunction(Signature signature,
                               Signature boundSignature,
-                              BiFunction<Object, Object, Object> lookup) {
+                              TriFunction<Object, Object, Boolean, Object> lookup) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.lookup = lookup;
@@ -169,10 +170,10 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         if (element == null || index == null) {
             return null;
         }
-        return lookup.apply(element, index);
+        return lookup.apply(element, index, txnCtx.sessionSettings().errorOnUnknownObjectKey());
     }
 
-    static Object lookupIntoListObjectsByName(Object base, Object name) {
+    static Object lookupIntoListObjectsByName(Object base, Object name, boolean errorOnUnknownObjectKey) {
         List<?> values = (List<?>) base;
         List<Object> result = new ArrayList<>(values.size());
         for (int i = 0; i < values.size(); i++) {
@@ -182,7 +183,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         return result;
     }
 
-    static Object lookupByNumericIndex(Object base, Object index) {
+    static Object lookupByNumericIndex(Object base, Object index, boolean errorOnUnknownObjectKey) {
         List<?> values = (List<?>) base;
         int idx = ((Number) index).intValue();
         try {
@@ -192,13 +193,13 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         }
     }
 
-    static Object lookupByName(Object base, Object name) {
+    static Object lookupByName(Object base, Object name, boolean errorOnUnknownObjectKey) {
         if (!(base instanceof Map)) {
             throw new IllegalArgumentException("Base argument to subscript must be an object, not " + base);
         }
         Map<?, ?> map = (Map<?, ?>) base;
-        if (!map.containsKey(name)) {
-            throw new IllegalArgumentException("The object `" + base + "` does not contain the key `" + name + "`");
+        if (errorOnUnknownObjectKey && !map.containsKey(name)) {
+            throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
         }
         return map.get(name);
     }

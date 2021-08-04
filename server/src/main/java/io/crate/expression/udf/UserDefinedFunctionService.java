@@ -301,14 +301,15 @@ public class UserDefinedFunctionService {
             ).build();
 
             TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());
+            CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
             ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
-                CoordinatorTxnCtx.systemTransactionContext(), nodeCtxWithRemovedFunction, ParamTypeHints.EMPTY, tableReferenceResolver, null);
+                coordinatorTxnCtx, nodeCtxWithRemovedFunction, ParamTypeHints.EMPTY, tableReferenceResolver, null);
             for (var ref : tableInfo.columns()) {
                 if (ref instanceof GeneratedReference) {
                     var genRef = (GeneratedReference) ref;
                     Expression expression = SqlParser.createExpression(genRef.formattedGeneratedExpression());
                     try {
-                        exprAnalyzer.convert(expression, new ExpressionAnalysisContext());
+                        exprAnalyzer.convert(expression, new ExpressionAnalysisContext(coordinatorTxnCtx.sessionContext()));
                     } catch (UnsupportedOperationException e) {
                         throw new IllegalArgumentException(
                             "Cannot drop function '" + functionName + "', it is still in use by '" +

@@ -134,7 +134,7 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
             if (mapValue == null) {
                 return null;
             }
-            mapValue = SubscriptFunction.lookupByName(mapValue, args[i].value());
+            mapValue = SubscriptFunction.lookupByName(mapValue, args[i].value(), txnCtx.sessionSettings().errorOnUnknownObjectKey());
         }
         return mapValue;
     }

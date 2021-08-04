@@ -66,6 +66,12 @@ public class SessionSettingRegistryTest {
         assertBooleanNonEmptySetting(sessionContext::isHashJoinEnabled, setting, true);
     }
 
+    @Test
+    public void testSettingErrorOnUnknownObjectKey() {
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertBooleanNonEmptySetting(sessionContext::errorOnUnknownObjectKey, setting, true);
+    }
+
     private void assertBooleanNonEmptySetting(Supplier<Boolean> contextBooleanSupplier,
                                               SessionSetting<?> sessionSetting,
                                               boolean defaultValue) {

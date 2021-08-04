@@ -45,7 +45,10 @@ public class NameFieldProvider implements FieldProvider<Symbol> {
     }
 
     @Override
-    public Symbol resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
+    public Symbol resolveField(QualifiedName qualifiedName,
+                               @Nullable List<String> path,
+                               Operation operation,
+                               boolean errorOnUnknownObjectKey) {
         List<String> parts = qualifiedName.getParts();
         ColumnIdent columnIdent = new ColumnIdent(parts.get(parts.size() - 1), path);
         if (parts.size() != 1) {
@@ -54,7 +57,7 @@ public class NameFieldProvider implements FieldProvider<Symbol> {
                 "A column must not have a schema or a table here.", qualifiedName));
         }
 
-        Symbol field = relation.getField(columnIdent, operation);
+        Symbol field = relation.getField(columnIdent, operation, errorOnUnknownObjectKey);
         if (field == null) {
             throw new ColumnUnknownException(columnIdent.sqlFqn(), relation.relationName());
         }
