@@ -21,6 +21,7 @@
 
 package io.crate.analyze.expressions;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Expression;
@@ -40,8 +41,13 @@ public class ExpressionAnalysisContext {
 
     private boolean hasAggregates;
     private boolean allowEagerNormalize = true;
+    private final boolean errorOnUnknownObjectKey;
 
     private Map<String, Window> windows = Map.of();
+
+    public ExpressionAnalysisContext(SessionContext sessionContext) {
+        this.errorOnUnknownObjectKey = sessionContext.errorOnUnknownObjectKey();
+    }
 
     void indicateAggregates() {
         hasAggregates = true;
@@ -65,6 +71,10 @@ public class ExpressionAnalysisContext {
 
     public Map<String, Window> windows() {
         return windows;
+    }
+
+    public boolean errorOnUnknownObjectKey() {
+        return errorOnUnknownObjectKey;
     }
 
     /**

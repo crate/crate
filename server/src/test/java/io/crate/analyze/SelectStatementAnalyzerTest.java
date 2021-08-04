@@ -65,6 +65,7 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.BitString;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.testing.T3;
@@ -92,6 +93,7 @@ import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.SymbolMatchers.isVoidReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.anyOf;
@@ -2664,5 +2666,402 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             rel.where(),
             TestingHelpers.isSQL("MATCH((t.body_ft NULL), 'foo') USING best_fields WITH ({})")
         );
+    }
+
+    @Test
+    public void testSubscriptExpressionWithUnknownRootWithSessionSetting() throws Exception {
+        /*
+         * create table tbl (a int);
+         * select unknown['u'] from tbl; --> ColumnUnknownException
+         * set errorOnUnknownObjectKey = false;
+         * select unknown['u'] from tbl; --> ColumnUnknownException
+         */
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE tbl (a int)")
+            .build();
+        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select unknown['u'] from tbl"),
+            ColumnUnknownException.class,
+            "Column unknown['u'] unknown"
+        );
+        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select unknown['u'] from tbl"),
+            ColumnUnknownException.class,
+            "Column unknown['u'] unknown"
+        );
+    }
+
+    @Test
+    public void testSubscriptExpressionWithUnknownObjectKeyWithSessionSetting() throws Exception{
+        /*
+         * CREATE TABLE tbl (obj object, obj_n object as (obj_n2 object));
+         * select obj['u']             from tbl; --> ColumnUnknownException
+         * select obj_n['obj_n2']['u'] from tbl; --> ColumnUnknownException
+         * set errorOnUnknownObjectKey = false;
+         * select obj['u']             from tbl; --> works
+         * select obj_n['obj_n2']['u'] from tbl; --> works
+         */
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE tbl (obj object, obj_n object as (obj_n2 object))")
+            .build();
+        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj['u'] from tbl"),
+            ColumnUnknownException.class,
+            "Column obj['u'] unknown"
+        );
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_n['obj_n2']['u'] from tbl"),
+            ColumnUnknownException.class,
+            "Column obj_n['obj_n2']['u'] unknown"
+        );
+        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        var analyzed = executor.analyze("select obj['u'] from tbl");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isVoidReference("obj['u']"));
+        analyzed = executor.analyze("select obj_n['obj_n2']['u'] from tbl");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isVoidReference("obj_n['obj_n2']['u']"));
+    }
+
+    @Test
+    public void testSubscriptExpressionFromSelectLiteralWithSessionSetting() throws Exception {
+        /*
+         * SELECT ''::OBJECT['x']; --> ColumnUnknownException
+         * set errorOnUnknownObjectKey = false;
+         * SELECT ''::OBJECT['x']; --> works
+         */
+        var executor = SQLExecutor.builder(clusterService).build();
+        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("SELECT ''::OBJECT['x']"),
+            ColumnUnknownException.class,
+            "The object `{}` does not contain the key `x`"
+        );
+        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        var analyzed = executor.analyze("SELECT ''::OBJECT['x']");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isLiteral(null));
+
+        /*
+         * This is documenting a bug. If this fails, it is a breaking change.
+         * select (['{"x":1,"y":2}','{"y":2,"z":3}']::ARRAY(OBJECT))['x'];  --> works --> bug?
+         * set errorOnUnknownObjectKey = false;
+         * select (['{"x":1,"y":2}','{"y":2,"z":3}']::ARRAY(OBJECT))['x'];  --> works
+         */
+        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        analyzed = executor.analyze("select (['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))['x']");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0).toString(), is("[1, NULL]"));
+        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        analyzed = executor.analyze("select (['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))['x']");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0).toString(), is("[1, NULL]"));
+    }
+
+    @Test
+    public void testRecordSubscriptWithUnknownObjectKeyWithSessionSetting() throws Exception {
+        /*
+         * This is documenting a bug. If this fails, it is a breaking change.
+         * CREATE TABLE tbl (obj object(dynamic));
+         * select (obj).y from tbl; --> works --> bug
+         * set errorOnUnknownObjectKey = false;
+         * select (obj).y from tbl; --> works
+         */
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE tbl (obj object(dynamic))")
+            .build();
+        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        var analyzed = executor.analyze("select (obj).y from tbl");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript_obj", isReference("obj"), isLiteral("y")));
+        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        analyzed = executor.analyze("select (obj).y from tbl");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isVoidReference("obj['y']"));
+
+        /*
+         * select ('{}'::object).x; --> ColumnUnknownException
+         * set errorOnUnknownObjectKey = false;
+         * select ('{}'::object).x; --> works
+         */
+        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select ('{}'::object).x"),
+            ColumnUnknownException.class,
+            "The object `{}` does not contain the key `x`"
+        );
+        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        analyzed = executor.analyze("select ('{}'::object).x");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isLiteral(null));
+    }
+
+    @Test
+    public void testAmbiguousSubscriptExpressionWithUnknownObjectKeyToDynamicObjectsWithSessionSetting() throws Exception {
+        /*
+         * CREATE TABLE c1 (obj_dynamic object (dynamic) as (x int))
+         * CREATE TABLE c2 (obj_dynamic object (dynamic) as (y int))
+         *
+         * select obj_dynamic      from c1, c2 --> AmbiguousColumnException
+         * select obj_dynamic['x'] from c1, c2 --> works
+         * select obj_dynamic['y'] from c1, c2 --> works
+         * select obj_dynamic['z'] from c1, c2 --> AmbiguousColumnException
+         * set errorOnUnknownObjectKey = false;
+         * select obj_dynamic      from c1, c2 --> AmbiguousColumnException
+         * select obj_dynamic['x'] from c1, c2 --> works
+         * select obj_dynamic['y'] from c1, c2 --> works
+         * select obj_dynamic['z'] from c1, c2 --> AmbiguousColumnException
+         */
+
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE c1 (obj_dynamic object (dynamic) as (x int))")
+            .addTable("CREATE TABLE c2 (obj_dynamic object (dynamic) as (y int))")
+            .build();
+        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_dynamic from c1, c2"),
+            AmbiguousColumnException.class,
+            "Column \"obj_dynamic\" is ambiguous"
+        );
+        var analyzed = executor.analyze("select obj_dynamic['x'] from c1, c2");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isReference("obj_dynamic['x']"));
+        analyzed = executor.analyze("select obj_dynamic['y'] from c1, c2");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isReference("obj_dynamic['y']"));
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_dynamic['z'] from c1, c2"),
+            AmbiguousColumnException.class,
+            "Column \"obj_dynamic\" is ambiguous"
+        );
+        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_dynamic from c1, c2"),
+            AmbiguousColumnException.class,
+            "Column \"obj_dynamic\" is ambiguous"
+        );
+        analyzed = executor.analyze("select obj_dynamic['x'] from c1, c2");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isReference("obj_dynamic['x']"));
+        analyzed = executor.analyze("select obj_dynamic['y'] from c1, c2");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isReference("obj_dynamic['y']"));
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_dynamic['z'] from c1, c2"),
+            AmbiguousColumnException.class,
+            "Column \"obj_dynamic\" is ambiguous"
+        );
+    }
+
+    @Test
+    public void testAmbiguousSubscriptExpressionWithUnknownObjectKeyToStrictObjectsWithSessionSetting() throws Exception {
+        /*
+         * CREATE TABLE c1 (obj_strict object (strict) as (x int))
+         * CREATE TABLE c2 (obj_strict object (strict) as (y int))
+         *
+         * select obj_strict      from c1, c2 --> AmbiguousColumnException
+         * select obj_strict['x'] from c1, c2 --> works
+         * select obj_strict['y'] from c1, c2 --> works
+         * select obj_strict['z'] from c1, c2 --> AmbiguousColumnException
+         * set errorOnUnknownObjectKey = false;
+         * select obj_strict      from c1, c2 --> AmbiguousColumnException
+         * select obj_strict['x'] from c1, c2 --> works
+         * select obj_strict['y'] from c1, c2 --> works
+         * select obj_strict['z'] from c1, c2 --> AmbiguousColumnException
+         */
+
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE c1 (obj_strict object (strict) as (x int))")
+            .addTable("CREATE TABLE c2 (obj_strict object (strict) as (y int))")
+            .build();
+        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_strict from c1, c2"),
+            AmbiguousColumnException.class,
+            "Column \"obj_strict\" is ambiguous"
+        );
+        var analyzed = executor.analyze("select obj_strict['x'] from c1, c2");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isReference("obj_strict['x']"));
+        analyzed = executor.analyze("select obj_strict['y'] from c1, c2");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isReference("obj_strict['y']"));
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_strict['z'] from c1, c2"),
+            AmbiguousColumnException.class,
+            "Column \"obj_strict\" is ambiguous"
+        );
+        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_strict from c1, c2"),
+            AmbiguousColumnException.class,
+            "Column \"obj_strict\" is ambiguous"
+        );
+        analyzed = executor.analyze("select obj_strict['x'] from c1, c2");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isReference("obj_strict['x']"));
+        analyzed = executor.analyze("select obj_strict['y'] from c1, c2");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isReference("obj_strict['y']"));
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_strict['z'] from c1, c2"),
+            AmbiguousColumnException.class,
+            "Column \"obj_strict\" is ambiguous"
+        );
+    }
+
+    @Test
+    public void testAmbiguousSubscriptExpressionWithUnknownObjectKeyToIgnoredObjectsWithSessionSetting() throws Exception {
+        /*
+         * CREATE TABLE c3 (obj_ignored object (ignored) as (x int))
+         * CREATE TABLE c4 (obj_ignored object (ignored) as (y int))
+         *
+         * select obj_ignored      from c3, c4 --> AmbiguousColumnException
+         * select obj_ignored['x'] from c3, c4 --> AmbiguousColumnException
+         * select obj_ignored['y'] from c3, c4 --> AmbiguousColumnException
+         * set errorOnUnknownObjectKey = false
+         * select obj_ignored      from c3, c4 --> AmbiguousColumnException
+         * select obj_ignored['x'] from c3, c4 --> AmbiguousColumnException
+         * select obj_ignored['y'] from c3, c4 --> AmbiguousColumnException
+         */
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE c3 (obj_ignored object (ignored) as (x int))")
+            .addTable("CREATE TABLE c4 (obj_ignored object (ignored) as (y int))")
+            .build();
+        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_ignored from c3, c4"),
+            AmbiguousColumnException.class,
+            "Column \"obj_ignored\" is ambiguous"
+        );
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_ignored['x'] from c3, c4"),
+            AmbiguousColumnException.class,
+            "Column \"obj_ignored['x']\" is ambiguous"
+        );
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_ignored['y'] from c3, c4"),
+            AmbiguousColumnException.class,
+            "Column \"obj_ignored['y']\" is ambiguous"
+        );
+
+        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_ignored from c3, c4"),
+            AmbiguousColumnException.class,
+            "Column \"obj_ignored\" is ambiguous"
+        );
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_ignored['x'] from c3, c4"),
+            AmbiguousColumnException.class,
+            "Column \"obj_ignored['x']\" is ambiguous"
+        );
+        Asserts.assertThrowsMatches(
+            () -> executor.analyze("select obj_ignored['y'] from c3, c4"),
+            AmbiguousColumnException.class,
+            "Column \"obj_ignored['y']\" is ambiguous"
+        );
+    }
+
+    @Test
+    public void testSubscriptExpressionWithUnknownObjectKeyFromAliasedRelationWithSessionSetting() throws Exception {
+        /*
+         * This is documenting a bug. If this fails, it is a breaking change.
+         * CREATE TABLE e1 (obj_dy object, obj_st object(strict))
+         *
+         * select obj_dy['missing_key'] from (select obj_dy from e1) alias; --> works ------> bug
+         * select obj_st['missing_key'] from (select obj_st from e1) alias; --> works ------> bug (1)
+         * set errorOnUnknownObjectKey = false
+         * select obj_dy['missing_key'] from (select obj_dy from e1) alias; --> works ------> expected
+         * select obj_st['missing_key'] from (select obj_st from e1) alias; --> works ------> bug (depends on (1))
+         */
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE e1 (obj_dy object, obj_st object(strict))")
+            .build();
+        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        var analyzed = executor.analyze("select obj_dy['missing_key'] from (select obj_dy from e1) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj_dy"), isLiteral("missing_key")));
+        analyzed = executor.analyze("select obj_st['missing_key'] from (select obj_st from e1) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj_st"), isLiteral("missing_key")));
+
+        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        analyzed = executor.analyze("select obj_dy['missing_key'] from (select obj_dy from e1) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isVoidReference("obj_dy['missing_key']"));
+        analyzed = executor.analyze("select obj_st['missing_key'] from (select obj_st from e1) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj_st"), isLiteral("missing_key")));
+    }
+
+    @Test
+    public void testSubscriptExpressionFromUnionAll() throws Exception {
+        /*
+         * This is documenting a bug. If this fails, it is a breaking change.
+         * CREATE TABLE c1 (obj object (strict)  as (a int,        c int))
+         * CREATE TABLE c2 (obj object (dynamic) as (       b int, c int))
+         *
+         * select obj['unknown'] from (select obj from c1 union all select obj from c1) alias;  --> works
+         * select obj['unknown'] from (select obj from c2 union all select obj from c2) alias;  --> works
+         * select obj['a']       from (select obj from c1 union all select obj from c2) alias;  --> works
+         * select obj['b']       from (select obj from c1 union all select obj from c2) alias;  --> works
+         * select obj['c']       from (select obj from c1 union all select obj from c2) alias;  --> works
+         * select obj['unknown'] from (select obj from c1 union all select obj from c2) alias;  --> works
+         * set errorOnUnknownObjectKey = false
+         * select obj['unknown'] from (select obj from c1 union all select obj from c1) alias;  --> works
+         * select obj['unknown'] from (select obj from c2 union all select obj from c2) alias;  --> works
+         * select obj['a']       from (select obj from c1 union all select obj from c2) alias;  --> works
+         * select obj['b']       from (select obj from c1 union all select obj from c2) alias;  --> works
+         * select obj['c']       from (select obj from c1 union all select obj from c2) alias;  --> works
+         * select obj['unknown'] from (select obj from c1 union all select obj from c2) alias;  --> works
+         */
+
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE c1 (obj object (strict)  as (a int,        c int))")
+            .addTable("CREATE TABLE c2 (obj object (dynamic) as (       b int, c int))")
+            .build();
+        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        var analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c1) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("unknown")));
+        analyzed = executor.analyze("select obj['unknown'] from (select obj from c2 union all select obj from c2) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("unknown")));
+        analyzed = executor.analyze("select obj['a'] from (select obj from c1 union all select obj from c2) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("a")));
+        analyzed = executor.analyze("select obj['b'] from (select obj from c1 union all select obj from c2) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("b")));
+        analyzed = executor.analyze("select obj['c'] from (select obj from c1 union all select obj from c2) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("c")));
+        analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c2) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("unknown")));
+
+        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c1) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("unknown")));
+        analyzed = executor.analyze("select obj['unknown'] from (select obj from c2 union all select obj from c2) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("unknown")));
+        analyzed = executor.analyze("select obj['a'] from (select obj from c1 union all select obj from c2) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("a")));
+        analyzed = executor.analyze("select obj['b'] from (select obj from c1 union all select obj from c2) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("b")));
+        analyzed = executor.analyze("select obj['c'] from (select obj from c1 union all select obj from c2) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("c")));
+        analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c2) alias");
+        assertThat(analyzed.outputs().size(), is(1));
+        assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("unknown")));
     }
 }

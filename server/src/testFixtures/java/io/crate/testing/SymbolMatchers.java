@@ -32,6 +32,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -152,6 +153,13 @@ public class SymbolMatchers {
             return allOf(Matchers.instanceOf(Reference.class), fm);
         }
         return allOf(Matchers.instanceOf(Reference.class), hasDataType(dataType), fm);
+    }
+
+    public static Matcher<Symbol> isVoidReference(String expectedName) {
+        return allOf(
+            Matchers.instanceOf(VoidReference.class),
+            isReference(expectedName)
+        );
     }
 
     @SafeVarargs

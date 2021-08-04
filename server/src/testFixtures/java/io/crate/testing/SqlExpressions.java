@@ -88,7 +88,7 @@ public class SqlExpressions {
             )
         );
         normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.DOC, null, fieldResolver);
-        expressionAnalysisCtx = new ExpressionAnalysisContext();
+        expressionAnalysisCtx = new ExpressionAnalysisContext(coordinatorTxnCtx.sessionContext());
     }
 
     public Symbol asSymbol(String expression) {
@@ -109,5 +109,9 @@ public class SqlExpressions {
 
     public void setSearchPath(String... schemas) {
         this.coordinatorTxnCtx.sessionContext().setSearchPath(schemas);
+    }
+
+    public void setErrorOnUnknownObjectKey(boolean errorOnUnknownObjectKey) {
+        this.coordinatorTxnCtx.sessionContext().setErrorOnUnknownObjectKey(errorOnUnknownObjectKey);
     }
 }

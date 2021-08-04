@@ -47,7 +47,7 @@ public class KillAnalyzer {
                 txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
             jobId = exprAnalyzerWithoutFields.convert(
                 killStatement.jobId(),
-                new ExpressionAnalysisContext());
+                new ExpressionAnalysisContext(txnCtx.sessionContext()));
         } else {
             jobId = null;
         }

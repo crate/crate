@@ -45,6 +45,7 @@ public class SessionSettingRegistry {
     static final String MAX_INDEX_KEYS = "max_index_keys";
     private static final String SERVER_VERSION_NUM = "server_version_num";
     private static final String SERVER_VERSION = "server_version";
+    static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
     private final Map<String, SessionSetting<?>> settings;
 
     @Inject
@@ -113,7 +114,22 @@ public class SessionSettingRegistry {
                      "Reports the emulated PostgreSQL version number",
                      DataTypes.STRING
                  )
-            );
+            )
+            .put(ERROR_ON_UNKNOWN_OBJECT_KEY,
+                 new SessionSetting<>(
+                     ERROR_ON_UNKNOWN_OBJECT_KEY,
+                     objects -> {
+                         if (objects.length != 1) {
+                             throw new IllegalArgumentException(ERROR_ON_UNKNOWN_OBJECT_KEY + " should have only one argument.");
+                         }
+                     },
+                     objects -> DataTypes.BOOLEAN.implicitCast(objects[0]),
+                     SessionContext::setErrorOnUnknownObjectKey,
+                     s -> Boolean.toString(s.errorOnUnknownObjectKey()),
+                     () -> String.valueOf(true),
+                     "Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.",
+                     DataTypes.BOOLEAN));
+
         for (var providers : sessionSettingProviders) {
             for (var setting : providers.sessionSettings()) {
                 builder.put(setting.name(), setting);

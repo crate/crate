@@ -88,7 +88,8 @@ final class UpdateSourceGen {
         for (String updateColumn : updateColumns) {
             ColumnIdent column = ColumnIdent.fromPath(updateColumn);
             Reference ref = table.getReference(column);
-            this.updateColumns.add(ref == null ? table.getDynamic(column, true) : ref);
+            this.updateColumns.add(
+                ref == null ? table.getDynamic(column, true, txnCtx.sessionSettings().errorOnUnknownObjectKey()) : ref);
         }
         if (table.generatedColumns().isEmpty()) {
             generatedColumns = GeneratedColumns.empty();

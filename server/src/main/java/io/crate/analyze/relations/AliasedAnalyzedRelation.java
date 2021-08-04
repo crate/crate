@@ -21,10 +21,12 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
@@ -85,7 +87,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
     }
 
     @Override
-    public Symbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+    public Symbol getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException(operation + " is not supported on " + alias);
         }
@@ -109,9 +111,9 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
                 childColumnName = new ColumnIdent(childColumnName.name(), column.path());
             }
         }
-        Symbol field = relation.getField(childColumnName, operation);
-        if (field == null) {
-            return null;
+        Symbol field = relation.getField(childColumnName, operation, errorOnUnknownObjectKey);
+        if (field == null || field instanceof VoidReference) {
+            return field;
         }
         ScopedSymbol scopedSymbol = new ScopedSymbol(alias, column, field.valueType());
 

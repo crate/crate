@@ -107,6 +107,7 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
         execute("select name, setting, short_desc, min_val, max_val from pg_catalog.pg_settings");
         assertThat(printedTable(response.rows()), is(
             "enable_hashjoin| false| Considers using the Hash Join instead of the Nested Loop Join implementation.| NULL| NULL\n" +
+            "error_on_unknown_object_key| true| Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.| NULL| NULL\n" +
             "max_index_keys| 32| Shows the maximum number of index keys.| NULL| NULL\n" +
             "optimizer_deduplicate_order| true| Indicates if the optimizer rule DeduplicateOrder is activated.| NULL| NULL\n" +
             "optimizer_merge_aggregate_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateAndCollectToCount is activated.| NULL| NULL\n" +

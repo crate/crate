@@ -48,13 +48,16 @@ public class ExcludedFieldProvider implements FieldProvider<Symbol> {
     }
 
     @Override
-    public Symbol resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
+    public Symbol resolveField(QualifiedName qualifiedName,
+                               @Nullable List<String> path,
+                               Operation operation,
+                               boolean errorOnUnknownObjectKey) {
         List<String> parts = qualifiedName.getParts();
         if (parts.size() == 2 && parts.get(0).equals("excluded")) {
             String colName = parts.get(1);
-            Symbol symbol = fieldProvider.resolveField(new QualifiedName(colName), path, operation);
+            Symbol symbol = fieldProvider.resolveField(new QualifiedName(colName), path, operation, errorOnUnknownObjectKey);
             return valuesResolver.allocateAndResolve(symbol);
         }
-        return fieldProvider.resolveField(qualifiedName, path, operation);
+        return fieldProvider.resolveField(qualifiedName, path, operation, errorOnUnknownObjectKey);
     }
 }

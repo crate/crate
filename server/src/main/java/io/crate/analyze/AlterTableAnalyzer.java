@@ -58,7 +58,7 @@ class AlterTableAnalyzer {
                                CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
-        var exprCtx = new ExpressionAnalysisContext();
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
 
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
 
@@ -78,7 +78,7 @@ class AlterTableAnalyzer {
 
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
-        var exprCtx = new ExpressionAnalysisContext();
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
 
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
 
@@ -119,7 +119,7 @@ class AlterTableAnalyzer {
                                                CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsStrings = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
-        var exprCtx = new ExpressionAnalysisContext();
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
 
         Table<Symbol> table = node.table().map(x -> exprAnalyzerWithFieldsAsStrings.convert(x, exprCtx));
         RelationName relationName;

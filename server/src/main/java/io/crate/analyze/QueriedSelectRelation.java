@@ -82,7 +82,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         return from;
     }
 
-    public Symbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+    public Symbol getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         Symbol match = null;
         for (Symbol output : outputs()) {
             ColumnIdent outputName = Symbols.pathFromSymbol(output);
@@ -97,7 +97,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
             // SELECT obj['x'] FROM (select...)
             // This is to optimize `obj['x']` to a reference with path instead of building a subscript function.
             for (AnalyzedRelation analyzedRelation : from) {
-                Symbol field = analyzedRelation.getField(column, operation);
+                Symbol field = analyzedRelation.getField(column, operation, errorOnUnknownObjectKey);
                 if (field != null) {
                     if (match != null) {
                         throw new AmbiguousColumnException(column, field);

@@ -130,7 +130,7 @@ public final class ValueNormalizer {
                 }
                 DynamicReference dynamicReference = null;
                 if (tableInfo instanceof DocTableInfo) {
-                    dynamicReference = ((DocTableInfo) tableInfo).getDynamic(nestedIdent, true);
+                    dynamicReference = ((DocTableInfo) tableInfo).getDynamic(nestedIdent, true, true);
                 }
                 if (dynamicReference == null) {
                     throw new ColumnUnknownException(nestedIdent.sqlFqn(), tableInfo.ident());

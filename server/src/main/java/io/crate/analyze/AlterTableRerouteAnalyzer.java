@@ -100,7 +100,7 @@ public class AlterTableRerouteAnalyzer {
                         ParamTypeHints paramTypeHints) {
             this.tableInfo = tableInfo;
             this.partitionProperties = partitionProperties;
-            this.exprCtx = new ExpressionAnalysisContext();
+            this.exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
             this.exprAnalyzer = new ExpressionAnalyzer(
                 txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
             this.exprAnalyzerWithFields = new ExpressionAnalyzer(
