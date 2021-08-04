@@ -393,6 +393,8 @@ public final class DataTypes {
         entry("byte", BYTE),
         entry("short", SHORT),
         entry("float", FLOAT),
+        entry("float4", FLOAT),
+        entry("float8", DOUBLE),
         entry("double", DOUBLE),
         entry("string", STRING),
         entry("varchar", STRING),

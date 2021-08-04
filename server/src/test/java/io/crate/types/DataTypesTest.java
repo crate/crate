@@ -161,6 +161,16 @@ public class DataTypesTest extends ESTestCase {
     }
 
     @Test
+    public void testFloat4IsAliasedToReal() {
+        assertThat(DataTypes.ofName("float4"), is(DataTypes.FLOAT));
+    }
+
+    @Test
+    public void testFloat8IsAliasedToDouble() {
+        assertThat(DataTypes.ofName("float8"), is(DataTypes.DOUBLE));
+    }
+
+    @Test
     public void test_is_same_type_on_primitive_types() {
         assertThat(DataTypes.isSameType(DataTypes.STRING, DataTypes.STRING), is(true));
         assertThat(DataTypes.isSameType(DataTypes.INTEGER, DataTypes.DOUBLE), is(false));
