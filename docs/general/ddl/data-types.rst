@@ -1728,6 +1728,10 @@ See the table below for a full list of aliases:
 +-------------+--------------------------+
 | float       | real                     |
 +-------------+--------------------------+
+| float4      | real                     |
++-------------+--------------------------+
+| float8      | double precision         |
++-------------+--------------------------+
 | double      | double precision         |
 +-------------+--------------------------+
 | timestamp   | timestamp with time zone |
