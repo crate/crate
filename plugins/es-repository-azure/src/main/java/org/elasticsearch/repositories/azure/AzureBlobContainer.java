@@ -35,6 +35,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.nio.file.NoSuchFileException;
+import java.util.List;
 import java.util.Map;
 
 public class AzureBlobContainer extends AbstractBlobContainer {
@@ -102,8 +103,7 @@ public class AzureBlobContainer extends AbstractBlobContainer {
         writeBlob(blobName, inputStream, blobSize, failIfAlreadyExists);
     }
 
-    @Override
-    public void deleteBlob(String blobName) throws IOException {
+    private void deleteBlob(String blobName) throws IOException {
         logger.trace("deleteBlob({})", blobName);
 
         try {
@@ -124,6 +124,21 @@ public class AzureBlobContainer extends AbstractBlobContainer {
             blobStore.deleteBlobDirectory(keyPath);
         } catch (URISyntaxException | StorageException e) {
             throw new IOException(e);
+        }
+    }
+
+    public void deleteBlobsIgnoringIfNotExists(List<String> blobNames) throws IOException {
+        // TODO: Upgrade to newer non-blocking Azure SDK 11 and execute delete requests in parallel that way.
+        for (String blobName : blobNames) {
+            try {
+                blobStore.deleteBlob(buildKey(blobName));
+            } catch (StorageException e) {
+                if (e.getHttpStatusCode() != HttpURLConnection.HTTP_NOT_FOUND) {
+                    throw new IOException(e);
+                }
+            } catch (URISyntaxException e) {
+                throw new IOException(e);
+            }
         }
     }
 

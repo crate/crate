@@ -56,6 +56,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.MAX_FILE_SIZE;
@@ -107,12 +108,9 @@ class S3BlobContainer extends AbstractBlobContainer {
     }
 
     @Override
-    public void deleteBlob(String blobName) throws IOException {
-        deleteBlobIgnoringIfNotExists(blobName);
-    }
-
-    @Override
     public void delete() throws IOException {
+        final AtomicLong deletedBlobs = new AtomicLong();
+        final AtomicLong deletedBytes = new AtomicLong();
         try (AmazonS3Reference clientReference = blobStore.clientReference()) {
             ObjectListing prevListing = null;
             while (true) {
@@ -249,16 +247,6 @@ class S3BlobContainer extends AbstractBlobContainer {
 
     private static DeleteObjectsRequest bulkDelete(String bucket, List<String> blobs) {
         return new DeleteObjectsRequest(bucket).withKeys(blobs.toArray(Strings.EMPTY_ARRAY)).withQuiet(true);
-    }
-
-    @Override
-    public void deleteBlobIgnoringIfNotExists(String blobName) throws IOException {
-        try (AmazonS3Reference clientReference = blobStore.clientReference()) {
-            // There is no way to know if an non-versioned object existed before the deletion
-            clientReference.client().deleteObject(blobStore.bucket(), buildKey(blobName));
-        } catch (final AmazonClientException e) {
-            throw new IOException("Exception when deleting blob [" + blobName + "]", e);
-        }
     }
 
 

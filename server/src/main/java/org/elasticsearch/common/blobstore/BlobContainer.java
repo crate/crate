@@ -95,63 +95,19 @@ public interface BlobContainer {
     }
 
     /**
-     * Deletes the blob with the given name, if the blob exists. If the blob does not exist,
-     * this method throws a NoSuchFileException.
-     *
-     * @param   blobName
-     *          The name of the blob to delete.
-     * @throws  NoSuchFileException if the blob does not exist
-     * @throws  IOException if the blob exists but could not be deleted.
-     */
-    void deleteBlob(String blobName) throws IOException;
-
-    /**
      * Deletes this container and all its contents from the repository.
      * @throws IOException on failure
      */
     void delete() throws IOException;
 
     /**
-     * Deletes the blobs with given names. Unlike {@link #deleteBlob(String)} this method will not throw an exception
+     * Deletes the blobs with given names. This method will not throw an exception
      * when one or multiple of the given blobs don't exist and simply ignore this case.
      *
      * @param   blobNames  The names of the blob to delete.
      * @throws  IOException if a subset of blob exists but could not be deleted.
      */
-    default void deleteBlobsIgnoringIfNotExists(List<String> blobNames) throws IOException {
-        IOException ioe = null;
-        for (String blobName : blobNames) {
-            try {
-                deleteBlob(blobName);
-            } catch (NoSuchFileException e) {
-                // ignored
-            } catch (IOException e) {
-                if (ioe == null) {
-                    ioe = e;
-                } else {
-                    ioe.addSuppressed(e);
-                }
-            }
-        }
-        if (ioe != null) {
-            throw ioe;
-        }
-    }
-
-    /**
-     * Deletes a blob with giving name, ignoring if the blob does not exist.
-     *
-     * @param   blobName
-     *          The name of the blob to delete.
-     * @throws  IOException if the blob exists but could not be deleted.
-     */
-    default void deleteBlobIgnoringIfNotExists(String blobName) throws IOException {
-        try {
-            deleteBlob(blobName);
-        } catch (final NoSuchFileException ignored) {
-            // This exception is ignored
-        }
-    }
+    void deleteBlobsIgnoringIfNotExists(List<String> blobNames) throws IOException;
 
     /**
      * Lists all child containers under this container. A child container is defined as a container whose {@link #path()} method returns
