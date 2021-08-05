@@ -78,6 +78,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -339,6 +340,34 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 }
             });
         }, listener::onFailure);
+    }
+
+    public boolean hasOldVersionSnapshots(String repositoryName, RepositoryData repositoryData, @Nullable SnapshotId excluded) {
+        final Collection<SnapshotId> snapshotIds = repositoryData.getSnapshotIds();
+        final boolean hasOldFormatSnapshots;
+        if (snapshotIds.isEmpty()) {
+            hasOldFormatSnapshots = false;
+        } else {
+            if (repositoryData.shardGenerations().totalShards() > 0) {
+                hasOldFormatSnapshots = false;
+            } else {
+                try {
+                    final Repository repository = repositoriesService.repository(repositoryName);
+                    hasOldFormatSnapshots = snapshotIds.stream().filter(snapshotId -> snapshotId.equals(excluded) == false).anyMatch(
+                        snapshotId -> {
+                            final Version known = repositoryData.getVersion(snapshotId);
+                            return (known == null ? repository.getSnapshotInfo(snapshotId).version() : known)
+                                .before(SHARD_GEN_IN_REPO_DATA_VERSION);
+                        });
+                } catch (SnapshotMissingException e) {
+                    LOGGER.warn("Failed to load snapshot metadata, assuming repository is in old format", e);
+                    return true;
+                }
+            }
+        }
+        assert hasOldFormatSnapshots == false || repositoryData.shardGenerations().totalShards() == 0 :
+            "Found non-empty shard generations [" + repositoryData.shardGenerations() + "] but repository contained old version snapshots";
+        return hasOldFormatSnapshots;
     }
 
     /**

@@ -80,7 +80,7 @@ public abstract class RestoreOnlyRepository implements Repository {
     @Override
     public void getRepositoryData(ActionListener<RepositoryData> listener) {
         final IndexId indexId = new IndexId(indexName, "blah");
-            listener.onResponse(new RepositoryData(EMPTY_REPO_GEN, Map.of(), Map.of(),
+            listener.onResponse(new RepositoryData(EMPTY_REPO_GEN, Map.of(), Map.of(), Map.of(),
             Map.of(indexId, Set.of()), ShardGenerations.EMPTY));
     }
 

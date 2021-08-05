@@ -62,7 +62,7 @@ public class SysSnapshotsTest extends ESTestCase {
         snapshots.put(s1.getUUID(), s1);
         snapshots.put(s2.getUUID(), s2);
         RepositoryData repositoryData = new RepositoryData(
-            1, snapshots, Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY);
+            1, snapshots, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY);
 
         Repository r1 = mock(Repository.class);
         doAnswer((Answer<Void>) invocation -> {
