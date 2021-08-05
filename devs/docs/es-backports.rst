@@ -557,6 +557,7 @@ should be crossed out as well.
 - [ ] 6e7478b8461 Allow proxy mode server name to be configured (#50951)
 - [ ] d8510be3d98 Revert "Send cluster name and discovery node in handshake (#48916)" (#50944)
 - [x] b146740e052 Fix queuing in AsyncLucenePersistedState (#50958)
+- [x] 16c07472e5d Track Snapshot Version in RepositoryData (#50930) (#50989)
 - [x] 91d7b446a0c Warn on slow metadata performance (#50956)
 - [x] 22ba759e1f3 Move metadata storage to Lucene (#50928) (From this commit the log is based on the 7.10 branch)
 - [x] 0510af87868 Do not force refresh when write indexing buffer (#50769)
