@@ -558,19 +558,20 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         private void cleanupAfterError(Exception exception) {
             threadPool.generic().execute(() -> {
                 if (snapshotCreated) {
-                    repositoriesService.repository(snapshot.snapshot().getRepository()).finalizeSnapshot(snapshot.snapshot().getSnapshotId(),
-                        buildGenerations(snapshot),
-                        snapshot.startTime(),
-                        ExceptionsHelper.stackTrace(exception),
-                        0,
-                        Collections.emptyList(),
-                        snapshot.repositoryStateId(),
-                        snapshot.includeGlobalState(),
-                        metadataForSnapshot(snapshot, clusterService.state().metadata()),
-                        snapshot.useShardGenerations(),
-                        ActionListener.runAfter(ActionListener.wrap(
-                            ignored -> {},
-                            inner -> {
+                    final Metadata metadata = clusterService.state().metadata();
+                    repositoriesService.repository(snapshot.snapshot().getRepository())
+                        .finalizeSnapshot(snapshot.snapshot().getSnapshotId(),
+                            buildGenerations(snapshot, metadata),
+                            snapshot.startTime(),
+                            ExceptionsHelper.stackTrace(exception),
+                            0,
+                            Collections.emptyList(),
+                            snapshot.repositoryStateId(),
+                            snapshot.includeGlobalState(),
+                            metadataForSnapshot(snapshot, metadata),
+                            snapshot.useShardGenerations(),
+                            ActionListener.runAfter(ActionListener.wrap(ignored -> {
+                            }, inner -> {
                                 inner.addSuppressed(exception);
                                 LOGGER.warn(
                                     () -> new ParameterizedMessage("[{}] failed to finalize snapshot in repository", snapshot.snapshot()), inner);
@@ -585,11 +586,21 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         }
     }
 
-    private static ShardGenerations buildGenerations(SnapshotsInProgress.Entry snapshot) {
+    private static ShardGenerations buildGenerations(SnapshotsInProgress.Entry snapshot, Metadata metadata) {
         ShardGenerations.Builder builder = ShardGenerations.builder();
         final Map<String, IndexId> indexLookup = new HashMap<>();
         snapshot.indices().forEach(idx -> indexLookup.put(idx.getName(), idx));
-        snapshot.shards().forEach(c -> builder.put(indexLookup.get(c.key.getIndexName()), c.key.id(), c.value.generation()));
+        snapshot.shards().forEach(c -> {
+            if (metadata.index(c.key.getIndex()) == null) {
+                assert snapshot.partial() :
+                    "Index [" + c.key.getIndex() + "] was deleted during a snapshot but snapshot was not partial.";
+                return;
+            }
+            final IndexId indexId = indexLookup.get(c.key.getIndexName());
+            if (indexId != null) {
+                builder.put(indexId, c.key.id(), c.value.generation());
+            }
+        });
         return builder.build();
     }
 
@@ -1026,12 +1037,13 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         shardFailures.add(new SnapshotShardFailure(status.nodeId(), shardId, status.reason()));
                     }
                 }
+                final ShardGenerations shardGenerations = buildGenerations(entry, metadata);
                 repository.finalizeSnapshot(
                     snapshot.getSnapshotId(),
-                    buildGenerations(entry),
+                    shardGenerations,
                     entry.startTime(),
                     failure,
-                    entry.shards().size(),
+                    entry.partial() ? shardGenerations.totalShards() : entry.shards().size(),
                     unmodifiableList(shardFailures),
                     entry.repositoryStateId(),
                     entry.includeGlobalState(),
