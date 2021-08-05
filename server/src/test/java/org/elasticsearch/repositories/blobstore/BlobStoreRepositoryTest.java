@@ -22,6 +22,7 @@
 package org.elasticsearch.repositories.blobstore;
 
 import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.common.Strings;
@@ -239,7 +240,8 @@ public class BlobStoreRepositoryTest extends SQLIntegrationTestCase {
             for (int j = 0; j < numIndices; j++) {
                 builder.put(new IndexId(randomAlphaOfLength(8), UUIDs.randomBase64UUID()), 0, "1");
             }
-            repoData = repoData.addSnapshot(snapshotId, randomFrom(SnapshotState.SUCCESS, SnapshotState.PARTIAL, SnapshotState.FAILED), builder.build());
+            repoData = repoData.addSnapshot(snapshotId, randomFrom(SnapshotState.SUCCESS, SnapshotState.PARTIAL, SnapshotState.FAILED),
+                                            Version.CURRENT,builder.build());
         }
         return repoData;
     }
