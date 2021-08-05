@@ -571,6 +571,7 @@ should be crossed out as well.
 - [su] 5e0030e1306 Adjust BWC for peer recovery retention leases (#50351)
 - [s] a48d19d73a8 Add remote info to the HLRC (#50482)
 - [x] 4f24739fbef Fix Index Deletion During Partial Snapshot Create (#50234) (#50266)
+- [x] aecbb2f78e6 Fix Index Deletion during Snapshot Finalization (#50202)
 - [s] b7ac7324d23 Revert "Add remote info to the HLRC (#49657)"
 - [sn] f4989c54c45 Revert "serialize initial_connect_timeout as xcontent correctly"
 - [sn] ae64eaabdae serialize initial_connect_timeout as xcontent correctly

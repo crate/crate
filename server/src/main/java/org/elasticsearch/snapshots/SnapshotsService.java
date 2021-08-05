@@ -1548,21 +1548,10 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         final Set<Index> indices = new HashSet<>();
         for (final SnapshotsInProgress.Entry entry : snapshots.entries()) {
             if (entry.partial() == false) {
-                if (entry.state() == State.INIT) {
-                    for (IndexId index : entry.indices()) {
-                        IndexMetadata indexMetadata = currentState.metadata().index(index.getName());
-                        if (indexMetadata != null && indicesToCheck.contains(indexMetadata.getIndex())) {
-                            indices.add(indexMetadata.getIndex());
-                        }
-                    }
-                } else {
-                    for (ObjectObjectCursor<ShardId, SnapshotsInProgress.ShardSnapshotStatus> shard : entry.shards()) {
-                        Index index = shard.key.getIndex();
-                        if (indicesToCheck.contains(index)
-                            && shard.value.state().completed() == false
-                            && currentState.getMetadata().index(index) != null) {
-                            indices.add(index);
-                        }
+                for (IndexId index : entry.indices()) {
+                    IndexMetadata indexMetaData = currentState.metadata().index(index.getName());
+                    if (indexMetaData != null && indicesToCheck.contains(indexMetaData.getIndex())) {
+                        indices.add(indexMetaData.getIndex());
                     }
                 }
             }
