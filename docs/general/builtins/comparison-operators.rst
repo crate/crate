@@ -68,6 +68,26 @@ When comparing dates, `ISO date formats`_ can be used::
     +--------------+----------+
     SELECT 2 rows in set (... sec)
 
+For integer :ref:`data types <data-types>`, in addition to basic operators,
+the following operators can be used:
+
+========  ==========================
+Operator  Description
+========  ==========================
+``&``     Bitwise AND
+========  ==========================
+
+Bitwise AND example::
+
+    cr> select * from bitwise where type_value & 3;
+    +-------------+------------+
+    | type_name   | type_value |
+    +-------------+------------+
+    | MSG_ERROR   |          1 |
+    | MSG_WARNING |          2 |
+    +-------------+------------+
+    SELECT 2 rows in set (0.003 sec)
+
 .. TIP::
 
     Comparison operators are commonly used to filter rows (e.g., in the

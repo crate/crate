@@ -21,28 +21,27 @@
 
 package io.crate.expression.operator;
 
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.expression.operator.any.AnyOperators;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.scalar.ScalarTestCase;
+import org.junit.Test;
 
-public class OperatorModule extends AbstractFunctionModule<FunctionImplementation> {
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
-    @Override
-    public void configureFunctions() {
-        AndOperator.register(this);
-        OrOperator.register(this);
-        EqOperator.register(this);
-        CIDROperator.register(this);
-        LtOperator.register(this);
-        LteOperator.register(this);
-        GtOperator.register(this);
-        GteOperator.register(this);
-        BitwiseAndOperator.register(this);
-        RegexpMatchOperator.register(this);
-        RegexpMatchCaseInsensitiveOperator.register(this);
+public class BitwiseAndOperatorTest extends ScalarTestCase {
 
-        AnyOperators.register(this);
-        AllOperator.register(this);
-        LikeOperators.register(this);
+    @Test
+    public void testBitwiseAnd() {
+        assertNormalize("id & 8", isFunction("op_&"));
+        assertNormalize("4 & 20", isLiteral(true));
+        assertNormalize("16 & 20", isLiteral(true));
+        assertNormalize("1 & 20", isLiteral(false));
+        assertNormalize("2 & 20", isLiteral(false));
+        assertNormalize("1 & 3", isLiteral(true));
+        assertNormalize("2 & 3", isLiteral(true));
+        assertNormalize("4 & 3", isLiteral(false));
+        assertNormalize("16 & 3", isLiteral(false));
+        assertEvaluate("null & null", null);
+        assertEvaluate("20 & null", null);
+        assertEvaluate("null & 3", null);
     }
 }
