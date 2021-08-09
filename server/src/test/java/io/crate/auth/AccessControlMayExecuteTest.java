@@ -43,6 +43,7 @@ import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -609,5 +610,11 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_optimize_table_is_allowed_with_ddl_privileges_on_table() {
         analyze("optimize table users");
         assertAskedForTable(Privilege.Type.DDL, "doc.users");
+    }
+
+    @Test
+    public void test_show_transaction_isolation_does_not_require_privileges() throws Exception {
+        analyze("show transaction_isolation");
+        assertThat(validationCallArguments, Matchers.empty());
     }
 }
