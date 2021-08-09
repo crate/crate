@@ -647,6 +647,7 @@ should be crossed out as well.
 - [x] 39a3d637340 Unguice Snapshot / Restore services (#42357)
 - [x] c1de8c29db2 Cluster state from API should always have a master (#42454)
 - [x] 749135b37c9 Prevent in-place downgrades and invalid upgrades (#41731)
+- [x] 70eb812f83b Remove Delete Method from BlobStore (#41619)
 - [x] 328ba09f84b Omit non-masters in ClusterFormationFailureHelper (#41344)
 - [x] 2f41b1b64de Remove `Tracer` from `MockTransportService` (#40237)
 - [x] 6199ca742f7 Remove Redundant Request Wrappers from RepositoryService (#40192)

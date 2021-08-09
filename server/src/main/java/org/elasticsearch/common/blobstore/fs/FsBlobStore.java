@@ -26,7 +26,6 @@ import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.io.IOUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -69,11 +68,6 @@ public class FsBlobStore implements BlobStore {
         } catch (IOException ex) {
             throw new ElasticsearchException("failed to create blob container", ex);
         }
-    }
-
-    @Override
-    public void delete(BlobPath path) throws IOException {
-        IOUtils.rm(buildPath(path));
     }
 
     @Override

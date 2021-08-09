@@ -74,16 +74,6 @@ public class AzureBlobStore implements BlobStore {
     }
 
     @Override
-    public void delete(BlobPath path) throws IOException {
-        final String keyPath = path.buildAsString();
-        try {
-            service.deleteFiles(container, keyPath);
-        } catch (URISyntaxException | StorageException e) {
-            throw new IOException(e);
-        }
-    }
-
-    @Override
     public void close() {
     }
 
