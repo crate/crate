@@ -69,7 +69,7 @@ class ShowStatementAnalyzer {
          * Rewrite
          *     SHOW TRANSACTION ISOLATION LEVEL
          * To
-         *      select 'read uncommitted' from sys.cluster
+         *      select 'read uncommitted'
          *
          * In order to return a single row with 'read uncommitted`.
          *
@@ -79,14 +79,14 @@ class ShowStatementAnalyzer {
          *
          * See https://www.postgresql.org/docs/9.5/static/transaction-iso.html
          */
-        return (Query) SqlParser.createStatement("select 'read uncommitted' as transaction_isolation from sys.cluster");
+        return (Query) SqlParser.createStatement("select 'read uncommitted' as transaction_isolation");
     }
 
     AnalyzedStatement analyzeShowTransaction(Analysis analysis) {
         return unboundAnalyze(rewriteShowTransaction(), analysis);
     }
 
-    public AnalyzedStatement analyzeShowCreateTable(Table table, Analysis analysis) {
+    public AnalyzedStatement analyzeShowCreateTable(Table<?> table, Analysis analysis) {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             table.getName(),
             Operation.SHOW_CREATE,

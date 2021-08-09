@@ -60,6 +60,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused the ``SHOW TRANSACTION_ISOLATION`` statement to
+  require privileges for the ``sys`` schema.
+
 - Fixed an issue in the execution plan generation for ``SELECT COUNT(*) FROM
   ...`` statements with predicates like ``'a' in ANY(varchar_array_column)``.
   Such predicates resulted in a cast on the column (``'a' in
