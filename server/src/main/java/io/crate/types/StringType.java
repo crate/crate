@@ -48,6 +48,18 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
+import static io.crate.common.StringUtils.isBlank;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentFactory;
+
+import io.crate.Streamer;
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.engine.indexing.StringValueIndexer;
+import io.crate.execution.engine.indexing.ValueIndexer;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -327,5 +339,9 @@ public class StringType extends DataType<String> implements Streamer<String> {
     @Override
     public StorageSupport<String> storageSupport() {
         return STORAGE;
+    }
+
+    public ValueIndexer<String> valueIndexer(String columnName) {
+        return new StringValueIndexer(columnName);
     }
 }
