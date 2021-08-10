@@ -23,7 +23,6 @@ import io.crate.gradle.OS
 
 apply plugin: 'java'
 apply plugin: 'de.thetaphi.forbiddenapis'
-apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'checkstyle'
 apply plugin: 'jdk-download'
 
