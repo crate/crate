@@ -29,8 +29,12 @@ test.enabled = false
 
 dependencies {
     implementation project(':server')
-    implementation(testFixtures(project(':server')))
-    implementation(testFixtures(project(':libs:dex')))
+    implementation(testFixtures(project(':server'))) {
+        exclude group: "com.carrotsearch.randomizedtesting"
+    }
+    implementation(testFixtures(project(':libs:dex'))) {
+        exclude group: "com.carrotsearch.randomizedtesting"
+    }
     implementation(project(':extensions:functions'))
     implementation project(':libs:sql-parser')
 
