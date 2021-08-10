@@ -594,7 +594,7 @@ should be crossed out as well.
 - [su] c5ecbee224f Update TcpHeader version constant for backport (#50086)
 - [su] 1329acc094c Upgrade to lucene 8.4.0-snapshot-662c455. (#50016)
 - [sn] 0062d5f301a [DOCS] Remove shadow replica reference (#50029)
-- [ ] ee4a8a08dd5 Improve Snapshot Finalization Ex. Handling (#49995) (#50017)
+- [x] ee4a8a08dd5 Improve Snapshot Finalization Ex. Handling (#49995) (#50017)
 - [x] 62e128f02d4 Cleanup Old index-N Blobs in Repository Cleanup (#49862) (#49902)
 - [x] 678aeb747ea Make elasticsearch-node tools custom metadata-aware (#48390)
 - [x] 87517d96f62 Enable dependent settings values to be validated (#49942)
