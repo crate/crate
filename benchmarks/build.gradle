@@ -38,9 +38,8 @@ dependencies {
     implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
     implementation "com.google.guava:guava:${versions.guava}"
 
-    implementation 'org.openjdk.jmh:jmh-core:1.25'
-    implementation 'org.openjdk.jmh:jmh-generator-annprocess:1.25'
-    annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.25'
+    implementation "org.openjdk.jmh:jmh-core:${versions.jmh}"
+    annotationProcessor "org.openjdk.jmh:jmh-generator-annprocess:${versions.jmh}"
 
     // Dependencies of JMH
     runtimeOnly 'net.sf.jopt-simple:jopt-simple:4.6'
