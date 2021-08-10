@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateApplier;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.NotMasterException;
 import org.elasticsearch.cluster.RestoreInProgress;
 import org.elasticsearch.cluster.SnapshotDeletionsInProgress;
 import org.elasticsearch.cluster.SnapshotsInProgress;
@@ -45,6 +46,7 @@ import org.elasticsearch.cluster.SnapshotsInProgress.ShardSnapshotStatus;
 import org.elasticsearch.cluster.SnapshotsInProgress.ShardState;
 import org.elasticsearch.cluster.SnapshotsInProgress.State;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.coordination.FailedToCommitClusterStateException;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
@@ -1089,8 +1091,16 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             @Override
             public void onFailure(final Exception e) {
                 Snapshot snapshot = entry.snapshot();
-                LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to finalize snapshot", snapshot), e);
-                removeSnapshotFromClusterState(snapshot, null, e);
+                if (ExceptionsHelper.unwrap(e, NotMasterException.class, FailedToCommitClusterStateException.class) != null) {
+                    // Failure due to not being master any more, don't try to remove snapshot from cluster state the next master
+                    // will try ending this snapshot again
+                    LOGGER.debug(() -> new ParameterizedMessage(
+                        "[{}] failed to update cluster state during snapshot finalization", snapshot), e);
+                    endingSnapshots.remove(snapshot);
+                } else {
+                    LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to finalize snapshot", snapshot), e);
+                    removeSnapshotFromClusterState(snapshot, null, e);
+                }
             }
         });
     }
