@@ -46,7 +46,7 @@ import java.util.function.Supplier;
 @State(Scope.Benchmark)
 @Fork(value = 1)
 @Measurement(iterations = 4)
-@Timeout(time=30000, timeUnit = TimeUnit.MILLISECONDS)
+@Timeout(time = 30000, timeUnit = TimeUnit.MILLISECONDS)
 @Warmup(iterations = 2, time = 10000, timeUnit = TimeUnit.MILLISECONDS)
 public class TimePrecisionIncreaseTest {
 

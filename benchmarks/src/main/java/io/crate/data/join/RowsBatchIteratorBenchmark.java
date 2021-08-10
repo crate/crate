@@ -196,7 +196,7 @@ public class RowsBatchIteratorBenchmark {
     }
 
     @Benchmark
-    public void measureConsumeWindowBatchIterator(Blackhole blackhole) throws Exception{
+    public void measureConsumeWindowBatchIterator(Blackhole blackhole) throws Exception {
         InputCollectExpression input = new InputCollectExpression(0);
         BatchIterator<Row> batchIterator = WindowFunctionBatchIterator.of(
             new InMemoryBatchIterator<>(rows, SENTINEL, false),
@@ -213,7 +213,10 @@ public class RowsBatchIteratorBenchmark {
             new Boolean[]{null},
             new Input[]{input}
         );
-        BatchIterators.collect(batchIterator, Collectors.summingInt(x -> { blackhole.consume(x); return 1; })).get();
+        BatchIterators.collect(batchIterator, Collectors.summingInt(x -> {
+            blackhole.consume(x);
+            return 1;
+        })).get();
     }
 
     private static class NoRowAccounting<T> implements RowAccounting<T> {

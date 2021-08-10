@@ -34,6 +34,7 @@ import org.openjdk.jmh.annotations.State;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
@@ -54,13 +55,13 @@ import java.util.function.Predicate;
 @State(Scope.Benchmark)
 public class CheckFreeMemoryAlternativeMethodsBenchmark {
 
-    private static abstract class HeapThresholdChecker implements Predicate<Void> {
+    private abstract static class HeapThresholdChecker implements Predicate<Void> {
 
         private final AtomicLong threshold;
 
         HeapThresholdChecker(int freeHeapPercent) {
             if (freeHeapPercent <= 0 || freeHeapPercent >= 100) {
-                throw new IllegalArgumentException(String.format("value must be between 0..100: %d", freeHeapPercent));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "value must be between 0..100: %d", freeHeapPercent));
             }
             threshold = new AtomicLong(Runtime.getRuntime().maxMemory() * freeHeapPercent / 100);
         }

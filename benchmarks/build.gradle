@@ -63,11 +63,6 @@ shadowJar {
     append 'META-INF/services/org.apache.lucene.codecs.Codec'
     append 'META-INF/services/org.apache.lucene.codecs.PostingsFormat'
     exclude('com/carrotsearch/randomizedtesting/**')
-
-    // We keep the benchmarks in the test sources instead of main, because
-    // IntelliJ doesn't pick up the `:server / testOutput` dependencies otherwise
-    // So test.output contains the benchmarks which we want to have in the jar
-    from sourceSets.test.output
 }
 
 task jmhJar (
