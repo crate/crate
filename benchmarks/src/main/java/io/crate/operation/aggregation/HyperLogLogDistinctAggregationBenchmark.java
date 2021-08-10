@@ -79,11 +79,11 @@ public class HyperLogLogDistinctAggregationBenchmark {
     @Setup
     public void setUp() throws Exception {
         hash = new MurmurHash3.Hash128();
-        InputCollectExpression inExpr0 = new InputCollectExpression(0);
+        final InputCollectExpression inExpr0 = new InputCollectExpression(0);
         Functions functions = new ModulesBuilder()
             .add(new ExtraFunctionsModule())
             .createInjector().getInstance(Functions.class);
-        HyperLogLogDistinctAggregation hllAggregation = (HyperLogLogDistinctAggregation) functions.getQualified(
+        final HyperLogLogDistinctAggregation hllAggregation = (HyperLogLogDistinctAggregation) functions.getQualified(
             Signature.aggregate(
                 HyperLogLogDistinctAggregation.NAME,
                 DataTypes.STRING.getTypeSignature(),
@@ -103,7 +103,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { hllAggregation },
             Version.CURRENT,
-            new Input[][] { {inExpr0 } },
+            new Input[][] { { inExpr0 } },
             new Input[] { Literal.BOOLEAN_TRUE }
         );
         offHeapCollector = new AggregateCollector(
@@ -114,7 +114,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { hllAggregation },
             Version.CURRENT,
-            new Input[][] { {inExpr0 } },
+            new Input[][] { { inExpr0 } },
             new Input[] { Literal.BOOLEAN_TRUE }
         );
     }

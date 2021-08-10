@@ -139,6 +139,6 @@ public class CsvReaderBenchmark {
 
     @TearDown
     public void cleanup() throws InterruptedException {
-        tempFile.deleteOnExit();
+        tempFile.delete();
     }
 }

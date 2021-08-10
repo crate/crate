@@ -138,6 +138,6 @@ public class JsonReaderBenchmark {
 
     @TearDown
     public void cleanup() throws InterruptedException {
-        tempFile.deleteOnExit();
+        tempFile.delete();
     }
 }
