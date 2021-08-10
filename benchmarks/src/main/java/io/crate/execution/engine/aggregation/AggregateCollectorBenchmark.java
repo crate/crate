@@ -21,26 +21,6 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.execution.engine.aggregation.impl.SumAggregation;
-import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Literal;
-import io.crate.memory.OnHeapMemoryManager;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -49,7 +29,30 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static io.crate.testing.TestingHelpers.createNodeContext;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.inject.ModulesBuilder;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+
+import io.crate.breaker.RamAccounting;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
+import io.crate.execution.engine.aggregation.impl.SumAggregation;
+import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Literal;
+import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.Functions;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
+
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -63,7 +66,11 @@ public class AggregateCollectorBenchmark {
     @Setup
     public void setup() {
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
-        SumAggregation<?> sumAggregation = (SumAggregation<?>) createNodeContext().functions().getQualified(
+        Functions functions = new ModulesBuilder()
+            .add(new AggregationImplModule())
+            .createInjector()
+            .getInstance(Functions.class);
+        SumAggregation<?> sumAggregation = (SumAggregation<?>) functions.getQualified(
             Signature.aggregate(
                 SumAggregation.NAME,
                 DataTypes.INTEGER.getTypeSignature(),

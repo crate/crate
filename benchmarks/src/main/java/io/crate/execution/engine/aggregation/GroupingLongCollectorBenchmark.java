@@ -21,23 +21,13 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.data.BatchIterators;
-import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
-import io.crate.execution.engine.aggregation.impl.SumAggregation;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Literal;
-import io.crate.memory.MemoryManager;
-import io.crate.memory.OnHeapMemoryManager;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
-import io.netty.util.collection.LongObjectHashMap;
+import static io.crate.data.SentinelRow.SENTINEL;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -56,6 +46,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.inject.ModulesBuilder;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -68,13 +59,24 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static io.crate.data.SentinelRow.SENTINEL;
+import io.crate.breaker.RamAccounting;
+import io.crate.data.BatchIterators;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
+import io.crate.execution.engine.aggregation.impl.SumAggregation;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Literal;
+import io.crate.memory.MemoryManager;
+import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.Functions;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
+import io.netty.util.collection.LongObjectHashMap;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -92,8 +94,11 @@ public class GroupingLongCollectorBenchmark {
     @Setup
     public void createGroupingCollector() throws Exception {
         IndexWriter iw = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
-        SumAggregation<?> sumAgg = (SumAggregation<?>) createNodeContext(new AggregationImplModule())
-            .functions().getQualified(
+        Functions functions = new ModulesBuilder()
+            .add(new AggregationImplModule())
+            .createInjector()
+            .getInstance(Functions.class);
+        SumAggregation<?> sumAgg = (SumAggregation<?>) functions.getQualified(
             Signature.aggregate(
                 SumAggregation.NAME,
                 DataTypes.INTEGER.getTypeSignature(),

@@ -257,9 +257,9 @@ public class Node implements Closeable {
      * @param forbidPrivateIndexSettings whether or not private index settings are forbidden when creating an index; this is used in the
      *                                   test framework for tests that rely on being able to set private settings
      */
-    protected Node(final Environment environment,
-                   Collection<Class<? extends Plugin>> classpathPlugins,
-                   boolean forbidPrivateIndexSettings) {
+    public Node(final Environment environment,
+                Collection<Class<? extends Plugin>> classpathPlugins,
+                boolean forbidPrivateIndexSettings) {
         logger = LogManager.getLogger(Node.class);
         final List<Closeable> resourcesToClose = new ArrayList<>(); // register everything we need to release in the case of an error
         boolean success = false;

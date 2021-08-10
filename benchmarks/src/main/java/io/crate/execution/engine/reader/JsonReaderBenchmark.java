@@ -21,31 +21,7 @@
 
 package io.crate.execution.engine.reader;
 
-import io.crate.analyze.CopyFromParserProperties;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.settings.SessionSettings;
-import io.crate.data.BatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.execution.engine.collect.files.FileReadingIterator;
-import io.crate.execution.engine.collect.files.LineCollectorExpression;
-import io.crate.execution.engine.collect.files.LocalFsFileInputFactory;
-import io.crate.expression.InputFactory;
-import io.crate.expression.reference.file.FileLineReferenceResolver;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
-import io.crate.metadata.TransactionContext;
-import io.crate.types.DataTypes;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
-import org.openjdk.jmh.infra.Blackhole;
+import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -57,8 +33,38 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
-import static io.crate.testing.TestingHelpers.createReference;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
+import org.openjdk.jmh.infra.Blackhole;
+
+import io.crate.analyze.CopyFromParserProperties;
+import io.crate.data.BatchIterator;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.execution.engine.collect.files.FileReadingIterator;
+import io.crate.execution.engine.collect.files.LineCollectorExpression;
+import io.crate.execution.engine.collect.files.LocalFsFileInputFactory;
+import io.crate.expression.InputFactory;
+import io.crate.expression.reference.file.FileLineReferenceResolver;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.settings.SessionSettings;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -71,6 +77,20 @@ public class JsonReaderBenchmark {
         new SessionSettings("dummyUser",
                             SearchPath.createSearchPathFrom("dummySchema")));
     File tempFile;
+
+
+    public static Reference createReference(String columnName, DataType<?> dataType) {
+        return new Reference(
+            new ReferenceIdent(
+                new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"),
+                new ColumnIdent(columnName)
+            ),
+            RowGranularity.DOC,
+            dataType,
+            0,
+            null
+        );
+    }
 
     @Setup
     public void create_temp_file_and_uri() throws IOException {

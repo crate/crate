@@ -21,6 +21,24 @@
 
 package io.crate.execution.engine.sort;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+
+import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectingBatchIterator;
@@ -30,23 +48,6 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.testing.RowGenerator;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static io.crate.data.SentinelRow.SENTINEL;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -58,18 +59,26 @@ public class SortingTopNCollectorBenchmark {
     private static final List<Input<?>> INPUTS = List.of(INPUT);
     private static final Iterable<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = List.of(INPUT);
 
-    private List<Row> rows = StreamSupport.stream(RowGenerator.range(0, 10_000_000).spliterator(), false)
-        .map(Row::materialize)
-        .map(RowN::new)
-        .collect(Collectors.toList());
-
+    private List<Row> rows;
     private Collector<Row, ?, Bucket> boundedSortingCollector;
     private Collector<Row, ?, Bucket> unboundedSortingCollector;
 
     @Setup
     public void setUp() {
+        rows = IntStream.range(0, 10_000_000)
+            .mapToObj(i -> new RowN(i))
+            .collect(Collectors.toList());
         boundedSortingCollector = new BoundedSortingTopNCollector(
-            new IgnoreRowCellsAccounting(),
+            new RowAccounting<Object[]>() {
+
+                @Override
+                public void accountForAndMaybeBreak(Object[] row) {
+                }
+
+                @Override
+                public void release() {
+                }
+            },
             INPUTS,
             COLLECT_EXPRESSIONS,
             1,
@@ -78,7 +87,16 @@ public class SortingTopNCollectorBenchmark {
             0);
 
         unboundedSortingCollector = new UnboundedSortingTopNCollector(
-            new IgnoreRowCellsAccounting(),
+            new RowAccounting<Object[]>() {
+
+                @Override
+                public void accountForAndMaybeBreak(Object[] row) {
+                }
+
+                @Override
+                public void release() {
+                }
+            },
             INPUTS,
             COLLECT_EXPRESSIONS,
             1,
