@@ -19,16 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-// generate uberjar with all benchmarks
 apply plugin: 'application'
-// mainClassName must come after application but before shadow plugin application
-// to avoid a warning. See https://github.com/johnrengelman/shadow/issues/336
-mainClassName = 'org.openjdk.jmh.Main'
 apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'crate-benchmarks'
 
 test.enabled = false
+
 
 dependencies {
     implementation project(':server')
@@ -50,23 +47,6 @@ dependencies {
     runtimeOnly 'org.apache.commons:commons-math3:3.2'
 }
 
-compileTestJava {
-    options.annotationProcessorPath = configurations.default
+application {
+    mainClass = 'org.openjdk.jmh.Main'
 }
-
-tasks.shadowJar.configure {
-  classifier = "all"
-}
-
-shadowJar {
-    append 'META-INF/services/org.apache.lucene.codecs.DocValuesFormat'
-    append 'META-INF/services/org.apache.lucene.codecs.Codec'
-    append 'META-INF/services/org.apache.lucene.codecs.PostingsFormat'
-    exclude('com/carrotsearch/randomizedtesting/**')
-}
-
-task jmhJar (
-    dependsOn: shadowJar,
-    description: 'Generates an uberjar with the microbenchmarks and all dependencies',
-    group: 'Benchmark'
-)

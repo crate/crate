@@ -2,25 +2,18 @@
 Benchmarks
 ==========
 
-Microbenchmarks are written using `JMH`_. They can be executed by using the ``jmhJar``.
+Microbenchmarks are written using `JMH`_. They can be executed by using the
+``:benchmarks:run``::
 
-First, build the jar::
-
-    $ ./gradlew :benchmarks:jmhJar
-
-Then, run the benchmarks::
-
-    $ java -jar benchmarks/build/libs/crate-benchmarks-all.jar
-
-This will execute all benchmarks which are in ``benchmarks/src/test/java``.
+    $ ./gradlew :benchmarks:run
 
 If you want to execute specific benchmarks you can provide a filter argument::
 
-    $ java -jar benchmarks/build/libs/crate-benchmarks-all.jar <benchmarkMethodName | benchmarkClassName[.methodName]>
+    $ ./gradlew :benchmarks:run --args="<benchmarkMethodName | benchmarkClassName>"
 
 To save the results to a file, use the ``-rf`` and ``-rff`` options::
 
-    $ java -jar benchmarks/build/libs/crate-benchmarks-all.jar -rf json -rff benchmarks/build/jmh.json
+    $ ./gradlew :benchmarks:run --args="-rf json -rff /tmp/jmh.json"
 
 If you are writing new benchmarks, take a look at this `JMH introduction`_ and
 these `JMH samples`_.

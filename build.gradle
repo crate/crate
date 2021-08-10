@@ -31,9 +31,6 @@ buildscript {
     }
 }
 
-plugins {
-    id 'com.github.johnrengelman.shadow' version '2.0.4'
-}
 
 def download(File downloadDir, String url, String name) {
     downloadDir.mkdirs()
