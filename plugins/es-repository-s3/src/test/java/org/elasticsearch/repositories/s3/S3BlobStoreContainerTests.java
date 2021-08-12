@@ -75,13 +75,6 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
     }
 
     @Override
-    @Test
-    public void testDeleteBlobs() {
-        assumeFalse("not implemented because of S3's weak consistency model", true);
-    }
-
-    @Override
-    @Test
     public void testVerifyOverwriteFails() {
         assumeFalse("not implemented because of S3's weak consistency model", true);
     }
