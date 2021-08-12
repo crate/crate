@@ -592,6 +592,7 @@ should be crossed out as well.
 - [sn] 0cedb9e2517 Update remote cluster stats to support simple mode (#49961)
 - [ ] 0fae4065eff Better Logging GCS Blobstore Mock (#50102) (#50124)
 - [su] c5ecbee224f Update TcpHeader version constant for backport (#50086)
+- [x] 1e4d775bfc4 Remove Unused Single Delete in BlobStoreRepository (#50024)
 - [su] 1329acc094c Upgrade to lucene 8.4.0-snapshot-662c455. (#50016)
 - [sn] 0062d5f301a [DOCS] Remove shadow replica reference (#50029)
 - [x] ee4a8a08dd5 Improve Snapshot Finalization Ex. Handling (#49995) (#50017)
