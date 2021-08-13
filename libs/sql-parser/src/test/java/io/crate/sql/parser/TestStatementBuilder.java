@@ -44,6 +44,8 @@ import org.junit.Test;
 
 import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
@@ -53,6 +55,8 @@ import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.CreatePublication;
+import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.DeallocateStatement;
@@ -61,8 +65,10 @@ import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropFunction;
+import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
+import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropView;
@@ -1754,6 +1760,53 @@ public class TestStatementBuilder {
         printStatement("SELECT (SELECT 1) = ANY([5])");
     }
 
+    @Test
+    public void test_create_publication() {
+        printStatement("CREATE PUBLICATION pub1 FOR ALL TABLES");
+        printStatement("CREATE PUBLICATION \"myPublication\" FOR TABLE t1");
+        printStatement("CREATE PUBLICATION pub1 FOR TABLE s1.t1");
+        printStatement("CREATE PUBLICATION pub1 FOR TABLE t1, s2.t2");
+    }
+
+    @Test
+    public void test_drop_publication() {
+        printStatement("DROP PUBLICATION pub1");
+        printStatement("DROP PUBLICATION IF EXISTS pub1");
+    }
+
+    @Test
+    public void test_alter_publication() {
+        printStatement("ALTER PUBLICATION pub1 ADD TABLE t1");
+        printStatement("ALTER PUBLICATION \"myPublication\" SET TABLE t1");
+        printStatement("ALTER PUBLICATION pub1 DROP TABLE s1.t1");
+    }
+
+    @Test
+    public void test_create_subscription() {
+        printStatement("CREATE SUBSCRIPTION sub1" +
+                       " CONNECTION 'postgresql://user@localhost/crate:5432'" +
+                       " PUBLICATION pub1");
+        printStatement("CREATE SUBSCRIPTION sub1" +
+                       " CONNECTION 'postgresql://user@localhost/crate:5432'" +
+                       " PUBLICATION pub1, pub2");
+        printStatement("CREATE SUBSCRIPTION sub1" +
+                       " CONNECTION 'postgresql://user@localhost/crate:5432'" +
+                       " PUBLICATION pub1" +
+                       " WITH (enabled=true)");
+    }
+
+    @Test
+    public void test_drop_subscription() {
+        printStatement("DROP SUBSCRIPTION sub1");
+        printStatement("DROP SUBSCRIPTION IF EXISTS sub1");
+    }
+
+    @Test
+    public void test_alter_subscription() {
+        printStatement("ALTER SUBSCRIPTION sub1 ENABLE");
+        printStatement("ALTER SUBSCRIPTION \"mySub\" DISABLE");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
@@ -1784,7 +1837,13 @@ public class TestStatementBuilder {
             statement instanceof Update ||
             statement instanceof Insert ||
             statement instanceof SetSessionAuthorizationStatement ||
-            statement instanceof Window) {
+            statement instanceof Window ||
+            statement instanceof CreatePublication ||
+            statement instanceof DropPublication ||
+            statement instanceof AlterPublication ||
+            statement instanceof CreateSubscription ||
+            statement instanceof DropSubscription ||
+            statement instanceof AlterSubscription) {
                 println(SqlFormatter.formatSql(statement));
                 println("");
                 assertFormattedSql(statement);
