@@ -639,4 +639,28 @@ public abstract class AstVisitor<R, C> {
     public R visitBitString(BitString bitString, C context) {
         return visitLiteral(bitString, context);
     }
+
+    public R visitCreatePublication(CreatePublication createPublication, C context) {
+        return visitStatement(createPublication, context);
+    }
+
+    public R visitDropPublication(DropPublication dropPublication, C context) {
+        return visitStatement(dropPublication, context);
+    }
+
+    public R visitAlterPublication(AlterPublication alterPublication, C context) {
+        return visitStatement(alterPublication, context);
+    }
+
+    public R visitCreateSubscription(CreateSubscription<?> createSubscription, C context) {
+        return visitStatement(createSubscription, context);
+    }
+
+    public R visitDropSubscription(DropSubscription dropSubscription, C context) {
+        return visitStatement(dropSubscription, context);
+    }
+
+    public R visitAlterSubscription(AlterSubscription alterSubscription, C context) {
+        return visitStatement(alterSubscription, context);
+    }
 }

@@ -24,6 +24,8 @@ package io.crate.sql;
 import io.crate.common.collections.Lists2;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
+import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CheckColumnConstraint;
@@ -36,7 +38,9 @@ import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateSnapshot;
+import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.DecommissionNodeStatement;
@@ -44,8 +48,10 @@ import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropFunction;
+import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
+import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropView;
@@ -1006,6 +1012,90 @@ public final class SqlFormatter {
         public Void visitDropSnapshot(DropSnapshot node, Integer indent) {
             builder.append("DROP REPOSITORY ")
                 .append(formatQualifiedName(node.name()));
+            return null;
+        }
+
+        @Override
+        public Void visitCreatePublication(CreatePublication createPublication, Integer context) {
+            builder.append("CREATE PUBLICATION ")
+                .append(quoteIdentifierIfNeeded(createPublication.name()))
+                .append(" FOR ");
+            if (createPublication.tables().size() == 0) {
+                builder.append("ALL TABLES");
+            } else {
+                builder.append("TABLE ");
+                builder.append(
+                    createPublication.tables().stream()
+                        .map(Formatter::formatQualifiedName)
+                        .collect(COMMA_JOINER)
+                );
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitDropPublication(DropPublication dropPublication, Integer context) {
+            builder.append("DROP PUBLICATION ");
+            if (dropPublication.ifExists()) {
+                builder.append(" IF EXISTS ");
+            }
+            builder.append(quoteIdentifierIfNeeded(dropPublication.name()));
+            return null;
+        }
+
+        @Override
+        public Void visitAlterPublication(AlterPublication alterPublication, Integer context) {
+            builder.append("ALTER PUBLICATION ")
+                .append(quoteIdentifierIfNeeded(alterPublication.name()));
+            builder.append(" ")
+                .append(alterPublication.operation())
+                .append(" ");
+            builder.append("TABLE ");
+            builder.append(
+                alterPublication.tables().stream()
+                    .map(Formatter::formatQualifiedName)
+                    .collect(COMMA_JOINER)
+            );
+            return null;
+        }
+
+        @Override
+        public Void visitCreateSubscription(CreateSubscription<?> createSubscription,
+                                            Integer context) {
+            var subscription = (CreateSubscription<Expression>) createSubscription;
+            builder.append("CREATE SUBSCRIPTION ")
+                .append(quoteIdentifierIfNeeded(subscription.name()))
+                .append(" CONNECTION ");
+            subscription.connectionInfo().accept(this, context);
+            builder.append(" PUBLICATION ");
+            builder.append(
+                subscription.publications().stream()
+                    .map(Formatter::quoteIdentifierIfNeeded)
+                    .collect(COMMA_JOINER)
+            );
+            if (!subscription.properties().isEmpty()) {
+                builder.append(" ");
+                subscription.properties().accept(this, context);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitDropSubscription(DropSubscription dropSubscription, Integer context) {
+            builder.append("DROP SUBSCRIPTION ");
+            if (dropSubscription.ifExists()) {
+                builder.append(" IF EXISTS ");
+            }
+            builder.append(quoteIdentifierIfNeeded(dropSubscription.name()));
+            return null;
+        }
+
+        @Override
+        public Void visitAlterSubscription(AlterSubscription alterSubscription, Integer context) {
+            builder.append("ALTER SUBSCRIPTION ")
+                .append(quoteIdentifierIfNeeded(alterSubscription.name()))
+                .append(" ")
+                .append(alterSubscription.mode());
             return null;
         }
 
