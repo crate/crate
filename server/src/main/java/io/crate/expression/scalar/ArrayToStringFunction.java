@@ -35,7 +35,7 @@ import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInn
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
-class ArrayToStringFunction extends Scalar<String, Object> {
+public class ArrayToStringFunction extends Scalar<String, Object> {
 
     private static final String NAME = "array_to_string";
 
@@ -64,7 +64,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
     private final Signature signature;
     private final Signature boundSignature;
 
-    private ArrayToStringFunction(Signature signature, Signature boundSignature) {
+    protected ArrayToStringFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         ensureInnerTypeIsNotUndefined(boundSignature.getArgumentDataTypes(), NAME);

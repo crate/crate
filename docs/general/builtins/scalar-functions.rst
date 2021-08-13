@@ -3383,6 +3383,32 @@ Example::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-pg_encoding_to_char:
+
+``pg_encoding_to_char()``
+---------------------
+
+The function ``pg_encoding_to_char`` is implemented to improve compatibility with
+clients that use the PostgreSQL wire protocol. CrateDB only supports charset ``UTF8``
+so the function will always return ``UTF8``.
+
+Returns: ``text``
+
+Synopsis::
+
+   pg_encoding_to_char(encoding int)
+
+Example::
+
+    cr> select pg_encoding_to_char(1) AS encoding;
+    +----------+
+    | encoding |
+    +----------+
+    | UTF8     |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-pg_get_userbyid:
 
 ``pg_get_userbyid()``
