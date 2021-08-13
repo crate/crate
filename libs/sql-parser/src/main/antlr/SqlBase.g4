@@ -49,20 +49,7 @@ statement
     | SHOW COLUMNS (FROM | IN) tableName=qname ((FROM | IN) schema=qname)?
         (LIKE pattern=stringLiteral | where)?                                        #showColumns
     | SHOW (qname | ALL)                                                             #showSessionParameter
-    | ALTER TABLE alterTableDefinition ADD COLUMN? addColumnDefinition               #addColumn
-    | ALTER TABLE alterTableDefinition DROP CONSTRAINT ident                         #dropCheckConstraint
-    | ALTER TABLE alterTableDefinition
-        (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterTableProperties
-    | ALTER BLOB TABLE alterTableDefinition
-        (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterBlobTableProperties
-    | ALTER (BLOB)? TABLE alterTableDefinition (OPEN | CLOSE)                        #alterTableOpenClose
-    | ALTER (BLOB)? TABLE alterTableDefinition RENAME TO qname                       #alterTableRename
-    | ALTER (BLOB)? TABLE alterTableDefinition REROUTE rerouteOption                 #alterTableReroute
-    | ALTER CLUSTER REROUTE RETRY FAILED                                             #alterClusterRerouteRetryFailed
-    | ALTER CLUSTER SWAP TABLE source=qname TO target=qname withProperties?          #alterClusterSwapTable
-    | ALTER CLUSTER DECOMMISSION node=expr                                           #alterClusterDecommissionNode
-    | ALTER CLUSTER GC DANGLING ARTIFACTS                                            #alterClusterGCDanglingArtifacts
-    | ALTER USER name=ident SET '(' genericProperties ')'                            #alterUser
+    | alterStmt                                                                      #alter
     | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal
     | SET (SESSION CHARACTERISTICS AS)? TRANSACTION
         transactionMode (',' transactionMode)*                                       #setTransaction
@@ -84,16 +71,7 @@ statement
     | COPY tableWithPartition FROM path=expr withProperties? (RETURN SUMMARY)?       #copyFrom
     | COPY tableWithPartition columns? where?
         TO DIRECTORY? path=expr withProperties?                                      #copyTo
-    | DROP BLOB TABLE (IF EXISTS)? table                                             #dropBlobTable
-    | DROP TABLE (IF EXISTS)? table                                                  #dropTable
-    | DROP ALIAS qname                                                               #dropAlias
-    | DROP REPOSITORY ident                                                          #dropRepository
-    | DROP SNAPSHOT qname                                                            #dropSnapshot
-    | DROP FUNCTION (IF EXISTS)? name=qname
-        '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
-    | DROP USER (IF EXISTS)? name=ident                                              #dropUser
-    | DROP VIEW (IF EXISTS)? names=qnames                                            #dropView
-    | DROP ANALYZER name=ident                                                       #dropAnalyzer
+    | dropStmt                                                                       #drop
     | GRANT (priviliges=idents | ALL PRIVILEGES?)
         (ON clazz qnames)? TO users=idents                                           #grantPrivilege
     | DENY (priviliges=idents | ALL PRIVILEGES?)
@@ -104,6 +82,41 @@ statement
     | DEALLOCATE (PREPARE)? (ALL | prepStmt=stringLiteralOrIdentifierOrQname)        #deallocate
     | ANALYZE                                                                        #analyze
     | DISCARD (ALL | PLANS | SEQUENCES | TEMPORARY | TEMP)                           #discard
+    ;
+
+dropStmt
+    : DROP BLOB TABLE (IF EXISTS)? table                                             #dropBlobTable
+    | DROP TABLE (IF EXISTS)? table                                                  #dropTable
+    | DROP ALIAS qname                                                               #dropAlias
+    | DROP REPOSITORY ident                                                          #dropRepository
+    | DROP SNAPSHOT qname                                                            #dropSnapshot
+    | DROP FUNCTION (IF EXISTS)? name=qname
+        '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
+    | DROP USER (IF EXISTS)? name=ident                                              #dropUser
+    | DROP VIEW (IF EXISTS)? names=qnames                                            #dropView
+    | DROP ANALYZER name=ident                                                       #dropAnalyzer
+    | DROP PUBLICATION (IF EXISTS)? name=ident                                       #dropPublication
+    | DROP SUBSCRIPTION (IF EXISTS)? name=ident                                      #dropSubscription
+    ;
+
+alterStmt
+    : ALTER TABLE alterTableDefinition ADD COLUMN? addColumnDefinition               #addColumn
+    | ALTER TABLE alterTableDefinition DROP CONSTRAINT ident                         #dropCheckConstraint
+    | ALTER TABLE alterTableDefinition
+        (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterTableProperties
+    | ALTER BLOB TABLE alterTableDefinition
+        (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterBlobTableProperties
+    | ALTER (BLOB)? TABLE alterTableDefinition (OPEN | CLOSE)                        #alterTableOpenClose
+    | ALTER (BLOB)? TABLE alterTableDefinition RENAME TO qname                       #alterTableRename
+    | ALTER (BLOB)? TABLE alterTableDefinition REROUTE rerouteOption                 #alterTableReroute
+    | ALTER CLUSTER REROUTE RETRY FAILED                                             #alterClusterRerouteRetryFailed
+    | ALTER CLUSTER SWAP TABLE source=qname TO target=qname withProperties?          #alterClusterSwapTable
+    | ALTER CLUSTER DECOMMISSION node=expr                                           #alterClusterDecommissionNode
+    | ALTER CLUSTER GC DANGLING ARTIFACTS                                            #alterClusterGCDanglingArtifacts
+    | ALTER USER name=ident SET '(' genericProperties ')'                            #alterUser
+    | ALTER PUBLICATION name=ident
+              ((ADD | SET | DROP) TABLE ONLY? qname '*'?  (',' qname '*'? )*)        #alterPublication
+    | ALTER SUBSCRIPTION name=ident alterSubscriptionMode                            #alterSubscription
     ;
 
 query:
@@ -499,6 +512,11 @@ createStmt
         AS body=parameterOrString                                                    #createFunction
     | CREATE USER name=ident withProperties?                                         #createUser
     | CREATE ( OR REPLACE )? VIEW name=qname AS query                                #createView
+    | CREATE PUBLICATION name=ident FOR
+        (ALL TABLES | TABLE ONLY? qname '*'?  (',' qname '*'? )*)                    #createPublication
+    | CREATE SUBSCRIPTION name=ident CONNECTION conninfo=expr
+          PUBLICATION publications=idents
+          withProperties?                                                            #createSubscription
     ;
 
 functionArgument
@@ -508,6 +526,11 @@ functionArgument
 alterTableDefinition
     : ONLY qname                                                                     #tableOnly
     | tableWithPartition                                                             #tableWithPartitionDefault
+    ;
+
+alterSubscriptionMode
+    : ENABLE
+    | DISABLE
     ;
 
 partitionedByOrClusteredInto
@@ -691,6 +714,7 @@ nonReserved
     | REPLACE | RETURNING | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | LEADING | TRAILING | BOTH | TRIM
     | CURRENT_SCHEMA | PROMOTE | CHARACTER | VARYING
     | DISCARD | PLANS | SEQUENCES | TEMPORARY | TEMP | METADATA
+    | PUBLICATION | SUBSCRIPTION | ENABLE | DISABLE | CONNECTION
     ;
 
 AUTHORIZATION: 'AUTHORIZATION';
@@ -960,6 +984,12 @@ RETURN: 'RETURN';
 SUMMARY: 'SUMMARY';
 
 METADATA: 'METADATA';
+
+PUBLICATION: 'PUBLICATION';
+SUBSCRIPTION: 'SUBSCRIPTION';
+CONNECTION: 'CONNECTION';
+ENABLE: 'ENABLE';
+DISABLE: 'DISABLE';
 
 EQ  : '=';
 NEQ : '<>' | '!=';
