@@ -37,6 +37,8 @@ import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
+import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
@@ -72,8 +74,10 @@ import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
+import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateUser;
@@ -89,8 +93,10 @@ import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropCheckConstraint;
 import io.crate.sql.tree.DropFunction;
+import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
+import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropView;
@@ -868,6 +874,61 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             functionName,
             context.EXISTS() != null,
             visitCollection(context.functionArgument(), FunctionArgument.class));
+    }
+
+    @Override
+    public Node visitCreatePublication(SqlBaseParser.CreatePublicationContext ctx) {
+        List<QualifiedName> tables = ctx.qname().stream()
+            .map(n -> getQualifiedName(n))
+            .collect(toList());
+
+        return new CreatePublication(getIdentText(ctx.name), tables);
+    }
+
+    @Override
+    public Node visitDropPublication(SqlBaseParser.DropPublicationContext ctx) {
+        return new DropPublication(getIdentText(ctx.name), ctx.EXISTS() != null);
+    }
+
+    @Override
+    public Node visitAlterPublication(SqlBaseParser.AlterPublicationContext ctx) {
+        AlterPublication.Operation op;
+        if (ctx.ADD() != null) {
+            op = AlterPublication.Operation.ADD;
+        } else if (ctx.SET() != null) {
+            op = AlterPublication.Operation.SET;
+        } else {
+            op = AlterPublication.Operation.DROP;
+        }
+        List<QualifiedName> tables = ctx.qname().stream()
+            .map(n -> getQualifiedName(n))
+            .collect(toList());
+
+        return new AlterPublication(getIdentText(ctx.name), op, tables);
+    }
+
+    @Override
+    public Node visitCreateSubscription(SqlBaseParser.CreateSubscriptionContext ctx) {
+        return new CreateSubscription(
+            getIdentText(ctx.name),
+            visit(ctx.conninfo),
+            identsToStrings(ctx.publications.ident()),
+            extractGenericProperties(ctx.withProperties())
+        );
+    }
+
+    @Override
+    public Node visitDropSubscription(SqlBaseParser.DropSubscriptionContext ctx) {
+        return new DropSubscription(getIdentText(ctx.name), ctx.EXISTS() != null);
+    }
+
+    @Override
+    public Node visitAlterSubscription(SqlBaseParser.AlterSubscriptionContext ctx) {
+        AlterSubscription.Mode mode = ctx.alterSubscriptionMode().ENABLE() != null
+            ? AlterSubscription.Mode.ENABLE
+            : AlterSubscription.Mode.DISABLE;
+
+        return new AlterSubscription(getIdentText(ctx.name), mode);
     }
 
     // Column / Table definition
