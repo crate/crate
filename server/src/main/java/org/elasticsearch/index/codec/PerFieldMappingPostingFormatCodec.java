@@ -25,7 +25,6 @@ import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.PostingsFormat;
 import org.apache.lucene.codecs.lucene80.Lucene80DocValuesFormat;
 import org.apache.lucene.codecs.lucene87.Lucene87Codec;
-import org.apache.lucene.codecs.lucene87.Lucene87StoredFieldsFormat.Mode;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
@@ -64,7 +63,7 @@ public class PerFieldMappingPostingFormatCodec extends Lucene87Codec {
 
     @Override
     public DocValuesFormat getDocValuesFormatForField(String field) {
-        return new Lucene80DocValuesFormat(Lucene80DocValuesFormat.Mode.BEST_COMPRESSION);
+        return new Lucene80DocValuesFormat(Lucene80DocValuesFormat.Mode.BEST_SPEED);
     }
 
 }
