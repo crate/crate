@@ -68,14 +68,6 @@ final class HdfsBlobStore implements BlobStore {
     }
 
     @Override
-    public void delete(BlobPath path) throws IOException {
-        execute((Operation<Void>) fc -> {
-            fc.delete(translateToHdfsPath(path), true);
-            return null;
-        });
-    }
-
-    @Override
     public String toString() {
         return root.toUri().toString();
     }

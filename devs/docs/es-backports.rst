@@ -557,6 +557,7 @@ should be crossed out as well.
 - [ ] 6e7478b8461 Allow proxy mode server name to be configured (#50951)
 - [ ] d8510be3d98 Revert "Send cluster name and discovery node in handshake (#48916)" (#50944)
 - [x] b146740e052 Fix queuing in AsyncLucenePersistedState (#50958)
+- [x] 16c07472e5d Track Snapshot Version in RepositoryData (#50930) (#50989)
 - [x] 91d7b446a0c Warn on slow metadata performance (#50956)
 - [x] 22ba759e1f3 Move metadata storage to Lucene (#50928) (From this commit the log is based on the 7.10 branch)
 - [x] 0510af87868 Do not force refresh when write indexing buffer (#50769)
@@ -570,6 +571,8 @@ should be crossed out as well.
 - [sa] 50bd5842c3c Fix testCancelRecoveryDuringPhase1 (#50449)
 - [su] 5e0030e1306 Adjust BWC for peer recovery retention leases (#50351)
 - [s] a48d19d73a8 Add remote info to the HLRC (#50482)
+- [x] 4f24739fbef Fix Index Deletion During Partial Snapshot Create (#50234) (#50266)
+- [x] aecbb2f78e6 Fix Index Deletion during Snapshot Finalization (#50202)
 - [s] b7ac7324d23 Revert "Add remote info to the HLRC (#49657)"
 - [sn] f4989c54c45 Revert "serialize initial_connect_timeout as xcontent correctly"
 - [sn] ae64eaabdae serialize initial_connect_timeout as xcontent correctly
@@ -587,12 +590,13 @@ should be crossed out as well.
 - [su] 34f83904cc8 Adjust bwc for #48430
 - [x] b9fbc8dc748 Migrate peer recovery from translog to retention lease (#49448)
 - [sn] 0cedb9e2517 Update remote cluster stats to support simple mode (#49961)
-- [ ] 0fae4065eff Better Logging GCS Blobstore Mock (#50102) (#50124)
+- [sn] 0fae4065eff Better Logging GCS Blobstore Mock (#50102) (#50124)
 - [su] c5ecbee224f Update TcpHeader version constant for backport (#50086)
+- [x] 1e4d775bfc4 Remove Unused Single Delete in BlobStoreRepository (#50024)
 - [su] 1329acc094c Upgrade to lucene 8.4.0-snapshot-662c455. (#50016)
 - [sn] 0062d5f301a [DOCS] Remove shadow replica reference (#50029)
-- [ ] ee4a8a08dd5 Improve Snapshot Finalization Ex. Handling (#49995) (#50017)
-- [ ] 62e128f02d4 Cleanup Old index-N Blobs in Repository Cleanup (#49862) (#49902)
+- [x] ee4a8a08dd5 Improve Snapshot Finalization Ex. Handling (#49995) (#50017)
+- [x] 62e128f02d4 Cleanup Old index-N Blobs in Repository Cleanup (#49862) (#49902)
 - [x] 678aeb747ea Make elasticsearch-node tools custom metadata-aware (#48390)
 - [x] 87517d96f62 Enable dependent settings values to be validated (#49942)
 - [s] fc3454b10bb Randomly run CCR tests with _source disabled (#49922)
@@ -647,6 +651,7 @@ should be crossed out as well.
 - [x] 39a3d637340 Unguice Snapshot / Restore services (#42357)
 - [x] c1de8c29db2 Cluster state from API should always have a master (#42454)
 - [x] 749135b37c9 Prevent in-place downgrades and invalid upgrades (#41731)
+- [x] 70eb812f83b Remove Delete Method from BlobStore (#41619)
 - [x] 328ba09f84b Omit non-masters in ClusterFormationFailureHelper (#41344)
 - [x] 2f41b1b64de Remove `Tracer` from `MockTransportService` (#40237)
 - [x] 6199ca742f7 Remove Redundant Request Wrappers from RepositoryService (#40192)
