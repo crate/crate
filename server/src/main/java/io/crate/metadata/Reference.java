@@ -21,6 +21,16 @@
 
 package io.crate.metadata;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -29,13 +39,6 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Objects;
 
 public class Reference extends Symbol {
 
@@ -43,6 +46,12 @@ public class Reference extends Symbol {
         FULLTEXT,
         PLAIN,
         NONE;
+
+        private static final List<IndexType> VALUES = List.of(values());
+
+        static IndexType fromStream(StreamInput in) throws IOException {
+            return VALUES.get(in.readVInt());
+        }
     }
 
     protected DataType<?> type;
@@ -69,8 +78,8 @@ public class Reference extends Symbol {
         type = DataTypes.fromStream(in);
         granularity = RowGranularity.fromStream(in);
 
-        columnPolicy = ColumnPolicy.values()[in.readVInt()];
-        indexType = IndexType.values()[in.readVInt()];
+        columnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
+        indexType = IndexType.fromStream(in);
         nullable = in.readBoolean();
         columnStoreDisabled = in.readBoolean();
         final boolean hasDefaultExpression = in.readBoolean();
