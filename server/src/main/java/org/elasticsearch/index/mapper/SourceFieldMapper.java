@@ -19,10 +19,7 @@
 
 package org.elasticsearch.index.mapper;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
-
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -48,7 +45,6 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
     public static class Defaults {
         public static final String NAME = SourceFieldMapper.NAME;
-        public static final boolean ENABLED = true;
 
         public static final FieldType FIELD_TYPE = new FieldType();
 
@@ -63,38 +59,22 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
     public static class Builder extends MetadataFieldMapper.Builder<Builder> {
 
-        private boolean enabled = Defaults.ENABLED;
 
         public Builder() {
             super(Defaults.NAME, new FieldType(Defaults.FIELD_TYPE));
         }
 
-        public Builder enabled(boolean enabled) {
-            this.enabled = enabled;
-            return this;
-        }
-
         @Override
         public SourceFieldMapper build(BuilderContext context) {
-            return new SourceFieldMapper(enabled, context.indexSettings());
+            return new SourceFieldMapper(context.indexSettings());
         }
     }
 
     public static class TypeParser implements MetadataFieldMapper.TypeParser {
+
         @Override
         public MetadataFieldMapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-            Builder builder = new Builder();
-
-            for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
-                Map.Entry<String, Object> entry = iterator.next();
-                String fieldName = entry.getKey();
-                Object fieldNode = entry.getValue();
-                if (fieldName.equals("enabled")) {
-                    builder.enabled(nodeBooleanValue(fieldNode, name + ".enabled"));
-                    iterator.remove();
-                }
-            }
-            return builder;
+            return new Builder();
         }
 
         @Override
@@ -128,15 +108,9 @@ public class SourceFieldMapper extends MetadataFieldMapper {
         }
     }
 
-    private final boolean enabled;
 
     private SourceFieldMapper(Settings indexSettings) {
-        this(Defaults.ENABLED, indexSettings);
-    }
-
-    private SourceFieldMapper(boolean enabled, Settings indexSettings) {
-        super(Defaults.FIELD_TYPE, SourceFieldType.INSTANCE, indexSettings); // Only stored.
-        this.enabled = enabled;
+        super(Defaults.FIELD_TYPE, SourceFieldType.INSTANCE, indexSettings);
     }
 
     @Override
@@ -153,7 +127,7 @@ public class SourceFieldMapper extends MetadataFieldMapper {
     protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
         BytesReference originalSource = context.sourceToParse().source();
         BytesReference source = originalSource;
-        if (enabled && fieldType.stored() && source != null) {
+        if (fieldType.stored() && source != null) {
             // Percolate and tv APIs may not set the source and that is ok, because these APIs will not index any data
             BytesRef ref = source.toBytesRef();
             fields.add(new StoredField(fieldType().name(), ref.bytes, ref.offset, ref.length));
@@ -177,26 +151,10 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        boolean includeDefaults = params.paramAsBoolean("include_defaults", false);
-
-        // all are defaults, no need to write it at all
-        if (!includeDefaults && enabled == Defaults.ENABLED) {
-            return builder;
-        }
-        builder.startObject(contentType());
-        if (includeDefaults || enabled != Defaults.ENABLED) {
-            builder.field("enabled", enabled);
-        }
-
-        builder.endObject();
         return builder;
     }
 
     @Override
     protected void mergeOptions(FieldMapper other, List<String> conflicts) {
-        SourceFieldMapper sourceMergeWith = (SourceFieldMapper) other;
-        if (this.enabled != sourceMergeWith.enabled) {
-            conflicts.add("Cannot update enabled setting for [_source]");
-        }
     }
 }
