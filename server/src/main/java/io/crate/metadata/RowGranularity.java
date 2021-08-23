@@ -21,10 +21,11 @@
 
 package io.crate.metadata;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
 
 /**
  * granularity of references
@@ -42,8 +43,10 @@ public enum RowGranularity {
     SHARD,
     DOC;
 
+    private static final List<RowGranularity> VALUES = List.of(values());
+
     public static RowGranularity fromStream(StreamInput in) throws IOException {
-        return RowGranularity.values()[in.readVInt()];
+        return VALUES.get(in.readVInt());
     }
 
     public static void toStream(RowGranularity granularity, StreamOutput out) throws IOException {
