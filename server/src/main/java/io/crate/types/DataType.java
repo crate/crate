@@ -219,7 +219,6 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return true;
     }
 
-
     public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
                                                @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         assert getTypeParameters().isEmpty()

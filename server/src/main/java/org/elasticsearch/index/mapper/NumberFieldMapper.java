@@ -135,11 +135,6 @@ public class NumberFieldMapper extends FieldMapper {
                 return parser.floatValue(coerce);
             }
 
-            @Override
-            public Query termQuery(String field, Object value) {
-                float v = parse(value, false);
-                return FloatPoint.newExactQuery(field, v);
-            }
 
             @Override
             public Query termsQuery(String field, List<Object> values) {
@@ -211,11 +206,6 @@ public class NumberFieldMapper extends FieldMapper {
                 return parser.doubleValue(coerce);
             }
 
-            @Override
-            public Query termQuery(String field, Object value) {
-                double v = parse(value, false);
-                return DoublePoint.newExactQuery(field, v);
-            }
 
             @Override
             public Query termsQuery(String field, List<Object> values) {
@@ -304,10 +294,6 @@ public class NumberFieldMapper extends FieldMapper {
                 return (short) value;
             }
 
-            @Override
-            public Query termQuery(String field, Object value) {
-                return INTEGER.termQuery(field, value);
-            }
 
             @Override
             public Query termsQuery(String field, List<Object> values) {
@@ -361,10 +347,6 @@ public class NumberFieldMapper extends FieldMapper {
                 return parser.shortValue(coerce);
             }
 
-            @Override
-            public Query termQuery(String field, Object value) {
-                return INTEGER.termQuery(field, value);
-            }
 
             @Override
             public Query termsQuery(String field, List<Object> values) {
@@ -416,15 +398,6 @@ public class NumberFieldMapper extends FieldMapper {
             @Override
             public Integer parse(XContentParser parser, boolean coerce) throws IOException {
                 return parser.intValue(coerce);
-            }
-
-            @Override
-            public Query termQuery(String field, Object value) {
-                if (hasDecimalPart(value)) {
-                    return Queries.newMatchNoDocsQuery("Value [" + value + "] has a decimal part");
-                }
-                int v = parse(value, true);
-                return IntPoint.newExactQuery(field, v);
             }
 
             @Override
@@ -537,14 +510,6 @@ public class NumberFieldMapper extends FieldMapper {
                 return parser.longValue(coerce);
             }
 
-            @Override
-            public Query termQuery(String field, Object value) {
-                if (hasDecimalPart(value)) {
-                    return Queries.newMatchNoDocsQuery("Value [" + value + "] has a decimal part");
-                }
-                long v = parse(value, true);
-                return LongPoint.newExactQuery(field, v);
-            }
 
             @Override
             public Query termsQuery(String field, List<Object> values) {
@@ -635,9 +600,6 @@ public class NumberFieldMapper extends FieldMapper {
         public final String typeName() {
             return name;
         }
-
-        /** Get the associated numeric type */
-        public abstract Query termQuery(String field, Object value);
 
         public abstract Query termsQuery(String field, List<Object> values);
 
@@ -740,12 +702,6 @@ public class NumberFieldMapper extends FieldMapper {
             } else {
                 return new TermQuery(new Term(FieldNamesFieldMapper.NAME, name()));
             }
-        }
-
-        @Override
-        public Query termQuery(Object value, QueryShardContext context) {
-            failIfNotIndexed();
-            return type.termQuery(name(), value);
         }
 
         @Override

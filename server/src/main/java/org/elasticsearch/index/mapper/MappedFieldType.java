@@ -118,7 +118,9 @@ public abstract class MappedFieldType {
      *  @throws QueryShardException if the field is not searchable regardless of options
      */
     // TODO: Standardize exception types
-    public abstract Query termQuery(Object value, @Nullable QueryShardContext context);
+    public Query termQuery(Object value, @Nullable QueryShardContext context) {
+        throw new UnsupportedOperationException("TODO: Remove this method");
+    }
 
     /** Build a constant-scoring query that matches all values. The default implementation uses a
      * {@link ConstantScoreQuery} around a {@link BooleanQuery} whose {@link Occur#SHOULD} clauses

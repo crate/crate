@@ -23,9 +23,12 @@ package io.crate.lucene;
 
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.StorageReader;
+
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
@@ -46,35 +49,10 @@ class EqQuery implements FunctionToQuery {
             return null;
         }
         Reference reference = refAndLiteral.reference();
-        Literal literal = refAndLiteral.literal();
-        String columnName = reference.column().fqn();
-        MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-        if (reference.valueType().id() == ObjectType.ID) {
-            //noinspection unchecked
-            return refEqObject(input, reference, (Map<String, Object>) literal.value(), context);
-        }
-        if (fieldType == null) {
-            // field doesn't exist, can't match
-            return Queries.newMatchNoDocsQuery("column does not exist in this index");
-        }
-        if (DataTypes.isArray(reference.valueType()) &&
-            DataTypes.isArray(literal.valueType())) {
+        Literal<?> literal = refAndLiteral.literal();
 
-            List values = LuceneQueryBuilder.asList(literal);
-            if (values.isEmpty()) {
-                return genericFunctionFilter(input, context);
-            }
-            Query termsQuery = LuceneQueryBuilder.termsQuery(fieldType, values, context.queryShardContext);
-
-            // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
-            // termsFilter is applied first
-            // afterwards the more expensive genericFunctionFilter
-            BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
-            filterClauses.add(termsQuery, BooleanClause.Occur.MUST);
-            filterClauses.add(genericFunctionFilter(input, context), BooleanClause.Occur.MUST);
-            return filterClauses.build();
-        }
-        return fieldType.termQuery(literal.value(), context.queryShardContext);
+        StorageReader<Query, Object> reader = context.getReader(reference);
+        return reader.termQuery(reference, literal.value());
     }
 
     /**

@@ -67,6 +67,8 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
+import io.crate.types.StorageReader;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.BooleanClause;
@@ -231,6 +233,11 @@ public class LuceneQueryBuilder {
 
         public QueryShardContext queryShardContext() {
             return queryShardContext;
+        }
+
+        public StorageReader<Query, Object> getReader(Reference reference) {
+            // TODO: Need some kind of registry, or make readers part of the dataType interface?
+            return (StorageReader) new LuceneFloatReader();
         }
     }
 
