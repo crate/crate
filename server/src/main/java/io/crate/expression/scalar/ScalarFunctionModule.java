@@ -48,6 +48,7 @@ import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.scalar.conditional.LeastFunction;
 import io.crate.expression.scalar.conditional.NullIfFunction;
 import io.crate.expression.scalar.formatting.ToCharFunction;
+import io.crate.expression.scalar.geo.AreaFunction;
 import io.crate.expression.scalar.geo.CoordinateFunction;
 import io.crate.expression.scalar.geo.DistanceFunction;
 import io.crate.expression.scalar.geo.GeoHashFunction;
@@ -112,6 +113,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         IntersectsFunction.register(this);
         CoordinateFunction.register(this);
         GeoHashFunction.register(this);
+        AreaFunction.register(this);
 
         SubscriptFunction.register(this);
         SubscriptObjectFunction.register(this);

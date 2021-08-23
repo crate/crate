@@ -62,6 +62,8 @@ Changes
 - Introduced ``RESPECT NULLS`` and ``IGNORE NULLS`` flags to window function
   calls. The following window functions can now utilize the flags: ``LEAD``,
   ``LAG``, ``NTH_VALUE``, ``FIRST_VALUE``, and ``LAST_VALUE``.
+- Added the :ref:`scalar-area` scalar function that calculates the area for a
+  ``GEO_SHAPE``.
 
 
 Fixes
