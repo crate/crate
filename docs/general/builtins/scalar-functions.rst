@@ -1650,6 +1650,34 @@ Example::
     SELECT 1 row in set (... sec)
 
 
+
+.. _scalar-area:
+
+``area(geo_shape)``
+----------------------
+
+Returns: ``double precision``
+
+The ``area`` function calculates the  area of the input shape in
+square-degrees. The calculation will use geospatial awareness (AKA `geodetic`_)
+instead of `Euclidean geometry`_. The input has to be a column of type
+:ref:`geo_shape_data_type`, a valid `WKT`_ string or `GeoJSON`_.
+See :ref:`geo_shape_data_type` for more information.
+
+Below you can find an example.
+
+Example::
+
+    cr> select
+    ...     round(area('POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))')) as "area";
+    +------+
+    | area |
+    +------+
+    |   25 |
+    +------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-math:
 
 Mathematical functions
@@ -3680,7 +3708,10 @@ Example::
 .. _3-valued logic: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
 .. _available time zones: https://www.joda.org/joda-time/timezones.html
 .. _CrateDB PDO: https://crate.io/docs/pdo/en/latest/connect.html
+.. _Euclidean geometry: https://en.wikipedia.org/wiki/Euclidean_geometry
 .. _formatter: https://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
+.. _geodetic: https://en.wikipedia.org/wiki/Geodesy
+.. _GeoJSON: https://geojson.org/
 .. _Haversine formula: https://en.wikipedia.org/wiki/Haversine_formula
 .. _Java DateTimeFormatter: https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
 .. _Java DecimalFormat: https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html
@@ -3688,3 +3719,4 @@ Example::
 .. _Joda-Time: https://www.joda.org/joda-time/
 .. _Lucene Regular Expressions: https://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
 .. _MySQL date_format: https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
+.. _WKT: https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry
