@@ -228,7 +228,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         public Void visitReference(Reference symbol, OutputValidatorContext context) {
             if (context.insideAggregation) {
                 Reference.IndexType indexType = symbol.indexType();
-                if (indexType == Reference.IndexType.ANALYZED) {
+                if (indexType == Reference.IndexType.FULLTEXT) {
                     throw new IllegalArgumentException(Symbols.format(
                         "Cannot select analyzed column '%s' within grouping or aggregations", symbol));
                 }

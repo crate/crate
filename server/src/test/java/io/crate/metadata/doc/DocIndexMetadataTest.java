@@ -282,47 +282,47 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
         Reference birthday = md.references().get(new ColumnIdent("person", "birthday"));
         assertThat(birthday.valueType(), is(DataTypes.TIMESTAMPZ));
-        assertThat(birthday.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(birthday.indexType(), is(Reference.IndexType.PLAIN));
         assertThat(birthday.defaultExpression(), is(nullValue()) );
 
         Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
-        assertThat(integerIndexed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(integerIndexed.indexType(), is(Reference.IndexType.PLAIN));
         assertThat(integerIndexed.defaultExpression(), is(nullValue()) );
 
         Reference integerIndexedBWC = md.references().get(new ColumnIdent("integerIndexedBWC"));
-        assertThat(integerIndexedBWC.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(integerIndexedBWC.indexType(), is(Reference.IndexType.PLAIN));
         assertThat(integerIndexedBWC.defaultExpression(), is(nullValue()) );
 
         Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
-        assertThat(integerNotIndexed.indexType(), is(Reference.IndexType.NO));
+        assertThat(integerNotIndexed.indexType(), is(Reference.IndexType.NONE));
         assertThat(integerNotIndexed.defaultExpression(), is(nullValue()) );
 
         Reference integerNotIndexedBWC = md.references().get(new ColumnIdent("integerNotIndexedBWC"));
-        assertThat(integerNotIndexedBWC.indexType(), is(Reference.IndexType.NO));
+        assertThat(integerNotIndexedBWC.indexType(), is(Reference.IndexType.NONE));
         assertThat(integerNotIndexedBWC.defaultExpression(), is(nullValue()) );
 
         Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
-        assertThat(stringNotIndexed.indexType(), is(Reference.IndexType.NO));
+        assertThat(stringNotIndexed.indexType(), is(Reference.IndexType.NONE));
         assertThat(stringNotIndexed.defaultExpression(), is(nullValue()) );
 
         Reference stringNotIndexedBWC = md.references().get(new ColumnIdent("stringNotIndexedBWC"));
-        assertThat(stringNotIndexedBWC.indexType(), is(Reference.IndexType.NO));
+        assertThat(stringNotIndexedBWC.indexType(), is(Reference.IndexType.NONE));
         assertThat(stringNotIndexedBWC.defaultExpression(), is(nullValue()) );
 
         Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
-        assertThat(stringNotAnalyzed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(stringNotAnalyzed.indexType(), is(Reference.IndexType.PLAIN));
         assertThat(stringNotAnalyzed.defaultExpression(), is(nullValue()) );
 
         Reference stringNotAnalyzedBWC = md.references().get(new ColumnIdent("stringNotAnalyzedBWC"));
-        assertThat(stringNotAnalyzedBWC.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(stringNotAnalyzedBWC.indexType(), is(Reference.IndexType.PLAIN));
         assertThat(stringNotAnalyzedBWC.defaultExpression(), is(nullValue()) );
 
         Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
-        assertThat(stringAnalyzed.indexType(), is(Reference.IndexType.ANALYZED));
+        assertThat(stringAnalyzed.indexType(), is(Reference.IndexType.FULLTEXT));
         assertThat(stringAnalyzed.defaultExpression(), is(nullValue()) );
 
         Reference stringAnalyzedBWC = md.references().get(new ColumnIdent("stringAnalyzedBWC"));
-        assertThat(stringAnalyzedBWC.indexType(), is(Reference.IndexType.ANALYZED));
+        assertThat(stringAnalyzedBWC.indexType(), is(Reference.IndexType.FULLTEXT));
         assertThat(stringAnalyzedBWC.defaultExpression(), is(nullValue()) );
 
         assertThat(
@@ -386,24 +386,24 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(birthday.defaultExpression(), isFunction("current_timestamp", List.of(DataTypes.INTEGER)));
 
         Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
-        assertThat(integerIndexed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(integerIndexed.indexType(), is(Reference.IndexType.PLAIN));
         assertThat(integerIndexed.defaultExpression(), isLiteral(1));
 
 
         Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
-        assertThat(integerNotIndexed.indexType(), is(Reference.IndexType.NO));
+        assertThat(integerNotIndexed.indexType(), is(Reference.IndexType.NONE));
         assertThat(integerNotIndexed.defaultExpression(), isLiteral(1));
 
         Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
-        assertThat(stringNotIndexed.indexType(), is(Reference.IndexType.NO));
+        assertThat(stringNotIndexed.indexType(), is(Reference.IndexType.NONE));
         assertThat(stringNotIndexed.defaultExpression(), isLiteral("default"));
 
         Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
-        assertThat(stringNotAnalyzed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(stringNotAnalyzed.indexType(), is(Reference.IndexType.PLAIN));
         assertThat(stringNotAnalyzed.defaultExpression(), isLiteral("default"));
 
         Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
-        assertThat(stringAnalyzed.indexType(), is(Reference.IndexType.ANALYZED));
+        assertThat(stringAnalyzed.indexType(), is(Reference.IndexType.FULLTEXT));
         assertThat(stringAnalyzed.defaultExpression(), isLiteral("default"));
 
         assertThat(
@@ -1032,9 +1032,9 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = newMeta(getIndexMetadata("test_analyzer", builder), "test_analyzer");
         List<Reference> columns = new ArrayList<>(md.columns());
         assertThat(columns.size(), is(2));
-        assertThat(columns.get(0).indexType(), is(Reference.IndexType.ANALYZED));
+        assertThat(columns.get(0).indexType(), is(Reference.IndexType.FULLTEXT));
         assertThat(columns.get(0).column().fqn(), is("content_de"));
-        assertThat(columns.get(1).indexType(), is(Reference.IndexType.ANALYZED));
+        assertThat(columns.get(1).indexType(), is(Reference.IndexType.FULLTEXT));
         assertThat(columns.get(1).column().fqn(), is("content_en"));
     }
 
@@ -1159,7 +1159,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.columns().size(), is(3));
         assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReference.class));
         IndexReference indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
-        assertThat(indexInfo.indexType(), is(Reference.IndexType.ANALYZED));
+        assertThat(indexInfo.indexType(), is(Reference.IndexType.FULLTEXT));
         assertThat(indexInfo.column().fqn(), is("fun_name_ft"));
     }
 
@@ -1177,7 +1177,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.columns().size(), is(3));
         assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReference.class));
         IndexReference indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
-        assertThat(indexInfo.indexType(), is(Reference.IndexType.ANALYZED));
+        assertThat(indexInfo.indexType(), is(Reference.IndexType.FULLTEXT));
         assertThat(indexInfo.column().fqn(), is("fun_name_ft"));
     }
 
@@ -1310,13 +1310,13 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).valueType(),
             is(DataTypes.DOUBLE));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).indexType(),
-            is(Reference.IndexType.NO));
+            is(Reference.IndexType.NONE));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.numbers")).valueType(),
             is(new ArrayType<>(DataTypes.INTEGER)));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).valueType(),
             is(DataTypes.STRING));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).indexType(),
-            is(Reference.IndexType.ANALYZED));
+            is(Reference.IndexType.FULLTEXT));
     }
 
     @Test

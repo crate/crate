@@ -289,7 +289,7 @@ public final class SystemTable<T> implements TableInfo {
                         RowGranularity.DOC,
                         column.type,
                         ColumnPolicy.DYNAMIC,
-                        IndexType.NOT_ANALYZED,
+                        IndexType.PLAIN,
                         column.isNullable,
                         false,
                         position,

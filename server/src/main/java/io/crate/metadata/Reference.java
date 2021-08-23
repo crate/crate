@@ -40,9 +40,9 @@ import java.util.Objects;
 public class Reference extends Symbol {
 
     public enum IndexType {
-        ANALYZED,
-        NOT_ANALYZED,
-        NO;
+        FULLTEXT,
+        PLAIN,
+        NONE;
     }
 
     protected DataType<?> type;
@@ -88,7 +88,7 @@ public class Reference extends Symbol {
              granularity,
              type,
              ColumnPolicy.DYNAMIC,
-             IndexType.NOT_ANALYZED,
+             IndexType.PLAIN,
              true,
              false,
              position,
