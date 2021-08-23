@@ -564,13 +564,13 @@ public class AnalyzedTableElements<T> {
 
 
         }
-        if (columnDefinition.indexConstraint() == Reference.IndexType.ANALYZED) {
+        if (columnDefinition.indexConstraint() == Reference.IndexType.FULLTEXT) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                              "Cannot use column %s with fulltext index in PARTITIONED BY clause",
                                                              columnDefinition.ident().sqlFqn()));
         }
         elements.columnIdents.remove(columnDefinition.ident());
-        columnDefinition.indexConstraint(Reference.IndexType.NO);
+        columnDefinition.indexConstraint(Reference.IndexType.NONE);
         elements.partitionedByColumns.add(columnDefinition);
     }
 

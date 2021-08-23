@@ -102,7 +102,7 @@ public class DocTableInfoTest extends ESTestCase {
             RowGranularity.DOC,
             DataTypes.UNTYPED_OBJECT,
             ColumnPolicy.STRICT,
-            Reference.IndexType.NOT_ANALYZED,
+            Reference.IndexType.PLAIN,
             true,
             false,
             1,

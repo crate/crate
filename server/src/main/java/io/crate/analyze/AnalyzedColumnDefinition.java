@@ -374,7 +374,7 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     public void validate() {
-        if (indexType == Reference.IndexType.ANALYZED && !DataTypes.STRING.equals(dataType)) {
+        if (indexType == Reference.IndexType.FULLTEXT && !DataTypes.STRING.equals(dataType)) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
                 "Can't use an Analyzer on column %s because analyzers are only allowed on " +
@@ -425,7 +425,7 @@ public class AnalyzedColumnDefinition<T> {
         if (definition.position != 0) {
             mapping.put("position", definition.position);
         }
-        if (definition.indexType == Reference.IndexType.NO) {
+        if (definition.indexType == Reference.IndexType.NONE) {
             // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
             mapping.put("index", false);
         }
