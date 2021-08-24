@@ -40,7 +40,7 @@ public class IndexReference extends Reference {
 
     public static class Builder {
         private final ReferenceIdent ident;
-        private IndexType indexType = IndexType.ANALYZED;
+        private IndexType indexType = IndexType.FULLTEXT;
         private List<Reference> columns = new ArrayList<>();
         private String analyzer = null;
         private int position = 0;

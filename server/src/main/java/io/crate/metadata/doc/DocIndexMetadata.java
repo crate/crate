@@ -196,7 +196,7 @@ public class DocIndexMetadata {
         boolean partitionByColumn = partitionedBy.contains(column);
         String generatedExpression = generatedColumns.get(column.fqn());
         if (partitionByColumn) {
-            indexType = Reference.IndexType.NOT_ANALYZED;
+            indexType = Reference.IndexType.PLAIN;
         }
         if (generatedExpression == null) {
             ref = newInfo(position, column, type, defaultExpression, columnPolicy, indexType, isNotNull, columnStoreDisabled);
@@ -372,18 +372,18 @@ public class DocIndexMetadata {
         Object index = columnProperties.get("index");
         if (index == null) {
             if ("text".equals(columnProperties.get("type"))) {
-                return Reference.IndexType.ANALYZED;
+                return Reference.IndexType.FULLTEXT;
             }
-            return Reference.IndexType.NOT_ANALYZED;
+            return Reference.IndexType.PLAIN;
         }
         if (Boolean.FALSE.equals(index) || "no".equals(index) || "false".equals(index)) {
-            return Reference.IndexType.NO;
+            return Reference.IndexType.NONE;
         }
 
         if ("not_analyzed".equals(index)) {
-            return Reference.IndexType.NOT_ANALYZED;
+            return Reference.IndexType.PLAIN;
         }
-        return Reference.IndexType.ANALYZED;
+        return Reference.IndexType.FULLTEXT;
     }
 
     private static ColumnIdent childIdent(@Nullable ColumnIdent ident, String name) {
@@ -430,7 +430,7 @@ public class DocIndexMetadata {
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
-                add(position, newIdent, columnDataType, defaultExpression, columnPolicy, Reference.IndexType.NO, nullable, false);
+                add(position, newIdent, columnDataType, defaultExpression, columnPolicy, Reference.IndexType.NONE, nullable, false);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested

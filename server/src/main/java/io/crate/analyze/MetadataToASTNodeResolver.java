@@ -144,12 +144,12 @@ public class MetadataToASTNodeResolver {
                 if (!info.isNullable()) {
                     constraints.add(new NotNullColumnConstraint<>());
                 }
-                if (info.indexType().equals(Reference.IndexType.NO)
+                if (info.indexType().equals(Reference.IndexType.NONE)
                     && info.valueType().id() != ObjectType.ID
                     && !(info.valueType().id() == ArrayType.ID &&
                          ((ArrayType<?>) info.valueType()).innerType().id() == ObjectType.ID)) {
                     constraints.add(IndexColumnConstraint.off());
-                } else if (info.indexType().equals(Reference.IndexType.ANALYZED)) {
+                } else if (info.indexType().equals(Reference.IndexType.FULLTEXT)) {
                     String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);
                     GenericProperties<Expression> properties = new GenericProperties<>();
                     if (analyzer != null) {
@@ -222,7 +222,7 @@ public class MetadataToASTNodeResolver {
                 for (var indexRef : indexColumns) {
                     String name = indexRef.column().name();
                     List<Expression> columns = expressionsFromReferences(indexRef.columns());
-                    if (indexRef.indexType().equals(Reference.IndexType.ANALYZED)) {
+                    if (indexRef.indexType().equals(Reference.IndexType.FULLTEXT)) {
                         String analyzer = indexRef.analyzer();
                         GenericProperties<Expression> properties = new GenericProperties<>();
                         if (analyzer != null) {
@@ -230,7 +230,7 @@ public class MetadataToASTNodeResolver {
                                                                  new StringLiteral(analyzer)));
                         }
                         elements.add(new IndexDefinition<>(name, "fulltext", columns, properties));
-                    } else if (indexRef.indexType().equals(Reference.IndexType.NOT_ANALYZED)) {
+                    } else if (indexRef.indexType().equals(Reference.IndexType.PLAIN)) {
                         elements.add(new IndexDefinition<>(name, "plain", columns, GenericProperties.empty()));
                     }
                 }

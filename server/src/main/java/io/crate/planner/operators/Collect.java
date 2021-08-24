@@ -194,7 +194,7 @@ public class Collect implements LogicalPlan {
         // 2) no docValues or field data for analyzed columns -> can't sort on lucene level
         return s instanceof Reference &&
                (((Reference) s).granularity() == RowGranularity.PARTITION
-                || ((Reference) s).indexType() == Reference.IndexType.ANALYZED);
+                || ((Reference) s).indexType() == Reference.IndexType.FULLTEXT);
     }
 
     @Nullable
