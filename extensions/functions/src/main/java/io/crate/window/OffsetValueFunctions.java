@@ -83,9 +83,9 @@ public class OffsetValueFunctions implements WindowFunction {
         }
         /* from cached index, search from left to right for a non-null element.
            for 'lag', cache index will never go past idxInPartition(current index).
-           for 'lead', cache index may reach upperBoundExclusive. */
-        for (int i = cachedNonNullIndex + 1; i <= currentFrame.upperBoundExclusive(); i++) {
-            if (i == currentFrame.upperBoundExclusive()) {
+           for 'lead', cache index may reach partitionEnd. */
+        for (int i = cachedNonNullIndex + 1; i <= currentFrame.partitionEnd(); i++) {
+            if (i == currentFrame.partitionEnd()) {
                 cachedNonNullIndex = null;
                 break;
             }
@@ -132,10 +132,10 @@ public class OffsetValueFunctions implements WindowFunction {
         }
     }
 
-    private Object getValueAtTargetIndex(Integer targetIndex,
-                                                WindowFrameState currentFrame,
-                                                List<? extends CollectExpression<Row, ?>> expressions,
-                                                Input[] args) {
+    private Object getValueAtTargetIndex(@Nullable Integer targetIndex,
+                                         WindowFrameState currentFrame,
+                                         List<? extends CollectExpression<Row, ?>> expressions,
+                                         Input[] args) {
         if (targetIndex == null) {
             throw new IndexOutOfBoundsException();
         }
