@@ -27,7 +27,7 @@ import org.apache.lucene.search.Query;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-interface FunctionToQuery {
+public interface FunctionToQuery {
 
     @Nullable
     Query apply(Function input, LuceneQueryBuilder.Context context) throws IOException;
