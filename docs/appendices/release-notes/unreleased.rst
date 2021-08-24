@@ -73,3 +73,6 @@ Fixes
   identifiers containing white spaces to result in a validation exception
   at CrateDB ``4.6.2`` or a unusable object type column (write/reads fail)
   at CrateDB ``4.2.0`` to ``4.6.1``.
+- Fixed an issue from window functions, ``LEAD`` and ``LAG`` where having both
+  ``IGNORE NULLS`` option together with an ``ORDER BY`` clause caused undefined
+  behaviour.

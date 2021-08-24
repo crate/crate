@@ -51,6 +51,32 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void testLagWithIgnoreNullsWithSingleArgumentAndEmptyOver() throws Throwable {
+        assertEvaluate(
+            "lag(x) ignore nulls over()",
+            contains(new Object[]{null, 1, 1, 2}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{null},
+            new Object[]{2},
+            new Object[]{3}
+        );
+    }
+
+    @Test
+    public void testLagWithRespectNullsWithSingleArgumentAndEmptyOver() throws Throwable {
+        assertEvaluate(
+            "lag(x) respect nulls over()",
+            contains(new Object[]{null, 1, null, 2}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{null},
+            new Object[]{2},
+            new Object[]{3}
+        );
+    }
+
+    @Test
     public void testLagWithOffsetAndEmptyOver() throws Throwable {
         assertEvaluate(
             "lag(x, 2) over()",
@@ -64,9 +90,34 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void testLagWithIgnoreNullsWithOffsetAndEmptyOver() throws Throwable {
+        assertEvaluate(
+            "lag(x, 2) ignore nulls over()",
+            contains(new Object[]{null, null, 1, 1}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{2},
+            new Object[]{null},
+            new Object[]{4}
+        );
+    }
+
+    @Test
     public void testLagWithNullOffset() throws Throwable {
         assertEvaluate(
             "lag(x, null) over()",
+            contains(new Object[]{null, null, null}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{null},
+            new Object[]{2}
+        );
+    }
+
+    @Test
+    public void testLagWithIgnoreNullsWithNullOffset() throws Throwable {
+        assertEvaluate(
+            "lag(x, null) ignore nulls over()",
             contains(new Object[]{null, null, null}),
             List.of(new ColumnIdent("x")),
             new Object[]{1},
@@ -87,6 +138,19 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void testLagWithIgnoreNullsAndZeroOffsetThrows() throws Throwable {
+        Asserts.assertThrowsMatches(
+            () -> assertEvaluate(
+                "lag(x,0,123) ignore nulls over()",
+                null,
+                List.of(new ColumnIdent("x")),
+                new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}),
+            IllegalArgumentException.class,
+            "offset 0 is not a valid argument if ignore nulls flag is set"
+        );
+    }
+
+    @Test
     public void testLagNegativeOffsetAndEmptyOver() throws Throwable {
         assertEvaluate(
             "lag(x, -1) over()",
@@ -98,6 +162,19 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void testLagIgnoreNullsNegativeOffsetAndEmptyOver() throws Throwable {
+        assertEvaluate(
+            "lag(x, -1) ignore nulls over()",
+            contains(new Object[]{2, 3, 3 ,null}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{2},
+            new Object[]{null},
+            new Object[]{3}
+        );
+    }
+
+    @Test
     public void testLagWithDefaultValueAndEmptyOver() throws Throwable {
         assertEvaluate(
             "lag(x, 1, -1) over()",
@@ -105,6 +182,19 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
             List.of(new ColumnIdent("x")),
             new Object[]{1},
             new Object[]{2},
+            new Object[]{3},
+            new Object[]{4}
+        );
+    }
+
+    @Test
+    public void testLagWithIgnoreNullsWithDefaultValueAndEmptyOver() throws Throwable {
+        assertEvaluate(
+            "lag(x, 1, -1) ignore nulls over()",
+            contains(new Object[]{-1, 1, 1, 3}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{null},
             new Object[]{3},
             new Object[]{4}
         );
@@ -149,6 +239,43 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void testLeadWithOnlyNulls() throws Throwable {
+        assertEvaluate(
+            "lead(x,1) ignore nulls over()",
+            contains(new Object[]{null, null, null, null}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{null},
+            new Object[]{null},
+            new Object[]{null},
+            new Object[]{null}
+        );
+    }
+
+    @Test
+    public void testLeadIgnoreNullsWithOrderBy() throws Throwable {
+        assertEvaluate(
+            "lead(x) ignore nulls over(order by x asc)",
+            contains(new Object[]{2, 3, 4, 5, null}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{5},
+            new Object[]{4},
+            new Object[]{3},
+            new Object[]{2},
+            new Object[]{1}
+        );
+        assertEvaluate(
+            "lead(x) ignore nulls over(order by y asc, z asc)",
+            contains(new Object[]{2, 3, 4, 5, null}),
+            List.of(new ColumnIdent("x"), new ColumnIdent("y"), new ColumnIdent("z")),
+            new Object[]{3,2,"c"},
+            new Object[]{5,2,"e"},
+            new Object[]{4,2,"d"},
+            new Object[]{2,1,"b"},
+            new Object[]{1,1,"a"}
+        );
+    }
+
+    @Test
     public void testLagOverPartitionedWindow() throws Throwable {
         assertEvaluate("lag(x) over(partition by x > 2)",
             contains(new Object[]{null, 1, 2, null, 3, 4}),
@@ -162,6 +289,22 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void testLagWithIgnoreNullsOverPartitionedWindow() throws Throwable {
+        assertEvaluate("lag(x) over(partition by x > 2 order by x)",
+                       contains(new Object[]{null, 1, 2, null, 3, 4, null, null}),
+                       List.of(new ColumnIdent("x")),
+                       new Object[]{1},
+                       new Object[]{2},
+                       new Object[]{2},
+                       new Object[]{null},
+                       new Object[]{3},
+                       new Object[]{4},
+                       new Object[]{null},
+                       new Object[]{5});
+        // 3 partitions, 1) x > 2, 2) x <= 2, 3) nulls
+    }
+
+    @Test
     public void testLagOperatesOnPartitionAndIgnoresFrameRange() throws Throwable {
         assertEvaluate(
             "lag(x) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)",
@@ -172,16 +315,10 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
             new Object[]{3},
             new Object[]{4}
         );
-        assertEvaluate(
-            "lead(x,-3,123) ignore nulls over(RANGE BETWEEN CURRENT ROW and CURRENT ROW)",
-            contains(new Object[]{123, 123, 123, 123, 1, 1, 1, 2, 3, 3, 4, 4}),
-            List.of(new ColumnIdent("x")),
-            new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
-        );
     }
 
     @Test
-    public void testLeadWithIgnoreNullsOperatesOnPartitionAndIgnoresFrameRange() throws Throwable {
+    public void testLeadWithIgnoreNullsIgnoresFrameRange() throws Throwable {
         assertEvaluate(
             "lead(x,-3,123) ignore nulls over(RANGE BETWEEN CURRENT ROW and CURRENT ROW)",
             contains(new Object[]{123, 123, 123, 123, 1, 1, 1, 2, 3, 3, 4, 4}),
@@ -256,6 +393,19 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void testLagIgnoringNullsWithOnlyNulls() throws Throwable {
+        assertEvaluate(
+            "lag(x,1) ignore nulls over()",
+            contains(new Object[]{null, null, null, null}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{null},
+            new Object[]{null},
+            new Object[]{null},
+            new Object[]{null}
+        );
+    }
+
+    @Test
     public void testLagIgnoringNullsWithMultipleGroupsOfNulls() throws Throwable {
         assertEvaluate(
             "lag(x,3,123) ignore nulls over()",
@@ -305,6 +455,19 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void testLeadIgnoringNullsWithOnlyNulls() throws Throwable {
+        assertEvaluate(
+            "lead(x,1,123) ignore nulls over()",
+            contains(new Object[]{123, 123, 123, 123}),
+            List.of(new ColumnIdent("x")),
+            new Object[]{null},
+            new Object[]{null},
+            new Object[]{null},
+            new Object[]{null}
+        );
+    }
+
+    @Test
     public void testLeadIgnoringNullsWithMultipleGroupsOfNulls() throws Throwable {
         assertEvaluate(
             "lead(x,3,123) ignore nulls over()",
@@ -341,19 +504,6 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
             contains(new Object[]{3, 4, 4, 5, 5, 5, 6, 7, 7, 123, 123, 123}),
             List.of(new ColumnIdent("x")),
             new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
-        );
-    }
-
-    @Test
-    public void testLagWithIgnoreNullsAndZeroOffsetThrows() throws Throwable {
-        Asserts.assertThrowsMatches(
-            () -> assertEvaluate(
-                "lag(x,0,123) ignore nulls over()",
-                null,
-                List.of(new ColumnIdent("x")),
-                new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}),
-            IllegalArgumentException.class,
-            "offset 0 is not a valid argument if ignore nulls flag is set"
         );
     }
 
@@ -417,5 +567,4 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
             INTERVAL_DATA
         );
     }
-
 }
