@@ -211,10 +211,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testIdQuery() throws Exception {
         Query query = convert("_id = 'i1'");
-        assertThat(query, instanceOf(TermInSetQuery.class));
+        assertThat(query, instanceOf(TermQuery.class));
+        assertThat(query.toString(), is("_id:[ff 69 31]"));
 
         query = convert("_id = 1");
-        assertThat(query, instanceOf(TermInSetQuery.class));
+        assertThat(query, instanceOf(TermQuery.class));
+        assertThat(query.toString(), is("_id:[fe 1f]"));
     }
 
     @Test
