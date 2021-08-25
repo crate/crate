@@ -19,6 +19,7 @@
 
 package org.elasticsearch.action;
 
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
@@ -42,6 +43,13 @@ public class ActionType<Response extends TransportResponse> {
      */
     public String name() {
         return this.name;
+    }
+
+    /**
+     * Get a reader that can create a new instance of the class from a {@link org.elasticsearch.common.io.stream.StreamInput}
+     */
+    public Writeable.Reader<Response> getResponseReader() {
+        throw new UnsupportedOperationException("Not implemented by " + this.getClass());
     }
 
     /**
