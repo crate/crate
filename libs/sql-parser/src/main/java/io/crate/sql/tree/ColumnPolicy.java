@@ -21,12 +21,16 @@
 
 package io.crate.sql.tree;
 
+import java.util.List;
 import java.util.Locale;
+
 
 public enum ColumnPolicy {
     DYNAMIC,
     STRICT,
     IGNORED;
+
+    public static final List<ColumnPolicy> VALUES = List.of(values());
 
     public String lowerCaseName() {
         return name().toLowerCase(Locale.ENGLISH);
@@ -48,4 +52,5 @@ public enum ColumnPolicy {
                     "Invalid column policy: " + value + " use one of [dynamic, strict, ignored]");
         }
     }
+
 }
