@@ -22,6 +22,7 @@
 package io.crate.expression.operator;
 
 import io.crate.data.Input;
+import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -35,17 +36,17 @@ public class LikeOperator extends Operator<String> {
 
     private final Signature signature;
     private final Signature boundSignature;
-    private final TriPredicate<String, String, Integer> matcher;
-    private final int patternMatchingFlags;
+    private final TriPredicate<String, String, CaseSensitivity> matcher;
+    private final CaseSensitivity caseSensitivity;
 
     public LikeOperator(Signature signature,
-                         Signature boundSignature,
-                         TriPredicate<String, String, Integer> matcher,
-                         int patternMatchingFlags) {
+                        Signature boundSignature,
+                        TriPredicate<String, String, CaseSensitivity> matcher,
+                        CaseSensitivity caseSensitivity) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.matcher = matcher;
-        this.patternMatchingFlags = patternMatchingFlags;
+        this.caseSensitivity = caseSensitivity;
     }
 
     @Override
@@ -66,7 +67,7 @@ public class LikeOperator extends Operator<String> {
             if (value == null) {
                 return this;
             }
-            return new CompiledLike(signature, boundSignature, (String) value, patternMatchingFlags);
+            return new CompiledLike(signature, boundSignature, (String) value, caseSensitivity);
         }
         return super.compile(arguments);
     }
@@ -81,7 +82,7 @@ public class LikeOperator extends Operator<String> {
         if (expression == null || pattern == null) {
             return null;
         }
-        return matcher.test(expression, pattern, patternMatchingFlags);
+        return matcher.test(expression, pattern, caseSensitivity);
     }
 
     private static class CompiledLike extends Scalar<Boolean, String> {
@@ -89,10 +90,10 @@ public class LikeOperator extends Operator<String> {
         private final Signature boundSignature;
         private final Pattern pattern;
 
-        CompiledLike(Signature signature, Signature boundSignature, String pattern, int patternMatchingFlags) {
+        CompiledLike(Signature signature, Signature boundSignature, String pattern, CaseSensitivity caseSensitivity) {
             this.signature = signature;
             this.boundSignature = boundSignature;
-            this.pattern = LikeOperators.makePattern(pattern, patternMatchingFlags);
+            this.pattern = LikeOperators.makePattern(pattern, caseSensitivity);
         }
 
         @Override

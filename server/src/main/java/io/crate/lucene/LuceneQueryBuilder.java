@@ -66,6 +66,7 @@ import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
+import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.MatchPredicate;
@@ -295,8 +296,8 @@ public class LuceneQueryBuilder {
             entry(GteOperator.NAME, GTE_QUERY),
             entry(GtOperator.NAME, GT_QUERY),
             entry(CIDROperator.CONTAINED_WITHIN, LLT_QUERY),
-            entry(LikeOperators.OP_LIKE, new LikeQuery(false)),
-            entry(LikeOperators.OP_ILIKE, new LikeQuery(true)),
+            entry(LikeOperators.OP_LIKE, new LikeQuery(CaseSensitivity.SENSITIVE)),
+            entry(LikeOperators.OP_ILIKE, new LikeQuery(CaseSensitivity.INSENSITIVE)),
             entry(NotPredicate.NAME, new NotQuery(this)),
             entry(Ignore3vlFunction.NAME, new Ignore3vlQuery()),
             entry(IsNullPredicate.NAME, new IsNullQuery()),
@@ -307,10 +308,10 @@ public class LuceneQueryBuilder {
             entry(AnyOperators.Type.LTE.opName(), new AnyRangeQuery("gte", "lte")),
             entry(AnyOperators.Type.GTE.opName(), new AnyRangeQuery("lte", "gte")),
             entry(AnyOperators.Type.GT.opName(), new AnyRangeQuery("lt", "gt")),
-            entry(LikeOperators.ANY_LIKE, new AnyLikeQuery(false)),
-            entry(LikeOperators.ANY_NOT_LIKE, new AnyNotLikeQuery(false)),
-            entry(LikeOperators.ANY_ILIKE, new AnyLikeQuery(true)),
-            entry(LikeOperators.ANY_NOT_ILIKE, new AnyNotLikeQuery(true)),
+            entry(LikeOperators.ANY_LIKE, new AnyLikeQuery(CaseSensitivity.SENSITIVE)),
+            entry(LikeOperators.ANY_NOT_LIKE, new AnyNotLikeQuery(CaseSensitivity.SENSITIVE)),
+            entry(LikeOperators.ANY_ILIKE, new AnyLikeQuery(CaseSensitivity.INSENSITIVE)),
+            entry(LikeOperators.ANY_NOT_ILIKE, new AnyNotLikeQuery(CaseSensitivity.INSENSITIVE)),
             entry(RegexpMatchOperator.NAME, new RegexpMatchQuery()),
             entry(RegexpMatchCaseInsensitiveOperator.NAME, new RegexMatchQueryCaseInsensitive())
         );

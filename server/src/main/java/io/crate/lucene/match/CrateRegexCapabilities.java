@@ -32,9 +32,6 @@ import java.util.regex.Pattern;
  */
 public final class CrateRegexCapabilities {
 
-    public static final int FLAG_UNICODE_CASE = Pattern.UNICODE_CASE;
-    public static final int FLAG_CASE_INSENSITIVE = Pattern.CASE_INSENSITIVE;
-
     static JavaUtilRegexMatcher compile(String regex, int flags) {
         return new CrateRegexCapabilities.JavaUtilRegexMatcher(regex, flags);
     }

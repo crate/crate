@@ -21,11 +21,13 @@
 
 package io.crate.lucene;
 
-import io.crate.expression.symbol.Function;
-import io.crate.lucene.match.CrateRegexCapabilities;
-import io.crate.lucene.match.CrateRegexQuery;
+import java.util.regex.Pattern;
+
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
+
+import io.crate.expression.symbol.Function;
+import io.crate.lucene.match.CrateRegexQuery;
 
 
 class RegexMatchQueryCaseInsensitive implements FunctionToQuery {
@@ -39,10 +41,10 @@ class RegexMatchQueryCaseInsensitive implements FunctionToQuery {
         String fieldName = refAndLiteral.reference().column().fqn();
         Object value = refAndLiteral.literal().value();
 
-        if (value instanceof String) {
+        if (value instanceof String str) {
             return new CrateRegexQuery(
-                new Term(fieldName, (String) value),
-                CrateRegexCapabilities.FLAG_CASE_INSENSITIVE | CrateRegexCapabilities.FLAG_UNICODE_CASE);
+                new Term(fieldName, str), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+            );
         }
         throw new IllegalArgumentException("Can only use ~* with patterns of type string");
     }

@@ -21,10 +21,9 @@
 
 package io.crate.lucene;
 
-import io.crate.expression.operator.LikeOperators;
-import io.crate.expression.operator.any.AnyOperators;
-import io.crate.expression.symbol.Literal;
-import io.crate.metadata.Reference;
+import java.io.IOException;
+import java.util.Locale;
+
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -34,8 +33,11 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.RegexpFlag;
 
-import java.io.IOException;
-import java.util.Locale;
+import io.crate.expression.operator.LikeOperators;
+import io.crate.expression.operator.LikeOperators.CaseSensitivity;
+import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.Reference;
 
 class AnyNotLikeQuery extends AbstractAnyQuery {
 
@@ -43,8 +45,8 @@ class AnyNotLikeQuery extends AbstractAnyQuery {
         return String.format(Locale.ENGLISH, "~(%s)", wildCard);
     }
 
-    AnyNotLikeQuery(boolean ignoreCase) {
-        super(ignoreCase);
+    AnyNotLikeQuery(CaseSensitivity caseSensitivity) {
+        super(caseSensitivity);
     }
 
     @Override
@@ -69,7 +71,7 @@ class AnyNotLikeQuery extends AbstractAnyQuery {
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
         for (Object value : AnyOperators.collectionValueToIterable(array.value())) {
             andLikeQueries.add(
-                LikeQuery.like(candidate.valueType(), fieldType, value, ignoreCase),
+                LikeQuery.like(candidate.valueType(), fieldType, value, caseSensitivity),
                 BooleanClause.Occur.MUST);
         }
         return Queries.not(andLikeQueries.build());
