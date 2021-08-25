@@ -21,15 +21,20 @@
 
 package io.crate.metadata;
 
-import io.crate.data.Input;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.search.Query;
+
+import io.crate.data.Input;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder;
 
 /**
  * Base class for Scalar functions in crate.
@@ -83,6 +88,11 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      */
     public Scalar<ReturnType, InputType> compile(List<Symbol> arguments) {
         return this;
+    }
+
+    @Nullable
+    public Query toQuery(Function function, LuceneQueryBuilder.Context context) {
+        return null;
     }
 
     @Override
