@@ -403,20 +403,20 @@ public class RestoreService implements ClusterStateApplier {
 
                             clusterSettings.validateUpdate(settings);
                             mdBuilder.persistentSettings(settings);
+                        }
 
-                            if (request.includeCustomMetadata() && metadata.customs() != null) {
-                                // CrateDB patch to only restore defined custom metadata types
-                                List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
-                                boolean includeAll = customMetadataTypes.size() == 0;
+                        if (request.includeCustomMetadata() && metadata.customs() != null) {
+                            // CrateDB patch to only restore defined custom metadata types
+                            List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
+                            boolean includeAll = customMetadataTypes.size() == 0;
 
-                                for (ObjectObjectCursor<String, Metadata.Custom> cursor : metadata.customs()) {
-                                    if (!RepositoriesMetadata.TYPE.equals(cursor.key)) {
-                                        // Don't restore repositories while we are working with them
-                                        // TODO: Should we restore them at the end?
+                            for (ObjectObjectCursor<String, Metadata.Custom> cursor : metadata.customs()) {
+                                if (!RepositoriesMetadata.TYPE.equals(cursor.key)) {
+                                    // Don't restore repositories while we are working with them
+                                    // TODO: Should we restore them at the end?
 
-                                        if (includeAll || customMetadataTypes.contains(cursor.key)) {
-                                            mdBuilder.putCustom(cursor.key, cursor.value);
-                                        }
+                                    if (includeAll || customMetadataTypes.contains(cursor.key)) {
+                                        mdBuilder.putCustom(cursor.key, cursor.value);
                                     }
                                 }
                             }
