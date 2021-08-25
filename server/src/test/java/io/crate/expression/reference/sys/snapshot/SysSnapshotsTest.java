@@ -34,6 +34,7 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.util.Collections;
@@ -41,10 +42,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -84,5 +88,18 @@ public class SysSnapshotsTest extends ESTestCase {
             currentSnapshots.map(SysSnapshot::name).collect(Collectors.toList()),
             containsInAnyOrder("s1", "s2")
         );
+    }
+
+    @Test
+    public void test_current_snapshot_does_not_fail_if_get_repository_data_raises_exception() throws Exception {
+        Repository r1 = mock(Repository.class);
+        Mockito
+            .doThrow(new IllegalStateException("some error"))
+            .when(r1).getRepositoryData(any());
+
+        SysSnapshots sysSnapshots = new SysSnapshots(() -> List.of(r1));
+        CompletableFuture<Iterable<SysSnapshot>> currentSnapshots = sysSnapshots.currentSnapshots();
+        Iterable<SysSnapshot> iterable = currentSnapshots.get(5, TimeUnit.SECONDS);
+        assertThat(iterable.iterator().hasNext(), is(false));
     }
 }
