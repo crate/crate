@@ -146,7 +146,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             threadPool,
             localNodeFactory,
             clusterSettings,
-            new ConnectionManager(settings, transport)
+            new ClusterConnectionManager(settings, transport)
         );
     }
 
