@@ -706,6 +706,9 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
 
     }
 
+    /**
+     * Restoring ANALYZERS will result in restoring analyzer settings out of the global settings
+     */
     @Test
     public void test_restore_analyzers_only() throws Exception {
         createSnapshotWithTablesAndMetadata();
@@ -729,6 +732,22 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
 
         execute("SELECT type FROM sys.privileges WHERE grantee = 'my_user'");
         assertThat(response.rowCount(), is(0L));
+    }
+
+    /**
+     * Restoring USERS will result in restoring custom metadata only and NO global settings.
+     * This test a regression which resulted in restoring the custom metadata only if global settings
+     * were also marked to be restored.
+     */
+    @Test
+    public void test_restore_custom_metadata_only() throws Exception {
+        createSnapshotWithTablesAndMetadata();
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " USERS WITH (wait_for_completion=true)");
+        waitNoPendingTasksOnAll();
+
+        execute("SELECT name FROM sys.users WHERE name = 'my_user'");
+        assertThat(printedTable(response.rows()), is("my_user\n"));
     }
 
     @Test
