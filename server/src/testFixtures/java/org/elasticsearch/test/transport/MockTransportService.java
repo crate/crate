@@ -57,11 +57,10 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.ClusterConnectionManager;
 import org.elasticsearch.transport.ConnectTransportException;
-import org.elasticsearch.transport.ConnectionManager;
 import org.elasticsearch.transport.ConnectionProfile;
 import org.elasticsearch.transport.RequestHandlerRegistry;
-import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestOptions;
@@ -94,6 +93,11 @@ public final class MockTransportService extends TransportService {
     private final List<Runnable> onStopListeners = new CopyOnWriteArrayList<>();
 
     public static class TestPlugin extends Plugin {
+    }
+
+
+    public static MockTransportService createNewService(Settings settings, Version version, ThreadPool threadPool) {
+        return createNewService(settings, version, threadPool, null);
     }
 
     public static MockTransportService createNewService(Settings settings,
@@ -161,10 +165,7 @@ public final class MockTransportService extends TransportService {
             localNodeFactory,
             clusterSettings,
             new StubbableConnectionManager(
-                new ConnectionManager(settings, transport),
-                settings,
-                transport,
-                threadPool
+                new ClusterConnectionManager(settings, transport)
             )
         );
         this.original = transport.getDelegate();
@@ -517,7 +518,7 @@ public final class MockTransportService extends TransportService {
      * @return {@code true} if no other get connection behavior was registered for this address before.
      */
     public boolean addGetConnectionBehavior(TransportAddress transportAddress, StubbableConnectionManager.GetConnectionBehavior behavior) {
-        return connectionManager().addConnectBehavior(transportAddress, behavior);
+        return connectionManager().addGetConnectionBehavior(transportAddress, behavior);
     }
 
     /**
@@ -565,5 +566,9 @@ public final class MockTransportService extends TransportService {
         } catch (InterruptedException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    public DiscoveryNode getLocalDiscoNode() {
+        return this.getLocalNode();
     }
 }
