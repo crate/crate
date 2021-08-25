@@ -32,7 +32,6 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.WildcardQuery;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
@@ -73,7 +72,7 @@ final class LikeQuery implements FunctionToQuery {
         if (dataType.id() == DataTypes.STRING.ID) {
             return createCaseAwareQuery(
                 fieldType.name(),
-                BytesRefs.toString(value),
+                (String) value,
                 ignoreCase);
         }
         return fieldType.termQuery(value, null);

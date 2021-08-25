@@ -22,6 +22,7 @@
 package io.crate.lucene;
 
 import io.crate.expression.operator.LikeOperators;
+import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Reference;
 import org.apache.lucene.index.Term;
@@ -66,7 +67,7 @@ class AnyNotLikeQuery extends AbstractAnyQuery {
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
 
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
-        for (Object value : toIterable(array.value())) {
+        for (Object value : AnyOperators.collectionValueToIterable(array.value())) {
             andLikeQueries.add(
                 LikeQuery.like(candidate.valueType(), fieldType, value, ignoreCase),
                 BooleanClause.Occur.MUST);

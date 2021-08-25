@@ -21,6 +21,7 @@
 
 package io.crate.lucene;
 
+import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Reference;
 import org.apache.lucene.search.BooleanClause;
@@ -45,7 +46,7 @@ class AnyLikeQuery extends AbstractAnyQuery {
         // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
-        for (Object value : toIterable(array.value())) {
+        for (Object value : AnyOperators.collectionValueToIterable(array.value())) {
             booleanQuery.add(LikeQuery.toQuery(candidate, value, context, ignoreCase), BooleanClause.Occur.SHOULD);
         }
         return booleanQuery.build();
