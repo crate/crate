@@ -69,6 +69,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could cause queries on ``sys.snapshots`` to fail with an
+  error if a repository is in the cluster state that cannot be accessed - for
+  example due to invalid credentials.
+
 - Fixed a regression introduced in CrateDB `4.6.0` that broke the functionality
   of restoring only concrete custom metadata like ``USERS``, ``PRIVILEGES``,
   ``VIEWS`` and ``UDFS``.
