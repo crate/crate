@@ -67,6 +67,10 @@ Changes
 Fixes
 =====
 
+- Fixed a regression introduced in CrateDB `4.6.0` that broke the functionality
+  of restoring only concrete custom metadata like ``USERS``, ``PRIVILEGES``,
+  ``VIEWS`` and ``UDFS``.
+
 - Fixed an issue that caused the ``SHOW TRANSACTION_ISOLATION`` statement to
   require privileges for the ``sys`` schema.
 
