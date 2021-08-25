@@ -73,7 +73,15 @@ public class SysSnapshots {
                 }
                 return result;
             });
-            repository.getRepositoryData(listener);
+            try {
+                repository.getRepositoryData(listener);
+            } catch (Exception ex) {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Couldn't load repository data. repository={} error={}", repository, ex);
+                }
+                // ignore - `sys.snapshots` shouldn't fail because of an illegal repository definition
+                continue;
+            }
             futureActionListeners.add(listener);
         }
         return CompletableFutures.allAsList(futureActionListeners).thenApply(data -> {
