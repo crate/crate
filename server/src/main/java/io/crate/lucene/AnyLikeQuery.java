@@ -21,24 +21,26 @@
 
 package io.crate.lucene;
 
-import io.crate.expression.operator.any.AnyOperators;
-import io.crate.expression.symbol.Literal;
-import io.crate.metadata.Reference;
+import java.io.IOException;
+
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 
-import java.io.IOException;
+import io.crate.expression.operator.LikeOperators.CaseSensitivity;
+import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.Reference;
 
 class AnyLikeQuery extends AbstractAnyQuery {
 
-    AnyLikeQuery(boolean ignoreCase) {
-        super(ignoreCase);
+    AnyLikeQuery(CaseSensitivity caseSensitivity) {
+        super(caseSensitivity);
     }
 
     @Override
     protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
-        return LikeQuery.toQuery(array, candidate.value(), context, ignoreCase);
+        return LikeQuery.toQuery(array, candidate.value(), context, caseSensitivity);
     }
 
     @Override
@@ -47,7 +49,7 @@ class AnyLikeQuery extends AbstractAnyQuery {
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
         for (Object value : AnyOperators.collectionValueToIterable(array.value())) {
-            booleanQuery.add(LikeQuery.toQuery(candidate, value, context, ignoreCase), BooleanClause.Occur.SHOULD);
+            booleanQuery.add(LikeQuery.toQuery(candidate, value, context, caseSensitivity), BooleanClause.Occur.SHOULD);
         }
         return booleanQuery.build();
     }

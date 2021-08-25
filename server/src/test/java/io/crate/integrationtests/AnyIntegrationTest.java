@@ -21,12 +21,13 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.TestingHelpers;
+import static org.hamcrest.Matchers.is;
+
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.is;
+import io.crate.testing.TestingHelpers;
 
 public class AnyIntegrationTest extends SQLIntegrationTestCase {
 

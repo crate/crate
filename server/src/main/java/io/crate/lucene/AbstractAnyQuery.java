@@ -23,6 +23,7 @@ package io.crate.lucene;
 
 import com.google.common.collect.Iterables;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -37,14 +38,14 @@ import java.io.IOException;
 
 abstract class AbstractAnyQuery implements FunctionToQuery {
 
-    protected boolean ignoreCase;
+    protected final CaseSensitivity caseSensitivity;
 
     AbstractAnyQuery() {
-        this(false);
+        this(CaseSensitivity.SENSITIVE);
     }
 
-    AbstractAnyQuery(boolean ignoreCase) {
-        this.ignoreCase = ignoreCase;
+    AbstractAnyQuery(CaseSensitivity caseSensitivity) {
+        this.caseSensitivity = caseSensitivity;
     }
 
     @Override

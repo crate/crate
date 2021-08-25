@@ -24,6 +24,7 @@ package io.crate.expression.operator.any;
 import io.crate.data.Input;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.TriPredicate;
+import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -37,17 +38,17 @@ public class AnyLikeOperator extends Operator<Object> {
 
     private final Signature signature;
     private final Signature boundSignature;
-    private final TriPredicate<String, String, Integer> matcher;
-    private final int patternMatchingFlags;
+    private final TriPredicate<String, String, CaseSensitivity> matcher;
+    private final CaseSensitivity caseSensitivity;
 
     public AnyLikeOperator(Signature signature,
                            Signature boundSignature,
-                           TriPredicate<String, String, Integer> matcher,
-                           int patternMatchingFlags) {
+                           TriPredicate<String, String, CaseSensitivity> matcher,
+                           CaseSensitivity caseSensitivity) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.matcher = matcher;
-        this.patternMatchingFlags = patternMatchingFlags;
+        this.caseSensitivity = caseSensitivity;
         DataType<?> innerType = ((ArrayType<?>) boundSignature.getArgumentDataTypes().get(1)).innerType();
         if (innerType.id() == ObjectType.ID) {
             throw new IllegalArgumentException("ANY on object arrays is not supported");
@@ -74,7 +75,7 @@ public class AnyLikeOperator extends Operator<Object> {
             }
             assert elem instanceof String : "elem must be a String";
             String elemValue = (String) elem;
-            if (matcher.test(elemValue, pattern, patternMatchingFlags)) {
+            if (matcher.test(elemValue, pattern, caseSensitivity)) {
                 return true;
             }
         }
