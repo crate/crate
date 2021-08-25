@@ -87,6 +87,8 @@ import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.new
  */
 public class Netty4Transport extends TcpTransport {
 
+    static final String SERVER_SSL_HANDLER_NAME = "server_ssl_handler";
+
     static {
         Netty4Utils.setup();
     }
@@ -306,7 +308,7 @@ public class Netty4Transport extends TcpTransport {
             SSLMode sslMode = SslSettings.SSL_TRANSPORT_MODE.get(settings);
             if (sslMode == SSLMode.ON) {
                 SslContext sslContext = sslContextProvider.clientContext();
-                SslHandler sslHandler = sslContext.newHandler(ch.alloc());
+                AdaptiveSslHandler sslHandler = new AdaptiveSslHandler(sslContext.newEngine(ch.alloc()));
                 sslHandler.engine().setUseClientMode(true);
                 ch.pipeline().addLast(sslHandler);
             }
@@ -327,10 +329,10 @@ public class Netty4Transport extends TcpTransport {
             if (sslMode == SSLMode.ON) {
                 SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
                 SslHandler sslHandler = sslContext.newHandler(ch.alloc());
-                ch.pipeline().addLast(sslHandler);
+                ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME, sslHandler);
             }
 
-            if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings) && sslMode != SSLMode.LEGACY) {
+            if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings) && sslMode != SSLMode.OFF && sslMode != SSLMode.LEGACY) {
                 ch.pipeline().addLast("hba", new HostBasedAuthHandler(authentication));
             }
             addClosedExceptionLogger(ch);

@@ -64,7 +64,7 @@ public final class SslSettings {
     public enum SSLMode {
         ON,
         OFF,
-        LEGACY;
+        @Deprecated LEGACY;
 
         static SSLMode parse(String value) {
             return switch (value.toLowerCase(Locale.ENGLISH)) {
