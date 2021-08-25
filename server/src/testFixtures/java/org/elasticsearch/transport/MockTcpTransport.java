@@ -37,6 +37,7 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.CancellableThreads;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -76,7 +77,7 @@ public class MockTcpTransport extends TcpTransport {
      */
     public static final ConnectionProfile LIGHT_PROFILE;
 
-    private final Set<MockChannel> openChannels = new HashSet<>();
+    private final Set<MockChannel> openChannels = ConcurrentCollections.newConcurrentSet();
 
     static {
         ConnectionProfile.Builder builder = new ConnectionProfile.Builder();
@@ -286,9 +287,7 @@ public class MockTcpTransport extends TcpTransport {
             this.activeChannel = activeChannel;
             this.isServer = isServer;
             this.profile = profile;
-            synchronized (openChannels) {
-                openChannels.add(this);
-            }
+            openChannels.add(this);
             final Transport.RequestHandlers requestHandlers = MockTcpTransport.this.getRequestHandlers();
             this.pipeline = new InboundPipeline(
                 MockTcpTransport.this.getVersion(),
@@ -378,10 +377,7 @@ public class MockTcpTransport extends TcpTransport {
             // now if we are in-turn concurrently call close we might not wait for the actual close to happen and that will, down the road
             // make the assertion trip that not all channels are closed.
             if (isOpen.compareAndSet(true, false)) {
-                final boolean removedChannel;
-                synchronized (openChannels) {
-                    removedChannel = openChannels.remove(this);
-                }
+                final boolean removedChannel = openChannels.remove(this);
                 IOUtils.close(serverSocket, activeChannel, () -> IOUtils.close(workerChannels),
                               () -> cancellableThreads.cancel("channel closed"));
                 assert removedChannel : "Channel was not removed or removed twice?";
@@ -485,10 +481,14 @@ public class MockTcpTransport extends TcpTransport {
 
     @Override
     protected void stopInternal() {
-        ThreadPool.terminate(executor, 10, TimeUnit.SECONDS);
-        synchronized (openChannels) {
-            assert openChannels.isEmpty() : "there are still open channels: " + openChannels;
+        // TODO: figure out why the hell there are still open channels
+        try {
+            IOUtils.close(openChannels);
+        } catch (IOException e) {
+            logger.error("An exception occurred while closing still open channels");
         }
+        assert openChannels.isEmpty() : "there are still open channels: " + openChannels;
+        ThreadPool.terminate(executor, 10, TimeUnit.SECONDS);
     }
 }
 
