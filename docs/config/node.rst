@@ -485,6 +485,16 @@ The meaning of the fields of the are as follows:
   | See :ref:`auth_trust`, :ref:`auth_cert` and :ref:`auth_password` for more
   | information about these methods.
 
+.. _auth.host_based.config.${order}.switch_to_plaintext:
+
+**auth.host_based.config.${order}.switch_to_plaintext**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  | Specifies whether node can switch to plaintext after establishing secured
+  | connection. Use this in combination with the ``address`` restriction
+  | to ensure insecure plaintext traffic doesn't leave trusted network zones.
+
 .. _auth.host_based.config.${order}.protocol:
 
 **auth.host_based.config.${order}.protocol**

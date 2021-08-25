@@ -33,11 +33,13 @@ import java.util.Objects;
 
 public class ClientCertAuth implements AuthenticationMethod {
 
-    static final String NAME = "cert";
+    public static final String NAME = "cert";
     private final UserLookup userLookup;
+    private final boolean switchToPlaintext;
 
-    ClientCertAuth(UserLookup userLookup) {
+    ClientCertAuth(UserLookup userLookup, boolean switchToPlaintext) {
         this.userLookup = userLookup;
+        this.switchToPlaintext = switchToPlaintext;
     }
 
     @Nullable
@@ -62,5 +64,14 @@ public class ClientCertAuth implements AuthenticationMethod {
     @Override
     public String name() {
         return NAME;
+    }
+
+    /**
+     * This flag represents an HBA config entry corresponding
+     * to the concrete instance of CertAuth and letting user to downgrade to non-SSL.
+     * SSL is normally required for cert method, but can be set to false in HBA config.
+     */
+    public boolean isSwitchToPlaintext() {
+        return switchToPlaintext;
     }
 }

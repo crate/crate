@@ -28,8 +28,10 @@ You can enable SSL on a per-protocol basis:
 
    You can use ``on`` SSL mode to configure a multi-zone cluster to ensure
    encryption for nodes communicating between zones. Please note, that SSL has
-   to be ``on`` in all nodes as communication is point-2-point, and intra-zone
-   communication will also be encrypted.
+   to be ``on`` in all nodes as communication is point-2-point. By default
+   intra-zone communication will also be encrypted but it's possible to switch
+   it to plaintext by enabling ``switch_to_plaintext`` config for trusted zone.
+
 
 .. rubric:: Table of contents
 
