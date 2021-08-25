@@ -117,6 +117,7 @@ dependencies {
     testFixturesApi "org.hamcrest:hamcrest:${versions.hamcrest}"
     testFixturesApi "org.mockito:mockito-core:${versions.mockito}"
     testFixturesApi "org.postgresql:postgresql:${versions.jdbc}"
+    testFixturesApi "org.elasticsearch:mocksocket:${versions.mocksocket}"
     testFixturesImplementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     testFixturesImplementation "joda-time:joda-time:${versions.jodatime}"
     testFixturesImplementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
