@@ -25,9 +25,8 @@ import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.RepositoryService;
-import io.crate.metadata.NodeContext;
-import io.crate.statistics.TransportAnalyzeAction;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
+import io.crate.execution.ddl.ccr.PublicationService;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.views.TransportCreateViewAction;
@@ -38,7 +37,9 @@ import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
+import io.crate.statistics.TransportAnalyzeAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -77,6 +78,7 @@ public class DependencyCarrier {
     private final RepositoryService repositoryService;
     private final RepositoryParamValidator repositoryParamValidator;
     private final NodeLimits nodeLimits;
+    private final PublicationService publicationService;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -99,7 +101,8 @@ public class DependencyCarrier {
                              AlterTableOperation alterTableOperation,
                              FulltextAnalyzerResolver fulltextAnalyzerResolver,
                              RepositoryService repositoryService,
-                             RepositoryParamValidator repositoryParamValidator) {
+                             RepositoryParamValidator repositoryParamValidator,
+                             PublicationService publicationService) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
@@ -122,6 +125,7 @@ public class DependencyCarrier {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.repositoryService = repositoryService;
         this.repositoryParamValidator = repositoryParamValidator;
+        this.publicationService = publicationService;
     }
 
     public Schemas schemas() {
@@ -218,5 +222,9 @@ public class DependencyCarrier {
 
     public NodeLimits nodeLimits() {
         return nodeLimits;
+    }
+
+    public PublicationService publicationService() {
+        return publicationService;
     }
 }
