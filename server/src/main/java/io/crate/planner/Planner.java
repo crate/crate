@@ -78,7 +78,6 @@ import io.crate.analyze.DCLStatement;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.user.UserManager;
 import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
@@ -125,8 +124,13 @@ import io.crate.planner.statement.SetSessionAuthorizationPlan;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
+import io.crate.replication.logical.analyze.AnalyzedDropPublication;
+import io.crate.replication.logical.plan.CreatePublicationPlan;
+import io.crate.replication.logical.analyze.AnalyzedCreatePublication;
+import io.crate.replication.logical.plan.DropPublicationPlan;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.statistics.TableStats;
+import io.crate.user.UserManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
@@ -532,6 +536,18 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed analysis, PlannerContext context) {
         return new RerouteRetryFailedPlan();
+    }
+
+    @Override
+    public Plan visitCreatePublication(AnalyzedCreatePublication createPublication,
+                                       PlannerContext context) {
+        return new CreatePublicationPlan(createPublication);
+    }
+
+    @Override
+    public Plan visitDropPublication(AnalyzedDropPublication dropPublication,
+                                     PlannerContext context) {
+        return new DropPublicationPlan(dropPublication);
     }
 }
 

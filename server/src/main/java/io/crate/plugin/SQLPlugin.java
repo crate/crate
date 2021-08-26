@@ -21,17 +21,49 @@
 
 package io.crate.plugin;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.UnaryOperator;
-
-import javax.annotation.Nullable;
-
-
+import io.crate.action.sql.SQLOperations;
+import io.crate.auth.AuthSettings;
+import io.crate.auth.AuthenticationModule;
+import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
+import io.crate.cluster.gracefulstop.DecommissioningService;
+import io.crate.execution.TransportExecutorModule;
+import io.crate.execution.engine.collect.CollectOperationModule;
+import io.crate.execution.engine.collect.files.FileCollectModule;
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.jobs.JobModule;
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
+import io.crate.expression.operator.OperatorModule;
+import io.crate.expression.predicate.PredicateModule;
+import io.crate.expression.reference.sys.check.SysChecksModule;
+import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.license.License;
+import io.crate.lucene.ArrayMapperService;
+import io.crate.metadata.CustomMetadataUpgraderLoader;
+import io.crate.metadata.DanglingArtifactsService;
+import io.crate.metadata.DefaultTemplateService;
+import io.crate.metadata.MetadataModule;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.blob.MetadataBlobModule;
+import io.crate.metadata.information.MetadataInformationModule;
+import io.crate.metadata.pgcatalog.PgCatalogModule;
+import io.crate.metadata.settings.AnalyzerSettings;
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.sys.MetadataSysModule;
+import io.crate.metadata.upgrade.IndexTemplateUpgrader;
+import io.crate.metadata.upgrade.MetadataIndexUpgrader;
+import io.crate.metadata.view.ViewsMetadata;
+import io.crate.module.CrateCommonModule;
+import io.crate.monitor.MonitorModule;
+import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.protocols.ssl.SslContextProviderService;
+import io.crate.protocols.ssl.SslSettings;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.user.UserManagementModule;
+import io.crate.user.metadata.UsersMetadata;
+import io.crate.user.metadata.UsersPrivilegesMetadata;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -56,46 +88,13 @@ import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.auth.AuthSettings;
-import io.crate.auth.AuthenticationModule;
-import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
-import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.execution.TransportExecutorModule;
-import io.crate.execution.engine.collect.CollectOperationModule;
-import io.crate.execution.engine.collect.files.FileCollectModule;
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.execution.jobs.JobModule;
-import io.crate.execution.jobs.TasksService;
-import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
-import io.crate.expression.operator.OperatorModule;
-import io.crate.expression.predicate.PredicateModule;
-import io.crate.expression.reference.sys.check.SysChecksModule;
-import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
-import io.crate.lucene.ArrayMapperService;
-import io.crate.metadata.CustomMetadataUpgraderLoader;
-import io.crate.metadata.DanglingArtifactsService;
-import io.crate.metadata.DefaultTemplateService;
-import io.crate.metadata.MetadataModule;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.blob.MetadataBlobModule;
-import io.crate.metadata.information.MetadataInformationModule;
-import io.crate.metadata.pgcatalog.PgCatalogModule;
-import io.crate.metadata.settings.AnalyzerSettings;
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.sys.MetadataSysModule;
-import io.crate.metadata.upgrade.IndexTemplateUpgrader;
-import io.crate.metadata.upgrade.MetadataIndexUpgrader;
-import io.crate.metadata.view.ViewsMetadata;
-import io.crate.module.CrateCommonModule;
-import io.crate.monitor.MonitorModule;
-import io.crate.protocols.postgres.PostgresNetty;
-import io.crate.protocols.ssl.SslSettings;
-import io.crate.protocols.ssl.SslContextProviderService;
-import io.crate.user.UserManagementModule;
-import io.crate.user.metadata.UsersMetadata;
-import io.crate.user.metadata.UsersPrivilegesMetadata;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.UnaryOperator;
 
 public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
@@ -235,6 +234,26 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             UsersPrivilegesMetadata.TYPE,
             in -> UsersPrivilegesMetadata.readDiffFrom(Metadata.Custom.class, UsersPrivilegesMetadata.TYPE, in)
         ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            PublicationsMetadata.TYPE,
+            PublicationsMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            PublicationsMetadata.TYPE,
+            in -> PublicationsMetadata.readDiffFrom(Metadata.Custom.class, PublicationsMetadata.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            SubscriptionsMetadata.TYPE,
+            SubscriptionsMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            SubscriptionsMetadata.TYPE,
+            in -> SubscriptionsMetadata.readDiffFrom(Metadata.Custom.class, SubscriptionsMetadata.TYPE, in)
+        ));
 
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedWriteables());
@@ -263,6 +282,16 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             Metadata.Custom.class,
             new ParseField(UsersPrivilegesMetadata.TYPE),
             UsersPrivilegesMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(PublicationsMetadata.TYPE),
+            PublicationsMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(SubscriptionsMetadata.TYPE),
+            SubscriptionsMetadata::fromXContent
         ));
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedXContent());
