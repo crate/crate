@@ -34,6 +34,8 @@ import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.QueryShardException;
 
+import io.crate.metadata.Scalar;
+
 /**
  * This defines the core properties and functions to operate on a field.
  */
@@ -116,9 +118,14 @@ public abstract class MappedFieldType {
      *  @throws ElasticsearchParseException if {@code value} cannot be converted to the expected data type
      *  @throws UnsupportedOperationException if the field is not searchable regardless of options
      *  @throws QueryShardException if the field is not searchable regardless of options
+     *  @deprecated EqOperator implements {@link Scalar#toQuery(io.crate.expression.symbol.Function, io.crate.lucene.LuceneQueryBuilder.Context)}.
      */
     // TODO: Standardize exception types
-    public abstract Query termQuery(Object value, @Nullable QueryShardContext context);
+    @Deprecated
+    public Query termQuery(Object value, @Nullable QueryShardContext context) {
+        throw new UnsupportedOperationException(
+            "termQuery is depreacted. EqOperator.toQuery must be used instead");
+    }
 
     /** Build a constant-scoring query that matches all values. The default implementation uses a
      * {@link ConstantScoreQuery} around a {@link BooleanQuery} whose {@link Occur#SHOULD} clauses

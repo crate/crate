@@ -21,6 +21,35 @@
 
 package io.crate.lucene;
 
+import static io.crate.expression.eval.NullEliminator.eliminateNullsIfPossible;
+import static io.crate.metadata.DocReferences.inverseSourceLookup;
+import static java.util.Map.entry;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.Query;
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.index.cache.IndexCache;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.query.QueryShardContext;
+
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioninigValidationException;
@@ -29,7 +58,6 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.CIDROperator;
-import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LikeOperators;
@@ -59,41 +87,16 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.Query;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.cache.IndexCache;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.query.QueryShardContext;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static io.crate.expression.eval.NullEliminator.eliminateNullsIfPossible;
-import static io.crate.metadata.DocReferences.inverseSourceLookup;
-import static java.util.Map.entry;
 
 
 @Singleton
@@ -141,7 +144,7 @@ public class LuceneQueryBuilder {
         return ctx;
     }
 
-    static Query termsQuery(@Nullable MappedFieldType fieldType, List values, QueryShardContext context) {
+    public static Query termsQuery(@Nullable MappedFieldType fieldType, List values, QueryShardContext context) {
         if (fieldType == null) {
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
@@ -164,6 +167,8 @@ public class LuceneQueryBuilder {
         private final TransactionContext txnCtx;
         final QueryShardContext queryShardContext;
 
+        final NodeContext nodeContext;
+
         Context(TransactionContext txnCtx,
                 NodeContext nodeCtx,
                 MapperService mapperService,
@@ -171,6 +176,7 @@ public class LuceneQueryBuilder {
                 QueryShardContext queryShardContext,
                 String indexName,
                 List<Reference> partitionColumns) {
+            this.nodeContext = nodeCtx;
             this.txnCtx = txnCtx;
             this.queryShardContext = queryShardContext;
             FieldTypeLookup typeLookup = mapperService::fullName;
@@ -225,7 +231,7 @@ public class LuceneQueryBuilder {
         );
 
         @Nullable
-        MappedFieldType getFieldTypeOrNull(String fqColumnName) {
+        public MappedFieldType getFieldTypeOrNull(String fqColumnName) {
             return mapperService.fullName(fqColumnName);
         }
 
@@ -274,7 +280,6 @@ public class LuceneQueryBuilder {
         }
 
 
-        private static final EqQuery EQ_QUERY = new EqQuery();
         private static final RangeQuery LT_QUERY = new RangeQuery("lt");
         private static final RangeQuery LTE_QUERY = new RangeQuery("lte");
         private static final RangeQuery GT_QUERY = new RangeQuery("gt");
@@ -285,7 +290,6 @@ public class LuceneQueryBuilder {
             entry(WithinFunction.NAME, WITHIN_QUERY),
             entry(AndOperator.NAME, new AndQuery()),
             entry(OrOperator.NAME, new OrQuery()),
-            entry(EqOperator.NAME, EQ_QUERY),
             entry(LtOperator.NAME, LT_QUERY),
             entry(LteOperator.NAME, LTE_QUERY),
             entry(GteOperator.NAME, GTE_QUERY),
@@ -329,7 +333,14 @@ public class LuceneQueryBuilder {
 
             FunctionToQuery toQuery = functions.get(function.name());
             if (toQuery == null) {
-                return genericFunctionFilter(function, context);
+                FunctionImplementation implementation = context.nodeContext.functions().getQualified(
+                    function,
+                    context.txnCtx.sessionSettings().searchPath()
+                );
+                Query query = implementation instanceof Scalar<?, ?> scalar
+                    ? scalar.toQuery(function, context)
+                    : null;
+                return returnQueryOrTryFallsbacks(query, function, context);
             }
 
             Query query;
@@ -340,13 +351,14 @@ public class LuceneQueryBuilder {
             } catch (UnsupportedOperationException e) {
                 return genericFunctionFilter(function, context);
             }
+            return returnQueryOrTryFallsbacks(query, function, context);
+        }
+
+        private Query returnQueryOrTryFallsbacks(@Nullable Query query, Function function, Context context) {
             if (query == null) {
                 query = queryFromInnerFunction(function, context);
-                if (query == null) {
-                    return genericFunctionFilter(function, context);
-                }
             }
-            return query;
+            return query == null ? genericFunctionFilter(function, context) : query;
         }
 
         private Query queryFromInnerFunction(Function function, Context context) {
@@ -451,7 +463,7 @@ public class LuceneQueryBuilder {
         }
     }
 
-    static Query genericFunctionFilter(Function function, Context context) {
+    public static Query genericFunctionFilter(Function function, Context context) {
         if (function.valueType() != DataTypes.BOOLEAN) {
             raiseUnsupported(function);
         }
