@@ -60,6 +60,10 @@ None
 Fixes
 =====
 
+- Fixed a validation issue resulting in an unusable broken table when a
+  sub-column identifier of an object type column contains invalid whitespace
+  characters.
+
 - Fixed an issue that could cause queries on ``sys.snapshots`` to fail with an
   error if a repository is in the cluster state that cannot be accessed - for
   example due to invalid credentials.
