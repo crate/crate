@@ -462,22 +462,27 @@ public class SignatureBinder {
                 return fromType.isConvertableTo(toTypeSignature.createType(), false);
             case PRECEDENCE_ONLY:
                 var toType = toTypeSignature.createType();
+                if (checkParametrizedTypes(fromType.getTypeSignature(), toTypeSignature)) {
+                    return true;
+                }
                 return fromType.equals(toType)
                        || (fromType.isConvertableTo(toTypeSignature.createType(), false)
                           && toType.precedes(fromType));
             case NONE:
             default:
                 var fromTypeSignature = fromType.getTypeSignature();
-
-                // We always register numeric and text arguments without precision and scale thus the parameters
-                // should not be checked while signature matching.
-
-                String baseTypeName = fromTypeSignature.getBaseTypeName();
-                if (ALLOW_BASENAME_MATCH.contains(baseTypeName) && baseTypeName.equals(toTypeSignature.getBaseTypeName())) {
+                if (checkParametrizedTypes(fromTypeSignature, toTypeSignature)) {
                     return true;
                 }
                 return fromTypeSignature.equals(toTypeSignature);
         }
+    }
+
+    private static boolean checkParametrizedTypes(TypeSignature fromTypeSignature, TypeSignature toTypeSignature) {
+        // We always register numeric and text arguments without precision and scale thus the parameters
+        // should not be checked while signature matching.
+        String baseTypeName = fromTypeSignature.getBaseTypeName();
+        return ALLOW_BASENAME_MATCH.contains(baseTypeName) && baseTypeName.equals(toTypeSignature.getBaseTypeName());
     }
 
     private interface TypeConstraintSolver {
