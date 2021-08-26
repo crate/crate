@@ -272,4 +272,15 @@ public class CastFunctionTest extends ScalarTestCase {
         // would just skip the 2nd cast
         assertEvaluate("12.12::numeric(4, 2)::numeric(3, 1)", is(new BigDecimal("12.1")));
     }
+
+    @Test
+    public void test_cast_to_parametrized_numeric_returns_numeric_in_arithmetic_expression() {
+        // Used to return 80.
+        assertEvaluate("CAST(8.12 AS numeric(12, 5)) * 10", is(new BigDecimal("81.20000")));
+        assertEvaluate("8.12::numeric(12, 5) * 10", is(new BigDecimal("81.20000")));
+        //used to return "integer"
+        assertEvaluate("pg_typeof(CAST(8.12 AS numeric(12, 5)) * 10)", is("numeric"));
+
+        assertEvaluate("8.12::numeric * 10", is(new BigDecimal("81.20")));
+    }
 }
