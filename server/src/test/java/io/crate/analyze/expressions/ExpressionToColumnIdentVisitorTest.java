@@ -97,6 +97,11 @@ public class ExpressionToColumnIdentVisitorTest extends ESTestCase {
     }
 
     @Test
+    public void testConvertWithUnsupportedWithspaceInSubscript() throws Exception {
+        assertInvalidColumnNameExceptionOnConvert("a['col 1']", "contains an invalid space character");
+    }
+
+    @Test
     public void testConvertWithUnsupportedArithmetic() throws Exception {
         assertExceptionOnUnsupportedConvert("1+1");
     }
