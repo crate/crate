@@ -60,32 +60,4 @@ None
 Fixes
 =====
 
-- Fixed a validation issue resulting in an unusable broken table when a
-  sub-column identifier of an object type column contains invalid whitespace
-  characters.
-
-- Fixed an issue that could cause queries on ``sys.snapshots`` to fail with an
-  error if a repository is in the cluster state that cannot be accessed - for
-  example due to invalid credentials.
-
-- Fixed a regression introduced in CrateDB `4.6.0` that broke the functionality
-  of restoring only concrete custom metadata like ``USERS``, ``PRIVILEGES``,
-  ``VIEWS`` and ``UDFS``.
-
-- Fixed an issue that caused the ``SHOW TRANSACTION_ISOLATION`` statement to
-  require privileges for the ``sys`` schema.
-
-- Fixed an issue in the execution plan generation for ``SELECT COUNT(*) FROM
-  ...`` statements with predicates like ``'a' in ANY(varchar_array_column)``.
-  Such predicates resulted in a cast on the column (``'a' in
-  ANY(varchar_array_column::array(varchar(1)))``), leading to poor performance
-  because the indices couldn't get utilized. This fix significantly improves
-  the performance of such queries. In a test over 100000 records, the query
-  runtime improved from 320ms to 2ms.
-
-- Fixed an issue that could cause a ``NullPointerException`` if a user invoked
-  a ``SELECT`` statement with a predicate on a ``OBJECT (ignored)`` column
-  immediately after a ``DELETE`` statement.
-
-- Fixed an issue that could cause a wrong cast of numeric with parameters in
-  arithmetical expressions.
+None
