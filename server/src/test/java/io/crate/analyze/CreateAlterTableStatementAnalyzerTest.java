@@ -72,6 +72,7 @@ import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.hamcrest.Matchers.hasItem;
@@ -1445,5 +1446,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(mapToSortedString(stmt.mappingProperties()), Matchers.startsWith(
             "user_name={default_expr=CURRENT_USER, position=1, type=keyword}"
         ));
+    }
+
+    @Test
+    public void test_ensure_object_key_validation_on_table_creation() {
+        assertThrowsMatches(
+            () -> analyze("create table tbl (o object as (\"col 1\" int))"),
+            InvalidColumnNameException.class,
+            "contains an invalid space character"
+        );
     }
 }
