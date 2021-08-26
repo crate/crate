@@ -274,6 +274,17 @@ public class CastFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_cast_to_parametrized_numeric_returns_numeric_in_arithmetic_expression() {
+        // Used to return 80.
+        assertEvaluate("CAST(8.12 AS numeric(12, 5)) * 10", is(new BigDecimal("81.20000")));
+        assertEvaluate("8.12::numeric(12, 5) * 10", is(new BigDecimal("81.20000")));
+        //used to return "integer"
+        assertEvaluate("pg_typeof(CAST(8.12 AS numeric(12, 5)) * 10)", is("numeric"));
+
+        assertEvaluate("8.12::numeric * 10", is(new BigDecimal("81.20")));
+    }
+
+    @Test
     public void test_can_cast_object_to_json() throws Exception {
         assertEvaluate("{x = 10}::json", is("{\"x\":10}"));
     }
