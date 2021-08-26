@@ -19,39 +19,47 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.replication.logical.metadata;
+package io.crate.replication.logical.action;
 
 import io.crate.metadata.RelationName;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
-public class Publication implements Writeable {
+public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicationRequest> {
 
     private final String owner;
+    private final String name;
     private final List<RelationName> tables;
 
-    public Publication(String owner, List<RelationName> tables) {
+    public CreatePublicationRequest(String owner, String name, List<RelationName> tables) {
         this.owner = owner;
+        this.name = name;
         this.tables = tables;
     }
 
-    Publication(StreamInput in) throws IOException {
-        owner = in.readString();
+    public CreatePublicationRequest(StreamInput in) throws IOException {
+        super(in);
+        this.owner = in.readString();
+        this.name = in.readString();
         int size = in.readVInt();
-        tables = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            tables.add(RelationName.fromIndexName(in.readString()));
+        var t = new ArrayList<RelationName>(size);
+        for (var i = 0; i < size; i++) {
+            t.add(new RelationName(in));
         }
+        this.tables = List.copyOf(t);
     }
 
     public String owner() {
         return owner;
+    }
+
+    public String name() {
+        return name;
     }
 
     public List<RelationName> tables() {
@@ -60,27 +68,12 @@ public class Publication implements Writeable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
         out.writeString(owner);
+        out.writeString(name);
         out.writeVInt(tables.size());
         for (var table : tables) {
-            out.writeString(table.indexNameOrAlias());
+            table.writeTo(out);
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Publication that = (Publication) o;
-        return owner.equals(that.owner) && tables.equals(that.tables);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(owner, tables);
     }
 }

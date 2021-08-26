@@ -93,6 +93,8 @@ number of replicas.
     | pg_catalog         | pg_indexes              | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_namespace            | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_proc                 | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_publication          | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_publication_tables   | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_range                | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_roles                | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_settings             | BASE TABLE |             NULL | NULL               |
@@ -119,7 +121,7 @@ number of replicas.
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 52 rows in set (... sec)
+    SELECT 54 rows in set (... sec)
 
 The table also contains additional information such as the specified
 :ref:`routing column <gloss-routing-column>` and :ref:`partition columns
