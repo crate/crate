@@ -21,25 +21,28 @@
 
 package io.crate.metadata.pgcatalog;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static java.util.concurrent.CompletableFuture.completedFuture;
+import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
+import io.crate.expression.reference.StaticTableDefinition;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.settings.session.NamedSessionSetting;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTable;
+import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTablesTable;
+import io.crate.statistics.TableStats;
+import io.crate.user.Privilege;
+import org.elasticsearch.common.inject.Inject;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.crate.metadata.information.InformationSchemaInfo;
-import org.elasticsearch.common.inject.Inject;
-
-import io.crate.user.Privilege;
-import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
-import io.crate.expression.reference.StaticTableDefinition;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.settings.session.NamedSessionSetting;
-import io.crate.metadata.settings.session.SessionSettingRegistry;
-import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.statistics.TableStats;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
 public class PgCatalogTableDefinitions {
 
@@ -49,7 +52,9 @@ public class PgCatalogTableDefinitions {
     public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables,
                                      TableStats tableStats,
                                      PgCatalogSchemaInfo pgCatalogSchemaInfo,
-                                     SessionSettingRegistry sessionSettingRegistry) {
+                                     SessionSettingRegistry sessionSettingRegistry,
+                                     Schemas schemas,
+                                     LogicalReplicationService logicalReplicationService) {
         tableDefinitions = new HashMap<>(17);
         tableDefinitions.put(PgStatsTable.NAME, new StaticTableDefinition<>(
                 tableStats::statsEntries,
@@ -150,6 +155,21 @@ public class PgCatalogTableDefinitions {
             () -> completedFuture(emptyList()),
             PgIndexesTable.create().expressions(),
             false
+        ));
+        Iterable<PgPublicationTable.PublicationRow> publicationRows =
+            () -> logicalReplicationService.publications().entrySet().stream()
+                .map(e -> new PgPublicationTable.PublicationRow(e.getKey(), e.getValue()))
+                .iterator();
+        tableDefinitions.put(PgPublicationTable.IDENT, new StaticTableDefinition<>(
+            () -> publicationRows,
+            (user, p) -> p.owner().equals(user.name()),
+            PgPublicationTable.create().expressions()
+        ));
+
+        tableDefinitions.put(PgPublicationTablesTable.IDENT, new StaticTableDefinition<>(
+            () -> PgPublicationTablesTable.rows(logicalReplicationService, schemas),
+            (user, p) -> p.owner().equals(user.name()),
+            PgPublicationTablesTable.create().expressions()
         ));
     }
 

@@ -30,8 +30,6 @@ import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 
-
-import io.crate.license.License;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -72,6 +70,7 @@ import io.crate.expression.predicate.PredicateModule;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.license.License;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
@@ -89,8 +88,10 @@ import io.crate.metadata.view.ViewsMetadata;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
-import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslContextProviderService;
+import io.crate.protocols.ssl.SslSettings;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.user.UserManagementModule;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
@@ -231,6 +232,26 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             UsersPrivilegesMetadata.TYPE,
             in -> UsersPrivilegesMetadata.readDiffFrom(Metadata.Custom.class, UsersPrivilegesMetadata.TYPE, in)
         ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            PublicationsMetadata.TYPE,
+            PublicationsMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            PublicationsMetadata.TYPE,
+            in -> PublicationsMetadata.readDiffFrom(Metadata.Custom.class, PublicationsMetadata.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            SubscriptionsMetadata.TYPE,
+            SubscriptionsMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            SubscriptionsMetadata.TYPE,
+            in -> SubscriptionsMetadata.readDiffFrom(Metadata.Custom.class, SubscriptionsMetadata.TYPE, in)
+        ));
 
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedWriteables());
@@ -259,6 +280,16 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             Metadata.Custom.class,
             new ParseField(UsersPrivilegesMetadata.TYPE),
             UsersPrivilegesMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(PublicationsMetadata.TYPE),
+            PublicationsMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(SubscriptionsMetadata.TYPE),
+            SubscriptionsMetadata::fromXContent
         ));
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedXContent());

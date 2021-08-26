@@ -22,23 +22,23 @@
 package io.crate.metadata.pgcatalog;
 
 
-import java.util.Collections;
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
+import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTable;
+import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTablesTable;
 import io.crate.statistics.TableStats;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+
+import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Map;
 
 @Singleton
 public class PgCatalogSchemaInfo implements SchemaInfo {
@@ -70,7 +70,9 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
             Map.entry(PgRolesTable.IDENT.name(), PgRolesTable.create()),
             Map.entry(PgAmTable.IDENT.name(), PgAmTable.create()),
             Map.entry(PgTablespaceTable.IDENT.name(), PgTablespaceTable.create()),
-            Map.entry(PgIndexesTable.IDENT.name(), PgIndexesTable.create())
+            Map.entry(PgIndexesTable.IDENT.name(), PgIndexesTable.create()),
+            Map.entry(PgPublicationTable.IDENT.name(), PgPublicationTable.create()),
+            Map.entry(PgPublicationTablesTable.IDENT.name(), PgPublicationTablesTable.create())
         );
     }
 
