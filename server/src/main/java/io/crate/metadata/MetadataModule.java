@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,6 +38,8 @@ import io.crate.license.License;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
 
@@ -85,6 +88,26 @@ public class MetadataModule extends AbstractModule {
             UsersPrivilegesMetadata.TYPE,
             in -> UsersPrivilegesMetadata.readDiffFrom(Metadata.Custom.class, UsersPrivilegesMetadata.TYPE, in)
         ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            PublicationsMetadata.TYPE,
+            PublicationsMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            PublicationsMetadata.TYPE,
+            in -> PublicationsMetadata.readDiffFrom(Metadata.Custom.class, PublicationsMetadata.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            SubscriptionsMetadata.TYPE,
+            SubscriptionsMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            SubscriptionsMetadata.TYPE,
+            in -> SubscriptionsMetadata.readDiffFrom(Metadata.Custom.class, SubscriptionsMetadata.TYPE, in)
+        ));
 
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedWriteables());
@@ -113,6 +136,17 @@ public class MetadataModule extends AbstractModule {
             new ParseField(UsersPrivilegesMetadata.TYPE),
             UsersPrivilegesMetadata::fromXContent
         ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(PublicationsMetadata.TYPE),
+            PublicationsMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(SubscriptionsMetadata.TYPE),
+            SubscriptionsMetadata::fromXContent
+        ));
+
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedXContent());
         return entries;
