@@ -25,6 +25,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static io.crate.common.collections.Lists2.getOnlyElement;
 import static io.crate.types.TypeSignature.parseTypeSignature;
@@ -160,7 +161,7 @@ public class TypeSignatureTest extends ESTestCase {
         var objectType = ObjectType.builder()
             .setInnerType("name", StringType.of(1))
             .build();
-        assertThat(objectType.getTypeSignature().toString(), is("object(text,name text(1))"));
+        assertThat(objectType.getTypeSignature().toString(), is("object(text,\"name\" text(1))"));
     }
 
     @Test
@@ -187,5 +188,17 @@ public class TypeSignatureTest extends ESTestCase {
             signature.getParameters(),
             contains(new IntegerLiteralTypeSignature(1), new IntegerLiteralTypeSignature(2)));
         assertThat(signature.createType(), is(NumericType.of(1, 2)));
+    }
+
+    @Test
+    public void test_create_and_parse_object_type_containing_parameter_name_with_spaces_and_quotes() {
+        var type = ObjectType.builder()
+            .setInnerType("first\" field", DataTypes.STRING)
+            .build();
+        var signature = type.getTypeSignature();
+        assertThat(signature.toString(), is("object(text,\"first\" field\" text)"));
+        var parsedSignature = parseTypeSignature(signature.toString());
+        assertThat(parsedSignature, is(signature));
+        assertThat(parsedSignature.createType(), is(type));
     }
 }

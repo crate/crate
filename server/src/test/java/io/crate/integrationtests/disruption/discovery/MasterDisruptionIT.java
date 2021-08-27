@@ -261,7 +261,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
                 "(number_of_replicas = 1, \"routing.allocation.exclude._name\" = '" + internalCluster().getMasterName()
                 + "', \"write.wait_for_active_shards\" = 1)");
         ensureGreen();
-        execute("insert into t values (?, ?)", new Object[]{1, Map.of("first_field", "first value")});
+        execute("insert into t values (?, ?)", new Object[]{1, Map.of("first field", "first value")});
 
         ServiceDisruptionScheme disruption = new BlockMasterServiceOnMaster(random());
         setDisruptionScheme(disruption);
@@ -271,9 +271,9 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
         try {
             execute("insert into t values (?, ?), (?, ?), (?, ?)",
                     new Object[]{
-                        2, Map.of("2nd_field", "2nd value"),
-                        3, Map.of("3rd_field", "3rd value"),
-                        4, Map.of("4th_field", "4th value"),
+                        2, Map.of("2nd field", "2nd value"),
+                        3, Map.of("3rd field", "3rd value"),
+                        4, Map.of("4th field", "4th value"),
                     });
         } catch (Exception e) {
             // failure is acceptable

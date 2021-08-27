@@ -1447,13 +1447,4 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "user_name={default_expr=CURRENT_USER, position=1, type=keyword}"
         ));
     }
-
-    @Test
-    public void test_ensure_object_key_validation_on_table_creation() {
-        assertThrowsMatches(
-            () -> analyze("create table tbl (o object as (\"col 1\" int))"),
-            InvalidColumnNameException.class,
-            "contains an invalid space character"
-        );
-    }
 }

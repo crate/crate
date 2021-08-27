@@ -180,7 +180,7 @@ public class ObjectTypeTest extends ESTestCase {
     @Test
     public void test_object_type_to_signature_to_object_type_round_trip() {
         var objectType = ObjectType.builder()
-            .setInnerType("inner", DataTypes.STRING)
+            .setInnerType("inner field", DataTypes.STRING)
             .build();
         assertThat(objectType.getTypeSignature().createType(), is(objectType));
     }
