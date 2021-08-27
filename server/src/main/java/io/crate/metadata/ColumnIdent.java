@@ -211,15 +211,8 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
      * @param columnName column name to check for validity
      */
     public static void validateObjectKey(String columnName) {
-        validateSpaceInObjectKey(columnName);
         validateDotInColumnName(columnName);
         validateSubscriptPatternInColumnName(columnName);
-    }
-
-    public static void validateSpaceInObjectKey(String columnName) {
-        if (columnName.indexOf(' ') != -1) {
-            throw new InvalidColumnNameException(columnName, "contains an invalid space character");
-        }
     }
 
     /**

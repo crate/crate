@@ -69,4 +69,7 @@ Changes
 Fixes
 =====
 
-None
+- Fixed an issue which caused object data types definitions with sub-column
+  identifiers containing white spaces to result in a validation exception
+  at CrateDB ``4.6.2`` or a unusable object type column (write/reads fail)
+  at CrateDB ``4.2.0`` to ``4.6.1``.
