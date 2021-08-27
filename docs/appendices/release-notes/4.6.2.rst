@@ -1,0 +1,65 @@
+.. _version_4.6.2:
+
+=============
+Version 4.6.2
+=============
+
+Released on 2021-08-26.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 4.6.2.
+
+    We recommend that you upgrade to the latest 4.3 release before moving to
+    4.6.2.
+
+    A rolling upgrade from 4.5.x to 4.6.2 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.6.0` release notes for a full list of changes in the
+4.6 series.
+
+Fixes
+=====
+
+- Fixed a validation issue resulting in an unusable broken table when a
+  sub-column identifier of an object type column contains invalid whitespace
+  characters.
+
+- Fixed an issue that could cause queries on ``sys.snapshots`` to fail with an
+  error if a repository is in the cluster state that cannot be accessed - for
+  example due to invalid credentials.
+
+- Fixed a regression introduced in CrateDB `4.6.0` that broke the functionality
+  of restoring only concrete custom metadata like ``USERS``, ``PRIVILEGES``,
+  ``VIEWS`` and ``UDFS``.
+
+- Fixed an issue that caused the ``SHOW TRANSACTION_ISOLATION`` statement to
+  require privileges for the ``sys`` schema.
+
+- Fixed an issue in the execution plan generation for ``SELECT COUNT(*) FROM
+  ...`` statements with predicates like ``'a' in ANY(varchar_array_column)``.
+  Such predicates resulted in a cast on the column (``'a' in
+  ANY(varchar_array_column::array(varchar(1)))``), leading to poor performance
+  because the indices couldn't get utilized. This fix significantly improves
+  the performance of such queries. In a test over 100000 records, the query
+  runtime improved from 320ms to 2ms.
+
+- Fixed an issue that could cause a ``NullPointerException`` if a user invoked
+  a ``SELECT`` statement with a predicate on a ``OBJECT (ignored)`` column
+  immediately after a ``DELETE`` statement.
+
+- Fixed an issue that could cause a wrong cast of numeric with parameters in
+  arithmetical expressions.
