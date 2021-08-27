@@ -58,6 +58,7 @@ public final class ParameterTypeSignature extends TypeSignature {
 
     @Override
     public String toString() {
-        return parameterName + " " + super.toString();
+        // Quote name as it may be a sub-column ident which is allowed to contain white spaces
+        return "\"" + parameterName + "\" " + super.toString();
     }
 }
