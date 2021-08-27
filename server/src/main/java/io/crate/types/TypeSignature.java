@@ -104,10 +104,22 @@ public class TypeSignature implements Writeable {
 
     private static TypeSignature of(String signature, List<TypeSignature> parameters) {
         if (isNamedTypeSignature(signature)) {
-            int split = signature.indexOf(" ");
+            String parameterName;
+            int splitStart;
+            if (signature.charAt(0) == '"') {
+                int closingIdx = signature.lastIndexOf('"');
+                if (closingIdx == -1) {
+                    throw new IllegalArgumentException(format(Locale.ENGLISH, "Bad type signature: '%s'", signature));
+                }
+                parameterName = signature.substring(1, closingIdx);
+                splitStart = signature.indexOf(' ', closingIdx);
+            } else {
+                splitStart = signature.indexOf(' ');
+                parameterName = signature.substring(0, splitStart);
+            }
             return new ParameterTypeSignature(
-                signature.substring(0, split),
-                new TypeSignature(signature.substring(split + 1), parameters));
+                parameterName,
+                new TypeSignature(signature.substring(splitStart + 1), parameters));
         } else {
             return new TypeSignature(signature, parameters);
         }
@@ -116,7 +128,7 @@ public class TypeSignature implements Writeable {
 
     private static boolean isNamedTypeSignature(String signature) {
         return !DataTypes.PRIMITIVE_TYPE_NAMES_WITH_SPACES.contains(signature)
-               && signature.contains(" ");
+               && (signature.charAt(0) == '"' || signature.contains(" "));
     }
 
     private static TypeSignature parseTypeSignatureParameter(String signature, int begin, int end) {

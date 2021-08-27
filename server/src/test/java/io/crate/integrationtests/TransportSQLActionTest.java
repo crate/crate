@@ -21,6 +21,43 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.RandomizedContext;
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+import io.crate.common.collections.Lists2;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.testing.DataTypeTesting;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.locationtech.spatial4j.shape.Point;
+
+import java.io.File;
+import java.nio.file.Paths;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
@@ -39,45 +76,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-
-import java.io.File;
-import java.nio.file.Paths;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import com.carrotsearch.randomizedtesting.RandomizedContext;
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.locationtech.spatial4j.shape.Point;
-
-import io.crate.common.collections.Lists2;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.testing.DataTypeTesting;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedSchema;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class TransportSQLActionTest extends SQLIntegrationTestCase {
@@ -2008,5 +2006,19 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
             "3\n"
         ));
 
+    }
+
+    /**
+     * Test a regression resulting in unusable object type column/table
+     */
+    @Test
+    public void test_can_use_object_with_inner_column_containing_spaces_and_quotes() {
+        execute("CREATE TABLE t1 (o object as (\"my first \"\" field\" text))");
+        execute("INSERT INTO t1 (o) VALUES ({\"my first \"\" field\" = 'foo'})");
+        refresh();
+        execute("SELECT o FROM t1");
+        assertThat(printedTable(response.rows()), Matchers.is("{my first \" field=foo}\n"));
+        execute("SELECT o['my first \" field'] FROM t1");
+        assertThat(printedTable(response.rows()), Matchers.is("foo\n"));
     }
 }
