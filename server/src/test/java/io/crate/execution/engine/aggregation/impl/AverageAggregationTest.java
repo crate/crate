@@ -21,6 +21,9 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
+import io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageState;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
@@ -28,13 +31,23 @@ import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
+import org.elasticsearch.Version;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 
 public class AverageAggregationTest extends AggregationTestCase {
+
+    private static final Signature NUMERIC_AVG_SIGNATURE = Signature.aggregate(
+        AverageAggregation.NAME,
+        DataTypes.NUMERIC.getTypeSignature(),
+        DataTypes.NUMERIC.getTypeSignature()
+    );
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
@@ -111,5 +124,66 @@ public class AverageAggregationTest extends AggregationTestCase {
         expectedException.expectMessage("Unknown function: avg(INPUT(0))," +
                                         " no overload found for matching argument types: (geo_point).");
         executeAggregation(DataTypes.GEO_POINT, new Object[][]{});
+    }
+
+    @Test
+    public void test_avg_numeric_on_long_non_doc_values_does_not_overflow() {
+        //noinspection rawtypes
+        Version minNodeVersion = randomBoolean()
+            ? Version.CURRENT
+            : Version.V_4_0_9;
+        var result = execPartialAggregationWithoutDocValues(
+            (AggregationFunction) nodeCtx.functions().getQualified(
+                NUMERIC_AVG_SIGNATURE,
+                List.of(DataTypes.NUMERIC),
+                DataTypes.NUMERIC
+            ), new Object[][]{{Long.MAX_VALUE}, {Long.MAX_VALUE}, {Long.MAX_VALUE}},
+            true,
+            minNodeVersion
+
+        );
+        assertThat(((NumericAverageState)result).value(), Matchers.is(BigDecimal.valueOf(Long.MAX_VALUE)));
+    }
+
+    @Test
+    public void test_avg_numeric_on_double_non_doc_values() {
+        //noinspection rawtypes
+        Version minNodeVersion = randomBoolean()
+            ? Version.CURRENT
+            : Version.V_4_0_9;
+        var result = execPartialAggregationWithoutDocValues(
+            (AggregationFunction) nodeCtx.functions().getQualified(
+                NUMERIC_AVG_SIGNATURE,
+                List.of(DataTypes.NUMERIC),
+                DataTypes.NUMERIC
+            ), new Object[][]{{0.3d}, {0.7d}},
+            true,
+            minNodeVersion
+        );
+        assertThat(((NumericAverageState)result).value(), Matchers.is(BigDecimal.valueOf(0.5d)));
+    }
+
+    @Test
+    public void test_avg_numeric_with_precision_and_scale_on_double_non_doc_values() {
+        var type = NumericType.of(16, 2);
+        var expected = type.implicitCast(12.4357);
+        assertThat(expected.toString(), Matchers.is("12.44"));
+
+        //noinspection rawtypes
+        Version minNodeVersion = randomBoolean()
+            ? Version.CURRENT
+            : Version.V_4_0_9;
+
+        var result = execPartialAggregationWithoutDocValues(
+            (AggregationFunction) nodeCtx.functions().getQualified(
+                NUMERIC_AVG_SIGNATURE,
+                List.of(type),
+                DataTypes.NUMERIC
+            ),
+            new Object[][]{{12.4357d}, {12.4357d}},
+            true,
+            minNodeVersion
+        );
+        assertThat(((NumericAverageState)result).value().toString(), Matchers.is(expected.toString()));
     }
 }

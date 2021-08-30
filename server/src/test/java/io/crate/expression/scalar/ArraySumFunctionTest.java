@@ -1,6 +1,6 @@
 package io.crate.expression.scalar;
 
-import io.crate.execution.engine.aggregation.impl.KahanSummationForDouble;
+import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
 import io.crate.expression.symbol.Literal;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;

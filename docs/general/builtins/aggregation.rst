@@ -165,9 +165,10 @@ array.
 ---------------
 
 The ``avg`` and ``mean`` aggregate function returns the arithmetic mean, the
-*average*, of all values in a column that are not ``NULL`` as a
-``double precision`` value. It accepts all numeric columns and timestamp
-columns as single argument. Using ``avg`` on other column types is not allowed.
+*average*, of all values in a column that are not ``NULL``. It accepts all
+numeric columns and timestamp columns as single argument. For ``numeric``
+argument type the return type is ``numeric`` and for other argument type the
+return type is ``double``.
 
 Example::
 
@@ -182,6 +183,29 @@ Example::
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
 
+The ``avg`` aggregation on the ``bigint`` column might result in a precision
+error if sum of elements exceeds 2^53::
+
+    cr> select avg(t.val) from
+    ... (select unnest([9223372036854775807, 9223372036854775807]) as val) t;
+    +-----------------------+
+    |              avg(val) |
+    +-----------------------+
+    | 9.223372036854776e+18 |
+    +-----------------------+
+    SELECT 1 row in set (... sec)
+
+To address the precision error of the avg aggregation, we cast the aggregation
+column to the ``numeric`` data type::
+
+    cr> select avg(t.val :: numeric) from
+    ... (select unnest([9223372036854775807, 9223372036854775807]) as val) t;
+    +---------------------------+
+    | avg(cast(val AS numeric)) |
+    +---------------------------+
+    |       9223372036854775807 |
+    +---------------------------+
+    SELECT 1 row in set (... sec)
 
 .. _aggregation-avg-distinct:
 

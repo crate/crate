@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import io.crate.execution.engine.aggregation.impl.util.KahanSummationForFloat;
 import io.crate.operation.aggregation.AggregationTestCase;
 import org.junit.Test;
 

@@ -64,7 +64,7 @@ Changes
   ``LAG``, ``NTH_VALUE``, ``FIRST_VALUE``, and ``LAST_VALUE``.
 - Added the :ref:`scalar-area` scalar function that calculates the area for a
   ``GEO_SHAPE``.
-
+- Added support of ``numeric`` type to the ``avg`` aggregation function.
 
 Fixes
 =====

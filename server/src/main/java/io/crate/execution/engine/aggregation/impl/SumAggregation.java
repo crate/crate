@@ -29,6 +29,8 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
+import io.crate.execution.engine.aggregation.impl.util.KahanSummationForFloat;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.SortedNumericDocValues;

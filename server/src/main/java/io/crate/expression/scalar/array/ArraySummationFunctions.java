@@ -22,9 +22,9 @@
 
 package io.crate.expression.scalar.array;
 
-import io.crate.execution.engine.aggregation.impl.KahanSummationForDouble;
-import io.crate.execution.engine.aggregation.impl.KahanSummationForFloat;
-import io.crate.execution.engine.aggregation.impl.OverflowAwareMutableLong;
+import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
+import io.crate.execution.engine.aggregation.impl.util.KahanSummationForFloat;
+import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 
 import java.math.BigDecimal;
 import java.util.List;

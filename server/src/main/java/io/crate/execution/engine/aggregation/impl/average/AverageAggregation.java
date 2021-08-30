@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.aggregation.impl;
+package io.crate.execution.engine.aggregation.impl.average;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,6 +28,7 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
