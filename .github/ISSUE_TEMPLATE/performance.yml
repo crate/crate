@@ -1,5 +1,6 @@
 name: 🐢 Slow Performance
 description: Report a performance issue
+labels: triage
 body:
   - type: input
     id: cratedb_version
