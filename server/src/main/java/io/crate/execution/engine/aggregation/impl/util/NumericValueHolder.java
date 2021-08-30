@@ -19,16 +19,10 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.aggregation.impl;
+package io.crate.execution.engine.aggregation.impl.util;
 
-public class KahanSummationForFloat {
+import java.math.BigDecimal;
 
-    private float error;
-
-    public float sum(float sum, float value) {
-        var correctedValue = value - error;
-        var newSum = sum + correctedValue;
-        error = (newSum - sum) - correctedValue;
-        return newSum;
-    }
+public interface NumericValueHolder {
+    BigDecimal value();
 }

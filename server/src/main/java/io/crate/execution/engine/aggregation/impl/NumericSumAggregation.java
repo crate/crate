@@ -28,6 +28,8 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import io.crate.execution.engine.aggregation.impl.util.BigDecimalValueWrapper;
+import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -331,29 +333,6 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
             } else {
                 return null;
             }
-        }
-    }
-
-    public static final class BigDecimalValueWrapper {
-
-        private BigDecimal value;
-        private boolean hasValue;
-
-        public BigDecimalValueWrapper(BigDecimal value) {
-            this.value = value;
-        }
-
-        public BigDecimal value() {
-            return value;
-        }
-
-        public boolean hasValue() {
-            return hasValue;
-        }
-
-        public void setValue(BigDecimal value) {
-            hasValue = true;
-            this.value = value;
         }
     }
 }

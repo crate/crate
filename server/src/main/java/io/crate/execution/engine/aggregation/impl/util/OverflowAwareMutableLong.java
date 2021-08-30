@@ -19,14 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.aggregation.impl;
+package io.crate.execution.engine.aggregation.impl.util;
 
 import io.crate.common.annotations.VisibleForTesting;
 
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
 
-public class OverflowAwareMutableLong {
+public class OverflowAwareMutableLong implements NumericValueHolder {
 
     private long primitiveSum;
     private BigDecimal bigDecimalSum = BigDecimal.ZERO;
@@ -66,6 +66,7 @@ public class OverflowAwareMutableLong {
         }
     }
 
+    @Override
     public BigDecimal value() {
         // Adding residual unflushed value before return.
         return bigDecimalSum.add(BigDecimal.valueOf(primitiveSum));

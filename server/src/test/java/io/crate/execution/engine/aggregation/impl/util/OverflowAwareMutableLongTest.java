@@ -19,8 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.aggregation.impl;
+package io.crate.execution.engine.aggregation.impl.util;
 
+import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import org.junit.Test;
 
 import java.math.BigDecimal;

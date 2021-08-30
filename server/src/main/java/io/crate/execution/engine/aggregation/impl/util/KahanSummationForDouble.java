@@ -19,29 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.aggregation.impl;
+package io.crate.execution.engine.aggregation.impl.util;
 
-import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
-import io.crate.operation.aggregation.AggregationTestCase;
-import org.junit.Test;
+public class KahanSummationForDouble {
 
-public class KahanSummationForDoubleTest extends AggregationTestCase {
+    private double error;
 
-    @Test
-    public void shouldSumTwoValues() {
-        var kahanSummation = new KahanSummationForDouble();
-        assertEquals(kahanSummation.sum(1.0d, 2.0d), 3.0d, 0.0d);
-    }
-
-    @Test
-    public void shouldSumListOfValuesWithBetterPrecision() {
-        var kahanSummation = new KahanSummationForDouble();
-        double total = 0;
-        for (int i = 0; i < 10; i++) {
-            total = kahanSummation.sum(total, 0.2);
-        }
-
-        // The same operations using '+' returns 1.9999999999999998
-        assertEquals(total, 2.0d, 0.0d);
+    public double sum(double sum, double value) {
+        var correctedValue = value - error;
+        var newSum = sum + correctedValue;
+        error = (newSum - sum) - correctedValue;
+        return newSum;
     }
 }

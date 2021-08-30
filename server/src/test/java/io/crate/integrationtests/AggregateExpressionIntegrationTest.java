@@ -64,6 +64,27 @@ public class AggregateExpressionIntegrationTest extends SQLIntegrationTestCase {
     }
 
     @Test
+    public void test_numeric_avg_with_on_floating_point_and_long_columns_with_doc_values() {
+        execute("CREATE TABLE tbl (x float, y double, z long) " +
+            "CLUSTERED INTO 1 SHARDS " +
+            "WITH (number_of_replicas=0)");
+        execute(
+            "INSERT INTO tbl VALUES (?, ?, ?)", new Object[][]{
+                new Object[]{0.3f, 2.251d, 9223372036854775807L},
+                new Object[]{0.7f, 2.251d, 9223372036854775807L}});
+        execute("refresh table tbl");
+
+        execute("SELECT avg(x::numeric(16, 1)), " +
+                "       avg(y::numeric(16, 2))," +
+                "       avg(z::numeric) " + // Handle precision error by casting.
+            "FROM tbl");
+        assertThat(
+            TestingHelpers.printedTable(response.rows()),
+            is("0.5| 2.25| 9223372036854775807\n")
+        );
+    }
+
+    @Test
     public void test_filter_in_aggregate_expr_with_group_by() {
         execute("SELECT" +
                 "   y, " +

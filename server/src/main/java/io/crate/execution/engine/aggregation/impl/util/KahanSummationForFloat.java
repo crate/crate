@@ -19,13 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.aggregation.impl;
+package io.crate.execution.engine.aggregation.impl.util;
 
-public class KahanSummationForDouble {
+public class KahanSummationForFloat {
 
-    private double error;
+    private float error;
 
-    public double sum(double sum, double value) {
+    public float sum(float sum, float value) {
         var correctedValue = value - error;
         var newSum = sum + correctedValue;
         error = (newSum - sum) - correctedValue;
