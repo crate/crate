@@ -30,6 +30,7 @@ bin/
 # Python files
 __pycache__/
 .installed.cfg
+_venv/
 .venv/
 *.pyc
 *.pyo
