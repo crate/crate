@@ -49,6 +49,10 @@ public final class WindowFrameState {
         return upperBoundExclusive;
     }
 
+    public int partitionEnd() {
+        return partitionEnd;
+    }
+
     public Iterable<Object[]> getRows() {
         return rows;
     }
