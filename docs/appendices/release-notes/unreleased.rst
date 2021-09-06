@@ -60,6 +60,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that could cause clients to receive a ``400 Bad Request``
+  error when using the HTTP interface early during node startup.
+
 - Fixed an issue that resulted in broken values when selecting multiple object
   columns with different inner types using the ``UNION`` statement.
 
