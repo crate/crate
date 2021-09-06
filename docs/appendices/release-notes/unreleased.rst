@@ -60,6 +60,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that resulted in broken values when selecting multiple object
+  columns with different inner types using the ``UNION`` statement.
+
 - Fixed an issue which caused object data types definitions with sub-column
   identifiers containing white spaces to result in a validation exception
   at CrateDB ``4.6.2`` or a unusable object type column (write/reads fail)

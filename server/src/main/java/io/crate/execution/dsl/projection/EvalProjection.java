@@ -21,21 +21,27 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.common.collections.Lists2;
-import io.crate.common.collections.MapBuilder;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.RowGranularity;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import io.crate.common.collections.Lists2;
+import io.crate.common.collections.MapBuilder;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.RowGranularity;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 /**
  * Projection which can evaluate functions or re-order columns
@@ -44,6 +50,24 @@ public class EvalProjection extends Projection {
 
     private final List<Symbol> outputs;
     private final RowGranularity granularity;
+
+    @Nullable
+    public static EvalProjection castValues(List<DataType<?>> targetTypes, List<Symbol> sources) {
+        ArrayList<Symbol> casts = new ArrayList<>(targetTypes.size());
+        boolean requiresCasts = false;
+        for (int i = 0; i < sources.size(); i++) {
+            Symbol source = sources.get(i);
+            DataType<?> targetType = targetTypes.get(i);
+            InputColumn inputColumn = new InputColumn(i, source.valueType());
+            if (targetType.id() == DataTypes.UNDEFINED.id() || targetType.equals(source.valueType())) {
+                casts.add(inputColumn);
+            } else {
+                requiresCasts = true;
+                casts.add(inputColumn.cast(targetType));
+            }
+        }
+        return requiresCasts ? new EvalProjection(casts) : null;
+    }
 
     public EvalProjection(List<Symbol> outputs) {
         this(outputs, RowGranularity.CLUSTER);

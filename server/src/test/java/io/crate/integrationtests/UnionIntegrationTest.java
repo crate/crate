@@ -22,8 +22,11 @@
 package io.crate.integrationtests;
 
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.crate.testing.UseJdbc;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
@@ -295,5 +298,21 @@ public class UnionIntegrationTest extends SQLIntegrationTestCase {
             is("index_1| 4\n")
         );
 
+    }
+
+    @Test
+    @UseJdbc(0)
+    public void test_union_on_object_columns_with_different_schema() throws Exception {
+        execute("CREATE TABLE tbl1 (obj object (strict)  as (a int, c int))");
+        execute("CREATE TABLE tbl2 (obj object (strict)  as (b int, c int))");
+        execute("insert into tbl1 (obj) values ({a=1, c=2})");
+        execute("insert into tbl2 (obj) values ({b=3, c=4})");
+        execute("refresh table tbl1, tbl2");
+
+        execute("select obj from tbl1 union all select obj from tbl2");
+        assertThat(printedTable(response.rows()), Matchers.anyOf(
+            is("{a=1, c=2}\n{b=3, c=4}\n"),
+            is("{b=3, c=4}\n{a=1, c=2}\n")
+        ));
     }
 }

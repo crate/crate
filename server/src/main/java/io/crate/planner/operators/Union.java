@@ -21,19 +21,33 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.planner.operators.Limit.limitAndOffset;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -42,16 +56,6 @@ import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static io.crate.planner.operators.Limit.limitAndOffset;
 
 /**
  * A logical plan for the Union operation. Takes care of building the
@@ -96,6 +100,8 @@ public class Union implements LogicalPlan {
         ExecutionPlan right = rhs.build(
             plannerContext, hints, projectionBuilder, limit + offset, TopN.NO_OFFSET, null, childPageSizeHint, params, subQueryResults);
 
+        addCastsForIncompatibleObjects(right);
+
         if (left.resultDescription().hasRemainingLimitOrOffset()) {
             left = Merge.ensureOnHandler(left, plannerContext);
         }
@@ -133,6 +139,41 @@ public class Union implements LogicalPlan {
             TopN.NO_LIMIT,
             leftResultDesc.orderBy()
         );
+    }
+
+    /**
+     * <p>
+     * The Analyzer ensures that the outputs of the two relation of a UNION match,
+     * but The ObjectType can be incompatible for streaming in the following
+     * scenario:
+     * </p>
+     *
+     * <pre>
+     *
+     * LHS: { a :: int, b :: int }
+     * RHS: { a :: int, c :: int }
+     * </pre>
+     *
+     * <p>
+     * The streaming implementation uses the innerKeys for value streaming (or
+     * `UndefinedType` if not)
+     *
+     * <ul>
+     * <li>a is written and received from both sides as int</li>
+     * <li>b is mixed: one side would use int, the other generic value streaming</li>
+     * <li>c is mixed: one side would use int, the other generic value streaming</li>
+     * </ul>
+     *
+     * <p>
+     * This adds a EvalProjection with casts to ensure the right side is streamed
+     * using the same type
+     * </p>
+     **/
+    private void addCastsForIncompatibleObjects(ExecutionPlan right) {
+        EvalProjection castValues = EvalProjection.castValues(Symbols.typeView(lhs.outputs()), rhs.outputs());
+        if (castValues != null) {
+            right.addProjection(castValues);
+        }
     }
 
     @Override
