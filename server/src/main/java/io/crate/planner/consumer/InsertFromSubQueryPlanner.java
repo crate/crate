@@ -25,7 +25,6 @@ package io.crate.planner.consumer;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nullable;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
@@ -37,13 +36,13 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.operators.Insert;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 
@@ -104,26 +103,8 @@ public final class InsertFromSubQueryPlanner {
             subqueryPlanner,
             true
         );
-        EvalProjection castOutputs = createCastProjection(statement.columns(), plannedSubQuery.outputs());
+        EvalProjection castOutputs = EvalProjection.castValues(
+            Symbols.typeView(statement.columns()), plannedSubQuery.outputs());
         return new Insert(plannedSubQuery, indexWriterProjection, castOutputs);
-    }
-
-    @Nullable
-    private static EvalProjection createCastProjection(List<Reference> targetCols, List<Symbol> sourceCols) {
-        ArrayList<Symbol> casts = new ArrayList<>(targetCols.size());
-        boolean requiresCasts = false;
-        for (int i = 0; i < sourceCols.size(); i++) {
-            Symbol output = sourceCols.get(i);
-            Reference targetCol = targetCols.get(i);
-            InputColumn inputColumn = new InputColumn(i, output.valueType());
-            DataType<?> targetType = targetCol.valueType();
-            if (targetType.id() == DataTypes.UNDEFINED.id() || targetType.equals(output.valueType())) {
-                casts.add(inputColumn);
-            } else {
-                requiresCasts = true;
-                casts.add(inputColumn.cast(targetType));
-            }
-        }
-        return requiresCasts ? new EvalProjection(casts) : null;
     }
 }
