@@ -24,7 +24,9 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.support.HandledTransportAction;
+import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.MasterNodeChangePredicate;
 import org.elasticsearch.cluster.NotMasterException;
@@ -104,6 +106,21 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
         new AsyncSingleAction(task, request, listener).start();
     }
 
+    class WaitForInitialState implements ClusterStateListener {
+
+        private final TransportMasterNodeAction<Request, Response>.AsyncSingleAction asyncSingleAction;
+
+        public WaitForInitialState(TransportMasterNodeAction<Request, Response>.AsyncSingleAction asyncSingleAction) {
+            this.asyncSingleAction = asyncSingleAction;
+        }
+
+        @Override
+        public void clusterChanged(ClusterChangedEvent event) {
+            clusterService.removeListener(this);
+            asyncSingleAction.start();
+        }
+    }
+
     class AsyncSingleAction {
 
         private final ActionListener<Response> listener;
@@ -122,6 +139,15 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
 
         public void start() {
             ClusterState state = clusterService.state();
+            if (state == null) {
+                WaitForInitialState waitForState = new WaitForInitialState(this);
+                clusterService.addListener(waitForState);
+                // protect against race between state null check and listener registration
+                if (clusterService.state() != null) {
+                    waitForState.clusterChanged(null);
+                }
+                return;
+            }
             this.observer = new ClusterStateObserver(state, clusterService, request.masterNodeTimeout(), logger);
             doStart(state);
         }
