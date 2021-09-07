@@ -60,6 +60,9 @@ None
 Fixes
 =====
 
+- Fixed a performance regression introduced in 4.2 which caused queries with a
+  ``LIMIT`` on top of views or virtual tables with an ``ORDER BY`` to be slow.
+
 - Fixed an issue in the ``Query View`` function of the administration console.
   It generated queries with extra quotes around identifiers.
 

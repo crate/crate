@@ -148,8 +148,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "   select a, x from t1 order by a limit 3) tt " +
                                 "order by x desc limit 1");
         assertThat(plan, isPlan(
-            "Limit[1::bigint;0]\n" +
-            "  └ Rename[a, x] AS tt\n" +
+            "Rename[a, x] AS tt\n" +
+            "  └ Limit[1::bigint;0]\n" +
             "    └ OrderBy[x DESC]\n" +
             "      └ Fetch[a, x]\n" +
             "        └ Limit[3::bigint;0]\n" +
