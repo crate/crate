@@ -596,7 +596,10 @@ public class Node implements Closeable {
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
             final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
-                clusterService
+                settings,
+                clusterService,
+                transportService,
+                threadPool
             );
 
             RepositoriesModule repositoriesModule = new RepositoriesModule(
@@ -604,6 +607,7 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(RepositoryPlugin.class),
                 transportService,
                 clusterService,
+                logicalReplicationService,
                 threadPool,
                 xContentRegistry
             );
@@ -613,8 +617,9 @@ public class Node implements Closeable {
             modules.add(copyModule);
 
             RepositoriesService repositoryService = repositoriesModule.repositoryService();
+            logicalReplicationService.repositoriesService(repositoryService);
 
-            SnapshotsService snapshotsService = new SnapshotsService(
+            final SnapshotsService snapshotsService = new SnapshotsService(
                 settings,
                 clusterService,
                 clusterModule.getIndexNameExpressionResolver(),
@@ -622,7 +627,7 @@ public class Node implements Closeable {
                 threadPool
             );
 
-            SnapshotShardsService snapshotShardsService = new SnapshotShardsService(
+            final SnapshotShardsService snapshotShardsService = new SnapshotShardsService(
                 settings,
                 clusterService,
                 repositoryService,
@@ -641,6 +646,7 @@ public class Node implements Closeable {
                 clusterService.getClusterSettings(),
                 shardLimitValidator
             );
+            logicalReplicationService.restoreService(restoreService);
 
             final RerouteService rerouteService = new BatchedRerouteService(
                 clusterService,

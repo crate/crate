@@ -42,6 +42,11 @@ public final class RelationAlreadyExists extends ElasticsearchException implemen
         this.relationName = relationName;
     }
 
+    public RelationAlreadyExists(RelationName relationName, String message) {
+        super(message);
+        this.relationName = relationName;
+    }
+
     RelationAlreadyExists(Index index, Throwable e) {
         super(String.format(Locale.ENGLISH, MESSAGE_TMPL, index.getName()), e);
         this.relationName = RelationName.fromIndexName(index.getName());

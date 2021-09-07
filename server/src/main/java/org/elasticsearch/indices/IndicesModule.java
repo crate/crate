@@ -65,6 +65,9 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.indices.store.IndicesStore;
 import org.elasticsearch.plugins.MapperPlugin;
 
+import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.replication.logical.engine.SubscriberEngine;
+
 /**
  * Configures classes and services that are shared by indices on each node.
  */
@@ -215,7 +218,14 @@ public class IndicesModule extends AbstractModule {
     }
 
     public Collection<Function<IndexSettings, Optional<EngineFactory>>> getEngineFactories() {
-        return Collections.emptyList();
+        return List.of(
+            indexSettings -> {
+                if (indexSettings.getSettings().get(LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX.getKey()) != null) {
+                    return Optional.of(SubscriberEngine::new);
+                }
+                return Optional.empty();
+            }
+        );
     }
 
 }
