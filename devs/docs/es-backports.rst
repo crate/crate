@@ -547,7 +547,7 @@ should be crossed out as well.
 - [ ] acf84b68cb0 Do not wrap soft-deletes reader for segment stats (#51331)
 - [ ] 4e8ab43a3e6 Simplify Snapshot Initialization (#51256) (#51344)
 - [ ] 157b352b476 Exclude nested documents in LuceneChangesSnapshot (#51279)
-- [ ] 7b4c2bfdc4b Fix Overly Optimistic Request Deduplication (#51270) (#51291)
+- [x] 7b4c2bfdc4b Fix Overly Optimistic Request Deduplication (#51270) (#51291)
 - [ ] 43ed244a043 Account soft-deletes in FrozenEngine (#51192) (#51229)
 - [ ] 694b8ab95dd Fix CorruptedBlobStoreRepository Test (#51128) (#51186)
 - [ ] 107989df3ee Introduce hidden indices (#51164)
