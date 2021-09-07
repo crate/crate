@@ -54,6 +54,9 @@ None
 Changes
 =======
 
+- Added a new ``table_partitions`` column to the :ref:`sys.snapshots
+  <sys-snapshots>` table.
+
 - Added ``float4`` type as alias to ``real`` and ``float8`` type as alias to
   ``double precision``
 - Added the :ref:`JSON type <data-type-json>`.

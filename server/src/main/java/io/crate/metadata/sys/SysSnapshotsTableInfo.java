@@ -24,6 +24,7 @@ package io.crate.metadata.sys;
 import io.crate.action.sql.SessionContext;
 import io.crate.expression.reference.sys.snapshot.SysSnapshot;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -46,6 +47,11 @@ public class SysSnapshotsTableInfo {
             .add("repository", STRING, SysSnapshot::repository)
             .add("concrete_indices", STRING_ARRAY, SysSnapshot::concreteIndices)
             .add("tables", STRING_ARRAY, SysSnapshot::tables)
+            .startObjectArray("table_partitions", SysSnapshot::tablePartitions)
+                .add("table_schema", STRING, x -> x.relationName().schema())
+                .add("table_name", STRING, x -> x.relationName().name())
+                .add("values", STRING_ARRAY, PartitionName::values)
+            .endObjectArray()
             .add("started", TIMESTAMPZ, SysSnapshot::started)
             .add("finished", TIMESTAMPZ, SysSnapshot::finished)
             .add("version", STRING, SysSnapshot::version)

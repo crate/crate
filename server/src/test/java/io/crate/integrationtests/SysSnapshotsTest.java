@@ -21,35 +21,28 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
 
@@ -60,12 +53,6 @@ public class SysSnapshotsTest extends SQLIntegrationTestCase {
     @ClassRule
     public static TemporaryFolder TEMP_FOLDER = new TemporaryFolder();
 
-    private final static String REPOSITORY_NAME = "test_snapshots_repo";
-
-    private List<String> snapshots = new ArrayList<>();
-    private long createdTime;
-    private long finishedTime;
-
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
@@ -75,75 +62,27 @@ public class SysSnapshotsTest extends SQLIntegrationTestCase {
             .build();
     }
 
-    @Before
-    public void setUpSnapshots() throws Exception {
-        createRepository(REPOSITORY_NAME);
-        ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class);
-        createdTime = threadPool.absoluteTimeInMillis();
-        createTableAndSnapshot("test_table", "test_snap_1");
-        finishedTime = threadPool.absoluteTimeInMillis();
-        waitUntilShardOperationsFinished();
-    }
-
-    @After
-    public void cleanUp() throws Exception {
-        Iterator<String> it = snapshots.iterator();
-        while (it.hasNext()) {
-            deleteSnapshot(it.next());
-            it.remove();
-        }
-        deleteRepository(REPOSITORY_NAME);
-    }
-
-    private void createRepository(String name) {
-        AcknowledgedResponse putRepositoryResponse = client().admin().cluster().preparePutRepository(name)
-            .setType("fs")
-            .setSettings(Settings.builder()
-                .put("location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath())
-                .put("chunk_size", "5k")
-                .put("compress", false)
-            ).get();
-        assertThat(putRepositoryResponse.isAcknowledged(), equalTo(true));
-    }
-
-    private void deleteRepository(String name) {
-        AcknowledgedResponse deleteRepositoryResponse = client().admin().cluster().prepareDeleteRepository(name).get();
-        assertThat(deleteRepositoryResponse.isAcknowledged(), equalTo(true));
-    }
-
-    private void createTableAndSnapshot(String tableName, String snapshotName) {
-        execute("create table " + tableName + " (id int primary key) with(number_of_replicas=0)");
-        ensureYellow();
-
-        for (int i = 0; i < 100; i++) {
-            execute("insert into " + tableName + " (id) values (?)", new Object[]{i});
-        }
-        refresh();
-
-        createSnapshot(snapshotName, tableName);
-    }
-
-    private void createSnapshot(String snapshotName, String table) {
-        CreateSnapshotResponse createSnapshotResponse = client().admin().cluster()
-            .prepareCreateSnapshot(REPOSITORY_NAME, snapshotName)
-            .setWaitForCompletion(true).setIndices(getFqn(table)).get();
-        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), greaterThan(0));
-        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
-        snapshots.add(snapshotName);
-
-    }
-
-    private void deleteSnapshot(String name) {
-        AcknowledgedResponse deleteSnapshotResponse = client().admin().cluster()
-            .prepareDeleteSnapshot(REPOSITORY_NAME, name).get();
-        assertThat(deleteSnapshotResponse.isAcknowledged(), equalTo(true));
-    }
-
     @Test
-    public void testQueryAllColumns() {
+    public void testQueryAllColumns() throws Exception {
+        execute("create table tbl (id int primary key) ");
+        Object[][] bulkArgs = new Object[10][];
+        for (int i = 0; i < 10; i++) {
+            bulkArgs[i] = new Object[] { i };
+        }
+        execute("insert into tbl (id) values (?)", bulkArgs);
+        execute("refresh table tbl");
+
+        ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class);
+        execute(
+            "CREATE REPOSITORY r1 TYPE fs WITH (location = ?, compress = true)",
+            new Object[] { TEMP_FOLDER.newFolder("backup_s1").getAbsolutePath() });
+        long createdTime = threadPool.absoluteTimeInMillis();
+        execute("CREATE SNAPSHOT r1.s1 TABLE tbl WITH (wait_for_completion = true)");
+        long finishedTime = threadPool.absoluteTimeInMillis();
+
         execute("select * from sys.snapshots");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), arrayContaining("concrete_indices", "failures", "finished", "name", "repository", "started", "state", "tables", "version"));
+        assertThat(response.cols(), arrayContaining("concrete_indices", "failures", "finished", "name", "repository", "started", "state", "table_partitions", "tables", "version"));
         ArrayType<String> stringArray = new ArrayType<>(DataTypes.STRING);
         assertThat(response.columnTypes(), arrayContaining(
             stringArray,
@@ -153,19 +92,43 @@ public class SysSnapshotsTest extends SQLIntegrationTestCase {
             StringType.INSTANCE,
             TimestampType.INSTANCE_WITH_TZ,
             StringType.INSTANCE,
+            new ArrayType<>(ObjectType.builder()
+                .setInnerType("values", stringArray)
+                .setInnerType("table_schema", StringType.INSTANCE)
+                .setInnerType("table_name", StringType.INSTANCE)
+                .build()
+            ),
             stringArray,
             StringType.INSTANCE
         ));
         Object[] firstRow = response.rows()[0];
-        assertThat((List<Object>) firstRow[0], Matchers.contains(getFqn("test_table")));
+        assertThat((List<Object>) firstRow[0], Matchers.contains(getFqn("tbl")));
         assertThat((List<Object>) firstRow[1], Matchers.empty());
         assertThat((Long) firstRow[2], lessThanOrEqualTo(finishedTime));
-        assertThat(firstRow[3], is("test_snap_1"));
-        assertThat(firstRow[4], is(REPOSITORY_NAME));
+        assertThat(firstRow[3], is("s1"));
+        assertThat(firstRow[4], is("r1"));
         assertThat((Long) firstRow[5], greaterThanOrEqualTo(createdTime));
         assertThat(firstRow[6], is(SnapshotState.SUCCESS.name()));
-        assertThat((List<Object>) firstRow[7], Matchers.contains(getFqn("test_table")));
-        assertThat(firstRow[8], is(Version.CURRENT.toString()));
+        assertThat((List<Object>) firstRow[7], Matchers.empty());
+        assertThat((List<Object>) firstRow[8], Matchers.contains(getFqn("tbl")));
+        assertThat(firstRow[9], is(Version.CURRENT.toString()));
+    }
 
+    @Test
+    public void test_sys_snapshots_returns_table_partition_information() throws Exception {
+        execute("create table tbl (x int, p int) clustered into 1 shards partitioned by (p)");
+        execute("insert into tbl (x, p) values (1, 1), (2, 2)");
+        execute("refresh table tbl");
+        execute(
+            "CREATE REPOSITORY r1 TYPE fs WITH (location = ?, compress = true)",
+            new Object[] { TEMP_FOLDER.newFolder("backup_s2").getAbsolutePath() });
+        execute("CREATE SNAPSHOT r1.s2 TABLE tbl WITH (wait_for_completion = true)");
+
+        execute("select x['table_name'], unnest(x['values']::string[]) "
+            + "from (select unnest(table_partitions) from sys.snapshots) t (x) order by 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "tbl| 1\n" +
+            "tbl| 2\n"
+        ));
     }
 }

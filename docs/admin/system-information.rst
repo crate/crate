@@ -1907,6 +1907,11 @@ repositories (see :ref:`snapshot-restore`).
 |                      | names of all tables within the   |                              |
 |                      | snapshot.                        |                              |
 +----------------------+----------------------------------+------------------------------+
+| ``table_partitions`` | Contains the table schema, table | ``ARRAY(OBJECT)``            |
+|                      | name and partition values of     |                              |
+|                      | partitioned tables within the    |                              |
+|                      | snapshot.                        |                              |
++----------------------+----------------------------------+------------------------------+
 | ``started``          | The point in time when the       | ``TIMESTAMP WITH TIME ZONE`` |
 |                      | creation of the snapshot         |                              |
 |                      | started. Changes made after      |                              |
