@@ -95,6 +95,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.TransportNodesListGatewayMetaState;
 import org.elasticsearch.gateway.TransportNodesListGatewayStartedShards;
 import org.elasticsearch.index.seqno.GlobalCheckpointSyncAction;
+import org.elasticsearch.index.seqno.RetentionLeaseActions;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
@@ -107,6 +108,12 @@ import io.crate.blob.StartBlobAction;
 import io.crate.blob.TransportDeleteBlobAction;
 import io.crate.blob.TransportPutChunkAction;
 import io.crate.blob.TransportStartBlobAction;
+import io.crate.replication.logical.action.GetFileChunkAction;
+import io.crate.replication.logical.action.GetStoreMetadataAction;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
+import io.crate.replication.logical.action.ReplayChangesAction;
+import io.crate.replication.logical.action.ShardChangesAction;
 
 /**
  * Builds and binds the generic action map, all {@link TransportAction}s
@@ -189,6 +196,16 @@ public class ActionModule extends AbstractModule {
         actions.register(PutChunkAction.INSTANCE, TransportPutChunkAction.class);
         actions.register(StartBlobAction.INSTANCE, TransportStartBlobAction.class);
         actions.register(DeleteBlobAction.INSTANCE, TransportDeleteBlobAction.class);
+
+        actions.register(RetentionLeaseActions.Add.INSTANCE, RetentionLeaseActions.Add.TransportAction.class);
+        actions.register(RetentionLeaseActions.Remove.INSTANCE, RetentionLeaseActions.Remove.TransportAction.class);
+        actions.register(RetentionLeaseActions.Renew.INSTANCE, RetentionLeaseActions.Renew.TransportAction.class);
+        actions.register(PublicationsStateAction.INSTANCE, PublicationsStateAction.TransportAction.class);
+        actions.register(GetFileChunkAction.INSTANCE, GetFileChunkAction.TransportAction.class);
+        actions.register(GetStoreMetadataAction.INSTANCE, GetStoreMetadataAction.TransportAction.class);
+        actions.register(ReleasePublisherResourcesAction.INSTANCE, ReleasePublisherResourcesAction.TransportAction.class);
+        actions.register(ShardChangesAction.INSTANCE, ShardChangesAction.TransportAction.class);
+        actions.register(ReplayChangesAction.INSTANCE, ReplayChangesAction.TransportAction.class);
 
         return unmodifiableMap(actions.getRegistry());
     }

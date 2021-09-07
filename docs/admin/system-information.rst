@@ -202,6 +202,10 @@ information about the currently applied cluster settings.
     | settings['overload_protection']['dml']['max_concurrency']                         | integer          |
     | settings['overload_protection']['dml']['min_concurrency']                         | integer          |
     | settings['overload_protection']['dml']['queue_size']                              | integer          |
+    | settings['replication']                                                           | object           |
+    | settings['replication']['logical']                                                | object           |
+    | settings['replication']['logical']['ops_batch_size']                              | integer          |
+    | settings['replication']['logical']['reads_poll_duration']                         | text             |
     | settings['stats']                                                                 | object           |
     | settings['stats']['breaker']                                                      | object           |
     | settings['stats']['breaker']['log']                                               | object           |

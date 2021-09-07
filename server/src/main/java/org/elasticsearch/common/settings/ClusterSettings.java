@@ -108,6 +108,7 @@ import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslSettings;
+import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.statistics.TableStatsService;
 import io.crate.udc.service.UDCService;
 
@@ -467,6 +468,8 @@ public final class ClusterSettings extends AbstractScopedSettings {
         SslSettings.SSL_KEYSTORE_PASSWORD,
         SslSettings.SSL_KEYSTORE_KEY_PASSWORD,
         SslSettings.SSL_RESOURCE_POLL_INTERVAL,
-        BlobIndicesService.SETTING_BLOBS_PATH
+        BlobIndicesService.SETTING_BLOBS_PATH,
+        LogicalReplicationSettings.REPLICATION_CHANGE_BATCH_SIZE,
+        LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION
     );
 }

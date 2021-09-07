@@ -189,6 +189,9 @@ public class MockLogAppender extends AbstractAppender {
         if (name.startsWith("org.elasticsearch.")) {
             name = name.substring("org.elasticsearch.".length());
         }
+        if (name.startsWith("io.crate.")) {
+            return name;
+        }
         return COMMON_PREFIX + name;
     }
 }
