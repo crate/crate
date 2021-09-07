@@ -47,10 +47,10 @@ public class SubscriptionsMetadataTest extends ESTestCase {
         Map<String, Subscription> map = Map.of(
             "sub1",
             new Subscription(
-                "user1",
-                ConnectionInfo.fromURL("crate://example.com:4310?user=valid_user&password=123"),
-                List.of("pub1"),
-                Settings.EMPTY
+                    "user1",
+                    ConnectionInfo.fromURL("crate://example.com:4310?user=valid_user&password=123"),
+                    List.of("pub1"),
+                    Settings.EMPTY
             ),
             "my_subscription",
             new Subscription(

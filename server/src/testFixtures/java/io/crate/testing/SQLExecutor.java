@@ -133,8 +133,11 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.plugins.AnalysisPlugin;
+import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -302,7 +305,13 @@ public class SQLExecutor {
                 new BalancedShardsAllocator(Settings.EMPTY),
                 EmptyClusterInfoService.INSTANCE
             );
-            logicalReplicationService = new LogicalReplicationService(clusterService);
+            logicalReplicationService = new LogicalReplicationService(
+                Settings.EMPTY,
+                clusterService,
+                mock(TransportService.class),
+                mock(ThreadPool.class)
+            );
+            logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
 
             publishInitialClusterState();
         }

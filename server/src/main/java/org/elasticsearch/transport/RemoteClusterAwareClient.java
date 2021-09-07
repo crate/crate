@@ -27,17 +27,17 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-final class RemoteClusterAwareClient extends AbstractClient {
+public final class RemoteClusterAwareClient extends AbstractClient {
 
     private final TransportService service;
     private final String clusterAlias;
     private final RemoteClusterAware remoteClusterAware;
 
-    RemoteClusterAwareClient(Settings settings,
-                             ThreadPool threadPool,
-                             TransportService service,
-                             String clusterAlias,
-                             RemoteClusterAware remoteClusterAware) {
+    public RemoteClusterAwareClient(Settings settings,
+                                    ThreadPool threadPool,
+                                    TransportService service,
+                                    String clusterAlias,
+                                    RemoteClusterAware remoteClusterAware) {
         super(settings, threadPool);
         this.service = service;
         this.clusterAlias = clusterAlias;

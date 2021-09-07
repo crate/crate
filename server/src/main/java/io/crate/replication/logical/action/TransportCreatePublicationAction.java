@@ -19,25 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.ddl.ccr;
+package io.crate.replication.logical.action;
 
+import io.crate.exceptions.PublicationAlreadyExistsException;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+@Singleton
 public class TransportCreatePublicationAction extends AbstractDDLTransportAction<CreatePublicationRequest, AcknowledgedResponse> {
 
-    public static final String ACTION_NAME = "crate:ccr/publication/create";
+    public static final String ACTION_NAME = "internal:crate:replication/logical/publication/create";
 
-    private final ClusterStateTaskExecutor<CreatePublicationRequest> executor;
-
+    @Inject
     public TransportCreatePublicationAction(TransportService transportService,
                                             ClusterService clusterService,
                                             ThreadPool threadPool,
@@ -51,12 +58,34 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
               AcknowledgedResponse::new,
               AcknowledgedResponse::new,
               "create-publication");
-        this.executor = new CreatePublicationStateExecutor();
     }
 
     @Override
     public ClusterStateTaskExecutor<CreatePublicationRequest> clusterStateTaskExecutor(CreatePublicationRequest request) {
-        return executor;
+        return new DDLClusterStateTaskExecutor<>() {
+            @Override
+            protected ClusterState execute(ClusterState currentState,
+                                           CreatePublicationRequest request) throws Exception {
+                Metadata currentMetadata = currentState.metadata();
+                Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
+
+                var oldMetadata = (PublicationsMetadata) mdBuilder.getCustom(PublicationsMetadata.TYPE);
+                if (oldMetadata != null && oldMetadata.publications().containsKey(request.name())) {
+                    throw new PublicationAlreadyExistsException(request.name());
+                }
+
+                // TODO: Do we need to check if relations exists again?
+
+
+                // create a new instance of the metadata, to guarantee the cluster changed action.
+                var newMetadata = PublicationsMetadata.newInstance(oldMetadata);
+                newMetadata.publications().put(request.name(), new Publication(request.owner(), request.tables()));
+                assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
+                mdBuilder.putCustom(PublicationsMetadata.TYPE, newMetadata);
+
+                return ClusterState.builder(currentState).metadata(mdBuilder).build();
+            }
+        };
     }
 
     @Override

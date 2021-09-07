@@ -194,6 +194,13 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     protected <T extends Engine.Result> T executeOnPrimaryHandlingMappingUpdate(ShardId shardId,
                                                                                 CheckedSupplier<T, IOException> execute,
                                                                                 Function<Exception, T> onMappingUpdateError) throws IOException {
+        return executeOnPrimaryHandlingMappingUpdate(shardId, mappingUpdate, execute, onMappingUpdateError);
+    }
+
+    public static  <T extends Engine.Result> T executeOnPrimaryHandlingMappingUpdate(ShardId shardId,
+                                                                                     MappingUpdatePerformer mappingUpdate,
+                                                                                     CheckedSupplier<T, IOException> execute,
+                                                                                     Function<Exception, T> onMappingUpdateError) throws IOException {
         T result = execute.get();
         if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
             try {

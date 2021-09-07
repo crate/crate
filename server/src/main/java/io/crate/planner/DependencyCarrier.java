@@ -26,7 +26,6 @@ import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
-import io.crate.execution.ddl.ccr.PublicationService;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.views.TransportCreateViewAction;
@@ -39,6 +38,10 @@ import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.action.TransportCreatePublicationAction;
+import io.crate.replication.logical.action.TransportCreateSubscriptionAction;
+import io.crate.replication.logical.action.TransportDropPublicationAction;
 import io.crate.statistics.TransportAnalyzeAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -78,7 +81,10 @@ public class DependencyCarrier {
     private final RepositoryService repositoryService;
     private final RepositoryParamValidator repositoryParamValidator;
     private final NodeLimits nodeLimits;
-    private final PublicationService publicationService;
+    private final LogicalReplicationService logicalReplicationService;
+    private final TransportCreateSubscriptionAction createSubscriptionAction;
+    private final TransportCreatePublicationAction createPublicationAction;
+    private final TransportDropPublicationAction dropPublicationAction;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -102,7 +108,10 @@ public class DependencyCarrier {
                              FulltextAnalyzerResolver fulltextAnalyzerResolver,
                              RepositoryService repositoryService,
                              RepositoryParamValidator repositoryParamValidator,
-                             PublicationService publicationService) {
+                             LogicalReplicationService logicalReplicationService,
+                             TransportCreateSubscriptionAction createSubscriptionAction,
+                             TransportCreatePublicationAction createPublicationAction,
+                             TransportDropPublicationAction dropPublicationAction) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
@@ -125,7 +134,10 @@ public class DependencyCarrier {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.repositoryService = repositoryService;
         this.repositoryParamValidator = repositoryParamValidator;
-        this.publicationService = publicationService;
+        this.logicalReplicationService = logicalReplicationService;
+        this.createSubscriptionAction = createSubscriptionAction;
+        this.createPublicationAction = createPublicationAction;
+        this.dropPublicationAction = dropPublicationAction;
     }
 
     public Schemas schemas() {
@@ -224,7 +236,19 @@ public class DependencyCarrier {
         return nodeLimits;
     }
 
-    public PublicationService publicationService() {
-        return publicationService;
+    public LogicalReplicationService logicalReplicationService() {
+        return logicalReplicationService;
+    }
+
+    public TransportCreateSubscriptionAction createSubscriptionAction() {
+        return createSubscriptionAction;
+    }
+
+    public TransportCreatePublicationAction createPublicationAction() {
+        return createPublicationAction;
+    }
+
+    public TransportDropPublicationAction dropPublicationAction() {
+        return dropPublicationAction;
     }
 }

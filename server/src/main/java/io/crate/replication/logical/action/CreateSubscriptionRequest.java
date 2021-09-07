@@ -19,39 +19,44 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.ddl.ccr;
+package io.crate.replication.logical.action;
 
-import io.crate.metadata.RelationName;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
-public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicationRequest> {
+public class CreateSubscriptionRequest extends AcknowledgedRequest<CreateSubscriptionRequest> {
 
     private final String owner;
     private final String name;
-    private final List<RelationName> tables;
+    private final ConnectionInfo connectionInfo;
+    private final List<String> publications;
+    private final Settings settings;
 
-    public CreatePublicationRequest(String owner, String name, List<RelationName> tables) {
+    public CreateSubscriptionRequest(String owner,
+                                     String name,
+                                     ConnectionInfo connectionInfo,
+                                     List<String> publications,
+                                     Settings settings) {
         this.owner = owner;
         this.name = name;
-        this.tables = tables;
+        this.connectionInfo = connectionInfo;
+        this.publications = publications;
+        this.settings = settings;
     }
 
-    public CreatePublicationRequest(StreamInput in) throws IOException {
+    public CreateSubscriptionRequest(StreamInput in) throws IOException {
         super(in);
         this.owner = in.readString();
         this.name = in.readString();
-        int size = in.readVInt();
-        var t = new ArrayList<RelationName>();
-        for (var i = 0; i < size; i++) {
-            t.add(new RelationName(in));
-        }
-        this.tables = List.copyOf(t);
+        connectionInfo = new ConnectionInfo(in);
+        this.publications = List.of(in.readStringArray());
+        settings = Settings.readSettingsFromStream(in);
     }
 
     public String owner() {
@@ -62,8 +67,16 @@ public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicat
         return name;
     }
 
-    public List<RelationName> tables() {
-        return tables;
+    public ConnectionInfo connectionInfo() {
+        return connectionInfo;
+    }
+
+    public List<String> publications() {
+        return publications;
+    }
+
+    public Settings settings() {
+        return settings;
     }
 
     @Override
@@ -71,9 +84,8 @@ public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicat
         super.writeTo(out);
         out.writeString(owner);
         out.writeString(name);
-        out.writeVInt(tables.size());
-        for (var table : tables) {
-            table.writeTo(out);
-        }
+        connectionInfo.writeTo(out);
+        out.writeStringArray(publications.toArray(new String[0]));
+        Settings.writeSettingsToStream(settings, out);
     }
 }

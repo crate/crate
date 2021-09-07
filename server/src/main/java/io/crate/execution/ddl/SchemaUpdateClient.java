@@ -53,7 +53,9 @@ public class SchemaUpdateClient {
 
     public void blockingUpdateOnMaster(Index index, Mapping mappingUpdate) {
         TimeValue timeout = this.dynamicMappingUpdateTimeout;
-        var response = schemaUpdateAction.execute(new SchemaUpdateRequest(index, mappingUpdate.toString())).actionGet();
+        var response = schemaUpdateAction
+            .execute(new SchemaUpdateRequest(index, mappingUpdate.toString()))
+            .actionGet(timeout);
         if (!response.isAcknowledged()) {
             throw new ElasticsearchTimeoutException("Failed to acknowledge mapping update within [" + timeout + "]");
         }

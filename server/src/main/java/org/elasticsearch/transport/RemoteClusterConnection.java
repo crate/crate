@@ -60,7 +60,7 @@ public final class RemoteClusterConnection implements Closeable {
      * @param clusterAlias the configured alias of the cluster to connect to
      * @param transportService the local nodes transport service
      */
-    RemoteClusterConnection(Settings nodeSettings, Settings connectionSettings, String clusterAlias, TransportService transportService) {
+    public RemoteClusterConnection(Settings nodeSettings, Settings connectionSettings, String clusterAlias, TransportService transportService) {
         this.transportService = transportService;
         ConnectionProfile profile = RemoteConnectionStrategy.buildConnectionProfile(nodeSettings, connectionSettings);
         this.remoteConnectionManager = new RemoteConnectionManager(clusterAlias, createConnectionManager(profile, transportService));
@@ -93,7 +93,7 @@ public final class RemoteClusterConnection implements Closeable {
      * Ensures that this cluster is connected. If the cluster is connected this operation
      * will invoke the listener immediately.
      */
-    void ensureConnected(ActionListener<Void> listener) {
+    public void ensureConnected(ActionListener<Void> listener) {
         if (remoteConnectionManager.size() == 0) {
             connectionStrategy.connect(listener);
         } else {
@@ -158,11 +158,11 @@ public final class RemoteClusterConnection implements Closeable {
      * Returns a connection to the remote cluster, preferably a direct connection to the provided {@link DiscoveryNode}.
      * If such node is not connected, the returned connection will be a proxy connection that redirects to it.
      */
-    Transport.Connection getConnection(DiscoveryNode remoteClusterNode) {
+    public Transport.Connection getConnection(DiscoveryNode remoteClusterNode) {
         return remoteConnectionManager.getConnection(remoteClusterNode);
     }
 
-    Transport.Connection getConnection() {
+    public Transport.Connection getConnection() {
         return remoteConnectionManager.getAnyRemoteConnection();
     }
 
@@ -206,7 +206,7 @@ public final class RemoteClusterConnection implements Closeable {
         return remoteConnectionManager;
     }
 
-    boolean shouldRebuildConnection(Settings newSettings) {
+    public boolean shouldRebuildConnection(Settings newSettings) {
         return connectionStrategy.shouldRebuildConnection(newSettings);
     }
 }

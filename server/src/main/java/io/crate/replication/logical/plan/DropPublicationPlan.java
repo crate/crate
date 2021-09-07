@@ -19,25 +19,25 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.ddl.ccr;
+package io.crate.replication.logical.plan;
 
+import io.crate.replication.logical.analyze.AnalyzedDropPublication;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.execution.ddl.ccr.CreatePublicationRequest;
+import io.crate.replication.logical.action.DropPublicationRequest;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.replication.logical.analyze.AnalyzedCreatePublication;
 
-public class CreatePublicationPlan implements Plan {
+public class DropPublicationPlan implements Plan {
 
-    private final AnalyzedCreatePublication analyzedCreatePublication;
+    private final AnalyzedDropPublication analyzedDropPublication;
 
-    public CreatePublicationPlan(AnalyzedCreatePublication analyzedCreatePublication) {
-        this.analyzedCreatePublication = analyzedCreatePublication;
+    public DropPublicationPlan(AnalyzedDropPublication analyzedDropPublication) {
+        this.analyzedDropPublication = analyzedDropPublication;
     }
 
     @Override
@@ -50,15 +50,8 @@ public class CreatePublicationPlan implements Plan {
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
-        var request = new CreatePublicationRequest(
-            plannerContext.transactionContext().sessionContext().sessionUser().name(),
-            analyzedCreatePublication.name(),
-            analyzedCreatePublication.tables()
-        );
-
-        dependencies.publicationService()
-            .createPublication(request)
-            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
-
+        var request = new DropPublicationRequest(analyzedDropPublication.name(), analyzedDropPublication.ifExists());
+        dependencies.dropPublicationAction()
+            .execute(request, new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : 1L)));
     }
 }

@@ -19,6 +19,9 @@
 
 package org.elasticsearch.repositories;
 
+import io.crate.analyze.repositories.TypeSettings;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.repository.LogicalReplicationRepository;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -28,8 +31,6 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import io.crate.analyze.repositories.TypeSettings;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.Collections;
@@ -48,6 +49,7 @@ public class RepositoriesModule extends AbstractModule {
                               List<RepositoryPlugin> repoPlugins,
                               TransportService transportService,
                               ClusterService clusterService,
+                              LogicalReplicationService logicalReplicationService,
                               ThreadPool threadPool,
                               NamedXContentRegistry namedXContentRegistry) {
         Map<String, Repository.Factory> factories = new HashMap<>();
@@ -63,6 +65,25 @@ public class RepositoriesModule extends AbstractModule {
                 return new FsRepository(metadata, env, namedXContentRegistry, clusterService);
             }
         });
+        factories.put(LogicalReplicationRepository.TYPE,
+                      new Repository.Factory() {
+                          @Override
+                          public Repository create(RepositoryMetadata metadata) throws Exception {
+                              return new LogicalReplicationRepository(
+                                  clusterService.getSettings(),
+                                  clusterService,
+                                  logicalReplicationService,
+                                  metadata,
+                                  threadPool
+                              );
+                          }
+
+                          @Override
+                          public TypeSettings settings() {
+                              return new TypeSettings(List.of(), List.of());
+                          }
+                      }
+        );
 
         for (RepositoryPlugin repoPlugin : repoPlugins) {
             Map<String, Repository.Factory> newRepoTypes = repoPlugin.getRepositories(env, namedXContentRegistry, clusterService);

@@ -21,17 +21,47 @@
 
 package io.crate.replication.logical.metadata;
 
+import io.crate.exceptions.InvalidArgumentException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 
 public class Subscription implements Writeable {
+
+    public static final Setting<Boolean> ENABLED = Setting.boolSetting("enabled", true);
+
+
+    public static void validateSettings(Settings settings) {
+        for (var setting : settings.names()) {
+            if (SUPPORTED_SETTINGS.contains(setting) == false) {
+                throw new InvalidArgumentException(
+                    String.format(Locale.ENGLISH, "Setting '%s' is not support on CREATE SUBSCRIPTION", setting)
+                );
+            }
+        }
+    }
+
+    private static final Set<String> SUPPORTED_SETTINGS = Set.of(
+        ENABLED.getKey()
+    );
+
+
+    public enum State {
+        CREATED,
+        INIT_RESTORING,
+        RESTORING,
+        INIT_FOLLOWING,
+        FOLLOWING
+    }
 
     private final String owner;
     private final ConnectionInfo connectionInfo;
@@ -69,6 +99,10 @@ public class Subscription implements Writeable {
 
     public Settings settings() {
         return settings;
+    }
+
+    public boolean isEnabled() {
+        return ENABLED.get(settings);
     }
 
     @Override

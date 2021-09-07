@@ -2,6 +2,7 @@ cluster.name: dev
 stats.service.interval: 0
 # bind to localhost, mainly to prevent the node from dying due to bootstrap checks (HEAP checks)
 network.host: _local_
+#network.host: _site_
 node.max_local_storage_nodes: 3
 
 ssl.psql.enabled: false

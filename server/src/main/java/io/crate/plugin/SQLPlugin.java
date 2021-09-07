@@ -21,41 +21,6 @@
 
 package io.crate.plugin;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.UnaryOperator;
-
-import javax.annotation.Nullable;
-
-
-import io.crate.license.License;
-import org.elasticsearch.action.bulk.BulkModule;
-import org.elasticsearch.cluster.NamedDiff;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.Metadata.Custom;
-import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
-import org.elasticsearch.common.ParseField;
-import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.index.IndexModule;
-import org.elasticsearch.index.mapper.ArrayMapper;
-import org.elasticsearch.index.mapper.ArrayTypeParser;
-import org.elasticsearch.index.mapper.Mapper;
-import org.elasticsearch.plugins.ActionPlugin;
-import org.elasticsearch.plugins.ClusterPlugin;
-import org.elasticsearch.plugins.MapperPlugin;
-import org.elasticsearch.plugins.Plugin;
-
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.AuthenticationModule;
@@ -73,6 +38,7 @@ import io.crate.expression.predicate.PredicateModule;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.license.License;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
@@ -80,6 +46,15 @@ import io.crate.metadata.DefaultTemplateService;
 import io.crate.metadata.MetadataModule;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetadataBlobModule;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.action.GetFileChunkAction;
+import io.crate.replication.logical.action.GetStoreMetadataAction;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
+import io.crate.replication.logical.action.ReplayChangesAction;
+import io.crate.replication.logical.action.ShardChangesAction;
+import io.crate.replication.logical.engine.SubscriberEngine;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.metadata.information.MetadataInformationModule;
 import io.crate.metadata.pgcatalog.PgCatalogModule;
 import io.crate.metadata.settings.AnalyzerSettings;
@@ -91,13 +66,53 @@ import io.crate.metadata.view.ViewsMetadata;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
-import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslContextProviderService;
+import io.crate.protocols.ssl.SslSettings;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.user.UserManagementModule;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
+import org.elasticsearch.action.bulk.BulkModule;
+import org.elasticsearch.cluster.NamedDiff;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.Metadata.Custom;
+import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
+import org.elasticsearch.common.ParseField;
+import org.elasticsearch.common.component.LifecycleComponent;
+import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.index.IndexModule;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.engine.EngineFactory;
+import org.elasticsearch.index.mapper.ArrayMapper;
+import org.elasticsearch.index.mapper.ArrayTypeParser;
+import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.seqno.RetentionLeaseActions;
+import org.elasticsearch.plugins.ActionPlugin;
+import org.elasticsearch.plugins.ClusterPlugin;
+import org.elasticsearch.plugins.EnginePlugin;
+import org.elasticsearch.plugins.MapperPlugin;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportResponse;
 
-public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.UnaryOperator;
+
+
+public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin, EnginePlugin {
 
     private final Settings settings;
     @Nullable
@@ -133,6 +148,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(SslSettings.SSL_KEYSTORE_PASSWORD);
         settings.add(SslSettings.SSL_KEYSTORE_KEY_PASSWORD);
         settings.add(SslSettings.SSL_RESOURCE_POLL_INTERVAL);
+
+        // Logical replication
+        settings.add(LogicalReplicationService.REPLICATION_SUBSCRIBED_INDEX);
 
         settings.addAll(CrateSettings.CRATE_CLUSTER_SETTINGS);
 
@@ -235,6 +253,26 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             UsersPrivilegesMetadata.TYPE,
             in -> UsersPrivilegesMetadata.readDiffFrom(Metadata.Custom.class, UsersPrivilegesMetadata.TYPE, in)
         ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            PublicationsMetadata.TYPE,
+            PublicationsMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            PublicationsMetadata.TYPE,
+            in -> PublicationsMetadata.readDiffFrom(Metadata.Custom.class, PublicationsMetadata.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            SubscriptionsMetadata.TYPE,
+            SubscriptionsMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            SubscriptionsMetadata.TYPE,
+            in -> SubscriptionsMetadata.readDiffFrom(Metadata.Custom.class, SubscriptionsMetadata.TYPE, in)
+        ));
 
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedWriteables());
@@ -264,6 +302,16 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             new ParseField(UsersPrivilegesMetadata.TYPE),
             UsersPrivilegesMetadata::fromXContent
         ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(PublicationsMetadata.TYPE),
+            PublicationsMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(SubscriptionsMetadata.TYPE),
+            SubscriptionsMetadata::fromXContent
+        ));
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedXContent());
         return entries;
@@ -288,4 +336,29 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     public void onIndexModule(IndexModule indexModule) {
         indexModule.addIndexEventListener(indexEventListenerProxy);
     }
+
+    @Override
+    public List<ActionHandler<? extends TransportRequest, ? extends TransportResponse>> getActions() {
+        return List.of(
+            new ActionHandler<>(RetentionLeaseActions.Add.INSTANCE, RetentionLeaseActions.Add.TransportAction.class),
+            new ActionHandler<>(RetentionLeaseActions.Remove.INSTANCE, RetentionLeaseActions.Remove.TransportAction.class),
+            new ActionHandler<>(RetentionLeaseActions.Renew.INSTANCE, RetentionLeaseActions.Renew.TransportAction.class),
+            new ActionHandler<>(PublicationsStateAction.INSTANCE, PublicationsStateAction.TransportAction.class),
+            new ActionHandler<>(GetFileChunkAction.INSTANCE, GetFileChunkAction.TransportAction.class),
+            new ActionHandler<>(GetStoreMetadataAction.INSTANCE, GetStoreMetadataAction.TransportAction.class),
+            new ActionHandler<>(ReleasePublisherResourcesAction.INSTANCE, ReleasePublisherResourcesAction.TransportAction.class),
+            new ActionHandler<>(ShardChangesAction.INSTANCE, ShardChangesAction.TransportAction.class),
+            new ActionHandler<>(ReplayChangesAction.INSTANCE, ReplayChangesAction.TransportAction.class)
+        );
+    }
+
+    @Override
+    public Optional<EngineFactory> getEngineFactory(IndexSettings indexSettings) {
+        if (indexSettings.getSettings().get(LogicalReplicationService.REPLICATION_SUBSCRIBED_INDEX.getKey()) != null) {
+            return Optional.of(SubscriberEngine::new);
+        }
+        return Optional.empty();
+    }
+
+
 }

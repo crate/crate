@@ -21,6 +21,16 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.testing.SQLResponse;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -32,17 +42,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.testing.SQLResponse;
-import io.crate.user.User;
-import io.crate.user.UserLookup;
 
 public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
@@ -450,7 +449,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     public void testAccessesToPgClassEntriesWithRespectToPrivileges() throws Exception {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         execute("select relname from pg_catalog.pg_class order by relname", null, testUserSession());
-        assertThat(response.rowCount(), is(38L));
+        assertThat(response.rowCount(), is(39L));
         assertThat(printedTable(response.rows()), is(
             """
                 character_sets
@@ -470,6 +469,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
                 pg_indexes
                 pg_namespace
                 pg_proc
+                pg_publication
                 pg_range
                 pg_roles
                 pg_settings
@@ -581,7 +581,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     public void testAccessesToPgAttributeEntriesWithRespectToPrivileges() throws Exception {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         execute("select * from pg_catalog.pg_attribute order by attname", null, testUserSession());
-        assertThat(response.rowCount(), is(435L));
+        assertThat(response.rowCount(), is(442L));
 
         //create a table with an attribute that a new user is not privileged to access
         executeAsSuperuser("create table test_schema.my_table (my_col int)");

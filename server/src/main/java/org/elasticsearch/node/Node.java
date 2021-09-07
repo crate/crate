@@ -514,7 +514,10 @@ public class Node implements Closeable {
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
             final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
-                clusterService
+                settings,
+                clusterService,
+                transportService,
+                threadPool
             );
 
             RepositoriesModule repositoriesModule = new RepositoriesModule(
@@ -522,12 +525,14 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(RepositoryPlugin.class),
                 transportService,
                 clusterService,
+                logicalReplicationService,
                 threadPool,
                 xContentRegistry
             );
             modules.add(repositoriesModule);
 
             RepositoriesService repositoryService = repositoriesModule.repositoryService();
+            logicalReplicationService.repositoriesService(repositoryService);
 
             SnapshotsService snapshotsService = new SnapshotsService(
                 settings,
@@ -556,6 +561,7 @@ public class Node implements Closeable {
                 clusterService.getClusterSettings(),
                 shardLimitValidator
             );
+            logicalReplicationService.restoreService(restoreService);
 
             final RerouteService rerouteService = new BatchedRerouteService(
                 clusterService,
