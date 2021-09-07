@@ -54,6 +54,15 @@ None
 Changes
 =======
 
+- Changed the type precedence rules for ``INSERT FROM VALUES`` statements. The
+  target column types now take higher precedence to avoid errors in statements
+  like ``INSERT INTO tbl (text_column) VALUES ('a'), (3)``. Here ``3``
+  (``INTEGER``) used to take precedence, leading to a cast error because ``a``
+  cannot be converted to an ``INTEGER``.
+
+  This doesn't change the behavior of standalone ``VALUES`` statements.
+  ``VALUES ('a'), (3)`` as a standalone statement will still fail.
+
 - Added a new ``table_partitions`` column to the :ref:`sys.snapshots
   <sys-snapshots>` table.
 

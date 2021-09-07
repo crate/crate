@@ -698,8 +698,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (int c = 0; c < numColumns; c++) {
             ArrayList<Symbol> columnValues = new ArrayList<>();
             DataType<?> targetType;
+            boolean usePrecedence = true;
             if (parentOutputColumns.size() > c) {
                 targetType = parentOutputColumns.get(c).valueType();
+                usePrecedence = false;
             } else {
                 targetType = DataTypes.UNDEFINED;
             }
@@ -721,7 +723,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                         "The types of the columns within VALUES lists must match. " +
                         "Found `" + targetType + "` and `" + cellType + "` at position: " + c);
                 }
-                if (cellType.precedes(targetType)) {
+                if (usePrecedence && cellType.precedes(targetType)) {
+                    targetType = cellType;
+                } else if (targetType == DataTypes.UNDEFINED) {
                     targetType = cellType;
                 }
             }
