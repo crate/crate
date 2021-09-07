@@ -24,12 +24,12 @@ package io.crate.replication.logical.plan;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.replication.logical.action.CreatePublicationRequest;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.replication.logical.action.CreatePublicationRequest;
 import io.crate.replication.logical.analyze.AnalyzedCreatePublication;
 
 public class CreatePublicationPlan implements Plan {

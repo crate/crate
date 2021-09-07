@@ -40,6 +40,7 @@ import org.elasticsearch.index.store.FsDirectoryFactory;
 import org.elasticsearch.index.store.Store;
 
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.replication.logical.LogicalReplicationSettings;
 
 /**
  * Encapsulates all valid index level settings.
@@ -118,7 +119,8 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING,
         Setting.groupSetting("index.analysis.", Property.IndexScope),
         BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED,
-        BlobIndicesService.SETTING_INDEX_BLOBS_PATH
+        BlobIndicesService.SETTING_INDEX_BLOBS_PATH,
+        LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX
     );
 
     public static final IndexScopedSettings DEFAULT_SCOPED_SETTINGS = new IndexScopedSettings(Settings.EMPTY, BUILT_IN_INDEX_SETTINGS);

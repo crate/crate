@@ -21,23 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.metadata.IndexMappings;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseRandomizedSchema;
-import org.elasticsearch.Version;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -45,6 +28,24 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.is;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Test;
+
+import io.crate.metadata.IndexMappings;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedSchema;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class InformationSchemaTest extends SQLIntegrationTestCase {
@@ -534,7 +535,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(897, response.rowCount());
+        assertEquals(901, response.rowCount());
     }
 
     @Test
@@ -723,7 +724,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         execute("select max(ordinal_position) from information_schema.columns");
         assertEquals(1, response.rowCount());
 
-        assertEquals(119, response.rows()[0][0]);
+        assertEquals(122, response.rows()[0][0]);
 
         execute("create table t1 (id integer, col1 string)");
         ensureGreen();

@@ -23,6 +23,7 @@ package io.crate.replication.logical.action;
 
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
 import io.crate.replication.logical.metadata.Publication;
@@ -77,7 +78,8 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
 
                 // Ensure tables exists
                 for (var relation : request.tables()) {
-                    if (currentMetadata.hasIndex(relation.indexNameOrAlias()) == false) {
+                    if (currentMetadata.hasIndex(relation.indexNameOrAlias()) == false
+                        && currentMetadata.templates().containsKey(PartitionName.templateName(relation.schema(), relation.name())) == false) {
                         throw new RelationUnknown(relation);
                     }
                 }
