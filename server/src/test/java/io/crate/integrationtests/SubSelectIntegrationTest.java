@@ -76,9 +76,9 @@ public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
         execute("refresh table doc.tbl");
         execute("explain select i, name from (select ord as i, name from doc.tbl order by name) as t order by i desc limit 20");
         assertThat(printedTable(response.rows()), is(
-            "Fetch[i, name]\n" +
-            "  └ Limit[20::bigint;0]\n" +
-            "    └ Rename[t._fetchid, i] AS t\n" +
+            "Rename[i, name] AS t\n" +
+            "  └ Fetch[ord AS i, name]\n" +
+            "    └ Limit[20::bigint;0]\n" +
             "      └ OrderBy[ord AS i DESC]\n" +
             "        └ Collect[doc.tbl | [_fetchid, ord AS i] | true]\n"
         ));
