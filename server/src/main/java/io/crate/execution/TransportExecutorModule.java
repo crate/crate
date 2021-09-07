@@ -49,6 +49,7 @@ import io.crate.license.TransportSetLicenseAction;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.replication.logical.action.TransportCreatePublicationAction;
 import io.crate.replication.logical.action.TransportDropPublicationAction;
+import io.crate.replication.logical.action.TransportCreateSubscriptionAction;
 import io.crate.statistics.TransportAnalyzeAction;
 import org.elasticsearch.common.inject.AbstractModule;
 
@@ -88,5 +89,6 @@ public class TransportExecutorModule extends AbstractModule {
 
         bind(TransportCreatePublicationAction.class).asEagerSingleton();
         bind(TransportDropPublicationAction.class).asEagerSingleton();
+        bind(TransportCreateSubscriptionAction.class).asEagerSingleton();
     }
 }

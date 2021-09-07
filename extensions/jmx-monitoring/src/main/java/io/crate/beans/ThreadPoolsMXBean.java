@@ -47,4 +47,6 @@ public interface ThreadPoolsMXBean {
     ThreadPools.ThreadPoolInfo getFetchShardStarted();
 
     ThreadPools.ThreadPoolInfo getFetchShardStore();
+
+    ThreadPools.ThreadPoolInfo getLogicalReplication();
 }

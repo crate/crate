@@ -98,6 +98,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
+import io.crate.replication.logical.ShardReplicationService;
 
 public class IndicesClusterStateService extends AbstractLifecycleComponent implements ClusterStateApplier {
 
@@ -142,7 +143,8 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                       RetentionLeaseSyncer retentionLeaseSyncer,
                                       NodeClient client,
                                       BlobIndicesService blobIndicesService,
-                                      ShardCollectSource shardCollectSource) {
+                                      ShardCollectSource shardCollectSource,
+                                      ShardReplicationService shardReplicationService) {
         this(settings,
             (AllocatedIndices<? extends Shard, ? extends AllocatedIndex<? extends Shard>>) indicesService,
             clusterService,
@@ -158,7 +160,8 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             retentionLeaseSyncer,
             client,
             blobIndicesService,
-            shardCollectSource
+            shardCollectSource,
+            shardReplicationService
         );
     }
 
@@ -178,14 +181,16 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                RetentionLeaseSyncer retentionLeaseSyncer,
                                NodeClient client,
                                BlobIndicesService blobIndicesService,
-                               ShardCollectSource shardCollectSource) {
+                               ShardCollectSource shardCollectSource,
+                               ShardReplicationService shardReplicationService) {
         this.buildInIndexListener = List.of(
             peerRecoverySourceService,
             recoveryTargetService,
             syncedFlushService,
             snapshotShardsService,
             blobIndicesService,
-            shardCollectSource
+            shardCollectSource,
+            shardReplicationService
         );
         this.settings = settings;
         this.indicesService = indicesService;
