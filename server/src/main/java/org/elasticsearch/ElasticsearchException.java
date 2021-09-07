@@ -1079,6 +1079,11 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             io.crate.replication.logical.exceptions.SubscriptionUnknownException.class,
             io.crate.replication.logical.exceptions.SubscriptionUnknownException::new,
             172,
+            Version.V_4_7_0),
+        MISSING_SHARD_OPERATIONS_EXCEPTION(
+            io.crate.replication.logical.exceptions.MissingShardOperationsException.class,
+            io.crate.replication.logical.exceptions.MissingShardOperationsException::new,
+            173,
             Version.V_4_7_0);
 
 

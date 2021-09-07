@@ -124,9 +124,11 @@ import io.crate.planner.statement.SetSessionAuthorizationPlan;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
+import io.crate.replication.logical.analyze.AnalyzedCreatePublication;
+import io.crate.replication.logical.analyze.AnalyzedCreateSubscription;
 import io.crate.replication.logical.analyze.AnalyzedDropPublication;
 import io.crate.replication.logical.plan.CreatePublicationPlan;
-import io.crate.replication.logical.analyze.AnalyzedCreatePublication;
+import io.crate.replication.logical.plan.CreateSubscriptionPlan;
 import io.crate.replication.logical.plan.DropPublicationPlan;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.statistics.TableStats;
@@ -548,6 +550,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitDropPublication(AnalyzedDropPublication dropPublication,
                                      PlannerContext context) {
         return new DropPublicationPlan(dropPublication);
+    }
+
+    @Override
+    public Plan visitCreateSubscription(AnalyzedCreateSubscription createSubscription,
+                                        PlannerContext context) {
+        return new CreateSubscriptionPlan(createSubscription);
     }
 }
 

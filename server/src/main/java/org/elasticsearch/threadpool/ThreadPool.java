@@ -19,17 +19,16 @@
 
 package org.elasticsearch.threadpool;
 
+import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.SizeValue;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
@@ -37,6 +36,7 @@ import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
 import org.elasticsearch.node.Node;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -73,6 +73,7 @@ public class ThreadPool implements Scheduler {
         public static final String FORCE_MERGE = "force_merge";
         public static final String FETCH_SHARD_STARTED = "fetch_shard_started";
         public static final String FETCH_SHARD_STORE = "fetch_shard_store";
+        public static final String LOGICAL_REPLICATION = "logical_replication";
     }
 
     public enum ThreadPoolType {
@@ -123,7 +124,8 @@ public class ThreadPool implements Scheduler {
         Map.entry(Names.SNAPSHOT, ThreadPoolType.SCALING),
         Map.entry(Names.FORCE_MERGE, ThreadPoolType.FIXED),
         Map.entry(Names.FETCH_SHARD_STARTED, ThreadPoolType.SCALING),
-        Map.entry(Names.FETCH_SHARD_STORE, ThreadPoolType.SCALING)
+        Map.entry(Names.FETCH_SHARD_STORE, ThreadPoolType.SCALING),
+        Map.entry(Names.LOGICAL_REPLICATION, ThreadPoolType.FIXED)
     );
 
     private final Map<String, ExecutorHolder> executors;
@@ -169,6 +171,7 @@ public class ThreadPool implements Scheduler {
         builders.put(Names.FORCE_MERGE, new FixedExecutorBuilder(settings, Names.FORCE_MERGE, 1, -1));
         builders.put(Names.FETCH_SHARD_STORE,
                 new ScalingExecutorBuilder(Names.FETCH_SHARD_STORE, 1, 2 * availableProcessors, TimeValue.timeValueMinutes(5)));
+        builders.put(Names.LOGICAL_REPLICATION, new FixedExecutorBuilder(settings, Names.LOGICAL_REPLICATION, searchThreadPoolSize(availableProcessors), 100));
         this.builders = Collections.unmodifiableMap(builders);
 
         final Map<String, ExecutorHolder> executors = new HashMap<>();

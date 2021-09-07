@@ -19,14 +19,6 @@
 
 package org.elasticsearch.repositories;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.crate.common.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,10 +39,19 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Service responsible for maintaining and providing access to snapshot repositories on nodes.
@@ -67,6 +68,7 @@ public class RepositoriesService implements ClusterStateApplier {
 
     private final VerifyNodeRepositoryAction verifyAction;
 
+    private final Map<String, Repository> internalRepositories = ConcurrentCollections.newConcurrentMap();
     private volatile Map<String, Repository> repositories = Collections.emptyMap();
 
     public RepositoriesService(Settings settings, ClusterService clusterService, TransportService transportService,
@@ -362,6 +364,10 @@ public class RepositoriesService implements ClusterStateApplier {
         if (repository != null) {
             return repository;
         }
+        repository = internalRepositories.get(repositoryName);
+        if (repository != null) {
+            return repository;
+        }
         throw new RepositoryMissingException(repositoryName);
     }
 
@@ -394,8 +400,32 @@ public class RepositoriesService implements ClusterStateApplier {
         return true;
     }
 
+    public void registerInternalRepository(String name, String type) {
+        RepositoryMetadata metadata = new RepositoryMetadata(name, type, Settings.EMPTY);
+        Repository repository = internalRepositories.computeIfAbsent(name, (n) -> {
+            LOGGER.debug("put internal repository [{}][{}]", name, type);
+            return createRepository(metadata);
+        });
+        if (type.equals(repository.getMetadata().type()) == false) {
+            LOGGER.warn(new ParameterizedMessage("internal repository [{}][{}] already registered. this prevented the registration of " +
+                                                 "internal repository [{}][{}].", name, repository.getMetadata().type(), name, type));
+        } else if (repositories.containsKey(name)) {
+            LOGGER.warn(new ParameterizedMessage("non-internal repository [{}] already registered. this repository will block the " +
+                                                 "usage of internal repository [{}][{}].", name, metadata.type(), name));
+        }
+    }
+
+    public void unregisterInternalRepository(String name) {
+        Repository repository = internalRepositories.remove(name);
+        if (repository != null) {
+            RepositoryMetadata metadata = repository.getMetadata();
+            LOGGER.debug(() -> new ParameterizedMessage("delete internal repository [{}][{}].", metadata.type(), name));
+            closeRepository(repository);
+        }
+    }
+
     /** Closes the given repository. */
-    private void closeRepository(Repository repository) throws IOException {
+    private void closeRepository(Repository repository) {
         LOGGER.debug("closing repository [{}][{}]", repository.getMetadata().type(), repository.getMetadata().name());
         repository.close();
     }

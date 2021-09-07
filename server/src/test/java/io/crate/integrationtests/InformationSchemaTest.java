@@ -533,7 +533,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(877, response.rowCount());
+        assertEquals(881, response.rowCount());
     }
 
     @Test
@@ -722,7 +722,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         execute("select max(ordinal_position) from information_schema.columns");
         assertEquals(1, response.rowCount());
 
-        assertEquals(119, response.rows()[0][0]);
+        assertEquals(122, response.rows()[0][0]);
 
         execute("create table t1 (id integer, col1 string)");
         ensureGreen();
