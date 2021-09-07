@@ -56,18 +56,27 @@ Changes
 
 - Added ``float4`` type as alias to ``real`` and ``float8`` type as alias to
   ``double precision``
+
 - Added the :ref:`JSON type <data-type-json>`.
+
 - Added the :ref:`date_bin <date-bin>` scalar function that truncates timestamp
   into specified interval aligned with specified origin.
+
 - Introduced ``RESPECT NULLS`` and ``IGNORE NULLS`` flags to window function
   calls. The following window functions can now utilize the flags: ``LEAD``,
   ``LAG``, ``NTH_VALUE``, ``FIRST_VALUE``, and ``LAST_VALUE``.
+
 - Added the :ref:`scalar-area` scalar function that calculates the area for a
   ``GEO_SHAPE``.
+
 - Added support of ``numeric`` type to the ``avg`` aggregation function.
+
 
 Fixes
 =====
+
+- Fixed an issue in the ``Query View`` function of the administration console.
+  It generated queries with extra quotes around identifiers.
 
 - Fixed an issue that could cause clients to receive a ``400 Bad Request``
   error when using the HTTP interface early during node startup.
@@ -79,7 +88,3 @@ Fixes
   identifiers containing white spaces to result in a validation exception
   at CrateDB ``4.6.2`` or a unusable object type column (write/reads fail)
   at CrateDB ``4.2.0`` to ``4.6.1``.
-
-- Fixed an issue from window functions, ``LEAD`` and ``LAG`` where having both
-  ``IGNORE NULLS`` option together with an ``ORDER BY`` clause caused undefined
-  behaviour.
