@@ -54,6 +54,9 @@ None
 Changes
 =======
 
+- Added an empty ``pg_catalog.pg_indexes`` table for compatibility with
+  PostgreSQL.
+
 - Changed the type precedence rules for ``INSERT FROM VALUES`` statements. The
   target column types now take higher precedence to avoid errors in statements
   like ``INSERT INTO tbl (text_column) VALUES ('a'), (3)``. Here ``3``
