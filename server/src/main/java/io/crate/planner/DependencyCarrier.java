@@ -38,7 +38,9 @@ import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
+import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.action.TransportCreatePublicationAction;
+import io.crate.replication.logical.action.TransportCreateSubscriptionAction;
 import io.crate.replication.logical.action.TransportDropPublicationAction;
 import io.crate.statistics.TransportAnalyzeAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -81,6 +83,8 @@ public class DependencyCarrier {
     private final NodeLimits nodeLimits;
     private final TransportCreatePublicationAction createPublicationAction;
     private final TransportDropPublicationAction dropPublicationAction;
+    private final TransportCreateSubscriptionAction createSubscriptionAction;
+    private final LogicalReplicationService logicalReplicationService;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -105,7 +109,9 @@ public class DependencyCarrier {
                              RepositoryService repositoryService,
                              RepositoryParamValidator repositoryParamValidator,
                              TransportCreatePublicationAction createPublicationAction,
-                             TransportDropPublicationAction dropPublicationAction) {
+                             TransportDropPublicationAction dropPublicationAction,
+                             TransportCreateSubscriptionAction createSubscriptionAction,
+                             LogicalReplicationService logicalReplicationService) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
@@ -130,6 +136,8 @@ public class DependencyCarrier {
         this.repositoryParamValidator = repositoryParamValidator;
         this.createPublicationAction = createPublicationAction;
         this.dropPublicationAction = dropPublicationAction;
+        this.createSubscriptionAction = createSubscriptionAction;
+        this.logicalReplicationService = logicalReplicationService;
     }
 
     public Schemas schemas() {
@@ -234,5 +242,13 @@ public class DependencyCarrier {
 
     public TransportDropPublicationAction dropPublicationAction() {
         return dropPublicationAction;
+    }
+
+    public TransportCreateSubscriptionAction createSubscriptionAction() {
+        return createSubscriptionAction;
+    }
+
+    public LogicalReplicationService logicalReplicationService() {
+        return logicalReplicationService;
     }
 }
