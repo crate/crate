@@ -64,7 +64,7 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
         }
     }
 
-    private PublicationsMetadata() {
+    public PublicationsMetadata() {
         this(new HashMap<>());
     }
 

@@ -38,7 +38,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
+
+import static org.elasticsearch.transport.RemoteConnectionStrategy.REMOTE_CONNECTION_MODE;
+import static org.elasticsearch.transport.SniffConnectionStrategy.REMOTE_CLUSTER_SEEDS;
 
 public class ConnectionInfo implements Writeable {
 
@@ -54,10 +58,12 @@ public class ConnectionInfo implements Writeable {
         DataTypes.STRING
     );
 
-    private static final List<String> SUPPORTED_SETTINGS = List.of(
+    private static final Set<String> SUPPORTED_SETTINGS = Set.of(
         USERNAME.getKey(),
         PASSWORD.getKey(),
-        SSLMODE.getKey()
+        SSLMODE.getKey(),
+        REMOTE_CONNECTION_MODE.getKey(),
+        REMOTE_CLUSTER_SEEDS.getKey()
     );
 
     private static final String DEFAULT_PORT = "4300";
@@ -153,7 +159,7 @@ public class ConnectionInfo implements Writeable {
         this.settings = settings;
     }
 
-    ConnectionInfo(StreamInput in) throws IOException {
+    public ConnectionInfo(StreamInput in) throws IOException {
         hosts = Arrays.stream(in.readStringArray()).toList();
         settings = Settings.readSettingsFromStream(in);
     }

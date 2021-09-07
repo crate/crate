@@ -27,6 +27,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.collections.Lists2;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.exceptions.RelationUnknown;
@@ -46,6 +47,9 @@ import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
+import org.elasticsearch.index.IndexSettings;
+
+import java.util.Locale;
 
 public class LogicalReplicationAnalyzer {
 
@@ -72,9 +76,22 @@ public class LogicalReplicationAnalyzer {
             createPublication.tables(),
             q -> {
                 var relation = RelationName.of(q, defaultSchema);
-                if (schemas.tableExists(relation) == false) {
+                if (schemas.getTableInfo(relation) instanceof DocTableInfo tableInfo) {
+                    boolean softDeletes;
+                    if ((softDeletes = IndexSettings.INDEX_SOFT_DELETES_SETTING.get(tableInfo.parameters())) == false) {
+                        throw new UnsupportedOperationException(
+                            String.format(
+                                Locale.ENGLISH,
+                                "Tables included in a publication must have the table setting " +
+                                "'soft_deletes.enabled' set to `true`, current setting for table '%s': %b",
+                                relation,
+                                softDeletes)
+                        );
+                    }
+                } else {
                     throw new RelationUnknown(relation);
                 }
+
                 return relation;
             }
         );

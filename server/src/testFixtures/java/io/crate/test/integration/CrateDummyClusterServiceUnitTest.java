@@ -74,7 +74,7 @@ public class CrateDummyClusterServiceUnitTest extends ESTestCase {
 
     @Before
     public void setupDummyClusterService() {
-        clusterService = createClusterService(additionalClusterSettings(), Version.CURRENT);
+        clusterService = createClusterService(additionalClusterSettings().stream().filter(Setting::hasNodeScope).toList(), Version.CURRENT);
     }
 
     @After
