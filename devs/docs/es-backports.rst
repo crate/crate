@@ -530,7 +530,7 @@ should be crossed out as well.
 - [ ] 337d73a7c6f Rename MapperService#fullName to fieldType.
 - [ ] 91e938ead81 Add Trace Logging of REST Requests (#51684) (#52015)
 - [ ] 0f333c89b9e Always rewrite search shard request outside of the search thread pool (#51708) (#51979)
-- [ ] 8d3e73b3a03 Add host address to BindTransportException message (#51269)
+- [x] 8d3e73b3a03 Add host address to BindTransportException message (#51269)
 - [ ] 337153b29fd Throw better exception on wrong `dynamic_templates` syntax (#51783)
 - [ ] 21224caeaf2 Remove comparison to true for booleans (#51723)
 - [ ] 39a3a950de0 Simplify rebalancer's weight function (#51632)
