@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
-import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
@@ -30,6 +29,7 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.RestoreInfo;
 import org.elasticsearch.transport.TransportResponse;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -47,6 +47,15 @@ public class RestoreSnapshotResponse extends TransportResponse implements ToXCon
 
     public RestoreSnapshotResponse(StreamInput in) throws IOException {
         restoreInfo = in.readOptionalWriteable(RestoreInfo::new);
+    }
+
+    /**
+     * Returns restore information if snapshot was completed before this method returned, null otherwise
+     *
+     * @return restore information or null
+     */
+    public RestoreInfo getRestoreInfo() {
+        return restoreInfo;
     }
 
     @Override

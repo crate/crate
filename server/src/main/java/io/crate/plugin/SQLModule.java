@@ -28,6 +28,8 @@ import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.replication.logical.repository.PublisherRestoreService;
+import io.crate.replication.logical.ShardReplicationService;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.statistics.TableStats;
 import io.crate.statistics.TableStatsService;
@@ -48,5 +50,7 @@ public class SQLModule extends AbstractModule {
         bind(UserDefinedFunctionService.class).asEagerSingleton();
         bind(RestSQLAction.class).asEagerSingleton();
         bind(DanglingArtifactsService.class).asEagerSingleton();
+        bind(PublisherRestoreService.class).asEagerSingleton();
+        bind(ShardReplicationService.class).asEagerSingleton();
     }
 }

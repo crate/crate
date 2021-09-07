@@ -21,46 +21,38 @@
 
 package io.crate.breaker;
 
+import io.crate.plugin.SQLPlugin;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.util.set.Sets;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.CircuitBreakerStats;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.junit.Test;
+
+import java.util.Collection;
+import java.util.Locale;
+
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
+public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnitTest {
 
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.CircuitBreakerStats;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.junit.Before;
-import org.junit.Test;
-
-import io.crate.plugin.SQLPlugin;
-import org.elasticsearch.test.ESTestCase;
-
-public class CrateCircuitBreakerServiceTest extends ESTestCase {
-
-    private ClusterSettings clusterSettings;
-
-    @Before
-    public void registerSettings() {
+    @Override
+    protected Collection<Setting<?>> additionalClusterSettings() {
         SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
-        Set<Setting<?>> settings = new HashSet<>();
-        settings.addAll(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
-        settings.addAll(sqlPlugin.getSettings());
-        clusterSettings = new ClusterSettings(Settings.EMPTY, settings);
+        return Sets.newHashSet(sqlPlugin.getSettings());
     }
 
     @Test
     public void testQueryCircuitBreakerRegistration() throws Exception {
         CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
             Settings.EMPTY,
-            clusterSettings
+            clusterService.getClusterSettings()
         );
 
         CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
@@ -74,7 +66,10 @@ public class CrateCircuitBreakerServiceTest extends ESTestCase {
         Settings settings = Settings.builder()
             .put(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "10m")
             .build();
-        HierarchyCircuitBreakerService breakerService = new HierarchyCircuitBreakerService(settings, clusterSettings);
+        HierarchyCircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
+            settings,
+            clusterService.getClusterSettings()
+        );
 
         CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
         assertThat(breaker.getLimit(), is(10_485_760L));
@@ -82,7 +77,7 @@ public class CrateCircuitBreakerServiceTest extends ESTestCase {
         Settings newSettings = Settings.builder()
             .put(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
             .build();
-        clusterSettings.applySettings(newSettings);
+        clusterService.getClusterSettings().applySettings(newSettings);
 
         breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
         assertThat(breaker.getLimit(), is(104_857_600L));
@@ -94,7 +89,10 @@ public class CrateCircuitBreakerServiceTest extends ESTestCase {
             .put(HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "10m")
             .put(HierarchyCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "10m")
             .build();
-        CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(settings, clusterSettings);
+        CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
+            settings,
+            clusterService.getClusterSettings()
+        );
         CircuitBreaker breaker;
 
         breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.JOBS_LOG);
@@ -106,7 +104,7 @@ public class CrateCircuitBreakerServiceTest extends ESTestCase {
             .put(HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
             .put(HierarchyCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
             .build();
-        clusterSettings.applySettings(newSettings);
+         clusterService.getClusterSettings().applySettings(newSettings);
 
         breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.JOBS_LOG);
         assertThat(breaker.getLimit(), is(104_857_600L));
@@ -123,7 +121,7 @@ public class CrateCircuitBreakerServiceTest extends ESTestCase {
     @Test
     public void testStats() throws Exception {
         CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
-            Settings.EMPTY, clusterSettings);
+            Settings.EMPTY, clusterService.getClusterSettings());
 
         CircuitBreakerStats queryBreakerStats = breakerService.stats(HierarchyCircuitBreakerService.QUERY);
         assertThat(queryBreakerStats.getUsed(), is(0L));

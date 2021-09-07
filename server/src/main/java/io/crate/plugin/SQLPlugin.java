@@ -58,6 +58,14 @@ import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.protocols.ssl.SslSettings;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.action.GetFileChunkAction;
+import io.crate.replication.logical.action.GetStoreMetadataAction;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
+import io.crate.replication.logical.action.ReplayChangesAction;
+import io.crate.replication.logical.action.ShardChangesAction;
+import io.crate.replication.logical.engine.SubscriberEngine;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.user.UserManagementModule;
@@ -79,13 +87,19 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.IndexModule;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.ArrayTypeParser;
 import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.seqno.RetentionLeaseActions;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ClusterPlugin;
+import org.elasticsearch.plugins.EnginePlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportResponse;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -93,9 +107,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.UnaryOperator;
 
-public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
+
+public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin, EnginePlugin {
 
     private final Settings settings;
     @Nullable
@@ -131,6 +147,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(SslSettings.SSL_KEYSTORE_PASSWORD);
         settings.add(SslSettings.SSL_KEYSTORE_KEY_PASSWORD);
         settings.add(SslSettings.SSL_RESOURCE_POLL_INTERVAL);
+
+        // Logical replication
+        settings.add(LogicalReplicationService.REPLICATION_SUBSCRIBED_INDEX);
 
         settings.addAll(CrateSettings.CRATE_CLUSTER_SETTINGS);
 
@@ -314,5 +333,28 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     @Override
     public void onIndexModule(IndexModule indexModule) {
         indexModule.addIndexEventListener(indexEventListenerProxy);
+    }
+
+    @Override
+    public List<ActionHandler<? extends TransportRequest, ? extends TransportResponse>> getActions() {
+        return List.of(
+            new ActionHandler<>(RetentionLeaseActions.Add.INSTANCE, RetentionLeaseActions.Add.TransportAction.class),
+            new ActionHandler<>(RetentionLeaseActions.Remove.INSTANCE, RetentionLeaseActions.Remove.TransportAction.class),
+            new ActionHandler<>(RetentionLeaseActions.Renew.INSTANCE, RetentionLeaseActions.Renew.TransportAction.class),
+            new ActionHandler<>(PublicationsStateAction.INSTANCE, PublicationsStateAction.TransportAction.class),
+            new ActionHandler<>(GetFileChunkAction.INSTANCE, GetFileChunkAction.TransportAction.class),
+            new ActionHandler<>(GetStoreMetadataAction.INSTANCE, GetStoreMetadataAction.TransportAction.class),
+            new ActionHandler<>(ReleasePublisherResourcesAction.INSTANCE, ReleasePublisherResourcesAction.TransportAction.class),
+            new ActionHandler<>(ShardChangesAction.INSTANCE, ShardChangesAction.TransportAction.class),
+            new ActionHandler<>(ReplayChangesAction.INSTANCE, ReplayChangesAction.TransportAction.class)
+        );
+    }
+
+    @Override
+    public Optional<EngineFactory> getEngineFactory(IndexSettings indexSettings) {
+        if (indexSettings.getSettings().get(LogicalReplicationService.REPLICATION_SUBSCRIBED_INDEX.getKey()) != null) {
+            return Optional.of(SubscriberEngine::new);
+        }
+        return Optional.empty();
     }
 }
