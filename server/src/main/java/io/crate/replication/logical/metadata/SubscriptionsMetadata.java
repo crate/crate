@@ -63,7 +63,7 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
         }
     }
 
-    private SubscriptionsMetadata() {
+    public SubscriptionsMetadata() {
         this(new HashMap<>());
     }
 

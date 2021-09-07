@@ -37,6 +37,11 @@ public final class RelationAlreadyExists extends ConflictException implements Ta
         this.relationName = relationName;
     }
 
+    public RelationAlreadyExists(RelationName relationName, String message) {
+        super(message);
+        this.relationName = relationName;
+    }
+
     RelationAlreadyExists(String tableName, Throwable e) {
         super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableName), e);
         this.relationName = RelationName.fromIndexName(tableName);

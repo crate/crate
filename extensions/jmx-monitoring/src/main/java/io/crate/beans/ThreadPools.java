@@ -34,6 +34,7 @@ import static org.elasticsearch.threadpool.ThreadPool.Names.FORCE_MERGE;
 import static org.elasticsearch.threadpool.ThreadPool.Names.GENERIC;
 import static org.elasticsearch.threadpool.ThreadPool.Names.GET;
 import static org.elasticsearch.threadpool.ThreadPool.Names.LISTENER;
+import static org.elasticsearch.threadpool.ThreadPool.Names.LOGICAL_REPLICATION;
 import static org.elasticsearch.threadpool.ThreadPool.Names.MANAGEMENT;
 import static org.elasticsearch.threadpool.ThreadPool.Names.REFRESH;
 import static org.elasticsearch.threadpool.ThreadPool.Names.SEARCH;
@@ -188,5 +189,10 @@ public class ThreadPools implements ThreadPoolsMXBean {
     @Override
     public ThreadPoolInfo getFetchShardStore() {
         return getThreadPoolInfo(FETCH_SHARD_STORE);
+    }
+
+    @Override
+    public ThreadPoolInfo getLogicalReplication() {
+        return getThreadPoolInfo(LOGICAL_REPLICATION);
     }
 }
