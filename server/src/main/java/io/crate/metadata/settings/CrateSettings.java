@@ -26,6 +26,7 @@ import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.memory.MemoryManagerFactory;
+import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.statistics.TableStatsService;
 import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
@@ -88,7 +89,11 @@ public final class CrateSettings implements ClusterStateListener {
         UDCService.UDC_INITIAL_DELAY_SETTING,
         UDCService.UDC_INTERVAL_SETTING,
 
-        MemoryManagerFactory.MEMORY_ALLOCATION_TYPE
+        MemoryManagerFactory.MEMORY_ALLOCATION_TYPE,
+
+        // Logical Replication
+        LogicalReplicationSettings.REPLICATION_CHANGE_BATCH_SIZE,
+        LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION
     );
 
     private static final List<Setting<?>> EXPOSED_ES_SETTINGS = List.of(
