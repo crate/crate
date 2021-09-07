@@ -60,6 +60,9 @@ None
 Fixes
 =====
 
+- Fixed an issue in the ``Query View`` function of the administration console.
+  It generated queries with extra quotes around identifiers.
+
 - Fixed an issue that could cause clients to receive a ``400 Bad Request``
   error when using the HTTP interface early during node startup.
 
