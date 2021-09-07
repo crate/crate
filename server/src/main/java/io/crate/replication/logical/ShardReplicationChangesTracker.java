@@ -1,0 +1,331 @@
+/*
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
+package io.crate.replication.logical;
+
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.support.RetryListener;
+import io.crate.replication.logical.action.ReplayChangesAction;
+import io.crate.replication.logical.action.ShardChangesAction;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchTimeoutException;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.action.support.replication.ReplicationResponse;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.CheckedConsumer;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.threadpool.Scheduler;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.NodeNotConnectedException;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+/**
+ * Replicates batches of {@link org.elasticsearch.index.translog.Translog.Operation}'s to the subscribers target shards.
+ * <p>
+ * Derived from org.opensearch.replication.task.shard.ShardReplicationChangesTracker
+ */
+public class ShardReplicationChangesTracker implements Closeable {
+
+    private static final Logger LOGGER = Loggers.getLogger(ShardReplicationChangesTracker.class);
+
+    private final ShardId shardId;
+    private final LogicalReplicationSettings replicationSettings;
+    private final ThreadPool threadPool;
+    private final Client localClient;
+    private final Function<String, Client> remoteClientResolver;
+    private final List<Tuple<Long, Long>> missingBatches = Collections.synchronizedList(new ArrayList<>());
+    private final AtomicLong observedSeqNoAtLeader;
+    private final AtomicLong seqNoAlreadyRequested;
+    private final Iterator<TimeValue> delay;
+    private Scheduler.ScheduledCancellable cancellable;
+
+    public ShardReplicationChangesTracker(IndexShard indexShard,
+                                          LogicalReplicationSettings replicationSettings,
+                                          ThreadPool threadPool,
+                                          Function<String, Client> remoteClientResolver,
+                                          Client client) {
+        this.shardId = indexShard.shardId();
+        this.replicationSettings = replicationSettings;
+        this.threadPool = threadPool;
+        this.localClient = client;
+        this.remoteClientResolver = remoteClientResolver;
+        this.delay = BackoffPolicy.exponentialBackoff().iterator();
+        observedSeqNoAtLeader = new AtomicLong(indexShard.getLocalCheckpoint());
+        seqNoAlreadyRequested = new AtomicLong(indexShard.getLocalCheckpoint());
+    }
+
+    public void start() {
+        LOGGER.debug("[{}] Spawning the shard changes reader", shardId);
+        var executor = threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION);
+
+        try {
+            executor.execute(this::requestBatchToFetch);
+        } catch (EsRejectedExecutionException e) {
+            threadPool.schedule(
+                this::requestBatchToFetch,
+                delay.next(),
+                ThreadPool.Names.LOGICAL_REPLICATION
+            );
+        }
+    }
+
+    private void requestBatchToFetch() {
+        requestBatchToFetch(batchToFetch -> {
+            var fromSeqNo = batchToFetch.v1();
+            var toSeqNo = batchToFetch.v2();
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("[{}] Getting changes {}-{}", shardId, fromSeqNo, toSeqNo);
+            }
+            getChanges(
+                fromSeqNo,
+                toSeqNo,
+                response -> {
+                    List<Translog.Operation> translogOps = response.changes();
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("[{}] Got {} changes starting from seqNo: {}",
+                                     shardId, translogOps.size(), fromSeqNo);
+                    }
+                    replayChanges(
+                        translogOps,
+                        response.maxSeqNoOfUpdatesOrDeletes(),
+                        ignored -> {
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug("[{}] Pushed to sequencer {}-{}", shardId, fromSeqNo, toSeqNo);
+                            }
+                            long lastSeqNo = fromSeqNo - 1;
+                            if (translogOps.isEmpty() == false) {
+                                lastSeqNo = translogOps.get(translogOps.size() - 1).seqNo();
+                            }
+                            updateBatchFetched(
+                                true,
+                                fromSeqNo,
+                                toSeqNo,
+                                lastSeqNo,
+                                response.lastSyncedGlobalCheckpoint()
+                            );
+                        },
+                        e -> {}
+                    );
+                },
+                e -> {
+                    if (e instanceof ElasticsearchTimeoutException) {
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("[{}] Timed out waiting for new changes. Current seqNo: {}",
+                                         shardId,
+                                         fromSeqNo);
+                        }
+                        updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
+                    } else if (e instanceof NodeNotConnectedException) {
+                        LOGGER.info("[{}] Node not connected. Retrying.. {}",
+                                    shardId, e.getStackTrace());
+                        updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
+                    } else {
+                        LOGGER.error("[{}] Unable to get changes from seqNo: {}. {}",
+                                     shardId, fromSeqNo, e.getCause());
+                        updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
+                    }
+
+                }
+            );
+        });
+    }
+
+    /**
+     * Provides a range of operations to be fetched next.
+     */
+    private void requestBatchToFetch(Consumer<Tuple<Long, Long>> consumer) {
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("[{}] Waiting to get batch. requested: {}, leader: {}",
+                         shardId, seqNoAlreadyRequested.get(), observedSeqNoAtLeader.get());
+        }
+
+        // Wait till we have batch to fetch. Note that if seqNoAlreadyRequested is equal to observedSeqNoAtLeader,
+        // we still should be sending one more request to fetch which will just do a poll and eventually timeout
+        // if no new operations are there on the leader (configured via TransportGetChangesAction.WAIT_FOR_NEW_OPS_TIMEOUT)
+        if (seqNoAlreadyRequested.get() > observedSeqNoAtLeader.get() && missingBatches.isEmpty()) {
+            cancellable = threadPool.schedule(
+                () -> requestBatchToFetch(consumer),
+                replicationSettings.pollDelay(),
+                ThreadPool.Names.LOGICAL_REPLICATION
+            );
+            return;
+        }
+
+        // missing batch takes higher priority.
+        if (missingBatches.isEmpty() == false) {
+            var missingBatch = missingBatches.remove(0);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("[{}] Fetching missing batch {}-{}", shardId, missingBatch.v1(), missingBatch.v2());
+            }
+            consumer.accept(missingBatch);
+        } else {
+            // return the next batch to fetch and update seqNoAlreadyRequested.
+            var batchSize = replicationSettings.batchSize();
+            var fromSeq = seqNoAlreadyRequested.getAndAdd(batchSize) + 1;
+            var toSeq = fromSeq + batchSize - 1;
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("[{}] Fetching the batch {}-{}", shardId, fromSeq, toSeq);
+            }
+            consumer.accept(new Tuple<>(fromSeq, toSeq));
+        }
+    }
+
+    private void getChanges(Long fromSeqNo,
+                            Long toSeqNo,
+                            CheckedConsumer<ShardChangesAction.Response, ? extends Exception> onSuccess,
+                            Consumer<Exception> onFailure) {
+        var remoteClient = remoteClientResolver.apply(shardId.getIndexName());
+        if (remoteClient == null) {
+            throw new RuntimeException("Could not resolve a remote client for index=" + shardId.getIndexName());
+        }
+        var request = new ShardChangesAction.Request(shardId, fromSeqNo, toSeqNo);
+        remoteClient.execute(ShardChangesAction.INSTANCE, request, ActionListener.wrap(onSuccess, onFailure));
+    }
+
+
+    /**
+     * Ensures that we've successfully fetched a particular range of operations.
+     * In case of any failure(or we didn't get complete batch), we make sure that we're fetching the
+     * missing operations in the next batch.
+     */
+    private void updateBatchFetched(boolean success,
+                                    long fromSeqNoRequested,
+                                    long toSeqNoRequested,
+                                    long toSeqNoReceived,
+                                    long seqNoAtLeader) {
+        if (success) {
+            // we shouldn't ever be getting more operations than requested.
+            assert toSeqNoRequested >= toSeqNoReceived :
+                Thread.currentThread().getName() + " Got more operations in the batch than requested";
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Updating the batch fetched. {}-{}/{}, seqNoAtLeader:{}",
+                             fromSeqNoRequested, toSeqNoReceived, toSeqNoRequested, seqNoAtLeader);
+            }
+
+            // If we didn't get the complete batch that we had requested.
+            if (toSeqNoRequested > toSeqNoReceived) {
+                // If this is the last batch being fetched, update the seqNoAlreadyRequested.
+                if (seqNoAlreadyRequested.get() == toSeqNoRequested) {
+                    seqNoAlreadyRequested.set(toSeqNoReceived);
+                } else {
+                    // Else, add to the missing operations to missing batch
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Didn't get the complete batch. Adding the missing operations {}-{}",
+                                     toSeqNoReceived + 1, toSeqNoRequested);
+                    }
+                    missingBatches.add(new Tuple<>(toSeqNoReceived + 1, toSeqNoRequested));
+                }
+            }
+
+            // Update the sequence number observed at leader.
+            observedSeqNoAtLeader.getAndUpdate(value -> Math.max(seqNoAtLeader, value));
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("observedSeqNoAtLeader: {}", observedSeqNoAtLeader.get());
+            }
+        } else {
+            // If this is the last batch being fetched, update the seqNoAlreadyRequested.
+            if (seqNoAlreadyRequested.get() == toSeqNoRequested) {
+                seqNoAlreadyRequested.set(fromSeqNoRequested - 1);
+            } else {
+                // If this was not the last batch, we might have already fetched other batch of
+                // operations after this. Adding this to missing.
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Adding batch to missing {}-{}", fromSeqNoRequested, toSeqNoRequested);
+                }
+                missingBatches.add(new Tuple<>(fromSeqNoRequested, toSeqNoRequested));
+            }
+        }
+
+        // schedule next poll
+        cancellable = threadPool.schedule(
+            this::requestBatchToFetch,
+            replicationSettings.pollDelay(),
+            ThreadPool.Names.LOGICAL_REPLICATION
+        );
+    }
+
+    private void replayChanges(List<Translog.Operation> translogOps,
+                               long maxSeqNoOfUpdatesOrDeletes,
+                               Consumer<Void> onSuccess,
+                               Consumer<Exception> onFailure) {
+        if (translogOps.size() > 0) {
+            var replayRequest = new ReplayChangesAction.Request(
+                shardId,
+                translogOps,
+                maxSeqNoOfUpdatesOrDeletes
+            );
+            var listener = new ActionListener<ReplicationResponse>() {
+                @Override
+                public void onResponse(ReplicationResponse replayResponse) {
+                    var shardInfo = replayResponse.getShardInfo();
+                    if (shardInfo.getFailed() > 0) {
+                        for (ReplicationResponse.ShardInfo.Failure failure : shardInfo.getFailures()) {
+                            LOGGER.error("Failed replaying changes. Failure: {}", failure);
+                        }
+                        onFailure.accept(new RuntimeException("Some changes failed while replaying"));
+                    }
+                    onSuccess.accept(null);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    var msg = String.format(Locale.ENGLISH, "[%s] Changes cannot be replayed, tracking will stop", shardId);
+                    LOGGER.error(msg, e);
+                    onFailure.accept(new RuntimeException(msg));
+                }
+            };
+            BiConsumer<ReplayChangesAction.Request, ActionListener<ReplicationResponse>> operation =
+                (req, l) -> localClient.execute(ReplayChangesAction.INSTANCE, req, l);
+            operation.accept(
+                replayRequest,
+                new RetryListener<>(
+                    threadPool.scheduler(),
+                    l -> operation.accept(replayRequest, l),
+                    listener,
+                    BackoffPolicy.exponentialBackoff()
+                ));
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (cancellable != null) {
+            cancellable.cancel();
+        }
+    }
+}

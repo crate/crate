@@ -32,6 +32,7 @@ import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.core.Is.is;
 
 public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -39,7 +40,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void test_create_publication_with_unknown_table_raise_error() {
         var e = SQLExecutor.builder(clusterService).build();
-        expectThrows(
+        assertThrows(
             RelationUnknown.class,
             () -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE non_existing")
         );
@@ -52,7 +53,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             .addPublication("pub1", false, new RelationName("doc", "t1"))
             .build();
 
-        expectThrows(
+        assertThrows(
             PublicationAlreadyExistsException.class,
             () -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1")
         );
@@ -80,9 +81,23 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
+    public void test_create_publication_with_table_having_soft_deletes_disabled() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table doc.t1 (x int) with (\"soft_deletes.enabled\" = false)")
+            .build();
+        assertThrowsMatches(
+            () -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1"),
+            UnsupportedOperationException.class,
+            "Tables included in a publication must have the table setting 'soft_deletes.enabled' " +
+            "set to `true`, current setting for table 'doc.t1': false"
+        );
+
+    }
+
+    @Test
     public void test_drop_unknown_publication_raises_error() {
         var e = SQLExecutor.builder(clusterService).build();
-        expectThrows(
+        assertThrows(
             PublicationUnknownException.class,
             () -> e.analyze("DROP PUBLICATION pub1")
         );
@@ -99,7 +114,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void test_alter_unknown_publication_raises_error() {
         var e = SQLExecutor.builder(clusterService).build();
-        expectThrows(
+        assertThrows(
             PublicationUnknownException.class,
             () -> e.analyze("ALTER PUBLICATION pub1 SET TABLE t1")
         );
@@ -111,7 +126,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             .addTable("create table doc.t1 (x int)")
             .addPublication("pub1", false, new RelationName("doc", "t1"))
             .build();
-        expectThrows(
+        assertThrows(
             RelationUnknown.class,
             () -> e.analyze("ALTER PUBLICATION pub1 ADD TABLE non_existing")
         );
@@ -122,7 +137,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         var e = SQLExecutor.builder(clusterService)
             .addSubscription("sub1", "pub1")
             .build();
-        expectThrows(
+        assertThrows(
             SubscriptionAlreadyExistsException.class,
             () -> e.analyze("CREATE SUBSCRIPTION sub1 CONNECTION 'crate://localhost' PUBLICATION pub1")
         );
@@ -131,7 +146,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void test_drop_unknown_subscription_raises_error() {
         var e = SQLExecutor.builder(clusterService).build();
-        expectThrows(
+        assertThrows(
             SubscriptionUnknownException.class,
             () -> e.analyze("DROP SUBSCRIPTION sub1")
         );
@@ -148,7 +163,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void test_alter_unknown_subscription_raises_error() {
         var e = SQLExecutor.builder(clusterService).build();
-        expectThrows(
+        assertThrows(
             SubscriptionUnknownException.class,
             () -> e.analyze("ALTER SUBSCRIPTION sub1 DISABLE")
         );
