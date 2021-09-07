@@ -462,4 +462,12 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         e.analyze("insert into doc.nested_clustered (obj) values ({id=4, name='George'})");
     }
 
+    @Test
+    public void test_insert_from_values_with_mixed_type_used_target_column_type() throws Exception {
+        AnalyzedInsertStatement stmt = e.analyze("insert into users (id, name) values (1, '1'), (2, 2)");
+        assertThat(stmt.subQueryRelation().outputs(), contains(
+            isReference("col1", DataTypes.LONG),
+            isReference("col2", DataTypes.STRING)
+        ));
+    }
 }
