@@ -530,7 +530,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(847, response.rowCount());
+        assertEquals(851, response.rowCount());
     }
 
     @Test
