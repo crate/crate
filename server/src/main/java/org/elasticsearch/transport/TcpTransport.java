@@ -120,7 +120,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     // this lock is here to make sure we close this transport and disconnect all the client nodes
     // connections while no connect operations is going on
     private final ReadWriteLock closeLock = new ReentrantReadWriteLock();
-    protected final boolean compress;
     protected final Settings settings;
     private volatile BoundTransportAddress boundAddress;
 
@@ -139,7 +138,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         this.settings = settings;
         this.profileSettings = getProfileSettings(settings);
         this.threadPool = threadPool;
-        this.compress = Transport.TRANSPORT_TCP_COMPRESS.get(settings);
         this.networkService = networkService;
 
         String nodeName = Node.NODE_NAME_SETTING.get(settings);
@@ -200,6 +198,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         private final List<TcpChannel> channels;
         private final DiscoveryNode node;
         private final Version version;
+        private final boolean compress;
         private final AtomicBoolean isClosing = new AtomicBoolean(false);
 
         NodeChannels(DiscoveryNode node, List<TcpChannel> channels, ConnectionProfile connectionProfile, Version handshakeVersion) {
@@ -213,6 +212,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                     typeMapping.put(type, handle);
             }
             version = handshakeVersion;
+            compress = connectionProfile.getCompressionEnabled();
         }
 
         @Override
