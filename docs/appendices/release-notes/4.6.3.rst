@@ -1,0 +1,52 @@
+.. _version_4.6.3:
+
+=============
+Version 4.6.3
+=============
+
+Released on 2021-09-08.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 4.6.3.
+
+    We recommend that you upgrade to the latest 4.3 release before moving to
+    4.6.3.
+
+    A rolling upgrade from 4.5.x to 4.6.3 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.6.0` release notes for a full list of changes in the
+4.6 series.
+
+Fixes
+=====
+
+- Fixed a performance regression introduced in 4.2 which caused queries with a
+  ``LIMIT`` on top of views or virtual tables with an ``ORDER BY`` to be slow.
+
+- Fixed an issue in the ``Query View`` function of the administration console.
+  It generated queries with extra quotes around identifiers.
+
+- Fixed an issue that could cause clients to receive a ``400 Bad Request``
+  error when using the HTTP interface early during node startup.
+
+- Fixed an issue that resulted in broken values when selecting multiple object
+  columns with different inner types using the ``UNION`` statement.
+
+- Fixed an issue which caused object data types definitions with sub-column
+  identifiers containing white spaces to result in a validation exception
+  at CrateDB ``4.6.2`` or a unusable object type column (write/reads fail)
+  at CrateDB ``4.2.0`` to ``4.6.1``.

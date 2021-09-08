@@ -90,19 +90,4 @@ Changes
 Fixes
 =====
 
-- Fixed a performance regression introduced in 4.2 which caused queries with a
-  ``LIMIT`` on top of views or virtual tables with an ``ORDER BY`` to be slow.
-
-- Fixed an issue in the ``Query View`` function of the administration console.
-  It generated queries with extra quotes around identifiers.
-
-- Fixed an issue that could cause clients to receive a ``400 Bad Request``
-  error when using the HTTP interface early during node startup.
-
-- Fixed an issue that resulted in broken values when selecting multiple object
-  columns with different inner types using the ``UNION`` statement.
-
-- Fixed an issue which caused object data types definitions with sub-column
-  identifiers containing white spaces to result in a validation exception
-  at CrateDB ``4.6.2`` or a unusable object type column (write/reads fail)
-  at CrateDB ``4.2.0`` to ``4.6.1``.
+None
