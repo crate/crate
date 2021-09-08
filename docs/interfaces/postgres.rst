@@ -166,6 +166,7 @@ following tables:
  - `pg_description`_
  - `pg_enum`_
  - `pg_index <pgsql_pg_index_>`__
+ - `pg_indexes <pgsql_pg_indexes_>`__
  - `pg_namespace <pgsql_pg_namespace_>`__
  - `pg_proc <pgsql_pg_proc_>`__
  - `pg_range`_
@@ -550,6 +551,7 @@ CrateDB and we love to hear feedback.
 .. _pgsql_pg_constraint: https://www.postgresql.org/docs/10/static/catalog-pg-constraint.html
 .. _pgsql_pg_database: https://www.postgresql.org/docs/10/static/catalog-pg-database.html
 .. _pgsql_pg_index: https://www.postgresql.org/docs/10/static/catalog-pg-index.html
+.. _pgsql_pg_indexes: https://www.postgresql.org/docs/current/view-pg-indexes.html
 .. _pgsql_pg_namespace: https://www.postgresql.org/docs/10/static/catalog-pg-namespace.html
 .. _pgsql_pg_proc: https://www.postgresql.org/docs/10/static/catalog-pg-proc.html
 .. _pgsql_pg_settings: https://www.postgresql.org/docs/10/view-pg-settings.html
