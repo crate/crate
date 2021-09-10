@@ -19,16 +19,16 @@
 
 package org.elasticsearch.common.bytes;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
+import org.elasticsearch.common.util.ByteArray;
+import org.hamcrest.Matchers;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
-import org.elasticsearch.common.util.ByteArray;
-import org.hamcrest.Matchers;
+import static org.hamcrest.CoreMatchers.equalTo;
 
 public class ReleasableBytesReferenceTests extends AbstractBytesReferenceTestCase {
 
@@ -82,8 +82,7 @@ public class ReleasableBytesReferenceTests extends AbstractBytesReferenceTestCas
             assertThat(length, equalTo(ref.length()));
             delegate = ref;
         }
-        return new ReleasableBytesReference(delegate, () -> {
-        });
+        return ReleasableBytesReference.wrap(delegate);
     }
 
     @Override
