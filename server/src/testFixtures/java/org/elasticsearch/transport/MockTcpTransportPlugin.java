@@ -52,6 +52,6 @@ public class MockTcpTransportPlugin extends Plugin implements NetworkPlugin {
                                                           Authentication authentication,
                                                           SslContextProvider sslContextProvider) {
         return Collections.singletonMap(MOCK_TCP_TRANSPORT_NAME,
-            () -> new MockTcpTransport(settings, threadPool, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService));
+            () -> new MockTcpTransport(settings, threadPool, pageCacheRecycler, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService));
     }
 }

@@ -21,12 +21,11 @@ package org.elasticsearch.transport;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -160,8 +159,7 @@ public class TcpTransportTest extends ESTestCase {
         streamOutput.write(randomByte());
 
         try {
-            BytesReference bytes = streamOutput.bytes();
-            TcpTransport.decodeFrame(bytes);
+            TcpTransport.readMessageLength(streamOutput.bytes());
             fail("Expected exception");
         } catch (Exception ex) {
             assertThat(ex, instanceOf(StreamCorruptedException.class));
@@ -178,7 +176,7 @@ public class TcpTransportTest extends ESTestCase {
             final TcpTransport tcpTransport = new TcpTransport(settings,
                                                                Version.CURRENT,
                                                                testThreadPool,
-                                                               BigArrays.NON_RECYCLING_INSTANCE,
+                                                               new PageCacheRecycler(Settings.EMPTY),
                                                                new NoneCircuitBreakerService(),
                                                                writableRegistry(),
                                                                new NetworkService(Collections.emptyList())) {

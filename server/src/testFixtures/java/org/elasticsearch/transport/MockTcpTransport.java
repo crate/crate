@@ -18,13 +18,14 @@
  */
 package org.elasticsearch.transport;
 
+import io.crate.common.io.IOUtils;
+import io.crate.concurrent.CompletableContext;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cli.SuppressForbidden;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
@@ -34,11 +35,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.CancellableThreads;
+import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import io.crate.common.io.IOUtils;
-import io.crate.concurrent.CompletableContext;
-
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -93,20 +92,20 @@ public class MockTcpTransport extends TcpTransport {
     private final ExecutorService executor;
     private final BigArrays bigArrays;
 
-    public MockTcpTransport(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+    public MockTcpTransport(Settings settings, ThreadPool threadPool, PageCacheRecycler recycler, BigArrays bigArrays,
                             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
                             NetworkService networkService) {
-        this(settings, threadPool, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService,
+        this(settings, threadPool, recycler, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService,
              Version.CURRENT);
     }
 
-    public MockTcpTransport(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+    public MockTcpTransport(Settings settings, ThreadPool threadPool, PageCacheRecycler recycler, BigArrays bigArrays,
                             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
                             NetworkService networkService, Version mockVersion) {
         super(settings,
               mockVersion,
               threadPool,
-              bigArrays,
+              recycler,
               circuitBreakerService,
               namedWriteableRegistry,
               networkService);
@@ -148,7 +147,7 @@ public class MockTcpTransport extends TcpTransport {
         return serverMockChannel;
     }
 
-    private void readMessage(MockChannel mockChannel, StreamInput input) throws IOException {
+    private void readMessage(MockChannel mockChannel, StreamInput input, InboundPipeline pipeline) throws IOException {
         Socket socket = mockChannel.activeChannel;
         byte[] minimalHeader = new byte[TcpHeader.MARKER_BYTES_SIZE + TcpHeader.MESSAGE_LENGTH_SIZE];
         try {
@@ -165,10 +164,10 @@ public class MockTcpTransport extends TcpTransport {
             final byte[] buffer = new byte[msgSize];
             input.readFully(buffer);
             int expectedSize = TcpHeader.MARKER_BYTES_SIZE + TcpHeader.MESSAGE_LENGTH_SIZE + msgSize;
-            try (BytesStreamOutput output = new ReleasableBytesStreamOutput(expectedSize, bigArrays)) {
+            try (ReleasableBytesStreamOutput output = new ReleasableBytesStreamOutput(expectedSize, bigArrays)) {
                 output.write(minimalHeader);
                 output.write(buffer);
-                consumeNetworkReads(mockChannel, output.bytes());
+                pipeline.handleBytes(mockChannel, output.bytes());
             }
         }
     }
@@ -254,6 +253,7 @@ public class MockTcpTransport extends TcpTransport {
         private final CompletableFuture<Void> closeFuture = new CompletableFuture<>();
         private final CompletableContext<Void> connectFuture = new CompletableContext<>();
         private final ChannelStats stats = new ChannelStats();
+        private final InboundPipeline pipeline;
 
         /**
          * Constructs a new MockChannel instance intended for handling the actual incoming / outgoing traffic.
@@ -263,14 +263,7 @@ public class MockTcpTransport extends TcpTransport {
          * @param profile      The associated profile name.
          */
         MockChannel(Socket socket, InetSocketAddress localAddress, boolean isServer, String profile) {
-            this.localAddress = localAddress;
-            this.activeChannel = socket;
-            this.isServer = isServer;
-            this.serverSocket = null;
-            this.profile = profile;
-            synchronized (openChannels) {
-                openChannels.add(this);
-            }
+            this(localAddress, null, socket, isServer, profile);
         }
 
         /**
@@ -280,14 +273,28 @@ public class MockTcpTransport extends TcpTransport {
          * @param profile      The associated profile name.
          */
         MockChannel(ServerSocket serverSocket, String profile) {
-            this.localAddress = (InetSocketAddress) serverSocket.getLocalSocketAddress();
+            this((InetSocketAddress) serverSocket.getLocalSocketAddress(), serverSocket, null, false, profile);
+        }
+
+        public MockChannel(InetSocketAddress localAddress,
+                           ServerSocket serverSocket,
+                           Socket activeChannel,
+                           boolean isServer,
+                           String profile) {
+            this.localAddress = localAddress;
             this.serverSocket = serverSocket;
+            this.activeChannel = activeChannel;
+            this.isServer = isServer;
             this.profile = profile;
-            this.isServer = false;
-            this.activeChannel = null;
             synchronized (openChannels) {
                 openChannels.add(this);
             }
+            this.pipeline = new InboundPipeline(
+                MockTcpTransport.this.getVersion(),
+                MockTcpTransport.this.pageCacheRecycler,
+                MockTcpTransport.this::inboundMessage,
+                MockTcpTransport.this::inboundDecodeException
+            );
         }
 
         public void accept(Executor executor) throws IOException {
@@ -353,7 +360,7 @@ public class MockTcpTransport extends TcpTransport {
                     StreamInput input = new InputStreamStreamInput(new BufferedInputStream(activeChannel.getInputStream()));
                     // There is a (slim) chance that we get interrupted right after a loop iteration, so check explicitly
                     while (isOpen.get() && !Thread.currentThread().isInterrupted()) {
-                        cancellableThreads.executeIO(() -> readMessage(MockChannel.this, input));
+                        cancellableThreads.executeIO(() -> readMessage(MockChannel.this, input, pipeline));
                     }
                 }
             });

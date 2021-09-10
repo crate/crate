@@ -22,6 +22,7 @@ package org.elasticsearch.transport;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,6 +33,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ThreadedActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -50,6 +52,7 @@ import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -97,17 +100,16 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     // This is the number of bytes necessary to read the message size
     public static final int BYTES_NEEDED_FOR_MESSAGE_SIZE = TcpHeader.MARKER_BYTES_SIZE + TcpHeader.MESSAGE_LENGTH_SIZE;
     private static final long THIRTY_PER_HEAP_SIZE = (long) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.3);
-    private static final BytesReference EMPTY_BYTES_REFERENCE = new BytesArray(new byte[0]);
 
     // this limit is per-address
     private static final int LIMIT_LOCAL_PORTS_COUNT = 6;
 
-    public static final String FEATURE_PREFIX = "transport.features";
-    public static final Setting<Settings> DEFAULT_FEATURES_SETTING = Setting.groupSetting(FEATURE_PREFIX + ".", Setting.Property.NodeScope);
-
     protected final Logger logger = LogManager.getLogger(getClass());
 
+    protected final Settings settings;
+    private final Version version;
     protected final ThreadPool threadPool;
+    protected final PageCacheRecycler pageCacheRecycler;
     protected final NetworkService networkService;
     protected final Set<ProfileSettings> profileSettings;
 
@@ -120,62 +122,44 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     // this lock is here to make sure we close this transport and disconnect all the client nodes
     // connections while no connect operations is going on
     private final ReadWriteLock closeLock = new ReentrantReadWriteLock();
-    protected final Settings settings;
     private volatile BoundTransportAddress boundAddress;
 
     private final TransportHandshaker handshaker;
     private final TransportKeepAlive keepAlive;
     private final OutboundHandler outboundHandler;
-    private final InboundHandler inboundHandler;
+    protected final InboundHandler inboundHandler;
 
     public TcpTransport(Settings settings,
                         Version version,
                         ThreadPool threadPool,
-                        BigArrays bigArrays,
+                        PageCacheRecycler pageCacheRecycler,
                         CircuitBreakerService circuitBreakerService,
                         NamedWriteableRegistry namedWriteableRegistry,
                         NetworkService networkService) {
         this.settings = settings;
         this.profileSettings = getProfileSettings(settings);
+        this.version = version;
         this.threadPool = threadPool;
+        this.pageCacheRecycler = pageCacheRecycler;
         this.networkService = networkService;
 
         String nodeName = Node.NODE_NAME_SETTING.get(settings);
+        BigArrays bigArrays = new BigArrays(pageCacheRecycler, circuitBreakerService, CircuitBreaker.IN_FLIGHT_REQUESTS);
+
         this.outboundHandler = new OutboundHandler(nodeName, version, threadPool, bigArrays);
-        this.handshaker = new TransportHandshaker(
-            version,
-            threadPool,
-            (node, channel, requestId, v) -> outboundHandler.sendRequest(
-                node,
-                channel,
-                requestId,
-                TransportHandshaker.HANDSHAKE_ACTION_NAME,
-                new TransportHandshaker.HandshakeRequest(version),
-                TransportRequestOptions.EMPTY,
-                v,
-                false,
-                true
-            ),
-            (v, channel, response, requestId) -> outboundHandler.sendResponse(
-                v,
-                channel,
-                requestId,
-                TransportHandshaker.HANDSHAKE_ACTION_NAME,
-                response,
-                false,
-                true
-            )
-        );
+        this.handshaker = new TransportHandshaker(version, threadPool,
+            (node, channel, requestId, v) -> outboundHandler.sendRequest(node, channel, requestId,
+                TransportHandshaker.HANDSHAKE_ACTION_NAME, new TransportHandshaker.HandshakeRequest(version),
+                TransportRequestOptions.EMPTY, v, false, true),
+            (v, channel, response, requestId) -> outboundHandler.sendResponse(v, channel, requestId,
+                TransportHandshaker.HANDSHAKE_ACTION_NAME, response, false, true));
         this.keepAlive = new TransportKeepAlive(threadPool, this.outboundHandler::sendBytes);
-        InboundMessage.Reader reader = new InboundMessage.Reader(version, namedWriteableRegistry);
-        this.inboundHandler = new InboundHandler(
-            threadPool,
-            outboundHandler,
-            reader,
-            circuitBreakerService,
-            handshaker,
-            keepAlive
-        );
+        this.inboundHandler = new InboundHandler(threadPool, outboundHandler, namedWriteableRegistry, circuitBreakerService, handshaker,
+            keepAlive);
+    }
+
+    public Version getVersion() {
+        return version;
     }
 
     @Override
@@ -700,7 +684,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
      * @param channel the channel the message is from
      * @param message the message
      */
-    public void inboundMessage(TcpChannel channel, BytesReference message) {
+    public void inboundMessage(TcpChannel channel, InboundMessage message) {
         try {
             inboundHandler.inboundMessage(channel, message);
         } catch (Exception e) {
@@ -708,53 +692,11 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         }
     }
 
-    /**
-     * Consumes bytes that are available from network reads. This method returns the number of bytes consumed
-     * in this call.
-     * @param channel the channel read from
-     * @param bytesReference the bytes available to consume
-     * @return the number of bytes consumed
-     * @throws StreamCorruptedException if the message header format is not recognized
-     * @throws TcpTransport.HttpRequestOnTransportException if the message header appears to be a HTTP message
-     * @throws IllegalArgumentException if the message length is greater that the maximum allowed frame size.
-     *                                  This is dependent on the available memory.
-     */
-    public int consumeNetworkReads(TcpChannel channel, BytesReference bytesReference) throws IOException {
-        BytesReference message = decodeFrame(bytesReference);
-
-        if (message == null) {
-            return 0;
-        } else {
-            inboundMessage(channel, message);
-            return message.length() + BYTES_NEEDED_FOR_MESSAGE_SIZE;
-        }
-    }
-
-    /**
-     * Attempts to a decode a message from the provided bytes. If a full message is not available, null is
-     * returned. If the message is a ping, an empty {@link BytesReference} will be returned.
-     *
-     * @param networkBytes the will be read
-     * @return the message decoded
-     * @throws StreamCorruptedException if the message header format is not recognized
-     * @throws TcpTransport.HttpRequestOnTransportException if the message header appears to be a HTTP message
-     * @throws IllegalArgumentException if the message length is greater that the maximum allowed frame size.
-     *                                  This is dependent on the available memory.
-     */
-    static BytesReference decodeFrame(BytesReference networkBytes) throws IOException {
-        int messageLength = readMessageLength(networkBytes);
-        if (messageLength == -1) {
-            return null;
-        } else {
-            int totalLength = messageLength + BYTES_NEEDED_FOR_MESSAGE_SIZE;
-            if (totalLength > networkBytes.length()) {
-                return null;
-            } else if (totalLength == 6) {
-                return EMPTY_BYTES_REFERENCE;
-            } else {
-                return networkBytes.slice(BYTES_NEEDED_FOR_MESSAGE_SIZE, messageLength);
-            }
-        }
+    public void inboundDecodeException(TcpChannel channel, Tuple<Header, Exception> tuple) {
+        // Need to call inbound handler to mark bytes received. This should eventually be unnecessary as the
+        // stats marking will move into the pipeline.
+        inboundHandler.handleDecodeException(channel, tuple.v1());
+        onException(channel, tuple.v2());
     }
 
     /**

@@ -19,13 +19,10 @@
 
 package org.elasticsearch.transport;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-
+import io.crate.auth.Authentication;
+import io.crate.netty.EventLoopGroups;
+import io.crate.plugin.PipelineRegistry;
+import io.crate.protocols.ssl.SslContextProvider;
 import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
@@ -50,10 +47,12 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
-import io.crate.auth.Authentication;
-import io.crate.netty.EventLoopGroups;
-import io.crate.plugin.PipelineRegistry;
-import io.crate.protocols.ssl.SslContextProvider;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
 public class Netty4Plugin extends Plugin implements NetworkPlugin {
 
@@ -125,7 +124,7 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                 Version.CURRENT,
                 threadPool,
                 networkService,
-                bigArrays,
+                pageCacheRecycler,
                 namedWriteableRegistry,
                 circuitBreakerService,
                 eventLoopGroups,

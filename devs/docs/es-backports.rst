@@ -452,7 +452,7 @@ should be crossed out as well.
 - [ ] c38e125425e Remove Redundant Documentation on SnapshotsService (#54482) (#54505)
 - [ ] 915435bbe48 Fix issue with pipeline releasing bytes early (#54474)
 - [ ] 9392fca36a0 Improve Snapshot Abort Behavior (#54256) (#54410)
-- [ ] 2ccddbfa88e Move transport decoding and aggregation to server (#54360)
+- [x] 2ccddbfa88e Move transport decoding and aggregation to server (#54360)
 - [ ] 14b5daad7c9 Fix Snapshot Completion Listener Lost on Master Failover (#54286) (#54330)
 - [ ] 0d30b48613a Disallow negative TimeValues (#53913)
 - [ ] 3b4751bdb72 Avoid I/O operations when rewriting shard search request (#54044) (#54139)

@@ -21,13 +21,11 @@ package org.elasticsearch.transport;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.bytes.ReleasableBytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
@@ -42,6 +40,8 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.Matchers.instanceOf;
+
 public class InboundHandlerTests extends ESTestCase {
 
     private final TestThreadPool threadPool = new TestThreadPool(getClass().getName());
@@ -55,25 +55,11 @@ public class InboundHandlerTests extends ESTestCase {
         super.setUp();
         channel = new FakeTcpChannel(randomBoolean(), buildNewFakeTransportAddress().address(), buildNewFakeTransportAddress().address());
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
-        InboundMessage.Reader reader = new InboundMessage.Reader(version, namedWriteableRegistry);
-        TransportHandshaker handshaker = new TransportHandshaker(version, threadPool, (n, c, r, v) -> {
-        }, (v, c, r, r_id) -> {
-        });
+        TransportHandshaker handshaker = new TransportHandshaker(version, threadPool, (n, c, r, v) -> {}, (v, c, r, r_id) -> {});
         TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, TcpChannel::sendMessage);
-        OutboundHandler outboundHandler = new OutboundHandler(
-            "node",
-            version,
-            threadPool,
-            BigArrays.NON_RECYCLING_INSTANCE
-        );
-        handler = new InboundHandler(
-            threadPool,
-            outboundHandler,
-            reader,
-            new NoneCircuitBreakerService(),
-            handshaker,
-            keepAlive
-        );
+        OutboundHandler outboundHandler = new OutboundHandler("node", version, threadPool, BigArrays.NON_RECYCLING_INSTANCE);
+        final NoneCircuitBreakerService breaker = new NoneCircuitBreakerService();
+        handler = new InboundHandler(threadPool, outboundHandler, namedWriteableRegistry, breaker, handshaker, keepAlive);
     }
 
     @After
@@ -95,7 +81,7 @@ public class InboundHandlerTests extends ESTestCase {
         );
         handler.registerRequestHandler(registry);
 
-        handler.inboundMessage(channel, BytesArray.EMPTY);
+        handler.inboundMessage(channel, new InboundMessage(null, true));
         assertEquals(1, handler.getReadBytes().count());
         assertEquals(6, handler.getReadBytes().sum());
         if (channel.isServerChannel()) {
@@ -108,7 +94,7 @@ public class InboundHandlerTests extends ESTestCase {
     @Test
     public void testRequestAndResponse() throws Exception {
         String action = "test-request";
-        boolean isCompressed = randomBoolean();
+        int headerSize = TcpHeader.headerSize(version);
         boolean isError = randomBoolean();
         AtomicReference<TestRequest> requestCaptor = new AtomicReference<>();
         AtomicReference<TestResponse> responseCaptor = new AtomicReference<>();
@@ -150,16 +136,14 @@ public class InboundHandlerTests extends ESTestCase {
         handler.registerRequestHandler(registry);
         String requestValue = randomAlphaOfLength(10);
         OutboundMessage.Request request = new OutboundMessage.Request(
-            new TestRequest(requestValue),
-            version,
-            action,
-            requestId,
-            false,
-            isCompressed
-        );
+            new TestRequest(requestValue), version, action, requestId, false, false);
 
-        BytesReference bytes = request.serialize(new BytesStreamOutput());
-        handler.inboundMessage(channel, bytes.slice(6, bytes.length() - 6));
+        BytesReference fullRequestBytes = request.serialize(new BytesStreamOutput());
+        BytesReference requestContent = fullRequestBytes.slice(headerSize, fullRequestBytes.length() - headerSize);
+        Header requestHeader = new Header(fullRequestBytes.length() - 6, requestId, TransportStatus.setRequest((byte) 0), version);
+        InboundMessage requestMessage = new InboundMessage(requestHeader, ReleasableBytesReference.wrap(requestContent));
+        requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
+        handler.inboundMessage(channel, requestMessage);
 
         TransportChannel transportChannel = channelCaptor.get();
         assertEquals(Version.CURRENT, transportChannel.getVersion());
@@ -167,58 +151,27 @@ public class InboundHandlerTests extends ESTestCase {
         assertEquals(requestValue, requestCaptor.get().value);
 
         String responseValue = randomAlphaOfLength(10);
+        byte responseStatus = TransportStatus.setResponse((byte) 0);
         if (isError) {
+            responseStatus = TransportStatus.setError(responseStatus);
             transportChannel.sendResponse(new ElasticsearchException("boom"));
         } else {
             transportChannel.sendResponse(new TestResponse(responseValue));
         }
-        BytesReference serializedResponse = channel.getMessageCaptor().get();
-        handler.inboundMessage(channel, serializedResponse.slice(6, serializedResponse.length() - 6));
+
+        BytesReference fullResponseBytes = channel.getMessageCaptor().get();
+        BytesReference responseContent = fullResponseBytes.slice(headerSize, fullResponseBytes.length() - headerSize);
+        Header responseHeader = new Header(fullRequestBytes.length() - 6, requestId, responseStatus, version);
+        InboundMessage responseMessage = new InboundMessage(responseHeader, ReleasableBytesReference.wrap(responseContent));
+        responseHeader.finishParsingHeader(responseMessage.openOrGetStreamInput());
+        handler.inboundMessage(channel, responseMessage);
 
         if (isError) {
-            assertTrue(exceptionCaptor.get() instanceof RemoteTransportException);
-            assertTrue(exceptionCaptor.get().getCause() instanceof ElasticsearchException);
+            assertThat(exceptionCaptor.get(), instanceOf(RemoteTransportException.class));
+            assertThat(exceptionCaptor.get().getCause(), instanceOf(ElasticsearchException.class));
             assertEquals("boom", exceptionCaptor.get().getCause().getMessage());
         } else {
             assertEquals(responseValue, responseCaptor.get().value);
-        }
-    }
-
-    private static class TestRequest extends TransportRequest {
-
-        final String value;
-
-        private TestRequest(String value) {
-            this.value = value;
-        }
-
-        private TestRequest(StreamInput in) throws IOException {
-            super(in);
-            this.value = in.readString();
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            super.writeTo(out);
-            out.writeString(value);
-        }
-    }
-
-    private static class TestResponse extends TransportResponse {
-
-        final String value;
-
-        private TestResponse(String value) {
-            this.value = value;
-        }
-
-        private TestResponse(StreamInput in) throws IOException {
-            this.value = in.readString();
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeString(value);
         }
     }
 }
