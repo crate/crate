@@ -450,7 +450,7 @@ should be crossed out as well.
 - [ ] 5fcda57b37f Rename MetaData to Metadata in all of the places (#54519)
 - [ ] c9db2de41da [7.x] Comprehensively test supported/unsupported field type:agg combinations (#54451)
 - [ ] c38e125425e Remove Redundant Documentation on SnapshotsService (#54482) (#54505)
-- [ ] 915435bbe48 Fix issue with pipeline releasing bytes early (#54474)
+- [x] 915435bbe48 Fix issue with pipeline releasing bytes early (#54474)
 - [ ] 9392fca36a0 Improve Snapshot Abort Behavior (#54256) (#54410)
 - [x] 2ccddbfa88e Move transport decoding and aggregation to server (#54360)
 - [ ] 14b5daad7c9 Fix Snapshot Completion Listener Lost on Master Failover (#54286) (#54330)
