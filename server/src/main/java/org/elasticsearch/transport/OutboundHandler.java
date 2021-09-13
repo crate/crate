@@ -120,9 +120,8 @@ final class OutboundHandler {
             isHandshake,
             compress
         );
-        TransportResponseOptions options = TransportResponseOptions.builder().withCompress(compress).build();
         ActionListener<Void> listener = ActionListener.wrap(
-            () -> messageListener.onResponseSent(requestId, action, response, options)
+            () -> messageListener.onResponseSent(requestId, action, response)
         );
         sendMessage(channel, message, listener);
     }

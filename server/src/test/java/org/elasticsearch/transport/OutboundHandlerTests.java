@@ -190,7 +190,7 @@ public class OutboundHandlerTests extends ESTestCase {
         AtomicReference<TransportResponse> responseRef = new AtomicReference<>();
         handler.setMessageListener(new TransportMessageListener() {
             @Override
-            public void onResponseSent(long requestId, String action, TransportResponse response, TransportResponseOptions options) {
+            public void onResponseSent(long requestId, String action, TransportResponse response) {
                 requestIdRef.set(requestId);
                 actionRef.set(action);
                 responseRef.set(response);

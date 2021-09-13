@@ -852,14 +852,15 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     }
 
     /** called by the {@link Transport} implementation once a response was sent to calling node */
-    public void onResponseSent(long requestId, String action, TransportResponse response, TransportResponseOptions options) {
+    public void onResponseSent(long requestId, String action, TransportResponse response) {
         if (tracerLog.isTraceEnabled() && shouldTraceAction(action)) {
             tracerLog.trace("[{}][{}] sent response", requestId, action);
         }
-        messageListener.onResponseSent(requestId, action, response, options);
+        messageListener.onResponseSent(requestId, action, response);
     }
 
     /** called by the {@link Transport} implementation after an exception was sent as a response to an incoming request */
+    @Override
     public void onResponseSent(long requestId, String action, Exception e) {
         if (tracerLog.isTraceEnabled() && shouldTraceAction(action)) {
             tracerLog.trace(() -> new ParameterizedMessage("[{}][{}] sent error response", requestId, action), e);
@@ -1081,7 +1082,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
         @Override
         public void sendResponse(TransportResponse response) throws IOException {
-            service.onResponseSent(requestId, action, response, TransportResponseOptions.EMPTY);
+            service.onResponseSent(requestId, action, response);
             final TransportResponseHandler handler = service.responseHandlers.onResponseReceived(requestId, service);
             // ignore if its null, the service logs it
             if (handler != null) {
@@ -1193,10 +1194,9 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         @Override
         public void onResponseSent(long requestId,
                                    String action,
-                                   TransportResponse response,
-                                   TransportResponseOptions finalOptions) {
+                                   TransportResponse response) {
             for (TransportMessageListener listener : listeners) {
-                listener.onResponseSent(requestId, action, response, finalOptions);
+                listener.onResponseSent(requestId, action, response);
             }
         }
 
