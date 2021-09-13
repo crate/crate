@@ -28,7 +28,6 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.metrics.MeanMetric;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -42,7 +41,6 @@ public class InboundHandler {
 
     private static final Logger LOGGER = LogManager.getLogger(InboundHandler.class);
 
-    private final MeanMetric readBytesMetric = new MeanMetric();
     private final ThreadPool threadPool;
     private final OutboundHandler outboundHandler;
     private final NamedWriteableRegistry namedWriteableRegistry;
@@ -84,10 +82,6 @@ public class InboundHandler {
         return responseHandlers;
     }
 
-    MeanMetric getReadBytes() {
-        return readBytesMetric;
-    }
-
     void setMessageListener(TransportMessageListener listener) {
         if (messageListener == TransportMessageListener.NOOP_LISTENER) {
             messageListener = listener;
@@ -101,17 +95,10 @@ public class InboundHandler {
         TransportLogger.logInboundMessage(channel, message);
 
         if (message.isPing()) {
-            readBytesMetric.inc(TcpHeader.BYTES_REQUIRED_FOR_MESSAGE_SIZE);
             keepAlive.receiveKeepAlive(channel);
         } else {
-            readBytesMetric.inc(message.getHeader().getNetworkMessageSize() + TcpHeader.BYTES_REQUIRED_FOR_MESSAGE_SIZE);
             messageReceived(message, channel);
         }
-    }
-
-    void handleDecodeException(TcpChannel channel, Header header) {
-        channel.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
-        readBytesMetric.inc(header.getNetworkMessageSize() + TcpHeader.BYTES_REQUIRED_FOR_MESSAGE_SIZE);
     }
 
     private void messageReceived(InboundMessage message, TcpChannel channel) throws IOException {

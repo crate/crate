@@ -291,7 +291,9 @@ public class MockTcpTransport extends TcpTransport {
             }
             this.pipeline = new InboundPipeline(
                 MockTcpTransport.this.getVersion(),
+                MockTcpTransport.this.getStatsTracker(),
                 MockTcpTransport.this.pageCacheRecycler,
+                threadPool::relativeTimeInMillis,
                 MockTcpTransport.this::inboundMessage,
                 MockTcpTransport.this::inboundDecodeException
             );
