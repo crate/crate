@@ -19,9 +19,8 @@
 
 package org.elasticsearch.transport;
 
-import java.io.IOException;
-import java.util.Set;
-
+import io.crate.common.CheckedSupplier;
+import io.crate.common.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -33,22 +32,20 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
-import org.elasticsearch.common.metrics.MeanMetric;
 import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.common.CheckedSupplier;
-import io.crate.common.io.IOUtils;
+import java.io.IOException;
 
 final class OutboundHandler {
 
     private static final Logger LOGGER = LogManager.getLogger(OutboundHandler.class);
 
-    private final MeanMetric transmittedBytesMetric = new MeanMetric();
     private final String nodeName;
     private final Version version;
+    private final StatsTracker statsTracker;
     private final ThreadPool threadPool;
     private final BigArrays bigArrays;
 
@@ -56,10 +53,12 @@ final class OutboundHandler {
 
     OutboundHandler(String nodeName,
                     Version version,
+                    StatsTracker statsTracker,
                     ThreadPool threadPool,
                     BigArrays bigArrays) {
         this.nodeName = nodeName;
         this.version = version;
+        this.statsTracker = statsTracker;
         this.threadPool = threadPool;
         this.bigArrays = bigArrays;
     }
@@ -105,7 +104,6 @@ final class OutboundHandler {
      * Sends the response to the given channel. This method should be used to send {@link TransportResponse}
      * objects back to the caller.
      *
-     * @see #sendErrorResponse(Version, Set, TcpChannel, long, String, Exception) for sending error responses
      */
     void sendResponse(final Version nodeVersion,
                       final TcpChannel channel,
@@ -171,10 +169,6 @@ final class OutboundHandler {
             throw ex;
         }
 
-    }
-
-    MeanMetric getTransmittedBytes() {
-        return transmittedBytesMetric;
     }
 
     void setMessageListener(TransportMessageListener listener) {
@@ -247,7 +241,7 @@ final class OutboundHandler {
         @Override
         protected void innerOnResponse(Void v) {
             assert messageSize != -1 : "If onResponse is being called, the message should have been serialized";
-            transmittedBytesMetric.inc(messageSize);
+            statsTracker.markBytesWritten(messageSize);
             closeAndCallback(() -> listener.onResponse(v));
         }
 

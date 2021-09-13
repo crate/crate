@@ -440,7 +440,7 @@ should be crossed out as well.
 - [ ] 619028c33e0 Implement transport circuit breaking in aggregator (#54927)
 - [ ] 475b210eec4 Improve guidance on removing default mappings. (#54915)
 - [ ] c7053ef824f Use TransportChannel in TransportHandshaker (#54921)
-- [ ] 9cf2406cf14 Move network stats marking into InboundPipeline (#54908)
+- [x] 9cf2406cf14 Move network stats marking into InboundPipeline (#54908)
 - [ ] 4d36917e526  Merge feature/searchable-snapshots branch into 7.x (#54803)  (#54825)
 - [ ] 2fdbed7797a Broadcast cancellation to only nodes have outstanding child tasks (#54312)
 - [ ] 5fb76022276 Disallow changing 'enabled' on the root mapper. (#54681)
