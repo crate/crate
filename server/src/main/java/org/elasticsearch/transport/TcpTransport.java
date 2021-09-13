@@ -86,6 +86,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -114,6 +115,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     protected final PageCacheRecycler pageCacheRecycler;
     protected final NetworkService networkService;
     protected final Set<ProfileSettings> profileSettings;
+    private final CircuitBreakerService circuitBreakerService;
 
     private final ConcurrentMap<String, BoundTransportAddress> profileBoundAddresses = newConcurrentMap();
 
@@ -143,6 +145,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         this.version = version;
         this.threadPool = threadPool;
         this.pageCacheRecycler = pageCacheRecycler;
+        this.circuitBreakerService = circuitBreakerService;
         this.networkService = networkService;
 
         String nodeName = Node.NODE_NAME_SETTING.get(settings);
@@ -154,8 +157,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                 TransportHandshaker.HANDSHAKE_ACTION_NAME, new TransportHandshaker.HandshakeRequest(version),
                 TransportRequestOptions.EMPTY, v, false, true));
         this.keepAlive = new TransportKeepAlive(threadPool, this.outboundHandler::sendBytes);
-        this.inboundHandler = new InboundHandler(threadPool, outboundHandler, namedWriteableRegistry, circuitBreakerService, handshaker,
-            keepAlive);
+        this.inboundHandler = new InboundHandler(threadPool, outboundHandler, namedWriteableRegistry, handshaker, keepAlive);
     }
 
     public Version getVersion() {
@@ -168,6 +170,14 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
     public ThreadPool getThreadPool() {
         return threadPool;
+    }
+
+    public Supplier<CircuitBreaker> getInflightBreaker() {
+        return () -> circuitBreakerService.getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
+    }
+
+    public InboundHandler getInboundHandler() {
+        return inboundHandler;
     }
 
     @Override
@@ -698,10 +708,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         } catch (Exception e) {
             onException(channel, e);
         }
-    }
-
-    public void inboundDecodeException(TcpChannel channel, Tuple<Header, Exception> tuple) {
-        onException(channel, tuple.v2());
     }
 
     /**

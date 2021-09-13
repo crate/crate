@@ -294,8 +294,9 @@ public class MockTcpTransport extends TcpTransport {
                 MockTcpTransport.this.getStatsTracker(),
                 MockTcpTransport.this.pageCacheRecycler,
                 threadPool::relativeTimeInMillis,
-                MockTcpTransport.this::inboundMessage,
-                MockTcpTransport.this::inboundDecodeException
+                MockTcpTransport.this.getInflightBreaker(),
+                inboundHandler::getRequestHandler,
+                MockTcpTransport.this::inboundMessage
             );
         }
 

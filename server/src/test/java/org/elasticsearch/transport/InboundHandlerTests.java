@@ -27,7 +27,6 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -59,8 +58,7 @@ public class InboundHandlerTests extends ESTestCase {
         TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, TcpChannel::sendMessage);
         OutboundHandler outboundHandler = new OutboundHandler("node", version, new StatsTracker(), threadPool,
             BigArrays.NON_RECYCLING_INSTANCE);
-        final NoneCircuitBreakerService breaker = new NoneCircuitBreakerService();
-        handler = new InboundHandler(threadPool, outboundHandler, namedWriteableRegistry, breaker, handshaker, keepAlive);
+        handler = new InboundHandler(threadPool, outboundHandler, namedWriteableRegistry, handshaker, keepAlive);
     }
 
     @After
@@ -140,7 +138,7 @@ public class InboundHandlerTests extends ESTestCase {
         BytesReference fullRequestBytes = request.serialize(new BytesStreamOutput());
         BytesReference requestContent = fullRequestBytes.slice(headerSize, fullRequestBytes.length() - headerSize);
         Header requestHeader = new Header(fullRequestBytes.length() - 6, requestId, TransportStatus.setRequest((byte) 0), version);
-        InboundMessage requestMessage = new InboundMessage(requestHeader, ReleasableBytesReference.wrap(requestContent));
+        InboundMessage requestMessage = new InboundMessage(requestHeader, ReleasableBytesReference.wrap(requestContent), () -> {});
         requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
         handler.inboundMessage(channel, requestMessage);
 
@@ -161,7 +159,7 @@ public class InboundHandlerTests extends ESTestCase {
         BytesReference fullResponseBytes = channel.getMessageCaptor().get();
         BytesReference responseContent = fullResponseBytes.slice(headerSize, fullResponseBytes.length() - headerSize);
         Header responseHeader = new Header(fullRequestBytes.length() - 6, requestId, responseStatus, version);
-        InboundMessage responseMessage = new InboundMessage(responseHeader, ReleasableBytesReference.wrap(responseContent));
+        InboundMessage responseMessage = new InboundMessage(responseHeader, ReleasableBytesReference.wrap(responseContent), () -> {});
         responseHeader.finishParsingHeader(responseMessage.openOrGetStreamInput());
         handler.inboundMessage(channel, responseMessage);
 

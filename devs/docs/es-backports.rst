@@ -437,7 +437,7 @@ should be crossed out as well.
 - [ ] 52bebec51f6 NodeInfo response should use a collection rather than fields (#54460) (#55132)
 - [ ] 98fba920226 Fail sniff  process if no connections opened (#54934)
 - [ ] 65713743c2a Update translog policy before the next safe commit (#54839)
-- [ ] 619028c33e0 Implement transport circuit breaking in aggregator (#54927)
+- [x] 619028c33e0 Implement transport circuit breaking in aggregator (#54927)
 - [ ] 475b210eec4 Improve guidance on removing default mappings. (#54915)
 - [x] c7053ef824f Use TransportChannel in TransportHandshaker (#54921)
 - [x] 9cf2406cf14 Move network stats marking into InboundPipeline (#54908)
