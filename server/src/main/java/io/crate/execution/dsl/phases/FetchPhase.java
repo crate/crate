@@ -178,4 +178,13 @@ public class FetchPhase implements ExecutionPhase {
     public int hashCode() {
         return Objects.hash(bases, tableIndices, fetchRefs, executionPhaseId, executionNodes);
     }
+
+    @Override
+    public String toString() {
+        return "FetchPhase{bases=" + bases
+            + ", executionNodes=" + executionNodes
+            + ", executionPhaseId=" + executionPhaseId
+            + ", fetchRefs=" + fetchRefs
+            + ", tableIndices=" + tableIndices + "}";
+    }
 }

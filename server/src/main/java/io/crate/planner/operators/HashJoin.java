@@ -280,20 +280,18 @@ public class HashJoin implements LogicalPlan {
         SymbolVisitors.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
         SymbolVisitors.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
         FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(tableStats, usedFromLeft);
-        if (lhsFetchRewrite == null) {
-            return null;
-        }
         FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(tableStats, usedFromRight);
-        if (rhsFetchRewrite == null) {
+        if (lhsFetchRewrite == null && rhsFetchRewrite == null) {
             return null;
         }
-        LinkedHashMap<Symbol, Symbol> allReplacedOutputs = new LinkedHashMap<>(lhsFetchRewrite.replacedOutputs());
-        allReplacedOutputs.putAll(rhsFetchRewrite.replacedOutputs());
+        LinkedHashMap<Symbol, Symbol> allReplacedOutputs = new LinkedHashMap<>();
+        NestedLoopJoin.setReplacedOutputs(lhs, lhsFetchRewrite, allReplacedOutputs);
+        NestedLoopJoin.setReplacedOutputs(rhs, rhsFetchRewrite, allReplacedOutputs);
         return new FetchRewrite(
             allReplacedOutputs,
             new HashJoin(
-                lhsFetchRewrite.newPlan(),
-                rhsFetchRewrite.newPlan(),
+                lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
+                rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
                 joinCondition,
                 concreteRelation
             )
