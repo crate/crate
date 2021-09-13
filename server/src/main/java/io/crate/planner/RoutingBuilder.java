@@ -21,8 +21,10 @@
 
 package io.crate.planner;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +45,7 @@ import io.crate.planner.fetch.IndexBaseBuilder;
 
 final class RoutingBuilder {
 
-    final Map<RelationName, List<Routing>> routingListByTable = new HashMap<>();
+    final Deque<Map<RelationName, List<Routing>>> routingListByTableStack = new ArrayDeque<>();
     private final ClusterState clusterState;
     private final RoutingProvider routingProvider;
 
@@ -52,12 +54,58 @@ final class RoutingBuilder {
         this.routingProvider = routingProvider;
     }
 
+    /**
+     * Create a new context for routing allocations.
+     *
+     * <p>
+     * This ensures all following
+     * {@link #allocateRouting(TableInfo, WhereClause, io.crate.metadata.RoutingProvider.ShardSelection, SessionContext)}
+     * calls get stored in a unique context.
+     * </p>
+     *
+     * <p>
+     * This context will be used - and discarded - once
+     * {@link #buildReaderAllocations()} is called.
+     * </p>
+     *
+     * This is important to ensure that each `Fetch` operation which uses
+     * `ReaderAllocations` gets its own isolated set. Consider a tree as follows:
+     *
+     * <pre>
+     *          Root
+     *            |
+     *          Fetch
+     *            |
+     *          Join
+     *        /     \
+     *     Collect   Fetch
+     *       t1        |
+     *               Limit
+     *                 |
+     *              Collect
+     *                t2
+     * </pre>
+     *
+     * <p>
+     * The `Fetch` for t2 must use the routing allocations for t2, and must not
+     * intefere with the routing allocations from t1. The routing allocations for t1
+     * must remain until the top-level fetch uses it.
+     * </p>
+     **/
+    void newAllocations() {
+        routingListByTableStack.add(new HashMap<>());
+    }
+
     Routing allocateRouting(TableInfo tableInfo,
                             WhereClause where,
                             RoutingProvider.ShardSelection shardSelection,
                             SessionContext sessionContext) {
 
         Routing routing = tableInfo.getRouting(clusterState, routingProvider, where, shardSelection, sessionContext);
+        Map<RelationName, List<Routing>> routingListByTable = routingListByTableStack.peekLast();
+        if (routingListByTable == null) {
+            return routing;
+        }
         List<Routing> existingRoutings = routingListByTable.get(tableInfo.ident());
         if (existingRoutings == null) {
             existingRoutings = new ArrayList<>();
@@ -72,9 +120,11 @@ final class RoutingBuilder {
         IndexBaseBuilder indexBaseBuilder = new IndexBaseBuilder();
         Map<String, Map<Integer, String>> shardNodes = new HashMap<>();
 
-        for (final Map.Entry<RelationName, List<Routing>> tableRoutingEntry : routingListByTable.entrySet()) {
-            RelationName table = tableRoutingEntry.getKey();
-            List<Routing> routingList = tableRoutingEntry.getValue();
+        Map<RelationName, List<Routing>> routingListByTable = routingListByTableStack.removeLast();
+        assert routingListByTable != null : "Call to `buildReaderAllocations` without prior `newAllocations` call";
+        for (var tableRouting : routingListByTable.entrySet()) {
+            RelationName table = tableRouting.getKey();
+            List<Routing> routingList = tableRouting.getValue();
             for (Routing routing : routingList) {
                 allocateRoutingNodes(shardNodes, routing.locations());
 
@@ -89,7 +139,6 @@ final class RoutingBuilder {
                 }
             }
         }
-        routingListByTable.clear();
         return new ReaderAllocations(indexBaseBuilder.build(), shardNodes, indicesByTable);
     }
 

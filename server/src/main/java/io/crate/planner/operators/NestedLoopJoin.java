@@ -301,20 +301,18 @@ public class NestedLoopJoin implements LogicalPlan {
             SymbolVisitors.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
         }
         FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(tableStats, usedFromLeft);
-        if (lhsFetchRewrite == null) {
-            return null;
-        }
         FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(tableStats, usedFromRight);
-        if (rhsFetchRewrite == null) {
+        if (lhsFetchRewrite == null && rhsFetchRewrite == null) {
             return null;
         }
-        LinkedHashMap<Symbol, Symbol> allReplacedOutputs = new LinkedHashMap<>(lhsFetchRewrite.replacedOutputs());
-        allReplacedOutputs.putAll(rhsFetchRewrite.replacedOutputs());
+        LinkedHashMap<Symbol, Symbol> allReplacedOutputs = new LinkedHashMap<>();
+        setReplacedOutputs(lhs, lhsFetchRewrite, allReplacedOutputs);
+        setReplacedOutputs(rhs, rhsFetchRewrite, allReplacedOutputs);
         return new FetchRewrite(
             allReplacedOutputs,
             new NestedLoopJoin(
-                lhsFetchRewrite.newPlan(),
-                rhsFetchRewrite.newPlan(),
+                lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
+                rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
                 joinType,
                 joinCondition,
                 isFiltered,
@@ -323,6 +321,16 @@ public class NestedLoopJoin implements LogicalPlan {
                 rewriteFilterOnOuterJoinToInnerJoinDone
             )
         );
+    }
+
+    static void setReplacedOutputs(LogicalPlan operator, FetchRewrite rewrite, LinkedHashMap<Symbol, Symbol> allReplacedOutputs) {
+        if (rewrite == null) {
+            for (var output : operator.outputs()) {
+                allReplacedOutputs.put(output, output);
+            }
+        } else {
+            allReplacedOutputs.putAll(rewrite.replacedOutputs());
+        }
     }
 
     private Tuple<Collection<String>, List<MergePhase>> configureExecution(ExecutionPlan left,
