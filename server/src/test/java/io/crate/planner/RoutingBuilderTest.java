@@ -67,11 +67,13 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
                 EqOperator.RETURN_TYPE
             ));
 
+        routingBuilder.newAllocations();
+
         routingBuilder.allocateRouting(tableInfo, WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, null);
         routingBuilder.allocateRouting(tableInfo, whereClause, RoutingProvider.ShardSelection.ANY, null);
 
         // 2 routing allocations with different where clause must result in 2 allocated routings
-        List<Routing> tableRoutings = routingBuilder.routingListByTable.get(relationName);
+        List<Routing> tableRoutings = routingBuilder.routingListByTableStack.pop().get(relationName);
         assertThat(tableRoutings.size(), is(2));
 
         // The routings are the same because the RoutingProvider enforces this - this test doesn't reflect that fact
@@ -84,9 +86,11 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testBuildReaderAllocations() {
         RoutingBuilder routingBuilder = new RoutingBuilder(clusterService.state(), routingProvider);
+        routingBuilder.newAllocations();
         routingBuilder.allocateRouting(tableInfo, WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, null);
 
         ReaderAllocations readerAllocations = routingBuilder.buildReaderAllocations();
+        routingBuilder.newAllocations();
 
         assertThat(readerAllocations.indices().size(), is(1));
         assertThat(readerAllocations.indices().get(0), is(relationName.indexNameOrAlias()));

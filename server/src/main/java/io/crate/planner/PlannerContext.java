@@ -21,6 +21,13 @@
 
 package io.crate.planner;
 
+import java.util.UUID;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.ShardRouting;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.data.Row;
@@ -29,11 +36,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.ShardRouting;
-
-import javax.annotation.Nullable;
-import java.util.UUID;
 
 public class PlannerContext {
 
@@ -136,5 +138,9 @@ public class PlannerContext {
 
     public ClusterState clusterState() {
         return clusterState;
+    }
+
+    public void newReaderAllocations() {
+        routingBuilder.newAllocations();
     }
 }
