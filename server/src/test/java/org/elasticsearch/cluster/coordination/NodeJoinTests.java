@@ -256,12 +256,6 @@ public class NodeJoinTests extends ESTestCase {
                 }
 
                 @Override
-                public void sendResponse(TransportResponse response,
-                                         TransportResponseOptions options) throws IOException {
-                    sendResponse(response);
-                }
-
-                @Override
                 public void sendResponse(Exception e) {
                     logger.error(() -> new ParameterizedMessage("unexpected error for {}", future), e);
                     future.markAsFailed(e);
@@ -414,11 +408,6 @@ public class NodeJoinTests extends ESTestCase {
             }
 
             @Override
-            public void sendResponse(TransportResponse response, TransportResponseOptions options) throws IOException {
-
-            }
-
-            @Override
             public void sendResponse(Exception exception) {
                 fail();
             }
@@ -445,10 +434,6 @@ public class NodeJoinTests extends ESTestCase {
 
             @Override
             public void sendResponse(TransportResponse response) {
-            }
-
-            @Override
-            public void sendResponse(TransportResponse response, TransportResponseOptions options) throws IOException {
             }
 
             @Override
