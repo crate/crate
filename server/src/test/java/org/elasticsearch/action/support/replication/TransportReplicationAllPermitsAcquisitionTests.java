@@ -613,11 +613,6 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             }
 
             @Override
-            public void sendResponse(TransportResponse response, TransportResponseOptions options) throws IOException {
-                listener.onResponse(((Response) response));
-            }
-
-            @Override
             public void sendResponse(TransportResponse response) throws IOException {
                 listener.onResponse(((Response) response));
             }

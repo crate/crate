@@ -19,27 +19,8 @@
 
 package org.elasticsearch.transport;
 
-import static org.elasticsearch.common.settings.Setting.timeSetting;
-import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_EXCLUDE_SETTING;
-import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_INCLUDE_SETTING;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.UnknownHostException;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
-import javax.annotation.Nullable;
-
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -68,8 +49,25 @@ import org.elasticsearch.tasks.TaskCancelledException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.function.Predicate;
+
+import static org.elasticsearch.common.settings.Setting.timeSetting;
+import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_EXCLUDE_SETTING;
+import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_INCLUDE_SETTING;
 
 public class TransportService extends AbstractLifecycleComponent implements TransportMessageListener, TransportConnectionListener {
 
@@ -1083,12 +1081,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
         @Override
         public void sendResponse(TransportResponse response) throws IOException {
-            sendResponse(response, TransportResponseOptions.EMPTY);
-        }
-
-        @Override
-        public void sendResponse(final TransportResponse response, TransportResponseOptions options) throws IOException {
-            service.onResponseSent(requestId, action, response, options);
+            service.onResponseSent(requestId, action, response, TransportResponseOptions.EMPTY);
             final TransportResponseHandler handler = service.responseHandlers.onResponseReceived(requestId, service);
             // ignore if its null, the service logs it
             if (handler != null) {

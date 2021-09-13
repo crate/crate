@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class TcpTransportChannel implements TransportChannel {
 
+    private final AtomicBoolean released = new AtomicBoolean();
     private final OutboundHandler outboundHandler;
     private final TcpChannel channel;
     private final String action;
@@ -35,7 +36,7 @@ public final class TcpTransportChannel implements TransportChannel {
     private final Version version;
     private final CircuitBreakerService breakerService;
     private final long reservedBytes;
-    private final AtomicBoolean released = new AtomicBoolean();
+    private final boolean compressResponse;
 
     TcpTransportChannel(OutboundHandler outboundHandler,
                         TcpChannel channel,
@@ -52,6 +53,7 @@ public final class TcpTransportChannel implements TransportChannel {
         this.requestId = requestId;
         this.breakerService = breakerService;
         this.reservedBytes = reservedBytes;
+        this.compressResponse = compressResponse;
     }
 
     @Override
@@ -61,12 +63,13 @@ public final class TcpTransportChannel implements TransportChannel {
 
     @Override
     public void sendResponse(TransportResponse response) throws IOException {
-        sendResponse(response, TransportResponseOptions.EMPTY);
-    }
-
-    @Override
-    public void sendResponse(TransportResponse response, TransportResponseOptions options) throws IOException {
         try {
+            TransportResponseOptions options;
+            if (compressResponse) {
+                options = TransportResponseOptions.builder().withCompress(true).build();
+            } else {
+                options = TransportResponseOptions.EMPTY;
+            }
             outboundHandler.sendResponse(version, channel, requestId, action, response, options.compress(), false);
         } finally {
             release(false);

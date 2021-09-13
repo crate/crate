@@ -22,8 +22,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import javax.annotation.Nullable;
-
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
@@ -39,9 +37,9 @@ import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
-import org.elasticsearch.transport.TransportResponseOptions;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Function;
@@ -187,12 +185,6 @@ public abstract class DisruptableMockTransport extends MockTransport {
             @Override
             public String getChannelType() {
                 return "disruptable-mock-transport-channel";
-            }
-
-
-            @Override
-            public void sendResponse(TransportResponse response, TransportResponseOptions options) throws IOException {
-                sendResponse(response);
             }
 
             @Override
