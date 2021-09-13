@@ -151,7 +151,10 @@ public class InboundHandler {
         try {
             messageListener.onRequestReceived(requestId, action);
             if (header.isHandshake()) {
-                handshaker.handleHandshake(version, channel, requestId, stream);
+                // Handshakes are not currently circuit broken
+                transportChannel = new TcpTransportChannel(outboundHandler, channel, action, requestId, version,
+                    circuitBreakerService, 0, header.isCompressed(), header.isHandshake());
+                handshaker.handleHandshake(transportChannel, requestId, stream);
             } else {
                 final RequestHandlerRegistry<T> reg = getRequestHandler(action);
                 if (reg == null) {
@@ -171,7 +174,8 @@ public class InboundHandler {
                     version,
                     circuitBreakerService,
                     messageLengthBytes,
-                    header.isCompressed()
+                    header.isCompressed(),
+                    header.isHandshake()
                 );
                 final T request = reg.newRequest(stream);
 
@@ -188,7 +192,7 @@ public class InboundHandler {
             // the circuit breaker tripped
             if (transportChannel == null) {
                 transportChannel = new TcpTransportChannel(outboundHandler, channel, action, requestId, version,
-                    circuitBreakerService, 0, header.isCompressed());
+                    circuitBreakerService, 0, header.isCompressed(), header.isHandshake());
             }
             try {
                 transportChannel.sendResponse(e);

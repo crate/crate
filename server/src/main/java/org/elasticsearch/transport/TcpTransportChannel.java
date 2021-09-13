@@ -37,6 +37,7 @@ public final class TcpTransportChannel implements TransportChannel {
     private final CircuitBreakerService breakerService;
     private final long reservedBytes;
     private final boolean compressResponse;
+    private final boolean isHandshake;
 
     TcpTransportChannel(OutboundHandler outboundHandler,
                         TcpChannel channel,
@@ -45,7 +46,8 @@ public final class TcpTransportChannel implements TransportChannel {
                         Version version,
                         CircuitBreakerService breakerService,
                         long reservedBytes,
-                        boolean compressResponse) {
+                        boolean compressResponse,
+                        boolean isHandshake) {
         this.version = version;
         this.channel = channel;
         this.outboundHandler = outboundHandler;
@@ -54,6 +56,7 @@ public final class TcpTransportChannel implements TransportChannel {
         this.breakerService = breakerService;
         this.reservedBytes = reservedBytes;
         this.compressResponse = compressResponse;
+        this.isHandshake = isHandshake;
     }
 
     @Override
@@ -64,7 +67,7 @@ public final class TcpTransportChannel implements TransportChannel {
     @Override
     public void sendResponse(TransportResponse response) throws IOException {
         try {
-            outboundHandler.sendResponse(version, channel, requestId, action, response, compressResponse, false);
+            outboundHandler.sendResponse(version, channel, requestId, action, response, compressResponse, isHandshake);
         } finally {
             release(false);
         }
@@ -104,6 +107,5 @@ public final class TcpTransportChannel implements TransportChannel {
     public TcpChannel getChannel() {
         return channel;
     }
-
 }
 
