@@ -255,11 +255,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "order by t1.x " +
                                 "limit 10");
         assertThat(plan, isPlan(
-            "Limit[10::bigint;0]\n" +
-            "  └ OrderBy[x ASC]\n" +
-            "    └ HashJoin[(x = y)]\n" +
-            "      ├ Collect[doc.t1 | [x, a] | true]\n" +
-            "      └ Collect[doc.t2 | [y] | true]"));
+            "Fetch[x, a, y]\n" +
+            "  └ Limit[10::bigint;0]\n" +
+            "    └ OrderBy[x ASC]\n" +
+            "      └ HashJoin[(x = y)]\n" +
+            "        ├ Collect[doc.t1 | [_fetchid, x] | true]\n" +
+            "        └ Collect[doc.t2 | [y] | true]"));
     }
 
     @Test
@@ -319,16 +320,17 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "on t1.i = t2.i where t1.a > '50' and t2.b > '100' " +
                                 "limit 10");
         assertThat(plan, isPlan(
-            "Limit[10::bigint;0]\n" +
-            "  └ HashJoin[(i = i)]\n" +
-            "    ├ Rename[a, i] AS t1\n" +
-            "    │  └ Filter[(a > '50')]\n" +
-            "    │    └ Fetch[a, i]\n" +
-            "    │      └ Limit[5::bigint;0]\n" +
-            "    │        └ OrderBy[a ASC]\n" +
-            "    │          └ Collect[doc.t1 | [_fetchid, a] | true]\n" +
-            "    └ Rename[b, i] AS t2\n" +
-            "      └ Collect[doc.t2 | [b, i] | ((b > '100') AND (b > '10'))]"));
+            "Fetch[a, i, b, i]\n" +
+            "  └ Limit[10::bigint;0]\n" +
+            "    └ HashJoin[(i = i)]\n" +
+            "      ├ Rename[a, i] AS t1\n" +
+            "      │  └ Filter[(a > '50')]\n" +
+            "      │    └ Fetch[a, i]\n" +
+            "      │      └ Limit[5::bigint;0]\n" +
+            "      │        └ OrderBy[a ASC]\n" +
+            "      │          └ Collect[doc.t1 | [_fetchid, a] | true]\n" +
+            "      └ Rename[t2._fetchid, i] AS t2\n" +
+            "        └ Collect[doc.t2 | [_fetchid, i] | ((b > '100') AND (b > '10'))]"));
     }
 
     @Test
@@ -430,6 +432,43 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "Eval[a AS b]\n" +
             "  └ TopNDistinct[10::bigint;0 | [a]]\n" +
             "    └ Collect[doc.t1 | [a] | true]"
+        ));
+    }
+
+    @Test
+    public void test_query_uses_fetch_if_there_is_a_nested_loop_join_where_only_one_side_can_utilize_fetch() throws Exception {
+        // (uses like to force NL instead of hashjoin)
+        LogicalPlan plan = plan("""
+            select * from (select distinct name from users) u
+            inner join t1 on t1.a like u.name
+            limit 10
+        """);
+        assertThat(plan, isPlan(
+            "Fetch[name, a, x, i]\n" +
+            "  └ Limit[10::bigint;0]\n" +
+            "    └ NestedLoopJoin[INNER | (a LIKE name)]\n" +
+            "      ├ Rename[name] AS u\n" +
+            "      │  └ GroupHashAggregate[name]\n" +
+            "      │    └ Collect[doc.users | [name] | true]\n" +
+            "      └ Collect[doc.t1 | [_fetchid, a] | true]"
+        ));
+    }
+
+    @Test
+    public void test_query_uses_fetch_if_there_is_a_hash_join_where_only_one_side_can_utilize_fetch() throws Exception {
+        LogicalPlan plan = plan("""
+            select * from (select distinct name from users) u
+            inner join t1 on t1.a = u.name
+            limit 10
+        """);
+        assertThat(plan, isPlan(
+            "Fetch[name, a, x, i]\n" +
+            "  └ Limit[10::bigint;0]\n" +
+            "    └ HashJoin[(a = name)]\n" +
+            "      ├ Rename[name] AS u\n" +
+            "      │  └ GroupHashAggregate[name]\n" +
+            "      │    └ Collect[doc.users | [name] | true]\n" +
+            "      └ Collect[doc.t1 | [_fetchid, a] | true]"
         ));
     }
 

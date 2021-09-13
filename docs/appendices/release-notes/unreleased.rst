@@ -90,6 +90,10 @@ Changes
 Fixes
 =====
 
+- Fixed a performance regression introduced in 4.2 which could cause queries
+  including joins, virtual tables and ``LIMIT`` operators to run slower than
+  before.
+
 - Fixed an issue that caused ``INSERT INTO`` statements to fail on partitioned
   tables where the partitioned column is generated and the column and value are
   provided in the statement.
