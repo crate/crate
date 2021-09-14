@@ -84,3 +84,6 @@ Fixes
 - Fixed an issue that caused showing an incorrect log message in case of an
   authentication failure. "Password authentication" used to be shown instead
   of the actual authentication method name.
+
+- Fixed an issue that caused ``NullPointerException`` when inserting into
+  previously altered tables that were partitioned and had generated columns.

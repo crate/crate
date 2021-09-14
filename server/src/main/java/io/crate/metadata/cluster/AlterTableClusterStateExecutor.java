@@ -194,7 +194,8 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     }
 
     @SuppressWarnings("unchecked")
-    private static String addExistingMeta(AlterTableRequest request, Map<String, Object> currentMeta) throws IOException {
+    @VisibleForTesting
+    static String addExistingMeta(AlterTableRequest request, Map<String, Object> currentMeta) throws IOException {
         // The putMappingExtractor doesn't contain logic to merge _meta
         // and we need to preserve existing information.
         //
@@ -236,31 +237,46 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         Map<String, Object> mappingDeltaAsMap = request.mappingDeltaAsMap();
         Map<String, Object> metaDelta = (Map<String, Object>) mappingDeltaAsMap.get("_meta");
         if (metaDelta != null) {
-            metaDelta.put("partitioned_by", currentMeta.getOrDefault("partitioned_by", List.of()));
-            metaDelta.putIfAbsent("primary_keys", currentMeta.get("primary_keys"));
+            var curPartitionedBy = currentMeta.get("partitioned_by");
+            if (curPartitionedBy != null) {
+                metaDelta.put("partitioned_by", curPartitionedBy);
+            }
+            var curPrimaryKeys = currentMeta.get("primary_keys");
+            if (curPrimaryKeys != null) {
+                metaDelta.putIfAbsent("primary_keys", curPrimaryKeys);
+            }
 
             Map<String, Object> checkConstraints = (Map<String, Object>) metaDelta.get("check_constraints");
             if (checkConstraints == null || checkConstraints.isEmpty()) {
-                metaDelta.put("check_constraints", currentMeta.get("check_constraints"));
+                var curCheckConstraints = currentMeta.get("check_constraints");
+                if (curCheckConstraints != null) {
+                    metaDelta.put("check_constraints", curCheckConstraints);
+                }
             }
 
-            metaDelta.merge(
-                "constraints",
-                currentMeta.getOrDefault("constraints", Map.of()),
-                (delta, current) -> {
-                    Maps.extendRecursive((Map<String, Object>) delta, (Map<String, Object>) current);
-                    return delta;
-                }
-            );
+            var curConstraints = currentMeta.get("constraints");
+            if (curConstraints != null) {
+                metaDelta.merge(
+                    "constraints",
+                    curConstraints,
+                    (delta, current) -> {
+                        Maps.extendRecursive((Map<String, Object>) delta, (Map<String, Object>) current);
+                        return delta;
+                    }
+                );
+            }
 
-            metaDelta.merge(
-                "indices",
-                currentMeta.getOrDefault("indices", Map.of()),
-                (delta, current) -> {
-                    Maps.extendRecursive((Map<String, Object>) delta, (Map<String, Object>) current);
-                    return delta;
-                }
-            );
+            var curIndices = currentMeta.get("indices");
+            if (curIndices != null) {
+                metaDelta.merge(
+                    "indices",
+                    curIndices,
+                    (delta, current) -> {
+                        Maps.extendRecursive((Map<String, Object>) delta, (Map<String, Object>) current);
+                        return delta;
+                    }
+                );
+            }
         }
         var builder = XContentFactory.contentBuilder(XContentType.JSON);
         builder.map(mappingDeltaAsMap);
