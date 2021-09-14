@@ -306,20 +306,32 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
             @Override
             protected void doRun() {
                 assert Thread.holdsLock(mutex) == false : "mutex unexpectedly held";
-                transportService.connectToNode(discoveryNode, new ActionListener<Void>() {
-                    @Override
-                    public void onResponse(Void aVoid) {
-                        assert Thread.holdsLock(mutex) == false : "mutex unexpectedly held";
-                        consecutiveFailureCount.set(0);
-                        LOGGER.debug("connected to {}", discoveryNode);
-                        onCompletion(ActivityType.CONNECTING, null, disconnectActivity);
-                    }
+                if (transportService.nodeConnected(discoveryNode)) {
+                    // transportService.connectToNode is a no-op if already connected, but we don't want any DEBUG logging in this case
+                    // since we run this for every node on every cluster state update.
+                    LOGGER.trace("still connected to {}", discoveryNode);
+                    onConnected();
+                } else {
+                    LOGGER.debug("connecting to {}", discoveryNode);
+                    transportService.connectToNode(discoveryNode, new ActionListener<Void>() {
+                        @Override
+                        public void onResponse(Void aVoid) {
+                            assert Thread.holdsLock(mutex) == false : "mutex unexpectedly held";
+                            LOGGER.debug("connected to {}", discoveryNode);
+                            onConnected();
+                        }
 
-                    @Override
-                    public void onFailure(Exception e) {
-                        abstractRunnable.onFailure(e);
-                    }
-                });
+                        @Override
+                        public void onFailure(Exception e) {
+                            abstractRunnable.onFailure(e);
+                        }
+                    });
+                }
+            }
+
+            private void onConnected() {
+                consecutiveFailureCount.set(0);
+                onCompletion(ActivityType.CONNECTING, null, disconnectActivity);
             }
 
             @Override
