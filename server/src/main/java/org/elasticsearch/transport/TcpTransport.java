@@ -22,7 +22,6 @@ package org.elasticsearch.transport;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -131,7 +130,9 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     private final TransportHandshaker handshaker;
     private final TransportKeepAlive keepAlive;
     private final OutboundHandler outboundHandler;
-    protected final InboundHandler inboundHandler;
+    private final InboundHandler inboundHandler;
+    private final ResponseHandlers responseHandlers = new ResponseHandlers();
+    private final RequestHandlers requestHandlers = new RequestHandlers();
 
     public TcpTransport(Settings settings,
                         Version version,
@@ -157,7 +158,8 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                 TransportHandshaker.HANDSHAKE_ACTION_NAME, new TransportHandshaker.HandshakeRequest(version),
                 TransportRequestOptions.EMPTY, v, false, true));
         this.keepAlive = new TransportKeepAlive(threadPool, this.outboundHandler::sendBytes);
-        this.inboundHandler = new InboundHandler(threadPool, outboundHandler, namedWriteableRegistry, handshaker, keepAlive);
+        this.inboundHandler = new InboundHandler(threadPool, outboundHandler, namedWriteableRegistry, handshaker, keepAlive,
+            requestHandlers, responseHandlers);
     }
 
     public Version getVersion() {
@@ -176,10 +178,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         return () -> circuitBreakerService.getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
     }
 
-    public InboundHandler getInboundHandler() {
-        return inboundHandler;
-    }
-
     @Override
     protected void doStart() {
     }
@@ -188,11 +186,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     public synchronized void setMessageListener(TransportMessageListener listener) {
         outboundHandler.setMessageListener(listener);
         inboundHandler.setMessageListener(listener);
-    }
-
-    @Override
-    public synchronized <Request extends TransportRequest> void registerRequestHandler(RequestHandlerRegistry<Request> reg) {
-        inboundHandler.registerRequestHandler(reg);
     }
 
     public final class NodeChannels extends CloseableConnection {
@@ -817,12 +810,11 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         }
     }
 
-
     public void executeHandshake(DiscoveryNode node,
                                  TcpChannel channel,
                                  ConnectionProfile profile,
                                  ActionListener<Version> listener) {
-        long requestId = inboundHandler.getResponseHandlers().newRequestId();
+        long requestId = responseHandlers.newRequestId();
         handshaker.sendHandshake(requestId, node, channel, profile.getHandshakeTimeout(), listener);
     }
 
@@ -917,12 +909,12 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
     @Override
     public final ResponseHandlers getResponseHandlers() {
-        return inboundHandler.getResponseHandlers();
+        return responseHandlers;
     }
 
     @Override
-    public final RequestHandlerRegistry getRequestHandler(String action) {
-        return inboundHandler.getRequestHandler(action);
+    public final RequestHandlers getRequestHandlers() {
+        return requestHandlers;
     }
 
     private final class ChannelsConnectedListener implements ActionListener<Void> {
