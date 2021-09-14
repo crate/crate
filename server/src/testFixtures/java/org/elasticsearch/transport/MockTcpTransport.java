@@ -289,13 +289,14 @@ public class MockTcpTransport extends TcpTransport {
             synchronized (openChannels) {
                 openChannels.add(this);
             }
+            final Transport.RequestHandlers requestHandlers = MockTcpTransport.this.getRequestHandlers();
             this.pipeline = new InboundPipeline(
                 MockTcpTransport.this.getVersion(),
                 MockTcpTransport.this.getStatsTracker(),
                 MockTcpTransport.this.pageCacheRecycler,
                 threadPool::relativeTimeInMillis,
                 MockTcpTransport.this.getInflightBreaker(),
-                inboundHandler::getRequestHandler,
+                requestHandlers::getHandler,
                 MockTcpTransport.this::inboundMessage
             );
         }

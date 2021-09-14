@@ -19,29 +19,21 @@
 
 package org.elasticsearch.test.transport;
 
-import org.elasticsearch.action.ActionListener;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Randomness;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.component.Lifecycle;
-import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.CloseableConnection;
 import org.elasticsearch.transport.ConnectionManager;
-import org.elasticsearch.transport.ConnectionProfile;
 import org.elasticsearch.transport.RemoteTransportException;
-import org.elasticsearch.transport.RequestHandlerRegistry;
 import org.elasticsearch.transport.SendRequestTransportException;
-import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportMessageListener;
 import org.elasticsearch.transport.TransportRequest;
@@ -49,14 +41,10 @@ import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
-import org.elasticsearch.transport.TransportStats;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -66,11 +54,8 @@ import static org.apache.lucene.util.LuceneTestCase.rarely;
 /**
  * A basic transport implementation that allows to intercept requests that have been sent
  */
-public class MockTransport implements Transport, LifecycleComponent {
+public class MockTransport extends StubbableTransport {
 
-    private volatile Map<String, RequestHandlerRegistry> requestHandlers = Collections.emptyMap();
-    private final Object requestHandlerMutex = new Object();
-    private final ResponseHandlers responseHandlers = new ResponseHandlers();
     private TransportMessageListener listener;
     private ConcurrentMap<Long, Tuple<DiscoveryNode, String>> requests = new ConcurrentHashMap<>();
 
@@ -96,13 +81,18 @@ public class MockTransport implements Transport, LifecycleComponent {
         );
     }
 
+    public MockTransport() {
+        super(new FakeTransport());
+        setDefaultConnectBehavior((transport, discoveryNode, profile, listener) -> listener.onResponse(createConnection(discoveryNode)));
+    }
+
     /**
      * simulate a response for the given requestId
      */
     @SuppressWarnings("unchecked")
     public <Response extends TransportResponse> void handleResponse(final long requestId, final Response response) {
         final TransportResponseHandler<Response> transportResponseHandler =
-            (TransportResponseHandler<Response>) responseHandlers.onResponseReceived(requestId, listener);
+            (TransportResponseHandler<Response>) getResponseHandlers().onResponseReceived(requestId, listener);
         if (transportResponseHandler != null) {
             final Response deliveredResponse;
             try (BytesStreamOutput output = new BytesStreamOutput()) {
@@ -165,7 +155,7 @@ public class MockTransport implements Transport, LifecycleComponent {
      * @param e         the failure
      */
     public void handleError(final long requestId, final TransportException e) {
-        final TransportResponseHandler transportResponseHandler = responseHandlers.onResponseReceived(requestId, listener);
+        final TransportResponseHandler transportResponseHandler = getResponseHandlers().onResponseReceived(requestId, listener);
         if (transportResponseHandler != null) {
             transportResponseHandler.handleException(e);
         }
@@ -187,102 +177,7 @@ public class MockTransport implements Transport, LifecycleComponent {
         };
     }
 
-    @Override
-    public void openConnection(DiscoveryNode node, ConnectionProfile profile, ActionListener<Connection> connectionListener) {
-        connectionListener.onResponse(new CloseableConnection() {
-            @Override
-            public DiscoveryNode getNode() {
-                return node;
-            }
-
-            @Override
-            public void sendRequest(long requestId, String action, TransportRequest request, TransportRequestOptions options)
-                throws TransportException {
-                requests.put(requestId, Tuple.tuple(node, action));
-                onSendRequest(requestId, action, request, node);
-            }
-
-            @Override
-            public String toString() {
-                return "MockTransportConnection{node=" + node + ", requests=" + requests + '}';
-            }
-        });
-    }
-
     protected void onSendRequest(long requestId, String action, TransportRequest request, DiscoveryNode node) {
-    }
-
-    @Override
-    public TransportStats getStats() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public BoundTransportAddress boundAddress() {
-        return null;
-    }
-
-    @Override
-    public Map<String, BoundTransportAddress> profileBoundAddresses() {
-        return null;
-    }
-
-    @Override
-    public TransportAddress[] addressesFromString(String address) {
-        return new TransportAddress[0];
-    }
-
-    @Override
-    public Lifecycle.State lifecycleState() {
-        return null;
-    }
-
-    @Override
-    public void addLifecycleListener(LifecycleListener listener) {
-    }
-
-    @Override
-    public void removeLifecycleListener(LifecycleListener listener) {
-    }
-
-    @Override
-    public void start() {
-    }
-
-    @Override
-    public void stop() {
-    }
-
-    @Override
-    public void close() {
-    }
-
-    @Override
-    public List<String> getDefaultSeedAddresses() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public <Request extends TransportRequest> void registerRequestHandler(RequestHandlerRegistry<Request> reg) {
-        synchronized (requestHandlerMutex) {
-            if (requestHandlers.containsKey(reg.getAction())) {
-                throw new IllegalArgumentException("transport handlers for action " + reg.getAction() + " is already registered");
-            }
-            HashMap<String, RequestHandlerRegistry> copy = new HashMap<>(requestHandlers);
-            copy.put(reg.getAction(), reg);
-            requestHandlers = Map.copyOf(copy);
-        }
-    }
-
-    @Override
-    public ResponseHandlers getResponseHandlers() {
-        return responseHandlers;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public RequestHandlerRegistry<TransportRequest> getRequestHandler(String action) {
-        return requestHandlers.get(action);
     }
 
     @Override
@@ -291,6 +186,7 @@ public class MockTransport implements Transport, LifecycleComponent {
             throw new IllegalStateException("listener already set");
         }
         this.listener = listener;
+        super.setMessageListener(listener);
     }
 
     protected NamedWriteableRegistry writeableRegistry() {
