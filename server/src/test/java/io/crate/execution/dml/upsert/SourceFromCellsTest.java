@@ -427,4 +427,57 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(id1, Matchers.notNullValue());
         assertThat(id1, Matchers.not(is(id2)));
     }
+
+    @Test
+    public void test_generated_partition_column_passes_validation_if_value_matches() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addPartitionedTable("""
+                create table tbl (
+                    ts timestamp with time zone,
+                    g_ts_month as date_trunc('month', ts)
+                ) partitioned by (g_ts_month)
+            """)
+            .build();
+        Reference ts = (Reference) e.asSymbol("tbl.ts");
+        Reference g_ts_month = (Reference) e.asSymbol("tbl.g_ts_month");
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        InsertSourceGen sourceGen = InsertSourceGen.of(
+            txnCtx,
+            e.nodeCtx,
+            tbl,
+            new PartitionName(tbl.ident(), List.of("1630454400000")).asIndexName(),
+            GeneratedColumns.Validation.VALUE_MATCH,
+            List.of(ts, g_ts_month)
+        );
+        Map<String, Object> generateSourceAndCheckConstraints =
+            sourceGen.generateSourceAndCheckConstraints(new Object[] { 1631628823105L, 1630454400000L });
+        assertThat(generateSourceAndCheckConstraints, Matchers.hasEntry("ts", 1631628823105L));
+        assertThat("partition value must not become part of the source", generateSourceAndCheckConstraints.size(), is(1));
+    }
+
+    @Test
+    public void test_generated_partition_column_fails_validation_if_value_is_wrong() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addPartitionedTable("""
+                create table tbl (
+                    ts timestamp with time zone,
+                    g_ts_month as date_trunc('month', ts)
+                ) partitioned by (g_ts_month)
+            """)
+            .build();
+        Reference ts = (Reference) e.asSymbol("tbl.ts");
+        Reference g_ts_month = (Reference) e.asSymbol("tbl.g_ts_month");
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        InsertSourceGen sourceGen = InsertSourceGen.of(
+            txnCtx,
+            e.nodeCtx,
+            tbl,
+            new PartitionName(tbl.ident(), List.of("1630454400000")).asIndexName(),
+            GeneratedColumns.Validation.VALUE_MATCH,
+            List.of(ts, g_ts_month)
+        );
+        assertThrows(IllegalArgumentException.class, () -> {
+            sourceGen.generateSourceAndCheckConstraints(new Object[] { 1631628823105L, 2630454400000L });
+        });
+    }
 }

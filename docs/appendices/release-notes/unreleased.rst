@@ -90,4 +90,6 @@ Changes
 Fixes
 =====
 
-None
+- Fixed an issue that caused ``INSERT INTO`` statements to fail on partitioned
+  tables where the partitioned column is generated and the column and value are
+  provided in the statement.
