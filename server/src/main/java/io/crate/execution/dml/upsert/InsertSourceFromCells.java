@@ -116,6 +116,9 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                 Maps.mergeInto(source, column.name(), column.path(), valueForInsert, Map::putIfAbsent);
             }
         }
+
+        generatedColumns.setNextRow(row);
+        generatedColumns.validateValues(source);
         for (int i = 0; i < partitionedByColumns.size(); i++) {
             var pCol = partitionedByColumns.get(i);
             var column = pCol.column();
@@ -124,9 +127,6 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             fullPath.addAll(column.path());
             Maps.removeByPath(source, fullPath);
         }
-
-        generatedColumns.setNextRow(row);
-        generatedColumns.validateValues(source);
         for (var entry : generatedColumns.generatedToInject()) {
             var reference = entry.getKey();
             var value = entry.getValue().value();
