@@ -29,6 +29,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -99,6 +100,14 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
     public void testDynamicTrueCanBeChangedFromBooleanToStringValue() {
         HashMap<String, Object> source = new HashMap<>();
         source.put("dynamic", true);
+        TransportSchemaUpdateAction.mergeIntoSource(source, singletonMap("dynamic", "true"));
+        assertThat(source.get("dynamic"), Matchers.is("true"));
+    }
+
+    @Test
+    public void testMergeIntoSourceWithNullValuedSource() {
+        HashMap<String, Object> source = new HashMap<>();
+        source.put("dynamic", null);
         TransportSchemaUpdateAction.mergeIntoSource(source, singletonMap("dynamic", "true"));
         assertThat(source.get("dynamic"), Matchers.is("true"));
     }

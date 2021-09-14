@@ -97,3 +97,6 @@ Fixes
 - Fixed an issue that caused ``INSERT INTO`` statements to fail on partitioned
   tables where the partitioned column is generated and the column and value are
   provided in the statement.
+
+ - Fixed an issue that caused ``NullPointerException`` when inserting into
+   previously altered tables that were partitioned and had generated columns.
