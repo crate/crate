@@ -68,6 +68,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import static org.elasticsearch.index.mapper.MapperService.parseMapping;
@@ -228,9 +229,11 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                     //noinspection unchecked
                     mergeIntoSource((Map) sourceValue, (Map) updateValue, Lists2.concat(path, key));
                 } else {
-                    if (updateAllowed(key, sourceValue, updateValue)) {
+                    if (sourceValue == null) {  // mainly to handle BWC. Ideally there should not be null-valued entries.
                         source.put(key, updateValue);
-                    } else if (!isUpdateIgnored(path) && !sourceValue.equals(updateValue)) {
+                    } else if (updateAllowed(key, sourceValue, updateValue)) {
+                        source.put(key, updateValue);
+                    } else if (!isUpdateIgnored(path) && !Objects.equals(sourceValue, updateValue)) {
                         String fqKey = String.join(".", path) + '.' + key;
                         throw new IllegalArgumentException(
                             "Can't overwrite " + fqKey + "=" + sourceValue + " with " + updateValue);
