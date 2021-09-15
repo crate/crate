@@ -7,7 +7,7 @@
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,27 +19,33 @@
 
 package org.elasticsearch.transport;
 
-import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
 
-import java.io.IOException;
+public class TestTransportChannel implements TransportChannel {
 
-/**
- * A transport channel allows to send a response to a request on the channel.
- */
-public interface TransportChannel {
+    private final ActionListener<TransportResponse> listener;
 
-    String getProfileName();
+    public TestTransportChannel(ActionListener<TransportResponse> listener) {
+        this.listener = listener;
+    }
 
-    String getChannelType();
+    @Override
+    public String getProfileName() {
+        return "default";
+    }
 
-    void sendResponse(TransportResponse response) throws IOException;
+    @Override
+    public void sendResponse(TransportResponse response) {
+        listener.onResponse(response);
+    }
 
-    void sendResponse(Exception exception) throws IOException;
+    @Override
+    public void sendResponse(Exception exception) {
+        listener.onFailure(exception);
+    }
 
-    /**
-     * Returns the version of the other party that this channel will send a response to.
-     */
-    default Version getVersion() {
-        return Version.CURRENT;
+    @Override
+    public String getChannelType() {
+        return "test";
     }
 }

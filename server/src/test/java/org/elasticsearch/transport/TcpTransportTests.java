@@ -411,7 +411,7 @@ public class TcpTransportTests extends ESTestCase {
 
             var logger = Loggers.getLogger(TcpTransport.class);
             TcpTransport.handleException(logger, channel, exception, lifecycle,
-                new OutboundHandler(randomAlphaOfLength(10), Version.CURRENT, testThreadPool,
+                new OutboundHandler(randomAlphaOfLength(10), Version.CURRENT, new StatsTracker(), testThreadPool,
                     BigArrays.NON_RECYCLING_INSTANCE));
 
             if (expectClosed) {

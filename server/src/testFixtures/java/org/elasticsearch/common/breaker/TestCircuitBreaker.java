@@ -7,7 +7,7 @@
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -17,29 +17,31 @@
  * under the License.
  */
 
-package org.elasticsearch.transport;
+package org.elasticsearch.common.breaker;
 
-import org.elasticsearch.Version;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import java.io.IOException;
+public class TestCircuitBreaker extends NoopCircuitBreaker {
 
-/**
- * A transport channel allows to send a response to a request on the channel.
- */
-public interface TransportChannel {
+    private final AtomicBoolean shouldBreak = new AtomicBoolean(false);
 
-    String getProfileName();
+    public TestCircuitBreaker() {
+        super("test");
+    }
 
-    String getChannelType();
+    @Override
+    public double addEstimateBytesAndMaybeBreak(long bytes, String label) throws CircuitBreakingException {
+        if (shouldBreak.get()) {
+            throw new CircuitBreakingException("broken");
+        }
+        return 0;
+    }
 
-    void sendResponse(TransportResponse response) throws IOException;
+    public void startBreaking() {
+        shouldBreak.set(true);
+    }
 
-    void sendResponse(Exception exception) throws IOException;
-
-    /**
-     * Returns the version of the other party that this channel will send a response to.
-     */
-    default Version getVersion() {
-        return Version.CURRENT;
+    public void stopBreaking() {
+        shouldBreak.set(false);
     }
 }
