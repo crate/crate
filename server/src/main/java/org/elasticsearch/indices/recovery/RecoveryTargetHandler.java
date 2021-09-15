@@ -110,4 +110,7 @@ public interface RecoveryTargetHandler {
     /** writes a partial file chunk to the target store */
     void writeFileChunk(StoreFileMetadata fileMetadata, long position, BytesReference content,
                         boolean lastChunk, int totalTranslogOps, ActionListener<Void> listener);
+
+    default void cancel() {
+    }
 }

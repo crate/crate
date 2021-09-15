@@ -402,7 +402,7 @@ should be crossed out as well.
 - [x] a508d3303d5 Ensure no circular reference in translog tragic exception (#55959)
 - [ ] 9eb67365002 Fix NullPointer when message shortcircuited (#55945)
 - [ ] 06b33457878 Avoid double-recovery when state recovery delayed
-- [ ] cd228095dfe Retry failed peer recovery due to transient errors (#55883)
+- [x] cd228095dfe Retry failed peer recovery due to transient errors (#55883)
 - [ ] cab7bcc1562 Disk decider respect watermarks for single data node (#55805) (#55847)
 - [ ] f38385ee257 Fix Leaking Listener When Closing NodeClient (#55676) (#55864)
 - [x] 80662f31a1c Introduce mechanism to stub request handling (#55832)
