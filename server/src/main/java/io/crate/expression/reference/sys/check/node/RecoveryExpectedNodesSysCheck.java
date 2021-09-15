@@ -34,8 +34,9 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysNodeCheck {
     private final Settings settings;
 
     static final int ID = 1;
-    private static final String DESCRIPTION = "The value of the cluster setting 'gateway.expected_nodes' " +
-                                              "must be equal to the maximum/expected number of master and data nodes in the cluster.";
+    private static final String DESCRIPTION = "The value of the cluster setting 'gateway.expected_data_nodes' " +
+                                              "(or the deprecated `gateway.recovery_after_nodes` setting)" +
+                                              "must be equal to the maximum/expected number of (data) nodes in the cluster.";
 
     @Inject
     public RecoveryExpectedNodesSysCheck(ClusterService clusterService, Settings settings) {
@@ -46,12 +47,17 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysNodeCheck {
 
     @Override
     public boolean isValid() {
-        return validate(clusterService.state().nodes().getMasterAndDataNodes().size(),
-            GatewayService.EXPECTED_NODES_SETTING.get(settings)
-        );
+        int actualNodes = clusterService.state().nodes().getDataNodes().size();
+        int expectedNodes = GatewayService.EXPECTED_DATA_NODES_SETTING.get(settings);
+        if (expectedNodes == -1) {
+            // fallback to deprecated setting for BWC
+            actualNodes = clusterService.state().nodes().getSize();
+            expectedNodes = GatewayService.EXPECTED_NODES_SETTING.get(settings);
+        }
+        return validate(actualNodes, expectedNodes);
     }
 
-    protected boolean validate(int dataAndMaster, int expectedNodes) {
-        return dataAndMaster == 1 || dataAndMaster == expectedNodes;
+    private static boolean validate(int actualNodes, int expectedNodes) {
+        return actualNodes == 1 || actualNodes == expectedNodes;
     }
 }
