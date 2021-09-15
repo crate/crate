@@ -613,8 +613,7 @@ public class Node implements Closeable {
                         processRecoverySettings(settingsModule.getClusterSettings(), recoverySettings);
                         b.bind(PeerRecoverySourceService.class).toInstance(new PeerRecoverySourceService(transportService,
                                                                                                          indicesService,
-                                                                                                         recoverySettings,
-                                                                                                         bigArrays));
+                                                                                                         recoverySettings));
                         b.bind(PeerRecoveryTargetService.class).toInstance(new PeerRecoveryTargetService(threadPool,
                                                                                                          transportService,
                                                                                                          recoverySettings,
