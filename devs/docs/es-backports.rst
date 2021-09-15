@@ -478,7 +478,7 @@ should be crossed out as well.
 - [ ] bc5dae2713b Fix compilation in RoutingNode
 - [ ] 90ab949415e Improve performance of shards limits decider (#53577)
 - [ ] 6cc564d677a Restore off-heap loading for term dictionary in ReadOnlyEngine (#53713)
-- [ ] e7ae9ae596e Deprecate delaying state recovery for master nodes (#53646)
+- [x] e7ae9ae596e Deprecate delaying state recovery for master nodes (#53646)
 - [ ] 71b703edd1e Rename AtomicFieldData to LeafFieldData (#53554)
 - [ ] 01d2339883d Invoke response handler on failure to send (#53631)
 - [ ] 881d0bfa8a8 Add server name to remote info API (#53634)

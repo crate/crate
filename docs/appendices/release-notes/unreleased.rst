@@ -48,7 +48,15 @@ None
 Deprecations
 ============
 
-None
+- The :ref:`gateway.expected_nodes <gateway.expected_nodes>` cluster setting
+  has been marked as deprecated and will be removed in CrateDB 5.0.
+  The :ref:`gateway.expected_data_nodes <gateway.expected_data_nodes>` must be
+  used instead.
+
+- The :ref:`gateway.recover_after_nodes <gateway.recover_after_nodes>` cluster
+  setting has been marked as deprecated and will be removed in CrateDB 5.0.
+  The :ref:`gateway.recover_after_data_nodes <gateway.recover_after_data_nodes>`
+  must be used instead.
 
 
 Changes
