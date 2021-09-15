@@ -117,7 +117,8 @@ public final class Fetch extends ForwardingLogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        ExecutionPlan executionPlan = Merge.ensureOnHandler(
+        plannerContext.newReaderAllocations();
+        var executionPlan = Merge.ensureOnHandler(
             source.build(
                 plannerContext,
                 hints,
@@ -131,8 +132,8 @@ public final class Fetch extends ForwardingLogicalPlan {
             ),
             plannerContext
         );
-        Function<Symbol, Symbol> paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
+        Function<Symbol, Symbol> paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         FetchPhase fetchPhase = new FetchPhase(
             plannerContext.nextExecutionPhaseId(),
             readerAllocations.nodeReaders().keySet(),
