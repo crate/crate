@@ -40,9 +40,8 @@ public interface TransportMessageListener {
      * @param requestId the request ID (unique per client)
      * @param action the request action
      * @param response the response send
-     * @param finalOptions the response options
      */
-    default void onResponseSent(long requestId, String action, TransportResponse response, TransportResponseOptions finalOptions) {
+    default void onResponseSent(long requestId, String action, TransportResponse response) {
     }
 
     /***

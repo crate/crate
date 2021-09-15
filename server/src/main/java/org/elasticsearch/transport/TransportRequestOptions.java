@@ -19,26 +19,21 @@
 
 package org.elasticsearch.transport;
 
+
 import io.crate.common.unit.TimeValue;
 
 public class TransportRequestOptions {
 
     private final TimeValue timeout;
-    private final boolean compress;
     private final Type type;
 
-    private TransportRequestOptions(TimeValue timeout, boolean compress, Type type) {
+    private TransportRequestOptions(TimeValue timeout, Type type) {
         this.timeout = timeout;
-        this.compress = compress;
         this.type = type;
     }
 
     public TimeValue timeout() {
         return this.timeout;
-    }
-
-    public boolean compress() {
-        return this.compress;
     }
 
     public Type type() {
@@ -59,9 +54,12 @@ public class TransportRequestOptions {
         return new Builder();
     }
 
+    public static Builder builder(TransportRequestOptions options) {
+        return new Builder().withTimeout(options.timeout).withType(options.type());
+    }
+
     public static class Builder {
         private TimeValue timeout;
-        private boolean compress;
         private Type type = Type.REG;
 
         private Builder() {
@@ -76,18 +74,13 @@ public class TransportRequestOptions {
             return this;
         }
 
-        public Builder withCompress(boolean compress) {
-            this.compress = compress;
-            return this;
-        }
-
         public Builder withType(Type type) {
             this.type = type;
             return this;
         }
 
         public TransportRequestOptions build() {
-            return new TransportRequestOptions(timeout, compress, type);
+            return new TransportRequestOptions(timeout, type);
         }
     }
 }

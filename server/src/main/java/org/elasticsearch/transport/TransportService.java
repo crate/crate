@@ -19,27 +19,8 @@
 
 package org.elasticsearch.transport;
 
-import static org.elasticsearch.common.settings.Setting.timeSetting;
-import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_EXCLUDE_SETTING;
-import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_INCLUDE_SETTING;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.UnknownHostException;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
-import javax.annotation.Nullable;
-
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -68,8 +49,25 @@ import org.elasticsearch.tasks.TaskCancelledException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.function.Predicate;
+
+import static org.elasticsearch.common.settings.Setting.timeSetting;
+import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_EXCLUDE_SETTING;
+import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_INCLUDE_SETTING;
 
 public class TransportService extends AbstractLifecycleComponent implements TransportMessageListener, TransportConnectionListener {
 
@@ -629,7 +627,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         } catch (final Exception e) {
             // usually happen either because we failed to connect to the node
             // or because we failed serializing the message
-            final Transport.ResponseContext contextToNotify = responseHandlers.remove(requestId);
+            final Transport.ResponseContext<? extends TransportResponse> contextToNotify = responseHandlers.remove(requestId);
             // If holderToNotify == null then handler has already been taken care of.
             if (contextToNotify != null) {
                 if (timeoutHandler != null) {
@@ -854,14 +852,15 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     }
 
     /** called by the {@link Transport} implementation once a response was sent to calling node */
-    public void onResponseSent(long requestId, String action, TransportResponse response, TransportResponseOptions options) {
+    public void onResponseSent(long requestId, String action, TransportResponse response) {
         if (tracerLog.isTraceEnabled() && shouldTraceAction(action)) {
             tracerLog.trace("[{}][{}] sent response", requestId, action);
         }
-        messageListener.onResponseSent(requestId, action, response, options);
+        messageListener.onResponseSent(requestId, action, response);
     }
 
     /** called by the {@link Transport} implementation after an exception was sent as a response to an incoming request */
+    @Override
     public void onResponseSent(long requestId, String action, Exception e) {
         if (tracerLog.isTraceEnabled() && shouldTraceAction(action)) {
             tracerLog.trace(() -> new ParameterizedMessage("[{}][{}] sent error response", requestId, action), e);
@@ -869,8 +868,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         messageListener.onResponseSent(requestId, action, e);
     }
 
-    public RequestHandlerRegistry getRequestHandler(String action) {
-        return transport.getRequestHandler(action);
+    public RequestHandlerRegistry<? extends TransportRequest> getRequestHandler(String action) {
+        return transport.getRequestHandlers().getHandler(action);
     }
 
     private void checkForTimeout(long requestId) {
@@ -940,7 +939,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                 long timeoutTime = threadPool.relativeTimeInMillis();
                 timeoutInfoHandlers.put(requestId, new TimeoutInfoHolder(node, action, sentTime, timeoutTime));
                 // now that we have the information visible via timeoutInfoHandlers, we try to remove the request id
-                final Transport.ResponseContext holder = responseHandlers.remove(requestId);
+                final Transport.ResponseContext<? extends TransportResponse> holder = responseHandlers.remove(requestId);
                 if (holder != null) {
                     assert holder.action().equals(action);
                     assert holder.connection().getNode().equals(node);
@@ -1083,12 +1082,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
         @Override
         public void sendResponse(TransportResponse response) throws IOException {
-            sendResponse(response, TransportResponseOptions.EMPTY);
-        }
-
-        @Override
-        public void sendResponse(final TransportResponse response, TransportResponseOptions options) throws IOException {
-            service.onResponseSent(requestId, action, response, options);
+            service.onResponseSent(requestId, action, response);
             final TransportResponseHandler handler = service.responseHandlers.onResponseReceived(requestId, service);
             // ignore if its null, the service logs it
             if (handler != null) {
@@ -1200,10 +1194,9 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         @Override
         public void onResponseSent(long requestId,
                                    String action,
-                                   TransportResponse response,
-                                   TransportResponseOptions finalOptions) {
+                                   TransportResponse response) {
             for (TransportMessageListener listener : listeners) {
-                listener.onResponseSent(requestId, action, response, finalOptions);
+                listener.onResponseSent(requestId, action, response);
             }
         }
 
