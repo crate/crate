@@ -556,4 +556,20 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
         assertThat(notNull, Matchers.containsInAnyOrder("dummy"));
     }
+
+    @Test
+    public void test_can_add_fulltext_columns_without_explicit_analyzer() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE tbl (x int)")
+            .build();
+        BoundAddColumn addColumn = analyze("ALTER TABLE tbl ADD COLUMN content TEXT INDEX USING FULLTEXT");
+        Map<String, Object> properties = (Map<String, Object>) addColumn.mapping().get("properties");
+        Map<String, Object> content = (Map<String, Object>) properties.get("content");
+
+        assertThat(
+            "Fulltext columns must have type `text`. Regular varchar or text columns have type `keyword`",
+            content.get("type"),
+            is("text")
+        );
+    }
 }
