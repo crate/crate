@@ -43,6 +43,7 @@ import org.elasticsearch.indices.recovery.PeerRecoverySourceService;
 import org.elasticsearch.transport.TransportService;
 
 import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING;
+import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_CONCURRENT_OPERATIONS_SETTING;
 
 public class BlobService extends AbstractLifecycleComponent {
 
@@ -103,6 +104,7 @@ public class BlobService extends AbstractLifecycleComponent {
                 request,
                 fileChunkSizeInBytes,
                 INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING.get(settings),
+                INDICES_RECOVERY_MAX_CONCURRENT_OPERATIONS_SETTING.get(settings),
                 transportService,
                 blobTransferTarget,
                 blobIndicesService
