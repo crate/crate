@@ -1300,6 +1300,11 @@ The following settings can be used to configure the behavior of the
   because you only want the cluster state to be recovered after all nodes are
   started.
 
+  .. CAUTION::
+
+      This setting is deprecated and will be removed in CrateDB 5.0.
+      Use `gateway.expected_data_nodes`_ instead.
+
 .. _gateway.expected_data_nodes:
 
 **gateway.expected_data_nodes**
@@ -1335,6 +1340,11 @@ The following settings can be used to configure the behavior of the
   because you only want the cluster state to be recovered once all nodes are
   started. However, the value must be bigger than the half of the expected
   number of nodes in the cluster.
+
+  .. CAUTION::
+
+      This setting is deprecated and will be removed in CrateDB 5.0.
+      Use `gateway.recover_after_data_nodes`_ instead.
 
 .. _gateway.recover_after_data_nodes:
 

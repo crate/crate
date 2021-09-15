@@ -165,7 +165,9 @@ information about the currently applied cluster settings.
     | settings['discovery']['zen']                                                      | object           |
     | settings['discovery']['zen']['publish_timeout']                                   | text             |
     | settings['gateway']                                                               | object           |
+    | settings['gateway']['expected_data_nodes']                                        | integer          |
     | settings['gateway']['expected_nodes']                                             | integer          |
+    | settings['gateway']['recover_after_data_nodes']                                   | integer          |
     | settings['gateway']['recover_after_nodes']                                        | integer          |
     | settings['gateway']['recover_after_time']                                         | text             |
     | settings['indices']                                                               | object           |
@@ -757,9 +759,9 @@ Example query::
   +----+---------...-+--------------------------------------------------------------...-+
   | id | node_id     | description                                                      |
   +----+---------...-+--------------------------------------------------------------...-+
-  |  1 | ...         | The value of the cluster setting 'gateway.expected_nodes' mus... |
-  |  2 | ...         | The value of the cluster setting 'gateway.recover_after_nodes... |
-  |  3 | ...         | If any of the "expected nodes" recovery settings are set, the... |
+  |  1 | ...         | The value of the cluster setting 'gateway.expected_data_nodes... |
+  |  2 | ...         | The value of the cluster setting 'gateway.recover_after_data_... |
+  |  3 | ...         | If any of the "expected data nodes" recovery settings are set... |
   |  5 | ...         | The high disk watermark is exceeded on the node. The cluster ... |
   |  6 | ...         | The low disk watermark is exceeded on the node. The cluster w... |
   |  7 | ...         | The flood stage disk watermark is exceeded on the node. Table... |
@@ -776,9 +778,9 @@ column. By doing this, specially CrateDB's built-in Admin-UI won't complain
 anymore about failing checks.
 
 Imagine we've added a new node to our cluster, but as the
-:ref:`gateway.expected_nodes <gateway.expected_nodes>` column can only
-be set via config-file or command-line argument, the check for this setting
-will not pass on the already running nodes until the config-file or
+:ref:`gateway.expected_data_nodes <gateway.expected_data_nodes>` column can
+only be set via config-file or command-line argument, the check for this
+setting will not pass on the already running nodes until the config-file or
 command-line argument on these nodes is updated and the nodes are restarted
 (which is not what we want on a healthy well running cluster).
 
@@ -799,21 +801,35 @@ flag::
 Description of checked node settings
 ------------------------------------
 
-Recovery expected nodes
-.......................
+Recovery expected data nodes
+............................
 
-The check for the :ref:`gateway.expected_nodes <gateway.expected_nodes>`
-setting checks that the number of nodes that should be waited for the immediate
+The check for the
+:ref:`gateway.expected_data_nodes <gateway.expected_data_nodes>` setting checks
+that the number of data nodes that should be waited for the immediate
 cluster state :ref:`recovery <gloss-shard-recovery>`. This value must be equal
-to the maximum number of data and master nodes in the cluster.
+to the maximum number of data nodes in the cluster.
 
-Recovery after nodes
-....................
+.. NOTE::
 
-The check for the :ref:`gateway.recover_after_nodes
-<gateway.recover_after_nodes>` verifies that the number of started nodes before
-the cluster starts must be greater than the half of the expected number of
-nodes and equal to or less than number of nodes in the cluster.
+   For backward compatibility, setting the deprecated
+   :ref:`gateway.expected_nodes <gateway.expected_nodes>` instead is still
+   supported. It must then be equal to the maximum of data and master nodes.
+
+Recovery after data nodes
+.........................
+
+The check for the :ref:`gateway.recover_after_data_nodes
+<gateway.recover_after_data_nodes>` verifies that the number of started nodes
+before the cluster starts must be greater than the half of the expected number
+of data nodes and equal to or less than number of data nodes in the cluster.
+
+.. NOTE::
+
+   For backward compatibility, setting the deprecated
+   :ref:`gateway.recover_after_nodes <gateway.recover_after_nodes>` instead
+   is still supported. It must then be equal to less than the number data and
+   master nodes.
 
 ::
 
@@ -825,10 +841,16 @@ Here, ``R`` is the number of :ref:`recovery <gloss-shard-recovery>` nodes and
 Recovery after time
 ...................
 
-If :ref:`gateway.recover_after_nodes <gateway.recover_after_nodes>` is set,
-then :ref:`gateway.recover_after_time <gateway.recover_after_time>` must not be
-set to ``0s``, otherwise the ``gateway.recover_after_nodes`` setting wouldn't
-have any effect.
+If :ref:`gateway.recover_after_data_nodes <gateway.recover_after_data_nodes>`
+is set, then :ref:`gateway.recover_after_time <gateway.recover_after_time>`
+must not be set to ``0s``, otherwise the ``gateway.recover_after_data_nodes``
+setting wouldn't have any effect.
+
+.. NOTE::
+
+   For backward compatibility, setting the deprecated
+   :ref:`gateway.recover_after_nodes <gateway.recover_after_nodes>` instead
+   is still supported.
 
 .. _node_checks_watermark_high:
 
