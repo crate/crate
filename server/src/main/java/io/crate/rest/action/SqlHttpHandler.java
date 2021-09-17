@@ -30,6 +30,7 @@ import io.crate.action.sql.parser.SQLRequestParseContext;
 import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.AccessControl;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
 import io.crate.breaker.BlockBasedRamAccounting;
@@ -211,7 +212,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         }
     }
 
-    private Session ensureSession(FullHttpRequest request) {
+    @VisibleForTesting
+    Session ensureSession(FullHttpRequest request) {
         String defaultSchema = request.headers().get(REQUEST_HEADER_SCHEMA);
         User authenticatedUser = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
         Session session = this.session;
@@ -220,14 +222,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         } else if (session.sessionContext().authenticatedUser().equals(authenticatedUser) == false) {
             session.close();
             session = sqlOperations.createSession(defaultSchema, authenticatedUser);
-        } else {
-            // We don't want to keep "set session" settings across requests yet to not mess with clients doing
-            // per request round-robin
-            SessionContext sessionContext = session.sessionContext();
-            sessionContext.resetToDefaults();
-            if (defaultSchema != null) {
-                sessionContext.setSearchPath(defaultSchema);
-            }
         }
         this.session = session;
         return session;
