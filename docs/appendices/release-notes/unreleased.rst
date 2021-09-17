@@ -86,6 +86,14 @@ Changes
 
 - Added support of ``numeric`` type to the ``avg`` aggregation function.
 
+- Enabled HTTP connections to preserve :ref:`session settings <conf-session>`
+  across the requests as long as the connection is re-used.
+
+  Note that connections are established on an individual node to node basis. If
+  a client sends requests to different nodes, those won't share the same
+  session settings, unless the client sets the session settings on each node
+  individually.
+
 
 Fixes
 =====
