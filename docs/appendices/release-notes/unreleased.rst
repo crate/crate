@@ -60,4 +60,6 @@ None
 Fixes
 =====
 
-None
+- Fixed an issue that caused ``UNION ALL`` statements to succeed or throw
+  unexpected exceptions when the ``SELECT`` results for ``UNION ALL`` included
+  object types with identically named but differently typed sub-columns.
