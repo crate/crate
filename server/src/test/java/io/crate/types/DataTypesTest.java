@@ -172,32 +172,32 @@ public class DataTypesTest extends ESTestCase {
 
     @Test
     public void test_is_same_type_on_primitive_types() {
-        assertThat(DataTypes.isSameType(DataTypes.STRING, DataTypes.STRING), is(true));
-        assertThat(DataTypes.isSameType(DataTypes.INTEGER, DataTypes.DOUBLE), is(false));
+        assertThat(DataTypes.isCompatibleType(DataTypes.STRING, DataTypes.STRING), is(true));
+        assertThat(DataTypes.isCompatibleType(DataTypes.INTEGER, DataTypes.DOUBLE), is(false));
     }
 
     @Test
     public void test_is_same_type_on_complex_types() {
-        assertThat(DataTypes.isSameType(DataTypes.UNTYPED_OBJECT, DataTypes.BIGINT_ARRAY), is(false));
-        assertThat(DataTypes.isSameType(DataTypes.UNTYPED_OBJECT, DataTypes.GEO_POINT), is(false));
+        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.BIGINT_ARRAY), is(false));
+        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.GEO_POINT), is(false));
     }
 
     @Test
     public void test_is_same_type_on_primitive_and_complex_types() {
-        assertThat(DataTypes.isSameType(DataTypes.STRING_ARRAY, DataTypes.STRING), is(false));
-        assertThat(DataTypes.isSameType(DataTypes.UNTYPED_OBJECT, DataTypes.DOUBLE), is(false));
+        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.STRING), is(false));
+        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.DOUBLE), is(false));
     }
 
     @Test
     public void test_is_same_type_on_array_types_of_the_same_dimension() {
-        assertThat(DataTypes.isSameType(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY), is(true));
-        assertThat(DataTypes.isSameType(DataTypes.STRING_ARRAY, DataTypes.BIGINT_ARRAY), is(false));
+        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY), is(true));
+        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.BIGINT_ARRAY), is(false));
     }
 
     @Test
     public void test_is_same_type_on_array_types_of_not_equal_dimension_and_same_inner_type() {
         assertThat(
-            DataTypes.isSameType(
+            DataTypes.isCompatibleType(
                 new ArrayType<>(DataTypes.STRING_ARRAY),
                 DataTypes.STRING_ARRAY),
             is(false));

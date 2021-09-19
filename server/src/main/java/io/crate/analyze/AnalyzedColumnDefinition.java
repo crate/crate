@@ -331,7 +331,7 @@ public class AnalyzedColumnDefinition<T> {
                 DataType<?> dataType = definition.dataType();
                 boolean val = storageSettings.getAsBoolean(property, true);
                 if (val == false) {
-                    if (!DataTypes.isSameType(dataType, DataTypes.STRING)) {
+                    if (dataType.id() != DataTypes.STRING.id()) {
                         throw new IllegalArgumentException(
                             String.format(Locale.ENGLISH, "Invalid storage option \"columnstore\" for data type \"%s\"",
                                           dataType.getName()));
