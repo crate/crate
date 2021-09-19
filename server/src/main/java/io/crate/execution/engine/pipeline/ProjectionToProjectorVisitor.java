@@ -353,7 +353,7 @@ public class ProjectionToProjectorVisitor
         StringBuilder sb = new StringBuilder(uri);
         Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME, context.txnCtx);
         assert resolvedFileName instanceof Literal : "resolvedFileName must be a Literal, but is: " + resolvedFileName;
-        assert DataTypes.isSameType(resolvedFileName.valueType(), StringType.INSTANCE) :
+        assert resolvedFileName.valueType().id() == StringType.ID :
             "resolvedFileName.valueType() must be " + StringType.INSTANCE;
 
         String fileName = (String) ((Literal) resolvedFileName).value();

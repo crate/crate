@@ -111,3 +111,7 @@ Fixes
 
  - Fixed an issue that caused ``NullPointerException`` when inserting into
    previously altered tables that were partitioned and had generated columns.
+
+- Fixed an issue that caused ``UNION ALL`` statements to succeed or throw
+  unexpected exceptions when the ``SELECT`` results for ``UNION ALL`` included
+  object types with identically named but differently typed sub-columns.

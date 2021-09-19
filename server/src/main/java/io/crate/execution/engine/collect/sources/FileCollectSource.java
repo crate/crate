@@ -101,11 +101,11 @@ public class FileCollectSource implements CollectSource {
                                                       NodeContext nodeCtx,
                                                       Symbol targetUri) {
         Object value = SymbolEvaluator.evaluate(txnCtx, nodeCtx, targetUri, Row.EMPTY, SubQueryResults.EMPTY);
-        if (DataTypes.isSameType(targetUri.valueType(), DataTypes.STRING)) {
+        if (targetUri.valueType().id() == DataTypes.STRING.id()) {
             String uri = (String) value;
             return Collections.singletonList(uri);
         } else if (DataTypes.isArray(targetUri.valueType()) &&
-                   DataTypes.isSameType(ArrayType.unnest(targetUri.valueType()), DataTypes.STRING)) {
+                   ArrayType.unnest(targetUri.valueType()).id() == DataTypes.STRING.id()) {
             //noinspection unchecked
             return (List<String>) value;
         }
