@@ -541,33 +541,47 @@ public final class DataTypes {
     }
 
     /**
-     * Compares any two {@link DataType} by their IDs.
+     * Compares any two {@link DataType} by their IDs and names. For ObjectTypes, their inner types are compared only if the names are the same.
+     * The rest of the DataTypes are compared by their IDs.
      * The parameters of the data types, if they have any, are ignored.
      */
-    public static boolean isSameType(DataType<?> left, DataType<?> right) {
+    public static boolean isCompatibleType(DataType<?> left, DataType<?> right) {
         if (left.id() != right.id()) {
             return false;
         } else if (isArray(left)) {
-            return isSameType(
+            return isCompatibleType(
                 ((ArrayType<?>) left).innerType(),
                 ((ArrayType<?>) right).innerType());
-        } else {
-            return true;
+        } else if (left.id() == ObjectType.ID) {
+            var l = (ObjectType) left;
+            var r = (ObjectType) right;
+            for (var lEntry : l.innerTypes().entrySet()) {
+                var lInner = lEntry.getValue();
+                var rInner = r.innerTypes().get(lEntry.getKey());
+                if (rInner == null) {  // skip if the names are different
+                    continue;
+                }
+                if (!DataTypes.isCompatibleType(lInner, rInner)) {
+                    return false;
+                }
+            }
         }
+        return true;
     }
 
     /**
-     * Compares two {@link List<DataType>} by their IDs.
+     * Compares two {@link List<DataType>} by their IDs and names. For ObjectTypes, their inner types are compared only if the names are the same.
+     * The rest of the DataTypes are compared by their IDs.
      * The parameters of the data types, if they have any, are ignored.
      */
-    public static boolean isSameType(List<DataType<?>> left, List<DataType<?>> right) {
+    public static boolean isCompatibleType(List<DataType<?>> left, List<DataType<?>> right) {
         if (left.size() != right.size()) {
             return false;
         }
         assert left instanceof RandomAccess && right instanceof RandomAccess
             : "data type lists should support RandomAccess for fast lookups";
         for (int i = 0; i < left.size(); i++) {
-            if (!isSameType(left.get(i), right.get(i))) {
+            if (!isCompatibleType(left.get(i), right.get(i))) {
                 return false;
             }
         }
