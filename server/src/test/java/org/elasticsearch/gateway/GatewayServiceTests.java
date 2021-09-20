@@ -19,13 +19,15 @@
 
 package org.elasticsearch.gateway;
 
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.common.unit.TimeValue;
 
 public class GatewayServiceTests extends ESTestCase {
 
@@ -53,6 +55,7 @@ public class GatewayServiceTests extends ESTestCase {
         assertThat(service.recoverAfterTime().millis(), Matchers.equalTo(timeValue.millis()));
     }
 
+    @Test
     public void testDeprecatedSettings() {
         GatewayService service = createService(Settings.builder());
 

@@ -97,7 +97,9 @@ public class DeprecationLogger {
         if (log) {
             logger.warn(message, params);
             var msg = LoggerMessageFormat.format(message, params);
-            RECENT_WARNINGS.get().add(msg);
+            RingBuffer<String> ringBuffer = RECENT_WARNINGS.get();
+            System.out.println("💀 THREAD=" + Thread.currentThread().getName() + " logging=" + message + " ringBuffer=" + ringBuffer);
+            ringBuffer.add(msg);
         }
     }
 
@@ -106,6 +108,8 @@ public class DeprecationLogger {
     }
 
     public static void resetWarnings() {
-        RECENT_WARNINGS.get().reset();
+        RingBuffer<String> ringBuffer = RECENT_WARNINGS.get();
+        System.out.println("💀 THREAD=" + Thread.currentThread().getName() + " resetting ringBuffer=" + ringBuffer);
+        ringBuffer.reset();
     }
 }
