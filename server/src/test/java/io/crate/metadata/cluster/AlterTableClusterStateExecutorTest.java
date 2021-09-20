@@ -21,6 +21,7 @@
 
 package io.crate.metadata.cluster;
 
+import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -33,6 +34,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
@@ -40,6 +42,11 @@ import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class AlterTableClusterStateExecutorTest {
 
@@ -81,6 +88,18 @@ public class AlterTableClusterStateExecutorTest {
             .put(SETTING_NUMBER_OF_SHARDS, 4);
         Settings preparedSettings = AlterTableClusterStateExecutor.markArchivedSettings(builder.build());
         assertThat(preparedSettings.keySet(), containsInAnyOrder(SETTING_NUMBER_OF_SHARDS, ARCHIVED_SETTINGS_PREFIX + "*"));
+    }
+
+    @Test
+    public void testAddExistingMetaDoNotAddEmptyValues() throws IOException {
+        AlterTableRequest request = mock(AlterTableRequest.class);
+        when(request.mappingDeltaAsMap()).thenReturn(Collections.singletonMap("_meta", new HashMap<String,Object>()));
+
+        var currentMeta = new HashMap<String,Object>();
+
+        assertThat(AlterTableClusterStateExecutor.addExistingMeta(request, currentMeta), containsString("{\"_meta\":{}}"));
+        verify(request, times(1)).mappingDeltaAsMap();
+        // DO NOT WANT empty containers and nulls: "{"_meta":{"indices":{},"partitioned_by":[],"primary_keys":null,"check_constraints":null,"constraints":{}}}"
     }
 
 }
