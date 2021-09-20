@@ -90,6 +90,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused ``ALTER TABLE <tbl> ADD COLUMN <columName> INDEX
+  USING FULLTEXT`` statements to ignore the ``INDEX USING FULLTEXT`` part.
+
 - Fixed a performance regression introduced in 4.2 which could cause queries
   including joins, virtual tables and ``LIMIT`` operators to run slower than
   before.
