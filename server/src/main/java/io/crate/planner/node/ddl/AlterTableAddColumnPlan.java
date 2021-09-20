@@ -115,20 +115,18 @@ public class AlterTableAddColumnPlan implements Plan {
         addExistingCheckConstraints(tableInfo, tableElements);
         // validate table elements
         AnalyzedTableElements<Symbol> tableElementsUnboundWithExpressions = alterTable.analyzedTableElementsWithExpressions();
+        Settings tableSettings = AnalyzedTableElements.validateAndBuildSettings(
+            tableElements, fulltextAnalyzerResolver);
         Map<String, Object> mapping = AnalyzedTableElements.finalizeAndValidate(
             tableInfo.ident(),
             tableElementsUnboundWithExpressions,
             tableElements
         );
 
-
         int numCurrentPks = tableInfo.primaryKey().size();
         if (tableInfo.primaryKey().contains(DocSysColumns.ID)) {
             numCurrentPks -= 1;
         }
-
-        Settings tableSettings = AnalyzedTableElements.validateAndBuildSettings(
-            tableElements, fulltextAnalyzerResolver);
 
         boolean hasNewPrimaryKeys = AnalyzedTableElements.primaryKeys(tableElements).size() > numCurrentPks;
         boolean hasGeneratedColumns = tableElementsUnboundWithExpressions.hasGeneratedColumns();
