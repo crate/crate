@@ -320,43 +320,46 @@ infinite recursion of your mind, beware!)::
     ... from information_schema.columns
     ... where table_schema = 'information_schema'
     ... and table_name = 'columns' order by column_name asc;
-    +--------------------------+-----------+------------------+
-    | column_name              | data_type | ordinal_position |
-    +--------------------------+-----------+------------------+
-    | character_maximum_length | integer   |                1 |
-    | character_octet_length   | integer   |                2 |
-    | character_set_catalog    | text      |                3 |
-    | character_set_name       | text      |                4 |
-    | character_set_schema     | text      |                5 |
-    | check_action             | integer   |                6 |
-    | check_references         | text      |                7 |
-    | collation_catalog        | text      |                8 |
-    | collation_name           | text      |                9 |
-    | collation_schema         | text      |               10 |
-    | column_default           | text      |               11 |
-    | column_name              | text      |               12 |
-    | data_type                | text      |               13 |
-    | datetime_precision       | integer   |               14 |
-    | domain_catalog           | text      |               15 |
-    | domain_name              | text      |               16 |
-    | domain_schema            | text      |               17 |
-    | generation_expression    | text      |               18 |
-    | interval_precision       | integer   |               19 |
-    | interval_type            | text      |               20 |
-    | is_generated             | text      |               21 |
-    | is_nullable              | boolean   |               22 |
-    | numeric_precision        | integer   |               23 |
-    | numeric_precision_radix  | integer   |               24 |
-    | numeric_scale            | integer   |               25 |
-    | ordinal_position         | integer   |               26 |
-    | table_catalog            | text      |               27 |
-    | table_name               | text      |               28 |
-    | table_schema             | text      |               29 |
-    | udt_catalog              | text      |               30 |
-    | udt_name                 | text      |               31 |
-    | udt_schema               | text      |               32 |
-    +--------------------------+-----------+------------------+
-    SELECT 32 rows in set (... sec)
+    +--------------------------+------------+------------------+
+    | column_name              | data_type  | ordinal_position |
+    +--------------------------+------------+------------------+
+    | character_maximum_length | integer    |                1 |
+    | character_octet_length   | integer    |                2 |
+    | character_set_catalog    | text       |                3 |
+    | character_set_name       | text       |                4 |
+    | character_set_schema     | text       |                5 |
+    | check_action             | integer    |                6 |
+    | check_references         | text       |                7 |
+    | collation_catalog        | text       |                8 |
+    | collation_name           | text       |                9 |
+    | collation_schema         | text       |               10 |
+    | column_default           | text       |               11 |
+    | column_details           | object     |               12 |
+    | column_details['name']   | text       |               13 |
+    | column_details['path']   | text_array |               14 |
+    | column_name              | text       |               15 |
+    | data_type                | text       |               16 |
+    | datetime_precision       | integer    |               17 |
+    | domain_catalog           | text       |               18 |
+    | domain_name              | text       |               19 |
+    | domain_schema            | text       |               20 |
+    | generation_expression    | text       |               21 |
+    | interval_precision       | integer    |               22 |
+    | interval_type            | text       |               23 |
+    | is_generated             | text       |               24 |
+    | is_nullable              | boolean    |               25 |
+    | numeric_precision        | integer    |               26 |
+    | numeric_precision_radix  | integer    |               27 |
+    | numeric_scale            | integer    |               28 |
+    | ordinal_position         | integer    |               29 |
+    | table_catalog            | text       |               30 |
+    | table_name               | text       |               31 |
+    | table_schema             | text       |               32 |
+    | udt_catalog              | text       |               33 |
+    | udt_name                 | text       |               34 |
+    | udt_schema               | text       |               35 |
+    +--------------------------+------------+------------------+
+    SELECT 35 rows in set (... sec)
 
 
 .. rubric:: Schema

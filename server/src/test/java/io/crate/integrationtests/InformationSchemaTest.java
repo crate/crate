@@ -531,13 +531,13 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(864, response.rowCount());
+        assertEquals(867, response.rowCount());
     }
 
     @Test
     public void testColumnsColumns() {
         execute("select column_name, data_type from information_schema.columns where table_schema='information_schema' and table_name='columns' order by column_name asc");
-        assertThat(response.rowCount(), is(32L));
+        assertThat(response.rowCount(), is(35L));
         assertThat(printedTable(response.rows()), is(
             "character_maximum_length| integer\n" +
             "character_octet_length| integer\n" +
@@ -550,6 +550,9 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
             "collation_name| text\n" +
             "collation_schema| text\n" +
             "column_default| text\n" +
+            "column_details| object\n" +
+            "column_details['name']| text\n" +
+            "column_details['path']| text_array\n" +
             "column_name| text\n" +
             "data_type| text\n" +
             "datetime_precision| integer\n" +
@@ -627,41 +630,46 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Columns where table_schema = ? order by column_name asc", new Object[]{defaultSchema});
         assertEquals(11L, response.rowCount());
-        assertEquals("age", response.rows()[0][11]); // column_name
-        assertEquals("integer", response.rows()[0][12]); // data_type
-        assertEquals(null, response.rows()[0][13]); // datetime_precision
-        assertEquals("NEVER", response.rows()[0][20]); // is_generated
-        assertEquals(false, response.rows()[0][21]); // is_nullable
-        assertEquals(32, response.rows()[0][22]); // numeric_precision
-        assertEquals(2, response.rows()[0][23]); // numeric_precision_radix
+        assertEquals("age", response.rows()[0][12]); // column_name
+        assertEquals("integer", response.rows()[0][13]); // data_type
+        assertEquals(null, response.rows()[0][14]); // datetime_precision
+        assertEquals("NEVER", response.rows()[0][21]); // is_generated
+        assertEquals(false, response.rows()[0][22]); // is_nullable
+        assertEquals(32, response.rows()[0][23]); // numeric_precision
+        assertEquals(2, response.rows()[0][24]); // numeric_precision_radix
 
-        assertEquals(3, response.rows()[0][25]); // ordinal_position
-        assertEquals(defaultSchema, response.rows()[0][26]); // table_catalog
-        assertEquals("test", response.rows()[0][27]); // table_name
-        assertEquals(defaultSchema, response.rows()[0][28]); // table_schema
+        assertEquals(3, response.rows()[0][26]); // ordinal_position
+        assertEquals(defaultSchema, response.rows()[0][27]); // table_catalog
+        assertEquals("test", response.rows()[0][28]); // table_name
+        assertEquals(defaultSchema, response.rows()[0][29]); // table_schema
 
-        assertEquals("col1", response.rows()[2][11]);
-        assertEquals(false, response.rows()[2][21]);
+        assertEquals("col1", response.rows()[2][12]);
+        assertEquals(false, response.rows()[2][22]);
 
-        assertEquals("col2", response.rows()[3][11]);
-        assertEquals(true, response.rows()[3][21]);
+        assertEquals("col2", response.rows()[3][12]);
+        assertEquals(true, response.rows()[3][22]);
 
-        assertEquals("b", response.rows()[1][11]);
-        assertEquals(8, response.rows()[1][22]);
-        assertEquals("s", response.rows()[6][11]);
-        assertEquals(16, response.rows()[6][22]);
-        assertEquals("d", response.rows()[4][11]);
-        assertEquals(53, response.rows()[4][22]);
-        assertEquals("f", response.rows()[5][11]);
-        assertEquals(24, response.rows()[5][22]);
-        assertEquals("stuff", response.rows()[7][11]);
-        assertEquals(false, response.rows()[7][21]); // is_nullable
-        assertEquals("stuff['level1']", response.rows()[8][11]);
-        assertEquals(false, response.rows()[8][21]); // is_nullable
-        assertEquals("stuff['level1']['level2']", response.rows()[9][11]);
-        assertEquals(false, response.rows()[9][21]); // is_nullable
-        assertEquals("stuff['level1']['level2_nullable']", response.rows()[10][11]);
-        assertEquals(true, response.rows()[10][21]); // is_nullable
+        assertEquals("b", response.rows()[1][12]);
+        assertEquals(8, response.rows()[1][23]);
+        assertEquals("s", response.rows()[6][12]);
+        assertEquals(16, response.rows()[6][23]);
+        assertEquals("d", response.rows()[4][12]);
+        assertEquals(53, response.rows()[4][23]);
+        assertEquals("f", response.rows()[5][12]);
+        assertEquals(24, response.rows()[5][23]);
+        assertEquals("stuff", response.rows()[7][12]);
+        assertEquals(false, response.rows()[7][22]); // is_nullable
+        assertEquals("stuff['level1']", response.rows()[8][12]);
+        assertEquals(false, response.rows()[8][22]); // is_nullable
+        assertEquals("stuff['level1']['level2']", response.rows()[9][12]);
+        assertEquals(false, response.rows()[9][22]); // is_nullable
+        assertEquals("stuff['level1']['level2_nullable']", response.rows()[10][12]);
+        assertEquals(true, response.rows()[10][22]); // is_nullable
+
+        assertEquals(Map.of("name","stuff","path", List.of()) , response.rows()[7][11]); // column_details
+        assertEquals(Map.of("name","stuff","path", List.of("level1")) , response.rows()[8][11]); // column_details
+        assertEquals(Map.of("name","stuff","path", List.of("level1","level2")) , response.rows()[9][11]); // column_details
+        assertEquals(Map.of("name","stuff","path", List.of("level1","level2_nullable")) , response.rows()[10][11]); // column_details
     }
 
     @Test
