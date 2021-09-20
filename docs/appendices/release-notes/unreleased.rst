@@ -87,9 +87,11 @@ Changes
 
 - Added a new ``table_partitions`` column to the :ref:`sys.snapshots
   <sys-snapshots>` table.
+
 - Added ``error_on_unknown_object_key`` session setting. This will either allow
   or suppress an error when unknown object keys are queried from dynamic
   objects.
+
 - Added ``float4`` type as alias to ``real`` and ``float8`` type as alias to
   ``double precision``
 
@@ -121,6 +123,8 @@ Changes
 - Added ``switch_to_plaintext`` :ref:`Host-Based Authentication <admin_hba>`
   config for enabling plaintext connection for intra-zone communications.
 
+- Added the `column_details` column to the `information_schema.columns` table
+  including the top level column name and path information of object elements.
 
 Fixes
 =====

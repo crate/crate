@@ -40,6 +40,7 @@ import java.util.Map;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.TIMESTAMP;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
 
@@ -113,6 +114,10 @@ public class InformationColumnsTableInfo {
             .add("udt_name", STRING, ignored -> null)
             .add("check_references", STRING, ignored -> null)
             .add("check_action", INTEGER, ignored -> null)
+            .startObject("column_details")
+                .add("name", STRING , r -> r.info.column().name())
+                .add("path", STRING_ARRAY, r -> r.info.column().path())
+            .endObject()
             .setPrimaryKeys(
                 new ColumnIdent("table_catalog"),
                 new ColumnIdent("table_name"),
