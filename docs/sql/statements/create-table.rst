@@ -376,11 +376,24 @@ of shards using :ref:`sql-alter-table`.
 ``refresh_interval``
 --------------------
 
-Specifies the refresh interval of a shard in milliseconds. The default is set
-to 1000 milliseconds.
+In CrateDB new written records are not immediately visible. A user has to
+either invoke the :ref:`REFRESH <sql-refresh>` statement or wait for an
+automatic background refresh.
+
+The interval of this background refresh is specified in milliseconds using this
+``refresh_interval`` setting.
+
+The default is ``null``, which causes tables to be refreshed once every second
+(``1000ms``), but only if the table is not idle. A table can become idle if no
+query accesses it for more than 30 seconds.
+
+If a table is idle, the periodic refresh is temporarily disabled. A query
+hitting an idle table will trigger a refresh and enable the periodic refresh
+again.
+
 
 :value:
-  The refresh interval in milliseconds. A value of smaller or equal than 0
+  The refresh interval in milliseconds. A value smaller or equal than 0
   turns off the automatic refresh. A value of greater than 0 schedules a
   periodic refresh of the table.
 
@@ -389,6 +402,16 @@ to 1000 milliseconds.
    A ``refresh_interval`` of 0 does not guarantee that new writes are *NOT*
    visible to subsequent reads. Only the periodic refresh is disabled. There
    are other internal factors that might trigger a refresh.
+
+.. NOTE::
+
+   On partitioned tables, the idle mechanism works per partition. This can be
+   useful for time-based partitions where older partitions are rarely queried.
+
+   The downside is that if many partitions are idle and a query activates them,
+   there will be a spike in refresh load. If you've such an access pattern, you
+   may want to set an explicit ``refresh_interval`` to have a permanent
+   background refresh.
 
 .. SEEALSO::
 
