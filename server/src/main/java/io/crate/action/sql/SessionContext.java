@@ -101,9 +101,4 @@ public class SessionContext {
     public Set<Class<? extends Rule<?>>> excludedOptimizerRules() {
         return excludedOptimizerRules;
     }
-
-    public void resetToDefaults() {
-        resetSchema();
-        hashJoinEnabled = true;
-    }
 }
