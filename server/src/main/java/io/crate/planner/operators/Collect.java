@@ -378,7 +378,7 @@ public class Collect implements LogicalPlan {
             } else if (!SymbolVisitors.any(Symbols.IS_COLUMN, output)) {
                 newOutputs.add(output);
                 replacedOutputs.put(output, output);
-            } else if (SymbolVisitors.any(usedColumns::contains, output)) {
+            } else if (SymbolVisitors.any(output::equals, usedColumns)) {
                 newOutputs.add(output);
                 replacedOutputs.put(output, output);
             } else {
