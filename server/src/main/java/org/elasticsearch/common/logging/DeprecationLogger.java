@@ -32,6 +32,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.SuppressLoggerChecks;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.RingBuffer;
 
 
@@ -67,6 +68,11 @@ public class DeprecationLogger {
             return size() > 128;
         }
     }));
+
+    @VisibleForTesting
+    public void resetLRU() {
+        keys.clear();
+    }
 
     /**
      * Adds a formatted warning message as a response header on the thread context, and logs a deprecation message if the associated key has
