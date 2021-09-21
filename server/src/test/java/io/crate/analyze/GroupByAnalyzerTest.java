@@ -220,11 +220,16 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testSelectGroupByOrderByWithAggregateFunctionInOrderByClause() throws Exception {
+    public void testSelectGroupByOrderByWithAggregateFunctionInOrderByClauseWithoutHavingThemInTheSelectList() throws Exception {
+        QueriedSelectRelation stmt = analyze("select name, count(id) from users group by name order by count(1)");
+        assertThat(stmt.orderBy().orderBySymbols().get(0), isFunction("count"));
+    }
+
+    @Test
+    public void testSelectGroupByOrderByWithNestedAggregateFunctionInOrderByClause() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("ORDER BY function 'max(count(upper(name)))' is not allowed. " +
-                                        "Only scalar functions can be used");
-        analyze("select name, count(id) from users group by name order by max(count(upper(name)))");
+        expectedException.expectMessage("Aggregate function calls cannot be nested 'max(count(name))'.");
+        analyze("select name, count(id) from users group by name order by max(count(name))");
     }
 
     @Test
