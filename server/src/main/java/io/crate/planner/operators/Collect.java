@@ -54,6 +54,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.WhereClauseOptimizer.DetailedQuery;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.optimizer.symbol.Optimizer;
@@ -91,6 +92,7 @@ public class Collect implements LogicalPlan {
     private final long estimatedRowSize;
 
     WhereClause where;
+    DetailedQuery detailedQuery;
 
     public static Collect create(AbstractTableRelation<?> relation,
                                  List<Symbol> toCollect,
@@ -105,6 +107,20 @@ public class Collect implements LogicalPlan {
             SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
             stats.estimateSizeForColumns(toCollect)
         );
+    }
+
+    public Collect(Collect collect, DetailedQuery detailedQuery) {
+        assert detailedQuery.docKeys().isEmpty()
+            : "`Collect` operator must not be used with queries that have docKeys. Use the `Get` operator instead";
+
+        this.outputs = collect.outputs();
+        this.baseTables = collect.baseTables;
+        this.numExpectedRows = collect.numExpectedRows;
+        this.estimatedRowSize = collect.estimatedRowSize;
+        this.relation = collect.relation;
+        this.where = collect.where;
+        this.tableInfo = collect.relation.tableInfo();
+        this.detailedQuery = detailedQuery;
     }
 
     public Collect(AbstractTableRelation<?> relation,
@@ -142,7 +158,7 @@ public class Collect implements LogicalPlan {
         );
         var binder = new SubQueryAndParamBinder(params, subQueryResults)
             .andThen(x -> normalizer.normalize(x, plannerContext.transactionContext()));
-        RoutedCollectPhase collectPhase = createPhase(plannerContext, hints, binder);
+        RoutedCollectPhase collectPhase = createPhase(plannerContext, hints, binder, params, subQueryResults);
         PositionalOrderBy positionalOrderBy = getPositionalOrderBy(order, outputs);
         if (positionalOrderBy != null) {
             if (hints.contains(PlanHint.PREFER_SOURCE_LOOKUP)) {
@@ -174,6 +190,10 @@ public class Collect implements LogicalPlan {
 
     public WhereClause where() {
         return where;
+    }
+
+    public DetailedQuery detailedQuery() {
+        return detailedQuery;
     }
 
     public AbstractTableRelation<?> relation() {
@@ -230,10 +250,22 @@ public class Collect implements LogicalPlan {
 
     private RoutedCollectPhase createPhase(PlannerContext plannerContext,
                                            Set<PlanHint> planHints,
-                                           java.util.function.Function<Symbol, Symbol> binder) {
-        WhereClause boundWhere = where.map(binder);
-        if (tableInfo instanceof DocTableInfo) {
-            DocTableInfo docTable = (DocTableInfo) tableInfo;
+                                           java.util.function.Function<Symbol, Symbol> binder,
+                                           Row params,
+                                           SubQueryResults subQueryResults) {
+        WhereClause boundWhere;
+        if (tableInfo instanceof DocTableInfo docTable) {
+            if (detailedQuery == null) {
+                boundWhere = where.map(binder);
+            } else {
+                boundWhere = detailedQuery.toBoundWhereClause(
+                    docTable,
+                    params,
+                    subQueryResults,
+                    plannerContext.transactionContext(),
+                    plannerContext.nodeContext()
+                );
+            }
             Symbol query = GeneratedColumnExpander.maybeExpand(
                 boundWhere.queryOrFallback(),
                 docTable.generatedColumns(),
@@ -243,6 +275,8 @@ public class Collect implements LogicalPlan {
             if (!query.equals(boundWhere.queryOrFallback())) {
                 boundWhere = new WhereClause(query, boundWhere.partitions(), boundWhere.clusteredBy());
             }
+        } else {
+            boundWhere = where.map(binder);
         }
 
         // bind all parameters and possible subQuery values and re-analyze the query
