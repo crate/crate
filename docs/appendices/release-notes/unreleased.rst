@@ -62,6 +62,9 @@ Deprecations
 Changes
 =======
 
+- Added support to use an aggregation in an order-by clause without having
+  them in the select list like ``select x from tbl group by x order by count(y)``
+
 - Added an empty ``pg_catalog.pg_indexes`` table for compatibility with
   PostgreSQL.
 

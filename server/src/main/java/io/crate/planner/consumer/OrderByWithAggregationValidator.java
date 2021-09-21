@@ -27,9 +27,9 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 
 /**
@@ -56,6 +56,8 @@ public class OrderByWithAggregationValidator {
     private static class ValidatorContext {
         private final Collection<? extends Symbol> outputSymbols;
         private final boolean isDistinct;
+        @Nullable
+        private Function aggregateFunctionVisited;
 
         ValidatorContext(Collection<? extends Symbol> outputSymbols, boolean isDistinct) {
             this.outputSymbols = outputSymbols;
@@ -77,21 +79,41 @@ public class OrderByWithAggregationValidator {
             if (context.isDistinct) {
                 throw new UnsupportedOperationException(Symbols.format(INVALID_FIELD_IN_DISTINCT_TEMPLATE, symbol));
             }
-            if (symbol.type() == FunctionType.SCALAR) {
-                for (Symbol arg : symbol.arguments()) {
-                    arg.accept(this, context);
-                }
-            } else {
-                throw new UnsupportedOperationException(
+            switch (symbol.type()) {
+                case AGGREGATE:
+                    if (context.aggregateFunctionVisited == null) {
+                        context.aggregateFunctionVisited = symbol;
+                        for (Symbol arg : symbol.arguments()) {
+                            arg.accept(this, context);
+                        }
+                        break;
+                    } else {
+                        throw new UnsupportedOperationException(
+                            Symbols.format("Aggregate function calls cannot be nested '%s'.", context.aggregateFunctionVisited)
+                        );
+                    }
+                case SCALAR:
+                    for (Symbol arg : symbol.arguments()) {
+                        arg.accept(this, context);
+                    }
+                    break;
+                default:
+                    throw new UnsupportedOperationException(
                         Symbols.format("ORDER BY function '%s' is not allowed. " +
-                                       "Only scalar functions can be used", symbol));
+                                       "Only scalar or aggregate functions can be used", symbol));
             }
             return null;
         }
 
         @Override
         public Void visitReference(Reference ref, ValidatorContext context) {
-            return ensureOutputsContainColumn(ref, context);
+            if (context.aggregateFunctionVisited == null) {
+                return ensureOutputsContainColumn(ref, context);
+            } else {
+                // References which are not part of the output columns are allowed when inside
+                // an aggregation function like `select x from tbl group by x order by count(y)`
+                return null;
+            }
         }
 
         @Override
