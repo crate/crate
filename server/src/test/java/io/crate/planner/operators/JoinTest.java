@@ -462,6 +462,23 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_join_with_alias_and_order_by_alias_with_limit_creates_valid_plan() throws Exception {
+        LogicalPlan plan = e.logicalPlan("""
+            select users.name as usr from users, t1
+            order by usr
+            limit 10
+        """);
+
+        assertThat(plan, isPlan(
+            "Eval[name AS usr]\n" +
+                "  └ Limit[10::bigint;0]\n" +
+                "    └ NestedLoopJoin[CROSS]\n" +
+                "      ├ OrderBy[name AS usr ASC]\n" +
+                "      │  └ Collect[doc.users | [name] | true]\n" +
+                "      └ Collect[doc.t1 | [] | true]"));
+    }
+
+    @Test
     public void testForbidJoinWhereMatchOnBothTables() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage(
