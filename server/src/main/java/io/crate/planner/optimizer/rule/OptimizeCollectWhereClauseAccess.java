@@ -43,11 +43,11 @@ import java.util.Optional;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
-public final class RewriteCollectToGet implements Rule<Collect> {
+public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
 
     private final Pattern<Collect> pattern;
 
-    public RewriteCollectToGet() {
+    public OptimizeCollectWhereClauseAccess() {
         this.pattern = typeOf(Collect.class)
             .with(collect ->
                       collect.relation() instanceof DocTableRelation
@@ -87,6 +87,8 @@ public final class RewriteCollectToGet implements Rule<Collect> {
                 collect.outputs(),
                 tableStats.estimatedSizePerRow(relation.relationName())
             );
+        } else if (!detailedQuery.clusteredBy().isEmpty() && collect.detailedQuery() == null) {
+            return new Collect(collect, detailedQuery);
         } else {
             return null;
         }

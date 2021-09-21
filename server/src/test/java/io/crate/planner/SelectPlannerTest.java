@@ -1418,4 +1418,20 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         CountPlan plan = e.plan("select count(*) from tbl where 'a' = ANY(xs)");
         assertThat(plan.countPhase().where(), isSQL("(_cast('a', 'text(1)') = ANY(doc.tbl.xs))"));
     }
+
+    @Test
+    public void test_collect_phase_narrows_shard_selection_based_on_clustered_by_columns() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, y int) clustered by (x) into 2 shards")
+            .build();
+
+        Collect collect = e.plan("select * from tbl where x = 1");
+        RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase )collect.collectPhase();
+
+        int numShards = routedCollectPhase.routing().locations().values().stream()
+            .flatMap(x -> x.values().stream())
+            .mapToInt(x -> x.size())
+            .sum();
+        assertThat(numShards, is(1));
+    }
 }
