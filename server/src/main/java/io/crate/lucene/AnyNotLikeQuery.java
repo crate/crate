@@ -71,7 +71,7 @@ class AnyNotLikeQuery extends AbstractAnyQuery {
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
         for (Object value : AnyOperators.collectionValueToIterable(array.value())) {
             andLikeQueries.add(
-                LikeQuery.like(candidate.valueType(), fieldType, value, caseSensitivity),
+                caseSensitivity.likeQuery(columnName, (String) value),
                 BooleanClause.Occur.MUST);
         }
         return Queries.not(andLikeQueries.build());

@@ -40,16 +40,17 @@ class AnyLikeQuery extends AbstractAnyQuery {
 
     @Override
     protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
-        return LikeQuery.toQuery(array, candidate.value(), context, caseSensitivity);
+        return caseSensitivity.likeQuery(array.column().fqn(), (String) candidate.value());
     }
 
     @Override
     protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal array, LuceneQueryBuilder.Context context) {
         // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
+        String fqn = candidate.column().fqn();
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
         for (Object value : AnyOperators.collectionValueToIterable(array.value())) {
-            booleanQuery.add(LikeQuery.toQuery(candidate, value, context, caseSensitivity), BooleanClause.Occur.SHOULD);
+            booleanQuery.add(caseSensitivity.likeQuery(fqn, (String) value), BooleanClause.Occur.SHOULD);
         }
         return booleanQuery.build();
     }
