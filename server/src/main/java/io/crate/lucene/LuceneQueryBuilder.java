@@ -296,8 +296,6 @@ public class LuceneQueryBuilder {
             entry(GteOperator.NAME, GTE_QUERY),
             entry(GtOperator.NAME, GT_QUERY),
             entry(CIDROperator.CONTAINED_WITHIN, LLT_QUERY),
-            entry(LikeOperators.OP_LIKE, new LikeQuery(CaseSensitivity.SENSITIVE)),
-            entry(LikeOperators.OP_ILIKE, new LikeQuery(CaseSensitivity.INSENSITIVE)),
             entry(NotPredicate.NAME, new NotQuery(this)),
             entry(Ignore3vlFunction.NAME, new Ignore3vlQuery()),
             entry(IsNullPredicate.NAME, new IsNullQuery()),

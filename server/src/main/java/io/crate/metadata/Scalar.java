@@ -35,6 +35,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.lucene.LuceneQueryBuilder.Context;
 
 /**
  * Base class for Scalar functions in crate.
@@ -90,8 +91,41 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
         return this;
     }
 
+    /**
+     * Returns a Lucene Query with the semantics of the Function.
+     *
+     * <p>
+     * Called if the function is used in the `WHERE` part of a statement when
+     * selecting data from a Table with a Lucene index.
+     * </p>
+     *
+     * <p>
+     * If `null` is returned, a fallback implementation is used that loads
+     * individual records and evaluates the scalar function on each row.
+     * </p>
+     *
+     * <p>
+     * Default implementation calls {@link #toQuery(Reference, Literal, Context)},
+     * which is there to make it more convenient to implement the functionality.
+     * It unwraps the arguments for the common `col <op> literal` case.
+     * </p>
+     **/
     @Nullable
     public Query toQuery(Function function, LuceneQueryBuilder.Context context) {
+        List<Symbol> arguments = function.arguments();
+        if (arguments.size() == 2
+                && arguments.get(0) instanceof Reference ref
+                && arguments.get(1) instanceof Literal<?> literal) {
+            return toQuery(ref, literal, context);
+        }
+        return null;
+    }
+
+    /**
+     * See {@link #toQuery(Function, Context)}
+     **/
+    @Nullable
+    public Query toQuery(Reference ref, Literal<?> literal, Context context) {
         return null;
     }
 
