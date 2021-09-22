@@ -29,6 +29,7 @@ import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -175,6 +176,15 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDynamicReference() throws Exception {
         Reference r = new DynamicReference(
+            new ReferenceIdent(new RelationName("schema", "table"), new ColumnIdent("column", Arrays.asList("path", "nested"))),
+            RowGranularity.DOC,
+            0);
+        assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
+    }
+
+    @Test
+    public void testVoidReference() throws Exception {
+        Reference r = new VoidReference(
             new ReferenceIdent(new RelationName("schema", "table"), new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             0);

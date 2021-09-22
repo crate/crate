@@ -49,7 +49,7 @@ public class DecommissionNodeAnalyzer {
             null);
 
         Symbol nodeIdOrName = expressionAnalyzer
-            .convert(decommissionNode.nodeIdOrName(), new ExpressionAnalysisContext());
+            .convert(decommissionNode.nodeIdOrName(), new ExpressionAnalysisContext(txnCtx.sessionContext()));
         return new AnalyzedDecommissionNode(nodeIdOrName);
     }
 }

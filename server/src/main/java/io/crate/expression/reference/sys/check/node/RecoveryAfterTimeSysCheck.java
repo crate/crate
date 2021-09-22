@@ -21,10 +21,10 @@
 
 package io.crate.expression.reference.sys.check.node;
 
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.gateway.GatewayService;
 
 @Singleton
@@ -33,8 +33,10 @@ public class RecoveryAfterTimeSysCheck extends AbstractSysNodeCheck {
     private final Settings settings;
 
     static final int ID = 3;
-    private static final String DESCRIPTION = "If any of the \"expected nodes\" recovery settings are set, the value of 'gateway.recover_after_time' " +
-                                              "must not be zero. Otherwise the \"expected nodes\" setting wouldn't have any effect.";
+    private static final String DESCRIPTION = "If any of the \"expected data nodes\" recovery settings are set " +
+                                              "(or the deprecated \"expected nodes\" settings)," +
+                                              "the value of 'gateway.recover_after_time' must not be zero. Otherwise " +
+                                              "the \"expected (data) nodes\" setting wouldn't have any effect.";
 
     @Inject
     public RecoveryAfterTimeSysCheck(Settings settings) {
@@ -44,16 +46,29 @@ public class RecoveryAfterTimeSysCheck extends AbstractSysNodeCheck {
 
     @Override
     public boolean isValid() {
+        int afterNodes = GatewayService.RECOVER_AFTER_DATA_NODES_SETTING.get(settings);
+        int expectedNodes = GatewayService.EXPECTED_DATA_NODES_SETTING.get(settings);
+        int expectedNodesDefaultValue = GatewayService.EXPECTED_DATA_NODES_SETTING.getDefault(Settings.EMPTY);
+        if (afterNodes == -1 || expectedNodes == expectedNodesDefaultValue) {
+            // fallback to deprecated settings for BWC
+            afterNodes = GatewayService.RECOVER_AFTER_NODES_SETTING.get(settings);
+            expectedNodes = GatewayService.EXPECTED_NODES_SETTING.get(settings);
+            expectedNodesDefaultValue = GatewayService.EXPECTED_NODES_SETTING.getDefault(Settings.EMPTY);
+        }
         return validate(
             GatewayService.RECOVER_AFTER_TIME_SETTING.get(settings),
-            GatewayService.RECOVER_AFTER_NODES_SETTING.get(settings),
-            GatewayService.EXPECTED_NODES_SETTING.get(settings)
+            afterNodes,
+            expectedNodes,
+            expectedNodesDefaultValue
         );
     }
 
-    protected boolean validate(TimeValue recoverAfterTime, int recoveryAfterNodes, int expectedNodes) {
+    private static boolean validate(TimeValue recoverAfterTime,
+                                    int recoveryAfterNodes,
+                                    int expectedNodes,
+                                    int expectedNodesDefaultValue) {
         return recoveryAfterNodes <= expectedNodes &&
-               (expectedNodes == GatewayService.EXPECTED_NODES_SETTING.getDefault(Settings.EMPTY) ||
+               (expectedNodes == expectedNodesDefaultValue ||
                 recoverAfterTime.getMillis() > 0L);
     }
 }

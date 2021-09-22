@@ -74,7 +74,7 @@ class RestoreSnapshotAnalyzer {
         var snapshotName = nameParts.get(1);
         repositoryService.failIfRepositoryDoesNotExist(repositoryName);
 
-        var exprCtx = new ExpressionAnalysisContext();
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
             txnCtx,
             nodeCtx,

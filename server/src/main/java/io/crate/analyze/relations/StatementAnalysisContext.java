@@ -75,7 +75,7 @@ public class StatementAnalysisContext {
             parentRelations = parentCtx.parentSources().newLevel(parentCtx.sources());
         }
         RelationAnalysisContext currentRelationContext =
-            new RelationAnalysisContext(aliasedRelation, parentRelations);
+            new RelationAnalysisContext(aliasedRelation, parentRelations, sessionContext());
         lastRelationContextQueue.add(currentRelationContext);
         return currentRelationContext;
     }

@@ -57,7 +57,8 @@ public enum SymbolType {
     ALIAS(AliasSymbol::new),
     FETCH_STUB(in -> {
         throw new UnsupportedEncodingException("FetchStub is not streamable");
-    });
+    }),
+    VOID_REFERENCE(VoidReference::new);
 
     public static final List<SymbolType> VALUES = List.of(values());
 

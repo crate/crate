@@ -34,9 +34,11 @@ public class RecoveryAfterNodesSysCheck extends AbstractSysNodeCheck {
     private final Settings settings;
 
     static final int ID = 2;
-    private static final String DESCRIPTION = "The value of the cluster setting 'gateway.recover_after_nodes' " +
-                                              "needs to be greater than half of the maximum/expected number of nodes and equal or less than " +
-                                              "the maximum/expected number of nodes in the cluster.";
+    private static final String DESCRIPTION = "The value of the cluster setting 'gateway.recover_after_data_nodes' " +
+                                              "(or the deprecated `gateway.recovery_after_nodes` setting)" +
+                                              "needs to be greater than half of the maximum/expected number of (data) " +
+                                              "nodes and equal or less than the maximum/expected number of (data) nodes " +
+                                              "in the cluster.";
 
     @Inject
     public RecoveryAfterNodesSysCheck(ClusterService clusterService, Settings settings) {
@@ -47,14 +49,21 @@ public class RecoveryAfterNodesSysCheck extends AbstractSysNodeCheck {
 
     @Override
     public boolean isValid() {
-        return validate(
-            GatewayService.RECOVER_AFTER_NODES_SETTING.get(settings),
-            GatewayService.EXPECTED_NODES_SETTING.get(settings)
-        );
+        int actualNodes = clusterService.state().nodes().getDataNodes().size();
+        int afterNodes = GatewayService.RECOVER_AFTER_DATA_NODES_SETTING.get(settings);
+        int expectedNodes = GatewayService.EXPECTED_DATA_NODES_SETTING.get(settings);
+        if (afterNodes == -1 || expectedNodes == -1) {
+            // fallback to deprecated settings for BWC
+            actualNodes = clusterService.state().nodes().getSize();
+            afterNodes = GatewayService.RECOVER_AFTER_NODES_SETTING.get(settings);
+            expectedNodes = GatewayService.EXPECTED_NODES_SETTING.get(settings);
+        }
+
+        return validate(afterNodes, expectedNodes, actualNodes);
     }
 
-    protected boolean validate(int afterNodes, int expectedNodes) {
-        return clusterService.state().nodes().getSize() == 1
+    private static boolean validate(int afterNodes, int expectedNodes, int actualNodes) {
+        return actualNodes == 1
                || (expectedNodes / 2) < afterNodes && afterNodes <= expectedNodes;
     }
 

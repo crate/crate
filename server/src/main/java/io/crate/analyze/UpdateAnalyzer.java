@@ -116,7 +116,7 @@ public final class UpdateAnalyzer {
             ),
             subqueryAnalyzer
         );
-        ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
+        ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
 
         Map<Reference, Symbol> assignmentByTargetCol = getAssignments(
             update.assignments(), typeHints, txnCtx, table, normalizer, subqueryAnalyzer, sourceExprAnalyzer, exprCtx);

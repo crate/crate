@@ -64,7 +64,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
 
         DocTableRelation relation = mock(DocTableRelation.class);
         RelationName relationName = new RelationName(null, "t");
-        when(relation.getField(any(ColumnIdent.class), any(Operation.class)))
+        when(relation.getField(any(ColumnIdent.class), any(Operation.class), any(Boolean.class)))
             .thenReturn(new Reference(
                 new ReferenceIdent(relationName, "name"),
                 RowGranularity.NODE,

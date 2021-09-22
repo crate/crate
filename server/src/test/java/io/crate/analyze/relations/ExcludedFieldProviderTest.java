@@ -37,13 +37,15 @@ import static org.junit.Assert.assertThat;
 
 public class ExcludedFieldProviderTest {
 
+    private static final boolean DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY = true;
+
     @Test
     public void testResolveFieldsAndValues() {
         QualifiedName normalField1 = QualifiedName.of("field1");
         QualifiedName normalField2 = QualifiedName.of("normal", "field2");
         QualifiedName excludedName = QualifiedName.of("excluded", "field3");
 
-        FieldProvider<?> fieldProvider = (qualifiedName, path, operation) ->
+        FieldProvider<?> fieldProvider = (qualifiedName, path, operation, errorOnUnknownObjectKey) ->
             new ScopedSymbol(
                 new RelationName("doc", "dummy"),
                 new ColumnIdent(qualifiedName.toString()),
@@ -56,15 +58,15 @@ public class ExcludedFieldProviderTest {
         ExcludedFieldProvider excludedFieldProvider = new ExcludedFieldProvider(fieldProvider, valuesResolver);
 
         assertThat(
-            excludedFieldProvider.resolveField(normalField1, null, Operation.READ),
+            excludedFieldProvider.resolveField(normalField1, null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY),
             isField(normalField1.toString()));
 
         assertThat(
-            excludedFieldProvider.resolveField(normalField2, null, Operation.READ),
+            excludedFieldProvider.resolveField(normalField2, null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY),
             isField(normalField2.toString()));
 
         assertThat(
-            excludedFieldProvider.resolveField(excludedName, null, Operation.READ),
+            excludedFieldProvider.resolveField(excludedName, null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY),
             isLiteral(42));
     }
 

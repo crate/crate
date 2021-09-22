@@ -21,9 +21,14 @@
 
 package io.crate.integrationtests;
 
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.testing.Asserts;
+import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
@@ -37,5 +42,32 @@ public class ScalarIntegrationTest extends SQLIntegrationTestCase {
 
         execute("SELECT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)");
         assertThat(response.columnTypes()[0], is(DataTypes.DOUBLE));
+    }
+
+    @Test
+    public void testSubscriptFunctionFromUnnest() {
+        var session = sqlExecutor.newSession();
+        session.sessionContext().setErrorOnUnknownObjectKey(true);
+        Asserts.assertThrowsMatches(
+            () -> {
+                sqlExecutor.exec("SELECT col1['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
+                                 session);
+                },
+            ColumnUnknownException.class,
+            "The object `{y=2, z=3}` does not contain the key `x`"
+        );
+        // This is documenting a bug. If this fails, it is a breaking change.
+        var response = sqlExecutor.exec("SELECT [col1]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
+                         session);
+        assertThat(TestingHelpers.printedTable(response.rows()), is("[1]\n[null]\n"));
+
+        var session2 = sqlExecutor.newSession();
+        session2.sessionContext().setErrorOnUnknownObjectKey(false);
+        response = sqlExecutor.exec("SELECT col1['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
+                                 session2);
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1\nNULL\n"));
+        response = sqlExecutor.exec("SELECT [col1]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
+                                        session2);
+        assertThat(TestingHelpers.printedTable(response.rows()), is("[1]\n[null]\n"));
     }
 }

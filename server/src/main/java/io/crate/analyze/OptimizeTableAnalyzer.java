@@ -52,7 +52,7 @@ public class OptimizeTableAnalyzer {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
 
-        var exprCtx = new ExpressionAnalysisContext();
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
         OptimizeStatement<Symbol> analyzedStatement =
             statement.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
 

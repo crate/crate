@@ -553,6 +553,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_eq_on_byte_column() throws Exception {
+        Query query = convert("byte_col = 127");
+        assertThat(query.toString(), is("byte_col:[127 TO 127]"));
+    }
+
+    @Test
     public void test_range_query_on_bit_type_is_not_supported() throws Exception {
         assertThrows(UnsupportedOperationException.class, () -> convert("bits > B'01'"));
     }

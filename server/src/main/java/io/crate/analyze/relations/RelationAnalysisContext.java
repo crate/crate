@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
@@ -47,10 +48,11 @@ public class RelationAnalysisContext {
     private List<JoinPair> joinPairs;
 
     RelationAnalysisContext(boolean aliasedRelation,
-                            ParentRelations parents) {
+                            ParentRelations parents,
+                            SessionContext sessionContext) {
         this.aliasedRelation = aliasedRelation;
         this.parents = parents;
-        this.expressionAnalysisContext = new ExpressionAnalysisContext();
+        this.expressionAnalysisContext = new ExpressionAnalysisContext(sessionContext);
     }
 
     boolean isAliasedRelation() {

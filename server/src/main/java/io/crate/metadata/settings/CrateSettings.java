@@ -154,8 +154,10 @@ public final class CrateSettings implements ClusterStateListener {
         DiscoverySettings.PUBLISH_TIMEOUT_SETTING,
         // GATEWAY
         GatewayService.RECOVER_AFTER_NODES_SETTING,
+        GatewayService.RECOVER_AFTER_DATA_NODES_SETTING,
         GatewayService.RECOVER_AFTER_TIME_SETTING,
         GatewayService.EXPECTED_NODES_SETTING,
+        GatewayService.EXPECTED_DATA_NODES_SETTING,
         // INDICES
         RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING,
         RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC_SETTING,

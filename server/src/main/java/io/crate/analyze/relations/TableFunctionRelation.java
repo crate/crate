@@ -21,6 +21,8 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.exceptions.AmbiguousColumnException;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.scalar.SubscriptFunctions;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -83,7 +85,7 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
     }
 
     @Override
-    public Symbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException {
+    public Symbol getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         for (Symbol output : outputs) {
             ColumnIdent outputColumn = Symbols.pathFromSymbol(output);
             if (column.equals(outputColumn)) {
@@ -124,7 +126,7 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
     @Nullable
     @Override
     public Symbol resolveField(ScopedSymbol field) {
-        return getField(field.column(), Operation.READ);
+        return getField(field.column(), Operation.READ, true);
     }
 
     @Override

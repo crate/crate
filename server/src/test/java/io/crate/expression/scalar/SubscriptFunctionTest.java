@@ -21,9 +21,11 @@
 
 package io.crate.expression.scalar;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.testing.Asserts;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -73,5 +75,17 @@ public class SubscriptFunctionTest extends ScalarTestCase {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `integer`");
         assertNormalize("subscript(['Youri', 'Ruben'], 'foo')", isLiteral("Ruben"));
+    }
+
+    @Test
+    public void testLookupByNameWithUnknownName() throws Exception {
+        sqlExpressions.setErrorOnUnknownObjectKey(true);
+        Asserts.assertThrowsMatches(
+            () -> assertEvaluate("{}['y']", null),
+            ColumnUnknownException.class,
+            "The object `{}` does not contain the key `y`"
+        );
+        sqlExpressions.setErrorOnUnknownObjectKey(false);
+        assertEvaluate("{}['y']", null);
     }
 }
