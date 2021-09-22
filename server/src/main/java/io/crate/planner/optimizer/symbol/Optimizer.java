@@ -21,6 +21,16 @@
 
 package io.crate.planner.optimizer.symbol;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
+
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ConversionException;
@@ -32,20 +42,12 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.symbol.rule.MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators;
-import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastInsideOperators;
 import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference;
 import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference;
 import io.crate.planner.optimizer.symbol.rule.MoveSubscriptOnReferenceCastToLiteralCastInsideOperators;
 import io.crate.planner.optimizer.symbol.rule.SimplifyEqualsOperationOnIdenticalReferences;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.List;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import io.crate.planner.optimizer.symbol.rule.SwapCastsInComparisonOperators;
+import io.crate.planner.optimizer.symbol.rule.SwapCastsInLikeOperators;
 
 public class Optimizer {
 
@@ -55,7 +57,8 @@ public class Optimizer {
             plannerContext.nodeContext(),
             () -> plannerContext.clusterState().nodes().getMinNodeVersion(),
             List.of(
-                MoveReferenceCastToLiteralCastInsideOperators::new,
+                SwapCastsInComparisonOperators::new,
+                SwapCastsInLikeOperators::new,
                 MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference::new,
                 MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference::new,
                 MoveSubscriptOnReferenceCastToLiteralCastInsideOperators::new,
