@@ -21,28 +21,26 @@
 
 package io.crate.lucene;
 
-import io.crate.expression.operator.LikeOperators;
+import javax.annotation.Nullable;
+
+import org.apache.lucene.search.Query;
+import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.index.mapper.MappedFieldType;
+
+import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.symbol.Function;
-import io.crate.lucene.match.CrateRegexCapabilities;
-import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.Reference;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.WildcardQuery;
-import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.MappedFieldType;
-
-import javax.annotation.Nullable;
 
 final class LikeQuery implements FunctionToQuery {
 
-    private final boolean ignoreCase;
 
-    public LikeQuery(boolean ignoreCase) {
-        this.ignoreCase = ignoreCase;
+    private final CaseSensitivity caseSensitivity;
+
+    public LikeQuery(CaseSensitivity caseSensitivity) {
+        this.caseSensitivity = caseSensitivity;
     }
 
     @Override
@@ -51,81 +49,27 @@ final class LikeQuery implements FunctionToQuery {
         if (refAndLiteral == null) {
             return null;
         }
-        return toQuery(refAndLiteral.reference(), refAndLiteral.literal().value(), context, ignoreCase);
+        return toQuery(refAndLiteral.reference(), refAndLiteral.literal().value(), context, caseSensitivity);
     }
 
-    static Query toQuery(Reference reference, Object value, LuceneQueryBuilder.Context context, boolean ignoreCase) {
+    static Query toQuery(Reference reference, Object value, LuceneQueryBuilder.Context context, CaseSensitivity caseSensitivity) {
         DataType dataType = ArrayType.unnest(reference.valueType());
         return like(
             dataType,
             context.getFieldTypeOrNull(reference.column().fqn()),
             value,
-            ignoreCase
+            caseSensitivity
         );
     }
 
-    public static Query like(DataType dataType, @Nullable MappedFieldType fieldType, Object value, boolean ignoreCase) {
+    public static Query like(DataType dataType, @Nullable MappedFieldType fieldType, Object value, CaseSensitivity caseSensitivity) {
         if (fieldType == null) {
             // column doesn't exist on this index -> no match
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
         if (dataType.id() == DataTypes.STRING.ID) {
-            return createCaseAwareQuery(
-                fieldType.name(),
-                (String) value,
-                ignoreCase);
+            return caseSensitivity.likeQuery(fieldType.name(), (String) value);
         }
         return fieldType.termQuery(value, null);
-    }
-
-    private static final int CASE_INSENSITIVE = CrateRegexCapabilities.FLAG_CASE_INSENSITIVE
-                                                    | CrateRegexCapabilities.FLAG_UNICODE_CASE;
-
-    private static Query createCaseAwareQuery(String fieldName,
-                                              String text,
-                                              boolean ignoreCase) {
-        java.util.function.Function<String, String> regexTransformer = ignoreCase ?
-            LikeOperators::patternToRegex
-            :
-            LikeQuery::convertSqlLikeToLuceneWildcard;
-        Term term = new Term(fieldName, regexTransformer.apply(text));
-        return ignoreCase ? new CrateRegexQuery(term, CASE_INSENSITIVE) : new WildcardQuery(term);
-    }
-
-    static String convertSqlLikeToLuceneWildcard(String wildcardString) {
-        // lucene uses * and ? as wildcard characters
-        // but via SQL they are used as % and _
-        // here they are converted back.
-        StringBuilder regex = new StringBuilder();
-
-        boolean escaped = false;
-        for (char currentChar : wildcardString.toCharArray()) {
-            if (!escaped && currentChar == LikeOperators.DEFAULT_ESCAPE) {
-                escaped = true;
-            } else {
-                switch (currentChar) {
-                    case '%':
-                        regex.append(escaped ? '%' : '*');
-                        escaped = false;
-                        break;
-                    case '_':
-                        regex.append(escaped ? '_' : '?');
-                        escaped = false;
-                        break;
-                    default:
-                        switch (currentChar) {
-                            case '\\':
-                            case '*':
-                            case '?':
-                                regex.append('\\');
-                                break;
-                            default:
-                        }
-                        regex.append(currentChar);
-                        escaped = false;
-                }
-            }
-        }
-        return regex.toString();
     }
 }

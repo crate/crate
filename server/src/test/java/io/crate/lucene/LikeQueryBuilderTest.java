@@ -28,7 +28,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.WildcardQuery;
 import org.junit.Test;
 
-import static io.crate.lucene.LikeQuery.convertSqlLikeToLuceneWildcard;
+import static io.crate.expression.operator.LikeOperators.convertSqlLikeToLuceneWildcard;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;

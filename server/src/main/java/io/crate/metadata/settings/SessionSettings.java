@@ -24,6 +24,7 @@ package io.crate.metadata.settings;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.SearchPath;
 import io.crate.planner.optimizer.Rule;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -37,6 +38,7 @@ public final class SessionSettings implements Writeable {
     private final String userName;
     private final SearchPath searchPath;
     private final boolean hashJoinsEnabled;
+    private final boolean errorOnUnknownObjectKey;
     private final Set<Class<? extends Rule<?>>> excludedOptimizerRules;
 
     public SessionSettings(StreamInput in) throws IOException {
@@ -47,18 +49,28 @@ public final class SessionSettings implements Writeable {
         // and never needed any other node and therefore are excluded from
         // serialization on purpose.
         this.excludedOptimizerRules = Set.of();
+        if (in.getVersion().onOrAfter(Version.V_4_7_0)) {
+            this.errorOnUnknownObjectKey = in.readBoolean();
+        } else {
+            this.errorOnUnknownObjectKey = true;
+        }
     }
 
     @VisibleForTesting
     public SessionSettings(String userName, SearchPath searchPath) {
-        this(userName, searchPath, true, Set.of());
+        this(userName, searchPath, true, Set.of(), true);
     }
 
-    public SessionSettings(String userName, SearchPath searchPath, boolean hashJoinsEnabled, Set<Class<? extends Rule<?>>> rules) {
+    public SessionSettings(String userName,
+                           SearchPath searchPath,
+                           boolean hashJoinsEnabled,
+                           Set<Class<? extends Rule<?>>> rules,
+                           boolean errorOnUnknownObjectKey) {
         this.userName = userName;
         this.searchPath = searchPath;
         this.hashJoinsEnabled = hashJoinsEnabled;
         this.excludedOptimizerRules = rules;
+        this.errorOnUnknownObjectKey = errorOnUnknownObjectKey;
     }
 
     public String userName() {
@@ -77,6 +89,10 @@ public final class SessionSettings implements Writeable {
         return hashJoinsEnabled;
     }
 
+    public boolean errorOnUnknownObjectKey() {
+        return errorOnUnknownObjectKey;
+    }
+
     public Set<Class<? extends Rule<?>>> excludedOptimizerRules() {
         return excludedOptimizerRules;
     }
@@ -86,6 +102,9 @@ public final class SessionSettings implements Writeable {
         out.writeString(userName);
         searchPath.writeTo(out);
         out.writeBoolean(hashJoinsEnabled);
+        if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
+            out.writeBoolean(errorOnUnknownObjectKey);
+        }
     }
 
     @Override

@@ -212,7 +212,8 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
 
     private Symbol asSymbol(String expression) {
         try {
-            return expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext());
+            return expressionAnalyzer.convert(SqlParser.createExpression(expression),
+                                              new ExpressionAnalysisContext(systemTransactionCtx.sessionContext()));
         } catch (Throwable t) {
             throw new IllegalArgumentException("Invalid filter expression: " + expression + ": " + t.getMessage(), t);
         }

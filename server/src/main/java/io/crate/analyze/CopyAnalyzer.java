@@ -62,7 +62,7 @@ class CopyAnalyzer {
             txnCtx.sessionContext().sessionUser(),
             txnCtx.sessionContext().searchPath());
 
-        var exprCtx = new ExpressionAnalysisContext();
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
 
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
@@ -116,7 +116,7 @@ class CopyAnalyzer {
             null,
             tableRelation);
 
-        var exprCtx = new ExpressionAnalysisContext();
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
         var expressionAnalyzer = new ExpressionAnalyzer(
             txnCtx,
             nodeCtx,

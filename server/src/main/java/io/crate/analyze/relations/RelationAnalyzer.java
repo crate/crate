@@ -675,7 +675,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             FieldProvider.UNSUPPORTED,
             new SubqueryAnalyzer(this, context)
         );
-        var expressionAnalysisContext = new ExpressionAnalysisContext();
+        var expressionAnalysisContext = new ExpressionAnalysisContext(context.sessionContext());
         // prevent normalization of the values array, otherwise the value literals are converted to an array literal
         // and a special per-value-literal casting logic won't be executed (e.g. FloatLiteral.cast())
         expressionAnalysisContext.allowEagerNormalize(false);

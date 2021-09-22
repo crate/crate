@@ -145,7 +145,9 @@ public class SysClusterSettingsTest extends SQLIntegrationTestCase {
     public void testStaticGatewayDefaultSettings() {
         execute("select settings from sys.cluster");
         assertSettingsDefault(GatewayService.EXPECTED_NODES_SETTING);
+        assertSettingsDefault(GatewayService.EXPECTED_DATA_NODES_SETTING);
         assertSettingsDefault(GatewayService.RECOVER_AFTER_NODES_SETTING);
+        assertSettingsDefault(GatewayService.RECOVER_AFTER_DATA_NODES_SETTING);
         assertSettingsValue(
             GatewayService.RECOVER_AFTER_TIME_SETTING.getKey(),
             GatewayService.RECOVER_AFTER_TIME_SETTING.getDefaultRaw(Settings.EMPTY));

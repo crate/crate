@@ -64,7 +64,7 @@ public final class SwapTableAnalyzer {
         } else {
             ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
                 txnCtx, nodeCtx, typeHints, FieldProvider.UNSUPPORTED, null);
-            dropSource = exprAnalyzer.convert(dropSourceExpr, new ExpressionAnalysisContext());
+            dropSource = exprAnalyzer.convert(dropSourceExpr, new ExpressionAnalysisContext(txnCtx.sessionContext()));
         }
         SearchPath searchPath = txnCtx.sessionContext().searchPath();
         User user = txnCtx.sessionContext().sessionUser();

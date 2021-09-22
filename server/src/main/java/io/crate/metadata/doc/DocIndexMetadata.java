@@ -263,7 +263,9 @@ public class DocIndexMetadata {
         Symbol defaultExpression = null;
         if (formattedDefaultExpression != null) {
             Expression expression = SqlParser.createExpression(formattedDefaultExpression);
-            defaultExpression = expressionAnalyzer.convert(expression, new ExpressionAnalysisContext());
+            defaultExpression = this.expressionAnalyzer.convert(
+                expression,
+                new ExpressionAnalysisContext(CoordinatorTxnCtx.systemTransactionContext().sessionContext()));
         }
         return new Reference(
             refIdent(column),
@@ -617,9 +619,10 @@ public class DocIndexMetadata {
 
         Collection<Reference> references = this.references.values();
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(references, ident);
+        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
-            CoordinatorTxnCtx.systemTransactionContext(), nodeCtx, ParamTypeHints.EMPTY, tableReferenceResolver, null);
-        ExpressionAnalysisContext analysisCtx = new ExpressionAnalysisContext();
+            txnCtx, nodeCtx, ParamTypeHints.EMPTY, tableReferenceResolver, null);
+        ExpressionAnalysisContext analysisCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
 
         ArrayList<CheckConstraint<Symbol>> checkConstraintsBuilder = null;
         Map<String, Object> metaMap = Maps.get(mappingMap, "_meta");

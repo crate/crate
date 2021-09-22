@@ -22,6 +22,7 @@
 package io.crate.analyze.relations;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
@@ -57,11 +58,12 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
     @Nullable
     @Override
     public Reference getField(ColumnIdent path) {
-        return getField(path, Operation.READ);
+        return getField(path, Operation.READ, true);
     }
 
     @Override
-    public Reference getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+    public Reference getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey)
+            throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         if (operation == Operation.UPDATE) {
             ensureColumnCanBeUpdated(column);
         }
@@ -69,7 +71,9 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         if (reference == null) {
             reference = tableInfo.indexColumn(column);
             if (reference == null) {
-                return tableInfo.getDynamic(column, operation == Operation.INSERT || operation == Operation.UPDATE);
+                reference = tableInfo.getDynamic(column,
+                                                 operation == Operation.INSERT || operation == Operation.UPDATE,
+                                                 errorOnUnknownObjectKey);
             }
         }
         return reference;

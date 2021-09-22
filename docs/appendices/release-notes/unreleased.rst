@@ -48,7 +48,15 @@ None
 Deprecations
 ============
 
-None
+- The :ref:`gateway.expected_nodes <gateway.expected_nodes>` cluster setting
+  has been marked as deprecated and will be removed in CrateDB 5.0.
+  The :ref:`gateway.expected_data_nodes <gateway.expected_data_nodes>` must be
+  used instead.
+
+- The :ref:`gateway.recover_after_nodes <gateway.recover_after_nodes>` cluster
+  setting has been marked as deprecated and will be removed in CrateDB 5.0.
+  The :ref:`gateway.recover_after_data_nodes <gateway.recover_after_data_nodes>`
+  must be used instead.
 
 
 Changes
@@ -68,7 +76,9 @@ Changes
 
 - Added a new ``table_partitions`` column to the :ref:`sys.snapshots
   <sys-snapshots>` table.
-
+- Added ``error_on_unknown_object_key`` session setting. This will either allow
+  or suppress an error when unknown object keys are queried from dynamic
+  objects.
 - Added ``float4`` type as alias to ``real`` and ``float8`` type as alias to
   ``double precision``
 

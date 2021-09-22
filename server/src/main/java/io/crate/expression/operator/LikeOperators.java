@@ -21,15 +21,20 @@
 
 package io.crate.expression.operator;
 
-import io.crate.expression.operator.any.AnyLikeOperator;
-import io.crate.expression.operator.any.AnyOperator;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.regex.Pattern;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.WildcardQuery;
+
+import io.crate.expression.operator.any.AnyLikeOperator;
+import io.crate.expression.operator.any.AnyOperator;
+import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 
 public class LikeOperators {
     public static final String OP_LIKE = "op_like";
@@ -56,8 +61,41 @@ public class LikeOperators {
         return name;
     }
 
-    private static final int CASE_SENSITIVE = Pattern.DOTALL;
-    private static final int CASE_INSENSITIVE = Pattern.DOTALL | Pattern.CASE_INSENSITIVE;
+    public enum CaseSensitivity {
+        SENSITIVE {
+
+            @Override
+            public Query likeQuery(String fqColumn, String pattern) {
+                String luceneWildcard = convertSqlLikeToLuceneWildcard(pattern);
+                Term term = new Term(fqColumn, luceneWildcard);
+                return new WildcardQuery(term);
+            }
+
+            @Override
+            public int patternFlags() {
+                return Pattern.DOTALL;
+            }
+
+        },
+        INSENSITIVE {
+
+            @Override
+            public Query likeQuery(String fqColumn, String pattern) {
+                String regex = patternToRegex(pattern);
+                Term term = new Term(fqColumn, regex);
+                return new CrateRegexQuery(term, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+            }
+
+            @Override
+            public int patternFlags() {
+                return Pattern.DOTALL | Pattern.CASE_INSENSITIVE;
+            }
+        };
+
+        public abstract Query likeQuery(String fqColumn, String pattern);
+
+        public abstract int patternFlags();
+    }
 
     public static void register(OperatorModule module) {
         module.register(
@@ -68,7 +106,7 @@ public class LikeOperators {
                 Operator.RETURN_TYPE.getTypeSignature()
             ),
             (signature, boundSignature) ->
-                new LikeOperator(signature, boundSignature, LikeOperators::matches, CASE_SENSITIVE)
+                new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.SENSITIVE)
         );
         module.register(
             Signature.scalar(
@@ -78,7 +116,7 @@ public class LikeOperators {
                 Operator.RETURN_TYPE.getTypeSignature()
             ),
             (signature, boundSignature) ->
-                new LikeOperator(signature, boundSignature, LikeOperators::matches, CASE_INSENSITIVE)
+                new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.INSENSITIVE)
         );
         module.register(
             Signature.scalar(
@@ -92,7 +130,7 @@ public class LikeOperators {
                     signature,
                     boundSignature,
                     LikeOperators::matches,
-                    CASE_SENSITIVE
+                    CaseSensitivity.SENSITIVE
                 )
         );
         module.register(
@@ -107,7 +145,7 @@ public class LikeOperators {
                     signature,
                     boundSignature,
                     TriPredicate.negate(LikeOperators::matches),
-                    CASE_SENSITIVE
+                    CaseSensitivity.SENSITIVE
                 )
         );
         module.register(
@@ -122,7 +160,7 @@ public class LikeOperators {
                     signature,
                     boundSignature,
                     LikeOperators::matches,
-                    CASE_INSENSITIVE
+                    CaseSensitivity.INSENSITIVE
                 )
         );
         module.register(
@@ -137,17 +175,17 @@ public class LikeOperators {
                     signature,
                     boundSignature,
                     TriPredicate.negate(LikeOperators::matches),
-                    CASE_INSENSITIVE
+                    CaseSensitivity.INSENSITIVE
                 )
         );
     }
 
-    static final Pattern makePattern(String pattern, int flags) {
-        return Pattern.compile(patternToRegex(pattern, DEFAULT_ESCAPE, true), flags);
+    static final Pattern makePattern(String pattern, CaseSensitivity caseSensitivity) {
+        return Pattern.compile(patternToRegex(pattern, DEFAULT_ESCAPE, true), caseSensitivity.patternFlags());
     }
 
-    static boolean matches(String expression, String pattern, int patternMatchingFlags) {
-        return makePattern(pattern, patternMatchingFlags).matcher(expression).matches();
+    static boolean matches(String expression, String pattern, CaseSensitivity caseSensitivity) {
+        return makePattern(pattern, caseSensitivity).matcher(expression).matches();
     }
 
     public static String patternToRegex(String patternString) {
@@ -205,6 +243,43 @@ public class LikeOperators {
             }
         }
         regex.append('$');
+        return regex.toString();
+    }
+
+    public static String convertSqlLikeToLuceneWildcard(String wildcardString) {
+        // lucene uses * and ? as wildcard characters
+        // but via SQL they are used as % and _
+        // here they are converted back.
+        StringBuilder regex = new StringBuilder();
+
+        boolean escaped = false;
+        for (char currentChar : wildcardString.toCharArray()) {
+            if (!escaped && currentChar == LikeOperators.DEFAULT_ESCAPE) {
+                escaped = true;
+            } else {
+                switch (currentChar) {
+                    case '%':
+                        regex.append(escaped ? '%' : '*');
+                        escaped = false;
+                        break;
+                    case '_':
+                        regex.append(escaped ? '_' : '?');
+                        escaped = false;
+                        break;
+                    default:
+                        switch (currentChar) {
+                            case '\\':
+                            case '*':
+                            case '?':
+                                regex.append('\\');
+                                break;
+                            default:
+                        }
+                        regex.append(currentChar);
+                        escaped = false;
+                }
+            }
+        }
         return regex.toString();
     }
 }

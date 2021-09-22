@@ -52,13 +52,13 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
     private static final Logger LOGGER = LogManager.getLogger(GatewayService.class);
 
     public static final Setting<Integer> EXPECTED_NODES_SETTING =
-        Setting.intSetting("gateway.expected_nodes", -1, -1, Property.NodeScope);
+        Setting.intSetting("gateway.expected_nodes", -1, -1, Property.NodeScope, Property.Deprecated);
     public static final Setting<Integer> EXPECTED_DATA_NODES_SETTING =
         Setting.intSetting("gateway.expected_data_nodes", -1, -1, Property.NodeScope);
     public static final Setting<Integer> EXPECTED_MASTER_NODES_SETTING =
-        Setting.intSetting("gateway.expected_master_nodes", -1, -1, Property.NodeScope);
+        Setting.intSetting("gateway.expected_master_nodes", -1, -1, Property.NodeScope, Property.Deprecated);
 
-    private static final TimeValue DEFAULT_RECOVER_AFTER_TIME_IF_EXPECTED_NODES_IS_SET = TimeValue.timeValueMinutes(5);
+    public static final TimeValue DEFAULT_RECOVER_AFTER_TIME_IF_EXPECTED_NODES_IS_SET = TimeValue.timeValueMinutes(5);
     public static final Setting<TimeValue> RECOVER_AFTER_TIME_SETTING =
         Setting.timeSetting(
             "gateway.recover_after_time",
@@ -74,11 +74,11 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
             Property.NodeScope
         );
     public static final Setting<Integer> RECOVER_AFTER_NODES_SETTING =
-        Setting.intSetting("gateway.recover_after_nodes", -1, -1, Property.NodeScope);
+        Setting.intSetting("gateway.recover_after_nodes", -1, -1, Property.NodeScope, Property.Deprecated);
     public static final Setting<Integer> RECOVER_AFTER_DATA_NODES_SETTING =
         Setting.intSetting("gateway.recover_after_data_nodes", -1, -1, Property.NodeScope);
     public static final Setting<Integer> RECOVER_AFTER_MASTER_NODES_SETTING =
-        Setting.intSetting("gateway.recover_after_master_nodes", 0, 0, Property.NodeScope);
+        Setting.intSetting("gateway.recover_after_master_nodes", 0, 0, Property.NodeScope, Property.Deprecated);
 
     public static final ClusterBlock STATE_NOT_RECOVERED_BLOCK = new ClusterBlock(1, "state not recovered / initialized", true, true,
         false, RestStatus.SERVICE_UNAVAILABLE, ClusterBlockLevel.ALL);

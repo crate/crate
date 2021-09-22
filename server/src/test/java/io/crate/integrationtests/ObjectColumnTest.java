@@ -34,6 +34,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.arrayContaining;
@@ -339,5 +340,15 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
         refresh();
         execute("select count(*) from test");
         assertThat(response.rows()[0][0], is(1L));
+    }
+
+    @Test
+    public void testSelectUnknownObjectColumnPreservesTheUnknownName() throws Exception {
+        var session = sqlExecutor.newSession();
+        session.sessionContext().setErrorOnUnknownObjectKey(false);
+        execute("create table t (a object)");
+        execute("explain select a['u'] = 123 from t", session);
+        // make sure that a['u'] is kept as requested.
+        assertThat(printedTable(response.rows()), containsString("[(123 = _cast(a['u'], 'integer'))]"));
     }
 }

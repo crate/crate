@@ -167,7 +167,7 @@ public final class EqOperator extends Operator<Object> {
             return new TermQuery(new Term(column, Uid.encodeId((String) value)));
         }
         return switch (type.id()) {
-            case ByteType.ID, ShortType.ID, IntegerType.ID -> IntPoint.newExactQuery(column, (int) value);
+            case ByteType.ID, ShortType.ID, IntegerType.ID -> IntPoint.newExactQuery(column, ((Number) value).intValue());
             case LongType.ID -> LongPoint.newExactQuery(column, (long) value);
             case FloatType.ID -> FloatPoint.newExactQuery(column, (float) value);
             case DoubleType.ID -> DoublePoint.newExactQuery(column, (double) value);

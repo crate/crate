@@ -23,20 +23,42 @@ package io.crate.exceptions;
 
 import io.crate.metadata.RelationName;
 
+import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.Objects;
 
 public class ColumnUnknownException extends ResourceUnknownException implements TableScopeException {
 
     private final RelationName relationName;
 
-    public ColumnUnknownException(String columnName, RelationName relationName) {
+    private ColumnUnknownException(String message) {
+        super(message);
+        this.relationName = null;
+    }
+
+    public ColumnUnknownException(String columnName, @Nonnull RelationName relationName) {
         super(String.format(Locale.ENGLISH, "Column %s unknown", columnName));
-        this.relationName = relationName;
+        this.relationName = Objects.requireNonNull(relationName);
+    }
+
+    /**
+     * <p>
+     * CAUTION: not providing the relationName may prevent permission checks on the user and
+     * leak unprivileged information through the given message.
+     * </p>
+     * <code>
+     * ex) select '{"x":10}'::object['y'];<br>
+     * ColumnUnknownException[The object `{x=10}` does not contain the key `y`]<br>
+     * // The column is unnamed and there is no associated table that requires permission checks. This is the only usage currently.
+     * </code>
+     */
+    public static ColumnUnknownException ofUnknownRelation(String message) {
+        return new ColumnUnknownException(message);
     }
 
     @Override
     public Iterable<RelationName> getTableIdents() {
-        return Collections.singletonList(relationName);
+        return (relationName == null) ? Collections.emptyList() : Collections.singletonList(relationName);
     }
 }

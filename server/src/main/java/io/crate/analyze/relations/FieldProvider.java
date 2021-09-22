@@ -32,13 +32,16 @@ import java.util.List;
 
 public interface FieldProvider<T extends Symbol> {
 
-    T resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation);
+    T resolveField(QualifiedName qualifiedName,
+                   @Nullable List<String> path,
+                   Operation operation,
+                   boolean errorOnUnknownObjectKey);
 
-    FieldProvider<?> UNSUPPORTED = (qualifiedName, path, operation) -> {
+    FieldProvider<?> UNSUPPORTED = (qualifiedName, path, operation, errorOnUnknownObjectKey) -> {
         throw new UnsupportedOperationException(
             "Columns cannot be used in this context. " +
             "Maybe you wanted to use a string literal which requires single quotes: '" + qualifiedName + "'");
     };
 
-    FieldProvider<Literal<?>> FIELDS_AS_LITERAL = ((qualifiedName, path, operation) -> Literal.of(new ColumnIdent(qualifiedName.toString(), path).fqn()));
+    FieldProvider<Literal<?>> FIELDS_AS_LITERAL = ((qualifiedName, path, operation, errorOnUnknownObjectKey) -> Literal.of(new ColumnIdent(qualifiedName.toString(), path).fqn()));
 }

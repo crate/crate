@@ -57,7 +57,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
     }
 
     @Override
-    public Symbol resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
+    public Symbol resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation, boolean errorOnUnknownObjectKey) {
         List<String> parts = qualifiedName.getParts();
         String columnSchema = null;
         String columnTableName = null;
@@ -97,9 +97,17 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
             tableNameMatched = true;
 
             AnalyzedRelation sourceRelation = entry.getValue();
-            Symbol newField = sourceRelation.getField(columnIdent, operation);
+            Symbol newField = sourceRelation.getField(columnIdent, operation, errorOnUnknownObjectKey);
             if (newField != null) {
                 if (lastField != null) {
+                    if (errorOnUnknownObjectKey == false) {
+                        /* ex) CREATE TABLE c1 (obj object as (x int));
+                         *     CREATE TABLE c2 (obj object as (y int));
+                         *     select obj['x'] from c1, c2;
+                         *     --> ambiguous because c2.obj['x'] is another candidate with errorOnUnknownObjectKey = false
+                         */
+                        return resolveField(qualifiedName, path, operation, true);
+                    }
                     throw new AmbiguousColumnException(columnIdent, newField);
                 }
                 lastField = newField;

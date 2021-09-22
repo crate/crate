@@ -65,7 +65,7 @@ class CreateSnapshotAnalyzer {
         String snapshotName = createSnapshot.name().getSuffix();
         Snapshot snapshot = new Snapshot(repositoryName, new SnapshotId(snapshotName, UUID.randomUUID().toString()));
 
-        var exprCtx = new ExpressionAnalysisContext();
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(

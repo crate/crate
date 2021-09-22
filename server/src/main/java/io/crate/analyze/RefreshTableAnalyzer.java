@@ -51,7 +51,7 @@ class RefreshTableAnalyzer {
                                         CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
-        var exprCtx = new ExpressionAnalysisContext();
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
 
         HashMap<Table<Symbol>, DocTableInfo> analyzedTables = new HashMap<>();
         for (var table : refreshStatement.tables()) {

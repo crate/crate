@@ -19,37 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.lucene.match;
+package org.elasticsearch.common.settings;
 
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.CharsRefBuilder;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+public class SettingsUtil {
 
-/**
- * An implementation tying Java's built-in java.util.regex to {@link CrateRegexQuery}.
- */
-public final class CrateRegexCapabilities {
-
-    static JavaUtilRegexMatcher compile(String regex, int flags) {
-        return new CrateRegexCapabilities.JavaUtilRegexMatcher(regex, flags);
-    }
-
-    static class JavaUtilRegexMatcher {
-        private final Pattern pattern;
-        private final Matcher matcher;
-        private final CharsRefBuilder utf16 = new CharsRefBuilder();
-
-        JavaUtilRegexMatcher(String regex, int flags) {
-            this.pattern = Pattern.compile(regex, flags);
-            this.matcher = this.pattern.matcher(utf16.get());
-        }
-
-        boolean match(BytesRef term) {
-            utf16.copyUTF8Bytes(term);
-            utf16.get();
-            return matcher.reset().matches();
-        }
+    public static void resetDeprecationLogger() {
+        Settings.DeprecationLoggerHolder.deprecationLogger.resetLRU();
     }
 }
