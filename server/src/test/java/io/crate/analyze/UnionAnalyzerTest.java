@@ -24,6 +24,7 @@ package io.crate.analyze;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
@@ -149,5 +150,36 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 "union all " +
                 "select id, name from users_multi_pk " +
                 "order by id");
+    }
+
+    @Test
+    public void testUnionObjectTypesWithSubColumnsOfSameNameButDifferentInnerTypes() throws Exception{
+        SQLExecutor.builder(clusterService)
+            .addTable(
+                "create table v1 (obj object as (col int))"
+            )
+            .addTable(
+                "create table v2 (obj object as (col text))"
+            ).build();
+
+        Asserts.assertThrowsMatches(
+            () -> analyze("select obj from v1 union all select obj from v2"),
+            UnsupportedOperationException.class,
+            "Corresponding output columns at position: 1 must be compatible for all parts of a UNION"
+        );
+    }
+
+    @Test
+    public void testUnionObjectTypesWithSubColumnsOfDifferentNames() throws Exception{
+        SQLExecutor.builder(clusterService)
+            .addTable(
+                "create table v1 (obj object as (obj1 object as (col text)))"
+            )
+            .addTable(
+                "create table v2 (obj object as (obj2 object as (col text)))"
+            ).build();
+
+        UnionSelect unionSelect = analyze("select obj from v1 union all select obj from v2");
+        assertThat(unionSelect.outputs().get(0), isField("obj"));
     }
 }

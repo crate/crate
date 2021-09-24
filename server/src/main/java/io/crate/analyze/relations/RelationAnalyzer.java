@@ -232,7 +232,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (int i = 0; i < leftOutputs.size(); i++) {
             var leftType = leftOutputs.get(i).valueType();
             var rightType = rightOutputs.get(i).valueType();
-            if (!DataTypes.isSameType(leftType, rightType)) {
+            if (!DataTypes.isCompatibleType(leftType, rightType)) {
                 throw new UnsupportedOperationException(
                     "Corresponding output columns at position: " + (i + 1) +
                     " must be compatible for all parts of a UNION");
