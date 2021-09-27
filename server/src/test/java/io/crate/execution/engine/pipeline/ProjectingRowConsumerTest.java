@@ -21,6 +21,29 @@
 
 package io.crate.execution.engine.pipeline;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Answers;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -49,26 +72,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Answers;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static io.crate.data.SentinelRow.SENTINEL;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -84,7 +87,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
         memoryManager = new OnHeapMemoryManager(usedBytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
-            new NodeLimits(),
+            new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             new NoneCircuitBreakerService(),
             nodeCtx,
             THREAD_POOL,

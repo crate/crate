@@ -21,6 +21,29 @@
 
 package io.crate.execution.engine.pipeline;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.data.SentinelRow.SENTINEL;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Answers;
+import org.mockito.MockitoAnnotations;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
@@ -60,27 +83,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Answers;
-import org.mockito.MockitoAnnotations;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
 
 public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUnitTest {
 
@@ -97,7 +99,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         MockitoAnnotations.initMocks(this);
         visitor = new ProjectionToProjectorVisitor(
             clusterService,
-            new NodeLimits(),
+            new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             new NoneCircuitBreakerService(),
             nodeCtx,
             THREAD_POOL,

@@ -43,6 +43,15 @@ public class SymbolVisitors {
         return false;
     }
 
+    public static boolean any(Predicate<? super Symbol> predicate, Iterable<? extends Symbol> symbols) {
+        for (Symbol symbol: symbols) {
+            if (any(predicate, symbol)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean any(Predicate<? super Symbol> symbolPredicate, Symbol symbol) {
         return symbol.accept(ANY_VISITOR, symbolPredicate);
     }

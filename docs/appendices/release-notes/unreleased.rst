@@ -111,6 +111,16 @@ Changes
 Fixes
 =====
 
+- Reduced the default :ref:`initial concurrency limit
+  <node_limits.initial_concurrency>` for operations like ``INSERT INTO FROM
+  QUERY`` from 50 to 5. This is closer to the behavior before 4.6.0. If the
+  nodes have spare capacity for a higher concurrency the effective concurrency
+  limit will grow dynamically over time, but it will start out lower to avoid
+  overloading a cluster with an initial spike of internal requests.
+
+- Added various :ref:`node limit <node_limits>` settings to control the
+  concurrency of operations like ``INSERT INTO FROM QUERY``.
+
 - Fixed an issue that caused ``ALTER TABLE <tbl> ADD COLUMN <columName> INDEX
   USING FULLTEXT`` statements to ignore the ``INDEX USING FULLTEXT`` part.
 

@@ -184,6 +184,19 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
     }
 
     @Test
+    public void test_cross_join_with_order_by_alias_and_order() throws Exception {
+        execute("create table t1 (price int)");
+        execute("create table t2 (price int)");
+        ensureYellow();
+        execute("insert into t1 (price) values (1)");
+        execute("insert into t2 (price) values (2)");
+        execute("refresh table t1, t2");
+
+        execute("select t1.price as total_price from t1 cross join t2 order by total_price limit 10");
+        assertThat(printedTable(response.rows()), is("1\n"));
+    }
+
+    @Test
     public void testOrderByWithMixedRelationOrder() throws Exception {
         execute("create table t1 (price float)");
         execute("create table t2 (price float, name string)");

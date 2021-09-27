@@ -92,6 +92,8 @@ import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportSettings;
 
+import io.crate.execution.jobs.NodeLimits;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -413,5 +415,10 @@ public final class ClusterSettings extends AbstractScopedSettings {
         TransportAddVotingConfigExclusionsAction.MAXIMUM_VOTING_CONFIG_EXCLUSIONS_SETTING,
         ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING,
         ClusterBootstrapService.UNCONFIGURED_BOOTSTRAP_TIMEOUT_SETTING,
-        LagDetector.CLUSTER_FOLLOWER_LAG_TIMEOUT_SETTING);
+        LagDetector.CLUSTER_FOLLOWER_LAG_TIMEOUT_SETTING,
+        NodeLimits.INITIAL_CONCURRENCY,
+        NodeLimits.MIN_CONCURRENCY,
+        NodeLimits.MAX_CONCURRENCY,
+        NodeLimits.QUEUE_SIZE
+    );
 }

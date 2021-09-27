@@ -38,6 +38,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
@@ -67,7 +68,7 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
         memoryManager = new OnHeapMemoryManager(bytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
-            new NodeLimits(),
+            new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             new NoneCircuitBreakerService(),
             nodeCtx,
             THREAD_POOL,
