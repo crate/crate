@@ -2220,4 +2220,8 @@ public final class InternalTestCluster extends TestCluster {
             }
         }
     }
+
+    public int numNodes() {
+        return nodes.size();
+    }
 }
