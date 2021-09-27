@@ -44,7 +44,7 @@ public class NodeLimits {
     private final Map<String, ConcurrencyLimit> limitsPerNode = new ConcurrentHashMap<>();
     private final ClusterSettings clusterSettings;
 
-    public static final Setting<Integer> INITIAL_CONCURRENCY = Setting.intSetting("node_limits.initial_concurrency", 50, Property.NodeScope, Property.Dynamic);
+    public static final Setting<Integer> INITIAL_CONCURRENCY = Setting.intSetting("node_limits.initial_concurrency", 5, Property.NodeScope, Property.Dynamic);
     public static final Setting<Integer> MIN_CONCURRENCY = Setting.intSetting("node_limits.min_concurrency", 1, Property.NodeScope, Property.Dynamic);
     public static final Setting<Integer> MAX_CONCURRENCY = Setting.intSetting("node_limits.max_concurrency", 2000, Property.NodeScope, Property.Dynamic);
     public static final Setting<Integer> QUEUE_SIZE = Setting.intSetting("node_limits.queue_size", 200, Property.NodeScope, Property.Dynamic);
