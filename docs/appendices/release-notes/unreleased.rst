@@ -62,6 +62,12 @@ Deprecations
 Changes
 =======
 
+- Added a :ref:`sys node check for max shards per node
+  <node_checks_max_shards_per_node>` to verify that the amount of shards on the
+  current node is less than 90 % of  :ref:`cluster.max_shards_per_node
+  <cluster.max_shards_per_node>`. The check is exposed via :ref:`sys.node_checks
+  <sys-node-checks>`.
+
 - Added support to use an aggregation in an order-by clause without having
   them in the select list like ``select x from tbl group by x order by count(y)``
 

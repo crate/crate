@@ -23,15 +23,33 @@ package io.crate.expression.reference.sys.check.node;
 
 import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.IndexRoutingTable;
+import org.elasticsearch.cluster.routing.RoutingTable;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.gateway.GatewayService;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.node.NodeService;
 import org.junit.Test;
 import org.mockito.Answers;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -323,5 +341,68 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         // default threshold is: 95% used
         assertThat(floodStage.isValid(5, 100), is(true));
         assertThat(floodStage.isValid(4, 100), is(false));
+    }
+
+    @Test
+    public void test_max_shard_per_node_check() {
+        var nodeId = "node_1";
+        var node = new DiscoveryNode(
+            nodeId,
+            nodeId,
+            buildNewFakeTransportAddress(),
+            Map.of(),
+            Set.of(DiscoveryNodeRole.MASTER_ROLE, DiscoveryNodeRole.DATA_ROLE),
+            Version.CURRENT
+        );
+
+        var discoveryNodes = DiscoveryNodes
+            .builder()
+            .add(node)
+            .masterNodeId(nodeId)
+            .localNodeId(nodeId)
+            .build();
+
+        var numberOfShards = 85;
+        var indexRoutingTableBuilder = IndexRoutingTable.builder(new Index("test", UUID.randomUUID().toString()));
+        // Create a routing table for 85 shards on the same node
+        for (int i = 1; i <= numberOfShards; i++) {
+            indexRoutingTableBuilder.addShard(
+                TestShardRouting.newShardRouting(
+                    "test",
+                    i,
+                    nodeId,
+                    true,
+                    ShardRoutingState.STARTED
+                )
+            );
+        }
+
+        var routingTable = RoutingTable.builder().add(indexRoutingTableBuilder).build();
+        var meta = IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(numberOfShards).numberOfReplicas(0);
+        var clusterState = ClusterState.builder(new ClusterName("crate")).version(1L)
+            .metadata(Metadata.builder().put(meta)).routingTable(routingTable).nodes(discoveryNodes).build();
+
+        // Validate that with `cluster.max_shards_per_node = 100` and 85 shards the check passes
+        var setting = Settings.builder().put(ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey(), 100).build();
+        var clusterSettings = new ClusterSettings(setting, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+
+        var clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
+        when(clusterService.state()).thenReturn(clusterState);
+        when(clusterService.getClusterSettings()).thenReturn(clusterSettings);
+
+        var maxShardsPerNodeSysCheck = new MaxShardsPerNodeSysCheck(clusterService);
+
+        assertThat(maxShardsPerNodeSysCheck.id(), is(8));
+        assertThat(maxShardsPerNodeSysCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(maxShardsPerNodeSysCheck.isValid(), is(true));
+
+        // Validate that with `cluster.max_shards_per_node = 90` and 85 shards the check fails
+        setting = Settings.builder().put(ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey(), 90).build();
+        clusterSettings = new ClusterSettings(setting, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+        when(clusterService.state()).thenReturn(clusterState);
+        when(clusterService.getClusterSettings()).thenReturn(clusterSettings);
+
+        maxShardsPerNodeSysCheck = new MaxShardsPerNodeSysCheck(clusterService);
+        assertThat(maxShardsPerNodeSysCheck.isValid(), is(false));
     }
 }

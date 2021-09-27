@@ -204,6 +204,11 @@ Shard limits
   cluster state. Having too many shards per node will impact the clusters
   stability and it is therefore discouraged to raise the limit above 1000.
 
+.. NOTE::
+
+   The maximum amount of shards per node setting is also used for the
+   :ref:`node_checks_max_shards_per_node` check.
+
 
 .. _conf_usage_data_collector:
 
