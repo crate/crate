@@ -200,16 +200,14 @@ public class ShardingUpsertExecutor
 
             String nodeId = entry.getKey().nodeId;
             ConcurrencyLimit nodeLimit = nodeLimits.get(nodeId);
-            long startTime = nodeLimit.startSample();
             ActionListener<ShardResponse> listener =
                 new ShardResponseActionListener(
-                    nodeId,
                     numRequests,
                     interrupt,
                     upsertResults,
                     resultCollector.accumulator(),
                     requests.rowSourceInfos,
-                    startTime,
+                    nodeLimit,
                     resultFuture);
 
             listener = new RetryListener<>(
@@ -331,36 +329,35 @@ public class ShardingUpsertExecutor
     }
 
     private class ShardResponseActionListener implements ActionListener<ShardResponse> {
-        private final String operationNodeId;
         private final UpsertResultCollector.Accumulator resultAccumulator;
         private final List<RowSourceInfo> rowSourceInfos;
         private final UpsertResults upsertResults;
         private final AtomicInteger numRequests;
         private final AtomicReference<Exception> interrupt;
         private final CompletableFuture<UpsertResults> upsertResultFuture;
+        private final ConcurrencyLimit nodeLimit;
         private final long startTime;
 
-        ShardResponseActionListener(String operationNodeId,
-                                    AtomicInteger numRequests,
+        ShardResponseActionListener(AtomicInteger numRequests,
                                     AtomicReference<Exception> interrupt,
                                     UpsertResults upsertResults,
                                     UpsertResultCollector.Accumulator resultAccumulator,
                                     List<RowSourceInfo> rowSourceInfos,
-                                    long startTime,
+                                    ConcurrencyLimit nodeLimit,
                                     CompletableFuture<UpsertResults> upsertResultFuture) {
-            this.operationNodeId = operationNodeId;
             this.numRequests = numRequests;
             this.interrupt = interrupt;
             this.upsertResults = upsertResults;
             this.resultAccumulator = resultAccumulator;
             this.rowSourceInfos = rowSourceInfos;
-            this.startTime = startTime;
+            this.nodeLimit = nodeLimit;
+            this.startTime = nodeLimit.startSample();
             this.upsertResultFuture = upsertResultFuture;
         }
 
         @Override
         public void onResponse(ShardResponse shardResponse) {
-            nodeLimits.get(operationNodeId).onSample(startTime, false);
+            nodeLimit.onSample(startTime, false);
             resultAccumulator.accept(upsertResults, shardResponse, rowSourceInfos);
             maybeSetInterrupt(shardResponse.failure());
             countdown();
@@ -368,7 +365,7 @@ public class ShardingUpsertExecutor
 
         @Override
         public void onFailure(Exception e) {
-            nodeLimits.get(operationNodeId).onSample(startTime, true);
+            nodeLimit.onSample(startTime, true);
             countdown();
         }
 

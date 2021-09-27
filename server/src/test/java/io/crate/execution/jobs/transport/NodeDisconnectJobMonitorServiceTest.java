@@ -34,6 +34,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
@@ -63,7 +65,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
 
         NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
             tasksService,
-            new NodeLimits(),
+            new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             mock(TransportService.class),
             mock(TransportKillJobsNodeAction.class));
 
@@ -107,7 +109,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
         };
         NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
             tasksService,
-            new NodeLimits(),
+            new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             mock(TransportService.class),
             killAction);
 

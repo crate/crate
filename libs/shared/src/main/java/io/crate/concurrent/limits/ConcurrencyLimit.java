@@ -18,7 +18,8 @@ package io.crate.concurrent.limits;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
+import java.util.function.IntFunction;
+
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -70,25 +71,6 @@ public final class ConcurrencyLimit {
 
     private static final Logger LOG = LogManager.getLogger(ConcurrencyLimit.class);
 
-    public static class Builder {
-        private int initialLimit = 50;
-        private int minLimit = 2;
-        private int maxConcurrency = 2000;
-
-        private double smoothing = 0.2;
-        private Function<Integer, Integer> queueSize = concurrency -> 200;
-        private int longWindow = 600;
-        private double rttTolerance = 1.5;
-
-        public ConcurrencyLimit build() {
-            return new ConcurrencyLimit(this);
-        }
-    }
-
-    public static ConcurrencyLimit newDefault() {
-        return new Builder().build();
-    }
-
     /**
      * Estimated concurrency limit based on our algorithm
      */
@@ -112,7 +94,7 @@ public final class ConcurrencyLimit {
 
     private final int minLimit;
 
-    private final Function<Integer, Integer> queueSize;
+    private final IntFunction<Integer> queueSize;
 
     private final double smoothing;
 
@@ -122,16 +104,22 @@ public final class ConcurrencyLimit {
 
     private final AtomicInteger numInflight = new AtomicInteger();
 
-    private ConcurrencyLimit(Builder builder) {
-        this.limit = builder.initialLimit;
-        this.estimatedLimit = builder.initialLimit;
-        this.maxLimit = builder.maxConcurrency;
-        this.minLimit = builder.minLimit;
-        this.queueSize = builder.queueSize;
-        this.smoothing = builder.smoothing;
-        this.tolerance = builder.rttTolerance;
+    public ConcurrencyLimit(int initialLimit,
+                            int minConcurrency,
+                            int maxConcurrency,
+                            IntFunction<Integer> queueSize,
+                            double smoothing,
+                            int longWindow,
+                            double rttTolerance) {
+        this.limit = initialLimit;
+        this.estimatedLimit = initialLimit;
+        this.minLimit = minConcurrency;
+        this.maxLimit = maxConcurrency;
+        this.queueSize = queueSize;
+        this.smoothing = smoothing;
+        this.tolerance = rttTolerance;
         this.lastRtt = 0;
-        this.longRtt = new ExpAvgMeasurement(builder.longWindow, 10);
+        this.longRtt = new ExpAvgMeasurement(longWindow, 10);
     }
 
     /**
