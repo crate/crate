@@ -129,6 +129,27 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
         return null;
     }
 
+    /**
+     * Returns a Lucene query with the semantics of the `parent` function.
+     *
+     * <p>
+     * This is similar to {@link #toQuery(Function, Context)} but for cases where *this* function is the `inner` parent and used within another `parent` function.
+     * </p>
+     *
+     * Consider a case like follows:
+     *
+     * <pre>
+     *      WHERE distance(p1, 'POINT (10 20)') = 20
+     * </pre>
+     *
+     * Here `distance` is the inner function and `=` is the parent function.
+     * toQuery returns a Query that is equivalent to the full parent function.
+     **/
+    @Nullable
+    public Query toQuery(Function parent, Function inner, Context context) {
+        return null;
+    }
+
     @Override
     public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx, NodeContext nodeCtx) {
         try {
