@@ -330,6 +330,20 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
         });
     }
 
+    @After
+    public void ensure_one_node_limit_instance_per_node() throws Exception {
+        Iterable<NodeLimits> nodeLimitsInstances = internalCluster().getInstances(NodeLimits.class);
+        int numInstances = 0;
+        for (var nodeLimits : nodeLimitsInstances) {
+            numInstances++;
+        }
+        assertThat(
+            "There must only be as many NodeLimits instances as there are nodes in the cluster",
+            numInstances,
+            is(internalCluster().numNodes())
+        );
+    }
+
     public void waitUntilShardOperationsFinished() throws Exception {
         assertBusy(() -> {
             Iterable<IndicesService> indexServices = internalCluster().getInstances(IndicesService.class);
