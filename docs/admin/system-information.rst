@@ -771,8 +771,9 @@ Example query::
   |  5 | ...         | The high disk watermark is exceeded on the node. The cluster ... |
   |  6 | ...         | The low disk watermark is exceeded on the node. The cluster w... |
   |  7 | ...         | The flood stage disk watermark is exceeded on the node. Table... |
+  |  8 | ...         | The amount of shards on the node reached 90 % of the limit of... |
   +----+---------...-+--------------------------------------------------------------...-+
-  SELECT 6 rows in set (... sec)
+  SELECT 7 rows in set (... sec)
 
 .. _sys-node-checks-ack:
 
@@ -858,7 +859,7 @@ setting wouldn't have any effect.
    :ref:`gateway.recover_after_nodes <gateway.recover_after_nodes>` instead
    is still supported.
 
-.. _node_checks_watermark_high:
+.. _sys-node_checks_watermark_high:
 
 Routing allocation disk watermark high
 ......................................
@@ -870,7 +871,7 @@ configured CrateDB data paths is verified against the threshold setting. If one
 or more verification fails the check is marked as not passed.
 
 
-.. _node_checks_watermark_low:
+.. _sys-node_checks_watermark_low:
 
 Routing allocation disk watermark low
 .....................................
@@ -881,6 +882,17 @@ watermark for the node disk usage. The check verifies that the low watermark is
 not exceeded on the current node. The verification is done against each disk
 for configured CrateDB data paths. The check is not passed if the verification
 for one or more disk fails.
+
+.. _sys-node_checks_max_shards_per_node:
+
+Maximum shards per node
+.......................
+
+The check verifies that the amount of shards on the current node is less
+than 90 percent of :ref:`cluster.max_shards_per_node
+<cluster.max_shards_per_node>`. Creating new tables or partitions which would
+push the number of shards beyond 100 % of the limit will be rejected.
+
 
 .. _sys-shards:
 
