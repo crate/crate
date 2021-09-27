@@ -21,24 +21,24 @@
 
 package io.crate.execution.jobs;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
-import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.concurrent.limits.ConcurrencyLimit;
 
+
 public class NodeLimitsTest extends ESTestCase {
 
-    private NodeLimits nodeLimits = new NodeLimits();
+    private ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+    private NodeLimits nodeLimits = new NodeLimits(clusterSettings);
 
-    @Before
-    public void setupJobsTracker() {
-        nodeLimits = new NodeLimits();
-    }
 
     @Test
     public void test_can_receive_limits_for_null_node() {
@@ -51,5 +51,18 @@ public class NodeLimitsTest extends ESTestCase {
         assertThat(nodeLimits.get(null), sameInstance(nodeLimits.get(null)));
         assertThat(nodeLimits.get("n1"), sameInstance(nodeLimits.get("n1")));
         assertThat(nodeLimits.get("n1"), not(sameInstance(nodeLimits.get("n2"))));
+    }
+
+    @Test
+    public void test_updating_node_limit_settings_results_in_new_concurrency_limit_instances() throws Exception {
+        ConcurrencyLimit limit = nodeLimits.get("n1");
+        clusterSettings.applySettings(Settings.builder()
+            .put("node_limits.initial_concurrency", 10)
+            .build()
+        );
+        ConcurrencyLimit updatedLimit = nodeLimits.get("n1");
+        assertThat(limit, not(sameInstance(updatedLimit)));
+        assertThat(limit.getLimit(), is(50));
+        assertThat(updatedLimit.getLimit(), is(10));
     }
 }

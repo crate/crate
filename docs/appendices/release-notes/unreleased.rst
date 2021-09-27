@@ -111,6 +111,9 @@ Changes
 Fixes
 =====
 
+- Added various :ref:`node limit <node_limits>` settings to control the
+  concurrency of operations like ``INSERT INTO FROM QUERY``.
+
 - Fixed an issue that caused ``ALTER TABLE <tbl> ADD COLUMN <columName> INDEX
   USING FULLTEXT`` statements to ignore the ``INDEX USING FULLTEXT`` part.
 

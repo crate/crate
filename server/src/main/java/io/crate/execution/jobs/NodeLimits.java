@@ -26,7 +26,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nullable;
 
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 
 import io.crate.concurrent.limits.ConcurrencyLimit;
 
@@ -36,14 +40,76 @@ import io.crate.concurrent.limits.ConcurrencyLimit;
 @Singleton
 public class NodeLimits {
 
-    private final ConcurrencyLimit unknownNodelimit = ConcurrencyLimit.newDefault();
+    private volatile ConcurrencyLimit unknownNodelimit;
     private final Map<String, ConcurrencyLimit> limitsPerNode = new ConcurrentHashMap<>();
+    private final ClusterSettings clusterSettings;
 
+    public static final Setting<Integer> INITIAL_CONCURRENCY = Setting.intSetting("node_limits.initial_concurrency", 50, Property.NodeScope, Property.Dynamic);
+    public static final Setting<Integer> MIN_CONCURRENCY = Setting.intSetting("node_limits.min_concurrency", 1, Property.NodeScope, Property.Dynamic);
+    public static final Setting<Integer> MAX_CONCURRENCY = Setting.intSetting("node_limits.max_concurrency", 2000, Property.NodeScope, Property.Dynamic);
+    public static final Setting<Integer> QUEUE_SIZE = Setting.intSetting("node_limits.queue_size", 200, Property.NodeScope, Property.Dynamic);
+
+    private static final double SMOOTHING = 0.2;
+    private static final int LONG_WINDOW = 600;
+    private static final double RTT_TOLERANCE = 1.5;
+
+    @Inject
+    public NodeLimits(ClusterSettings clusterSettings) {
+        this.clusterSettings = clusterSettings;
+        // New settings are applied lazy on next access via #get(nodeId)
+        // (And all earlier dynamic adjustments of the limit is reset)
+        clusterSettings.addSettingsUpdateConsumer(INITIAL_CONCURRENCY, ignored -> wipeLimits());
+        clusterSettings.addSettingsUpdateConsumer(MIN_CONCURRENCY, ignored -> wipeLimits());
+        clusterSettings.addSettingsUpdateConsumer(MAX_CONCURRENCY, ignored -> wipeLimits());
+        clusterSettings.addSettingsUpdateConsumer(QUEUE_SIZE, ignored -> wipeLimits());
+    }
+
+    private void wipeLimits() {
+        unknownNodelimit = null;
+        limitsPerNode.clear();
+    }
+
+    private ConcurrencyLimit newLimit() {
+        return new ConcurrencyLimit(
+            clusterSettings.get(INITIAL_CONCURRENCY),
+            clusterSettings.get(MIN_CONCURRENCY),
+            clusterSettings.get(MAX_CONCURRENCY),
+            ignored -> clusterSettings.get(QUEUE_SIZE),
+            SMOOTHING,
+            LONG_WINDOW,
+            RTT_TOLERANCE
+        );
+    }
+
+
+    /**
+     * Retrieve the current CurrencyLimit for a node.
+     *
+     * <p>
+     * Instances may change if the settings are updated.
+     * Consumers of the ConcurrencyLimit need to hold onto the same instance for
+     * {@link ConcurrencyLimit#startSample()} and
+     * {@link ConcurrencyLimit#onSample(long, boolean)} calls to ensure the number
+     * of inflight requests are accurate.
+     * </p>
+     **/
     public ConcurrencyLimit get(@Nullable String nodeId) {
         if (nodeId == null) {
-            return unknownNodelimit;
+            ConcurrencyLimit unknown = unknownNodelimit;
+            if (unknown == null) {
+                // Here be dragons: Two threads calling .get at the same time could end up
+                // creating two different unknown instances.
+                // This is acceptable because of the startSample/onSample contract.
+                // (ConcurrencyLimit user must hold onto references and use the same instance)
+                //
+                // Due to settings changes and nodeDisconnected events, we must be able to cope
+                // with multiple instances anyways.
+                unknown = newLimit();
+                unknownNodelimit = unknown;
+            }
+            return unknown;
         }
-        return limitsPerNode.computeIfAbsent(nodeId, ignored -> ConcurrencyLimit.newDefault());
+        return limitsPerNode.computeIfAbsent(nodeId, ignored -> newLimit());
     }
 
     public void nodeDisconnected(String nodeId) {
@@ -51,9 +117,10 @@ public class NodeLimits {
     }
 
     public long totalNumInflight() {
+        ConcurrencyLimit unknown = unknownNodelimit;
         return limitsPerNode.values()
             .stream()
             .mapToLong(ConcurrencyLimit::numInflight)
-            .sum();
+            .sum() + (unknown == null ? 0 : unknown.numInflight());
     }
 }
