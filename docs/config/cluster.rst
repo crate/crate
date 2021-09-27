@@ -1288,7 +1288,7 @@ will continue with the previous settings.
 .. _node_limits.initial_concurrency:
 
 **node_limits.initial_concurrency**
-  | *Default:* ``50``
+  | *Default:* ``5``
   | *Runtime:* ``yes``
 
 The initial number of concurrent operations allowed per target node.
