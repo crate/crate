@@ -62,7 +62,7 @@ public class NodeLimitsTest extends ESTestCase {
         );
         ConcurrencyLimit updatedLimit = nodeLimits.get("n1");
         assertThat(limit, not(sameInstance(updatedLimit)));
-        assertThat(limit.getLimit(), is(50));
+        assertThat(limit.getLimit(), is(5));
         assertThat(updatedLimit.getLimit(), is(10));
     }
 }
