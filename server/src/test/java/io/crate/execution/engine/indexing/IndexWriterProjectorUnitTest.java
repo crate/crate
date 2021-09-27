@@ -21,6 +21,28 @@
 
 package io.crate.execution.engine.indexing;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -41,26 +63,6 @@ import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static io.crate.data.SentinelRow.SENTINEL;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTest {
 
@@ -98,7 +100,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
         TransportCreatePartitionsAction transportCreatePartitionsAction = mock(TransportCreatePartitionsAction.class);
         IndexWriterProjector indexWriter = new IndexWriterProjector(
             clusterService,
-            new NodeLimits(),
+            new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             new NoopCircuitBreaker("dummy"),
             RamAccounting.NO_ACCOUNTING,
             scheduler,

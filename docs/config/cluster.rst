@@ -1268,6 +1268,56 @@ settings.
   Size of the queue for pending requests. A value of ``-1`` sets it to
   unbounded.
 
+.. _node_limits:
+
+Node limits
+-----------
+
+Node limits control how much resources operations like ``INSERT INTO FROM
+QUERY`` or ``COPY`` can use.
+
+The values here serve as a starting point for an algorithm that dynamically
+adapts the effective concurrency limit based on the round-trip time of
+requests. Whenever one of these settings is updated, the previously calculated
+effective concurrency is reset.
+
+Changing settings will only effect new operations, already running operations
+will continue with the previous settings.
+
+
+.. _node_limits.initial_concurrency:
+
+**node_limits.initial_concurrency**
+  | *Default:* ``50``
+  | *Runtime:* ``yes``
+
+The initial number of concurrent operations allowed per target node.
+
+.. _node_limits.min_concurrency:
+
+**node_limits.min_concurrency**
+  | *Default:* ``1``
+  | *Runtime:* ``yes``
+
+The minimum number of concurrent operations allowed per target node.
+
+.. _node_limits.max_concurrency:
+
+**node_limits.max_concurrency**
+  | *Default:* ``2000``
+  | *Runtime:* ``yes``
+
+The maximum number of concurrent operations allowed per target node.
+
+.. _node_limits.queue_size:
+
+**node_limits.queue_size**
+  | *Default:* ``200``
+  | *Runtime:* ``yes``
+
+How many operations are allowed to queue up.
+
+
 Metadata
 --------
 
