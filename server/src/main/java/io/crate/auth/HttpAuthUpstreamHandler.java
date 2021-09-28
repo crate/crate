@@ -118,8 +118,8 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                 ctx.fireChannelRead(request);
             } catch (Exception e) {
                 if (LOGGER.isInfoEnabled()) {
-                    LOGGER.info("Password authentication failed for user={} from connection={}",
-                                username, connectionProperties.address());
+                    LOGGER.info("{} authentication failed for user={} from connection={}",
+                                authMethod.name(), username, connectionProperties.address());
                 }
                 sendUnauthorized(ctx.channel(), e.getMessage());
             }
