@@ -83,7 +83,7 @@ public class NodeLimits {
 
 
     /**
-     * Retrieve the current CurrencyLimit for a node.
+     * Retrieve the current ConcurrencyLimit for a node.
      *
      * <p>
      * Instances may change if the settings are updated.
