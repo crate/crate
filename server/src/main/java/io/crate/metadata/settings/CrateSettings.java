@@ -24,6 +24,7 @@ package io.crate.metadata.settings;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.memory.MemoryManagerFactory;
 import io.crate.statistics.TableStatsService;
 import io.crate.types.DataTypes;
@@ -170,7 +171,12 @@ public final class CrateSettings implements ClusterStateListener {
         HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING,
         HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_OVERHEAD_SETTING,
         HierarchyCircuitBreakerService.TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING,
-        ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE
+        ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE,
+
+        NodeLimits.INITIAL_CONCURRENCY,
+        NodeLimits.QUEUE_SIZE,
+        NodeLimits.MIN_CONCURRENCY,
+        NodeLimits.MAX_CONCURRENCY
     );
 
 
