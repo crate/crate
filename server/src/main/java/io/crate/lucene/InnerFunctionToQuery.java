@@ -22,6 +22,8 @@
 package io.crate.lucene;
 
 import io.crate.expression.symbol.Function;
+import io.crate.metadata.Scalar;
+
 import org.apache.lucene.search.Query;
 
 import javax.annotation.Nullable;
@@ -40,7 +42,10 @@ import java.io.IOException;
  * The second parameter (inner) would be the "distance" function.
  * <p>
  * The returned Query must "contain" both the parent and inner functions.
- */
+ *
+ * @deprecated Implement {@link Scalar#toQuery(Function, Function, io.crate.lucene.LuceneQueryBuilder.Context)} instead.
+ **/
+@Deprecated
 interface InnerFunctionToQuery {
 
     /**

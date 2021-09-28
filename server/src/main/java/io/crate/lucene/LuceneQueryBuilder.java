@@ -77,7 +77,6 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.scalar.ArrayUpperFunction;
 import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.scalar.SubscriptFunction;
-import io.crate.expression.scalar.geo.DistanceFunction;
 import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -315,7 +314,6 @@ public class LuceneQueryBuilder {
         );
 
         private final Map<String, InnerFunctionToQuery> innerFunctions = Map.of(
-            DistanceFunction.NAME, new DistanceQuery(),
             WithinFunction.NAME, WITHIN_QUERY,
             SubscriptFunction.NAME, new SubscriptQuery(),
             ArrayUpperFunction.ARRAY_LENGTH, new ArrayLengthQuery(),
@@ -360,14 +358,24 @@ public class LuceneQueryBuilder {
             return query == null ? genericFunctionFilter(function, context) : query;
         }
 
-        private Query queryFromInnerFunction(Function function, Context context) {
-            for (Symbol symbol : function.arguments()) {
-                if (symbol.symbolType() == SymbolType.FUNCTION) {
-                    String functionName = ((Function) symbol).name();
+        private Query queryFromInnerFunction(Function parent, Context context) {
+            for (Symbol arg : parent.arguments()) {
+                if (arg instanceof Function inner) {
+                    String functionName = inner.name();
                     InnerFunctionToQuery functionToQuery = innerFunctions.get(functionName);
-                    if (functionToQuery != null) {
+                    if (functionToQuery == null) {
+                        FunctionImplementation implementation = context.nodeContext.functions().getQualified(
+                            inner, context.txnCtx.sessionSettings().searchPath()
+                        );
+                        Query query = implementation instanceof Scalar<?, ?> scalar
+                            ? scalar.toQuery(parent, inner, context)
+                            : null;
+                        if (query != null) {
+                            return query;
+                        }
+                    } else {
                         try {
-                            Query query = functionToQuery.apply(function, (Function) symbol, context);
+                            Query query = functionToQuery.apply(parent, inner, context);
                             if (query != null) {
                                 return query;
                             }

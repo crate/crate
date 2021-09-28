@@ -22,11 +22,17 @@
 package io.crate.lucene;
 
 import io.crate.expression.symbol.Function;
+import io.crate.metadata.Scalar;
+
 import org.apache.lucene.search.Query;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 
+/**
+ * @deprecated Implement {@link Scalar#toQuery(Function, io.crate.lucene.LuceneQueryBuilder.Context)} instead.
+ **/
+@Deprecated
 public interface FunctionToQuery {
 
     @Nullable
