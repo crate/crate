@@ -138,3 +138,7 @@ Fixes
 - Fixed an issue that caused ``UNION ALL`` statements to succeed or throw
   unexpected exceptions when the ``SELECT`` results for ``UNION ALL`` included
   object types with identically named but differently typed sub-columns.
+
+- Fixed an issue that caused showing an incorrect log message in case of an
+  authentication failure. "Password authentication" used to be shown instead
+  of the actual authentication method name.
