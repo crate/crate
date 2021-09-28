@@ -1268,13 +1268,13 @@ settings.
   Size of the queue for pending requests. A value of ``-1`` sets it to
   unbounded.
 
-.. _node_limits:
+.. _overload_protection:
 
-Node limits
------------
+Overload Protection
+-------------------
 
-Node limits control how much resources operations like ``INSERT INTO FROM
-QUERY`` or ``COPY`` can use.
+Overload protection settings control how many resources operations like
+``INSERT INTO FROM QUERY`` or ``COPY`` can use.
 
 The values here serve as a starting point for an algorithm that dynamically
 adapts the effective concurrency limit based on the round-trip time of
@@ -1285,33 +1285,33 @@ Changing settings will only effect new operations, already running operations
 will continue with the previous settings.
 
 
-.. _node_limits.initial_concurrency:
+.. _overload_protection.dml.initial_concurrency:
 
-**node_limits.initial_concurrency**
+**overload_protection.dml.initial_concurrency**
   | *Default:* ``5``
   | *Runtime:* ``yes``
 
 The initial number of concurrent operations allowed per target node.
 
-.. _node_limits.min_concurrency:
+.. _overload_protection.dml.min_concurrency:
 
-**node_limits.min_concurrency**
+**overload_protection.dml.min_concurrency**
   | *Default:* ``1``
   | *Runtime:* ``yes``
 
 The minimum number of concurrent operations allowed per target node.
 
-.. _node_limits.max_concurrency:
+.. _overload_protection.dml.max_concurrency:
 
-**node_limits.max_concurrency**
+**overload_protection.dml.max_concurrency**
   | *Default:* ``2000``
   | *Runtime:* ``yes``
 
 The maximum number of concurrent operations allowed per target node.
 
-.. _node_limits.queue_size:
+.. _overload_protection.dml.queue_size:
 
-**node_limits.queue_size**
+**overload_protection.dml.queue_size**
   | *Default:* ``200``
   | *Runtime:* ``yes``
 

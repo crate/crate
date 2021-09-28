@@ -194,11 +194,12 @@ information about the currently applied cluster settings.
     | settings['memory']                                                                | object           |
     | settings['memory']['allocation']                                                  | object           |
     | settings['memory']['allocation']['type']                                          | text             |
-    | settings['node_limits']                                                           | object           |
-    | settings['node_limits']['initial_concurrency']                                    | integer          |
-    | settings['node_limits']['max_concurrency']                                        | integer          |
-    | settings['node_limits']['min_concurrency']                                        | integer          |
-    | settings['node_limits']['queue_size']                                             | integer          |
+    | settings['overload_protection']                                                   | object           |
+    | settings['overload_protection']['dml']                                            | object           |
+    | settings['overload_protection']['dml']['initial_concurrency']                     | integer          |
+    | settings['overload_protection']['dml']['max_concurrency']                         | integer          |
+    | settings['overload_protection']['dml']['min_concurrency']                         | integer          |
+    | settings['overload_protection']['dml']['queue_size']                              | integer          |
     | settings['stats']                                                                 | object           |
     | settings['stats']['breaker']                                                      | object           |
     | settings['stats']['breaker']['log']                                               | object           |
