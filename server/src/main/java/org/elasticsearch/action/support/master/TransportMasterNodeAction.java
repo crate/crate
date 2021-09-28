@@ -131,9 +131,6 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
         AsyncSingleAction(Task task, Request request, ActionListener<Response> listener) {
             this.task = task;
             this.request = request;
-            if (task != null) {
-                request.setParentTask(clusterService.localNode().getId(), task.getId());
-            }
             this.listener = listener;
         }
 
@@ -147,6 +144,9 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
                     waitForState.clusterChanged(null);
                 }
                 return;
+            }
+            if (task != null) {
+                request.setParentTask(clusterService.localNode().getId(), task.getId());
             }
             this.observer = new ClusterStateObserver(state, clusterService, request.masterNodeTimeout(), logger);
             doStart(state);
