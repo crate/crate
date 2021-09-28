@@ -57,7 +57,7 @@ public class NodeLimitsTest extends ESTestCase {
     public void test_updating_node_limit_settings_results_in_new_concurrency_limit_instances() throws Exception {
         ConcurrencyLimit limit = nodeLimits.get("n1");
         clusterSettings.applySettings(Settings.builder()
-            .put("node_limits.initial_concurrency", 10)
+            .put("overload_protection.dml.initial_concurrency", 10)
             .build()
         );
         ConcurrencyLimit updatedLimit = nodeLimits.get("n1");
