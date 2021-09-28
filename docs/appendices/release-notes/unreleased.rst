@@ -80,3 +80,7 @@ Fixes
 - Fixed an issue that caused ``INSERT INTO`` statements to fail on partitioned
   tables where the partitioned column is generated and the column and value are
   provided in the statement.
+
+- Fixed an issue that caused showing an incorrect log message in case of an
+  authentication failure. "Password authentication" used to be shown instead
+  of the actual authentication method name.
