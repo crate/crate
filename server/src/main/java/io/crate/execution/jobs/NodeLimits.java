@@ -44,10 +44,10 @@ public class NodeLimits {
     private final Map<String, ConcurrencyLimit> limitsPerNode = new ConcurrentHashMap<>();
     private final ClusterSettings clusterSettings;
 
-    public static final Setting<Integer> INITIAL_CONCURRENCY = Setting.intSetting("node_limits.initial_concurrency", 5, Property.NodeScope, Property.Dynamic);
-    public static final Setting<Integer> MIN_CONCURRENCY = Setting.intSetting("node_limits.min_concurrency", 1, Property.NodeScope, Property.Dynamic);
-    public static final Setting<Integer> MAX_CONCURRENCY = Setting.intSetting("node_limits.max_concurrency", 2000, Property.NodeScope, Property.Dynamic);
-    public static final Setting<Integer> QUEUE_SIZE = Setting.intSetting("node_limits.queue_size", 200, Property.NodeScope, Property.Dynamic);
+    public static final Setting<Integer> INITIAL_CONCURRENCY = Setting.intSetting("overload_protection.dml.initial_concurrency", 5, Property.NodeScope, Property.Dynamic);
+    public static final Setting<Integer> MIN_CONCURRENCY = Setting.intSetting("overload_protection.dml.min_concurrency", 1, Property.NodeScope, Property.Dynamic);
+    public static final Setting<Integer> MAX_CONCURRENCY = Setting.intSetting("overload_protection.dml.max_concurrency", 2000, Property.NodeScope, Property.Dynamic);
+    public static final Setting<Integer> QUEUE_SIZE = Setting.intSetting("overload_protection.dml.queue_size", 200, Property.NodeScope, Property.Dynamic);
 
     private static final double SMOOTHING = 0.2;
     private static final int LONG_WINDOW = 600;
