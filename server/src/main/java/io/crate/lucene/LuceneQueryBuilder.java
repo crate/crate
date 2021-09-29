@@ -76,7 +76,6 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.scalar.ArrayUpperFunction;
 import io.crate.expression.scalar.Ignore3vlFunction;
-import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -315,7 +314,6 @@ public class LuceneQueryBuilder {
 
         private final Map<String, InnerFunctionToQuery> innerFunctions = Map.of(
             WithinFunction.NAME, WITHIN_QUERY,
-            SubscriptFunction.NAME, new SubscriptQuery(),
             ArrayUpperFunction.ARRAY_LENGTH, new ArrayLengthQuery(),
             ArrayUpperFunction.ARRAY_UPPER, new ArrayLengthQuery()
         );
