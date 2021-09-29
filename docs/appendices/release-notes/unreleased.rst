@@ -60,6 +60,11 @@ None
 Fixes
 =====
 
+- Improved the internal dynamic batching mechanism for operations like ``INSERT
+  INTO FROM QUERY`` and ``COPY FROM``. It should more aggressively throttle
+  these operations in case of memory pressure, reducing the chance of them
+  failing with a ``CircuitBreakingException``.
+
 - Fixed a second issue that could cause clients to receive a ``400 Bad
   Request`` error when using the HTTP interface early during node startup. The
   previous fix within the ``4.6.3`` release was incomplete.
