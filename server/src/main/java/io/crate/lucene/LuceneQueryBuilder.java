@@ -74,7 +74,6 @@ import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.expression.scalar.ArrayUpperFunction;
 import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -309,10 +308,7 @@ public class LuceneQueryBuilder {
             entry(RegexpMatchCaseInsensitiveOperator.NAME, new RegexMatchQueryCaseInsensitive())
         );
 
-        private final Map<String, InnerFunctionToQuery> innerFunctions = Map.of(
-            ArrayUpperFunction.ARRAY_LENGTH, new ArrayLengthQuery(),
-            ArrayUpperFunction.ARRAY_UPPER, new ArrayLengthQuery()
-        );
+        private final Map<String, InnerFunctionToQuery> innerFunctions = Map.of();
 
         @Override
         public Query visitFunction(Function function, Context context) {
