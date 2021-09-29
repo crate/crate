@@ -92,3 +92,6 @@ Fixes
 
 - Fixed an issue that caused ``NullPointerException`` when inserting into
   previously altered tables that were partitioned and had generated columns.
+
+- Fixed an issue in the administration console: Nested arrays in
+  ``OBJECT(IGNORED)`` columns will now be displayed correctly.
