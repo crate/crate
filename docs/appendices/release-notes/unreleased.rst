@@ -60,6 +60,10 @@ None
 Fixes
 =====
 
+- Fixed a second issue that could cause clients to receive a ``400 Bad
+  Request`` error when using the HTTP interface early during node startup. The
+  previous fix within the ``4.6.3`` release was incomplete.
+
 - Reduced the default :ref:`initial concurrency limit
   <overload_protection.dml.initial_concurrency>` for operations like ``INSERT
   INTO FROM QUERY`` from 50 to 5. This is closer to the behavior before 4.6.0.
