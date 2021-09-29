@@ -111,6 +111,11 @@ Changes
 Fixes
 =====
 
+- Improved the internal dynamic batching mechanism for operations like ``INSERT
+  INTO FROM QUERY`` and ``COPY FROM``. It should more aggressively throttle
+  these operations in case of memory pressure, reducing the chance of them
+  failing with a ``CircuitBreakingException``.
+
 - Reduced the default :ref:`initial concurrency limit
   <overload_protection.dml.initial_concurrency>` for operations like ``INSERT
   INTO FROM QUERY`` from 50 to 5. This is closer to the behavior before 4.6.0.
