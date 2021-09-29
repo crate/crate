@@ -21,26 +21,42 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.data.Input;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
-import org.elasticsearch.common.TriFunction;
+import static io.crate.expression.scalar.SubscriptObjectFunction.tryToInferReturnTypeFromObjectTypeAndArguments;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.expression.scalar.SubscriptObjectFunction.tryToInferReturnTypeFromObjectTypeAndArguments;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.Query;
+import org.elasticsearch.common.TriFunction;
+import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.query.QueryShardContext;
+
+import io.crate.data.Input;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.GtOperator;
+import io.crate.expression.operator.GteOperator;
+import io.crate.expression.operator.LtOperator;
+import io.crate.expression.operator.LteOperator;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 /**
  * Supported subscript expressions:
@@ -202,5 +218,51 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
             throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
         }
         return map.get(name);
+    }
+
+    private interface PreFilterQueryBuilder {
+        Query buildQuery(MappedFieldType fieldType, Object value, QueryShardContext context);
+    }
+
+    private static final Map<String, PreFilterQueryBuilder> PRE_FILTER_QUERY_BUILDER_BY_OP = Map.of(
+        EqOperator.NAME, MappedFieldType::termQuery,
+        GteOperator.NAME, (fieldType, value, ctx) -> fieldType.rangeQuery(value, null, true, false),
+        GtOperator.NAME, (fieldType, value, ctx) -> fieldType.rangeQuery(value, null, false, false),
+        LteOperator.NAME, (fieldType, value, ctx) -> fieldType.rangeQuery(null, value, false, true),
+        LtOperator.NAME, (fieldType, value, ctx) -> fieldType.rangeQuery(null, value, false, false)
+    );
+
+
+    @Override
+    public Query toQuery(Function parent, Function inner, Context context) {
+        // `subscript(ref, <keyLiteral>) [ = | > | >= | < | <= ] <cmpLiteral>`
+        // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        //       inner
+        if (!(inner.arguments().get(0) instanceof Reference ref
+                && inner.arguments().get(1) instanceof Literal<?> keyLiteral
+                && parent.arguments().get(1) instanceof Literal<?> cmpLiteral)) {
+            return null;
+        }
+        if (DataTypes.isArray(ref.valueType())) {
+            PreFilterQueryBuilder preFilterQueryBuilder =
+                PRE_FILTER_QUERY_BUILDER_BY_OP.get(parent.name());
+            if (preFilterQueryBuilder == null) {
+                return null;
+            }
+            MappedFieldType fieldType = context.getFieldTypeOrNull(ref.column().fqn());
+            if (fieldType == null) {
+                if (ArrayType.unnest(ref.valueType()).id() == ObjectType.ID) {
+                    return null; // fallback to generic query to enable objects[1] = {x=10}
+                }
+                return Queries.newMatchNoDocsQuery("column doesn't exist in this index");
+            }
+            BooleanQuery.Builder builder = new BooleanQuery.Builder();
+            builder.add(
+                preFilterQueryBuilder.buildQuery(fieldType, cmpLiteral.value(), context.queryShardContext()),
+                BooleanClause.Occur.MUST);
+            builder.add(LuceneQueryBuilder.genericFunctionFilter(parent, context), BooleanClause.Occur.FILTER);
+            return builder.build();
+        }
+        return null;
     }
 }
