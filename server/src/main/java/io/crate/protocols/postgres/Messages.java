@@ -36,6 +36,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.util.ReferenceCountUtil;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -470,9 +472,14 @@ public class Messages {
         buffer.writeByte(msgType);
         buffer.writeInt(4);
 
-        ChannelFuture channelFuture = channel.write(buffer);
-        if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace(traceLogMsg));
+        try {
+            ChannelFuture channelFuture = channel.write(buffer);
+            if (LOGGER.isTraceEnabled()) {
+                channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace(traceLogMsg));
+            }
+        } catch (Exception ex) {
+            LOGGER.warn("Error during channel.write msg={} err={}", traceLogMsg, ex);
+            ReferenceCountUtil.safeRelease(buffer);
         }
     }
 
