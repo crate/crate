@@ -261,28 +261,11 @@ public class ShardingUpsertExecutor
         return false;
     }
 
-    long computeBulkByteThreshold() {
-        long minAcceptableBytes = ByteSizeUnit.KB.toBytes(64);
-        long localJobs = Math.max(1, nodeLimits.get(localNode).numInflight());
-        double memoryRatio = 1.0 / localJobs;
-        long wantedBytes = Math.max(
-            (long) (queryCircuitBreaker.getFree() * BREAKER_LIMIT_PERCENTAGE * memoryRatio), minAcceptableBytes);
-        return wantedBytes;
-    }
-
-
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
         final ConcurrencyLimit nodeLimit = nodeLimits.get(localNode);
         long startTime = nodeLimit.startSample();
-        long bulkBytesThreshold;
-        try {
-            bulkBytesThreshold = computeBulkByteThreshold();
-        } catch (Throwable t) {
-            nodeLimit.onSample(startTime, true);
-            return CompletableFuture.failedFuture(t);
-        }
-        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(bulkBytesThreshold);
+        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit);
         var reqBatchIterator = BatchIterators.partition(
             batchIterator,
             bulkSize,
@@ -389,16 +372,24 @@ public class ShardingUpsertExecutor
 
     private static class IsUsedBytesOverThreshold implements Predicate<ShardedRequests<?, ?>> {
 
-        private final long maxBytesUsableByShardedRequests;
+        private static final long MIN_ACCEPTABLE_BYTES = ByteSizeUnit.KB.toBytes(64);
 
-        IsUsedBytesOverThreshold(long maxBytesUsableByShardedRequests) {
-            this.maxBytesUsableByShardedRequests = maxBytesUsableByShardedRequests;
+        private final CircuitBreaker queryCircuitBreaker;
+        private final ConcurrencyLimit nodeLimit;
+
+        public IsUsedBytesOverThreshold(CircuitBreaker queryCircuitBreaker, ConcurrencyLimit nodeLimit) {
+            this.queryCircuitBreaker = queryCircuitBreaker;
+            this.nodeLimit = nodeLimit;
         }
 
         @Override
         public final boolean test(ShardedRequests<?, ?> shardedRequests) {
+            long localJobs = Math.max(1, nodeLimit.numInflight());
+            double memoryRatio = 1.0 / localJobs;
+            long maxUsableByShardRequests = Math.max(
+                (long) (queryCircuitBreaker.getFree() * BREAKER_LIMIT_PERCENTAGE * memoryRatio), MIN_ACCEPTABLE_BYTES);
             long usedMemoryEstimate = shardedRequests.ramBytesUsed();
-            boolean requestsTooBig = usedMemoryEstimate > maxBytesUsableByShardedRequests;
+            boolean requestsTooBig = usedMemoryEstimate > maxUsableByShardRequests;
             if (requestsTooBig && LOGGER.isDebugEnabled()) {
                 LOGGER.debug(
                     "Creating smaller bulk requests because shardedRequests is using too much memory. "
@@ -406,7 +397,7 @@ public class ShardingUpsertExecutor
                     shardedRequests.ramBytesUsed(),
                     shardedRequests.itemsByShard().size(),
                     shardedRequests.ramBytesUsed() / Math.max(shardedRequests.itemsByShard().size(), 1),
-                    maxBytesUsableByShardedRequests
+                    maxUsableByShardRequests
                 );
             }
             return requestsTooBig;
