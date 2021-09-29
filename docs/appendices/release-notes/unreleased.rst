@@ -107,6 +107,9 @@ Changes
   session settings, unless the client sets the session settings on each node
   individually.
 
+- Improved the visual layout of the administration console: Remove dedicated
+  "Monitoring" page and move its contents to the "Overview" page.
+
 
 Fixes
 =====
