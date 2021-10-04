@@ -308,8 +308,6 @@ public class LuceneQueryBuilder {
             entry(RegexpMatchCaseInsensitiveOperator.NAME, new RegexMatchQueryCaseInsensitive())
         );
 
-        private final Map<String, InnerFunctionToQuery> innerFunctions = Map.of();
-
         @Override
         public Query visitFunction(Function function, Context context) {
             assert function != null : "function must not be null";
@@ -351,27 +349,14 @@ public class LuceneQueryBuilder {
         private Query queryFromInnerFunction(Function parent, Context context) {
             for (Symbol arg : parent.arguments()) {
                 if (arg instanceof Function inner) {
-                    String functionName = inner.name();
-                    InnerFunctionToQuery functionToQuery = innerFunctions.get(functionName);
-                    if (functionToQuery == null) {
-                        FunctionImplementation implementation = context.nodeContext.functions().getQualified(
-                            inner, context.txnCtx.sessionSettings().searchPath()
-                        );
-                        Query query = implementation instanceof Scalar<?, ?> scalar
-                            ? scalar.toQuery(parent, inner, context)
-                            : null;
-                        if (query != null) {
-                            return query;
-                        }
-                    } else {
-                        try {
-                            Query query = functionToQuery.apply(parent, inner, context);
-                            if (query != null) {
-                                return query;
-                            }
-                        } catch (IOException e) {
-                            throw ExceptionsHelper.convertToRuntime(e);
-                        }
+                    FunctionImplementation implementation = context.nodeContext.functions().getQualified(
+                        inner, context.txnCtx.sessionSettings().searchPath()
+                    );
+                    Query query = implementation instanceof Scalar<?, ?> scalar
+                        ? scalar.toQuery(parent, inner, context)
+                        : null;
+                    if (query != null) {
+                        return query;
                     }
                 }
             }
