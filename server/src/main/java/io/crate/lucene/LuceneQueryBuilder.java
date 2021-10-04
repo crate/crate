@@ -59,7 +59,7 @@ import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
-import io.crate.expression.operator.RegexpMatchOperator;
+import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -282,7 +282,6 @@ public class LuceneQueryBuilder {
             entry(LikeOperators.ANY_NOT_LIKE, new AnyNotLikeQuery(CaseSensitivity.SENSITIVE)),
             entry(LikeOperators.ANY_ILIKE, new AnyLikeQuery(CaseSensitivity.INSENSITIVE)),
             entry(LikeOperators.ANY_NOT_ILIKE, new AnyNotLikeQuery(CaseSensitivity.INSENSITIVE)),
-            entry(RegexpMatchOperator.NAME, new RegexpMatchQuery()),
             entry(RegexpMatchCaseInsensitiveOperator.NAME, new RegexMatchQueryCaseInsensitive())
         );
 
