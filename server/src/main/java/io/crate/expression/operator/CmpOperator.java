@@ -21,15 +21,22 @@
 
 package io.crate.expression.operator;
 
-import io.crate.common.collections.MapComparator;
-import io.crate.data.Input;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.Signature;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.IntPredicate;
+
+import org.apache.lucene.search.Query;
+import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.index.mapper.MappedFieldType;
+
+import io.crate.common.collections.MapComparator;
+import io.crate.data.Input;
+import io.crate.expression.symbol.Literal;
+import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 
 public final class CmpOperator extends Operator<Object> {
 
@@ -74,5 +81,23 @@ public final class CmpOperator extends Operator<Object> {
         } else {
             return null;
         }
+    }
+
+    @Override
+    public Query toQuery(Reference ref, Literal<?> literal, Context context) {
+        MappedFieldType fieldType = context.getFieldTypeOrNull(ref.column().fqn());
+        if (fieldType == null) {
+            // can't match column that doesn't exist or is an object ( "o >= {x=10}" is not supported)
+            return Queries.newMatchNoDocsQuery("column does not exist in this index");
+        }
+        String functionName = signature.getName().name();
+        Object value = literal.value();
+        return switch (functionName) {
+            case GtOperator.NAME -> fieldType.rangeQuery(value, null, false, false);
+            case GteOperator.NAME -> fieldType.rangeQuery(value, null, true, false);
+            case LtOperator.NAME -> fieldType.rangeQuery(null, value, false, false);
+            case LteOperator.NAME -> fieldType.rangeQuery(null, value, false, true);
+            default -> throw new IllegalArgumentException(functionName + " is not a supported comparison operator");
+        };
     }
 }
