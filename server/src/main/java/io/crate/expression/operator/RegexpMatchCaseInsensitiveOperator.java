@@ -21,13 +21,20 @@
 
 package io.crate.expression.operator;
 
+import java.util.regex.Pattern;
+
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.Query;
+
 import io.crate.data.Input;
+import io.crate.expression.symbol.Literal;
+import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.util.regex.Pattern;
 
 
 public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
@@ -78,5 +85,14 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
     @Override
     public Signature boundSignature() {
         return boundSignature;
+    }
+
+    @Override
+    public Query toQuery(Reference ref, Literal<?> literal, Context context) {
+        String pattern = (String) literal.value();
+        return new CrateRegexQuery(
+            new Term(ref.column().fqn(), pattern),
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+        );
     }
 }
