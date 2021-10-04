@@ -38,7 +38,7 @@ public class SysNodeCheckerIntegrationTest extends SQLIntegrationTestCase {
         SQLResponse response = execute("select id, severity, passed " +
                                        "from sys.node_checks " +
                                        "order by id, node_id asc");
-        assertThat(response.rowCount(), equalTo(12L));
+        assertThat(response.rowCount(), equalTo(14L));
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("1| 3| false\n" +  // 1 = recoveryExpectedNodesCheck
                "1| 3| false\n" +
@@ -51,7 +51,9 @@ public class SysNodeCheckerIntegrationTest extends SQLIntegrationTestCase {
                "6| 3| true\n" +   // 6 = LowDiskWatermark
                "6| 3| true\n" +
                "7| 3| true\n" +   // 7 = FloodStageDiskWatermark
-               "7| 3| true\n"));
+               "7| 3| true\n" +
+               "8| 2| true\n" +   // 8 = Max Shard per Node Limit
+               "8| 2| true\n"));
     }
 
     @Test

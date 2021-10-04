@@ -39,5 +39,6 @@ public class SysNodeChecksModule extends AbstractModule {
         b.addBinding(HighDiskWatermarkNodesSysCheck.ID).to(HighDiskWatermarkNodesSysCheck.class);
         b.addBinding(LowDiskWatermarkNodesSysCheck.ID).to(LowDiskWatermarkNodesSysCheck.class);
         b.addBinding(FloodStageDiskWatermarkNodesSysCheck.ID).to(FloodStageDiskWatermarkNodesSysCheck.class);
+        b.addBinding(MaxShardsPerNodeSysCheck.ID).to(MaxShardsPerNodeSysCheck.class);
     }
 }
