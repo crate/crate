@@ -691,21 +691,6 @@ Sets size of transaction log prior to flushing.
   Size (bytes) of translog.
 
 
-.. _sql-create-table-translog-disable-flush:
-
-``translog.disable_flush``
---------------------------
-
-``enable``/``disable`` flushing.
-
-:value:
-  Set ``true`` to disable flushing, otherwise set to ``false``.
-
-.. CAUTION::
-
-   It is recommended to use ``disable_flush`` only for short periods of time.
-
-
 .. _sql-create-table-translog-interval:
 
 ``translog.interval``
