@@ -21,20 +21,28 @@
 
 package io.crate.expression.operator;
 
-import io.crate.common.collections.Tuple;
-import io.crate.data.Input;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.network.InetAddresses;
-
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Locale;
+
+import org.apache.lucene.document.InetAddressPoint;
+import org.apache.lucene.search.Query;
+import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.common.network.InetAddresses;
+
+import io.crate.common.collections.Tuple;
+import io.crate.data.Input;
+import io.crate.expression.symbol.Literal;
+import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.Reference.IndexType;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 
 public final class CIDROperator {
 
@@ -127,6 +135,16 @@ public final class CIDROperator {
         @Override
         public Signature boundSignature() {
             return boundSignature;
+        }
+
+        @Override
+        public Query toQuery(Reference ref, Literal<?> literal, Context context) {
+            String cidrStr = (String) literal.value();
+            if (ref.indexType() == IndexType.NONE) {
+                return Queries.newMatchNoDocsQuery("column does not exist in this index");
+            }
+            Tuple<InetAddress, Integer> cidr = InetAddresses.parseCidr(cidrStr);
+            return InetAddressPoint.newPrefixQuery(ref.column().fqn(), cidr.v1(), cidr.v2());
         }
     }
 }
