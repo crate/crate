@@ -21,18 +21,18 @@
 
 package io.crate.expression.operator;
 
+import static io.crate.expression.RegexpFlags.isPcrePattern;
+
+import java.nio.charset.StandardCharsets;
+
+import org.apache.lucene.util.automaton.ByteRunAutomaton;
+import org.apache.lucene.util.automaton.RegExp;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.automaton.ByteRunAutomaton;
-import org.apache.lucene.util.automaton.RegExp;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
-import static io.crate.expression.RegexpFlags.isPcrePattern;
 
 
 public class RegexpMatchOperator extends Operator<String> {
@@ -40,20 +40,15 @@ public class RegexpMatchOperator extends Operator<String> {
     public static final String NAME = "op_~";
 
     public static void register(OperatorModule module) {
-        var supportedArgumentTypes = List.of(DataTypes.STRING, DataTypes.UNDEFINED);
-        for (var left : supportedArgumentTypes) {
-            for (var right : supportedArgumentTypes) {
-                module.register(
-                    Signature.scalar(
-                        NAME,
-                        left.getTypeSignature(),
-                        right.getTypeSignature(),
-                        Operator.RETURN_TYPE.getTypeSignature()
-                    ).withForbiddenCoercion(),
-                    RegexpMatchOperator::new
-                );
-            }
-        }
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ),
+            RegexpMatchOperator::new
+        );
     }
 
     private final Signature signature;
