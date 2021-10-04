@@ -859,7 +859,7 @@ setting wouldn't have any effect.
    :ref:`gateway.recover_after_nodes <gateway.recover_after_nodes>` instead
    is still supported.
 
-.. _node_checks_watermark_high:
+.. _sys-node_checks_watermark_high:
 
 Routing allocation disk watermark high
 ......................................
@@ -871,7 +871,7 @@ configured CrateDB data paths is verified against the threshold setting. If one
 or more verification fails the check is marked as not passed.
 
 
-.. _node_checks_watermark_low:
+.. _sys-node_checks_watermark_low:
 
 Routing allocation disk watermark low
 .....................................
@@ -883,7 +883,7 @@ not exceeded on the current node. The verification is done against each disk
 for configured CrateDB data paths. The check is not passed if the verification
 for one or more disk fails.
 
-.. _node_checks_max_shards_per_node:
+.. _sys-node_checks_max_shards_per_node:
 
 Maximum shards per node
 .......................

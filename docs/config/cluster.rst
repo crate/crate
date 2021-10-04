@@ -207,7 +207,7 @@ Shard limits
 .. NOTE::
 
    The maximum amount of shards per node setting is also used for the
-   :ref:`node_checks_max_shards_per_node` check.
+   :ref:`sys-node_checks_max_shards_per_node` check.
 
 
 .. _conf_usage_data_collector:
@@ -948,7 +948,7 @@ nodes every 30 seconds. This can also be changed by setting the
 .. NOTE::
 
    The watermark settings are also used for the
-   :ref:`node_checks_watermark_low` and :ref:`node_checks_watermark_high` node
+   :ref:`sys-node_checks_watermark_low` and :ref:`sys-node_checks_watermark_high` node
    check.
 
    Setting ``cluster.routing.allocation.disk.threshold_enabled`` to false will

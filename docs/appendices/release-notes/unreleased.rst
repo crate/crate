@@ -63,7 +63,7 @@ Changes
 =======
 
 - Added a :ref:`sys node check for max shards per node
-  <node_checks_max_shards_per_node>` to verify that the amount of shards on the
+  <sys-node_checks_max_shards_per_node>` to verify that the amount of shards on the
   current node is less than 90 % of  :ref:`cluster.max_shards_per_node
   <cluster.max_shards_per_node>`. The check is exposed via :ref:`sys.node_checks
   <sys-node-checks>`.
