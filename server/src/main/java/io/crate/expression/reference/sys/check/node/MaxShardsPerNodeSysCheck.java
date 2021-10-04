@@ -45,7 +45,7 @@ public class MaxShardsPerNodeSysCheck extends AbstractSysNodeCheck {
 
     @Inject
     public MaxShardsPerNodeSysCheck(ClusterService clusterService) {
-        super(ID, DESCRIPTION, Severity.HIGH);
+        super(ID, DESCRIPTION, Severity.MEDIUM);
         this.clusterService = clusterService;
     }
 
