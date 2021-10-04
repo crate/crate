@@ -56,4 +56,10 @@ public class WithinQueryBuilderTest extends LuceneQueryBuilderTest {
         Query eqWithinQuery = convert("within(point, 'POLYGON((-95.0 10.0, -95.0 20.0, 95.0 20.0, 95.0 10.0, -95.0 10.0))')");
         assertThat(eqWithinQuery.toString(), is("LatLonPointQuery: field=point:[[10.0, 180.0] [20.0, 180.0] [20.0, 95.0] [10.0, 95.0] [10.0, 180.0] [10.0, -180.0] [10.0, -95.0] [20.0, -95.0] [20.0, -180.0] [10.0, -180.0] [10.0, 180.0] ,]"));
     }
+
+    @Test
+    public void test_point_within_rectangle_with_explicit_bool_equality_check_optimizes_to_lat_lon_point_query() throws Exception {
+        Query query = convert("within(point, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') = true");
+        assertThat(query.toString(), is("LatLonPointQuery: field=point:[[40.0, 40.0] [40.0, 20.0] [20.0, 10.0] [10.0, 30.0] [40.0, 40.0] ,]"));
+    }
 }
