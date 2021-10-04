@@ -1610,14 +1610,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testRegexpMatchCaseInsensitiveInvalidArg() throws Exception {
+    public void test_case_insensitive_regex_match_uses_cast_on_non_string_col() throws Exception {
         var executor = SQLExecutor.builder(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Unknown function: (doc.users.floats ~* 'foo')," +
-                                        " no overload found for matching argument types: (real, text).");
-        executor.analyze("select * from users where floats ~* 'foo'");
+        QueriedSelectRelation stmt = executor.analyze("select * from users where floats ~* 'foo'");
+        assertThat(stmt.where(), isSQL("(_cast(doc.users.floats, 'text') ~* 'foo')"));
     }
 
     @Test
