@@ -21,18 +21,33 @@
 
 package io.crate.expression.predicate;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
+import java.util.List;
+
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.query.ExistsQueryBuilder;
+
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
@@ -86,5 +101,34 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
     public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         assert args.length == 1 : "number of args must be 1";
         return args[0] == null || args[0].value() == null;
+    }
+
+    @Override
+    public Query toQuery(Function function, Context context) {
+        List<Symbol> arguments = function.arguments();
+        assert arguments.size() == 1 : "`<expression> IS NULL` function must have one argument";
+        if (!(arguments.get(0) instanceof Reference ref)) {
+            return null;
+        }
+        String columnName = ref.column().fqn();
+
+        // ExistsQueryBuilder.newFilter doesn't build the correct exists query for arrays
+        // because ES isn't really aware of explicit array types
+        if (ref.valueType() instanceof ArrayType) {
+            MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
+            if (fieldType != null) {
+                return Queries.not(fieldType.existsQuery(context.queryShardContext()));
+            }
+            MappedFieldType fieldNames = context.getFieldTypeOrNull(FieldNamesFieldMapper.NAME);
+            if (fieldNames != null) {
+                return Queries.not(new ConstantScoreQuery(
+                    new TermQuery(new Term(FieldNamesFieldMapper.NAME, columnName))));
+            }
+        }
+        if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+            // There won't be any indexed field names for the children, need to use expensive query fallback
+            return null;
+        }
+        return Queries.not(ExistsQueryBuilder.newFilter(context.queryShardContext(), columnName));
     }
 }
