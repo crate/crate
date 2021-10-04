@@ -27,7 +27,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import java.util.List;
 import java.util.regex.Pattern;
 
 
@@ -36,20 +35,15 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
     public static final String NAME = "op_~*";
 
     public static void register(OperatorModule module) {
-        var supportedArgumentTypes = List.of(DataTypes.STRING, DataTypes.UNDEFINED);
-        for (var left : supportedArgumentTypes) {
-            for (var right : supportedArgumentTypes) {
-                module.register(
-                    Signature.scalar(
-                        NAME,
-                        left.getTypeSignature(),
-                        right.getTypeSignature(),
-                        Operator.RETURN_TYPE.getTypeSignature()
-                    ).withForbiddenCoercion(),
-                    RegexpMatchCaseInsensitiveOperator::new
-                );
-            }
-        }
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ),
+            RegexpMatchCaseInsensitiveOperator::new
+        );
     }
 
     private final Signature signature;
