@@ -55,15 +55,11 @@ import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
-import io.crate.expression.operator.GtOperator;
-import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LikeOperators;
-import io.crate.expression.operator.LtOperator;
-import io.crate.expression.operator.LteOperator;
+import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
-import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.predicate.MatchPredicate;
 import io.crate.expression.predicate.NotPredicate;
@@ -272,17 +268,9 @@ public class LuceneQueryBuilder {
         }
 
 
-        private static final RangeQuery LT_QUERY = new RangeQuery("lt");
-        private static final RangeQuery LTE_QUERY = new RangeQuery("lte");
-        private static final RangeQuery GT_QUERY = new RangeQuery("gt");
-        private static final RangeQuery GTE_QUERY = new RangeQuery("gte");
         private final Map<String, FunctionToQuery> functions = Map.ofEntries(
             entry(AndOperator.NAME, new AndQuery()),
             entry(OrOperator.NAME, new OrQuery()),
-            entry(LtOperator.NAME, LT_QUERY),
-            entry(LteOperator.NAME, LTE_QUERY),
-            entry(GteOperator.NAME, GTE_QUERY),
-            entry(GtOperator.NAME, GT_QUERY),
             entry(NotPredicate.NAME, new NotQuery(this)),
             entry(Ignore3vlFunction.NAME, new Ignore3vlQuery()),
             entry(MatchPredicate.NAME, new ToMatchQuery()),
