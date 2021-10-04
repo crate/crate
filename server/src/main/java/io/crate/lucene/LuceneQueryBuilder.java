@@ -76,7 +76,6 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.scalar.ArrayUpperFunction;
 import io.crate.expression.scalar.Ignore3vlFunction;
-import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -284,9 +283,7 @@ public class LuceneQueryBuilder {
         private static final RangeQuery GT_QUERY = new RangeQuery("gt");
         private static final RangeQuery GTE_QUERY = new RangeQuery("gte");
         private static final CIDRRangeQuery LLT_QUERY = new CIDRRangeQuery();
-        private static final WithinQuery WITHIN_QUERY = new WithinQuery();
         private final Map<String, FunctionToQuery> functions = Map.ofEntries(
-            entry(WithinFunction.NAME, WITHIN_QUERY),
             entry(AndOperator.NAME, new AndQuery()),
             entry(OrOperator.NAME, new OrQuery()),
             entry(LtOperator.NAME, LT_QUERY),
@@ -313,7 +310,6 @@ public class LuceneQueryBuilder {
         );
 
         private final Map<String, InnerFunctionToQuery> innerFunctions = Map.of(
-            WithinFunction.NAME, WITHIN_QUERY,
             ArrayUpperFunction.ARRAY_LENGTH, new ArrayLengthQuery(),
             ArrayUpperFunction.ARRAY_UPPER, new ArrayLengthQuery()
         );
