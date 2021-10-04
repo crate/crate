@@ -25,11 +25,20 @@ import static io.crate.expression.RegexpFlags.isPcrePattern;
 
 import java.nio.charset.StandardCharsets;
 
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.RegexpQuery;
 import org.apache.lucene.util.automaton.ByteRunAutomaton;
 import org.apache.lucene.util.automaton.RegExp;
 
 import io.crate.data.Input;
+import io.crate.expression.RegexpFlags;
+import io.crate.expression.symbol.Literal;
+import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -88,5 +97,16 @@ public class RegexpMatchOperator extends Operator<String> {
     @Override
     public Signature boundSignature() {
         return boundSignature;
+    }
+
+    @Override
+    public Query toQuery(Reference ref, Literal<?> literal, Context context) {
+        String pattern = (String) literal.value();
+        Term term = new Term(ref.column().fqn(), pattern);
+        if (RegexpFlags.isPcrePattern(pattern)) {
+            return new CrateRegexQuery(term);
+        } else {
+            return new ConstantScoreQuery(new RegexpQuery(term, RegExp.ALL));
+        }
     }
 }
