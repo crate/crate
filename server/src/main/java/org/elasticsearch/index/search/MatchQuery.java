@@ -216,7 +216,7 @@ public class MatchQuery {
         }
     }
 
-    public Query parse(Type type, String fieldName, Object value) throws IOException {
+    public Query parse(Type type, String fieldName, Object value) {
         MappedFieldType fieldType = context.fieldMapper(fieldName);
         if (fieldType == null) {
             return newUnmappedFieldQuery(fieldName);

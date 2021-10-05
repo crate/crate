@@ -33,7 +33,7 @@ import io.crate.lucene.match.CrateRegexQuery;
 class RegexMatchQueryCaseInsensitive implements FunctionToQuery {
 
     @Override
-    public Query apply(Function input, LuceneQueryBuilder.Context context) {
+    public Query toQuery(Function input, LuceneQueryBuilder.Context context) {
         RefAndLiteral refAndLiteral = RefAndLiteral.of(input);
         if (refAndLiteral == null) {
             return null;

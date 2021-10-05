@@ -47,7 +47,7 @@ class AnyEqQuery implements FunctionToQuery {
 
     @Nullable
     @Override
-    public Query apply(Function input, LuceneQueryBuilder.Context context) {
+    public Query toQuery(Function input, LuceneQueryBuilder.Context context) {
         List<Symbol> args = input.arguments();
 
         Symbol candidate = args.get(0);

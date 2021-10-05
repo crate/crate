@@ -27,7 +27,6 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 
-import java.io.IOException;
 
 import static io.crate.lucene.AbstractAnyQuery.iterableWithByteRefs;
 
@@ -42,7 +41,7 @@ class AnyRangeQuery extends AbstractAnyQuery {
     }
 
     @Override
-    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
+    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) {
         // 1 < ANY (array_col) --> array_col > 1
         return rangeQuery.toQuery(
             array,

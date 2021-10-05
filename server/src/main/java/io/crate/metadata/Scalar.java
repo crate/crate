@@ -26,16 +26,11 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
-import org.apache.lucene.search.Query;
-
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.lucene.FunctionToQuery;
 
 /**
  * Base class for Scalar functions in crate.
@@ -65,7 +60,7 @@ import io.crate.lucene.LuceneQueryBuilder.Context;
  *
  * @param <ReturnType> the class of the returned value
  */
-public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation {
+public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation, FunctionToQuery {
 
     public static final Set<Feature> NO_FEATURES = Set.of();
     public static final Set<Feature> DETERMINISTIC_ONLY = EnumSet.of(Feature.DETERMINISTIC);
@@ -89,65 +84,6 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      */
     public Scalar<ReturnType, InputType> compile(List<Symbol> arguments) {
         return this;
-    }
-
-    /**
-     * Returns a Lucene Query with the semantics of the Function.
-     *
-     * <p>
-     * Called if the function is used in the `WHERE` part of a statement when
-     * selecting data from a Table with a Lucene index.
-     * </p>
-     *
-     * <p>
-     * If `null` is returned, a fallback implementation is used that loads
-     * individual records and evaluates the scalar function on each row.
-     * </p>
-     *
-     * <p>
-     * Default implementation calls {@link #toQuery(Reference, Literal, Context)},
-     * which is there to make it more convenient to implement the functionality.
-     * It unwraps the arguments for the common `col <op> literal` case.
-     * </p>
-     **/
-    @Nullable
-    public Query toQuery(Function function, LuceneQueryBuilder.Context context) {
-        List<Symbol> arguments = function.arguments();
-        if (arguments.size() == 2
-                && arguments.get(0) instanceof Reference ref
-                && arguments.get(1) instanceof Literal<?> literal) {
-            return toQuery(ref, literal, context);
-        }
-        return null;
-    }
-
-    /**
-     * See {@link #toQuery(Function, Context)}
-     **/
-    @Nullable
-    public Query toQuery(Reference ref, Literal<?> literal, Context context) {
-        return null;
-    }
-
-    /**
-     * Returns a Lucene query with the semantics of the `parent` function.
-     *
-     * <p>
-     * This is similar to {@link #toQuery(Function, Context)} but for cases where *this* function is the `inner` parent and used within another `parent` function.
-     * </p>
-     *
-     * Consider a case like follows:
-     *
-     * <pre>
-     *      WHERE distance(p1, 'POINT (10 20)') = 20
-     * </pre>
-     *
-     * Here `distance` is the inner function and `=` is the parent function.
-     * toQuery returns a Query that is equivalent to the full parent function.
-     **/
-    @Nullable
-    public Query toQuery(Function parent, Function inner, Context context) {
-        return null;
     }
 
     @Override

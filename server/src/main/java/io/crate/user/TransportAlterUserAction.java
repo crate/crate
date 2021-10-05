@@ -42,8 +42,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.user.AlterUserRequest;
-import io.crate.user.WriteUserResponse;
 import io.crate.user.metadata.UsersMetadata;
 
 public class TransportAlterUserAction extends TransportMasterNodeAction<AlterUserRequest, WriteUserResponse> {

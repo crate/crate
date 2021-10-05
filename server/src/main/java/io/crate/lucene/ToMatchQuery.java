@@ -45,7 +45,6 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.locationtech.spatial4j.shape.Shape;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -53,7 +52,7 @@ import java.util.Map;
 class ToMatchQuery implements FunctionToQuery {
 
     @Override
-    public Query apply(Function input, LuceneQueryBuilder.Context context) throws IOException {
+    public Query toQuery(Function input, LuceneQueryBuilder.Context context) {
         List<Symbol> arguments = input.arguments();
         assert arguments.size() == 4 : "invalid number of arguments";
         assert Symbol.isLiteral(arguments.get(0), DataTypes.UNTYPED_OBJECT) :
@@ -128,7 +127,7 @@ class ToMatchQuery implements FunctionToQuery {
             "Invalid match type: %s. Analyzer should have made sure that it is valid", matchType));
     }
 
-    private static Query stringMatch(LuceneQueryBuilder.Context context, List<Symbol> arguments, Object queryTerm) throws IOException {
+    private static Query stringMatch(LuceneQueryBuilder.Context context, List<Symbol> arguments, Object queryTerm) {
         @SuppressWarnings("unchecked")
         Map<String, Object> fields = (Map) ((Literal) arguments.get(0)).value();
         String queryString = (String) queryTerm;
@@ -168,7 +167,7 @@ class ToMatchQuery implements FunctionToQuery {
                                           Map.Entry<String, Object> entry,
                                           String queryString,
                                           String matchType,
-                                          Map<String, Object> options) throws IOException {
+                                          Map<String, Object> options) {
         Query query = MatchQueries.singleMatch(
             queryShardContext,
             entry.getKey(),

@@ -35,7 +35,6 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.query.QueryShardContext;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -55,7 +54,7 @@ public class MultiMatchQuery extends MatchQuery {
         super(context);
     }
 
-    private Query parseAndApply(Type type, String fieldName, Object value, String minimumShouldMatch, Float boostValue) throws IOException {
+    private Query parseAndApply(Type type, String fieldName, Object value, String minimumShouldMatch, Float boostValue) {
         Query query = parse(type, fieldName, value);
         query = Queries.maybeApplyMinimumShouldMatch(query, minimumShouldMatch);
         if (query != null && boostValue != null && boostValue != DEFAULT_BOOST && query instanceof MatchNoDocsQuery == false) {
@@ -64,7 +63,7 @@ public class MultiMatchQuery extends MatchQuery {
         return query;
     }
 
-    public Query parse(MultiMatchQueryType type, Map<String, Float> fieldNames, Object value, String minimumShouldMatch) throws IOException {
+    public Query parse(MultiMatchQueryType type, Map<String, Float> fieldNames, Object value, String minimumShouldMatch) {
         final Query result;
         // reset query builder
         queryBuilder = null;
@@ -106,7 +105,7 @@ public class MultiMatchQuery extends MatchQuery {
         public List<Query> buildGroupedQueries(MultiMatchQueryType type,
                                                Map<String,
                                                Float> fieldNames,
-                                               Object value, String minimumShouldMatch) throws IOException {
+                                               Object value, String minimumShouldMatch) {
             List<Query> queries = new ArrayList<>();
             for (String fieldName : fieldNames.keySet()) {
                 Float boostValue = fieldNames.get(fieldName);
@@ -118,7 +117,7 @@ public class MultiMatchQuery extends MatchQuery {
             return queries;
         }
 
-        public Query parseGroup(Type type, String field, Float boostValue, Object value, String minimumShouldMatch) throws IOException {
+        public Query parseGroup(Type type, String field, Float boostValue, Object value, String minimumShouldMatch) {
             return parseAndApply(type, field, value, minimumShouldMatch, boostValue);
         }
 
@@ -161,7 +160,7 @@ public class MultiMatchQuery extends MatchQuery {
         }
 
         @Override
-        public List<Query> buildGroupedQueries(MultiMatchQueryType type, Map<String, Float> fieldNames, Object value, String minimumShouldMatch) throws IOException {
+        public List<Query> buildGroupedQueries(MultiMatchQueryType type, Map<String, Float> fieldNames, Object value, String minimumShouldMatch) {
             Map<Analyzer, List<FieldAndFieldType>> groups = new HashMap<>();
             List<Query> queries = new ArrayList<>();
             for (Map.Entry<String, Float> entry : fieldNames.entrySet()) {

@@ -21,7 +21,6 @@
 
 package io.crate.lucene;
 
-import java.io.IOException;
 
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -38,7 +37,7 @@ class AnyLikeQuery extends AbstractAnyQuery {
     }
 
     @Override
-    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
+    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) {
         return caseSensitivity.likeQuery(array.column().fqn(), (String) candidate.value());
     }
 

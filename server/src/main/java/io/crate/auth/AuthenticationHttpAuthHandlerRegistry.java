@@ -21,7 +21,6 @@
 
 package io.crate.auth;
 
-import io.crate.auth.Authentication;
 import io.crate.plugin.PipelineRegistry;
 
 import org.elasticsearch.common.inject.Inject;

@@ -21,7 +21,13 @@
 
 package io.crate.lucene;
 
+import javax.annotation.Nullable;
+
 import com.google.common.collect.Iterables;
+
+import org.apache.lucene.search.Query;
+import org.apache.lucene.util.BytesRef;
+
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.symbol.Function;
@@ -29,11 +35,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.types.DataTypes;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.util.BytesRef;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
 
 abstract class AbstractAnyQuery implements FunctionToQuery {
 
@@ -48,7 +49,7 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
     }
 
     @Override
-    public Query apply(Function function, LuceneQueryBuilder.Context context) throws IOException {
+    public Query toQuery(Function function, LuceneQueryBuilder.Context context) {
         Symbol left = function.arguments().get(0);
         Symbol collectionSymbol = function.arguments().get(1);
         if (!DataTypes.isArray(collectionSymbol.valueType())) {
@@ -103,7 +104,7 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
      */
     protected abstract Query literalMatchesAnyArrayRef(Literal<?> candidate,
                                                        Reference array,
-                                                       LuceneQueryBuilder.Context context) throws IOException;
+                                                       LuceneQueryBuilder.Context context);
 
     /**
      * Generate a query for:
@@ -117,5 +118,5 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
      */
     protected abstract Query refMatchesAnyArrayLiteral(Reference candidate,
                                                        Literal<?> array,
-                                                       LuceneQueryBuilder.Context context) throws IOException;
+                                                       LuceneQueryBuilder.Context context);
 }
