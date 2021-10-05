@@ -117,6 +117,8 @@ public class Netty4Transport extends TcpTransport {
 
     private BorrowedItem<EventLoopGroup> eventLoopGroup;
 
+    private final LoggingHandler loggingHandler = new LoggingHandler(LogLevel.TRACE);
+
 
 
     public Netty4Transport(Settings settings,
@@ -289,7 +291,7 @@ public class Netty4Transport extends TcpTransport {
         @Override
         protected void initChannel(Channel ch) throws Exception {
             maybeInjectSSL(ch);
-            ch.pipeline().addLast("logging", new LoggingHandler(LogLevel.TRACE));
+            ch.pipeline().addLast("logging", loggingHandler);
             // using a dot as a prefix means this cannot come from any settings parsed
             ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, Netty4Transport.this));
         }
@@ -335,7 +337,7 @@ public class Netty4Transport extends TcpTransport {
             Netty4TcpChannel nettyTcpChannel = new Netty4TcpChannel(ch, true, name, ch.newSucceededFuture());
             ch.attr(CHANNEL_KEY).set(nettyTcpChannel);
             serverAcceptedChannel(nettyTcpChannel);
-            ch.pipeline().addLast("logging", new LoggingHandler(LogLevel.TRACE));
+            ch.pipeline().addLast("logging", loggingHandler);
             ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, Netty4Transport.this));
         }
 
