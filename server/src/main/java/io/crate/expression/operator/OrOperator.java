@@ -21,10 +21,15 @@
 
 package io.crate.expression.operator;
 
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.Query;
+
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -140,4 +145,13 @@ public class OrOperator extends Operator<Boolean> {
         return left || right;
     }
 
+    @Override
+    public Query toQuery(Function function, Context context) {
+        BooleanQuery.Builder query = new BooleanQuery.Builder();
+        query.setMinimumNumberShouldMatch(1);
+        for (Symbol symbol : function.arguments()) {
+            query.add(symbol.accept(context.visitor(), context), BooleanClause.Occur.SHOULD);
+        }
+        return query.build();
+    }
 }

@@ -37,8 +37,6 @@ import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -54,10 +52,7 @@ import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.LikeOperators;
-import io.crate.expression.operator.LikeOperators.CaseSensitivity;
-import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.predicate.NotPredicate;
@@ -224,6 +219,10 @@ public class LuceneQueryBuilder {
         public QueryShardContext queryShardContext() {
             return queryShardContext;
         }
+
+        public SymbolVisitor<Context, Query> visitor() {
+            return VISITOR;
+        }
     }
 
 
@@ -240,35 +239,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class AndQuery implements FunctionToQuery {
-            @Override
-            public Query toQuery(Function input, Context context) {
-                assert input != null : "input must not be null";
-                BooleanQuery.Builder query = new BooleanQuery.Builder();
-                for (Symbol symbol : input.arguments()) {
-                    query.add(symbol.accept(Visitor.this, context), BooleanClause.Occur.MUST);
-                }
-                return query.build();
-            }
-        }
-
-        class OrQuery implements FunctionToQuery {
-            @Override
-            public Query toQuery(Function input, Context context) {
-                assert input != null : "input must not be null";
-                BooleanQuery.Builder query = new BooleanQuery.Builder();
-                query.setMinimumNumberShouldMatch(1);
-                for (Symbol symbol : input.arguments()) {
-                    query.add(symbol.accept(Visitor.this, context), BooleanClause.Occur.SHOULD);
-                }
-                return query.build();
-            }
-        }
-
-
         private final Map<String, FunctionToQuery> functions = Map.ofEntries(
-            entry(AndOperator.NAME, new AndQuery()),
-            entry(OrOperator.NAME, new OrQuery()),
             entry(NotPredicate.NAME, new NotQuery(this)),
             entry(Ignore3vlFunction.NAME, new Ignore3vlQuery()),
             entry(AnyOperators.Type.EQ.opName(), new AnyEqQuery()),

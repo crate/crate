@@ -21,19 +21,24 @@
 
 package io.crate.expression.operator;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.Query;
+
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 public class AndOperator extends Operator<Boolean> {
 
@@ -137,6 +142,15 @@ public class AndOperator extends Operator<Boolean> {
         }
 
         return left && right;
+    }
+
+    @Override
+    public Query toQuery(Function function, Context context) {
+        BooleanQuery.Builder query = new BooleanQuery.Builder();
+        for (Symbol symbol : function.arguments()) {
+            query.add(symbol.accept(context.visitor(), context), BooleanClause.Occur.MUST);
+        }
+        return query.build();
     }
 
     public static Function of(Symbol first, Symbol second) {
