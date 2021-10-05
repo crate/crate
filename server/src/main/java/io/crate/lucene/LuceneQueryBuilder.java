@@ -25,7 +25,6 @@ import static io.crate.expression.eval.NullEliminator.eliminateNullsIfPossible;
 import static io.crate.metadata.DocReferences.inverseSourceLookup;
 import static java.util.Map.entry;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -41,7 +40,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -88,7 +86,6 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -244,7 +241,7 @@ public class LuceneQueryBuilder {
 
             @Nullable
             @Override
-            public Query apply(Function input, Context context) {
+            public Query toQuery(Function input, Context context) {
                 List<Symbol> args = input.arguments();
                 assert args.size() == 1 : "ignore3vl expects exactly 1 argument, got: " + args.size();
                 return args.get(0).accept(Visitor.this, context);
@@ -253,7 +250,7 @@ public class LuceneQueryBuilder {
 
         class AndQuery implements FunctionToQuery {
             @Override
-            public Query apply(Function input, Context context) {
+            public Query toQuery(Function input, Context context) {
                 assert input != null : "input must not be null";
                 BooleanQuery.Builder query = new BooleanQuery.Builder();
                 for (Symbol symbol : input.arguments()) {
@@ -265,7 +262,7 @@ public class LuceneQueryBuilder {
 
         class OrQuery implements FunctionToQuery {
             @Override
-            public Query apply(Function input, Context context) {
+            public Query toQuery(Function input, Context context) {
                 assert input != null : "input must not be null";
                 BooleanQuery.Builder query = new BooleanQuery.Builder();
                 query.setMinimumNumberShouldMatch(1);
@@ -322,17 +319,15 @@ public class LuceneQueryBuilder {
                     function,
                     context.txnCtx.sessionSettings().searchPath()
                 );
-                Query query = implementation instanceof Scalar<?, ?> scalar
-                    ? scalar.toQuery(function, context)
+                Query query = implementation instanceof FunctionToQuery funcToQuery
+                    ? funcToQuery.toQuery(function, context)
                     : null;
                 return returnQueryOrTryFallsbacks(query, function, context);
             }
 
             Query query;
             try {
-                query = toQuery.apply(function, context);
-            } catch (IOException e) {
-                throw ExceptionsHelper.convertToRuntime(e);
+                query = toQuery.toQuery(function, context);
             } catch (UnsupportedOperationException e) {
                 return genericFunctionFilter(function, context);
             }
@@ -352,8 +347,8 @@ public class LuceneQueryBuilder {
                     FunctionImplementation implementation = context.nodeContext.functions().getQualified(
                         inner, context.txnCtx.sessionSettings().searchPath()
                     );
-                    Query query = implementation instanceof Scalar<?, ?> scalar
-                        ? scalar.toQuery(parent, inner, context)
+                    Query query = implementation instanceof FunctionToQuery funcToQuery
+                        ? funcToQuery.toQuery(parent, inner, context)
                         : null;
                     if (query != null) {
                         return query;

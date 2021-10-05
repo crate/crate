@@ -28,7 +28,6 @@ import org.elasticsearch.index.search.MatchQuery;
 import org.elasticsearch.index.search.MultiMatchQuery;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 
@@ -47,7 +46,7 @@ public final class MatchQueries {
                                     String fieldName,
                                     String queryString,
                                     @Nullable String matchType,
-                                    @Nullable Map<String, Object> options) throws IOException {
+                                    @Nullable Map<String, Object> options) {
         MultiMatchQueryType type = getType(matchType);
         ParsedOptions parsedOptions = OptionParser.parse(type, options);
 
@@ -74,7 +73,7 @@ public final class MatchQueries {
                                    @Nullable String matchType,
                                    Map<String, Float> fieldNames,
                                    String queryString,
-                                   Map<String, Object> options) throws IOException {
+                                   Map<String, Object> options) {
         MultiMatchQueryType type = MatchQueries.getType(matchType);
         ParsedOptions parsedOptions = OptionParser.parse(type, options);
 

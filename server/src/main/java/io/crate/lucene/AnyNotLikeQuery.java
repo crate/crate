@@ -21,7 +21,6 @@
 
 package io.crate.lucene;
 
-import java.io.IOException;
 import java.util.Locale;
 
 import org.apache.lucene.index.Term;
@@ -48,7 +47,7 @@ class AnyNotLikeQuery extends AbstractAnyQuery {
     }
 
     @Override
-    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
+    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) {
         String regexString = LikeOperators.patternToRegex((String) candidate.value(), LikeOperators.DEFAULT_ESCAPE, false);
         regexString = regexString.substring(1, regexString.length() - 1);
         String notLike = negateWildcard(regexString);

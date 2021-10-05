@@ -39,7 +39,7 @@ import org.elasticsearch.index.query.ExistsQueryBuilder;
 class IsNullQuery implements FunctionToQuery {
 
     @Override
-    public Query apply(Function input, LuceneQueryBuilder.Context context) {
+    public Query toQuery(Function input, LuceneQueryBuilder.Context context) {
         assert input != null : "input must not be null";
         assert input.arguments().size() == 1 : "function's number of arguments must be 1";
         Symbol arg = input.arguments().get(0);

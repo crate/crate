@@ -29,14 +29,13 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
-import java.io.IOException;
 
 import static io.crate.lucene.AbstractAnyQuery.iterableWithByteRefs;
 
 class AnyNeqQuery extends AbstractAnyQuery {
 
     @Override
-    protected Query literalMatchesAnyArrayRef(Literal<?> candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
+    protected Query literalMatchesAnyArrayRef(Literal<?> candidate, Reference array, LuceneQueryBuilder.Context context) {
         // 1 != any ( col ) -->  gt 1 or lt 1
         String columnName = array.column().fqn();
         Object value = candidate.value();

@@ -23,7 +23,6 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
-import io.crate.protocols.postgres.types.PGType.TypeCategory;
 import io.crate.types.Regclass;
 import io.netty.buffer.ByteBuf;
 
