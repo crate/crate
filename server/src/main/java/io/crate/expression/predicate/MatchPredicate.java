@@ -22,16 +22,41 @@
 package io.crate.expression.predicate;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BoostQuery;
+import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermRangeQuery;
+import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
+import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.MultiMatchQueryType;
+import org.elasticsearch.index.query.QueryShardContext;
+import org.locationtech.spatial4j.shape.Shape;
 
+import io.crate.analyze.MatchOptionsAnalysis;
+import io.crate.data.Input;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.geo.GeoJSONUtils;
+import io.crate.lucene.FunctionToQuery;
+import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.lucene.match.MatchQueries;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -45,7 +70,7 @@ import io.crate.types.ObjectType;
 /**
  * The match predicate is only used to generate lucene queries from.
  */
-public class MatchPredicate implements FunctionImplementation {
+public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
 
     public static final String NAME = "match";
 
@@ -161,5 +186,136 @@ public class MatchPredicate implements FunctionImplementation {
             return matchType;
         }
         throw new IllegalArgumentException("No match type for dataType: " + columnType);
+    }
+
+    @Override
+    public Query toQuery(Function function, Context context) {
+        List<Symbol> arguments = function.arguments();
+        assert arguments.size() == 4 : "invalid number of arguments";
+        assert Symbol.isLiteral(arguments.get(0), DataTypes.UNTYPED_OBJECT) :
+            "fields must be literal";
+        assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING) :
+            "matchType must be literal";
+
+        Symbol queryTerm = arguments.get(1);
+        if (!(queryTerm instanceof Input)) {
+            throw new IllegalArgumentException("queryTerm must be a literal");
+        }
+        Object queryTermVal = ((Input) queryTerm).value();
+        if (queryTermVal == null) {
+            throw new IllegalArgumentException("cannot use NULL as query term in match predicate");
+        }
+        if (queryTerm.valueType().equals(DataTypes.GEO_SHAPE)) {
+            return geoMatch(context, arguments, queryTermVal);
+        }
+        return stringMatch(context, arguments, queryTermVal);
+    }
+
+    private Query geoMatch(LuceneQueryBuilder.Context context, List<Symbol> arguments, Object queryTerm) {
+
+        Map fields = (Map) ((Literal) arguments.get(0)).value();
+        String fieldName = (String) fields.keySet().iterator().next();
+        MappedFieldType fieldType = context.queryShardContext().getMapperService().fullName(fieldName);
+        GeoShapeFieldMapper.GeoShapeFieldType geoShapeFieldType = (GeoShapeFieldMapper.GeoShapeFieldType) fieldType;
+        String matchType = (String) ((Input) arguments.get(2)).value();
+        @SuppressWarnings("unchecked")
+        Shape shape = GeoJSONUtils.map2Shape((Map<String, Object>) queryTerm);
+
+        ShapeRelation relation = ShapeRelation.getRelationByName(matchType);
+        assert relation != null : "invalid matchType: " + matchType;
+
+        PrefixTreeStrategy prefixTreeStrategy = geoShapeFieldType.defaultStrategy();
+        if (relation == ShapeRelation.DISJOINT) {
+            /**
+             * See {@link org.elasticsearch.index.query.GeoShapeQueryParser}:
+             */
+            // this strategy doesn't support disjoint anymore: but it did before, including creating lucene fieldcache (!)
+            // in this case, execute disjoint as exists && !intersects
+
+            BooleanQuery.Builder bool = new BooleanQuery.Builder();
+
+            Query exists = new TermRangeQuery(fieldName, null, null, true, true);
+
+            Query intersects = prefixTreeStrategy.makeQuery(getArgs(shape, ShapeRelation.INTERSECTS));
+            bool.add(exists, BooleanClause.Occur.MUST);
+            bool.add(intersects, BooleanClause.Occur.MUST_NOT);
+            return new ConstantScoreQuery(bool.build());
+        }
+
+        SpatialArgs spatialArgs = getArgs(shape, relation);
+        return prefixTreeStrategy.makeQuery(spatialArgs);
+    }
+
+    private SpatialArgs getArgs(Shape shape, ShapeRelation relation) {
+        switch (relation) {
+            case INTERSECTS:
+                return new SpatialArgs(SpatialOperation.Intersects, shape);
+            case DISJOINT:
+                return new SpatialArgs(SpatialOperation.IsDisjointTo, shape);
+            case WITHIN:
+                return new SpatialArgs(SpatialOperation.IsWithin, shape);
+            default:
+                throw invalidMatchType(relation.getRelationName());
+        }
+    }
+
+    private AssertionError invalidMatchType(String matchType) {
+        throw new AssertionError(String.format(Locale.ENGLISH,
+            "Invalid match type: %s. Analyzer should have made sure that it is valid", matchType));
+    }
+
+    private static Query stringMatch(LuceneQueryBuilder.Context context, List<Symbol> arguments, Object queryTerm) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> fields = (Map) ((Literal) arguments.get(0)).value();
+        String queryString = (String) queryTerm;
+        String matchType = (String) ((Literal) arguments.get(2)).value();
+        //noinspection unchecked
+        Map<String, Object> options = (Map<String, Object>) ((Literal) arguments.get(3)).value();
+
+        MatchOptionsAnalysis.validate(options);
+
+        if (fields.size() == 1) {
+            return singleMatchQuery(
+                context.queryShardContext(),
+                fields.entrySet().iterator().next(),
+                queryString,
+                matchType,
+                options
+            );
+        } else {
+            fields.replaceAll((s, o) -> {
+                if (o instanceof Number) {
+                    return ((Number) o).floatValue();
+                }
+                return null;
+            });
+            //noinspection unchecked
+            return MatchQueries.multiMatch(
+                context.queryShardContext(),
+                matchType,
+                (Map<String, Float>) (Map) fields,
+                queryString,
+                options
+            );
+        }
+    }
+
+    private static Query singleMatchQuery(QueryShardContext queryShardContext,
+                                          Map.Entry<String, Object> entry,
+                                          String queryString,
+                                          String matchType,
+                                          Map<String, Object> options) {
+        Query query = MatchQueries.singleMatch(
+            queryShardContext,
+            entry.getKey(),
+            queryString,
+            matchType,
+            options
+        );
+        Object boost = entry.getValue();
+        if (boost instanceof Number) {
+            return new BoostQuery(query, ((Number) boost).floatValue());
+        }
+        return query;
     }
 }
