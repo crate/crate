@@ -21,7 +21,14 @@
 
 package io.crate.expression.scalar;
 
+import java.util.List;
+
+import org.apache.lucene.search.Query;
+
 import io.crate.data.Input;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -81,5 +88,12 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
     @Override
     public Signature boundSignature() {
         return boundSignature;
+    }
+
+    @Override
+    public Query toQuery(Function function, Context context) {
+        List<Symbol> args = function.arguments();
+        assert args.size() == 1 : "ignore3vl expects exactly 1 argument, got: " + args.size();
+        return args.get(0).accept(context.visitor(), context);
     }
 }

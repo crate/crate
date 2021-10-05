@@ -59,7 +59,6 @@ import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -228,20 +227,8 @@ public class LuceneQueryBuilder {
 
     static class Visitor extends SymbolVisitor<Context, Query> {
 
-        class Ignore3vlQuery implements FunctionToQuery {
-
-            @Nullable
-            @Override
-            public Query toQuery(Function input, Context context) {
-                List<Symbol> args = input.arguments();
-                assert args.size() == 1 : "ignore3vl expects exactly 1 argument, got: " + args.size();
-                return args.get(0).accept(Visitor.this, context);
-            }
-        }
-
         private final Map<String, FunctionToQuery> functions = Map.ofEntries(
             entry(NotPredicate.NAME, new NotQuery(this)),
-            entry(Ignore3vlFunction.NAME, new Ignore3vlQuery()),
             entry(AnyOperators.Type.EQ.opName(), new AnyEqQuery()),
             entry(AnyOperators.Type.NEQ.opName(), new AnyNeqQuery()),
             entry(AnyOperators.Type.LT.opName(), new AnyRangeQuery("gt", "lt")),
