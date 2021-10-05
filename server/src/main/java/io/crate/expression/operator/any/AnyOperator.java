@@ -30,7 +30,6 @@ import io.crate.types.DataType;
 
 import java.util.function.IntPredicate;
 
-import static io.crate.expression.operator.any.AnyOperators.collectionValueToIterable;
 
 public final class AnyOperator extends Operator<Object> {
 
@@ -87,6 +86,6 @@ public final class AnyOperator extends Operator<Object> {
         if (items == null || item == null) {
             return null;
         }
-        return doEvaluate(item, collectionValueToIterable(items));
+        return doEvaluate(item, (Iterable<?>) items);
     }
 }

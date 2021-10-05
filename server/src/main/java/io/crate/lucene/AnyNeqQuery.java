@@ -31,6 +31,8 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.io.IOException;
 
+import static io.crate.lucene.AbstractAnyQuery.iterableWithByteRefs;
+
 class AnyNeqQuery extends AbstractAnyQuery {
 
     @Override
@@ -66,7 +68,7 @@ class AnyNeqQuery extends AbstractAnyQuery {
         }
 
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
-        for (Object value : toIterable(array.value())) {
+        for (Object value : iterableWithByteRefs(array.value())) {
             andBuilder.add(fieldType.termQuery(value, context.queryShardContext()), BooleanClause.Occur.MUST);
         }
         return Queries.not(andBuilder.build());

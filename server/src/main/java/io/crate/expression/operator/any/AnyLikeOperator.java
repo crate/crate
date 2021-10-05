@@ -32,7 +32,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
-import static io.crate.expression.operator.any.AnyOperators.collectionValueToIterable;
 
 public class AnyLikeOperator extends Operator<Object> {
 
@@ -90,6 +89,6 @@ public class AnyLikeOperator extends Operator<Object> {
         if (collectionReference == null || value == null) {
             return null;
         }
-        return doEvaluate(value, collectionValueToIterable(collectionReference));
+        return doEvaluate(value, (Iterable<?>) collectionReference);
     }
 }

@@ -28,7 +28,6 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
-import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Reference;
 
@@ -44,12 +43,13 @@ class AnyLikeQuery extends AbstractAnyQuery {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal array, LuceneQueryBuilder.Context context) {
+    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal<?> array, LuceneQueryBuilder.Context context) {
         // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
         String fqn = candidate.column().fqn();
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
-        for (Object value : AnyOperators.collectionValueToIterable(array.value())) {
+        Iterable<?> values = (Iterable<?>) array.value();
+        for (Object value : values) {
             booleanQuery.add(caseSensitivity.likeQuery(fqn, (String) value), BooleanClause.Occur.SHOULD);
         }
         return booleanQuery.build();

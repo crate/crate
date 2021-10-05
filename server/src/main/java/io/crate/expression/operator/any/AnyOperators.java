@@ -30,9 +30,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.IntPredicate;
 
 import static io.crate.expression.operator.any.AnyOperator.OPERATOR_PREFIX;
@@ -99,17 +97,6 @@ public final class AnyOperators {
                         type.cmp
                     )
             );
-        }
-    }
-
-    public static Iterable<?> collectionValueToIterable(Object collectionRef) throws IllegalArgumentException {
-        if (collectionRef instanceof Object[]) {
-            return Arrays.asList((Object[]) collectionRef);
-        } else if (collectionRef instanceof Collection) {
-            return (Collection<?>) collectionRef;
-        } else {
-            throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "cannot cast %s to Iterable", collectionRef));
         }
     }
 

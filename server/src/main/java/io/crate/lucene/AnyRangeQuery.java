@@ -29,6 +29,8 @@ import org.apache.lucene.search.Query;
 
 import java.io.IOException;
 
+import static io.crate.lucene.AbstractAnyQuery.iterableWithByteRefs;
+
 class AnyRangeQuery extends AbstractAnyQuery {
 
     private final RangeQuery rangeQuery;
@@ -54,7 +56,7 @@ class AnyRangeQuery extends AbstractAnyQuery {
         // col < ANY ([1,2,3]) --> or(col<1, col<2, col<3)
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
-        for (Object value : toIterable(array.value())) {
+        for (Object value : iterableWithByteRefs(array.value())) {
             booleanQuery.add(
                 inverseRangeQuery.toQuery(candidate, value, context::getFieldTypeOrNull, context.queryShardContext),
                 BooleanClause.Occur.SHOULD);

@@ -40,7 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static io.crate.lucene.AbstractAnyQuery.toIterable;
+import static io.crate.lucene.AbstractAnyQuery.iterableWithByteRefs;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 
 class AnyEqQuery implements FunctionToQuery {
@@ -91,7 +91,7 @@ class AnyEqQuery implements FunctionToQuery {
                                                 Object candidate,
                                                 LuceneQueryBuilder.Context context) {
         ArrayList<Object> terms = new ArrayList<>();
-        gatherLeafs(toIterable(candidate), terms::add);
+        gatherLeafs(iterableWithByteRefs(candidate), terms::add);
 
         return new BooleanQuery.Builder()
             .add(fieldType.termsQuery(terms, context.queryShardContext), BooleanClause.Occur.MUST)
