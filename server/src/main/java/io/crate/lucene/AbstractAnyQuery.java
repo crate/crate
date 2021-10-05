@@ -24,7 +24,6 @@ package io.crate.lucene;
 import com.google.common.collect.Iterables;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
-import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -79,8 +78,8 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
     /**
      * converts Strings to BytesRef on the fly
      */
-    static Iterable<?> toIterable(Object value) {
-        return Iterables.transform(AnyOperators.collectionValueToIterable(value), new com.google.common.base.Function<Object, Object>() {
+    static Iterable<?> iterableWithByteRefs(Object value) {
+        return Iterables.transform((Iterable<?>) value, new com.google.common.base.Function<Object, Object>() {
             @Nullable
             @Override
             public Object apply(@Nullable Object input) {

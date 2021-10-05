@@ -30,12 +30,10 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.RegexpQuery;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.RegexpFlag;
 
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
-import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Reference;
 
@@ -63,13 +61,12 @@ class AnyNotLikeQuery extends AbstractAnyQuery {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal array, LuceneQueryBuilder.Context context) {
+    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal<?> array, LuceneQueryBuilder.Context context) {
         // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
         String columnName = candidate.column().fqn();
-        MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
-        for (Object value : AnyOperators.collectionValueToIterable(array.value())) {
+        Iterable<?> values = (Iterable<?>) array.value();
+        for (Object value : values) {
             andLikeQueries.add(
                 caseSensitivity.likeQuery(columnName, (String) value),
                 BooleanClause.Occur.MUST);
