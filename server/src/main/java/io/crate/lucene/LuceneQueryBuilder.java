@@ -55,7 +55,6 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.operator.any.AnyOperators;
-import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
@@ -228,7 +227,6 @@ public class LuceneQueryBuilder {
     static class Visitor extends SymbolVisitor<Context, Query> {
 
         private final Map<String, FunctionToQuery> functions = Map.ofEntries(
-            entry(NotPredicate.NAME, new NotQuery(this)),
             entry(AnyOperators.Type.EQ.opName(), new AnyEqQuery()),
             entry(AnyOperators.Type.NEQ.opName(), new AnyNeqQuery()),
             entry(AnyOperators.Type.LT.opName(), new AnyRangeQuery("gt", "lt")),
