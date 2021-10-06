@@ -283,7 +283,7 @@ should be crossed out as well.
 - [ ] 6a0f7411e25 Do not release safe commit with CancellableThreads (#59182)
 - [ ] 17bd5592537 Fix the timestamp field of a data stream to @timestamp (#59210)
 - [ ] 9268b257895 Add Check for Metadata Existence in BlobStoreRepository (#59141) (#59216)
-- [ ] ef5c397c0f6 Sending operations concurrently in peer recovery (#58018)
+- [x] ef5c397c0f6 Sending operations concurrently in peer recovery (#58018)
 - [ ] de6ac6aea6d Fix recovery stage transition with sync_id (#57754)
 - [ ] 46c8d00852d Remove nodes with read-only filesystems (#52680) (#59138)
 - [ ] 1ced3f0eb38 Extract recovery files details to its own class (#59121)
@@ -391,7 +391,7 @@ should be crossed out as well.
 - [ ] 3bad5b3c01a Fix Noisy Logging during Snapshot Delete (#56264) (#56329)
 - [ ] e852bb29b76 Simplify signature of FieldMapper#parseCreateField. (#56144)
 - [ ] b9636713b1f Searchable Snapshots should respect max_restore_bytes_per_sec (#55952) (#56199)
-- [ ] 60d097e2626 Avoid copying file chunks in peer covery (#56072) (#56172)
+- [x] 60d097e2626 Avoid copying file chunks in peer covery (#56072) (#56172)
 - [ ] 2ac32db6076 Move includeDataStream flag from IndicesOptions to IndexNameExpressionResolver.Context (#56151)
 - [ ] 6b5cf1b0318 For constant_keyword, make sure exists query handles missing values. (#55757)
 - [ ] e8ef44ce78a Allow Bulk Snapshot Deletes to Abort (#56009) (#56111)
@@ -401,8 +401,8 @@ should be crossed out as well.
 - [ ] 54dbea6c65c Improve RemoteConnectionManager consistency (#55759)
 - [x] a508d3303d5 Ensure no circular reference in translog tragic exception (#55959)
 - [ ] 9eb67365002 Fix NullPointer when message shortcircuited (#55945)
-- [ ] 06b33457878 Avoid double-recovery when state recovery delayed
-- [ ] cd228095dfe Retry failed peer recovery due to transient errors (#55883)
+- [x] 06b33457878 Avoid double-recovery when state recovery delayed
+- [x] cd228095dfe Retry failed peer recovery due to transient errors (#55883)
 - [ ] cab7bcc1562 Disk decider respect watermarks for single data node (#55805) (#55847)
 - [ ] f38385ee257 Fix Leaking Listener When Closing NodeClient (#55676) (#55864)
 - [x] 80662f31a1c Introduce mechanism to stub request handling (#55832)

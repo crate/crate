@@ -131,7 +131,7 @@ public class GlobalCheckpointSyncIT extends SQLIntegrationTestCase {
                                     (MockTransportService) internalCluster().getInstance(TransportService.class, node.getName());
                             final MockTransportService receiverTransportService =
                                     (MockTransportService) internalCluster().getInstance(TransportService.class, other.getName());
-                            senderTransportService.clearRule(receiverTransportService);
+                            senderTransportService.clearOutboundRules(receiverTransportService);
                         }
                     }
                 });

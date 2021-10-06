@@ -21,15 +21,12 @@
 
 package io.crate.blob.recovery;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
+import io.crate.blob.BlobContainer;
+import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.v2.BlobIndex;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobShard;
+import io.crate.common.Hex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -57,12 +54,14 @@ import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.blob.BlobContainer;
-import io.crate.blob.BlobTransferTarget;
-import io.crate.blob.v2.BlobIndex;
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.blob.v2.BlobShard;
-import io.crate.common.Hex;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class BlobRecoveryHandler extends RecoverySourceHandler {
 
@@ -80,10 +79,19 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                                StartRecoveryRequest request,
                                int fileChunkSizeInBytes,
                                int maxConcurrentFileChunks,
+                               int maxConcurrentOperations,
                                final TransportService transportService,
                                BlobTransferTarget blobTransferTarget,
                                BlobIndicesService blobIndicesService) {
-        super(shard, recoveryTarget, shard.getThreadPool(), request, fileChunkSizeInBytes, maxConcurrentFileChunks);
+        super(
+            shard,
+            recoveryTarget,
+            shard.getThreadPool(),
+            request,
+            fileChunkSizeInBytes,
+            maxConcurrentFileChunks,
+            maxConcurrentOperations
+        );
         assert BlobIndex.isBlobIndex(shard.shardId().getIndexName()) : "Shard must belong to a blob index";
         this.blobShard = blobIndicesService.blobShardSafe(request.shardId());
         this.request = request;

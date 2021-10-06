@@ -260,7 +260,8 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
                         shard.getThreadPool(),
                         request,
                         recoveryChunkSizeInBytes,
-                        recoverySettings.getMaxConcurrentFileChunks());
+                        recoverySettings.getMaxConcurrentFileChunks(),
+                        recoverySettings.getMaxConcurrentOperations());
                 }
             }
         }

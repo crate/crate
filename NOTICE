@@ -1,9 +1,12 @@
 CrateDB
-Copyright 2013-2018 Crate.io GmbH ("Crate")
+Copyright 2013-2021 Crate.IO GmbH ("Crate")
 
 
 Licensed to Crate.io GmbH (referred to in this notice as "Crate") under one or
 more contributor license agreements.
+
+This product includes software developed by The Apache Software Foundation
+(http://www.apache.org/).
 
 Unless otherwise stated, every component of CrateDB is licensed under the
 Apache License, Version 2.0.
@@ -22,10 +25,5 @@ LICENSE file or in this file.
 Crate is committed to only using permissively licensed third-party code.
 However, for the time being, if you make use of convenience releases, it is
 your responsibility to check the licensing status of the bundled third-party
-build-time dependencies.
-
-
-================================================================================
-
-This product includes software developed by The Apache Software
-Foundation (http://www.apache.org/).
+build-time dependencies. To get a quick overview, please also see the
+"3RD-PARTY-NOTICES.md" file.
