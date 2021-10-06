@@ -43,7 +43,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.Operators;
-import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.metadata.RelationName;
@@ -120,7 +120,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void test_any_operator_cast_on_left_reference_is_moved_to_cast_on_literal() {
-        for (var op : AnyOperators.Type.operatorSymbols()) {
+        for (var op : AnyOperator.SUPPORTED_COMPARISONS) {
             assertCollectQuery(
                 "name " + op + " ANY([1, 2, 2])",
                 "(name " + op + " ANY(_cast([1, 2, 2], 'array(text)')))"
@@ -141,7 +141,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void test_any_operator_cast_on_right_reference_is_moved_to_cast_on_literal() {
-        for(var op : AnyOperators.Type.operatorSymbols()) {
+        for(var op : AnyOperator.SUPPORTED_COMPARISONS) {
             assertCollectQuery(
                 "'1' " + op + " ANY(d_array)",
                 "(1.0 " + op + " ANY(d_array))"

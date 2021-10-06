@@ -33,7 +33,9 @@ import org.elasticsearch.index.query.ExistsQueryBuilder;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperators;
-import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.operator.any.AnyEqOperator;
+import io.crate.expression.operator.any.AnyNeqOperator;
+import io.crate.expression.operator.any.AnyRangeOperator;
 import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.symbol.Function;
@@ -135,12 +137,12 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         */
         private final Set<String> STRICT_3VL_FUNCTIONS =
             Set.of(
-                AnyOperators.Type.EQ.opName(),
-                AnyOperators.Type.NEQ.opName(),
-                AnyOperators.Type.GTE.opName(),
-                AnyOperators.Type.GT.opName(),
-                AnyOperators.Type.LTE.opName(),
-                AnyOperators.Type.LT.opName(),
+                AnyEqOperator.NAME,
+                AnyNeqOperator.NAME,
+                AnyRangeOperator.Comparison.GT.opName(),
+                AnyRangeOperator.Comparison.GTE.opName(),
+                AnyRangeOperator.Comparison.LT.opName(),
+                AnyRangeOperator.Comparison.LTE.opName(),
                 LikeOperators.ANY_LIKE,
                 LikeOperators.ANY_NOT_LIKE,
                 CoalesceFunction.NAME

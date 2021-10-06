@@ -26,7 +26,7 @@ import io.crate.exceptions.VersioninigValidationException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.Operator;
-import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.operator.any.AnyNeqOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -74,7 +74,7 @@ public final class WhereClauseValidator {
         private static final String SEQ_NO = "_seq_no";
         private static final String PRIMARY_TERM = "_primary_term";
         private static final Set<String> VERSIONING_ALLOWED_COMPARISONS = Set.of(
-            EqOperator.NAME, AnyOperators.Type.NEQ.opName());
+            EqOperator.NAME, AnyNeqOperator.NAME);
 
         private static final String SCORE_ERROR = String.format(Locale.ENGLISH,
                                                                 "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",

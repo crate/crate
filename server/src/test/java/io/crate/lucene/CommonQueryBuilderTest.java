@@ -499,25 +499,25 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testGtAnyOnNestedArrayIsNotSupported() {
-        expectedException.expectMessage("Cannot use any_> when the left side is an array");
+        expectedException.expectMessage("Cannot use `> ANY` if left side is an array");
         convert("[1, 2] > any(o_array['xs'])");
     }
 
     @Test
     public void testGteAnyOnNestedArrayIsNotSupported() {
-        expectedException.expectMessage("Cannot use any_>= when the left side is an array");
+        expectedException.expectMessage("Cannot use `>= ANY` if left side is an array");
         convert("[1, 2] >= any(o_array['xs'])");
     }
 
     @Test
     public void testLtAnyOnNestedArrayIsNotSupported() {
-        expectedException.expectMessage("Cannot use any_< when the left side is an array");
+        expectedException.expectMessage("Cannot use `< ANY` if left side is an array");
         convert("[1, 2] < any(o_array['xs'])");
     }
 
     @Test
     public void testLteAnyOnNestedArrayIsNotSupported() {
-        expectedException.expectMessage("Cannot use any_<= when the left side is an array");
+        expectedException.expectMessage("Cannot use `<= ANY` if left side is an array");
         convert("[1, 2] <= any(o_array['xs'])");
     }
 
