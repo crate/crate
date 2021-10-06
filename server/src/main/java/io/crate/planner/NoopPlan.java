@@ -35,7 +35,7 @@ public final class NoopPlan implements Plan {
 
     public static final Plan INSTANCE = new NoopPlan();
 
-    private NoopPlan(){
+    private NoopPlan() {
     }
 
     @Override

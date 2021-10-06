@@ -117,7 +117,7 @@ forbiddenApisMain {
 
 
 checkstyle {
-    toolVersion = "8.41"
+    toolVersion = "8.45.1"
     def checkstyle_dir = "$rootDir/gradle/checkstyle/"
     configProperties = [
         'checkstyleDir' : checkstyle_dir,
