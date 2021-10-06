@@ -19,9 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.lucene;
-
-import java.util.Locale;
+package io.crate.expression.operator.any;
 
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
@@ -33,43 +31,57 @@ import org.elasticsearch.index.query.RegexpFlag;
 
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.Reference;
+import io.crate.metadata.functions.Signature;
 
-class AnyNotLikeQuery extends AbstractAnyQuery {
+public final class AnyNotLikeOperator extends AnyOperator {
+
+    private final CaseSensitivity caseSensitivity;
+
+    public AnyNotLikeOperator(Signature signature,
+                       Signature boundSignature,
+                       CaseSensitivity caseSensitivity) {
+        super(signature, boundSignature);
+        this.caseSensitivity = caseSensitivity;
+    }
 
     private static String negateWildcard(String wildCard) {
-        return String.format(Locale.ENGLISH, "~(%s)", wildCard);
-    }
-
-    AnyNotLikeQuery(CaseSensitivity caseSensitivity) {
-        super(caseSensitivity);
+        return "~(" + wildCard + ')';
     }
 
     @Override
-    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) {
-        String regexString = LikeOperators.patternToRegex((String) candidate.value(), LikeOperators.DEFAULT_ESCAPE, false);
-        regexString = regexString.substring(1, regexString.length() - 1);
-        String notLike = negateWildcard(regexString);
-
-        return new RegexpQuery(new Term(
-            array.column().fqn(),
-            notLike),
-            RegexpFlag.COMPLEMENT.value()
-        );
+    boolean matches(Object probe, Object candidate) {
+        return !LikeOperators.matches((String) candidate, (String) probe, caseSensitivity);
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal<?> array, LuceneQueryBuilder.Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
         // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
-        String columnName = candidate.column().fqn();
+        String columnName = probe.column().fqn();
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
-        Iterable<?> values = (Iterable<?>) array.value();
+        Iterable<?> values = (Iterable<?>) candidates.value();
         for (Object value : values) {
             andLikeQueries.add(
                 caseSensitivity.likeQuery(columnName, (String) value),
                 BooleanClause.Occur.MUST);
         }
         return Queries.not(andLikeQueries.build());
+    }
+
+    @Override
+    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
+        String pattern = (String) probe.value();
+        String regexString = LikeOperators.patternToRegex(pattern, LikeOperators.DEFAULT_ESCAPE, false);
+        regexString = regexString.substring(1, regexString.length() - 1);
+        String notLike = negateWildcard(regexString);
+
+        return new RegexpQuery(new Term(
+            candidates.column().fqn(),
+            notLike),
+            RegexpFlag.COMPLEMENT.value()
+        );
     }
 }

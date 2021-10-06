@@ -22,7 +22,7 @@
 package io.crate.expression.operator;
 
 import io.crate.expression.AbstractFunctionModule;
-import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.operator.any.AnyOperator;
 import io.crate.metadata.FunctionImplementation;
 
 public class OperatorModule extends AbstractFunctionModule<FunctionImplementation> {
@@ -40,7 +40,7 @@ public class OperatorModule extends AbstractFunctionModule<FunctionImplementatio
         RegexpMatchOperator.register(this);
         RegexpMatchCaseInsensitiveOperator.register(this);
 
-        AnyOperators.register(this);
+        AnyOperator.register(this);
         AllOperator.register(this);
         LikeOperators.register(this);
     }

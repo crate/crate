@@ -32,7 +32,7 @@ import io.crate.exceptions.VersioninigValidationException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;
-import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -294,7 +294,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         String s = sb.toString();
 
         WhereClause whereClause = analyzeSelectWhere(s);
-        assertThat(whereClause.query(), isFunction(AnyOperators.Type.EQ.opName(),
+        assertThat(whereClause.query(), isFunction(AnyEqOperator.NAME,
                                                    List.of(DataTypes.INTEGER, new ArrayType<>(DataTypes.INTEGER))));
     }
 

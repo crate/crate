@@ -19,26 +19,55 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.lucene;
+package io.crate.expression.operator.any;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.metadata.Reference;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.Reference;
+import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.ComparisonExpression;
 
-import static io.crate.lucene.AbstractAnyQuery.iterableWithByteRefs;
+public final class AnyNeqOperator extends AnyOperator {
 
-class AnyNeqQuery extends AbstractAnyQuery {
+    public static String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.NOT_EQUAL.getValue();
+
+    AnyNeqOperator(Signature signature, Signature boundSignature) {
+        super(signature, boundSignature);
+    }
 
     @Override
-    protected Query literalMatchesAnyArrayRef(Literal<?> candidate, Reference array, LuceneQueryBuilder.Context context) {
+    boolean matches(Object probe, Object candidate) {
+        return leftType.compare(probe, candidate) != 0;
+    }
+
+    @Override
+    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+        //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
+        String columnName = probe.column().fqn();
+        MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
+        if (fieldType == null) {
+            return Queries.newMatchNoDocsQuery("column does not exist in this index");
+        }
+
+        BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
+        for (Object value : iterableWithStringsAsBytesRef(candidates.value())) {
+            andBuilder.add(fieldType.termQuery(value, context.queryShardContext()), BooleanClause.Occur.MUST);
+        }
+        return Queries.not(andBuilder.build());
+    }
+
+    @Override
+    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
         // 1 != any ( col ) -->  gt 1 or lt 1
-        String columnName = array.column().fqn();
-        Object value = candidate.value();
+        String columnName = candidates.column().fqn();
+        Object value = probe.value();
 
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
         if (fieldType == null) {
@@ -55,21 +84,5 @@ class AnyNeqQuery extends AbstractAnyQuery {
             BooleanClause.Occur.SHOULD
         );
         return query.build();
-    }
-
-    @Override
-    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal<?> array, LuceneQueryBuilder.Context context) {
-        //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
-        String columnName = candidate.column().fqn();
-        MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-        if (fieldType == null) {
-            return Queries.newMatchNoDocsQuery("column does not exist in this index");
-        }
-
-        BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
-        for (Object value : iterableWithByteRefs(array.value())) {
-            andBuilder.add(fieldType.termQuery(value, context.queryShardContext()), BooleanClause.Occur.MUST);
-        }
-        return Queries.not(andBuilder.build());
     }
 }

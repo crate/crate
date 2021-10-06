@@ -23,7 +23,6 @@ package io.crate.lucene;
 
 import static io.crate.expression.eval.NullEliminator.eliminateNullsIfPossible;
 import static io.crate.metadata.DocReferences.inverseSourceLookup;
-import static java.util.Map.entry;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -37,8 +36,6 @@ import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -54,17 +51,9 @@ import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.operator.AndOperator;
-import io.crate.expression.operator.LikeOperators;
-import io.crate.expression.operator.LikeOperators.CaseSensitivity;
-import io.crate.expression.operator.OrOperator;
-import io.crate.expression.operator.LikeOperators.CaseSensitivity;
-import io.crate.expression.operator.any.AnyOperators;
-import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -128,13 +117,6 @@ public class LuceneQueryBuilder {
             LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", query.toString(Style.UNQUALIFIED), ctx.query);
         }
         return ctx;
-    }
-
-    public static Query termsQuery(@Nullable MappedFieldType fieldType, List values, QueryShardContext context) {
-        if (fieldType == null) {
-            return Queries.newMatchNoDocsQuery("column does not exist in this index");
-        }
-        return fieldType.termsQuery(values, context);
     }
 
     static List asList(Literal literal) {
@@ -224,64 +206,14 @@ public class LuceneQueryBuilder {
         public QueryShardContext queryShardContext() {
             return queryShardContext;
         }
+
+        public SymbolVisitor<Context, Query> visitor() {
+            return VISITOR;
+        }
     }
 
 
     static class Visitor extends SymbolVisitor<Context, Query> {
-
-        class Ignore3vlQuery implements FunctionToQuery {
-
-            @Nullable
-            @Override
-            public Query toQuery(Function input, Context context) {
-                List<Symbol> args = input.arguments();
-                assert args.size() == 1 : "ignore3vl expects exactly 1 argument, got: " + args.size();
-                return args.get(0).accept(Visitor.this, context);
-            }
-        }
-
-        class AndQuery implements FunctionToQuery {
-            @Override
-            public Query toQuery(Function input, Context context) {
-                assert input != null : "input must not be null";
-                BooleanQuery.Builder query = new BooleanQuery.Builder();
-                for (Symbol symbol : input.arguments()) {
-                    query.add(symbol.accept(Visitor.this, context), BooleanClause.Occur.MUST);
-                }
-                return query.build();
-            }
-        }
-
-        class OrQuery implements FunctionToQuery {
-            @Override
-            public Query toQuery(Function input, Context context) {
-                assert input != null : "input must not be null";
-                BooleanQuery.Builder query = new BooleanQuery.Builder();
-                query.setMinimumNumberShouldMatch(1);
-                for (Symbol symbol : input.arguments()) {
-                    query.add(symbol.accept(Visitor.this, context), BooleanClause.Occur.SHOULD);
-                }
-                return query.build();
-            }
-        }
-
-
-        private final Map<String, FunctionToQuery> functions = Map.ofEntries(
-            entry(AndOperator.NAME, new AndQuery()),
-            entry(OrOperator.NAME, new OrQuery()),
-            entry(NotPredicate.NAME, new NotQuery(this)),
-            entry(Ignore3vlFunction.NAME, new Ignore3vlQuery()),
-            entry(AnyOperators.Type.EQ.opName(), new AnyEqQuery()),
-            entry(AnyOperators.Type.NEQ.opName(), new AnyNeqQuery()),
-            entry(AnyOperators.Type.LT.opName(), new AnyRangeQuery("gt", "lt")),
-            entry(AnyOperators.Type.LTE.opName(), new AnyRangeQuery("gte", "lte")),
-            entry(AnyOperators.Type.GTE.opName(), new AnyRangeQuery("lte", "gte")),
-            entry(AnyOperators.Type.GT.opName(), new AnyRangeQuery("lt", "gt")),
-            entry(LikeOperators.ANY_LIKE, new AnyLikeQuery(CaseSensitivity.SENSITIVE)),
-            entry(LikeOperators.ANY_NOT_LIKE, new AnyNotLikeQuery(CaseSensitivity.SENSITIVE)),
-            entry(LikeOperators.ANY_ILIKE, new AnyLikeQuery(CaseSensitivity.INSENSITIVE)),
-            entry(LikeOperators.ANY_NOT_ILIKE, new AnyNotLikeQuery(CaseSensitivity.INSENSITIVE))
-        );
 
         @Override
         public Query visitFunction(Function function, Context context) {
@@ -291,32 +223,25 @@ public class LuceneQueryBuilder {
             }
             function = rewriteAndValidateFields(function, context);
 
-            FunctionToQuery toQuery = functions.get(function.name());
-            if (toQuery == null) {
-                FunctionImplementation implementation = context.nodeContext.functions().getQualified(
-                    function,
-                    context.txnCtx.sessionSettings().searchPath()
-                );
-                Query query = implementation instanceof FunctionToQuery funcToQuery
-                    ? funcToQuery.toQuery(function, context)
-                    : null;
-                return returnQueryOrTryFallsbacks(query, function, context);
+            FunctionImplementation implementation = context.nodeContext.functions().getQualified(
+                function,
+                context.txnCtx.sessionSettings().searchPath()
+            );
+            if (implementation instanceof FunctionToQuery funcToQuery) {
+                Query query;
+                try {
+                    query = funcToQuery.toQuery(function, context);
+                    if (query == null) {
+                        query = queryFromInnerFunction(function, context);
+                    }
+                } catch (UnsupportedOperationException e) {
+                    return genericFunctionFilter(function, context);
+                }
+                if (query != null) {
+                    return query;
+                }
             }
-
-            Query query;
-            try {
-                query = toQuery.toQuery(function, context);
-            } catch (UnsupportedOperationException e) {
-                return genericFunctionFilter(function, context);
-            }
-            return returnQueryOrTryFallsbacks(query, function, context);
-        }
-
-        private Query returnQueryOrTryFallsbacks(@Nullable Query query, Function function, Context context) {
-            if (query == null) {
-                query = queryFromInnerFunction(function, context);
-            }
-            return query == null ? genericFunctionFilter(function, context) : query;
+            return genericFunctionFilter(function, context);
         }
 
         private Query queryFromInnerFunction(Function parent, Context context) {
