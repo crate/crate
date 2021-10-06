@@ -27,7 +27,7 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.Operators;
-import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
@@ -339,7 +339,7 @@ public class EqualityExtractor {
             }
 
             public EqProxy add(Function compared) {
-                if (compared.name().equals(AnyOperators.Type.EQ.opName())) {
+                if (compared.name().equals(AnyEqOperator.NAME)) {
                     AnyEqProxy anyEqProxy = new AnyEqProxy(compared, proxies);
                     for (EqProxy proxiedProxy : anyEqProxy) {
                         if (!proxies.containsKey(proxiedProxy.origin())) {
@@ -419,7 +419,7 @@ public class EqualityExtractor {
                         return comparison.add(function);
                     }
                 }
-            } else if (functionName.equals(AnyOperators.Type.EQ.opName()) && arguments.get(1).symbolType().isValueSymbol()) {
+            } else if (functionName.equals(AnyEqOperator.NAME) && arguments.get(1).symbolType().isValueSymbol()) {
                 // ref = any ([1,2,3])
                 firstArg = Symbols.unwrapReferenceFromCast(firstArg);
                 if (firstArg instanceof Reference) {

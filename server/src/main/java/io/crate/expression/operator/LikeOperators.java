@@ -31,6 +31,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.WildcardQuery;
 
 import io.crate.expression.operator.any.AnyLikeOperator;
+import io.crate.expression.operator.any.AnyNotLikeOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.functions.Signature;
@@ -129,7 +130,6 @@ public class LikeOperators {
                 new AnyLikeOperator(
                     signature,
                     boundSignature,
-                    LikeOperators::matches,
                     CaseSensitivity.SENSITIVE
                 )
         );
@@ -141,10 +141,9 @@ public class LikeOperators {
                 Operator.RETURN_TYPE.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
-                new AnyLikeOperator(
+                new AnyNotLikeOperator(
                     signature,
                     boundSignature,
-                    TriPredicate.negate(LikeOperators::matches),
                     CaseSensitivity.SENSITIVE
                 )
         );
@@ -159,7 +158,6 @@ public class LikeOperators {
                 new AnyLikeOperator(
                     signature,
                     boundSignature,
-                    LikeOperators::matches,
                     CaseSensitivity.INSENSITIVE
                 )
         );
@@ -171,10 +169,9 @@ public class LikeOperators {
                 Operator.RETURN_TYPE.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
-                new AnyLikeOperator(
+                new AnyNotLikeOperator(
                     signature,
                     boundSignature,
-                    TriPredicate.negate(LikeOperators::matches),
                     CaseSensitivity.INSENSITIVE
                 )
         );
@@ -184,7 +181,7 @@ public class LikeOperators {
         return Pattern.compile(patternToRegex(pattern, DEFAULT_ESCAPE, true), caseSensitivity.patternFlags());
     }
 
-    static boolean matches(String expression, String pattern, CaseSensitivity caseSensitivity) {
+    public static boolean matches(String expression, String pattern, CaseSensitivity caseSensitivity) {
         return makePattern(pattern, caseSensitivity).matcher(expression).matches();
     }
 

@@ -83,15 +83,12 @@ public final class CmpOperator extends Operator<Object> {
         }
     }
 
-    @Override
-    public Query toQuery(Reference ref, Literal<?> literal, Context context) {
+    public static Query toQuery(String functionName, Reference ref, Object value, Context context) {
         MappedFieldType fieldType = context.getFieldTypeOrNull(ref.column().fqn());
         if (fieldType == null) {
             // can't match column that doesn't exist or is an object ( "o >= {x=10}" is not supported)
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
-        String functionName = signature.getName().name();
-        Object value = literal.value();
         return switch (functionName) {
             case GtOperator.NAME -> fieldType.rangeQuery(value, null, false, false);
             case GteOperator.NAME -> fieldType.rangeQuery(value, null, true, false);
@@ -99,5 +96,10 @@ public final class CmpOperator extends Operator<Object> {
             case LteOperator.NAME -> fieldType.rangeQuery(null, value, false, true);
             default -> throw new IllegalArgumentException(functionName + " is not a supported comparison operator");
         };
+    }
+
+    @Override
+    public Query toQuery(Reference ref, Literal<?> literal, Context context) {
+        return CmpOperator.toQuery(signature.getName().name(), ref, literal.value(), context);
     }
 }

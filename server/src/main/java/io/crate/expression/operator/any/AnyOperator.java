@@ -21,33 +21,96 @@
 
 package io.crate.expression.operator.any;
 
+import java.util.List;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.stream.StreamSupport;
+
+import org.apache.lucene.search.Query;
+import org.apache.lucene.util.BytesRef;
+
 import io.crate.data.Input;
+import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.Operator;
+import io.crate.expression.operator.OperatorModule;
+import io.crate.expression.operator.any.AnyRangeOperator.Comparison;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
+import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.DataType;
+import io.crate.types.TypeSignature;
 
-import java.util.function.IntPredicate;
 
-
-public final class AnyOperator extends Operator<Object> {
+/**
+ * Abstract base class for implementations of {@code <probe> <op> ANY(<candidates>)}
+ **/
+public abstract class AnyOperator extends Operator<Object> {
 
     public static final String OPERATOR_PREFIX = "any_";
+    public static final List<String> OPERATOR_NAMES = List.of(
+        AnyEqOperator.NAME,
+        AnyNeqOperator.NAME,
+        AnyRangeOperator.Comparison.GT.opName(),
+        AnyRangeOperator.Comparison.GTE.opName(),
+        AnyRangeOperator.Comparison.LT.opName(),
+        AnyRangeOperator.Comparison.LTE.opName(),
+        LikeOperators.ANY_LIKE,
+        LikeOperators.ANY_ILIKE,
+        LikeOperators.ANY_NOT_LIKE,
+        LikeOperators.ANY_NOT_ILIKE
+    );
+
+    public static final Set<String> SUPPORTED_COMPARISONS = Set.of(
+        ComparisonExpression.Type.EQUAL.getValue(),
+        ComparisonExpression.Type.NOT_EQUAL.getValue(),
+        ComparisonExpression.Type.LESS_THAN.getValue(),
+        ComparisonExpression.Type.LESS_THAN_OR_EQUAL.getValue(),
+        ComparisonExpression.Type.GREATER_THAN.getValue(),
+        ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()
+    );
 
     private final Signature signature;
     private final Signature boundSignature;
-    private final IntPredicate cmpIsMatch;
-    private final DataType leftType;
+    protected final DataType<Object> leftType;
 
-    /**
-     * @param cmpIsMatch predicate to test if a comparison (-1, 0, 1) should be considered a match
-     */
-    AnyOperator(Signature signature, Signature boundSignature, IntPredicate cmpIsMatch) {
+    public static void register(OperatorModule operatorModule) {
+        reg(operatorModule, AnyEqOperator.NAME, (sig, boundSig) -> new AnyEqOperator(sig, boundSig));
+        reg(operatorModule, AnyNeqOperator.NAME, (sig, boundSig) -> new AnyNeqOperator(sig, boundSig));
+        regRange(operatorModule, AnyRangeOperator.Comparison.GT);
+        regRange(operatorModule, AnyRangeOperator.Comparison.GTE);
+        regRange(operatorModule, AnyRangeOperator.Comparison.LT);
+        regRange(operatorModule, AnyRangeOperator.Comparison.LTE);
+    }
+
+    private static void regRange(OperatorModule operatorModule, Comparison comparison) {
+        reg(operatorModule, comparison.opName(), (sig, boundSig) -> new AnyRangeOperator(sig, boundSig, comparison));
+    }
+
+    private static void reg(OperatorModule module, String name, BiFunction<Signature, Signature, FunctionImplementation> operatorFactory) {
+        module.register(
+            Signature.scalar(
+                name,
+                TypeSignature.parseTypeSignature("E"),
+                TypeSignature.parseTypeSignature("array(E)"),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),
+            operatorFactory
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    AnyOperator(Signature signature, Signature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.cmpIsMatch = cmpIsMatch;
-        this.leftType = boundSignature.getArgumentDataTypes().get(0);
+        this.leftType = (DataType<Object>) boundSignature.getArgumentDataTypes().get(0);
     }
 
     @Override
@@ -60,23 +123,15 @@ public final class AnyOperator extends Operator<Object> {
         return boundSignature;
     }
 
-    @SuppressWarnings("unchecked")
-    private Boolean doEvaluate(Object left, Iterable<?> rightValues) {
-        boolean anyNulls = false;
-        for (Object rightValue : rightValues) {
-            if (rightValue == null) {
-                anyNulls = true;
-                continue;
-            }
-            if (cmpIsMatch.test(leftType.compare(left, rightValue))) {
-                return true;
-            }
-        }
-        return anyNulls ? null : false;
-    }
+    abstract boolean matches(Object probe, Object candidate);
+
+    protected abstract Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context);
+
+    protected abstract Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context);
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
+    @SafeVarargs
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
         assert args != null : "args must not be null";
         assert args.length == 2 : "number of args must be 2";
         assert args[0] != null : "1st argument must not be null";
@@ -86,6 +141,37 @@ public final class AnyOperator extends Operator<Object> {
         if (items == null || item == null) {
             return null;
         }
-        return doEvaluate(item, (Iterable<?>) items);
+        boolean anyNulls = false;
+        for (Object rightValue : (Iterable<?>) items) {
+            if (rightValue == null) {
+                anyNulls = true;
+                continue;
+            }
+            if (matches(item, rightValue)) {
+                return true;
+            }
+        }
+        return anyNulls ? null : false;
+    }
+
+    @Override
+    public Query toQuery(Function function, Context context) {
+        List<Symbol> args = function.arguments();
+        Symbol probe = args.get(0);
+        Symbol candidates = args.get(1);
+        if (probe instanceof Literal<?> literal && candidates instanceof Reference ref) {
+            return literalMatchesAnyArrayRef(function, literal, ref, context);
+        } else if (probe instanceof Reference ref && candidates instanceof Literal<?> literal) {
+            return refMatchesAnyArrayLiteral(function, ref, literal, context);
+        } else {
+            return null;
+        }
+    }
+
+    protected static Iterable<Object> iterableWithStringsAsBytesRef(Object value) {
+        Iterable<?> values = (Iterable<?>) value;
+        return () -> StreamSupport.stream(values.spliterator(), false)
+            .map(x -> x instanceof String str ? new BytesRef(str) : x)
+            .iterator();
     }
 }

@@ -55,7 +55,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LtOperator;
-import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.symbol.Function;
@@ -287,7 +287,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testParameterExpressionInAny() throws Exception {
         Symbol s = expressions.asSymbol("5 = ANY(?)");
-        assertThat(s, isFunction(AnyOperators.Type.EQ.opName(), isLiteral(5), instanceOf(ParameterSymbol.class)));
+        assertThat(s, isFunction(AnyEqOperator.NAME, isLiteral(5), instanceOf(ParameterSymbol.class)));
     }
 
     @Test

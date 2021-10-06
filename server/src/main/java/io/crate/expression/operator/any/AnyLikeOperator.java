@@ -21,32 +21,31 @@
 
 package io.crate.expression.operator.any;
 
-import io.crate.data.Input;
-import io.crate.expression.operator.Operator;
-import io.crate.expression.operator.TriPredicate;
+
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.Query;
+
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
+import io.crate.expression.operator.LikeOperators;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.Reference;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
 
-public class AnyLikeOperator extends Operator<Object> {
+public final class AnyLikeOperator extends AnyOperator {
 
-    private final Signature signature;
-    private final Signature boundSignature;
-    private final TriPredicate<String, String, CaseSensitivity> matcher;
     private final CaseSensitivity caseSensitivity;
 
     public AnyLikeOperator(Signature signature,
                            Signature boundSignature,
-                           TriPredicate<String, String, CaseSensitivity> matcher,
                            CaseSensitivity caseSensitivity) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-        this.matcher = matcher;
+        super(signature, boundSignature);
         this.caseSensitivity = caseSensitivity;
         DataType<?> innerType = ((ArrayType<?>) boundSignature.getArgumentDataTypes().get(1)).innerType();
         if (innerType.id() == ObjectType.ID) {
@@ -55,40 +54,25 @@ public class AnyLikeOperator extends Operator<Object> {
     }
 
     @Override
-    public Signature signature() {
-        return signature;
+    boolean matches(Object probe, Object candidate) {
+        return LikeOperators.matches((String) candidate, (String) probe, caseSensitivity);
     }
 
     @Override
-    public Signature boundSignature() {
-        return boundSignature;
-    }
-
-    private Boolean doEvaluate(Object left, Iterable<?> rightIterable) {
-        String pattern = (String) left;
-        boolean hasNull = false;
-        for (Object elem : rightIterable) {
-            if (elem == null) {
-                hasNull = true;
-                continue;
-            }
-            assert elem instanceof String : "elem must be a String";
-            String elemValue = (String) elem;
-            if (matcher.test(elemValue, pattern, caseSensitivity)) {
-                return true;
-            }
+    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+        // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
+        String fqn = probe.column().fqn();
+        BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
+        booleanQuery.setMinimumNumberShouldMatch(1);
+        Iterable<?> values = (Iterable<?>) candidates.value();
+        for (Object value : values) {
+            booleanQuery.add(caseSensitivity.likeQuery(fqn, (String) value), BooleanClause.Occur.SHOULD);
         }
-        return hasNull ? null : false;
+        return booleanQuery.build();
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
-        Object value = args[0].value();
-        Object collectionReference = args[1].value();
-
-        if (collectionReference == null || value == null) {
-            return null;
-        }
-        return doEvaluate(value, (Iterable<?>) collectionReference);
+    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
+        return caseSensitivity.likeQuery(candidates.column().fqn(), (String) probe.value());
     }
 }
