@@ -22,6 +22,12 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.replication.logical.analyze.AnalyzedAlterPublication;
+import io.crate.replication.logical.analyze.AnalyzedAlterSubscription;
+import io.crate.replication.logical.analyze.AnalyzedCreatePublication;
+import io.crate.replication.logical.analyze.AnalyzedCreateSubscription;
+import io.crate.replication.logical.analyze.AnalyzedDropPublication;
+import io.crate.replication.logical.analyze.AnalyzedDropSubscription;
 
 public class AnalyzedStatementVisitor<C, R> {
 
@@ -252,5 +258,29 @@ public class AnalyzedStatementVisitor<C, R> {
 
     public R visitSetTransaction(AnalyzedSetTransaction setTransaction, C context) {
         return visitAnalyzedStatement(setTransaction, context);
+    }
+
+    public R visitCreatePublication(AnalyzedCreatePublication createPublication, C context) {
+        return visitDDLStatement(createPublication, context);
+    }
+
+    public R visitDropPublication(AnalyzedDropPublication dropPublication, C context) {
+        return visitDDLStatement(dropPublication, context);
+    }
+
+    public R visitAlterPublication(AnalyzedAlterPublication alterPublication, C context) {
+        return visitDDLStatement(alterPublication, context);
+    }
+
+    public R visitCreateSubscription(AnalyzedCreateSubscription createSubscription, C context) {
+        return visitDDLStatement(createSubscription, context);
+    }
+
+    public R visitDropSubscription(AnalyzedDropSubscription dropSubscription, C context) {
+        return visitDDLStatement(dropSubscription, context);
+    }
+
+    public R visitAlterSubscription(AnalyzedAlterSubscription alterSubscription, C context) {
+        return visitDDLStatement(alterSubscription, context);
     }
 }

@@ -23,15 +23,18 @@ package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.user.UserManager;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.analyze.LogicalReplicationAnalyzer;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
+import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
@@ -47,8 +50,10 @@ import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
+import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateUser;
@@ -62,8 +67,10 @@ import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropCheckConstraint;
 import io.crate.sql.tree.DropFunction;
+import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
+import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropView;
@@ -91,6 +98,7 @@ import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
+import io.crate.user.UserManager;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -136,6 +144,7 @@ public class Analyzer {
     private final KillAnalyzer killAnalyzer;
     private final SetStatementAnalyzer setStatementAnalyzer;
     private final ResetStatementAnalyzer resetStatementAnalyzer;
+    private final LogicalReplicationAnalyzer logicalReplicationAnalyzer;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -150,7 +159,8 @@ public class Analyzer {
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
                     UserManager userManager,
-                    SessionSettingRegistry sessionSettingRegistry
+                    SessionSettingRegistry sessionSettingRegistry,
+                    LogicalReplicationService logicalReplicationService
     ) {
         this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(clusterService, schemas);
@@ -189,6 +199,11 @@ public class Analyzer {
         this.copyAnalyzer = new CopyAnalyzer(schemas, nodeCtx);
         this.setStatementAnalyzer = new SetStatementAnalyzer(nodeCtx);
         this.resetStatementAnalyzer = new ResetStatementAnalyzer(nodeCtx);
+        this.logicalReplicationAnalyzer = new LogicalReplicationAnalyzer(
+            schemas,
+            logicalReplicationService,
+            nodeCtx
+        );
     }
 
     public AnalyzedStatement analyze(Statement statement,
@@ -625,6 +640,46 @@ public class Analyzer {
                 node,
                 analysis.paramTypeHints(),
                 analysis.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitCreatePublication(CreatePublication createPublication,
+                                                        Analysis context) {
+            return logicalReplicationAnalyzer.analyze(createPublication, context.sessionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropPublication(DropPublication dropPublication,
+                                                      Analysis context) {
+            return logicalReplicationAnalyzer.analyze(dropPublication);
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterPublication(AlterPublication alterPublication,
+                                                       Analysis context) {
+            return logicalReplicationAnalyzer.analyze(alterPublication, context.sessionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateSubscription(CreateSubscription<?> createSubscription,
+                                                         Analysis context) {
+            return logicalReplicationAnalyzer.analyze(
+                (CreateSubscription<Expression>) createSubscription,
+                context.paramTypeHints(),
+                context.transactionContext()
+            );
+        }
+
+        @Override
+        public AnalyzedStatement visitDropSubscription(DropSubscription dropSubscription,
+                                                       Analysis context) {
+            return logicalReplicationAnalyzer.analyze(dropSubscription);
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterSubscription(AlterSubscription alterSubscription,
+                                                        Analysis context) {
+            return logicalReplicationAnalyzer.analyze(alterSubscription);
         }
     }
 }
