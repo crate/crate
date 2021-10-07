@@ -93,4 +93,10 @@ public class ArrayToStringFunctionTest extends ScalarTestCase {
         assertEvaluate("array_to_string([1, null, 2], ', ', null)", "1, 2");
         assertEvaluate("array_to_string(cast([null, null, null] as array(integer)), ', ', null)", "");
     }
+
+    @Test
+    public void testPgArrayToStringWithFQNFunctionName() throws Exception {
+        assertEvaluate("pg_catalog.array_to_string([1, 2, 3], ', ')", "1, 2, 3");
+    }
+
 }
