@@ -41,8 +41,6 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
-import io.crate.user.User;
-import io.crate.user.UserManager;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Row;
 import io.crate.execution.ddl.RepositoryService;
@@ -85,6 +83,12 @@ import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.LoadedRules;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateTable;
@@ -92,6 +96,8 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.TableStats;
 import io.crate.user.StubUserManager;
+import io.crate.user.User;
+import io.crate.user.UserManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -220,6 +226,7 @@ public class SQLExecutor {
         private final Random random;
         private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
         private final UserDefinedFunctionService udfService;
+        private final LogicalReplicationService logicalReplicationService;
         private String[] searchPath = new String[]{Schemas.DOC_SCHEMA_NAME};
         private User user = User.CRATE_USER;
         private UserManager userManager = new StubUserManager();
@@ -295,6 +302,7 @@ public class SQLExecutor {
                 new BalancedShardsAllocator(Settings.EMPTY),
                 EmptyClusterInfoService.INSTANCE
             );
+            logicalReplicationService = new LogicalReplicationService(clusterService);
 
             publishInitialClusterState();
         }
@@ -402,7 +410,8 @@ public class SQLExecutor {
                         mock(TransportPutRepositoryAction.class)
                     ),
                     userManager,
-                    sessionSettingRegistry
+                    sessionSettingRegistry,
+                    logicalReplicationService
                 ),
                 new Planner(
                     Settings.EMPTY,
@@ -568,6 +577,43 @@ public class SQLExecutor {
                 prevState.metadata().custom(ViewsMetadata.TYPE), name, query, user == null ? null : user.name());
 
             Metadata newMetadata = Metadata.builder(prevState.metadata()).putCustom(ViewsMetadata.TYPE, newViews).build();
+            ClusterState newState = ClusterState.builder(prevState)
+                .metadata(newMetadata)
+                .build();
+
+            ClusterServiceUtils.setState(clusterService, newState);
+            return this;
+        }
+
+        public Builder addPublication(String name, RelationName... tables) {
+            ClusterState prevState = clusterService.state();
+            var publication = new Publication(user.name(), Arrays.asList(tables));
+            var publicationsMetadata = new PublicationsMetadata(Map.of(name, publication));
+
+            Metadata newMetadata = Metadata.builder(prevState.metadata())
+                .putCustom(PublicationsMetadata.TYPE, publicationsMetadata)
+                .build();
+            ClusterState newState = ClusterState.builder(prevState)
+                .metadata(newMetadata)
+                .build();
+
+            ClusterServiceUtils.setState(clusterService, newState);
+            return this;
+        }
+
+        public Builder addSubscription(String name, String publication) {
+            ClusterState prevState = clusterService.state();
+            var subscription = new Subscription(
+                user.name(),
+                ConnectionInfo.fromURL("crate://localhost"),
+                List.of(publication),
+                Settings.EMPTY
+            );
+            var subsMetadata = new SubscriptionsMetadata(Map.of(name, subscription));
+
+            Metadata newMetadata = Metadata.builder(prevState.metadata())
+                .putCustom(SubscriptionsMetadata.TYPE, subsMetadata)
+                .build();
             ClusterState newState = ClusterState.builder(prevState)
                 .metadata(newMetadata)
                 .build();
