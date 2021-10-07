@@ -19,37 +19,23 @@
 
 package org.elasticsearch.node;
 
-import static java.util.stream.Collectors.toList;
-import static org.elasticsearch.cluster.node.DiscoveryNode.getRolesFromSettings;
-
-import java.io.BufferedWriter;
-import java.io.Closeable;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
-import javax.net.ssl.SNIHostName;
-
+import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.auth.AuthSettings;
+import io.crate.auth.Authentication;
+import io.crate.auth.HostBasedAuthentication;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
+import io.crate.execution.engine.window.WindowFunctionModule;
+import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.tablefunctions.TableFunctionModule;
+import io.crate.metadata.settings.session.SessionSettingModule;
+import io.crate.netty.EventLoopGroups;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.types.DataTypes;
+import io.crate.user.UserLookup;
+import io.crate.user.UserLookupService;
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -123,8 +109,8 @@ import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.gateway.GatewayMetaState;
 import org.elasticsearch.gateway.GatewayModule;
 import org.elasticsearch.gateway.GatewayService;
-import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.gateway.MetaStateService;
+import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
@@ -155,8 +141,8 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.RepositoriesModule;
-import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotShardsService;
 import org.elasticsearch.snapshots.SnapshotsService;
@@ -165,22 +151,35 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.auth.AlwaysOKAuthentication;
-import io.crate.auth.AuthSettings;
-import io.crate.auth.Authentication;
-import io.crate.auth.HostBasedAuthentication;
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
-import io.crate.execution.engine.window.WindowFunctionModule;
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.tablefunctions.TableFunctionModule;
-import io.crate.metadata.settings.session.SessionSettingModule;
-import io.crate.netty.EventLoopGroups;
-import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.types.DataTypes;
-import io.crate.user.UserLookup;
-import io.crate.user.UserLookupService;
+import javax.annotation.Nullable;
+import javax.net.ssl.SNIHostName;
+import java.io.BufferedWriter;
+import java.io.Closeable;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toList;
+import static org.elasticsearch.cluster.node.DiscoveryNode.getRolesFromSettings;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used
@@ -514,6 +513,10 @@ public class Node implements Closeable {
             final GatewayMetaState gatewayMetaState = new GatewayMetaState();
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
+            final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
+                clusterService
+            );
+
             RepositoriesModule repositoriesModule = new RepositoriesModule(
                 this.environment,
                 pluginsService.filterPlugins(RepositoryPlugin.class),
@@ -626,6 +629,7 @@ public class Node implements Closeable {
                     b.bind(RerouteService.class).toInstance(rerouteService);
                     b.bind(UserLookup.class).toInstance(userLookup);
                     b.bind(Authentication.class).toInstance(authentication);
+                    b.bind(LogicalReplicationService.class).toInstance(logicalReplicationService);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                 }
             );

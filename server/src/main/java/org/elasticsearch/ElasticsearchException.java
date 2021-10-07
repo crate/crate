@@ -1059,6 +1059,26 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             io.crate.exceptions.VersioningValidationException.class,
             io.crate.exceptions.VersioningValidationException::new,
             168,
+            Version.V_4_7_0),
+        PUBLICATION_ALREADY_EXISTS_EXCEPTION(
+            io.crate.replication.logical.exceptions.PublicationAlreadyExistsException.class,
+            io.crate.replication.logical.exceptions.PublicationAlreadyExistsException::new,
+            169,
+            Version.V_4_7_0),
+        PUBLICATION_UNKNOWN_EXCEPTION(
+            io.crate.replication.logical.exceptions.PublicationUnknownException.class,
+            io.crate.replication.logical.exceptions.PublicationUnknownException::new,
+            170,
+            Version.V_4_7_0),
+        SUBSCRIPTION_ALREADY_EXISTS_EXCEPTION(
+            io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException.class,
+            io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException::new,
+            171,
+            Version.V_4_7_0),
+        SUBSCRIPTION_UNKNOWN_EXCEPTION(
+            io.crate.replication.logical.exceptions.SubscriptionUnknownException.class,
+            io.crate.replication.logical.exceptions.SubscriptionUnknownException::new,
+            172,
             Version.V_4_7_0);
 
 
