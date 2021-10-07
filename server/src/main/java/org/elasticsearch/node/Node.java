@@ -181,6 +181,7 @@ import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
 import io.crate.user.UserLookupService;
@@ -528,6 +529,10 @@ public class Node implements Closeable {
             final GatewayMetaState gatewayMetaState = new GatewayMetaState();
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
+            final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
+                clusterService
+            );
+
             RepositoriesModule repositoriesModule = new RepositoriesModule(
                 this.environment,
                 pluginsService.filterPlugins(RepositoryPlugin.class),
@@ -643,6 +648,7 @@ public class Node implements Closeable {
                     b.bind(RerouteService.class).toInstance(rerouteService);
                     b.bind(UserLookup.class).toInstance(userLookup);
                     b.bind(Authentication.class).toInstance(authentication);
+                    b.bind(LogicalReplicationService.class).toInstance(logicalReplicationService);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                 }
             );
