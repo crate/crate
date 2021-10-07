@@ -64,6 +64,9 @@ Deprecations
 Changes
 =======
 
+- Registered the scalar function :ref:`array_to_string
+  <scalar-array_to_string>` under the `pg_catalog` schema.
+
 - Added the scalar function :ref:`pg_encoding_to_char
   <scalar-pg_encoding_to_char>` which converts an PostgreSQL encoding's internal
   identifier to a human-readable name.
