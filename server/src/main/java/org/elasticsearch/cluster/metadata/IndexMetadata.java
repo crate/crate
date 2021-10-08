@@ -23,6 +23,8 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import io.crate.common.collections.MapBuilder;
+import io.crate.types.DataTypes;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -33,13 +35,9 @@ import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.node.DiscoveryNodeFilters;
 import org.elasticsearch.cluster.routing.allocation.IndexMetadataUpdater;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import io.crate.common.collections.MapBuilder;
-import io.crate.types.DataTypes;
-
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -57,6 +55,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -66,6 +65,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -145,15 +145,18 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             Setting.intSetting(SETTING_ROUTING_PARTITION_SIZE, 1, 1, Property.IndexScope);
 
     public static final Setting<Integer> INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING =
-        Setting.intSetting("index.number_of_routing_shards", INDEX_NUMBER_OF_SHARDS_SETTING,
-            1, new Setting.Validator<Integer>() {
+        Setting.intSetting(
+            "index.number_of_routing_shards",
+            INDEX_NUMBER_OF_SHARDS_SETTING,
+            1,
+            new Setting.Validator<Integer>() {
                 @Override
-                public void validate(Integer value) {
+                public void validate(final Integer value) {
                 }
 
                 @Override
-                public void validate(Integer numRoutingShards, Map<Setting<Integer>, Integer> settings) {
-                    Integer numShards = settings.get(INDEX_NUMBER_OF_SHARDS_SETTING);
+                public void validate(Integer numRoutingShards, Map<Setting<?>, Object> settings) {
+                    int numShards = (int) settings.get(INDEX_NUMBER_OF_SHARDS_SETTING);
                     if (numRoutingShards < numShards) {
                         throw new IllegalArgumentException("index.number_of_routing_shards [" + numRoutingShards
                                                            + "] must be >= index.number_of_shards [" + numShards + "]");
@@ -162,10 +165,12 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
                 }
 
                 @Override
-                public Iterator<Setting<Integer>> settings() {
-                    return Collections.singleton(INDEX_NUMBER_OF_SHARDS_SETTING).iterator();
+                public Iterator<Setting<?>> settings() {
+                    final List<Setting<?>> settings = Collections.singletonList(INDEX_NUMBER_OF_SHARDS_SETTING);
+                    return settings.iterator();
                 }
-            }, Property.IndexScope);
+            },
+            Property.IndexScope);
 
     public static final String SETTING_AUTO_EXPAND_REPLICAS = "index.auto_expand_replicas";
     public static final Setting<AutoExpandReplicas> INDEX_AUTO_EXPAND_REPLICAS_SETTING = AutoExpandReplicas.SETTING;

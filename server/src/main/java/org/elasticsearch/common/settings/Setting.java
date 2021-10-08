@@ -19,6 +19,29 @@
 
 package org.elasticsearch.common.settings;
 
+import io.crate.common.Booleans;
+import io.crate.common.StringUtils;
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.regex.Regex;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.unit.MemorySizeValue;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.ToXContentObject;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
+
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,31 +64,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
-
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.regex.Regex;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.MemorySizeValue;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-
-import io.crate.common.Booleans;
-import io.crate.common.StringUtils;
-import io.crate.common.collections.Tuple;
-import io.crate.common.unit.TimeValue;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 /**
  * A setting. Encapsulates typical stuff like default value, parsing, and scope.
@@ -448,12 +446,12 @@ public class Setting<T> implements ToXContentObject {
         try {
             T parsed = parser.apply(value);
             if (validate) {
-                final Iterator<Setting<T>> it = validator.settings();
-                final Map<Setting<T>, T> map;
+                final Iterator<Setting<?>> it = validator.settings();
+                final Map<Setting<?>, Object> map;
                 if (it.hasNext()) {
                     map = new HashMap<>();
                     while (it.hasNext()) {
-                        final Setting<T> setting = it.next();
+                        final Setting<?> setting = it.next();
                         map.put(setting, setting.get(settings, false)); // we have to disable validation or we will stack overflow
                     }
                 } else {
@@ -605,7 +603,7 @@ public class Setting<T> implements ToXContentObject {
         return Collections.emptySet();
     }
 
-    public Iterator<Setting<T>> getValidationDependencies() {
+    public Iterator<Setting<?>> getValidationDependencies() {
         return validator.settings();
     }
 
@@ -939,7 +937,7 @@ public class Setting<T> implements ToXContentObject {
          * @param value    the value of this setting
          * @param settings a map from the settings specified by {@link #settings()}} to their values
          */
-        default void validate(T value, Map<Setting<T>, T> settings) {
+        default void validate(T value, Map<Setting<?>, Object> settings) {
         }
 
         /**
@@ -949,7 +947,7 @@ public class Setting<T> implements ToXContentObject {
          *
          * @return the settings on which the validity of this setting depends.
          */
-        default Iterator<Setting<T>> settings() {
+        default Iterator<Setting<?>> settings() {
             return Collections.emptyIterator();
         }
 
