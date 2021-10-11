@@ -55,6 +55,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
@@ -221,15 +222,15 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     private interface PreFilterQueryBuilder {
-        Query buildQuery(MappedFieldType fieldType, Object value, QueryShardContext context);
+        Query buildQuery(MappedFieldType fieldType, DataType<?> type, Object value, QueryShardContext context);
     }
 
     private static final Map<String, PreFilterQueryBuilder> PRE_FILTER_QUERY_BUILDER_BY_OP = Map.of(
-        EqOperator.NAME, MappedFieldType::termQuery,
-        GteOperator.NAME, (fieldType, value, ctx) -> fieldType.rangeQuery(value, null, true, false),
-        GtOperator.NAME, (fieldType, value, ctx) -> fieldType.rangeQuery(value, null, false, false),
-        LteOperator.NAME, (fieldType, value, ctx) -> fieldType.rangeQuery(null, value, false, true),
-        LtOperator.NAME, (fieldType, value, ctx) -> fieldType.rangeQuery(null, value, false, false)
+        EqOperator.NAME, (fieldType, type, value, ctx) -> EqOperator.fromPrimitive(type, fieldType.name(), value),
+        GteOperator.NAME, (fieldType, type, value, ctx) -> fieldType.rangeQuery(value, null, true, false),
+        GtOperator.NAME, (fieldType, type, value, ctx) -> fieldType.rangeQuery(value, null, false, false),
+        LteOperator.NAME, (fieldType, type, value, ctx) -> fieldType.rangeQuery(null, value, false, true),
+        LtOperator.NAME, (fieldType, type, value, ctx) -> fieldType.rangeQuery(null, value, false, false)
     );
 
 
@@ -250,15 +251,16 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 return null;
             }
             MappedFieldType fieldType = context.getFieldTypeOrNull(ref.column().fqn());
+            DataType<?> innerType = ArrayType.unnest(ref.valueType());
             if (fieldType == null) {
-                if (ArrayType.unnest(ref.valueType()).id() == ObjectType.ID) {
+                if (innerType.id() == ObjectType.ID) {
                     return null; // fallback to generic query to enable objects[1] = {x=10}
                 }
                 return Queries.newMatchNoDocsQuery("column doesn't exist in this index");
             }
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
             builder.add(
-                preFilterQueryBuilder.buildQuery(fieldType, cmpLiteral.value(), context.queryShardContext()),
+                preFilterQueryBuilder.buildQuery(fieldType, innerType, cmpLiteral.value(), context.queryShardContext()),
                 BooleanClause.Occur.MUST);
             builder.add(LuceneQueryBuilder.genericFunctionFilter(parent, context), BooleanClause.Occur.FILTER);
             return builder.build();

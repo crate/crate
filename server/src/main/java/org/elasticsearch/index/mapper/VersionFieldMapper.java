@@ -35,7 +35,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.ParseContext.Document;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.query.QueryShardException;
 
 /** Mapper for the _version field. */
 public class VersionFieldMapper extends MetadataFieldMapper {
@@ -85,11 +84,6 @@ public class VersionFieldMapper extends MetadataFieldMapper {
         @Override
         public Query existsQuery(QueryShardContext context) {
             return new DocValuesFieldExistsQuery(name());
-        }
-
-        @Override
-        public Query termQuery(Object value, QueryShardContext context) {
-            throw new QueryShardException(context, "The _version field is not searchable");
         }
     }
 

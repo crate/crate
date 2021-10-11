@@ -125,11 +125,6 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         public Query existsQuery(QueryShardContext context) {
             throw new UnsupportedOperationException("Cannot run exists query on _field_names");
         }
-
-        @Override
-        public Query termQuery(Object value, QueryShardContext context) {
-            throw new UnsupportedOperationException("Terms query on _field_names is no longer supported");
-        }
     }
 
     private FieldNamesFieldMapper(FieldType fieldType, MappedFieldType mappedFieldType, Settings indexSettings) {

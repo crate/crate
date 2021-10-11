@@ -261,7 +261,7 @@ public class MultiMatchQuery extends MatchQuery {
             for (BytesRef term : values) {
                 Query query;
                 try {
-                    query = ft.fieldType.termQuery(term, context);
+                    query = new TermQuery(new Term(ft.fieldType.name(), term));
                 } catch (IllegalArgumentException e) {
                     // the query expects a certain class of values such as numbers
                     // of ip addresses and the value can't be parsed, so ignore this

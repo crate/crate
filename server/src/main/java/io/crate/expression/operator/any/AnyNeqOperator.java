@@ -27,6 +27,7 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
+import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
@@ -58,7 +59,7 @@ public final class AnyNeqOperator extends AnyOperator {
 
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
         for (Object value : iterableWithStringsAsBytesRef(candidates.value())) {
-            andBuilder.add(fieldType.termQuery(value, context.queryShardContext()), BooleanClause.Occur.MUST);
+            andBuilder.add(EqOperator.fromPrimitive(probe.valueType(), probe.column().fqn(), value), BooleanClause.Occur.MUST);
         }
         return Queries.not(andBuilder.build());
     }
