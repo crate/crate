@@ -23,5 +23,6 @@ database administrator.
     jobs-management
     monitoring
     snapshots
+    logical-replication
     discovery
     udc
