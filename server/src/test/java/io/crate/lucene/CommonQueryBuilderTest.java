@@ -588,4 +588,18 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("f = ANY([42.0, 41.0])");
         assertThat(query.toString(), is("f:{41.0 42.0}"));
     }
+
+    @Test
+    public void test_eq_on_bits_uses_term_query() throws Exception {
+        Query query = convert("bits = B'01001110'");
+        assertThat(query, instanceOf(TermQuery.class));
+        assertThat(query.toString(), is("bits:r"));
+    }
+
+    @Test
+    public void test_eq_any_on_bits_uses_termset_query() throws Exception {
+        Query query = convert("bits = ANY([B'01001110', B'11111111'])");
+        assertThat(query, instanceOf(TermInSetQuery.class));
+        assertThat(query.toString(), is("bits:(r [ff])"));
+    }
 }
