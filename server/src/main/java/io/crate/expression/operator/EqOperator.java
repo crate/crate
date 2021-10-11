@@ -46,6 +46,7 @@ import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.network.InetAddresses;
@@ -64,7 +65,9 @@ import io.crate.metadata.Reference.IndexType;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
@@ -168,6 +171,10 @@ public final class EqOperator extends Operator<Object> {
                 column,
                 nonNullValues.stream().map(x -> InetAddresses.forString((String) x)).toArray(InetAddress[]::new)
             );
+            case BitStringType.ID -> new TermInSetQuery(
+                column,
+                nonNullValues.stream().map(x -> new BytesRef(((BitString) x).bitSet().toByteArray())).toList()
+            );
             default -> booleanShould(column, type, nonNullValues);
         };
     }
@@ -212,6 +219,7 @@ public final class EqOperator extends Operator<Object> {
             case DoubleType.ID -> DoublePoint.newExactQuery(column, (double) value);
             case StringType.ID -> new TermQuery(new Term(column, BytesRefs.toBytesRef(value)));
             case IpType.ID -> InetAddressPoint.newExactQuery(column, InetAddresses.forString((String) value));
+            case BitStringType.ID -> new TermQuery(new Term(column, new BytesRef(((BitString) value).bitSet().toByteArray())));
             default -> null;
         };
     }
