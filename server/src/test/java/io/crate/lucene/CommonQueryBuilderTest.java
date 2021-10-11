@@ -34,7 +34,6 @@ import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
@@ -601,5 +600,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("bits = ANY([B'01001110', B'11111111'])");
         assertThat(query, instanceOf(TermInSetQuery.class));
         assertThat(query.toString(), is("bits:(r [ff])"));
+    }
+
+    @Test
+    public void test_eq_on_bool_uses_termquery() throws Exception {
+        Query query = convert("bool_col = true");
+        assertThat(query, instanceOf(TermQuery.class));
+
     }
 }

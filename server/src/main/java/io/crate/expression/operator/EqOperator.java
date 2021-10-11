@@ -68,6 +68,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
+import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
@@ -213,6 +214,7 @@ public final class EqOperator extends Operator<Object> {
             return new TermQuery(new Term(column, Uid.encodeId((String) value)));
         }
         return switch (type.id()) {
+            case BooleanType.ID -> new TermQuery(new Term(column, (Boolean) value ? new BytesRef("T") : new BytesRef("F")));
             case ByteType.ID, ShortType.ID, IntegerType.ID -> IntPoint.newExactQuery(column, ((Number) value).intValue());
             case TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ, LongType.ID -> LongPoint.newExactQuery(column, (long) value);
             case FloatType.ID -> FloatPoint.newExactQuery(column, (float) value);

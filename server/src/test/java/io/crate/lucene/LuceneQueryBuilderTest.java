@@ -69,7 +69,8 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
             " addr ip," +
             " vchar_name varchar(40)," +
             " bits bit(8)," +
-            " byte_col byte " +
+            " byte_col byte, " +
+            " bool_col boolean " +
             ")"
         );
         queryTester = builder.build();
