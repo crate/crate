@@ -10,6 +10,8 @@ SQL Statements
     :maxdepth: 1
 
     alter-cluster
+    alter-publication
+    alter-subscription
     alter-table
     alter-user
     analyze
@@ -21,8 +23,10 @@ SQL Statements
     create-analyzer
     create-blob-table
     create-function
+    create-publication
     create-repository
     create-snapshot
+    create-subscription
     create-table
     create-table-as
     create-user
@@ -33,8 +37,10 @@ SQL Statements
     discard
     drop-analyzer
     drop-function
+    drop-publication
     drop-repository
     drop-snapshot
+    drop-subscription
     drop-table
     drop-user
     drop-view
