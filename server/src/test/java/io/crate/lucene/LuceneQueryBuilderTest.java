@@ -52,6 +52,7 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
             " name string," +
             " tags string index using fulltext not null," +
             " x integer not null," +
+            " f float," +
             " d double," +
             " obj object as (" +
             "     x integer," +

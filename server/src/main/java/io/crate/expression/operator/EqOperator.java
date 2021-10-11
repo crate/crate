@@ -152,6 +152,7 @@ public final class EqOperator extends Operator<Object> {
     }
 
     @Nullable
+    @SuppressWarnings("unchecked")
     public static Query termsQuery(String column, DataType<?> type, Collection<?> values) {
         List<?> nonNullValues = values.stream().filter(Objects::nonNull).toList();
         if (nonNullValues.isEmpty()) {
@@ -161,8 +162,12 @@ public final class EqOperator extends Operator<Object> {
             case StringType.ID -> new TermInSetQuery(column, nonNullValues.stream().map(BytesRefs::toBytesRef).toList());
             case IntegerType.ID -> IntPoint.newSetQuery(column, (List<Integer>) nonNullValues);
             case LongType.ID -> LongPoint.newSetQuery(column, (List<Long>) nonNullValues);
+            case FloatType.ID -> FloatPoint.newSetQuery(column, (List<Float>) nonNullValues);
             case DoubleType.ID -> DoublePoint.newSetQuery(column, (List<Double>) nonNullValues);
-            case IpType.ID -> InetAddressPoint.newSetQuery(column, nonNullValues.stream().map(x -> InetAddresses.forString((String) x)).toArray(InetAddress[]::new));
+            case IpType.ID -> InetAddressPoint.newSetQuery(
+                column,
+                nonNullValues.stream().map(x -> InetAddresses.forString((String) x)).toArray(InetAddress[]::new)
+            );
             default -> booleanShould(column, type, nonNullValues);
         };
     }

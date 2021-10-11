@@ -21,7 +21,6 @@ package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -48,7 +47,6 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.Numbers;
 import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
@@ -136,21 +134,6 @@ public class NumberFieldMapper extends FieldMapper {
             }
 
             @Override
-            public Query termQuery(String field, Object value) {
-                float v = parse(value, false);
-                return FloatPoint.newExactQuery(field, v);
-            }
-
-            @Override
-            public Query termsQuery(String field, List<Object> values) {
-                float[] v = new float[values.size()];
-                for (int i = 0; i < values.size(); ++i) {
-                    v[i] = parse(values.get(i), false);
-                }
-                return FloatPoint.newSetQuery(field, v);
-            }
-
-            @Override
             public Query rangeQuery(String field, Object lowerTerm, Object upperTerm,
                              boolean includeLower, boolean includeUpper,
                              boolean hasDocValues) {
@@ -209,21 +192,6 @@ public class NumberFieldMapper extends FieldMapper {
             @Override
             public Double parse(XContentParser parser, boolean coerce) throws IOException {
                 return parser.doubleValue(coerce);
-            }
-
-            @Override
-            public Query termQuery(String field, Object value) {
-                double v = parse(value, false);
-                return DoublePoint.newExactQuery(field, v);
-            }
-
-            @Override
-            public Query termsQuery(String field, List<Object> values) {
-                double[] v = new double[values.size()];
-                for (int i = 0; i < values.size(); ++i) {
-                    v[i] = parse(values.get(i), false);
-                }
-                return DoublePoint.newSetQuery(field, v);
             }
 
             @Override
@@ -305,16 +273,6 @@ public class NumberFieldMapper extends FieldMapper {
             }
 
             @Override
-            public Query termQuery(String field, Object value) {
-                return INTEGER.termQuery(field, value);
-            }
-
-            @Override
-            public Query termsQuery(String field, List<Object> values) {
-                return INTEGER.termsQuery(field, values);
-            }
-
-            @Override
             public Query rangeQuery(String field, Object lowerTerm, Object upperTerm,
                              boolean includeLower, boolean includeUpper,
                              boolean hasDocValues) {
@@ -362,16 +320,6 @@ public class NumberFieldMapper extends FieldMapper {
             }
 
             @Override
-            public Query termQuery(String field, Object value) {
-                return INTEGER.termQuery(field, value);
-            }
-
-            @Override
-            public Query termsQuery(String field, List<Object> values) {
-                return INTEGER.termsQuery(field, values);
-            }
-
-            @Override
             public Query rangeQuery(String field, Object lowerTerm, Object upperTerm,
                              boolean includeLower, boolean includeUpper,
                              boolean hasDocValues) {
@@ -416,36 +364,6 @@ public class NumberFieldMapper extends FieldMapper {
             @Override
             public Integer parse(XContentParser parser, boolean coerce) throws IOException {
                 return parser.intValue(coerce);
-            }
-
-            @Override
-            public Query termQuery(String field, Object value) {
-                if (hasDecimalPart(value)) {
-                    return Queries.newMatchNoDocsQuery("Value [" + value + "] has a decimal part");
-                }
-                int v = parse(value, true);
-                return IntPoint.newExactQuery(field, v);
-            }
-
-            @Override
-            public Query termsQuery(String field, List<Object> values) {
-                int[] v = new int[values.size()];
-                int upTo = 0;
-
-                for (int i = 0; i < values.size(); i++) {
-                    Object value = values.get(i);
-                    if (!hasDecimalPart(value)) {
-                        v[upTo++] = parse(value, true);
-                    }
-                }
-
-                if (upTo == 0) {
-                    return Queries.newMatchNoDocsQuery("All values have a decimal part");
-                }
-                if (upTo != v.length) {
-                    v = Arrays.copyOf(v, upTo);
-                }
-                return IntPoint.newSetQuery(field, v);
             }
 
             @Override
@@ -538,36 +456,6 @@ public class NumberFieldMapper extends FieldMapper {
             }
 
             @Override
-            public Query termQuery(String field, Object value) {
-                if (hasDecimalPart(value)) {
-                    return Queries.newMatchNoDocsQuery("Value [" + value + "] has a decimal part");
-                }
-                long v = parse(value, true);
-                return LongPoint.newExactQuery(field, v);
-            }
-
-            @Override
-            public Query termsQuery(String field, List<Object> values) {
-                long[] v = new long[values.size()];
-                int upTo = 0;
-
-                for (int i = 0; i < values.size(); i++) {
-                    Object value = values.get(i);
-                    if (!hasDecimalPart(value)) {
-                        v[upTo++] = parse(value, true);
-                    }
-                }
-
-                if (upTo == 0) {
-                    return Queries.newMatchNoDocsQuery("All values have a decimal part");
-                }
-                if (upTo != v.length) {
-                    v = Arrays.copyOf(v, upTo);
-                }
-                return LongPoint.newSetQuery(field, v);
-            }
-
-            @Override
             public Query rangeQuery(String field, Object lowerTerm, Object upperTerm,
                              boolean includeLower, boolean includeUpper,
                              boolean hasDocValues) {
@@ -635,11 +523,6 @@ public class NumberFieldMapper extends FieldMapper {
         public final String typeName() {
             return name;
         }
-
-        /** Get the associated numeric type */
-        public abstract Query termQuery(String field, Object value);
-
-        public abstract Query termsQuery(String field, List<Object> values);
 
         public abstract Query rangeQuery(String field,
                                          Object lowerTerm,
