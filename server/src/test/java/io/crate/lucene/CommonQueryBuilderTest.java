@@ -576,4 +576,16 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_range_query_on_bit_type_is_not_supported() throws Exception {
         assertThrows(UnsupportedOperationException.class, () -> convert("bits > B'01'"));
     }
+
+    @Test
+    public void test_eq_on_float_column_uses_float_point_query() throws Exception {
+        Query query = convert("f = 42.0::float");
+        assertThat(query.toString(), is("f:[42.0 TO 42.0]"));
+    }
+
+    @Test
+    public void test_eq_any_on_float_column_uses_set_query() throws Exception {
+        Query query = convert("f = ANY([42.0, 41.0])");
+        assertThat(query.toString(), is("f:{41.0 42.0}"));
+    }
 }
