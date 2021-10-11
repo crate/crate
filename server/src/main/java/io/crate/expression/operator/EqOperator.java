@@ -25,6 +25,7 @@ import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
+import java.net.InetAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ import javax.annotation.Nullable;
 
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.FloatPoint;
+import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.Term;
@@ -46,6 +48,7 @@ import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Uid;
 
@@ -67,6 +70,7 @@ import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
+import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
@@ -158,6 +162,7 @@ public final class EqOperator extends Operator<Object> {
             case IntegerType.ID -> IntPoint.newSetQuery(column, (List<Integer>) nonNullValues);
             case LongType.ID -> LongPoint.newSetQuery(column, (List<Long>) nonNullValues);
             case DoubleType.ID -> DoublePoint.newSetQuery(column, (List<Double>) nonNullValues);
+            case IpType.ID -> InetAddressPoint.newSetQuery(column, nonNullValues.stream().map(x -> InetAddresses.forString((String) x)).toArray(InetAddress[]::new));
             default -> booleanShould(column, type, nonNullValues);
         };
     }
@@ -201,10 +206,10 @@ public final class EqOperator extends Operator<Object> {
             case FloatType.ID -> FloatPoint.newExactQuery(column, (float) value);
             case DoubleType.ID -> DoublePoint.newExactQuery(column, (double) value);
             case StringType.ID -> new TermQuery(new Term(column, BytesRefs.toBytesRef(value)));
+            case IpType.ID -> InetAddressPoint.newExactQuery(column, InetAddresses.forString((String) value));
             default -> null;
         };
     }
-
 
     /**
      * Query for object columns that tries to utilize efficient termQueries for the objects children.

@@ -33,6 +33,8 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
@@ -401,6 +403,18 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
         query = convert("addr < 'fe80::1'");
         assertThat(query.toString(), is("addr:[0:0:0:0:0:0:0:0 TO fe80:0:0:0:0:0:0:0]"));
+    }
+
+    @Test
+    public void test_ip_eq_uses_point_range_query() throws Exception {
+        Query query = convert("addr = '192.168.0.1'");
+        assertThat(query, instanceOf(PointRangeQuery.class));
+    }
+
+    @Test
+    public void test_ip_eq_any_uses_point_term_set_query() throws Exception {
+        Query query = convert("addr = ANY(['192.168.0.1', '192.168.0.2'])");
+        assertThat(query.toString(), is("addr:{192.168.0.1 192.168.0.2}"));
     }
 
     @Test
