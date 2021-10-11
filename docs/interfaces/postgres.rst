@@ -170,6 +170,8 @@ following tables:
  - `pg_locks <pgsql_pg_locks_>`__
  - `pg_namespace <pgsql_pg_namespace_>`__
  - `pg_proc <pgsql_pg_proc_>`__
+ - `pg_publication <pgsql_pg_publication_>`__
+ - `pg_publication_tables <pgsql_pg_publication_tables_>`__
  - `pg_range`_
  - `pg_roles`_
  - `pg_settings <pgsql_pg_settings_>`__
@@ -556,6 +558,8 @@ CrateDB and we love to hear feedback.
 .. _pgsql_pg_locks: https://www.postgresql.org/docs/current/view-pg-locks.html
 .. _pgsql_pg_namespace: https://www.postgresql.org/docs/10/static/catalog-pg-namespace.html
 .. _pgsql_pg_proc: https://www.postgresql.org/docs/10/static/catalog-pg-proc.html
+.. _pgsql_pg_publication: https://www.postgresql.org/docs/current/catalog-pg-publication.html
+.. _pgsql_pg_publication_tables: https://www.postgresql.org/docs/current/view-pg-publication-tables.html
 .. _pgsql_pg_settings: https://www.postgresql.org/docs/10/view-pg-settings.html
 .. _pgsql_pg_type: https://www.postgresql.org/docs/10/static/catalog-pg-type.html
 .. _PostgreSQL Arrays: https://www.postgresql.org/docs/current/static/arrays.html
