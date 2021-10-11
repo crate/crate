@@ -52,7 +52,8 @@ import io.crate.types.TypeSignature;
 /**
  * Abstract base class for implementations of {@code <probe> <op> ANY(<candidates>)}
  **/
-public abstract class AnyOperator extends Operator<Object> {
+public abstract sealed class AnyOperator extends Operator<Object>
+    permits AnyEqOperator, AnyNeqOperator, AnyRangeOperator, AnyLikeOperator, AnyNotLikeOperator {
 
     public static final String OPERATOR_PREFIX = "any_";
     public static final List<String> OPERATOR_NAMES = List.of(
