@@ -115,7 +115,7 @@ alterStmt
     | ALTER CLUSTER GC DANGLING ARTIFACTS                                            #alterClusterGCDanglingArtifacts
     | ALTER USER name=ident SET '(' genericProperties ')'                            #alterUser
     | ALTER PUBLICATION name=ident
-              ((ADD | SET | DROP) TABLE ONLY? qname '*'?  (',' qname '*'? )*)        #alterPublication
+              ((ADD | SET | DROP) TABLE qname '*'?  (',' qname '*'? )*)              #alterPublication
     | ALTER SUBSCRIPTION name=ident alterSubscriptionMode                            #alterSubscription
     ;
 
@@ -513,7 +513,7 @@ createStmt
     | CREATE USER name=ident withProperties?                                         #createUser
     | CREATE ( OR REPLACE )? VIEW name=qname AS query                                #createView
     | CREATE PUBLICATION name=ident
-        (FOR ALL TABLES | FOR TABLE ONLY? qname '*'?  (',' qname '*'? )*)?           #createPublication
+        (FOR ALL TABLES | FOR TABLE qname '*'?  (',' qname '*'? )*)?                 #createPublication
     | CREATE SUBSCRIPTION name=ident CONNECTION conninfo=expr
           PUBLICATION publications=idents
           withProperties?                                                            #createSubscription
