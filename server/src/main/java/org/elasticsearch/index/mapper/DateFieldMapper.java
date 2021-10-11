@@ -207,11 +207,6 @@ public class DateFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Query termQuery(Object value, @Nullable QueryShardContext context) {
-            return rangeQuery(value, value, true, true);
-        }
-
-        @Override
         public Query rangeQuery(Object lowerTerm,
                                 Object upperTerm,
                                 boolean includeLower,

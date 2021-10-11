@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
-
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.LongPoint;
@@ -147,21 +145,6 @@ public class SeqNoFieldMapper extends MetadataFieldMapper {
         @Override
         public Query existsQuery(QueryShardContext context) {
             return new DocValuesFieldExistsQuery(name());
-        }
-
-        @Override
-        public Query termQuery(Object value, @Nullable QueryShardContext context) {
-            long v = parse(value);
-            return LongPoint.newExactQuery(name(), v);
-        }
-
-        @Override
-        public Query termsQuery(List<?> values, @Nullable QueryShardContext context) {
-            long[] v = new long[values.size()];
-            for (int i = 0; i < values.size(); ++i) {
-                v[i] = parse(values.get(i));
-            }
-            return LongPoint.newSetQuery(name(), v);
         }
 
         @Override

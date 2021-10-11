@@ -270,7 +270,7 @@ public class MatchQuery {
 
     protected final Query termQuery(MappedFieldType fieldType, BytesRef value, boolean lenient) {
         try {
-            return fieldType.termQuery(value, context);
+            return new TermQuery(new Term(fieldType.name(), value));
         } catch (RuntimeException e) {
             if (lenient) {
                 return newLenientFieldQuery(fieldType.name(), e);

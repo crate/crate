@@ -20,7 +20,6 @@
 package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +29,6 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -97,27 +95,8 @@ public class IdFieldMapper extends MetadataFieldMapper {
         }
 
         @Override
-        public Query termQuery(Object value, QueryShardContext context) {
-            return termsQuery(Arrays.asList(value), context);
-        }
-
-        @Override
         public Query existsQuery(QueryShardContext context) {
             return new MatchAllDocsQuery();
-        }
-
-        @Override
-        public Query termsQuery(List<?> values, QueryShardContext context) {
-            failIfNotIndexed();
-            BytesRef[] bytesRefs = new BytesRef[values.size()];
-            for (int i = 0; i < bytesRefs.length; i++) {
-                Object idObject = values.get(i);
-                if (idObject instanceof BytesRef) {
-                    idObject = ((BytesRef) idObject).utf8ToString();
-                }
-                bytesRefs[i] = Uid.encodeId(idObject.toString());
-            }
-            return new TermInSetQuery(name(), bytesRefs);
         }
     }
 

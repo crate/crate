@@ -30,14 +30,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -66,6 +71,7 @@ import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
+import io.crate.types.TimestampType;
 
 public final class EqOperator extends Operator<Object> {
 
@@ -136,39 +142,62 @@ public final class EqOperator extends Operator<Object> {
         }
         return switch (dataType.id()) {
             case ObjectType.ID -> refEqObject(function, fqn, (ObjectType) dataType, (Map<String, Object>) value, context);
-            case ArrayType.ID -> refEqArray(function, fqn, (Collection) value, context);
+            case ArrayType.ID -> termsAndGenericFilter(function, fqn, ArrayType.unnest(dataType), (Collection) value, context);
             default -> fromPrimitive(dataType, fqn, value);
         };
     }
 
-    private Query refEqArray(Function function, String column, Collection<?> values, LuceneQueryBuilder.Context context) {
-        List<?> list = values.stream().filter(Objects::nonNull).toList();
-        if (list.isEmpty()) {
-            return genericFunctionFilter(function, context);
+    @Nullable
+    public static Query termsQuery(String column, DataType<?> type, Collection<?> values) {
+        List<?> nonNullValues = values.stream().filter(Objects::nonNull).toList();
+        if (nonNullValues.isEmpty()) {
+            return null;
         }
+        return switch (type.id()) {
+            case StringType.ID -> new TermInSetQuery(column, nonNullValues.stream().map(BytesRefs::toBytesRef).toList());
+            case IntegerType.ID -> IntPoint.newSetQuery(column, (List<Integer>) nonNullValues);
+            case LongType.ID -> LongPoint.newSetQuery(column, (List<Long>) nonNullValues);
+            case DoubleType.ID -> DoublePoint.newSetQuery(column, (List<Double>) nonNullValues);
+            default -> booleanShould(column, type, nonNullValues);
+        };
+    }
+
+    @Nullable
+    private static Query booleanShould(String column, DataType<?> type, Collection<?> values) {
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
+        for (var term : values) {
+            builder.add(EqOperator.fromPrimitive(type, column, term), Occur.SHOULD);
+        }
+        return new ConstantScoreQuery(builder.build());
+    }
+
+    private static Query termsAndGenericFilter(Function function, String column, DataType<?> innerType, Collection<?> values, LuceneQueryBuilder.Context context) {
         MappedFieldType fieldType = context.getFieldTypeOrNull(column);
         if (fieldType == null) {
             // field doesn't exist, can't match
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
-        Query termsQuery = fieldType.termsQuery(list, context.queryShardContext());
-
         // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
         // termsFilter is applied first
         // afterwards the more expensive genericFunctionFilter
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
+        Query termsQuery = termsQuery(column, innerType, values);
+        Query genericFunctionFilter = genericFunctionFilter(function, context);
+        if (termsQuery == null) {
+            return genericFunctionFilter;
+        }
         filterClauses.add(termsQuery, BooleanClause.Occur.MUST);
-        filterClauses.add(genericFunctionFilter(function, context), BooleanClause.Occur.MUST);
+        filterClauses.add(genericFunctionFilter, BooleanClause.Occur.MUST);
         return filterClauses.build();
     }
 
-    private static Query fromPrimitive(DataType<?> type, String column, Object value) {
+    public static Query fromPrimitive(DataType<?> type, String column, Object value) {
         if (column.equals(DocSysColumns.ID.name())) {
             return new TermQuery(new Term(column, Uid.encodeId((String) value)));
         }
         return switch (type.id()) {
             case ByteType.ID, ShortType.ID, IntegerType.ID -> IntPoint.newExactQuery(column, ((Number) value).intValue());
-            case LongType.ID -> LongPoint.newExactQuery(column, (long) value);
+            case TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ, LongType.ID -> LongPoint.newExactQuery(column, (long) value);
             case FloatType.ID -> FloatPoint.newExactQuery(column, (float) value);
             case DoubleType.ID -> DoublePoint.newExactQuery(column, (double) value);
             case StringType.ID -> new TermQuery(new Term(column, BytesRefs.toBytesRef(value)));

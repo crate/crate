@@ -19,15 +19,8 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermInSetQuery;
-import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.index.query.QueryShardContext;
-
-import java.util.List;
 
 /** Base {@link MappedFieldType} implementation for a field that is indexed
  *  with the inverted index. */
@@ -43,21 +36,4 @@ abstract class TermBasedFieldType extends MappedFieldType {
     protected BytesRef indexedValueForSearch(Object value) {
         return BytesRefs.toBytesRef(value);
     }
-
-    @Override
-    public Query termQuery(Object value, QueryShardContext context) {
-        failIfNotIndexed();
-        return new TermQuery(new Term(name(), indexedValueForSearch(value)));
-    }
-
-    @Override
-    public Query termsQuery(List<?> values, QueryShardContext context) {
-        failIfNotIndexed();
-        BytesRef[] bytesRefs = new BytesRef[values.size()];
-        for (int i = 0; i < bytesRefs.length; i++) {
-            bytesRefs[i] = indexedValueForSearch(values.get(i));
-        }
-        return new TermInSetQuery(name(), bytesRefs);
-    }
-
 }

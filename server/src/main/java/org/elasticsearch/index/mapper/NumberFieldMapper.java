@@ -743,18 +743,6 @@ public class NumberFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Query termQuery(Object value, QueryShardContext context) {
-            failIfNotIndexed();
-            return type.termQuery(name(), value);
-        }
-
-        @Override
-        public Query termsQuery(List values, QueryShardContext context) {
-            failIfNotIndexed();
-            return type.termsQuery(name(), values);
-        }
-
-        @Override
         public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper) {
             failIfNotIndexed();
             return type.rangeQuery(name(), lowerTerm, upperTerm, includeLower, includeUpper, hasDocValues());
