@@ -22,10 +22,12 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
 import java.util.List;
@@ -37,12 +39,12 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 
 class ArrayToStringFunction extends Scalar<String, Object> {
 
-    private static final String NAME = "array_to_string";
+    private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, "array_to_string");
 
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
-                NAME,
+                FQN,
                 parseTypeSignature("array(E)"),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
@@ -51,7 +53,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
         );
         module.register(
             Signature.scalar(
-                NAME,
+                FQN,
                 parseTypeSignature("array(E)"),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
@@ -67,7 +69,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
     private ArrayToStringFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        ensureInnerTypeIsNotUndefined(boundSignature.getArgumentDataTypes(), NAME);
+        ensureInnerTypeIsNotUndefined(boundSignature.getArgumentDataTypes(), FQN.name());
     }
 
     @Override

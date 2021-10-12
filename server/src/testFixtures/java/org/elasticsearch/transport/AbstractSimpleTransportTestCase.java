@@ -46,4 +46,15 @@ public abstract class AbstractSimpleTransportTestCase extends ESTestCase {
     public static void connectToNode(TransportService service, DiscoveryNode node, ConnectionProfile connectionProfile) {
         PlainActionFuture.get(fut -> service.connectToNode(node, connectionProfile, ActionListener.map(fut, x -> null)));
     }
+
+    /**
+     * Establishes and returns a new connection to the given node from the given {@link TransportService}.
+     *
+     * @param service service to connect from
+     * @param node the node to connect to
+     * @param connectionProfile the connection profile to use
+     */
+    public static Transport.Connection openConnection(TransportService service, DiscoveryNode node, ConnectionProfile connectionProfile) {
+        return PlainActionFuture.get(fut -> service.openConnection(node, connectionProfile, fut));
+    }
 }

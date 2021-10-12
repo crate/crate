@@ -3412,6 +3412,31 @@ Example::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-pg_encoding_to_char:
+
+``pg_encoding_to_char()``
+-------------------------
+
+The function ``pg_encoding_to_char`` converts an PostgreSQL encoding's internal
+identifier to a human-readable name.
+
+Returns: ``text``
+
+Synopsis::
+
+   pg_encoding_to_char(encoding int)
+
+Example::
+
+    cr> select pg_encoding_to_char(6) AS encoding;
+    +----------+
+    | encoding |
+    +----------+
+    | UTF8     |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-pg_get_userbyid:
 
 ``pg_get_userbyid()``

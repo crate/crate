@@ -64,6 +64,13 @@ Deprecations
 Changes
 =======
 
+- Registered the scalar function :ref:`array_to_string
+  <scalar-array_to_string>` under the `pg_catalog` schema.
+
+- Added the scalar function :ref:`pg_encoding_to_char
+  <scalar-pg_encoding_to_char>` which converts an PostgreSQL encoding's internal
+  identifier to a human-readable name.
+
 - Added a :ref:`sys node check for max shards per node
   <sys-node_checks_max_shards_per_node>` to verify that the amount of shards on the
   current node is less than 90 % of  :ref:`cluster.max_shards_per_node

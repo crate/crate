@@ -55,7 +55,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.query.QueryShardException;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
@@ -367,12 +366,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
         public Query existsQuery(QueryShardContext context) {
             return new TermQuery(new Term(FieldNamesFieldMapper.NAME, name()));
         }
-
-        @Override
-        public Query termQuery(Object value, QueryShardContext context) {
-            throw new QueryShardException(context, "Geo fields do not support exact searching, use dedicated geo queries instead");
-        }
-
     }
 
     public GeoShapeFieldMapper(String simpleName,

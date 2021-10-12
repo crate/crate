@@ -1173,6 +1173,17 @@ values approximated to the nearest millisecond::
     +-----------------------------+-----------------------------+
     SELECT 1 row in set (... sec)
 
+If you cast a literal to a ``TIMESTAMP``, years outside the range 0000 to 9999
+must be prefixed by the plus or minus symbol. See also `Year.parse Javadoc`_::
+
+    cr> SELECT '+292278993-12-31T23:59:59.999Z'::TIMESTAMP as tmstp;
+    +---------------------+
+    |               tmstp |
+    +---------------------+
+    | 9223372017129599999 |
+    +---------------------+
+    SELECT 1 row in set (... sec)
+
 .. CAUTION::
 
     Due to internal date parsing, the full ``BIGINT`` range is not supported
@@ -1639,6 +1650,17 @@ be interpreted as the number of milliseconds since the Unix epoch. If you cast
 a :ref:`REAL <type-real>` or a :ref:`DOUBLE PRECISION <type-double-precision>`
 to a ``DATE``, the numeric value wil be interpreted as the number of seconds
 since the Unix epoch.
+
+If you cast a literal to a ``DATE``, years outside the range 0000 to 9999
+must be prefixed by the plus or minus symbol. See also `Year.parse Javadoc`_::
+
+    cr> SELECT '+10000-03-09'::DATE as date;
+    +-----------------+
+    |            date |
+    +-----------------+
+    | 253408176000000 |
+    +-----------------+
+    SELECT 1 row in set (... sec)
 
 .. CAUTION::
 
@@ -3394,3 +3416,4 @@ However, you cannot use it with any :ref:`scalar functions
 .. _Unix epoch: https://en.wikipedia.org/wiki/Unix_time
 .. _UTC: `Coordinated Universal Time`_
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text
+.. _Year.parse Javadoc: https://docs.oracle.com/javase/8/docs/api/java/time/Year.html#parse-java.lang.CharSequence-

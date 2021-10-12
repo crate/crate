@@ -33,6 +33,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
@@ -404,6 +405,18 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_ip_eq_uses_point_range_query() throws Exception {
+        Query query = convert("addr = '192.168.0.1'");
+        assertThat(query, instanceOf(PointRangeQuery.class));
+    }
+
+    @Test
+    public void test_ip_eq_any_uses_point_term_set_query() throws Exception {
+        Query query = convert("addr = ANY(['192.168.0.1', '192.168.0.2'])");
+        assertThat(query.toString(), is("addr:{192.168.0.1 192.168.0.2}"));
+    }
+
+    @Test
     public void testAnyEqOnTimestampArrayColumn() {
         assertThat(
             convert("1129224512000 = ANY(ts_array)").toString(),
@@ -547,19 +560,27 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_is_not_null_on_bit_column_uses_doc_values_field_exists_query() throws Exception {
-        Query query = convert("bits is not null");
-        assertThat(query.toString(), is("ConstantScore(DocValuesFieldExistsQuery [field=bits])"));
-    }
-
-    @Test
     public void test_eq_on_byte_column() throws Exception {
         Query query = convert("byte_col = 127");
         assertThat(query.toString(), is("byte_col:[127 TO 127]"));
     }
 
     @Test
-    public void test_range_query_on_bit_type_is_not_supported() throws Exception {
-        assertThrows(UnsupportedOperationException.class, () -> convert("bits > B'01'"));
+    public void test_eq_on_float_column_uses_float_point_query() throws Exception {
+        Query query = convert("f = 42.0::float");
+        assertThat(query.toString(), is("f:[42.0 TO 42.0]"));
+    }
+
+    @Test
+    public void test_eq_any_on_float_column_uses_set_query() throws Exception {
+        Query query = convert("f = ANY([42.0, 41.0])");
+        assertThat(query.toString(), is("f:{41.0 42.0}"));
+    }
+
+    @Test
+    public void test_eq_on_bool_uses_termquery() throws Exception {
+        Query query = convert("bool_col = true");
+        assertThat(query, instanceOf(TermQuery.class));
+
     }
 }

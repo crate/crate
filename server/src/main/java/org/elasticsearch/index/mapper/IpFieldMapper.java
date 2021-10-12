@@ -26,8 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
@@ -46,7 +44,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.search.DocValueFormat;
 
-import io.crate.common.collections.Tuple;
 
 /** A {@link FieldMapper} for ip addresses. */
 public class IpFieldMapper extends FieldMapper {
@@ -150,49 +147,6 @@ public class IpFieldMapper extends FieldMapper {
             } else {
                 return new TermQuery(new Term(FieldNamesFieldMapper.NAME, name()));
             }
-        }
-
-        @Override
-        public Query termQuery(Object value, @Nullable QueryShardContext context) {
-            failIfNotIndexed();
-            if (value instanceof InetAddress) {
-                return InetAddressPoint.newExactQuery(name(), (InetAddress) value);
-            } else {
-                if (value instanceof BytesRef) {
-                    value = ((BytesRef) value).utf8ToString();
-                }
-                String term = value.toString();
-                if (term.contains("/")) {
-                    final Tuple<InetAddress, Integer> cidr = InetAddresses.parseCidr(term);
-                    return InetAddressPoint.newPrefixQuery(name(), cidr.v1(), cidr.v2());
-                }
-                InetAddress address = InetAddresses.forString(term);
-                return InetAddressPoint.newExactQuery(name(), address);
-            }
-        }
-
-        @Override
-        public Query termsQuery(List<?> values, QueryShardContext context) {
-            InetAddress[] addresses = new InetAddress[values.size()];
-            int i = 0;
-            for (Object value : values) {
-                InetAddress address;
-                if (value instanceof InetAddress) {
-                    address = (InetAddress) value;
-                } else {
-                    if (value instanceof BytesRef) {
-                        value = ((BytesRef) value).utf8ToString();
-                    }
-                    if (value.toString().contains("/")) {
-                        // the `terms` query contains some prefix queries, so we cannot create a set query
-                        // and need to fall back to a disjunction of `term` queries
-                        return super.termsQuery(values, context);
-                    }
-                    address = InetAddresses.forString(value.toString());
-                }
-                addresses[i++] = address;
-            }
-            return InetAddressPoint.newSetQuery(name(), addresses);
         }
 
         @Override

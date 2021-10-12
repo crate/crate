@@ -52,6 +52,7 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
             " name string," +
             " tags string index using fulltext not null," +
             " x integer not null," +
+            " f float," +
             " d double," +
             " obj object as (" +
             "     x integer," +
@@ -67,8 +68,8 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
             " ts timestamp with time zone," +
             " addr ip," +
             " vchar_name varchar(40)," +
-            " bits bit(8)," +
-            " byte_col byte " +
+            " byte_col byte, " +
+            " bool_col boolean " +
             ")"
         );
         queryTester = builder.build();

@@ -30,7 +30,22 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh './gradlew --no-daemon --parallel -Dtests.crate.slow=true -PtestForks=8 test checkstyleMain forbiddenApisMain jacocoReport'
-            sh 'curl -s https://codecov.io/bash | bash'
+
+            // Upload coverage report to Codecov.
+            // https://about.codecov.io/blog/introducing-codecovs-new-uploader/
+            sh '''
+              # Download uploader program and perform integrity checks.
+              curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --import # One-time step
+              curl -Os https://uploader.codecov.io/latest/linux/codecov
+              curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
+              curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
+              gpg --verify codecov.SHA256SUM.sig codecov.SHA256SUM
+              shasum -a 256 -c codecov.SHA256SUM
+
+              # Invoke program.
+              chmod +x codecov
+              ./codecov -t ${CODECOV_TOKEN}
+            '''.stripIndent()
           }
           post {
             always {
