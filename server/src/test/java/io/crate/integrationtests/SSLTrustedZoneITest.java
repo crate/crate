@@ -89,7 +89,7 @@ public class SSLTrustedZoneITest extends SQLIntegrationTestCase {
 
 
     @Test
-    public void test_dual_mode_on_first_node_allows_cluster_to_form_if_other_nodes_have_no_ssl() throws Exception {
+    public void test_switch_to_plaintext_enabled_downgrades_to_plaintext() throws Exception {
         execute("select count(*) from sys.nodes");
         assertThat(response.rows()[0][0], is(2L));
 
