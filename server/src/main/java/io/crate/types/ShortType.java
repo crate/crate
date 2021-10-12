@@ -116,5 +116,10 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     public int fixedSize() {
         return SHORT_SIZE;
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.DOC_VALUES;
+    }
 }
 

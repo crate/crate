@@ -66,7 +66,9 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
             referenceIdent,
             RowGranularity.DOC,
             StringType.INSTANCE, ColumnPolicy.STRICT, Reference.IndexType.FULLTEXT,
-            formattedGeneratedExpression, false);
+            formattedGeneratedExpression,
+            false,
+            true);
 
         generatedReferenceInfo.generatedExpression(expressions.normalize(executor.asSymbol(formattedGeneratedExpression)));
         generatedReferenceInfo.referencedReferences(List.of(t1Info.getReference(new ColumnIdent("a"))));

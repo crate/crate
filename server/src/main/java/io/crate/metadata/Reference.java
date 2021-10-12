@@ -62,7 +62,7 @@ public class Reference extends Symbol {
     private final RowGranularity granularity;
     private final IndexType indexType;
     private final boolean nullable;
-    private final boolean columnStoreDisabled;
+    private final boolean hasDocValues;
 
     @Nullable
     private final Symbol defaultExpression;
@@ -81,7 +81,9 @@ public class Reference extends Symbol {
         columnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
         indexType = IndexType.fromStream(in);
         nullable = in.readBoolean();
-        columnStoreDisabled = in.readBoolean();
+
+        // property was "columnStoreDisabled" so need to reverse the value.
+        hasDocValues = !in.readBoolean();
         final boolean hasDefaultExpression = in.readBoolean();
         defaultExpression = hasDefaultExpression
             ? Symbols.fromStream(in)
@@ -110,7 +112,7 @@ public class Reference extends Symbol {
                      ColumnPolicy columnPolicy,
                      IndexType indexType,
                      boolean nullable,
-                     boolean columnStoreDisabled,
+                     boolean hasDocValues,
                      int position,
                      @Nullable Symbol defaultExpression) {
         this.position = position;
@@ -120,7 +122,7 @@ public class Reference extends Symbol {
         this.columnPolicy = columnPolicy;
         this.indexType = indexType;
         this.nullable = nullable;
-        this.columnStoreDisabled = columnStoreDisabled;
+        this.hasDocValues = hasDocValues;
         this.defaultExpression = defaultExpression;
     }
 
@@ -134,7 +136,7 @@ public class Reference extends Symbol {
                              columnPolicy,
                              indexType,
                              nullable,
-                             columnStoreDisabled,
+                             hasDocValues,
                              position,
                              defaultExpression
                              );
@@ -187,8 +189,8 @@ public class Reference extends Symbol {
         return nullable;
     }
 
-    public boolean isColumnStoreDisabled() {
-        return columnStoreDisabled;
+    public boolean hasDocValues() {
+        return hasDocValues;
     }
 
     public int position() {
@@ -212,7 +214,7 @@ public class Reference extends Symbol {
         if (nullable != reference.nullable) {
             return false;
         }
-        if (columnStoreDisabled != reference.columnStoreDisabled) {
+        if (hasDocValues != reference.hasDocValues) {
             return false;
         }
         if (!type.equals(reference.type)) {
@@ -245,7 +247,7 @@ public class Reference extends Symbol {
         result = 31 * result + granularity.hashCode();
         result = 31 * result + indexType.hashCode();
         result = 31 * result + (nullable ? 1 : 0);
-        result = 31 * result + (columnStoreDisabled ? 1 : 0);
+        result = 31 * result + (hasDocValues ? 1 : 0);
         result = 31 * result + (defaultExpression != null ? defaultExpression.hashCode() : 0);
         return result;
     }
@@ -264,7 +266,8 @@ public class Reference extends Symbol {
         out.writeVInt(columnPolicy.ordinal());
         out.writeVInt(indexType.ordinal());
         out.writeBoolean(nullable);
-        out.writeBoolean(columnStoreDisabled);
+        // property was "columnStoreDisabled" so need to reverse the value.
+        out.writeBoolean(!hasDocValues);
         final boolean hasDefaultExpression = defaultExpression != null;
         out.writeBoolean(hasDefaultExpression);
         if (hasDefaultExpression) {

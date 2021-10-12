@@ -291,4 +291,10 @@ public class StringType extends DataType<String> implements Streamer<String> {
             return new ColumnType<>("varchar", List.of(lengthLimit));
         }
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.DOC_VALUES;
+    }
+
 }

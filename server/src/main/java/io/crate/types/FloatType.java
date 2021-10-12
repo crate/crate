@@ -121,4 +121,9 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     public int fixedSize() {
         return FLOAT_SIZE;
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.DOC_VALUES;
+    }
 }

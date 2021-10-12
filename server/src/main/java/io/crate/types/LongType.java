@@ -112,5 +112,9 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     public int fixedSize() {
         return LONG_SIZE;
     }
-}
 
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.DOC_VALUES;
+    }
+}

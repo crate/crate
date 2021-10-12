@@ -274,7 +274,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
     public void testArrayLengthWithAllSupportedTypes() throws Exception {
         for (DataType<?> type : DataTypeTesting.ALL_TYPES_EXCEPT_ARRAYS) {
             // This is temporary as long as interval is not fully implemented
-            if (!type.supportsStorage()) {
+            if (type.storageSupport() == null) {
                 continue;
             }
             Supplier dataGenerator = DataTypeTesting.getDataGenerator(type);

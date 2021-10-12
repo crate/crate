@@ -116,4 +116,9 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     public int fixedSize() {
         return DOUBLE_SIZE;
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.DOC_VALUES;
+    }
 }

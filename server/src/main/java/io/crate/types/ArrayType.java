@@ -349,4 +349,9 @@ public class ArrayType<T> extends DataType<List<T>> {
                                                @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         return new CollectionColumnType<>(innerType.toColumnType(columnPolicy, convertChildColumn));
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return innerType.storageSupport();
+    }
 }

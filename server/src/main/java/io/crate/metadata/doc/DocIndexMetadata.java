@@ -53,6 +53,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -191,7 +192,7 @@ public class DocIndexMetadata {
                      ColumnPolicy columnPolicy,
                      Reference.IndexType indexType,
                      boolean isNotNull,
-                     boolean columnStoreDisabled) {
+                     boolean hasDocValues) {
         Reference ref;
         boolean partitionByColumn = partitionedBy.contains(column);
         String generatedExpression = generatedColumns.get(column.fqn());
@@ -199,7 +200,7 @@ public class DocIndexMetadata {
             indexType = Reference.IndexType.PLAIN;
         }
         if (generatedExpression == null) {
-            ref = newInfo(position, column, type, defaultExpression, columnPolicy, indexType, isNotNull, columnStoreDisabled);
+            ref = newInfo(position, column, type, defaultExpression, columnPolicy, indexType, isNotNull, hasDocValues);
         } else {
             ref = new GeneratedReference(
             position,
@@ -209,7 +210,8 @@ public class DocIndexMetadata {
             columnPolicy,
             indexType,
             generatedExpression,
-            isNotNull);
+            isNotNull,
+            hasDocValues);
         }
         if (column.isTopLevel()) {
             columns.add(ref);
@@ -259,7 +261,7 @@ public class DocIndexMetadata {
                               ColumnPolicy columnPolicy,
                               Reference.IndexType indexType,
                               boolean nullable,
-                              boolean columnStoreDisabled) {
+                              boolean hasDocValues) {
         Symbol defaultExpression = null;
         if (formattedDefaultExpression != null) {
             Expression expression = SqlParser.createExpression(formattedDefaultExpression);
@@ -274,7 +276,7 @@ public class DocIndexMetadata {
             columnPolicy,
             indexType,
             nullable,
-            columnStoreDisabled,
+            hasDocValues,
             position,
             defaultExpression
         );
@@ -420,8 +422,11 @@ public class DocIndexMetadata {
             int position = columnPosition((int) columnProperties.getOrDefault("position", 0));
             String defaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
             Reference.IndexType columnIndexType = getColumnIndexType(columnProperties);
-            boolean columnsStoreDisabled = !Booleans.parseBoolean(
-                columnProperties.getOrDefault(DOC_VALUES, true).toString());
+            StorageSupport storageSupport = columnDataType.storageSupport();
+            assert storageSupport != null
+                : "DataType used in table definition must have storage support: " + columnDataType;
+            boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(columnIndexType);
+            boolean hasDocValues = Booleans.parseBoolean(columnProperties.getOrDefault(DOC_VALUES, docValuesDefault).toString());
             if (columnDataType == DataTypes.GEO_SHAPE) {
                 String geoTree = (String) columnProperties.get("tree");
                 String precision = (String) columnProperties.get("precision");
@@ -432,7 +437,7 @@ public class DocIndexMetadata {
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
-                add(position, newIdent, columnDataType, defaultExpression, columnPolicy, Reference.IndexType.NONE, nullable, false);
+                add(position, newIdent, columnDataType, defaultExpression, columnPolicy, Reference.IndexType.NONE, nullable, hasDocValues);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
@@ -446,7 +451,7 @@ public class DocIndexMetadata {
                     for (String copyToColumn : copyToColumns) {
                         ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
                         IndexReference.Builder builder = getOrCreateIndexBuilder(targetIdent);
-                        builder.addColumn(newInfo(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, false, columnsStoreDisabled));
+                        builder.addColumn(newInfo(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, false, hasDocValues));
                     }
                 }
                 // is it an index?
@@ -455,7 +460,7 @@ public class DocIndexMetadata {
                     builder.indexType(columnIndexType)
                         .analyzer((String) columnProperties.get("analyzer"));
                 } else {
-                    add(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, nullable, columnsStoreDisabled);
+                    add(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, nullable, hasDocValues);
                 }
             }
         }

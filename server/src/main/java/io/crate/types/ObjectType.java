@@ -337,4 +337,9 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             return new ObjectColumnType<>(columnPolicy.name(), convertChildColumn.get());
         }
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.NO_DOC_VALUES;
+    }
 }

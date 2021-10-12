@@ -76,7 +76,7 @@ public class DataTypeTesting {
         // ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.INTERVAL); Member of DataTypes.STORAGE_UNSUPPORTED
         ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.UNTYPED_OBJECT);
 
-        ALL_TYPES_EXCEPT_ARRAYS.removeIf(x -> !x.supportsStorage());
+        ALL_TYPES_EXCEPT_ARRAYS.removeIf(x -> x.storageSupport() == null);
     }
 
     public static DataType<?> randomType() {

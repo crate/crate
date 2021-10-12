@@ -149,7 +149,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
     @Test
     public void test_random_type_random_values() throws Exception {
         var validTypes =  DataTypes.PRIMITIVE_TYPES.stream()
-            .filter(DataType::supportsStorage)
+            .filter(x -> x.storageSupport() != null)
             .collect(Collectors.toList());
         var type = RandomPicks.randomFrom(RandomizedContext.current().getRandom(), validTypes);
 

@@ -137,7 +137,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         if (DocSysColumns.RAW.equals(columnIdent) || DocSysColumns.ID.equals(columnIdent)) {
             return customSortField(DocSysColumns.nameForLucene(columnIdent), ref, context);
         }
-        if (ref.isColumnStoreDisabled()) {
+        if (!ref.hasDocValues()) {
             return customSortField(ref.toString(), ref, context);
         }
 

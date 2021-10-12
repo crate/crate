@@ -113,4 +113,9 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
             }
         }
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.NO_DOC_VALUES;
+    }
 }

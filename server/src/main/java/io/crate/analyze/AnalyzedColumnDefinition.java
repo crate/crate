@@ -387,7 +387,7 @@ public class AnalyzedColumnDefinition<T> {
                                                              "INDEX constraint cannot be used on columns of type \"%s\"", dataType));
         }
 
-        if (!dataType.supportsStorage()) {
+        if (dataType.storageSupport() == null) {
             throw new IllegalArgumentException("Cannot use the type `" + dataType.getName() + "` for column: " + name);
         }
         if (hasPrimaryKeyConstraint()) {

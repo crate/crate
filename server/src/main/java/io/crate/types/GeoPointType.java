@@ -197,4 +197,9 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
         }
         return super.isConvertableTo(other, explicitCast);
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.DOC_VALUES;
+    }
 }

@@ -1851,7 +1851,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         StringBuilder createTable = new StringBuilder("CREATE TABLE tbl (");
         ArrayList<DataType<?>> types = new ArrayList<>();
         List<DataType<?>> typeCandidates = DataTypes.PRIMITIVE_TYPES.stream()
-            .filter(DataType::supportsStorage)
+            .filter(x -> x.storageSupport() != null)
             .collect(Collectors.toList());
         for (int i = 0; i < numKeys; i++) {
             var type = RandomPicks.randomFrom(random, typeCandidates);

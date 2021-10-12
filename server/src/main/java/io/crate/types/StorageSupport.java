@@ -21,47 +21,16 @@
 
 package io.crate.types;
 
-import java.util.List;
+import io.crate.metadata.Reference.IndexType;
 
-import io.crate.Streamer;
+public record StorageSupport(boolean docValuesDefault) {
 
-public class OidVectorType extends DataType<List<Integer>> {
-
-    public static final String NAME = "oidvector";
-    public static final int ID = 21;
-
-    @Override
-    public int compare(List<Integer> o1, List<Integer> o2) {
-        return DataTypes.INTEGER_ARRAY.compare(o1, o2);
+    public static class Defaults {
+        public static final StorageSupport DOC_VALUES = new StorageSupport(true);
+        public static final StorageSupport NO_DOC_VALUES = new StorageSupport(false);
     }
 
-    @Override
-    public int id() {
-        return ID;
-    }
-
-    @Override
-    public Precedence precedence() {
-        return Precedence.ARRAY;
-    }
-
-    @Override
-    public String getName() {
-        return NAME;
-    }
-
-    @Override
-    public Streamer<List<Integer>> streamer() {
-        return DataTypes.INTEGER_ARRAY.streamer();
-    }
-
-    @Override
-    public List<Integer> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        return (List<Integer>) value;
-    }
-
-    @Override
-    public List<Integer> sanitizeValue(Object value) {
-        return (List<Integer>) value;
+    public boolean getComputedDocValuesDefault(IndexType indexType) {
+        return docValuesDefault && indexType != IndexType.FULLTEXT;
     }
 }

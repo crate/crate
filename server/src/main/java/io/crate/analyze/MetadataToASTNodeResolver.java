@@ -68,6 +68,7 @@ import io.crate.sql.tree.TableElement;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.StorageSupport;
 
 
 public class MetadataToASTNodeResolver {
@@ -119,8 +120,8 @@ public class MetadataToASTNodeResolver {
             Iterator<Reference> referenceIterator = tableInfo.iterator();
             List<ColumnDefinition<Expression>> elements = new ArrayList<>();
             while (referenceIterator.hasNext()) {
-                Reference info = referenceIterator.next();
-                ColumnIdent ident = info.column();
+                Reference ref = referenceIterator.next();
+                ColumnIdent ident = ref.column();
                 if (ident.isSystemColumn()) {
                     continue;
                 }
@@ -136,20 +137,20 @@ public class MetadataToASTNodeResolver {
                     }
                 }
 
-                final ColumnType<Expression> columnType = info.valueType().toColumnType(
-                    info.columnPolicy(),
+                final ColumnType<Expression> columnType = ref.valueType().toColumnType(
+                    ref.columnPolicy(),
                     () -> extractColumnDefinitions(ident)
                 );
                 List<ColumnConstraint<Expression>> constraints = new ArrayList<>();
-                if (!info.isNullable()) {
+                if (!ref.isNullable()) {
                     constraints.add(new NotNullColumnConstraint<>());
                 }
-                if (info.indexType().equals(Reference.IndexType.NONE)
-                    && info.valueType().id() != ObjectType.ID
-                    && !(info.valueType().id() == ArrayType.ID &&
-                         ((ArrayType<?>) info.valueType()).innerType().id() == ObjectType.ID)) {
+                if (ref.indexType().equals(Reference.IndexType.NONE)
+                    && ref.valueType().id() != ObjectType.ID
+                    && !(ref.valueType().id() == ArrayType.ID &&
+                         ((ArrayType<?>) ref.valueType()).innerType().id() == ObjectType.ID)) {
                     constraints.add(IndexColumnConstraint.off());
-                } else if (info.indexType().equals(Reference.IndexType.FULLTEXT)) {
+                } else if (ref.indexType().equals(Reference.IndexType.FULLTEXT)) {
                     String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);
                     GenericProperties<Expression> properties = new GenericProperties<>();
                     if (analyzer != null) {
@@ -157,8 +158,8 @@ public class MetadataToASTNodeResolver {
                                                              new StringLiteral(analyzer)));
                     }
                     constraints.add(new IndexColumnConstraint<>("fulltext", properties));
-                } else if (info.valueType().equals(DataTypes.GEO_SHAPE)) {
-                    GeoReference geoReference = (GeoReference) info;
+                } else if (ref.valueType().equals(DataTypes.GEO_SHAPE)) {
+                    GeoReference geoReference = (GeoReference) ref;
                     GenericProperties<Expression> properties = new GenericProperties<>();
                     if (geoReference.distanceErrorPct() != null) {
                         properties.add(new GenericProperty<>("distance_error_pct",
@@ -176,20 +177,23 @@ public class MetadataToASTNodeResolver {
                 }
 
                 Expression generatedExpression = null;
-                if (info instanceof GeneratedReference) {
-                    String formattedExpression = ((GeneratedReference) info).formattedGeneratedExpression();
+                if (ref instanceof GeneratedReference) {
+                    String formattedExpression = ((GeneratedReference) ref).formattedGeneratedExpression();
                     generatedExpression = SqlParser.createExpression(formattedExpression);
                 }
                 Expression defaultExpression = null;
-                Symbol defaultExpr = info.defaultExpression();
+                Symbol defaultExpr = ref.defaultExpression();
                 if (defaultExpr != null) {
                     String symbol = defaultExpr.toString(Style.UNQUALIFIED);
                     defaultExpression = SqlParser.createExpression(symbol);
                 }
 
-                if (info.isColumnStoreDisabled()) {
+                StorageSupport storageSupport = ref.valueType().storageSupport();
+                assert storageSupport != null : "Column without storage support must not appear in table meta data";
+                boolean hasDocValuesPerDefault = storageSupport.getComputedDocValuesDefault(ref.indexType());
+                if (hasDocValuesPerDefault != ref.hasDocValues()) {
                     GenericProperties<Expression> properties = new GenericProperties<>();
-                    properties.add(new GenericProperty<>("columnstore", BooleanLiteral.fromObject(false)));
+                    properties.add(new GenericProperty<>("columnstore", BooleanLiteral.fromObject(ref.hasDocValues())));
                     constraints.add(new ColumnStorageDefinition<>(properties));
                 }
 
