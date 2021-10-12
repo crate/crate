@@ -129,6 +129,6 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
 
     @Override
     public StorageSupport storageSupport() {
-        return StorageSupport.Defaults.DOC_VALUES;
+        return StorageSupport.ALL_AVAILABLE;
     }
 }

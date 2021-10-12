@@ -119,7 +119,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
 
     @Override
     public StorageSupport storageSupport() {
-        return StorageSupport.Defaults.DOC_VALUES;
+        return StorageSupport.ALL_AVAILABLE;
     }
 }
 

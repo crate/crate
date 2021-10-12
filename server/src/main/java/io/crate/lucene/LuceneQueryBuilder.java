@@ -64,6 +64,7 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.FunctionImplementation;
@@ -104,6 +105,7 @@ public class LuceneQueryBuilder {
         );
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.PARTITION, refResolver, null);
         Context ctx = new Context(
+            table,
             txnCtx,
             nodeCtx,
             mapperService,
@@ -133,6 +135,7 @@ public class LuceneQueryBuilder {
 
         final Map<String, Object> filteredFieldValues = new HashMap<>();
 
+        private final DocTableInfo table;
         final DocInputFactory docInputFactory;
         final MapperService mapperService;
         final IndexCache indexCache;
@@ -141,13 +144,16 @@ public class LuceneQueryBuilder {
 
         final NodeContext nodeContext;
 
-        Context(TransactionContext txnCtx,
+
+        Context(DocTableInfo table,
+                TransactionContext txnCtx,
                 NodeContext nodeCtx,
                 MapperService mapperService,
                 IndexCache indexCache,
                 QueryShardContext queryShardContext,
                 String indexName,
                 List<Reference> partitionColumns) {
+            this.table = table;
             this.nodeContext = nodeCtx;
             this.txnCtx = txnCtx;
             this.queryShardContext = queryShardContext;
@@ -213,6 +219,11 @@ public class LuceneQueryBuilder {
 
         public SymbolVisitor<Context, Query> visitor() {
             return VISITOR;
+        }
+
+        @Nullable
+        public Reference getRef(ColumnIdent column) {
+            return table.getReadReference(column);
         }
     }
 

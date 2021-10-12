@@ -124,6 +124,6 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
 
     @Override
     public StorageSupport storageSupport() {
-        return StorageSupport.Defaults.DOC_VALUES;
+        return StorageSupport.ALL_AVAILABLE;
     }
 }

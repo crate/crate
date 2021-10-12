@@ -207,6 +207,6 @@ public final class BitStringType extends DataType<BitString> implements Streamer
 
     @Override
     public StorageSupport storageSupport() {
-        return StorageSupport.Defaults.DOC_VALUES;
+        return StorageSupport.ALL_AVAILABLE;
     }
 }

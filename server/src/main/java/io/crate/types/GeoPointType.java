@@ -200,6 +200,6 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
 
     @Override
     public StorageSupport storageSupport() {
-        return StorageSupport.Defaults.DOC_VALUES;
+        return StorageSupport.ALL_AVAILABLE;
     }
 }

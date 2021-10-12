@@ -26,16 +26,20 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.ExistsQueryBuilder;
 
 import io.crate.data.Input;
+import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -48,6 +52,8 @@ import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
+import io.crate.types.StorageSupport;
 
 public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
@@ -107,28 +113,44 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
     public Query toQuery(Function function, Context context) {
         List<Symbol> arguments = function.arguments();
         assert arguments.size() == 1 : "`<expression> IS NULL` function must have one argument";
-        if (!(arguments.get(0) instanceof Reference ref)) {
-            return null;
+        if (arguments.get(0) instanceof Reference ref) {
+            if (!ref.isNullable()) {
+                return Queries.newMatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
+            }
+            Query refExistsQuery = refExistsQuery(ref, context);
+            return refExistsQuery == null ? null : Queries.not(refExistsQuery);
         }
-        String columnName = ref.column().fqn();
+        return null;
+    }
 
-        // ExistsQueryBuilder.newFilter doesn't build the correct exists query for arrays
-        // because ES isn't really aware of explicit array types
-        if (ref.valueType() instanceof ArrayType) {
-            MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-            if (fieldType != null) {
-                return Queries.not(fieldType.existsQuery(context.queryShardContext()));
+    @Nullable
+    public static Query refExistsQuery(Reference ref, Context context) {
+        String field = ref.column().fqn();
+        StorageSupport storageSupport = ref.valueType().storageSupport();
+        if (storageSupport == null && ref instanceof DynamicReference) {
+            return Queries.newMatchNoDocsQuery("DynamicReference/type without storageSupport does not exist");
+        } else if (ref.hasDocValues()) {
+            return new ConstantScoreQuery(new DocValuesFieldExistsQuery(field));
+        } else if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+            // Not indexed, need to use source lookup
+            return null;
+        } else if (storageSupport != null && storageSupport.hasFieldNamesIndex()) {
+            if (ArrayType.unnest(ref.valueType()) instanceof ObjectType objType) {
+                BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
+                for (var entry : objType.innerTypes().entrySet()) {
+                    String childColumn = entry.getKey();
+                    Reference childRef = context.getRef(ref.column().append(childColumn));
+                    Query refExistsQuery = refExistsQuery(childRef, context);
+                    if (refExistsQuery == null) {
+                        return null;
+                    }
+                    booleanQuery.add(refExistsQuery, Occur.SHOULD);
+                }
+                return new ConstantScoreQuery(booleanQuery.build());
             }
-            MappedFieldType fieldNames = context.getFieldTypeOrNull(FieldNamesFieldMapper.NAME);
-            if (fieldNames != null) {
-                return Queries.not(new ConstantScoreQuery(
-                    new TermQuery(new Term(FieldNamesFieldMapper.NAME, columnName))));
-            }
-        }
-        if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
-            // There won't be any indexed field names for the children, need to use expensive query fallback
+            return new ConstantScoreQuery(new TermQuery(new Term(FieldNamesFieldMapper.NAME, field)));
+        } else {
             return null;
         }
-        return Queries.not(ExistsQueryBuilder.newFilter(context.queryShardContext(), columnName));
     }
 }

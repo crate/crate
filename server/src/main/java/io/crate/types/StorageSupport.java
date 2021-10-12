@@ -23,12 +23,9 @@ package io.crate.types;
 
 import io.crate.metadata.Reference.IndexType;
 
-public record StorageSupport(boolean docValuesDefault) {
+public record StorageSupport(boolean docValuesDefault, boolean hasFieldNamesIndex) {
 
-    public static class Defaults {
-        public static final StorageSupport DOC_VALUES = new StorageSupport(true);
-        public static final StorageSupport NO_DOC_VALUES = new StorageSupport(false);
-    }
+    public static final StorageSupport ALL_AVAILABLE = new StorageSupport(true, true);
 
     public boolean getComputedDocValuesDefault(IndexType indexType) {
         return docValuesDefault && indexType != IndexType.FULLTEXT;

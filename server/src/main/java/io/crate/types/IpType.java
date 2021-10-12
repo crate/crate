@@ -114,6 +114,6 @@ public class IpType extends DataType<String> implements Streamer<String> {
 
     @Override
     public StorageSupport storageSupport() {
-        return StorageSupport.Defaults.DOC_VALUES;
+        return StorageSupport.ALL_AVAILABLE;
     }
 }

@@ -40,6 +40,7 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
     public static final int ID = 16;
 
     public static final String NAME = "unchecked_object";
+    private static final StorageSupport STORAGE = new StorageSupport(false, false);
 
     public static UncheckedObjectType untyped() {
         return new UncheckedObjectType();
@@ -116,6 +117,6 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
 
     @Override
     public StorageSupport storageSupport() {
-        return StorageSupport.Defaults.NO_DOC_VALUES;
+        return STORAGE;
     }
 }

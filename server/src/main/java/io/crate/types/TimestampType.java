@@ -209,6 +209,6 @@ public final class TimestampType extends DataType<Long>
 
     @Override
     public StorageSupport storageSupport() {
-        return StorageSupport.Defaults.DOC_VALUES;
+        return StorageSupport.ALL_AVAILABLE;
     }
 }
