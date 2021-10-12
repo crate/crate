@@ -37,6 +37,7 @@ import java.util.Collections;
 public class ExistsQueryBuilder {
     public static final String NAME = "exists";
 
+    @Deprecated
     public static Query newFilter(QueryShardContext context, String fieldPattern) {
 
         final FieldNamesFieldMapper.FieldNamesFieldType fieldNamesFieldType = (FieldNamesFieldMapper.FieldNamesFieldType) context

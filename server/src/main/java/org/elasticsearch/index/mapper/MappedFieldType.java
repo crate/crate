@@ -106,6 +106,7 @@ public abstract class MappedFieldType {
         throw new IllegalArgumentException("Field [" + name + "] of type [" + typeName() + "] does not support range queries");
     }
 
+    @Deprecated(forRemoval = true)
     public abstract Query existsQuery(QueryShardContext context);
 
     /** @throws IllegalArgumentException if the fielddata is not supported on this type.

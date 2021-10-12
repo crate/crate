@@ -59,6 +59,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public static final ObjectType UNTYPED = new ObjectType();
     public static final int ID = 12;
     public static final String NAME = "object";
+    private static final StorageSupport STORAGE = new StorageSupport(false, true);
 
     public static class Builder {
 
@@ -340,6 +341,6 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     @Override
     public StorageSupport storageSupport() {
-        return StorageSupport.Defaults.NO_DOC_VALUES;
+        return STORAGE;
     }
 }
