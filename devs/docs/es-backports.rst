@@ -537,7 +537,7 @@ should be crossed out as well.
 - [x] 27c15d6ccd4 Fix InternalEngineTests.testSeqNoAndCheckpoints (#51630) (#51672)
 - [ ] 86f3b47299b Make `date_range` query rounding consistent with `date` (#50237) (#51741)
 - [x] 72ae0ca73fe Log exceptions in TcpTransport at DEBUG level (#51612)
-- [ ] 1064009e9d9 Allow Parallel Snapshot Restore And Delete (#51608) (#51666)
+- [x] 1064009e9d9 Allow Parallel Snapshot Restore And Delete (#51608) (#51666)
 - [ ] aae93a75780 Allow Repository Plugins to Filter Metadata on Create (#51472) (#51542)
 - [ ] 89c2834b249 Deprecate creation of dot-prefixed index names except for hidden and system indices (#49959)
 - [ ] 9efa5be60e3 Password-protected Keystore Feature Branch PR (#51123) (#51510)
