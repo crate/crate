@@ -560,20 +560,9 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_is_not_null_on_bit_column_uses_doc_values_field_exists_query() throws Exception {
-        Query query = convert("bits is not null");
-        assertThat(query.toString(), is("ConstantScore(DocValuesFieldExistsQuery [field=bits])"));
-    }
-
-    @Test
     public void test_eq_on_byte_column() throws Exception {
         Query query = convert("byte_col = 127");
         assertThat(query.toString(), is("byte_col:[127 TO 127]"));
-    }
-
-    @Test
-    public void test_range_query_on_bit_type_is_not_supported() throws Exception {
-        assertThrows(UnsupportedOperationException.class, () -> convert("bits > B'01'"));
     }
 
     @Test
@@ -586,20 +575,6 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_eq_any_on_float_column_uses_set_query() throws Exception {
         Query query = convert("f = ANY([42.0, 41.0])");
         assertThat(query.toString(), is("f:{41.0 42.0}"));
-    }
-
-    @Test
-    public void test_eq_on_bits_uses_term_query() throws Exception {
-        Query query = convert("bits = B'01001110'");
-        assertThat(query, instanceOf(TermQuery.class));
-        assertThat(query.toString(), is("bits:r"));
-    }
-
-    @Test
-    public void test_eq_any_on_bits_uses_termset_query() throws Exception {
-        Query query = convert("bits = ANY([B'01001110', B'11111111'])");
-        assertThat(query, instanceOf(TermInSetQuery.class));
-        assertThat(query.toString(), is("bits:(r [ff])"));
     }
 
     @Test
