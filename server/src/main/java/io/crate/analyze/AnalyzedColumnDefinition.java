@@ -341,7 +341,7 @@ public class AnalyzedColumnDefinition<T> {
                 }
             } else {
                 throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid storage option \"%s\"", storageSettings.get(property)));
+                    String.format(Locale.ENGLISH, "Invalid STORAGE WITH option `%s`", property));
             }
         }
     }
