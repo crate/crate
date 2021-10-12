@@ -887,37 +887,8 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("id")
             .field("type", "integer")
             .endObject()
-            .startObject("title")
-            .field("type", "multi_field")
-            .field("path", "just_name")
-            .startObject("fields")
-            .startObject("title")
-            .field("type", "string")
-            .endObject()
-            .startObject("ft")
-            .field("type", "string")
-            .field("index", "true")
-            .field("analyzer", "english")
-            .endObject()
-            .endObject()
-            .endObject()
             .startObject("datum")
             .field("type", "date")
-            .endObject()
-            .startObject("content")
-            .field("type", "multi_field")
-            .field("path", "just_name")
-            .startObject("fields")
-            .startObject("content")
-            .field("type", "string")
-            .field("index", "false")
-            .endObject()
-            .startObject("ft")
-            .field("type", "string")
-            .field("index", "true")
-            .field("analyzer", "english")
-            .endObject()
-            .endObject()
             .endObject()
             .endObject()
             .endObject()
@@ -1523,7 +1494,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     public void testColumnStoreBooleanIsParsedCorrectly() throws Exception {
         DocIndexMetadata md = getDocIndexMetadataFromStatement(
             "create table t1 (x string STORAGE WITH (columnstore = false))");
-        assertThat(md.columns().iterator().next().isColumnStoreDisabled(), is(true));
+        assertThat(md.columns().iterator().next().hasDocValues(), is(false));
     }
 
     @Test

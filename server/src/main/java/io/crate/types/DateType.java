@@ -134,9 +134,4 @@ public class DateType extends DataType<Long>
     public int fixedSize() {
         return DATE_SIZE;
     }
-
-    @Override
-    public boolean supportsStorage() {
-        return false;
-    }
 }

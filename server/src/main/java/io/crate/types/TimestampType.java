@@ -205,4 +205,10 @@ public final class TimestampType extends DataType<Long>
         .optionalStart()
         .appendPattern("[Z][VV][x][xx][xxx]")
         .toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT);
+
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.DOC_VALUES;
+    }
 }

@@ -114,4 +114,9 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     public int fixedSize() {
         return 16; // object overhead + 1 byte + 7 byte padding
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.DOC_VALUES;
+    }
 }

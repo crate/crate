@@ -79,11 +79,6 @@ public final class JsonType extends DataType<String> implements Streamer<String>
     }
 
     @Override
-    public boolean supportsStorage() {
-        return false;
-    }
-
-    @Override
     public String implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         return (String) value;
     }

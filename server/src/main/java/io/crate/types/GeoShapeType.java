@@ -123,4 +123,9 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     public void writeValueTo(StreamOutput out, Map<String, Object> v) throws IOException {
         out.writeMap(v);
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.NO_DOC_VALUES;
+    }
 }

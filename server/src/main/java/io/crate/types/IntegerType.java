@@ -123,4 +123,9 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
     public int fixedSize() {
         return INTEGER_SIZE;
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.DOC_VALUES;
+    }
 }

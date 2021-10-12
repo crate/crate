@@ -60,8 +60,9 @@ public class GeneratedReference extends Reference {
                               ColumnPolicy columnPolicy,
                               IndexType indexType,
                               String formattedGeneratedExpression,
-                              boolean nullable) {
-        super(ident, granularity, type, columnPolicy, indexType, nullable, false, position, null);
+                              boolean nullable,
+                              boolean hasDocValues) {
+        super(ident, granularity, type, columnPolicy, indexType, nullable, hasDocValues, position, null);
         this.formattedGeneratedExpression = formattedGeneratedExpression;
     }
 

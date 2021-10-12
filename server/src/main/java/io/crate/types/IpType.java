@@ -111,4 +111,9 @@ public class IpType extends DataType<String> implements Streamer<String> {
     public void writeValueTo(StreamOutput out, String v) throws IOException {
         out.writeOptionalString(v);
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.DOC_VALUES;
+    }
 }

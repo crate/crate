@@ -72,7 +72,7 @@ public interface TableInfo extends RelationInfo {
                 ref.columnPolicy(),
                 ref.indexType(),
                 ref.isNullable(),
-                ref.isColumnStoreDisabled(),
+                ref.hasDocValues(),
                 ref.position(),
                 ref.defaultExpression()
             );

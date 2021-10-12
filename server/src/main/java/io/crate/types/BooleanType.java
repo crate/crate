@@ -126,4 +126,9 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     public int fixedSize() {
         return 8;
     }
+
+    @Override
+    public StorageSupport storageSupport() {
+        return StorageSupport.Defaults.DOC_VALUES;
+    }
 }
