@@ -25,8 +25,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import io.crate.common.SuppressForbidden;
 
 import java.io.IOError;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 
 class ElasticsearchUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
 
@@ -71,26 +69,9 @@ class ElasticsearchUncaughtExceptionHandler implements Thread.UncaughtExceptionH
         LOGGER.warn(() -> new ParameterizedMessage("uncaught exception in thread [{}]", threadName), t);
     }
 
+    @SuppressForbidden(reason = "halt")
     void halt(int status) {
-        AccessController.doPrivileged(new PrivilegedHaltAction(status));
+        // we halt to prevent shutdown hooks from running
+        Runtime.getRuntime().halt(status);
     }
-
-    static class PrivilegedHaltAction implements PrivilegedAction<Void> {
-
-        private final int status;
-
-        private PrivilegedHaltAction(final int status) {
-            this.status = status;
-        }
-
-        @SuppressForbidden(reason = "halt")
-        @Override
-        public Void run() {
-            // we halt to prevent shutdown hooks from running
-            Runtime.getRuntime().halt(status);
-            return null;
-        }
-
-    }
-
 }

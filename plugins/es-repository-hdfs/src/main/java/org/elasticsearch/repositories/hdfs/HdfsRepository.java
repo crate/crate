@@ -47,7 +47,6 @@ import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Locale;
 
@@ -221,11 +220,7 @@ public final class HdfsRepository extends BlobStoreRepository {
 
     @Override
     protected HdfsBlobStore createBlobStore() {
-        // initialize our blobstore using elevated privileges.
-        final HdfsBlobStore blobStore =
-            AccessController.doPrivileged((PrivilegedAction<HdfsBlobStore>)
-                () -> createBlobstore(uri, pathSetting, getMetadata().settings()));
-        return blobStore;
+        return createBlobstore(uri, pathSetting, getMetadata().settings());
     }
 
     @Override
