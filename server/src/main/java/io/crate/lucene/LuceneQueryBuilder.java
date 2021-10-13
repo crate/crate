@@ -36,7 +36,10 @@ import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -66,6 +69,7 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Reference.IndexType;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
@@ -307,16 +311,15 @@ public class LuceneQueryBuilder {
 
 
         @Override
-        public Query visitReference(Reference symbol, Context context) {
+        public Query visitReference(Reference ref, Context context) {
             // called for queries like: where boolColumn
-            if (symbol.valueType() == DataTypes.BOOLEAN) {
-                MappedFieldType fieldType = context.getFieldTypeOrNull(symbol.column().fqn());
-                if (fieldType == null) {
+            if (ref.valueType() == DataTypes.BOOLEAN) {
+                if (ref.indexType() == IndexType.NONE) {
                     return Queries.newMatchNoDocsQuery("column does not exist in this index");
                 }
-                return fieldType.termQuery(true, context.queryShardContext());
+                return new TermQuery(new Term(ref.column().fqn(), new BytesRef("T")));
             }
-            return super.visitReference(symbol, context);
+            return super.visitReference(ref, context);
         }
 
         @Override

@@ -19,22 +19,11 @@
 
 package org.elasticsearch.index.mapper;
 
-import java.util.List;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
-
-import org.apache.lucene.search.BooleanClause.Occur;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
-import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.query.QueryShardException;
-
-import io.crate.metadata.Scalar;
 
 /**
  * This defines the core properties and functions to operate on a field.
@@ -107,35 +96,6 @@ public abstract class MappedFieldType {
      */
     public boolean isSearchable() {
         return isIndexed;
-    }
-
-
-    /** Generates a query that will only match documents that contain the given value.
-     *  The default implementation returns a {@link TermQuery} over the value bytes,
-     *  boosted by {@link #boost()}.
-     *  @throws IllegalArgumentException if {@code value} cannot be converted to the expected data type or if the field is not searchable
-     *      due to the way it is configured (eg. not indexed)
-     *  @throws ElasticsearchParseException if {@code value} cannot be converted to the expected data type
-     *  @throws UnsupportedOperationException if the field is not searchable regardless of options
-     *  @throws QueryShardException if the field is not searchable regardless of options
-     *  @deprecated EqOperator implements {@link Scalar#toQuery(io.crate.expression.symbol.Function, io.crate.lucene.LuceneQueryBuilder.Context)}.
-     */
-    // TODO: Standardize exception types
-    @Deprecated
-    public Query termQuery(Object value, @Nullable QueryShardContext context) {
-        throw new UnsupportedOperationException(
-            "termQuery is depreacted. EqOperator.toQuery must be used instead");
-    }
-
-    /** Build a constant-scoring query that matches all values. The default implementation uses a
-     * {@link ConstantScoreQuery} around a {@link BooleanQuery} whose {@link Occur#SHOULD} clauses
-     * are generated with {@link #termQuery}. */
-    public Query termsQuery(List<?> values, @Nullable QueryShardContext context) {
-        BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        for (Object value : values) {
-            builder.add(termQuery(value, context), Occur.SHOULD);
-        }
-        return new ConstantScoreQuery(builder.build());
     }
 
     /**

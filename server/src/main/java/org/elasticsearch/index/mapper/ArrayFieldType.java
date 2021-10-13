@@ -22,11 +22,8 @@
 package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.search.Query;
-import javax.annotation.Nullable;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.query.QueryShardContext;
-
-import java.util.List;
 
 class ArrayFieldType extends MappedFieldType {
 
@@ -80,16 +77,6 @@ class ArrayFieldType extends MappedFieldType {
     @Override
     public void setSearchQuoteAnalyzer(NamedAnalyzer analyzer) {
         innerFieldType.setSearchQuoteAnalyzer(analyzer);
-    }
-
-    @Override
-    public Query termQuery(Object value, @Nullable QueryShardContext context) {
-        return innerFieldType.termQuery(value, context);
-    }
-
-    @Override
-    public Query termsQuery(List<?> values, @Nullable QueryShardContext context) {
-        return innerFieldType.termsQuery(values, context);
     }
 
     @Override

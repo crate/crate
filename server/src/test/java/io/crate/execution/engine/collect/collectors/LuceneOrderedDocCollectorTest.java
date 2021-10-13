@@ -21,22 +21,22 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import io.crate.analyze.OrderBy;
-import io.crate.breaker.RamAccounting;
-import io.crate.data.Row;
-import io.crate.execution.engine.distribution.merge.KeyIterable;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.expression.reference.doc.lucene.NullSentinelValues;
-import io.crate.expression.reference.doc.lucene.ScoreCollectorExpression;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.types.DataTypes;
+
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -48,6 +48,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.IndexSearcher;
@@ -56,6 +57,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopFieldDocs;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
@@ -72,18 +74,21 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.StreamSupport;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.mock;
+import io.crate.analyze.OrderBy;
+import io.crate.breaker.RamAccounting;
+import io.crate.data.Row;
+import io.crate.execution.engine.distribution.merge.KeyIterable;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.NullSentinelValues;
+import io.crate.expression.reference.doc.lucene.ScoreCollectorExpression;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.types.DataTypes;
 
 public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
@@ -334,7 +339,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(w, true, true));
 
         List<LuceneCollectorExpression<?>> columnReferences = Collections.singletonList(new ScoreCollectorExpression());
-        Query query = keywordFieldType.termsQuery(Collections.singletonList("Arthur"), null);
+        Query query = new TermQuery(new Term(name, new BytesRef("Arthur")));
         LuceneOrderedDocCollector collector = collector(searcher, columnReferences, query, null, false);
         KeyIterable<ShardId, Row> result = collector.collect();
 
@@ -359,8 +364,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(w, true, true));
 
         List<LuceneCollectorExpression<?>> columnReferences = Collections.singletonList(new ScoreCollectorExpression());
-        var keywordFieldType = new KeywordFieldMapper.KeywordFieldType("x");
-        Query query = keywordFieldType.termsQuery(Collections.singletonList("Arthur"), null);
+        Query query = new ConstantScoreQuery(new TermQuery(new Term("x", new BytesRef("Arthur"))));
         LuceneOrderedDocCollector collector = collector(searcher, columnReferences, query, null, true);
         KeyIterable<ShardId, Row> result = collector.collect();
 

@@ -222,10 +222,6 @@ public final class QueryTester implements AutoCloseable {
         return new IndexSearcher(DirectoryReader.open(indexEnv.writer()));
     }
 
-    public Query toQuery(String expression) {
-        return symbolToQuery.apply(expressionToSymbol.apply(expression, null));
-    }
-
     public Query toQuery(String expression, Object ... params) {
         return symbolToQuery.apply(expressionToSymbol.apply(expression, params));
     }
@@ -234,10 +230,8 @@ public final class QueryTester implements AutoCloseable {
         return symbolToQuery.apply(expression);
     }
 
-
-
-    public List<Object> runQuery(String resultColumn, String expression) throws Exception {
-        Query query = toQuery(expression);
+    public List<Object> runQuery(String resultColumn, String expression, Object ... params) throws Exception {
+        Query query = toQuery(expression, params);
         LuceneBatchIterator batchIterator = getIterator.apply(ColumnIdent.fromPath(resultColumn), query);
         return BatchIterators.collect(
             batchIterator,

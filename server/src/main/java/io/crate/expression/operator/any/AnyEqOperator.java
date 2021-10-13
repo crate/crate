@@ -24,15 +24,15 @@ package io.crate.expression.operator.any;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 
-import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
+import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -41,6 +41,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
@@ -65,7 +66,8 @@ public final class AnyEqOperator extends AnyOperator {
         if (fieldType == null) {
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
-        return fieldType.termsQuery(values.stream().filter(Objects::nonNull).toList(), context.queryShardContext());
+        DataType<?> innerType = ArrayType.unnest(probe.valueType());
+        return EqOperator.termsQuery(columnName, (DataType) innerType, (List) values);
     }
 
     @Override
@@ -80,21 +82,29 @@ public final class AnyEqOperator extends AnyOperator {
         }
         if (DataTypes.isArray(probe.valueType())) {
             // [1, 2] = any(nested_array_ref)
-            return arrayLiteralEqAnyArray(any, fieldType, probe.value(), context);
+            return arrayLiteralEqAnyArray(any, candidates, probe.value(), context);
         }
-        return fieldType.termQuery(probe.value(), context.queryShardContext());
+        return EqOperator.fromPrimitive(ArrayType.unnest(candidates.valueType()), candidates.column().fqn(), probe.value());
     }
 
     private static Query arrayLiteralEqAnyArray(Function function,
-                                                MappedFieldType fieldType,
+                                                Reference candidates,
                                                 Object candidate,
                                                 LuceneQueryBuilder.Context context) {
         ArrayList<Object> terms = new ArrayList<>();
         gatherLeafs(iterableWithStringsAsBytesRef(candidate), terms::add);
-
+        Query termsQuery = EqOperator.termsQuery(
+            candidates.column().fqn(),
+            ArrayType.unnest(candidates.valueType()),
+            terms
+        );
+        Query genericFunctionFilter = LuceneQueryBuilder.genericFunctionFilter(function, context);
+        if (termsQuery == null) {
+            return genericFunctionFilter;
+        }
         return new BooleanQuery.Builder()
-            .add(fieldType.termsQuery(terms, context.queryShardContext()), BooleanClause.Occur.MUST)
-            .add(LuceneQueryBuilder.genericFunctionFilter(function, context), BooleanClause.Occur.FILTER)
+            .add(termsQuery, Occur.MUST)
+            .add(genericFunctionFilter, Occur.FILTER)
             .build();
     }
 

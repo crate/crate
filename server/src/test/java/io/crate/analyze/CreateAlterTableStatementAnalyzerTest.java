@@ -1447,4 +1447,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "user_name={default_expr=CURRENT_USER, position=1, type=keyword}"
         ));
     }
+
+    @Test
+    public void test_create_table_with_invalid_storage_option_errors_with_invalid_property_name() throws Exception {
+        assertThrowsMatches(
+            () -> analyze("create table tbl (name text storage with (foobar = true))"),
+            IllegalArgumentException.class,
+            "Invalid STORAGE WITH option `foobar`"
+        );
+    }
 }

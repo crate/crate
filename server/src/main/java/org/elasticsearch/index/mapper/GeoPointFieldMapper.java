@@ -44,7 +44,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.query.QueryShardException;
 
 /**
  * Field Mapper for geo_point types.
@@ -140,12 +139,6 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
             } else {
                 return new TermQuery(new Term(FieldNamesFieldMapper.NAME, name()));
             }
-        }
-
-        @Override
-        public Query termQuery(Object value, QueryShardContext context) {
-            throw new QueryShardException(context, "Geo fields do not support exact searching, use dedicated geo queries instead: ["
-                                                   + name() + "]");
         }
     }
 
