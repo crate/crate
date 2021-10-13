@@ -27,6 +27,19 @@ jobs:
         with:
           arguments: :server:test -Dtests.crate.run-windows-incompatible=${{ matrix.os == 'ubuntu-latest' }}
 
+  forbiddenApis:
+    name: forbiddenApisMain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Gradle Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 17
+      - name: Run forbiddenApisMain
+        run: |
+          ./gradlew forbiddenApisMain
+
   linkcheck:
     name: Sphinx linkcheck
     runs-on: ubuntu-latest

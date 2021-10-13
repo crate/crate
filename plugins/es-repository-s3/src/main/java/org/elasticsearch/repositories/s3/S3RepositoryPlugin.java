@@ -31,8 +31,6 @@ import org.elasticsearch.repositories.Repository;
 
 import io.crate.analyze.repositories.TypeSettings;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -46,18 +44,15 @@ import static org.elasticsearch.repositories.s3.S3RepositorySettings.SECRET_KEY_
 public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
 
     static {
-        AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
-            try {
-                // kick jackson to do some static caching of declared members info
-                Jackson.jsonNodeOf("{}");
-                // ClientConfiguration clinit has some classloader problems
-                // TODO: fix that
-                Class.forName("com.amazonaws.ClientConfiguration");
-            } catch (final ClassNotFoundException e) {
-                throw new RuntimeException(e);
-            }
-            return null;
-        });
+        try {
+            // kick jackson to do some static caching of declared members info
+            Jackson.jsonNodeOf("{}");
+            // ClientConfiguration clinit has some classloader problems
+            // TODO: fix that
+            Class.forName("com.amazonaws.ClientConfiguration");
+        } catch (final ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     protected final S3Service service;
