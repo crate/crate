@@ -34,7 +34,6 @@ import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 import org.elasticsearch.repositories.hdfs.HdfsBlobStore.Operation;
 
 import java.io.FileNotFoundException;
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileAlreadyExistsException;
@@ -89,12 +88,8 @@ final class HdfsBlobContainer extends AbstractBlobContainer {
     public InputStream readBlob(String blobName) throws IOException {
         // FSDataInputStream does buffering internally
         // FSDataInputStream can open connections on read() or skip() so we wrap in
-        // HDFSPrivilegedInputSteam which will ensure that underlying methods will
-        // be called with the proper privileges.
         try {
-            return store.execute(fileContext ->
-                new HDFSPrivilegedInputSteam(fileContext.open(new Path(path, blobName), bufferSize), securityContext)
-            );
+            return store.execute(fileContext -> fileContext.open(new Path(path, blobName), bufferSize));
         } catch (FileNotFoundException fnfe) {
             throw new NoSuchFileException("[" + blobName + "] blob not found");
         }
@@ -155,47 +150,5 @@ final class HdfsBlobContainer extends AbstractBlobContainer {
     @Override
     public Map<String, BlobMetadata> listBlobs() throws IOException {
         return listBlobsByPrefix(null);
-    }
-
-    /**
-     * Exists to wrap underlying InputStream methods that might make socket connections in
-     * doPrivileged blocks. This is due to the way that hdfs client libraries might open
-     * socket connections when you are reading from an InputStream.
-     */
-    private static class HDFSPrivilegedInputSteam extends FilterInputStream {
-
-        private final HdfsSecurityContext securityContext;
-
-        HDFSPrivilegedInputSteam(InputStream in, HdfsSecurityContext hdfsSecurityContext) {
-            super(in);
-            this.securityContext = hdfsSecurityContext;
-        }
-
-        public int read() throws IOException {
-            return securityContext.doPrivilegedOrThrow(in::read);
-        }
-
-        public int read(byte[] b) throws IOException {
-            return securityContext.doPrivilegedOrThrow(() -> in.read(b));
-        }
-
-        public int read(byte[] b, int off, int len) throws IOException {
-            return securityContext.doPrivilegedOrThrow(() -> in.read(b, off, len));
-        }
-
-        public long skip(long n) throws IOException {
-            return securityContext.doPrivilegedOrThrow(() -> in.skip(n));
-        }
-
-        public int available() throws IOException {
-            return securityContext.doPrivilegedOrThrow(() -> in.available());
-        }
-
-        public synchronized void reset() throws IOException {
-            securityContext.doPrivilegedOrThrow(() -> {
-                in.reset();
-                return null;
-            });
-        }
     }
 }
