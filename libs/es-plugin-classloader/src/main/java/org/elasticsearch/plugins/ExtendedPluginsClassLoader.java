@@ -19,8 +19,6 @@
 
 package org.elasticsearch.plugins;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.List;
 
@@ -53,7 +51,6 @@ public class ExtendedPluginsClassLoader extends ClassLoader {
      * Return a new classloader across the parent and extended loaders.
      */
     public static ExtendedPluginsClassLoader create(ClassLoader parent, List<ClassLoader> extendedLoaders) {
-        return AccessController.doPrivileged((PrivilegedAction<ExtendedPluginsClassLoader>)
-            () -> new ExtendedPluginsClassLoader(parent, extendedLoaders));
+        return new ExtendedPluginsClassLoader(parent, extendedLoaders);
     }
 }

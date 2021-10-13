@@ -41,8 +41,6 @@ import java.io.UncheckedIOException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -56,20 +54,15 @@ public class Ec2DiscoveryPlugin extends Plugin implements DiscoveryPlugin, Reloa
     public static final String EC2 = "ec2";
 
     static {
-        // Initializing Jackson requires RuntimePermission accessDeclaredMembers
-        // The ClientConfiguration class requires RuntimePermission getClassLoader
-        AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
-            try {
-                // kick jackson to do some static caching of declared members info
-                Jackson.jsonNodeOf("{}");
-                // ClientConfiguration clinit has some classloader problems
-                // TODO: fix that
-                Class.forName("com.amazonaws.ClientConfiguration");
-            } catch (final ClassNotFoundException e) {
-                throw new RuntimeException(e);
-            }
-            return null;
-        });
+        try {
+            // kick jackson to do some static caching of declared members info
+            Jackson.jsonNodeOf("{}");
+            // ClientConfiguration clinit has some classloader problems
+            // TODO: fix that
+            Class.forName("com.amazonaws.ClientConfiguration");
+        } catch (final ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private final Settings settings;
