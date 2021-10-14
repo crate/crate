@@ -1721,6 +1721,7 @@ public class TestStatementBuilder {
         printStatement("CREATE PUBLICATION \"myPublication\" FOR TABLE t1");
         printStatement("CREATE PUBLICATION pub1 FOR TABLE s1.t1");
         printStatement("CREATE PUBLICATION pub1 FOR TABLE t1, s2.t2");
+        printStatement("CREATE PUBLICATION pub1");
     }
 
     @Test

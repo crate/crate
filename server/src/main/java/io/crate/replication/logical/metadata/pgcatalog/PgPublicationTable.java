@@ -40,7 +40,7 @@ public class PgPublicationTable {
             .add("oid", INTEGER, p -> OidHash.publicationOid(p.name, p.publication))
             .add("pubname", STRING, p -> p.name)
             .add("pubowner", INTEGER, p -> OidHash.userOid(p.publication.owner()))
-            .add("puballtables", BOOLEAN, p -> p.publication.tables().isEmpty())
+            .add("puballtables", BOOLEAN, p -> p.publication.isForAllTables())
             .add("pubinsert", BOOLEAN, p -> true)
             .add("pubupdate", BOOLEAN, p -> true)
             .add("pubdelete", BOOLEAN, p -> true)
