@@ -227,4 +227,11 @@ public class DateFormatFunctionTest extends ScalarTestCase {
             Literal.of("%t%%%Z"),
             Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.implicitCast("2000-01-01")));
     }
+
+    @Test
+    public void testDayOfMonthWithEnglishSuffix() throws Exception {
+        assertNormalize("date_format('%D', '2021-10-01')", isLiteral("1st"));
+        assertNormalize("date_format('%D', '2021-10-12')", isLiteral("12th"));
+        assertNormalize("date_format('%D', '2021-10-22')", isLiteral("22nd"));
+    }
 }
