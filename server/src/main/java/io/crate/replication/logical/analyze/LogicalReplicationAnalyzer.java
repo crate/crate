@@ -79,7 +79,7 @@ public class LogicalReplicationAnalyzer {
             }
         );
 
-        return new AnalyzedCreatePublication(createPublication.name(), tables);
+        return new AnalyzedCreatePublication(createPublication.name(), createPublication.isForAllTables(), tables);
     }
 
     public AnalyzedDropPublication analyze(DropPublication dropPublication) {

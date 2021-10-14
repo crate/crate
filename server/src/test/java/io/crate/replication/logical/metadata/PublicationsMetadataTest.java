@@ -45,12 +45,13 @@ public class PublicationsMetadataTest extends ESTestCase {
     public static PublicationsMetadata createMetadata() {
         Map<String, Publication> map = Map.of(
             "pub1",
-            new Publication("user1", List.of(
-                new RelationName("s1", "t1"),
-                new RelationName("s1", "t2")
-            )),
+            new Publication(
+                "user1",
+                false,
+                List.of(new RelationName("s1", "t1"), new RelationName("s1", "t2"))
+            ),
             "myPub2",
-            new Publication("user2", List.of(new RelationName("s2", "t1")))
+            new Publication("user2", true, List.of())
         );
         return new PublicationsMetadata(map);
     }

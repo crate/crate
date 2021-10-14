@@ -890,8 +890,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         List<QualifiedName> tables = ctx.qname().stream()
             .map(n -> getQualifiedName(n))
             .collect(toList());
-
-        return new CreatePublication(getIdentText(ctx.name), tables);
+        return new CreatePublication(getIdentText(ctx.name), ctx.ALL() != null, tables);
     }
 
     @Override
