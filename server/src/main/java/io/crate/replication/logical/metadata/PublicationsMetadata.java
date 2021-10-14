@@ -100,6 +100,7 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
      *       "publications": {
      *         "my_pub1": {
      *           "owner": "user1",
+     *           "forAllTables": false,
      *           "tables": [ "table1", "table2" ]
      *         }
      *       }
@@ -109,6 +110,7 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
      * <ul>
      *     <li>"my_pub1" is the full qualified name of the publication</li>
      *     <li>value of "owner" is the name of the user who created the publication</li>
+     *     <li>value of "forAllTables" indicates if all current and future tables should be part of this publication</li>
      *     <li>value of "tables" contains a list of all tables which are part of this publication</li>
      * </ul>
      */
@@ -120,6 +122,7 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
             builder.startObject(entry.getKey());
             {
                 builder.field("owner", publication.owner());
+                builder.field("forAllTables", publication.isForAllTables());
                 builder.startArray("tables");
                 for (var table : publication.tables()) {
                     builder.value(table.indexNameOrAlias());
@@ -141,11 +144,16 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
                     String name = parser.currentName();
                     if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
                         String owner = null;
+                        boolean forAllTables = false;
                         var tables = new ArrayList<RelationName>();
                         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                             if ("owner".equals(parser.currentName())) {
                                 parser.nextToken();
                                 owner = parser.textOrNull();
+                            }
+                            if ("forAllTables".equals(parser.currentName())) {
+                                parser.nextToken();
+                                forAllTables = parser.booleanValue();
                             }
                             if ("tables".equals(parser.currentName())) {
                                 parser.nextToken();
@@ -157,7 +165,7 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
                         if (owner == null) {
                             throw new ElasticsearchParseException("failed to parse publication, expected field 'owner' in object");
                         }
-                        publications.put(name, new Publication(owner, tables));
+                        publications.put(name, new Publication(owner, forAllTables, tables));
                     }
                 }
             }

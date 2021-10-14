@@ -19,26 +19,46 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.replication.logical.analyze;
+package io.crate.replication.logical.action;
 
-import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.DDLStatement;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
-public class AnalyzedCreatePublication implements DDLStatement {
+public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicationRequest> {
 
+    private final String owner;
     private final String name;
     private final boolean forAllTables;
     private final List<RelationName> tables;
 
-    public AnalyzedCreatePublication(String name, boolean forAllTables, List<RelationName> tables) {
+    public CreatePublicationRequest(String owner, String name, boolean forAllTables, List<RelationName> tables) {
+        this.owner = owner;
         this.name = name;
         this.forAllTables = forAllTables;
         this.tables = tables;
+    }
+
+    public CreatePublicationRequest(StreamInput in) throws IOException {
+        super(in);
+        this.owner = in.readString();
+        this.name = in.readString();
+        this.forAllTables = in.readBoolean();
+        int size = in.readVInt();
+        var t = new ArrayList<RelationName>(size);
+        for (var i = 0; i < size; i++) {
+            t.add(new RelationName(in));
+        }
+        this.tables = List.copyOf(t);
+    }
+
+    public String owner() {
+        return owner;
     }
 
     public String name() {
@@ -54,11 +74,14 @@ public class AnalyzedCreatePublication implements DDLStatement {
     }
 
     @Override
-    public void visitSymbols(Consumer<? super Symbol> consumer) {
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitCreatePublication(this, context);
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(owner);
+        out.writeString(name);
+        out.writeBoolean(forAllTables);
+        out.writeVInt(tables.size());
+        for (var table : tables) {
+            table.writeTo(out);
+        }
     }
 }

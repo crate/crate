@@ -19,46 +19,42 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.replication.logical.analyze;
+package io.crate.replication.logical.action;
 
-import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.DDLStatement;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.util.List;
-import java.util.function.Consumer;
+import java.io.IOException;
 
-public class AnalyzedCreatePublication implements DDLStatement {
+public class DropPublicationRequest extends AcknowledgedRequest<DropPublicationRequest> {
 
     private final String name;
-    private final boolean forAllTables;
-    private final List<RelationName> tables;
+    private final boolean ifExists;
 
-    public AnalyzedCreatePublication(String name, boolean forAllTables, List<RelationName> tables) {
+    public DropPublicationRequest(String name, boolean ifExists) {
         this.name = name;
-        this.forAllTables = forAllTables;
-        this.tables = tables;
+        this.ifExists = ifExists;
+    }
+
+    public DropPublicationRequest(StreamInput in) throws IOException {
+        super(in);
+        this.name = in.readString();
+        this.ifExists = in.readBoolean();
     }
 
     public String name() {
         return name;
     }
 
-    public boolean isForAllTables() {
-        return forAllTables;
-    }
-
-    public List<RelationName> tables() {
-        return tables;
+    public boolean ifExists() {
+        return ifExists;
     }
 
     @Override
-    public void visitSymbols(Consumer<? super Symbol> consumer) {
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitCreatePublication(this, context);
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(name);
+        out.writeBoolean(ifExists);
     }
 }

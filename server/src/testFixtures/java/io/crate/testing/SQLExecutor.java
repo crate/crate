@@ -585,9 +585,9 @@ public class SQLExecutor {
             return this;
         }
 
-        public Builder addPublication(String name, RelationName... tables) {
+        public Builder addPublication(String name, boolean forAllTables, RelationName... tables) {
             ClusterState prevState = clusterService.state();
-            var publication = new Publication(user.name(), Arrays.asList(tables));
+            var publication = new Publication(user.name(), forAllTables, Arrays.asList(tables));
             var publicationsMetadata = new PublicationsMetadata(Map.of(name, publication));
 
             Metadata newMetadata = Metadata.builder(prevState.metadata())
