@@ -63,3 +63,7 @@ Fixes
 - Fixed an issue that caused ``UNION ALL`` statements to succeed or throw
   unexpected exceptions when the ``SELECT`` results for ``UNION ALL`` included
   object types with identically named but differently typed sub-columns.
+
+- Fixed an issue that caused ``date_format()`` to return wrong values when used
+  with the ``%D`` specifier (day of month as ordinal number) for 11th, 12th and
+  13th.
