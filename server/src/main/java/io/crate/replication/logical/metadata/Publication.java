@@ -34,15 +34,18 @@ import java.util.Objects;
 public class Publication implements Writeable {
 
     private final String owner;
+    private final boolean forAllTables;
     private final List<RelationName> tables;
 
-    public Publication(String owner, List<RelationName> tables) {
+    public Publication(String owner, boolean forAllTables, List<RelationName> tables) {
         this.owner = owner;
+        this.forAllTables = forAllTables;
         this.tables = tables;
     }
 
     Publication(StreamInput in) throws IOException {
         owner = in.readString();
+        forAllTables = in.readBoolean();
         int size = in.readVInt();
         tables = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
@@ -54,6 +57,10 @@ public class Publication implements Writeable {
         return owner;
     }
 
+    public boolean isForAllTables() {
+        return forAllTables;
+    }
+
     public List<RelationName> tables() {
         return tables;
     }
@@ -61,6 +68,7 @@ public class Publication implements Writeable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(owner);
+        out.writeBoolean(forAllTables);
         out.writeVInt(tables.size());
         for (var table : tables) {
             out.writeString(table.indexNameOrAlias());
@@ -76,11 +84,11 @@ public class Publication implements Writeable {
             return false;
         }
         Publication that = (Publication) o;
-        return owner.equals(that.owner) && tables.equals(that.tables);
+        return forAllTables == that.forAllTables && owner.equals(that.owner) && tables.equals(that.tables);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(owner, tables);
+        return Objects.hash(owner, tables, forAllTables);
     }
 }

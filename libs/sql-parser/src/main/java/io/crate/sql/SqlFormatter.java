@@ -1018,12 +1018,11 @@ public final class SqlFormatter {
         @Override
         public Void visitCreatePublication(CreatePublication createPublication, Integer context) {
             builder.append("CREATE PUBLICATION ")
-                .append(quoteIdentifierIfNeeded(createPublication.name()))
-                .append(" FOR ");
-            if (createPublication.tables().size() == 0) {
-                builder.append("ALL TABLES");
-            } else {
-                builder.append("TABLE ");
+                .append(quoteIdentifierIfNeeded(createPublication.name()));
+            if (createPublication.isForAllTables()) {
+                builder.append(" FOR ALL TABLES");
+            } else if (createPublication.tables().isEmpty() == false) {
+                builder.append(" FOR TABLE ");
                 builder.append(
                     createPublication.tables().stream()
                         .map(Formatter::formatQualifiedName)

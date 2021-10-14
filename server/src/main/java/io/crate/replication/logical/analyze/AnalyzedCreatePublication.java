@@ -32,15 +32,21 @@ import java.util.function.Consumer;
 public class AnalyzedCreatePublication implements DDLStatement {
 
     private final String name;
+    private final boolean forAllTables;
     private final List<RelationName> tables;
 
-    public AnalyzedCreatePublication(String name, List<RelationName> tables) {
+    public AnalyzedCreatePublication(String name, boolean forAllTables, List<RelationName> tables) {
         this.name = name;
+        this.forAllTables = forAllTables;
         this.tables = tables;
     }
 
     public String name() {
         return name;
+    }
+
+    public boolean isForAllTables() {
+        return forAllTables;
     }
 
     public List<RelationName> tables() {
