@@ -50,14 +50,15 @@ public class PgPublicationTablesTable {
         Stream<PublicatedTableRow> s = logicalReplicationService.publications().entrySet().stream()
             .mapMulti(
                 (e, c) -> {
-                    var tables = e.getValue().tables();
-                    if (tables.isEmpty()) {
+                    var pub = e.getValue();
+                    var tables = pub.tables();
+                    if (pub.isForAllTables()) {
                         // -> FOR ALL TABLES (expands to all current tables here)
                         InformationSchemaIterables.tablesStream(schemas)
                             .filter(t -> t instanceof DocTableInfo)
-                            .forEach(t -> c.accept(new PublicatedTableRow(e.getKey(), t.ident(), e.getValue().owner())));
+                            .forEach(t -> c.accept(new PublicatedTableRow(e.getKey(), t.ident(), pub.owner())));
                     } else {
-                        tables.forEach(t -> c.accept(new PublicatedTableRow(e.getKey(), t, e.getValue().owner())));
+                        tables.forEach(t -> c.accept(new PublicatedTableRow(e.getKey(), t, pub.owner())));
                     }
                 }
             );
