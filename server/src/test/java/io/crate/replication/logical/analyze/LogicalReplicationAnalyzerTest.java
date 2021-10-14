@@ -49,7 +49,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     public void test_create_publication_which_already_exists_raises_error() throws Exception {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table doc.t1 (x int)")
-            .addPublication("pub1", new RelationName("doc", "t1"))
+            .addPublication("pub1", false, new RelationName("doc", "t1"))
             .build();
 
         expectThrows(
@@ -68,6 +68,15 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         var e = SQLExecutor.builder(clusterService).build();
         AnalyzedCreatePublication stmt = e.analyze("CREATE PUBLICATION pub1 FOR ALL TABLES");
         assertThat(stmt.tables(), Matchers.empty());
+        assertThat(stmt.isForAllTables(), is(true));
+    }
+
+    @Test
+    public void test_create_publication_without_any_table_specification() {
+        var e = SQLExecutor.builder(clusterService).build();
+        AnalyzedCreatePublication stmt = e.analyze("CREATE PUBLICATION pub1");
+        assertThat(stmt.tables(), Matchers.empty());
+        assertThat(stmt.isForAllTables(), is(false));
     }
 
     @Test
@@ -100,7 +109,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     public void test_alter_publication_with_unknown_table_raise_error() throws Exception {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table doc.t1 (x int)")
-            .addPublication("pub1", new RelationName("doc", "t1"))
+            .addPublication("pub1", false, new RelationName("doc", "t1"))
             .build();
         expectThrows(
             RelationUnknown.class,

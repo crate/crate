@@ -27,15 +27,21 @@ import java.util.Objects;
 public class CreatePublication extends Statement {
 
     private final String name;
+    private final boolean forAllTables;
     private final List<QualifiedName> tables;
 
-    public CreatePublication(String name, List<QualifiedName> tables) {
+    public CreatePublication(String name, boolean forAllTables, List<QualifiedName> tables) {
         this.name = name;
+        this.forAllTables = forAllTables;
         this.tables = tables;
     }
 
     public String name() {
         return name;
+    }
+
+    public boolean isForAllTables() {
+        return forAllTables;
     }
 
     public List<QualifiedName> tables() {
@@ -56,18 +62,19 @@ public class CreatePublication extends Statement {
             return false;
         }
         CreatePublication that = (CreatePublication) o;
-        return name.equals(that.name) && tables.equals(that.tables);
+        return forAllTables == that.forAllTables && name.equals(that.name) && tables.equals(that.tables);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, tables);
+        return Objects.hash(name, forAllTables, tables);
     }
 
     @Override
     public String toString() {
         return "CreatePublication{" +
-               "name=" + name +
+               "name='" + name + '\'' +
+               ", forAllTables=" + forAllTables +
                ", tables=" + tables +
                '}';
     }
