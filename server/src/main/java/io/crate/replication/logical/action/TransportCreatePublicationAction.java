@@ -84,7 +84,10 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
 
                 // create a new instance of the metadata, to guarantee the cluster changed action.
                 var newMetadata = PublicationsMetadata.newInstance(oldMetadata);
-                newMetadata.publications().put(request.name(), new Publication(request.owner(), request.tables()));
+                newMetadata.publications().put(
+                    request.name(),
+                    new Publication(request.owner(), request.isForAllTables(), request.tables())
+                );
                 assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
                 mdBuilder.putCustom(PublicationsMetadata.TYPE, newMetadata);
 
