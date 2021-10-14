@@ -98,14 +98,9 @@ public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> 
             var bytesRead = 0;
 
             store.incRef();
-            try {
-                var fileMetaData = request.storeFileMetadata();
-                var currentInput = publisherRestoreService.openInputStream(
-                    request.restoreUUID(),
-                    request,
-                    fileMetaData.name(),
-                    fileMetaData.length()
-                );
+            var fileMetaData = request.storeFileMetadata();
+            try (var currentInput = publisherRestoreService.openInputStream(
+                request.restoreUUID(), request, fileMetaData.name(), fileMetaData.length())) {
                 var offset = request.offset();
                 if (offset < fileMetaData.length()) {
                     currentInput.skip(offset);

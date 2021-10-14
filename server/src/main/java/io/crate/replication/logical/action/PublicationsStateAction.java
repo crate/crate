@@ -180,7 +180,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
         public Request(StreamInput in) throws IOException {
             super(in);
-            publications = Arrays.stream(in.readStringArray()).toList();
+            publications = in.readList(StreamInput::readString);
         }
 
         public List<String> publications() {
@@ -190,7 +190,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             super.writeTo(out);
-            out.writeStringArray(publications.toArray(new String[0]));
+            out.writeStringCollection(publications);
         }
     }
 
@@ -209,23 +209,16 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
         }
 
         public Response(StreamInput in) throws IOException {
-            int tablesSize = in.readVInt();
-            tables = new ArrayList<>(tablesSize);
-            for (int i = 0; i < tablesSize; i++) {
-                tables.add(new RelationName(in));
-            }
-            concreteIndices = Arrays.stream(in.readStringArray()).toList();
-            concreteTemplates = Arrays.stream(in.readStringArray()).toList();
+            tables = in.readList(RelationName::new);
+            concreteIndices = in.readList(StreamInput::readString);
+            concreteTemplates = in.readList(StreamInput::readString);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            out.writeVInt(tables.size());
-            for (var relationName : tables) {
-                relationName.writeTo(out);
-            }
-            out.writeStringArray(concreteIndices.toArray(new String[0]));
-            out.writeStringArray(concreteTemplates.toArray(new String[0]));
+            out.writeCollection(tables);
+            out.writeStringCollection(concreteIndices);
+            out.writeStringCollection(concreteTemplates);
         }
 
         public List<RelationName> tables() {

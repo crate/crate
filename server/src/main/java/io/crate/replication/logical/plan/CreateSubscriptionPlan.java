@@ -26,7 +26,6 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -90,8 +89,8 @@ public class CreateSubscriptionPlan implements Plan {
     }
 
     private static String validateAndConvertToString(Object uri) {
-        if (uri instanceof String) {
-            return Literal.of(DataTypes.STRING.sanitizeValue(uri)).value();
+        if (uri instanceof String str) {
+            return str;
         }
         throw new IllegalArgumentException("fileUri must be of type STRING. Got " + DataTypes.guessType(uri));
     }
