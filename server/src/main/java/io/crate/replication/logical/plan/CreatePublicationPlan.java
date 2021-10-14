@@ -53,6 +53,7 @@ public class CreatePublicationPlan implements Plan {
         var request = new CreatePublicationRequest(
             plannerContext.transactionContext().sessionContext().sessionUser().name(),
             analyzedCreatePublication.name(),
+            analyzedCreatePublication.isForAllTables(),
             analyzedCreatePublication.tables()
         );
 

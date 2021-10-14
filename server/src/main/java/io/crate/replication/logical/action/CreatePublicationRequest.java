@@ -34,11 +34,13 @@ public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicat
 
     private final String owner;
     private final String name;
+    private final boolean forAllTables;
     private final List<RelationName> tables;
 
-    public CreatePublicationRequest(String owner, String name, List<RelationName> tables) {
+    public CreatePublicationRequest(String owner, String name, boolean forAllTables, List<RelationName> tables) {
         this.owner = owner;
         this.name = name;
+        this.forAllTables = forAllTables;
         this.tables = tables;
     }
 
@@ -46,6 +48,7 @@ public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicat
         super(in);
         this.owner = in.readString();
         this.name = in.readString();
+        this.forAllTables = in.readBoolean();
         int size = in.readVInt();
         var t = new ArrayList<RelationName>(size);
         for (var i = 0; i < size; i++) {
@@ -62,6 +65,10 @@ public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicat
         return name;
     }
 
+    public boolean isForAllTables() {
+        return forAllTables;
+    }
+
     public List<RelationName> tables() {
         return tables;
     }
@@ -71,6 +78,7 @@ public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicat
         super.writeTo(out);
         out.writeString(owner);
         out.writeString(name);
+        out.writeBoolean(forAllTables);
         out.writeVInt(tables.size());
         for (var table : tables) {
             table.writeTo(out);
