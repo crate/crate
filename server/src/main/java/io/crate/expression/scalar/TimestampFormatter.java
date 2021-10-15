@@ -78,19 +78,20 @@ public class TimestampFormatter {
                 builder.append(n);
                 if (n >= 11 && n <= 13) {
                     builder.append("th");
-                }
-                switch (n % 10) {
-                    case 1:
-                        builder.append("st");
-                        break;
-                    case 2:
-                        builder.append("nd");
-                        break;
-                    case 3:
-                        builder.append("rd");
-                        break;
-                    default:
-                        builder.append("th");
+                } else {
+                    switch (n % 10) {
+                        case 1:
+                            builder.append("st");
+                            break;
+                        case 2:
+                            builder.append("nd");
+                            break;
+                        case 3:
+                            builder.append("rd");
+                            break;
+                        default:
+                            builder.append("th");
+                    }
                 }
                 return builder.toString();
             }
