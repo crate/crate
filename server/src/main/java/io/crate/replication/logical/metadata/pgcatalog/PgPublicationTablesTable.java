@@ -47,22 +47,24 @@ public class PgPublicationTablesTable {
 
     public static Iterable<PublicatedTableRow> rows(LogicalReplicationService logicalReplicationService,
                                                     Schemas schemas) {
-        Stream<PublicatedTableRow> s = logicalReplicationService.publications().entrySet().stream()
-            .mapMulti(
-                (e, c) -> {
-                    var pub = e.getValue();
-                    var tables = pub.tables();
-                    if (pub.isForAllTables()) {
-                        // -> FOR ALL TABLES (expands to all current tables here)
-                        InformationSchemaIterables.tablesStream(schemas)
-                            .filter(t -> t instanceof DocTableInfo)
-                            .forEach(t -> c.accept(new PublicatedTableRow(e.getKey(), t.ident(), pub.owner())));
-                    } else {
-                        tables.forEach(t -> c.accept(new PublicatedTableRow(e.getKey(), t, pub.owner())));
+        return () -> {
+            Stream<PublicatedTableRow> s = logicalReplicationService.publications().entrySet().stream()
+                .mapMulti(
+                    (e, c) -> {
+                        var pub = e.getValue();
+                        var tables = pub.tables();
+                        if (pub.isForAllTables()) {
+                            // -> FOR ALL TABLES (expands to all current tables here)
+                            InformationSchemaIterables.tablesStream(schemas)
+                                .filter(t -> t instanceof DocTableInfo)
+                                .forEach(t -> c.accept(new PublicatedTableRow(e.getKey(), t.ident(), pub.owner())));
+                        } else {
+                            tables.forEach(t -> c.accept(new PublicatedTableRow(e.getKey(), t, pub.owner())));
+                        }
                     }
-                }
-            );
-        return s::iterator;
+                );
+            return s.iterator();
+        };
     }
 
     public static class PublicatedTableRow {
