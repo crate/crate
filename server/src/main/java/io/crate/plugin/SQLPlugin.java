@@ -58,7 +58,7 @@ import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.protocols.ssl.SslSettings;
-import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.action.GetFileChunkAction;
 import io.crate.replication.logical.action.GetStoreMetadataAction;
 import io.crate.replication.logical.action.PublicationsStateAction;
@@ -149,7 +149,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(SslSettings.SSL_RESOURCE_POLL_INTERVAL);
 
         // Logical replication
-        settings.add(LogicalReplicationService.REPLICATION_SUBSCRIBED_INDEX);
+        settings.add(LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX);
 
         settings.addAll(CrateSettings.CRATE_CLUSTER_SETTINGS);
 
@@ -352,7 +352,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public Optional<EngineFactory> getEngineFactory(IndexSettings indexSettings) {
-        if (indexSettings.getSettings().get(LogicalReplicationService.REPLICATION_SUBSCRIBED_INDEX.getKey()) != null) {
+        if (indexSettings.getSettings().get(LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX.getKey()) != null) {
             return Optional.of(SubscriberEngine::new);
         }
         return Optional.empty();

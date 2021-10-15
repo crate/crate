@@ -44,6 +44,7 @@ public class ShardReplicationService implements Closeable {
 
     private final Settings settings;
     private final LogicalReplicationService logicalReplicationService;
+    private final LogicalReplicationSettings replicationSettings;
     private final Client client;
     private final ThreadPool threadPool;
     private final Map<ShardId, ShardReplicationChangesTracker> shards = new ConcurrentHashMap<>();
@@ -52,10 +53,12 @@ public class ShardReplicationService implements Closeable {
     public ShardReplicationService(Settings settings,
                                    IndexEventListenerProxy indexEventListenerProxy,
                                    LogicalReplicationService logicalReplicationService,
+                                   LogicalReplicationSettings replicationSettings,
                                    Client client,
                                    ThreadPool threadPool) {
         this.settings = settings;
         this.logicalReplicationService = logicalReplicationService;
+        this.replicationSettings = replicationSettings;
         this.client = client;
         this.threadPool = threadPool;
         indexEventListenerProxy.addLast(new LifecycleListener());
@@ -81,17 +84,19 @@ public class ShardReplicationService implements Closeable {
 
         @Override
         public void afterIndexShardStarted(IndexShard indexShard) {
-            var subscription = logicalReplicationService.subscription(indexShard.shardId().getIndexName());
-            if (subscription != null && subscription.isEnabled()) {
-                var tracker = new ShardReplicationChangesTracker(
-                    indexShard,
-                    settings,
-                    threadPool,
-                    ShardReplicationService.this::getRemoteClusterClient,
-                    client
-                );
-                shards.put(indexShard.shardId(), tracker);
-                tracker.start();
+            if (indexShard.routingEntry().primary()) {
+                var subscription = logicalReplicationService.subscription(indexShard.shardId().getIndexName());
+                if (subscription != null && subscription.isEnabled()) {
+                    var tracker = new ShardReplicationChangesTracker(
+                        indexShard,
+                        replicationSettings,
+                        threadPool,
+                        ShardReplicationService.this::getRemoteClusterClient,
+                        client
+                    );
+                    shards.put(indexShard.shardId(), tracker);
+                    tracker.start();
+                }
             }
         }
 

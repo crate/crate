@@ -22,6 +22,7 @@
 package io.crate.replication.logical.repository;
 
 import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.action.GetStoreMetadataAction;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
@@ -161,7 +162,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
 
         // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
         var builder = Settings.builder().put(indexMetadata.getSettings());
-        builder.put(LogicalReplicationService.REPLICATION_SUBSCRIBED_INDEX.getKey(), index.getName());
+        builder.put(LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX.getKey(), index.getName());
 
         var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
         indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));

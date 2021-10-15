@@ -41,7 +41,6 @@ import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
@@ -70,26 +69,6 @@ import static io.crate.replication.logical.repository.LogicalReplicationReposito
 import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
 
 public class LogicalReplicationService extends RemoteClusterAware implements ClusterStateListener, Closeable {
-
-    public static final Setting<Integer> REPLICATION_CHANGE_BATCH_SIZE = Setting.intSetting(
-        "replication.logical.ops_batch_size", 50000, 16,
-        Setting.Property.Dynamic, Setting.Property.NodeScope
-    );
-
-    public static final Setting<TimeValue> REPLICATION_READ_POLL_DURATION = Setting.timeSetting(
-        "replication.logical.reads_poll_duration",
-        TimeValue.timeValueMillis(50),
-        TimeValue.timeValueMillis(1),
-        TimeValue.timeValueSeconds(1),
-        Setting.Property.Dynamic,
-        Setting.Property.NodeScope
-    );
-
-    public static final Setting<String> REPLICATION_SUBSCRIBED_INDEX = Setting.simpleString(
-        "index.replication.logical.subscribed",
-        Setting.Property.InternalIndex,
-        Setting.Property.IndexScope
-    );
 
     private static final Logger LOGGER = LogManager.getLogger(LogicalReplicationService.class);
 

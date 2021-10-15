@@ -22,13 +22,11 @@
 package io.crate.replication.logical;
 
 import io.crate.common.collections.Tuple;
-import io.crate.common.unit.TimeValue;
 import io.crate.replication.logical.action.ShardChangesAction;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.Scheduler;
@@ -44,8 +42,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static io.crate.replication.logical.LogicalReplicationService.REPLICATION_CHANGE_BATCH_SIZE;
-import static io.crate.replication.logical.LogicalReplicationService.REPLICATION_READ_POLL_DURATION;
 import static io.crate.replication.logical.action.ShardChangesAction.TransportAction.WAIT_FOR_NEW_OPS_TIMEOUT;
 
 /**
@@ -58,29 +54,27 @@ public class ShardReplicationChangesTracker implements Closeable {
     private static final Logger LOGGER = Loggers.getLogger(ShardReplicationChangesTracker.class);
 
     private final ShardId shardId;
+    private final LogicalReplicationSettings replicationSettings;
     private final ThreadPool threadPool;
     private final Function<String, Client> remoteClientResolver;
     private final ShardTranslogSequencer sequencer;
     private final List<Tuple<Long, Long>> missingBatches = Collections.synchronizedList(new ArrayList<>());
     private final AtomicLong observedSeqNoAtLeader;
     private final AtomicLong seqNoAlreadyRequested;
-    private final long batchSize;
-    private final TimeValue pollDelay;
     private Scheduler.ScheduledCancellable cancellable;
 
     public ShardReplicationChangesTracker(IndexShard indexShard,
-                                          Settings settings,
+                                          LogicalReplicationSettings replicationSettings,
                                           ThreadPool threadPool,
                                           Function<String, Client> remoteClientResolver,
                                           Client client) {
         this.shardId = indexShard.shardId();
+        this.replicationSettings = replicationSettings;
         this.threadPool = threadPool;
         this.remoteClientResolver = remoteClientResolver;
         this.sequencer = new ShardTranslogSequencer(shardId, client, indexShard.getLocalCheckpoint());
         observedSeqNoAtLeader = new AtomicLong(indexShard.getLocalCheckpoint());
         seqNoAlreadyRequested = new AtomicLong(indexShard.getLocalCheckpoint());
-        batchSize = REPLICATION_CHANGE_BATCH_SIZE.get(settings);
-        pollDelay = REPLICATION_READ_POLL_DURATION.get(settings);
     }
 
     public void start() {
@@ -140,7 +134,7 @@ public class ShardReplicationChangesTracker implements Closeable {
         if (seqNoAlreadyRequested.get() > observedSeqNoAtLeader.get() && missingBatches.isEmpty()) {
             cancellable = threadPool.schedule(
                 () -> requestBatchToFetch(consumer),
-                pollDelay,
+                replicationSettings.pollDelay(),
                 ThreadPool.Names.LOGICAL_REPLICATION
             );
             return;
@@ -153,6 +147,7 @@ public class ShardReplicationChangesTracker implements Closeable {
             consumer.accept(missingBatch);
         } else {
             // return the next batch to fetch and update seqNoAlreadyRequested.
+            var batchSize = replicationSettings.batchSize();
             var fromSeq = seqNoAlreadyRequested.getAndAdd(batchSize) + 1;
             var toSeq = fromSeq + batchSize - 1;
             LOGGER.debug("[{}] Fetching the batch {}-{}", shardId, fromSeq, toSeq);

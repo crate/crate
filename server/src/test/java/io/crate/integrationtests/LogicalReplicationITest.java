@@ -37,7 +37,6 @@ import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.MockTcpTransportPlugin;
 import org.elasticsearch.transport.Netty4Plugin;
@@ -62,7 +61,6 @@ import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDE
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
 import static org.hamcrest.Matchers.is;
 
-@TestLogging("io.crate.replication.logical:TRACE")
 public class LogicalReplicationITest extends ESTestCase {
 
     InternalTestCluster publisherCluster;
@@ -268,7 +266,6 @@ public class LogicalReplicationITest extends ESTestCase {
     @Test
     public void test_subscribing_to_single_publication() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
-                           " number_of_replicas=0," +
                            " \"translog.flush_threshold_size\"='64b'" +
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
@@ -318,11 +315,29 @@ public class LogicalReplicationITest extends ESTestCase {
                            " \"translog.flush_threshold_size\"='64b'" +
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
-        executeOnPublisher("CREATE TABLE doc.t2 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
+
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
+
+        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
+
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        var response = executeOnSubscriber("SELECT * FROM doc.t1");
+        assertThat(printedTable(response.rows()), is("1| 1\n" +
+                                                     "2| 2\n"));
+    }
+
+    @Test
+    public void test_subscribing_to_single_publication_for_all_tables() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT, p INT) CLUSTERED INTO 1 SHARDS PARTITIONED BY (p) WITH(" +
                            " number_of_replicas=0," +
                            " \"translog.flush_threshold_size\"='64b'" +
                            ")");
-        executeOnPublisher("INSERT INTO doc.t2 (id) VALUES (1), (2)");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("CREATE TABLE my_schema.t2 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
+                           " number_of_replicas=0," +
+                           " \"translog.flush_threshold_size\"='64b'" +
+                           ")");
+        executeOnPublisher("INSERT INTO my_schema.t2 (id) VALUES (1), (2)");
 
         executeOnPublisher("CREATE PUBLICATION pub1 FOR ALL TABLES");
 
@@ -333,28 +348,10 @@ public class LogicalReplicationITest extends ESTestCase {
         assertThat(printedTable(response.rows()), is("1| 1\n" +
                                                      "2| 2\n"));
 
-        executeOnSubscriber("REFRESH TABLE doc.t2");
-        response = executeOnSubscriber("SELECT * FROM doc.t2");
+        executeOnSubscriber("REFRESH TABLE my_schema.t2");
+        response = executeOnSubscriber("SELECT * FROM my_schema.t2");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
-    }
-
-    @Test
-    public void test_subscribing_to_single_publication_for_all_tables() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT, p INT) CLUSTERED INTO 1 SHARDS PARTITIONED BY (p) WITH(" +
-                           " number_of_replicas=0," +
-                           " \"translog.flush_threshold_size\"='64b'" +
-                           ")");
-        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
-
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
-
-        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-
-        executeOnSubscriber("REFRESH TABLE doc.t1");
-        var response = executeOnSubscriber("SELECT * FROM doc.t1");
-        assertThat(printedTable(response.rows()), is("1| 1\n" +
-                                                     "2| 2\n"));
     }
 
     @Test
@@ -386,7 +383,7 @@ public class LogicalReplicationITest extends ESTestCase {
                                                         "4\n"));
 
             },
-            10, TimeUnit.MINUTES
+            10, TimeUnit.SECONDS
         );
     }
 }
