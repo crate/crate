@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.SQLResponse;
@@ -278,6 +279,23 @@ public class LogicalReplicationITest extends ESTestCase {
         var response = executeOnSubscriber("SELECT * FROM doc.t1");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
+    }
+
+    @Test
+    public void test_subscribing_to_publication_while_table_exists_raises_error() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
+                           " \"translog.flush_threshold_size\"='64b'" +
+                           ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
+
+        executeOnSubscriber("CREATE TABLE doc.t1 (id int)");
+        assertThrows(
+            "Subscription 'sub1' cannot be created as included relation 'doc.t1' already exists",
+            RelationAlreadyExists.class,
+            () -> executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1")
+        );
     }
 
     @Test

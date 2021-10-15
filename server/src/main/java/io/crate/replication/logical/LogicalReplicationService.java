@@ -23,6 +23,9 @@ package io.crate.replication.logical;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
@@ -60,9 +63,11 @@ import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
@@ -299,11 +304,17 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                             new PublicationsStateAction.Request(subscription.publications()),
                             ActionListener.delegateFailure(
                                 listener,
-                                (l, statsResponse) -> {
-                                    for (var index : statsResponse.concreteIndices()) {
+                                (l, stateResponse) -> {
+                                    try {
+                                        validatePublicationState(subscriptionName, stateResponse);
+                                    } catch (Exception e) {
+                                        listener.onFailure(e);
+                                        return;
+                                    }
+                                    for (var index : stateResponse.concreteIndices()) {
                                         subscribedIndices.put(index, subscriptionName);
                                     }
-                                    initiateReplication(subscriptionName, subscription, statsResponse, l);
+                                    initiateReplication(subscriptionName, subscription, stateResponse, l);
                                 }
                             )
                         );
@@ -312,6 +323,29 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
             );
         } else {
             listener.onResponse(new AcknowledgedResponse(true));
+        }
+    }
+
+    private void validatePublicationState(String subscriptionName, PublicationsStateAction.Response stateResponse) {
+        var metadata = clusterService.state().metadata();
+        Consumer<RelationName> onExists = (relation) -> {
+            var message = String.format(
+                Locale.ENGLISH,
+                "Subscription '%s' cannot be created as included relation '%s' already exists",
+                subscriptionName,
+                relation
+            );
+            throw new RelationAlreadyExists(relation, message);
+        };
+        for (var index : stateResponse.concreteIndices()) {
+            if (metadata.hasIndex(index)) {
+                onExists.accept(RelationName.fromIndexName(index));
+            }
+        }
+        for (var template : stateResponse.concreteTemplates()) {
+            if (metadata.templates().containsKey(template)) {
+                onExists.accept(PartitionName.fromIndexOrTemplate(template).relationName());
+            }
         }
     }
 
