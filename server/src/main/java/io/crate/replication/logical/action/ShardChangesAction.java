@@ -22,6 +22,8 @@
 package io.crate.replication.logical.action;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.exceptions.MissingShardOperationsException;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
@@ -38,6 +40,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.engine.MissingHistoryOperationsException;
+import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
@@ -49,6 +54,7 @@ import org.elasticsearch.transport.TransportService;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
@@ -115,6 +121,12 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
                     ops.add(op);
                     op = snapshot.next();
                 }
+            } catch (MissingHistoryOperationsException e) {
+                final Collection<RetentionLease> retentionLeases = indexShard.getRetentionLeases().leases();
+                final String message = "Operations are no longer available for replicating. " +
+                                       "Existing retention leases [" + retentionLeases + "]; maybe increase the retention lease period setting " +
+                                       "[" + IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey() + "]?";
+                throw new MissingShardOperationsException(RelationName.fromIndexName(shardId.getIndexName()), message);
             }
 
             return new Response(
