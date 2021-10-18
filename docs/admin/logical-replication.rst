@@ -24,25 +24,24 @@ Logical replication is useful for the following use cases:
 
 .. rst-class:: open
 
+- Consolidating data from multiple clusters into a single one for aggregated
+  reports.
+
 - Ensure High Availability if one cluster becomes unavailable.
 
-- Replicating between different major versions of CrateDB via chain of
-  compatible versions. Adjacent major versions are compatible.
-
-- Consolidating multiple clusters into a single one for aggregated reports.
+- Replicating between different compatible versions of CrateDB.
 
 .. _logical-replication-publication:
 
 Publication
 -----------
 
-A publication is a set of changes generated from a table or a group of tables,
-and might also be described as a replication set.
+A publication is the upstream side of logical replication and it's created on
+the cluster which acts as a data source.
 
-Publications are different from schemas and do not affect how the table is
-accessed. Each table can be added to multiple publications if needed.
-Publications can only contain tables. All operation types
-(INSERT, UPDATE, DELETE) are replicated.
+Each table can be added to multiple publications if needed. Publications can
+only contain tables. All operation types (INSERT, UPDATE, DELETE and schema
+changes) are replicated.
 
 Every publication can have multiple subscribers.
 
@@ -63,10 +62,13 @@ process on the subscriber cluster. The subscriber cluster behaves in the same
 way as any other CrateDB cluster and can be used as a publisher for other
 clusters by defining its own publications.
 
-A subscriber may have multiple subscriptions if desired. It is possible to
-define multiple subscriptions between a single publisher-subscriber pair, in
-which case care must be taken to ensure that the subscribed publication tables
-don't overlap.
+A cluster can have multiple subscriptions. It is also possible for a cluster to
+have both subscriptions and publications. A cluster cannot subscribe to already
+existing locally table, therefore it is not possible to setup a bi-directional
+replication (both sides subscribing to ALL TABLES leads to a cluster trying to
+replicate its own tables from another cluster). However, 2 clusters still can
+cross subscribe to each other if one cluster subscribes to non-existing locally
+tables of another cluster and vice versa.
 
 A subscription is added using
 :ref:`CREATE SUBSCRIPTION <sql-create-subscription>` command and can be
@@ -74,13 +76,13 @@ stopped/resumed at any time using the
 :ref:`ALTER SUBSCRIPTION <sql-alter-subscription>` command and removed using
 :ref:`DROP SUBSCRIPTION <sql-drop-subscription>` command.
 
-When a subscription is dropped and recreated, the synchronization information
-is lost. This means that the data has to be resynchronized afterwards.
-
 Published tables must not exist on the subscriber. A cluster cannot subscribe
-to a table on another cluster if it exists already on its side. Only regular
-tables (including partitions) may be the target of replication. For example,
-you can't replicate a view.
+to a table on another cluster if it exists already on its side, therefore it's
+not possible to drop and re-create a subscription without starting from scratch
+i.e removing all replicated tables.
+
+Only regular tables (including partitions) may be the target of replication.
+For example, you can't replicate a view.
 
 The tables are matched between the publisher and the subscriber using the fully
 qualified table name. Replication to differently-named tables on the subscriber
