@@ -24,12 +24,13 @@ Logical replication is useful for the following use cases:
 
 .. rst-class:: open
 
+- Consolidating data from multiple clusters into a single one for aggregated
+  reports.
+
 - Ensure High Availability if one cluster becomes unavailable.
 
 - Replicating between different major versions of CrateDB via chain of
   compatible versions. Adjacent major versions are compatible.
-
-- Consolidating multiple clusters into a single one for aggregated reports.
 
 .. _logical-replication-publication:
 
