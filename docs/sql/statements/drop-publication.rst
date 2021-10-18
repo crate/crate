@@ -28,7 +28,8 @@ Synopsis
 Description
 ===========
 
-Removes an existing publication from the cluster.
+Removes an existing publication from the cluster. Stops the replication for all
+existing subscriptions.
 
 .. _sql-drop-publication-params:
 
