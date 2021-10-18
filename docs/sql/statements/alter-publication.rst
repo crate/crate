@@ -37,8 +37,11 @@ Synopsis
 Description
 ===========
 
-Update the list of published table according to the command.
-
+Update the list of published table according to the command. If a table gets
+deleted from the publication and it has existing subscriptions, the replication
+of the table stops for all subscribers. Already replicated data remains on
+the subscribed clusters, therefore subscribers can not re-subscribe again to
+the tables removed from the publication.
 
 Parameters
 ==========
