@@ -21,18 +21,53 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
+
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TermRangeQuery;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.Streamer;
 
 public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>, FixedWidthType {
 
     public static final int ID = 3;
     public static final BooleanType INSTANCE = new BooleanType();
+
+    private static final StorageSupport<Boolean> STORAGE = new StorageSupport<>(
+        true,
+        true,
+        new EqQuery<>() {
+
+            private static BytesRef indexedValue(Boolean value) {
+                if (value == null) {
+                    return null;
+                }
+                return value ? new BytesRef("T") : new BytesRef("F");
+            }
+
+            @Override
+            public Query termQuery(String field, Boolean value) {
+                return new TermQuery(new Term(field, indexedValue(value)));
+            }
+
+            @Override
+            public Query rangeQuery(String field,
+                                    Boolean lowerTerm,
+                                    Boolean upperTerm,
+                                    boolean includeLower,
+                                    boolean includeUpper) {
+                return new TermRangeQuery(
+                    field, indexedValue(lowerTerm), indexedValue(upperTerm), includeLower, includeUpper);
+            }
+        }
+    );
 
     private BooleanType() {
     }
@@ -128,7 +163,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     }
 
     @Override
-    public StorageSupport storageSupport() {
-        return StorageSupport.ALL_AVAILABLE;
+    public StorageSupport<Boolean> storageSupport() {
+        return STORAGE;
     }
 }

@@ -36,8 +36,6 @@ import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
-import org.apache.lucene.search.Query;
 import org.elasticsearch.common.Explicit;
 import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.joda.Joda;
@@ -191,37 +189,6 @@ public class DateFieldMapper extends FieldMapper {
 
         long parse(String value) {
             return dateTimeFormatter().parser().parseMillis(value);
-        }
-
-        @Override
-        public Query rangeQuery(Object lowerTerm,
-                                Object upperTerm,
-                                boolean includeLower,
-                                boolean includeUpper) {
-            failIfNotIndexed();
-            long l, u;
-            if (lowerTerm == null) {
-                l = Long.MIN_VALUE;
-            } else {
-                l = (Long) lowerTerm;
-                if (includeLower == false) {
-                    ++l;
-                }
-            }
-            if (upperTerm == null) {
-                u = Long.MAX_VALUE;
-            } else {
-                u = (Long) upperTerm;
-                if (includeUpper == false) {
-                    --u;
-                }
-            }
-            Query query = LongPoint.newRangeQuery(name(), l, u);
-            if (hasDocValues()) {
-                Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(name(), l, u);
-                query = new IndexOrDocValuesQuery(query, dvQuery);
-            }
-            return query;
         }
 
         @Override

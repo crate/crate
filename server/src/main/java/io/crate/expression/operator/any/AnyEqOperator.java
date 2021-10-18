@@ -92,7 +92,7 @@ public final class AnyEqOperator extends AnyOperator {
                                                 Object candidate,
                                                 LuceneQueryBuilder.Context context) {
         ArrayList<Object> terms = new ArrayList<>();
-        gatherLeafs(iterableWithStringsAsBytesRef(candidate), terms::add);
+        gatherLeafs((Iterable<?>) candidate, terms::add);
         Query termsQuery = EqOperator.termsQuery(
             candidates.column().fqn(),
             ArrayType.unnest(candidates.valueType()),

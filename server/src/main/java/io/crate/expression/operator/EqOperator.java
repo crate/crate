@@ -68,18 +68,16 @@ import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
-import io.crate.types.BooleanType;
-import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
+import io.crate.types.EqQuery;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.ObjectType;
-import io.crate.types.ShortType;
+import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
-import io.crate.types.TimestampType;
 
 public final class EqOperator extends Operator<Object> {
 
@@ -209,21 +207,17 @@ public final class EqOperator extends Operator<Object> {
         return filterClauses.build();
     }
 
+    @SuppressWarnings("unchecked")
     public static Query fromPrimitive(DataType<?> type, String column, Object value) {
         if (column.equals(DocSysColumns.ID.name())) {
             return new TermQuery(new Term(column, Uid.encodeId((String) value)));
         }
-        return switch (type.id()) {
-            case BooleanType.ID -> new TermQuery(new Term(column, (Boolean) value ? new BytesRef("T") : new BytesRef("F")));
-            case ByteType.ID, ShortType.ID, IntegerType.ID -> IntPoint.newExactQuery(column, ((Number) value).intValue());
-            case TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ, LongType.ID -> LongPoint.newExactQuery(column, (long) value);
-            case FloatType.ID -> FloatPoint.newExactQuery(column, (float) value);
-            case DoubleType.ID -> DoublePoint.newExactQuery(column, (double) value);
-            case StringType.ID -> new TermQuery(new Term(column, BytesRefs.toBytesRef(value)));
-            case IpType.ID -> InetAddressPoint.newExactQuery(column, InetAddresses.forString((String) value));
-            case BitStringType.ID -> new TermQuery(new Term(column, new BytesRef(((BitString) value).bitSet().toByteArray())));
-            default -> null;
-        };
+        StorageSupport<?> storageSupport = type.storageSupport();
+        EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
+        if (eqQuery == null) {
+            return null;
+        }
+        return ((EqQuery<Object>) eqQuery).termQuery(column, value);
     }
 
     /**

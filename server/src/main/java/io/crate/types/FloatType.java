@@ -22,6 +22,12 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+
+import org.apache.lucene.document.FloatPoint;
+import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.search.IndexOrDocValuesQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -34,6 +40,42 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     public static final FloatType INSTANCE = new FloatType();
     public static final int ID = 7;
     private static final int FLOAT_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Float.class);
+    private static final StorageSupport<Float> STORAGE = new StorageSupport<>(
+        true,
+        true,
+        new EqQuery<Float>() {
+
+            @Override
+            public Query termQuery(String field, Float value) {
+                return FloatPoint.newExactQuery(field, value);
+            }
+
+            @Override
+            public Query rangeQuery(String field,
+                                    Float lowerTerm,
+                                    Float upperTerm,
+                                    boolean includeLower,
+                                    boolean includeUpper) {
+                float lower;
+                if (lowerTerm == null) {
+                    lower = Float.NEGATIVE_INFINITY;
+                } else {
+                    lower = includeLower ? lowerTerm : FloatPoint.nextUp(lowerTerm);
+                }
+
+                float upper;
+                if (upperTerm == null) {
+                    upper = Float.POSITIVE_INFINITY;
+                } else {
+                    upper = includeUpper ? upperTerm : FloatPoint.nextDown(upperTerm);
+                }
+
+                Query indexQuery = FloatPoint.newRangeQuery(field, lower, upper);
+                Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(field, NumericUtils.floatToSortableInt(lower), NumericUtils.floatToSortableInt(upper));
+                return new IndexOrDocValuesQuery(indexQuery, dvQuery);
+            }
+        }
+    );
 
     private FloatType() {
     }
@@ -123,7 +165,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     }
 
     @Override
-    public StorageSupport storageSupport() {
-        return StorageSupport.ALL_AVAILABLE;
+    public StorageSupport<Float> storageSupport() {
+        return STORAGE;
     }
 }

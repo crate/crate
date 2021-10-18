@@ -21,7 +21,6 @@ package org.elasticsearch.index.mapper;
 
 import java.util.Objects;
 
-import org.apache.lucene.search.Query;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 
 /**
@@ -95,14 +94,6 @@ public abstract class MappedFieldType {
      */
     public boolean isSearchable() {
         return isIndexed;
-    }
-
-    /**
-     * Factory method for range queries.
-     * @param relation the relation, nulls should be interpreted like INTERSECTS
-     */
-    public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper) {
-        throw new IllegalArgumentException("Field [" + name + "] of type [" + typeName() + "] does not support range queries");
     }
 
     /** @throws IllegalArgumentException if the fielddata is not supported on this type.

@@ -21,20 +21,7 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
-import io.crate.common.unit.TimeValue;
-import io.crate.sql.tree.BitString;
-import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.sql.tree.ColumnType;
-import io.crate.sql.tree.Expression;
-
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import static io.crate.common.StringUtils.isBlank;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -47,7 +34,25 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import static io.crate.common.StringUtils.isBlank;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TermRangeQuery;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.xcontent.XContentFactory;
+
+import io.crate.Streamer;
+import io.crate.common.unit.TimeValue;
+import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.Expression;
 
 public class StringType extends DataType<String> implements Streamer<String> {
 
@@ -55,6 +60,33 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public static final StringType INSTANCE = new StringType();
     public static final String T = "t";
     public static final String F = "f";
+
+    private static final StorageSupport<String> STORAGE = new StorageSupport<>(
+        true,
+        true,
+        new EqQuery<String>() {
+
+            @Override
+            public Query termQuery(String field, String value) {
+                return new TermQuery(new Term(field, BytesRefs.toBytesRef(value)));
+            }
+
+            @Override
+            public Query rangeQuery(String field,
+                                    String lowerTerm,
+                                    String upperTerm,
+                                    boolean includeLower,
+                                    boolean includeUpper) {
+                return new TermRangeQuery(
+                    field,
+                    BytesRefs.toBytesRef(lowerTerm),
+                    BytesRefs.toBytesRef(upperTerm),
+                    includeLower,
+                    includeUpper
+                );
+            }
+        }
+    );
 
     private final int lengthLimit;
 
@@ -293,8 +325,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public StorageSupport storageSupport() {
-        return StorageSupport.ALL_AVAILABLE;
+    public StorageSupport<String> storageSupport() {
+        return STORAGE;
     }
-
 }

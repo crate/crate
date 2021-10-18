@@ -35,7 +35,6 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.common.TriFunction;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.QueryShardContext;
 
 import io.crate.data.Input;
 import io.crate.exceptions.ColumnUnknownException;
@@ -57,7 +56,9 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.EqQuery;
 import io.crate.types.ObjectType;
+import io.crate.types.StorageSupport;
 
 /**
  * Supported subscript expressions:
@@ -222,15 +223,15 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     private interface PreFilterQueryBuilder {
-        Query buildQuery(MappedFieldType fieldType, DataType<?> type, Object value, QueryShardContext context);
+        Query buildQuery(String field, EqQuery eqQuery, Object value);
     }
 
     private static final Map<String, PreFilterQueryBuilder> PRE_FILTER_QUERY_BUILDER_BY_OP = Map.of(
-        EqOperator.NAME, (fieldType, type, value, ctx) -> EqOperator.fromPrimitive(type, fieldType.name(), value),
-        GteOperator.NAME, (fieldType, type, value, ctx) -> fieldType.rangeQuery(value, null, true, false),
-        GtOperator.NAME, (fieldType, type, value, ctx) -> fieldType.rangeQuery(value, null, false, false),
-        LteOperator.NAME, (fieldType, type, value, ctx) -> fieldType.rangeQuery(null, value, false, true),
-        LtOperator.NAME, (fieldType, type, value, ctx) -> fieldType.rangeQuery(null, value, false, false)
+        EqOperator.NAME, (field, eqQuery, value) -> eqQuery.termQuery(field, value),
+        GteOperator.NAME, (field, eqQuery, value) -> eqQuery.rangeQuery(field, value, null, true, false),
+        GtOperator.NAME, (field, eqQuery, value) -> eqQuery.rangeQuery(field, value, null, false, false),
+        LteOperator.NAME, (field, eqQuery, value) -> eqQuery.rangeQuery(field, null, value, false, true),
+        LtOperator.NAME, (field, eqQuery, value) -> eqQuery.rangeQuery(field, null, value, false, false)
     );
 
 
@@ -258,9 +259,14 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 }
                 return Queries.newMatchNoDocsQuery("column doesn't exist in this index");
             }
+            StorageSupport<?> storageSupport = innerType.storageSupport();
+            EqQuery eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
+            if (eqQuery == null) {
+                return null;
+            }
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
             builder.add(
-                preFilterQueryBuilder.buildQuery(fieldType, innerType, cmpLiteral.value(), context.queryShardContext()),
+                preFilterQueryBuilder.buildQuery(ref.column().fqn(), eqQuery, cmpLiteral.value()),
                 BooleanClause.Occur.MUST);
             builder.add(LuceneQueryBuilder.genericFunctionFilter(parent, context), BooleanClause.Occur.FILTER);
             return builder.build();

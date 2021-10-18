@@ -31,8 +31,6 @@ import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.search.MatchNoDocsQuery;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Explicit;
 import org.elasticsearch.common.network.InetAddresses;
@@ -136,38 +134,6 @@ public class IpFieldMapper extends FieldMapper {
             }
         }
 
-
-        @Override
-        public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper) {
-            failIfNotIndexed();
-            InetAddress lower;
-            if (lowerTerm == null) {
-                lower = InetAddressPoint.MIN_VALUE;
-            } else {
-                lower = parse(lowerTerm);
-                if (includeLower == false) {
-                    if (lower.equals(InetAddressPoint.MAX_VALUE)) {
-                        return new MatchNoDocsQuery();
-                    }
-                    lower = InetAddressPoint.nextUp(lower);
-                }
-            }
-
-            InetAddress upper;
-            if (upperTerm == null) {
-                upper = InetAddressPoint.MAX_VALUE;
-            } else {
-                upper = parse(upperTerm);
-                if (includeUpper == false) {
-                    if (upper.equals(InetAddressPoint.MIN_VALUE)) {
-                        return new MatchNoDocsQuery();
-                    }
-                    upper = InetAddressPoint.nextDown(upper);
-                }
-            }
-
-            return InetAddressPoint.newRangeQuery(name(), lower, upper);
-        }
 
         @Override
         public Object valueForDisplay(Object value) {

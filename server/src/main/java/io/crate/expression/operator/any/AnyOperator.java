@@ -24,10 +24,8 @@ package io.crate.expression.operator.any;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.stream.StreamSupport;
 
 import org.apache.lucene.search.Query;
-import org.apache.lucene.util.BytesRef;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperators;
@@ -167,12 +165,5 @@ public abstract sealed class AnyOperator extends Operator<Object>
         } else {
             return null;
         }
-    }
-
-    protected static Iterable<Object> iterableWithStringsAsBytesRef(Object value) {
-        Iterable<?> values = (Iterable<?>) value;
-        return () -> StreamSupport.stream(values.spliterator(), false)
-            .map(x -> x instanceof String str ? new BytesRef(str) : x)
-            .iterator();
     }
 }

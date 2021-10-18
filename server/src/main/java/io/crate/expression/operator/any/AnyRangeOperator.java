@@ -104,7 +104,7 @@ public final class AnyRangeOperator extends AnyOperator {
         // col < ANY ([1,2,3]) --> or(col<1, col<2, col<3)
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
-        for (Object value : iterableWithStringsAsBytesRef(candidates.value())) {
+        for (Object value : (Iterable<?>) candidates.value()) {
             booleanQuery.add(
                 CmpOperator.toQuery(comparison.innerOpName, probe, value, context),
                 BooleanClause.Occur.SHOULD);

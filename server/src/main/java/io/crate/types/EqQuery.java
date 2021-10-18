@@ -21,15 +21,14 @@
 
 package io.crate.types;
 
+import org.apache.lucene.search.Query;
 
-import javax.annotation.Nullable;
-import io.crate.metadata.Reference.IndexType;
+/**
+ * For types which can be stored in Lucene and support optimized equality related queries
+ **/
+public interface EqQuery<T> {
 
-public record StorageSupport<T>(boolean docValuesDefault,
-                                boolean hasFieldNamesIndex,
-                                @Nullable EqQuery<T> eqQuery) {
+    Query termQuery(String field, T value);
 
-    public boolean getComputedDocValuesDefault(IndexType indexType) {
-        return docValuesDefault && indexType != IndexType.FULLTEXT;
-    }
+    Query rangeQuery(String field, T lowerTerm, T upperTerm, boolean includeLower, boolean includeUpper);
 }
