@@ -21,6 +21,7 @@
 
 package org.elasticsearch.index.shard;
 
+import io.crate.common.collections.Tuple;
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -41,8 +42,6 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -149,9 +148,8 @@ public abstract class RestoreOnlyRepository implements Repository {
     }
 
     @Override
-    public IndexShardSnapshotStatus getShardSnapshotStatus(SnapshotId snapshotId,
-                                                           IndexId indexId, ShardId shardId) {
-        return null;
+    public void getShardSnapshotStatus(SnapshotId snapshotId, IndexId indexId, ShardId shardId, ActionListener<Tuple<ShardId, IndexShardSnapshotStatus>> listener) {
+        listener.onResponse(null);
     }
 
     @Override

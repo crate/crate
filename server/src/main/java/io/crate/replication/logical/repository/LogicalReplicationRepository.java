@@ -21,6 +21,7 @@
 
 package io.crate.replication.logical.repository;
 
+import io.crate.common.collections.Tuple;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.action.GetStoreMetadataAction;
 import io.crate.replication.logical.action.PublicationsStateAction;
@@ -53,6 +54,7 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
 import org.elasticsearch.index.store.Store;
+import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.repositories.IndexId;
@@ -242,25 +244,51 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public IndexShardSnapshotStatus getShardSnapshotStatus(SnapshotId snapshotId,
-                                                           IndexId indexId,
-                                                           ShardId shardId) {
-        assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
+    public void getShardSnapshotStatus(
+        SnapshotId snapshotId,
+        IndexId indexId,
+        ShardId shardId,
+        ActionListener<Tuple<ShardId, IndexShardSnapshotStatus>> listener
+    ) {
+        assert SNAPSHOT_ID.equals(snapshotId) :
+            "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
         final String remoteIndex = indexId.getName();
-        final IndicesStatsResponse response = getRemoteClusterClient().admin().indices().prepareStats(remoteIndex)
-            .clear().setStore(true)
-            .execute().actionGet(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC);
-        for (ShardStats shardStats : response.getIndex(remoteIndex).getShards()) {
-            final ShardRouting shardRouting = shardStats.getShardRouting();
-            if (shardRouting.shardId().id() == shardId.getId()
-                && shardRouting.primary()
-                && shardRouting.active()) {
-                // we only care about the shard size here for shard allocation, populate the rest with dummy values
-                final long totalSize = shardStats.getStats().getStore().getSizeInBytes();
-                return IndexShardSnapshotStatus.newDone(0L, 0L, 1, 1, totalSize, totalSize, "");
+        ActionListener<IndicesStatsResponse> indicesStatsResponsListener = new ActionListener<>() {
+            @Override
+            public void onResponse(IndicesStatsResponse indicesStatsResponse) {
+                for (ShardStats shardStats : indicesStatsResponse.getIndex(remoteIndex).getShards()) {
+                    final ShardRouting shardRouting = shardStats.getShardRouting();
+                    if (shardRouting.shardId().id() == shardId.getId()
+                        && shardRouting.primary()
+                        && shardRouting.active()) {
+                        // we only care about the shard size here for shard allocation, populate the rest with dummy values
+                        StoreStats store = shardStats.getStats().getStore();
+                        if (store != null) {
+                            final long totalSize = store.getSizeInBytes();
+                            var foo = new Tuple<>(shardId,
+                                                  IndexShardSnapshotStatus.newDone(0L,
+                                                                                   0L,
+                                                                                   1,
+                                                                                   1,
+                                                                                   totalSize,
+                                                                                   totalSize,
+                                                                                   ""));
+                            listener.onResponse(foo);
+                        }
+                    }
+                }
+                listener.onFailure(new ElasticsearchException(
+                    "Could not get shard stats for primary of index " + remoteIndex + " on publisher cluster"));
             }
-        }
-        throw new ElasticsearchException("Could not get shard stats for primary of index " + remoteIndex + " on publisher cluster");
+
+            @Override
+            public void onFailure(Exception e) {
+                listener.onFailure(e);
+            }
+        };
+        getRemoteClusterClient().admin().indices().prepareStats(remoteIndex)
+            .clear().setStore(true)
+            .execute(indicesStatsResponsListener);
     }
 
     @Override

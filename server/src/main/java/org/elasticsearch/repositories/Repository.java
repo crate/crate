@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.Function;
 
+import io.crate.common.collections.Tuple;
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -227,7 +228,7 @@ public interface Repository extends LifecycleComponent {
      * @param shardId    shard id
      * @return snapshot status
      */
-    IndexShardSnapshotStatus getShardSnapshotStatus(SnapshotId snapshotId, IndexId indexId, ShardId shardId);
+    void getShardSnapshotStatus(SnapshotId snapshotId, IndexId indexId, ShardId shardId, ActionListener<Tuple<ShardId, IndexShardSnapshotStatus>> listener);
 
     /**
      * Update the repository with the incoming cluster state. This method is invoked from {@link RepositoriesService#applyClusterState} and

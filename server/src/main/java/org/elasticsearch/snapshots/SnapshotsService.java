@@ -21,8 +21,10 @@ package org.elasticsearch.snapshots;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.CompletableFutures;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -724,14 +726,18 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * </p>
      *
      * @param repositoryName  repository name
+     * @param repositoryData    snapshot info
      * @param snapshotInfo    snapshot info
-     * @return map of shard id to snapshot status
+     * @param listener    map of shard id to snapshot status
      */
-    public Map<ShardId, IndexShardSnapshotStatus> snapshotShards(final String repositoryName,
-                                                                 final RepositoryData repositoryData,
-                                                                 final SnapshotInfo snapshotInfo) throws IOException {
+    public void snapshotShards(final String repositoryName,
+                               final RepositoryData repositoryData,
+                               final SnapshotInfo snapshotInfo,
+                               ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener) throws IOException {
         final Repository repository = repositoriesService.repository(repositoryName);
         final Map<ShardId, IndexShardSnapshotStatus> shardStatus = new HashMap<>();
+        List<FutureActionListener<Tuple<ShardId, IndexShardSnapshotStatus>, Tuple<ShardId, IndexShardSnapshotStatus>>> results = new ArrayList<>();
+
         for (String index : snapshotInfo.indices()) {
             IndexId indexId = repositoryData.resolveIndexId(index);
             IndexMetadata indexMetadata = repository.getSnapshotIndexMetadata(snapshotInfo.snapshotId(), indexId);
@@ -754,17 +760,29 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                             // could not be taken due to partial being set to false.
                             shardSnapshotStatus = IndexShardSnapshotStatus.newFailed("skipped");
                         } else {
-                            shardSnapshotStatus = repository.getShardSnapshotStatus(
+                            FutureActionListener<Tuple<ShardId, IndexShardSnapshotStatus>, Tuple<ShardId, IndexShardSnapshotStatus>> shardSnapshotStatusListener = FutureActionListener.newInstance();
+                            repository.getShardSnapshotStatus(
                                 snapshotInfo.snapshotId(),
                                 indexId,
-                                shardId);
+                                shardId,
+                                shardSnapshotStatusListener);
+                            results.add(shardSnapshotStatusListener);
                         }
-                        shardStatus.put(shardId, shardSnapshotStatus);
                     }
                 }
             }
         }
-        return unmodifiableMap(shardStatus);
+        CompletableFutures.allAsList(results).thenApply(r -> {
+            final Map<ShardId, IndexShardSnapshotStatus> asyncShardStatus = new HashMap<>();
+            for (Tuple<ShardId, IndexShardSnapshotStatus> shardIdIndexShardSnapshotStatusTuple : r) {
+                asyncShardStatus.put(shardIdIndexShardSnapshotStatusTuple.v1(), shardIdIndexShardSnapshotStatusTuple.v2());
+            }
+            return asyncShardStatus;
+        }).thenApply(r -> {
+            shardStatus.putAll(r);
+            listener.onResponse(unmodifiableMap(shardStatus));
+            return shardStatus;
+        });
     }
 
     private static SnapshotShardFailure findShardFailure(List<SnapshotShardFailure> shardFailures, ShardId shardId) {
