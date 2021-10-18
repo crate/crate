@@ -50,7 +50,6 @@ import org.apache.lucene.search.Weight;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.EqOperator;
@@ -59,6 +58,7 @@ import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.Operators;
+import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -224,13 +224,13 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
             case GtOperator.NAME:
                 if (cmpVal == 0) {
-                    return existsQuery(context, arrayRef);
+                    return IsNullPredicate.refExistsQuery(arrayRef, context);
                 }
                 return genericAndDocValueCount(parent, context, arrayRef, valueCountIsMatch);
 
             case GteOperator.NAME:
                 if (cmpVal == 0) {
-                    return existsQuery(context, arrayRef);
+                    return IsNullPredicate.refExistsQuery(arrayRef, context);
                 } else if (cmpVal == 1) {
                     return numTermsPerDocQuery(arrayRef, valueCountIsMatch);
                 } else {
@@ -273,14 +273,6 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
             leafReaderContext -> getNumTermsPerDocFunction(leafReaderContext.reader(), arrayRef),
             valueCountIsMatch
         );
-    }
-
-    private static Query existsQuery(LuceneQueryBuilder.Context context, Reference arrayRef) {
-        MappedFieldType fieldType = context.getFieldTypeOrNull(arrayRef.column().fqn());
-        if (fieldType == null) {
-            return Queries.newMatchNoDocsQuery("MappedFieldType missing");
-        }
-        return fieldType.existsQuery(context.queryShardContext());
     }
 
     private static IntPredicate predicateForFunction(String cmpFuncName, int cmpValue) {
