@@ -28,11 +28,13 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.DocValuesFieldExistsQuery;
+import org.apache.lucene.search.NormsFieldExistsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -135,6 +137,10 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             // Not indexed, need to use source lookup
             return null;
         } else if (storageSupport != null && storageSupport.hasFieldNamesIndex()) {
+            FieldType luceneFieldType = context.queryShardContext().getMapperService().getLuceneFieldType(field);
+            if (luceneFieldType != null && !luceneFieldType.omitNorms()) {
+                return new NormsFieldExistsQuery(field);
+            }
             if (ArrayType.unnest(ref.valueType()) instanceof ObjectType objType) {
                 BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                 for (var entry : objType.innerTypes().entrySet()) {
