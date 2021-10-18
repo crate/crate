@@ -581,6 +581,11 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_eq_on_bool_uses_termquery() throws Exception {
         Query query = convert("bool_col = true");
         assertThat(query, instanceOf(TermQuery.class));
+    }
 
+    @Test
+    public void test_is_null_on_analyzed_text_column_uses_norms_query() throws Exception {
+        Query query = convert("content is null");
+        assertThat(query.toString(), is("+*:* -NormsFieldExistsQuery [field=content]"));
     }
 }

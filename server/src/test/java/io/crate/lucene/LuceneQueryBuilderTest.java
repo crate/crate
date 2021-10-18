@@ -51,6 +51,7 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
             "create table users (" +
             " name string," +
             " tags string index using fulltext not null," +
+            " content string index using fulltext," +
             " x integer not null," +
             " f float," +
             " d double," +
