@@ -27,13 +27,10 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.query.QueryShardContext;
 
 /**
  * A mapper for the _id field. It does nothing since _id is neither indexed nor
@@ -94,10 +91,6 @@ public class IdFieldMapper extends MetadataFieldMapper {
             return true;
         }
 
-        @Override
-        public Query existsQuery(QueryShardContext context) {
-            return new MatchAllDocsQuery();
-        }
     }
 
     private IdFieldMapper(FieldType fieldType, IndexSettings indexSettings) {

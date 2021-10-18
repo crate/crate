@@ -35,9 +35,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
 import org.apache.lucene.spatial.prefix.TermQueryPrefixTreeStrategy;
@@ -54,7 +51,6 @@ import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
@@ -362,10 +358,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
             };
         }
 
-        @Override
-        public Query existsQuery(QueryShardContext context) {
-            return new TermQuery(new Term(FieldNamesFieldMapper.NAME, name()));
-        }
     }
 
     public GeoShapeFieldMapper(String simpleName,

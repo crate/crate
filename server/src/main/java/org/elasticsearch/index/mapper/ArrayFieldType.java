@@ -23,7 +23,6 @@ package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.search.Query;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.elasticsearch.index.query.QueryShardContext;
 
 class ArrayFieldType extends MappedFieldType {
 
@@ -82,10 +81,5 @@ class ArrayFieldType extends MappedFieldType {
     @Override
     public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper) {
         return innerFieldType.rangeQuery(lowerTerm, upperTerm, includeLower, includeUpper);
-    }
-
-    @Override
-    public Query existsQuery(QueryShardContext context) {
-        return innerFieldType.existsQuery(context);
     }
 }

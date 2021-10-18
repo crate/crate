@@ -23,7 +23,6 @@ import java.util.Objects;
 
 import org.apache.lucene.search.Query;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.elasticsearch.index.query.QueryShardContext;
 
 /**
  * This defines the core properties and functions to operate on a field.
@@ -105,9 +104,6 @@ public abstract class MappedFieldType {
     public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper) {
         throw new IllegalArgumentException("Field [" + name + "] of type [" + typeName() + "] does not support range queries");
     }
-
-    @Deprecated(forRemoval = true)
-    public abstract Query existsQuery(QueryShardContext context);
 
     /** @throws IllegalArgumentException if the fielddata is not supported on this type.
      *  An IllegalArgumentException is needed in order to return an http error 400

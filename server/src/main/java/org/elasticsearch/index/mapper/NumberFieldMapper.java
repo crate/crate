@@ -37,12 +37,9 @@ import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.Numbers;
@@ -50,7 +47,6 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
-import org.elasticsearch.index.query.QueryShardContext;
 
 /** A {@link FieldMapper} for numeric types: byte, short, int, long, float and double. */
 public class NumberFieldMapper extends FieldMapper {
@@ -614,15 +610,6 @@ public class NumberFieldMapper extends FieldMapper {
         @Override
         public String typeName() {
             return type.name;
-        }
-
-        @Override
-        public Query existsQuery(QueryShardContext context) {
-            if (hasDocValues()) {
-                return new DocValuesFieldExistsQuery(name());
-            } else {
-                return new TermQuery(new Term(FieldNamesFieldMapper.NAME, name()));
-            }
         }
 
         @Override

@@ -29,7 +29,6 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.query.ExistsQueryBuilder;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperators;
@@ -194,7 +193,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
                     return null;
                 }
-                return ExistsQueryBuilder.newFilter(context.queryShardContext(), ref.column().fqn());
+                return IsNullPredicate.refExistsQuery(ref, context);
             }
         }
 
@@ -207,9 +206,8 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         SymbolToNotNullContext ctx = new SymbolToNotNullContext();
         arg.accept(INNER_VISITOR, ctx);
         for (Reference reference : ctx.references()) {
-            String columnName = reference.column().fqn();
             if (reference.isNullable()) {
-                builder.add(ExistsQueryBuilder.newFilter(context.queryShardContext(), columnName), BooleanClause.Occur.MUST);
+                builder.add(IsNullPredicate.refExistsQuery(reference, context), BooleanClause.Occur.MUST);
             }
         }
         if (ctx.hasStrictThreeValuedLogicFunction) {

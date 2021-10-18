@@ -30,10 +30,8 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.search.Query;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.query.QueryShardContext;
 
 /**
  * A mapper that indexes the field names of a document under <code>_field_names</code>. This mapper is typically useful in order
@@ -121,10 +119,6 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
             return enabled;
         }
 
-        @Override
-        public Query existsQuery(QueryShardContext context) {
-            throw new UnsupportedOperationException("Cannot run exists query on _field_names");
-        }
     }
 
     private FieldNamesFieldMapper(FieldType fieldType, MappedFieldType mappedFieldType, Settings indexSettings) {

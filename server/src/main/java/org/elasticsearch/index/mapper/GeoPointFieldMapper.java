@@ -33,17 +33,12 @@ import org.apache.lucene.document.LatLonDocValuesField;
 import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.DocValuesFieldExistsQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.index.query.QueryShardContext;
 
 /**
  * Field Mapper for geo_point types.
@@ -132,14 +127,6 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
             return CONTENT_TYPE;
         }
 
-        @Override
-        public Query existsQuery(QueryShardContext context) {
-            if (hasDocValues()) {
-                return new DocValuesFieldExistsQuery(name());
-            } else {
-                return new TermQuery(new Term(FieldNamesFieldMapper.NAME, name()));
-            }
-        }
     }
 
     protected void parse(ParseContext context, GeoPoint point) throws IOException {
