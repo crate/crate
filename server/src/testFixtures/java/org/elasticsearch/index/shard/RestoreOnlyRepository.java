@@ -21,6 +21,7 @@
 
 package org.elasticsearch.index.shard;
 
+import io.crate.common.collections.Tuple;
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -41,8 +42,7 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,13 +68,30 @@ public abstract class RestoreOnlyRepository implements Repository {
     }
 
     @Override
-    public Metadata getSnapshotGlobalMetadata(SnapshotId snapshotId) {
-        return null;
+    public void getSnapshotGlobalMetadata(SnapshotId snapshotId,
+                                          ActionListener<Metadata> listener) {
+
     }
 
     @Override
-    public IndexMetadata getSnapshotIndexMetadata(SnapshotId snapshotId, IndexId index) {
-        return null;
+    public void getSnapshotIndexMetadata(SnapshotId snapshotId,
+                                         ActionListener<List<IndexMetadata>> listener,
+                                         IndexId... index) throws IOException {
+
+    }
+
+    @Override
+    public void getSnapshotIndexMetadata(SnapshotId snapshotId,
+                                         ActionListener<IndexMetadata> listener,
+                                         IndexId index) throws IOException {
+
+    }
+
+    @Override
+    public void getShardSnapshotStatus(SnapshotId snapshotId,
+                                       Set<ShardId> shardIds,
+                                       ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener) {
+
     }
 
     @Override
@@ -147,12 +164,7 @@ public abstract class RestoreOnlyRepository implements Repository {
                              ActionListener<Void> listener) {
 
     }
-
-    @Override
-    public IndexShardSnapshotStatus getShardSnapshotStatus(SnapshotId snapshotId,
-                                                           IndexId indexId, ShardId shardId) {
-        return null;
-    }
+    
 
     @Override
     public Lifecycle.State lifecycleState() {

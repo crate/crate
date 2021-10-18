@@ -724,48 +724,58 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * </p>
      *
      * @param repositoryName  repository name
+     * @param repositoryData    snapshot info
      * @param snapshotInfo    snapshot info
-     * @return map of shard id to snapshot status
+     * @param listener    map of shard id to snapshot status
      */
-    public Map<ShardId, IndexShardSnapshotStatus> snapshotShards(final String repositoryName,
-                                                                 final RepositoryData repositoryData,
-                                                                 final SnapshotInfo snapshotInfo) throws IOException {
+    public void snapshotShards(final String repositoryName,
+                               final RepositoryData repositoryData,
+                               final SnapshotInfo snapshotInfo,
+                               ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener) throws IOException {
         final Repository repository = repositoriesService.repository(repositoryName);
         final Map<ShardId, IndexShardSnapshotStatus> shardStatus = new HashMap<>();
-        for (String index : snapshotInfo.indices()) {
-            IndexId indexId = repositoryData.resolveIndexId(index);
-            IndexMetadata indexMetadata = repository.getSnapshotIndexMetadata(snapshotInfo.snapshotId(), indexId);
-            if (indexMetadata != null) {
-                int numberOfShards = indexMetadata.getNumberOfShards();
-                for (int i = 0; i < numberOfShards; i++) {
-                    ShardId shardId = new ShardId(indexMetadata.getIndex(), i);
-                    SnapshotShardFailure shardFailure = findShardFailure(snapshotInfo.shardFailures(), shardId);
-                    if (shardFailure != null) {
-                        shardStatus.put(shardId, IndexShardSnapshotStatus.newFailed(shardFailure.reason()));
-                    } else {
-                        final IndexShardSnapshotStatus shardSnapshotStatus;
-                        if (snapshotInfo.state() == SnapshotState.FAILED) {
-                            // If the snapshot failed, but the shard's snapshot does
-                            // not have an exception, it means that partial snapshots
-                            // were disabled and in this case, the shard snapshot will
-                            // *not* have any metadata, so attempting to read the shard
-                            // snapshot status will throw an exception.  Instead, we create
-                            // a status for the shard to indicate that the shard snapshot
-                            // could not be taken due to partial being set to false.
-                            shardSnapshotStatus = IndexShardSnapshotStatus.newFailed("skipped");
+        List<String> indices = snapshotInfo.indices();
+        List<IndexId> indexIds = repositoryData.resolveIndices(indices);
+        Set<ShardId> nonFailedShardIds = new HashSet<>();
+        StepListener<List<IndexMetadata>> snapshotIndexMetadataListener = new StepListener<>();
+        repository.getSnapshotIndexMetadata(snapshotInfo.snapshotId(),snapshotIndexMetadataListener, indexIds.toArray(new IndexId[]{}));
+        snapshotIndexMetadataListener.whenComplete(r1 -> {
+            for (IndexMetadata indexMetadata : r1) {
+                if (indexMetadata != null) {
+                    int numberOfShards = indexMetadata.getNumberOfShards();
+                    for (int i = 0; i < numberOfShards; i++) {
+                        ShardId shardId = new ShardId(indexMetadata.getIndex(), i);
+                        SnapshotShardFailure shardFailure = findShardFailure(snapshotInfo.shardFailures(), shardId);
+                        if (shardFailure != null) {
+                            shardStatus.put(shardId, IndexShardSnapshotStatus.newFailed(shardFailure.reason()));
                         } else {
-                            shardSnapshotStatus = repository.getShardSnapshotStatus(
-                                snapshotInfo.snapshotId(),
-                                indexId,
-                                shardId);
+                            final IndexShardSnapshotStatus shardSnapshotStatus;
+                            if (snapshotInfo.state() == SnapshotState.FAILED) {
+                                // If the snapshot failed, but the shard's snapshot does
+                                // not have an exception, it means that partial snapshots
+                                // were disabled and in this case, the shard snapshot will
+                                // *not* have any metadata, so attempting to read the shard
+                                // snapshot status will throw an exception.  Instead, we create
+                                // a status for the shard to indicate that the shard snapshot
+                                // could not be taken due to partial being set to false.
+                                shardSnapshotStatus = IndexShardSnapshotStatus.newFailed("skipped");
+                                shardStatus.put(shardId, shardSnapshotStatus);
+                            } else {
+                                nonFailedShardIds.add(shardId);
+                            }
                         }
-                        shardStatus.put(shardId, shardSnapshotStatus);
                     }
                 }
             }
-        }
-        return unmodifiableMap(shardStatus);
+            StepListener<Map<ShardId, IndexShardSnapshotStatus>> indexShardSnapshotStatusListener = new StepListener<>();
+            repository.getShardSnapshotStatus(snapshotInfo.snapshotId(), nonFailedShardIds, indexShardSnapshotStatusListener);
+            indexShardSnapshotStatusListener.whenComplete(r2 -> {
+                shardStatus.putAll(r2);
+                listener.onResponse(shardStatus);
+            }, listener::onFailure);
+        }, listener::onFailure);
     }
+
 
     private static SnapshotShardFailure findShardFailure(List<SnapshotShardFailure> shardFailures, ShardId shardId) {
         for (SnapshotShardFailure shardFailure : shardFailures) {

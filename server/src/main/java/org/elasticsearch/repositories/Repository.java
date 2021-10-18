@@ -22,6 +22,8 @@ package org.elasticsearch.repositories;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.lucene.index.IndexCommit;
@@ -97,7 +99,7 @@ public interface Repository extends LifecycleComponent {
      * @param snapshotId the snapshot id to load the global metadata from
      * @return the global metadata about the snapshot
      */
-    Metadata getSnapshotGlobalMetadata(SnapshotId snapshotId);
+    void getSnapshotGlobalMetadata(SnapshotId snapshotId, ActionListener<Metadata> listener);
 
     /**
      * Returns the index metadata associated with the snapshot.
@@ -106,7 +108,9 @@ public interface Repository extends LifecycleComponent {
      * @param index      the {@link IndexId} to load the metadata from
      * @return the index metadata about the given index for the given snapshot
      */
-    IndexMetadata getSnapshotIndexMetadata(SnapshotId snapshotId, IndexId index) throws IOException;
+    void getSnapshotIndexMetadata(SnapshotId snapshotId, ActionListener<List<IndexMetadata>> listener, IndexId... index) throws IOException;
+
+    void getSnapshotIndexMetadata(SnapshotId snapshotId, ActionListener<IndexMetadata> listener, IndexId index) throws IOException;
 
     /**
      * Returns a {@link RepositoryData} to describe the data in the repository, including the snapshots
@@ -227,7 +231,7 @@ public interface Repository extends LifecycleComponent {
      * @param shardId    shard id
      * @return snapshot status
      */
-    IndexShardSnapshotStatus getShardSnapshotStatus(SnapshotId snapshotId, IndexId indexId, ShardId shardId);
+    void getShardSnapshotStatus(SnapshotId snapshotId, Set<ShardId> shardIds, ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener);
 
     /**
      * Update the repository with the incoming cluster state. This method is invoked from {@link RepositoriesService#applyClusterState} and
