@@ -21,19 +21,64 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
+import java.io.IOException;
+import java.math.BigDecimal;
+
+import org.apache.lucene.document.DoublePoint;
+import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.search.IndexOrDocValuesQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.math.BigDecimal;
+import io.crate.Streamer;
 
 public class DoubleType extends DataType<Double> implements FixedWidthType, Streamer<Double> {
 
     public static final DoubleType INSTANCE = new DoubleType();
     public static final int ID = 6;
     private static final int DOUBLE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Double.class);
+    private static final StorageSupport<Double> STORAGE = new StorageSupport<>(
+        true,
+        true,
+        new EqQuery<Double>() {
+
+            @Override
+            public Query termQuery(String field, Double value) {
+                return DoublePoint.newExactQuery(field, value);
+            }
+
+            @Override
+            public Query rangeQuery(String field,
+                                    Double lowerTerm,
+                                    Double upperTerm,
+                                    boolean includeLower,
+                                    boolean includeUpper) {
+                double lower;
+                if (lowerTerm == null) {
+                    lower = Double.NEGATIVE_INFINITY;
+                } else {
+                    lower = includeLower ? lowerTerm : DoublePoint.nextUp(lowerTerm);
+                }
+
+                double upper;
+                if (upperTerm == null) {
+                    upper = Double.POSITIVE_INFINITY;
+                } else {
+                    upper = includeUpper ? upperTerm : DoublePoint.nextDown(upperTerm);
+                }
+                Query indexQuery = DoublePoint.newRangeQuery(field, lower, upper);
+                Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(
+                    field,
+                    NumericUtils.doubleToSortableLong(lower),
+                    NumericUtils.doubleToSortableLong(upper)
+                );
+                return new IndexOrDocValuesQuery(indexQuery, dvQuery);
+            }
+        }
+    );
 
     private DoubleType() {
     }
@@ -118,7 +163,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     }
 
     @Override
-    public StorageSupport storageSupport() {
-        return StorageSupport.ALL_AVAILABLE;
+    public StorageSupport<Double> storageSupport() {
+        return STORAGE;
     }
 }

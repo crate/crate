@@ -29,6 +29,10 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -46,6 +50,27 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     public static final String NAME = "bit";
     public static final int DEFAULT_LENGTH = 1;
     private final int length;
+
+    private static final StorageSupport<BitString> STORAGE = new StorageSupport<>(
+        true,
+        true,
+        new EqQuery<BitString>() {
+
+            @Override
+            public Query termQuery(String field, BitString value) {
+                return new TermQuery(new Term(field, new BytesRef(value.bitSet().toByteArray())));
+            }
+
+            @Override
+            public Query rangeQuery(String field,
+                                    BitString lowerTerm,
+                                    BitString upperTerm,
+                                    boolean includeLower,
+                                    boolean includeUpper) {
+                return null;
+            }
+        }
+    );
 
     public BitStringType(StreamInput in) throws IOException {
         this.length = in.readVInt();
@@ -206,7 +231,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
-    public StorageSupport storageSupport() {
-        return StorageSupport.ALL_AVAILABLE;
+    public StorageSupport<BitString> storageSupport() {
+        return STORAGE;
     }
 }

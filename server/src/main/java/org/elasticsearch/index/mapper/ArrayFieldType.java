@@ -21,7 +21,6 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.search.Query;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 
 class ArrayFieldType extends MappedFieldType {
@@ -76,10 +75,5 @@ class ArrayFieldType extends MappedFieldType {
     @Override
     public void setSearchQuoteAnalyzer(NamedAnalyzer analyzer) {
         innerFieldType.setSearchQuoteAnalyzer(analyzer);
-    }
-
-    @Override
-    public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper) {
-        return innerFieldType.rangeQuery(lowerTerm, upperTerm, includeLower, includeUpper);
     }
 }

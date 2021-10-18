@@ -22,16 +22,56 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+
+import org.apache.lucene.document.InetAddressPoint;
+import org.apache.lucene.search.Query;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.network.InetAddresses;
 
 import java.io.IOException;
+import java.net.InetAddress;
 
 public class IpType extends DataType<String> implements Streamer<String> {
 
     public static final int ID = 5;
     public static final IpType INSTANCE = new IpType();
+    private static final StorageSupport<String> STORAGE = new StorageSupport<>(
+        true,
+        true,
+        new EqQuery<String>() {
+
+            @Override
+            public Query termQuery(String field, String value) {
+                return InetAddressPoint.newExactQuery(field, InetAddresses.forString(value));
+            }
+
+            @Override
+            public Query rangeQuery(String field,
+                                    String lowerTerm,
+                                    String upperTerm,
+                                    boolean includeLower,
+                                    boolean includeUpper) {
+                InetAddress lower;
+                if (lowerTerm == null) {
+                    lower = InetAddressPoint.MIN_VALUE;
+                } else {
+                    var lowerAddress = InetAddresses.forString(lowerTerm);
+                    lower = includeLower ? lowerAddress : InetAddressPoint.nextUp(lowerAddress);
+                }
+
+                InetAddress upper;
+                if (upperTerm == null) {
+                    upper = InetAddressPoint.MAX_VALUE;
+                } else {
+                    var upperAddress = InetAddresses.forString(upperTerm);
+                    upper = includeUpper ? upperAddress : InetAddressPoint.nextDown(upperAddress);
+                }
+
+                return InetAddressPoint.newRangeQuery(field, lower, upper);
+            }
+        }
+    );
 
     @Override
     public int id() {
@@ -113,7 +153,7 @@ public class IpType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public StorageSupport storageSupport() {
-        return StorageSupport.ALL_AVAILABLE;
+    public StorageSupport<String> storageSupport() {
+        return STORAGE;
     }
 }

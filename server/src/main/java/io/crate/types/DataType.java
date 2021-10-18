@@ -217,7 +217,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * Returns {@link StorageSupport} if the type can be used in DDL statements and data can be persisted to disk. Absent if storage is unsupported.
      **/
     @Nullable
-    public StorageSupport storageSupport() {
+    public StorageSupport<? super T> storageSupport() {
         return null;
     }
 

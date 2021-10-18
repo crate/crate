@@ -34,6 +34,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     public static final ShortType INSTANCE = new ShortType();
     public static final int ID = 8;
     private static final int SHORT_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Short.class);
+    private static final StorageSupport<Number> STORAGE = new StorageSupport<>(true, true, new IntEqQuery());
 
     private ShortType() {
     }
@@ -118,8 +119,8 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     }
 
     @Override
-    public StorageSupport storageSupport() {
-        return StorageSupport.ALL_AVAILABLE;
+    public StorageSupport<Number> storageSupport() {
+        return STORAGE;
     }
 }
 

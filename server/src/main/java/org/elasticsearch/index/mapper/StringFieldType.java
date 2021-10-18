@@ -19,8 +19,6 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermRangeQuery;
 
 /** Base class for {@link MappedFieldType} implementations that use the same
  * representation for internal index terms as the external representation so
@@ -30,14 +28,5 @@ public abstract class StringFieldType extends TermBasedFieldType {
 
     public StringFieldType(String name, boolean isSearchable, boolean hasDocValues) {
         super(name, isSearchable, hasDocValues);
-    }
-
-    @Override
-    public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper) {
-        failIfNotIndexed();
-        return new TermRangeQuery(name(),
-            lowerTerm == null ? null : indexedValueForSearch(lowerTerm),
-            upperTerm == null ? null : indexedValueForSearch(upperTerm),
-            includeLower, includeUpper);
     }
 }

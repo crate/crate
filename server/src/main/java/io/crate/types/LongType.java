@@ -34,6 +34,7 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     public static final LongType INSTANCE = new LongType();
     public static final int ID = 10;
     public static final int LONG_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Long.class);
+    private static final StorageSupport<Long> STORAGE = new StorageSupport<>(true, true, new LongEqQuery());
 
     @Override
     public int id() {
@@ -114,7 +115,7 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     }
 
     @Override
-    public StorageSupport storageSupport() {
-        return StorageSupport.ALL_AVAILABLE;
+    public StorageSupport<Long> storageSupport() {
+        return STORAGE;
     }
 }

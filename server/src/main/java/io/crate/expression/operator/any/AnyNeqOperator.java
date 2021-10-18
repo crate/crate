@@ -34,6 +34,8 @@ import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
+import io.crate.types.EqQuery;
+import io.crate.types.StorageSupport;
 
 public final class AnyNeqOperator extends AnyOperator {
 
@@ -58,7 +60,7 @@ public final class AnyNeqOperator extends AnyOperator {
         }
 
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
-        for (Object value : iterableWithStringsAsBytesRef(candidates.value())) {
+        for (Object value : (Iterable<?>) candidates.value()) {
             andBuilder.add(EqOperator.fromPrimitive(probe.valueType(), probe.column().fqn(), value), BooleanClause.Occur.MUST);
         }
         return Queries.not(andBuilder.build());
@@ -68,20 +70,28 @@ public final class AnyNeqOperator extends AnyOperator {
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
         // 1 != any ( col ) -->  gt 1 or lt 1
         String columnName = candidates.column().fqn();
-        Object value = probe.value();
 
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
         if (fieldType == null) {
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
+        StorageSupport<?> storageSupport = probe.valueType().storageSupport();
+        if (storageSupport == null) {
+            return null;
+        }
+        EqQuery eqQuery = storageSupport.eqQuery();
+        if (eqQuery == null) {
+            return null;
+        }
+        Object value = probe.value();
         BooleanQuery.Builder query = new BooleanQuery.Builder();
         query.setMinimumNumberShouldMatch(1);
         query.add(
-            fieldType.rangeQuery(value, null, false, false),
+            eqQuery.rangeQuery(columnName, value, null, false, false),
             BooleanClause.Occur.SHOULD
         );
         query.add(
-            fieldType.rangeQuery(null, value, false, false),
+            eqQuery.rangeQuery(columnName, null, value, false, false),
             BooleanClause.Occur.SHOULD
         );
         return query.build();

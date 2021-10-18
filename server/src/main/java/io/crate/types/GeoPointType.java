@@ -39,6 +39,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
 
     public static final int ID = 13;
     public static final GeoPointType INSTANCE = new GeoPointType();
+    private static StorageSupport<Point> STORAGE = new StorageSupport<>(true, true, null);
 
     private GeoPointType() {
     }
@@ -199,7 +200,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     }
 
     @Override
-    public StorageSupport storageSupport() {
-        return StorageSupport.ALL_AVAILABLE;
+    public StorageSupport<Point> storageSupport() {
+        return STORAGE;
     }
 }
