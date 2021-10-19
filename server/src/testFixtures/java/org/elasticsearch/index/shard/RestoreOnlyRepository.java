@@ -41,6 +41,8 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 
+import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -68,13 +70,30 @@ public abstract class RestoreOnlyRepository implements Repository {
     }
 
     @Override
-    public Metadata getSnapshotGlobalMetadata(SnapshotId snapshotId) {
-        return null;
+    public void getSnapshotGlobalMetadata(SnapshotId snapshotId,
+                                          ActionListener<Metadata> listener) {
+
     }
 
     @Override
-    public IndexMetadata getSnapshotIndexMetadata(SnapshotId snapshotId, IndexId index) {
-        return null;
+    public void getSnapshotIndexMetadata(SnapshotId snapshotId,
+                                         IndexId indexId,
+                                         ActionListener<IndexMetadata> listener) throws IOException {
+
+    }
+
+    @Override
+    public void getSnapshotIndexMetadata(SnapshotId snapshotId,
+                                         Collection<IndexId> indexIds,
+                                         ActionListener<Collection<IndexMetadata>> listener) {
+
+    }
+
+    @Override
+    public void getShardSnapshotStatus(SnapshotId snapshotId,
+                                       Map<ShardId, IndexId> shardIndexIds,
+                                       ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener) {
+
     }
 
     @Override
@@ -146,12 +165,6 @@ public abstract class RestoreOnlyRepository implements Repository {
                              RecoveryState recoveryState,
                              ActionListener<Void> listener) {
 
-    }
-
-    @Override
-    public IndexShardSnapshotStatus getShardSnapshotStatus(SnapshotId snapshotId,
-                                                           IndexId indexId, ShardId shardId) {
-        return null;
     }
 
     @Override
