@@ -941,19 +941,19 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public Metadata getSnapshotGlobalMetadata(final SnapshotId snapshotId) {
+    public void getSnapshotGlobalMetadata(final SnapshotId snapshotId, final ActionListener<Metadata> listener) {
         try {
-            return globalMetadataFormat.read(blobContainer(), snapshotId.getUUID());
+            listener.onResponse(globalMetadataFormat.read(blobContainer(), snapshotId.getUUID()));
         } catch (NoSuchFileException ex) {
-            throw new SnapshotMissingException(metadata.name(), snapshotId, ex);
+            listener.onFailure(new SnapshotMissingException(metadata.name(), snapshotId, ex));
         } catch (IOException ex) {
-            throw new SnapshotException(metadata.name(), snapshotId, "failed to read global metadata", ex);
+            listener.onFailure(new SnapshotException(metadata.name(), snapshotId, "failed to read global metadata", ex));
         }
     }
 
     @Override
-    public IndexMetadata getSnapshotIndexMetadata(final SnapshotId snapshotId, final IndexId index) throws IOException {
-        return indexMetadataFormat.read(indexContainer(index), snapshotId.getUUID());
+    public void getSnapshotIndexMetadata(final SnapshotId snapshotId, final ActionListener<IndexMetadata> listener, final IndexId index) throws IOException {
+        listener.onResponse(indexMetadataFormat.read(indexContainer(index), snapshotId.getUUID()));
     }
 
     private BlobPath indicesPath() {
