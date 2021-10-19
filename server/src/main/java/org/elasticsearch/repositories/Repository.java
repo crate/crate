@@ -22,9 +22,10 @@ package org.elasticsearch.repositories;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
-import io.crate.common.collections.Tuple;
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -107,7 +108,7 @@ public interface Repository extends LifecycleComponent {
      * @param index      the {@link IndexId} to load the metadata from
      * @return the index metadata about the given index for the given snapshot
      */
-     void getSnapshotIndexMetadata(SnapshotId snapshotId, ActionListener<List<IndexMetadata>> listener, IndexId... index) throws IOException;
+    void getSnapshotIndexMetadata(SnapshotId snapshotId, ActionListener<List<IndexMetadata>> listener, IndexId... index) throws IOException;
 
     void getSnapshotIndexMetadata(SnapshotId snapshotId, ActionListener<IndexMetadata> listener, IndexId index) throws IOException;
 
@@ -230,7 +231,7 @@ public interface Repository extends LifecycleComponent {
      * @param shardId    shard id
      * @return snapshot status
      */
-    void getShardSnapshotStatus(SnapshotId snapshotId, IndexId indexId, ShardId shardId, ActionListener<Tuple<ShardId, IndexShardSnapshotStatus>> listener);
+    void getShardSnapshotStatus(SnapshotId snapshotId, Set<ShardId> shardIds, ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener);
 
     /**
      * Update the repository with the incoming cluster state. This method is invoked from {@link RepositoriesService#applyClusterState} and

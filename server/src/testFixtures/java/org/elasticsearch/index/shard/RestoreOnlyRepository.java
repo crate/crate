@@ -42,6 +42,7 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,13 +68,30 @@ public abstract class RestoreOnlyRepository implements Repository {
     }
 
     @Override
-    public Metadata getSnapshotGlobalMetadata(SnapshotId snapshotId) {
-        return null;
+    public void getSnapshotGlobalMetadata(SnapshotId snapshotId,
+                                          ActionListener<Metadata> listener) {
+
     }
 
     @Override
-    public IndexMetadata getSnapshotIndexMetadata(SnapshotId snapshotId, IndexId index) {
-        return null;
+    public void getSnapshotIndexMetadata(SnapshotId snapshotId,
+                                         ActionListener<List<IndexMetadata>> listener,
+                                         IndexId... index) throws IOException {
+
+    }
+
+    @Override
+    public void getSnapshotIndexMetadata(SnapshotId snapshotId,
+                                         ActionListener<IndexMetadata> listener,
+                                         IndexId index) throws IOException {
+
+    }
+
+    @Override
+    public void getShardSnapshotStatus(SnapshotId snapshotId,
+                                       Set<ShardId> shardIds,
+                                       ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener) {
+
     }
 
     @Override
@@ -146,11 +164,7 @@ public abstract class RestoreOnlyRepository implements Repository {
                              ActionListener<Void> listener) {
 
     }
-
-    @Override
-    public void getShardSnapshotStatus(SnapshotId snapshotId, IndexId indexId, ShardId shardId, ActionListener<Tuple<ShardId, IndexShardSnapshotStatus>> listener) {
-        listener.onResponse(null);
-    }
+    
 
     @Override
     public Lifecycle.State lifecycleState() {

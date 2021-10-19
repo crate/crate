@@ -21,6 +21,7 @@
 
 package io.crate.replication.logical.repository;
 
+import com.google.common.collect.Multimap;
 import io.crate.common.collections.Tuple;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.action.GetStoreMetadataAction;
@@ -32,6 +33,7 @@ import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.StepListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
@@ -74,8 +76,10 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Derived from org.opensearch.replication.repository.RemoteClusterRepository
@@ -168,19 +172,19 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         }, stateResponse.concreteIndices().toArray(new String[0]));
     }
 
-    public void getSnapshotIndexMetadata(SnapshotId snapshotId, ActionListener<IndexMetadata> listener, IndexId indexIds) throws IOException {
+    public void getSnapshotIndexMetadata(SnapshotId snapshotId, ActionListener<IndexMetadata> listener, IndexId indexId) throws IOException {
         getSnapshotIndexMetadata(snapshotId, new ActionListener<List<IndexMetadata>>() {
-
             @Override
             public void onResponse(List<IndexMetadata> indexMetadata) {
-
+                assert indexMetadata.size() == 1;
+                listener.onResponse(indexMetadata.get(0));
             }
 
             @Override
             public void onFailure(Exception e) {
-
+                listener.onFailure(e);
             }
-        })
+        }, indexId);
     }
 
 
@@ -293,51 +297,36 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void getShardSnapshotStatus(
-        SnapshotId snapshotId,
-        IndexId indexId,
-        ShardId shardId,
-        ActionListener<Tuple<ShardId, IndexShardSnapshotStatus>> listener
-    ) {
-        assert SNAPSHOT_ID.equals(snapshotId) :
-            "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
-        final String remoteIndex = indexId.getName();
-        ActionListener<IndicesStatsResponse> indicesStatsResponsListener = new ActionListener<>() {
-            @Override
-            public void onResponse(IndicesStatsResponse indicesStatsResponse) {
-                for (ShardStats shardStats : indicesStatsResponse.getIndex(remoteIndex).getShards()) {
-                    final ShardRouting shardRouting = shardStats.getShardRouting();
+    public void getShardSnapshotStatus(SnapshotId snapshotId, Set<ShardId> shardIds, ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener) {
+        assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
+        var remoteIndices = shardIds.stream().map(ShardId::getIndexName).toArray(String[]::new);
+        StepListener<IndicesStatsResponse> indicesStatsResponseListener = new StepListener<>();
+        getRemoteClusterClient()
+            .admin()
+            .indices()
+            .prepareStats(remoteIndices)
+            .clear()
+            .setStore(true)
+            .execute(indicesStatsResponseListener);
+
+        indicesStatsResponseListener.whenComplete(r -> {
+            Map<ShardId, IndexShardSnapshotStatus> result = new HashMap<>();
+            for (var shardId : shardIds) {
+                for (var shardStats : r.getIndex(shardId.getIndexName()).getShards()) {
+                    var shardRouting = shardStats.getShardRouting();
                     if (shardRouting.shardId().id() == shardId.getId()
                         && shardRouting.primary()
                         && shardRouting.active()) {
                         // we only care about the shard size here for shard allocation, populate the rest with dummy values
                         StoreStats store = shardStats.getStats().getStore();
                         if (store != null) {
-                            final long totalSize = store.getSizeInBytes();
-                            var foo = new Tuple<>(shardId,
-                                                  IndexShardSnapshotStatus.newDone(0L,
-                                                                                   0L,
-                                                                                   1,
-                                                                                   1,
-                                                                                   totalSize,
-                                                                                   totalSize,
-                                                                                   ""));
-                            listener.onResponse(foo);
+                            var totalSize = store.getSizeInBytes();
+                            result.put(shardId, IndexShardSnapshotStatus.newDone(0L, 0L, 1, 1, totalSize, totalSize, ""));
                         }
                     }
                 }
-                listener.onFailure(new ElasticsearchException(
-                    "Could not get shard stats for primary of index " + remoteIndex + " on publisher cluster"));
             }
-
-            @Override
-            public void onFailure(Exception e) {
-                listener.onFailure(e);
-            }
-        };
-        getRemoteClusterClient().admin().indices().prepareStats(remoteIndex)
-            .clear().setStore(true)
-            .execute(indicesStatsResponsListener);
+        }, listener::onFailure);
     }
 
     @Override
