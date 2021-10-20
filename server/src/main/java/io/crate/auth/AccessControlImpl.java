@@ -98,7 +98,7 @@ import io.crate.user.UserLookup;
 
 import java.util.Locale;
 
-import static io.crate.user.Privilege.Type.VALUES;
+import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
 
 public final class AccessControlImpl implements AccessControl {
 
@@ -756,9 +756,9 @@ public final class AccessControlImpl implements AccessControl {
                 defaultSchema
             );
             // All tables cannot be checked on publication creation - they are checked before actual replication starts
-            // and a table gets published only if publication owner has all privileges on that table.
+            // and a table gets published only if publication owner has DQL, DML and DDL privileges on that table.
             for (RelationName relationName: createPublication.tables()) {
-                for (Privilege.Type type: VALUES) {
+                for (Privilege.Type type: READ_WRITE_DEFINE) {
                     Privileges.ensureUserHasPrivilege(
                         type,
                         Privilege.Clazz.TABLE,
