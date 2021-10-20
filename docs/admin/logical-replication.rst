@@ -90,10 +90,10 @@ Security
 --------
 
 To create a publication, a user must have the ``AL`` privilege on the cluster.
-To add tables to a publication, the user must have all privileges on the
-table (``AL``, ``DQL``, ``DML``, ``DDL``). When user creates a publication that
-publishes all tables automatically, only those tables where user has all
-privileges will be published.
+To add tables to a publication, the user must have ``DQL``, ``DML``, ``DDL``
+privileges on the table. When user creates a publication that publishes all
+tables automatically, only those tables where user has ``DQL``, ``DML``,
+``DDL`` privileges will be published.
 
 To create a subscription, a user must have the ``AL`` privilege in the cluster.
 
