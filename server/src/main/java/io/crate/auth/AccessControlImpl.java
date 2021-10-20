@@ -77,6 +77,8 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
+import io.crate.replication.logical.analyze.AnalyzedCreatePublication;
+import io.crate.replication.logical.analyze.AnalyzedCreateSubscription;
 import io.crate.user.Privilege;
 import io.crate.user.Privileges;
 import io.crate.exceptions.ClusterScopeException;
@@ -95,6 +97,8 @@ import io.crate.user.User;
 import io.crate.user.UserLookup;
 
 import java.util.Locale;
+
+import static io.crate.user.Privilege.Type.VALUES;
 
 public final class AccessControlImpl implements AccessControl {
 
@@ -739,6 +743,43 @@ public final class AccessControlImpl implements AccessControl {
                     defaultSchema
                 );
             }
+            return null;
+        }
+
+        @Override
+        public Void visitCreatePublication(AnalyzedCreatePublication createPublication, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema
+            );
+            // All tables cannot be checked on publication creation - they are checked before actual replication starts
+            // and a table gets published only if publication owner has all privileges on that table.
+            for (RelationName relationName: createPublication.tables()) {
+                for (Privilege.Type type: VALUES) {
+                    Privileges.ensureUserHasPrivilege(
+                        type,
+                        Privilege.Clazz.TABLE,
+                        relationName.fqn(),
+                        user,
+                        defaultSchema
+                    );
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitCreateSubscription(AnalyzedCreateSubscription createSubscription, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema
+            );
             return null;
         }
     }
