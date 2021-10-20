@@ -32,12 +32,10 @@ import javax.annotation.Nullable;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.MutableLong;
-import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
@@ -46,7 +44,6 @@ import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValu
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -245,9 +242,11 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
         return previousAggState;
     }
 
-    private DocValueAggregator<?> getDocValueAggregator(List<DataType<?>> argumentTypes,
-                                                        List<MappedFieldType> fieldTypes) {
-        switch (argumentTypes.get(0).id()) {
+    private DocValueAggregator<?> getDocValueAggregator(Reference ref) {
+        if (!ref.hasDocValues()) {
+            return null;
+        }
+        switch (ref.valueType().id()) {
             case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:
@@ -258,7 +257,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
             case DoubleType.ID:
             case GeoPointType.ID:
                 return new SortedNumericDocValueAggregator<>(
-                    fieldTypes.get(0).name(),
+                    ref.column().fqn(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
                         return new MutableLong(0L);
@@ -269,7 +268,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
             case StringType.ID:
             case BitStringType.ID:
                 return new BinaryDocValueAggregator<>(
-                    fieldTypes.get(0).name(),
+                    ref.column().fqn(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
                         return new MutableLong(0L);
@@ -284,40 +283,33 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
-                                                       java.util.function.Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         if (aggregationReferences.size() != 1) {
             return null;
         }
-        if (aggregationReferences.get(0).valueType().id() == ObjectType.ID) {
+        Reference reference = aggregationReferences.get(0);
+        if (reference.valueType().id() == ObjectType.ID) {
             // Count on object would require loading the source just to check if there is a value.
             // Try to count on a non-null sub-column to be able to utilize doc-values.
             var aggregationRef = (Reference) aggregationReferences.get(0);
             for (var notNullCol : table.notNullColumns()) {
                 // the first seen not-null sub-column will be used
                 if (notNullCol.isChildOf(aggregationRef.column())) {
-                    var fieldTypes = getMappedFieldTypes.apply(List.of(notNullCol.fqn()));
                     var notNullColRef = table.getReference(notNullCol);
-                    if (fieldTypes == null || notNullColRef == null) {
+                    if (notNullColRef == null) {
                         continue;
                     }
-                    var subColDocValAggregator = getDocValueAggregator(
-                        List.of(notNullColRef.valueType()),
-                        fieldTypes);
+                    var subColDocValAggregator = getDocValueAggregator(notNullColRef);
                     if (subColDocValAggregator != null) {
                         return subColDocValAggregator;
                     }
                 }
             }
         }
-        var fieldTypes = getMappedFieldTypes.apply(
-            Lists2.map(aggregationReferences, s -> ((Reference) s).column().fqn())
-        );
-        if (fieldTypes == null) {
+        if (!reference.hasDocValues()) {
             return null;
         }
-        var argumentTypes = Symbols.typeView(aggregationReferences);
-        return getDocValueAggregator(argumentTypes, fieldTypes);
+        return getDocValueAggregator(reference);
     }
 }

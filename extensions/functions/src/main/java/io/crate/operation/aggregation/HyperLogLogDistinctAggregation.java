@@ -26,7 +26,6 @@ import static java.lang.Double.doubleToLongBits;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -44,20 +43,17 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.DocValueFormat;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -169,17 +165,13 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
-                                                       Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
-        var fieldTypes = getMappedFieldTypes.apply(
-            Lists2.map(aggregationReferences, s -> ((Reference)s).column().fqn())
-        );
-        if (fieldTypes == null) {
+        if (aggregationReferences.stream().anyMatch(x -> !x.hasDocValues())) {
             return null;
         }
-        var argumentTypes = Symbols.typeView(aggregationReferences);
-        var dataType = argumentTypes.get(0);
+        Reference reference = aggregationReferences.get(0);
+        var dataType = reference.valueType();
         switch (dataType.id()) {
             case ByteType.ID:
             case ShortType.ID:
@@ -188,7 +180,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
-                    fieldTypes.get(0).name(),
+                    reference.column().fqn(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
                         var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
@@ -201,7 +193,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 );
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
-                    fieldTypes.get(0).name(),
+                    reference.column().fqn(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
                         var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
@@ -220,7 +212,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 );
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
-                    fieldTypes.get(0).name(),
+                    reference.column().fqn(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
                         var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
@@ -238,7 +230,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 );
             case StringType.ID:
                 var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
-                return new HllAggregator(fieldTypes.get(0).name(), dataType, precision) {
+                return new HllAggregator(reference.column().fqn(), dataType, precision) {
                     @Override
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
@@ -253,7 +245,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 };
             case IpType.ID:
                 var ipPrecision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
-                return new HllAggregator(fieldTypes.get(0).name(), dataType, ipPrecision) {
+                return new HllAggregator(reference.column().fqn(), dataType, ipPrecision) {
                     @Override
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {

@@ -23,7 +23,6 @@ package io.crate.execution.engine.aggregation.impl;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -32,7 +31,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
@@ -43,7 +41,6 @@ import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.execution.engine.aggregation.statistics.Variance;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -222,17 +219,13 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
-                                                       Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
-        var fieldTypes = getMappedFieldTypes.apply(
-            Lists2.map(aggregationReferences, s -> ((Reference)s).column().fqn())
-        );
-        if (fieldTypes == null) {
+        Reference reference = aggregationReferences.get(0);
+        if (!reference.hasDocValues()) {
             return null;
         }
-        var argumentTypes = Symbols.typeView(aggregationReferences);
-        switch (argumentTypes.get(0).id()) {
+        switch (reference.valueType().id()) {
             case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:
@@ -240,7 +233,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
-                    fieldTypes.get(0).name(),
+                    reference.column().fqn(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
                         return new Variance();
@@ -249,7 +242,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                 );
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
-                    fieldTypes.get(0).name(),
+                    reference.column().fqn(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
                         return new Variance();
@@ -261,7 +254,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                 );
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
-                    fieldTypes.get(0).name(),
+                    reference.column().fqn(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
                         return new Variance();
