@@ -85,3 +85,20 @@ you can't replicate a view.
 The tables are matched between the publisher and the subscriber using the fully
 qualified table name. Replication to differently-named tables on the subscriber
 is not supported.
+
+Security
+--------
+
+To create a publication, a user must have the ``AL`` privilege on the cluster.
+To add tables to a publication, the user must have all privileges on the
+table (``AL``, ``DQL``, ``DML``, ``DDL``). When user creates a publication that
+publishes all tables automatically, only those tables where user has all
+privileges will be published.
+
+To create a subscription, a user must have the ``AL`` privilege in the cluster.
+
+.. CAUTION::
+
+   A network setup that allows the two clusters to communicate is a
+   pre-requisite for a working publication/subscription setup.
+   See :ref:`HBA <admin_hba_node>`.
