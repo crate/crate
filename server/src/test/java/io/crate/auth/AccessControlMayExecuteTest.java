@@ -53,6 +53,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+import static io.crate.user.Privilege.Type.VALUES;
 import static io.crate.user.User.CRATE_USER;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
@@ -616,5 +617,21 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_show_transaction_isolation_does_not_require_privileges() throws Exception {
         analyze("show transaction_isolation");
         assertThat(validationCallArguments, Matchers.empty());
+    }
+
+    @Test
+    public void test_create_publication_for_specific_tables_asks_clusterAL_and_all_for_each_table() {
+        analyze("create publication pub1 FOR TABLE t1, t2", user);
+        assertAskedForCluster(Privilege.Type.AL);
+        for (Privilege.Type type: VALUES) {
+            assertAskedForTable(type, "doc.t1");
+            assertAskedForTable(type, "doc.t2");
+        }
+    }
+
+    @Test
+    public void test_create_subscription_asks_cluster_AL() {
+        analyze("create subscription sub1 CONNECTION 'postgresql://user@localhost/crate:5432' PUBLICATION pub1", user);
+        assertAskedForCluster(Privilege.Type.AL);
     }
 }
