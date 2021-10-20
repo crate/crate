@@ -24,9 +24,8 @@ import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
@@ -76,20 +75,6 @@ public class FieldsVisitor extends StoredFieldVisitor {
         return requiredFields.isEmpty()
                 ? Status.STOP
                 : Status.NO;
-    }
-
-    public void postProcess(MapperService mapperService) {
-        for (Map.Entry<String, List<Object>> entry : fields().entrySet()) {
-            MappedFieldType fieldType = mapperService.fullName(entry.getKey());
-            if (fieldType == null) {
-                throw new IllegalStateException("Field [" + entry.getKey()
-                    + "] exists in the index but not in mappings");
-            }
-            List<Object> fieldValues = entry.getValue();
-            for (int i = 0; i < fieldValues.size(); i++) {
-                fieldValues.set(i, fieldType.valueForDisplay(fieldValues.get(i)));
-            }
-        }
     }
 
     @Override
@@ -146,7 +131,7 @@ public class FieldsVisitor extends StoredFieldVisitor {
             return null;
         }
         assert values.size() == 1;
-        return values.get(0).toString();
+        return BytesRefs.toString(values.get(0));
     }
 
     public Map<String, List<Object>> fields() {

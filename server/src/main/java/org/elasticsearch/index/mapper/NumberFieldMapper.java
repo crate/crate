@@ -450,14 +450,6 @@ public class NumberFieldMapper extends FieldMapper {
             return type.name;
         }
 
-        @Override
-        public Object valueForDisplay(Object value) {
-            if (value == null) {
-                return null;
-            }
-            return type.valueForSearch((Number) value);
-        }
-
     }
 
     private NumberFieldMapper(

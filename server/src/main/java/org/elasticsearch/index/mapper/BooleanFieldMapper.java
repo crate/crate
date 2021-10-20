@@ -152,21 +152,6 @@ public class BooleanFieldMapper extends FieldMapper {
                                     sValue + "], expected [true] or [false]");
             }
         }
-
-        @Override
-        public Boolean valueForDisplay(Object value) {
-            if (value == null) {
-                return null;
-            }
-            switch (value.toString()) {
-                case "F":
-                    return false;
-                case "T":
-                    return true;
-                default:
-                    throw new IllegalArgumentException("Expected [T] or [F] but got [" + value + "]");
-            }
-        }
     }
 
     private final Boolean nullValue;

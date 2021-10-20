@@ -81,14 +81,6 @@ public abstract class MappedFieldType {
         this.searchQuoteAnalyzer = analyzer;
     }
 
-
-    /** Given a value that comes from the stored fields API, convert it to the
-     *  expected type. For instance a date field would store dates as longs and
-     *  format it back to a string in this method. */
-    public Object valueForDisplay(Object value) {
-        return value;
-    }
-
     /**
      * Returns true if the field is searchable.
      */
