@@ -37,12 +37,10 @@ import java.util.Map;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.common.MutableLong;
-import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.templates.BinaryDocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
@@ -53,9 +51,11 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.Reference.IndexType;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -86,7 +86,6 @@ public class CountAggregationTest extends AggregationTestCase {
         );
         var docValueAggregator = aggregationFunction.getDocValueAggregator(
             aggregationReferences,
-            refNames -> Lists2.map(refNames, refName -> mock(MappedFieldType.class)),
             sourceTable,
             List.of()
         );
@@ -128,12 +127,20 @@ public class CountAggregationTest extends AggregationTestCase {
             new ReferenceIdent(null, new ColumnIdent("top_level_object", "not_null_subcol")),
             RowGranularity.DOC,
             childType,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
             0,
             null);
         Reference countedObject = new Reference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
             RowGranularity.DOC,
             ObjectType.builder().setInnerType(notNullImmediateChild.column().leafName(), notNullImmediateChild.valueType()).build(),
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
             0,
             null
         );
@@ -168,12 +175,20 @@ public class CountAggregationTest extends AggregationTestCase {
                 new ColumnIdent("top_level_object", List.of("second_level_object", "not_null_subcol"))),
             RowGranularity.DOC,
             DataTypes.STRING,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
             0,
             null);
         Reference immediateChild = new Reference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object", "second_level_object")),
             RowGranularity.DOC,
             ObjectType.builder().setInnerType(notNullGrandChild.column().leafName(), notNullGrandChild.valueType()).build(),
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
             0,
             null
         );
@@ -181,6 +196,10 @@ public class CountAggregationTest extends AggregationTestCase {
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
             RowGranularity.DOC,
             ObjectType.builder().setInnerType(immediateChild.column().leafName(), immediateChild.valueType()).build(),
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
             0,
             null
         );
@@ -284,6 +303,10 @@ public class CountAggregationTest extends AggregationTestCase {
                 new ColumnIdent("top_level_object", List.of("second_level_object", "not_null_subcol1"))),
             RowGranularity.DOC,
             DataTypes.STRING,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
             0,
             null);
         Reference notNullGrandChild2 = new Reference(
@@ -292,6 +315,10 @@ public class CountAggregationTest extends AggregationTestCase {
                 new ColumnIdent("top_level_object", List.of("second_level_object", "not_null_subcol2"))),
             RowGranularity.DOC,
             DataTypes.BYTE,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
             0,
             null);
         Reference immediateChild = new Reference(
@@ -301,6 +328,10 @@ public class CountAggregationTest extends AggregationTestCase {
                 .setInnerType(notNullGrandChild1.column().leafName(), notNullGrandChild1.valueType())
                 .setInnerType(notNullGrandChild2.column().leafName(), notNullGrandChild2.valueType())
                 .build(),
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
             0,
             null
         );
@@ -308,6 +339,10 @@ public class CountAggregationTest extends AggregationTestCase {
             new ReferenceIdent(null, new ColumnIdent("top_level_object", "not_null_subcol")),
             RowGranularity.DOC,
             DataTypes.IP,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
             0,
             null);
         Reference countedObject = new Reference(
@@ -317,6 +352,10 @@ public class CountAggregationTest extends AggregationTestCase {
                 .setInnerType(immediateChild.column().leafName(), immediateChild.valueType())
                 .setInnerType(notNullImmediateChild.column().leafName(), notNullImmediateChild.valueType())
                 .build(),
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
             0,
             null
         );

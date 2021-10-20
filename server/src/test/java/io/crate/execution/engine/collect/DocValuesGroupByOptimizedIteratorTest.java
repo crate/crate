@@ -21,6 +21,31 @@
 
 package io.crate.execution.engine.collect;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.mockito.Mockito.mock;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.elasticsearch.common.lucene.BytesRefs;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -32,39 +57,16 @@ import io.crate.expression.reference.doc.lucene.LongColumnReference;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Reference.IndexType;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.SortedSetDocValuesField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.store.ByteBuffersDirectory;
-import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.Mockito.mock;
 
 public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTest {
 
@@ -107,16 +109,18 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             DataTypes.LONG
         );
 
-        var aggregationField = new NumberFieldMapper.NumberFieldType("z", NumberFieldMapper.NumberType.LONG);
         var sumDocValuesAggregator = sumAggregation.getDocValueAggregator(
             List.of(new Reference(
                 new ReferenceIdent(RelationName.fromIndexName("test"), "z"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
+                ColumnPolicy.DYNAMIC,
+                IndexType.PLAIN,
+                true,
+                true,
                 0,
                 null)
             ),
-            (x) -> List.of(aggregationField),
             mock(DocTableInfo.class),
             List.of()
         );
@@ -128,6 +132,10 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 new ReferenceIdent(RelationName.fromIndexName("test"), "y"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
+                ColumnPolicy.DYNAMIC,
+                IndexType.PLAIN,
+                true,
+                true,
                 0,
                 null
             ),
@@ -158,7 +166,6 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             DataTypes.LONG
         );
 
-        var aggregationField = new NumberFieldMapper.NumberFieldType("z", NumberFieldMapper.NumberType.LONG);
         var sumDocValuesAggregator = sumAggregation.getDocValueAggregator(
             List.of(new Reference(
                 new ReferenceIdent(
@@ -166,10 +173,13 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                     "z"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
+                ColumnPolicy.DYNAMIC,
+                IndexType.PLAIN,
+                true,
+                true,
                 0,
                 null)
             ),
-            (x) -> List.of(aggregationField),
             mock(DocTableInfo.class),
             List.of()
         );
@@ -179,6 +189,10 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 new ReferenceIdent(RelationName.fromIndexName("test"), "x"),
                 RowGranularity.DOC,
                 DataTypes.STRING,
+                ColumnPolicy.DYNAMIC,
+                IndexType.PLAIN,
+                true,
+                true,
                 1,
                 null
             ),
@@ -186,6 +200,10 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 new ReferenceIdent(RelationName.fromIndexName("test"), "y"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
+                ColumnPolicy.DYNAMIC,
+                IndexType.PLAIN,
+                true,
+                true,
                 2,
                 null
             )

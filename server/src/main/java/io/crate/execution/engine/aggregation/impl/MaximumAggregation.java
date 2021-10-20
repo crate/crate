@@ -23,7 +23,6 @@ package io.crate.execution.engine.aggregation.impl;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -33,7 +32,6 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
@@ -41,12 +39,10 @@ import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.common.MutableDouble;
 import io.crate.common.MutableFloat;
 import io.crate.common.MutableLong;
-import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -219,17 +215,13 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         @Nullable
         @Override
         public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
-                                                           Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
                                                            DocTableInfo table,
                                                            List<Literal<?>> optionalParams) {
-            var fieldTypes = getMappedFieldTypes.apply(
-                Lists2.map(aggregationReferences, s -> ((Reference)s).column().fqn())
-            );
-            if (fieldTypes == null) {
+            Reference reference = aggregationReferences.get(0);
+            if (!reference.hasDocValues()) {
                 return null;
             }
-            var argumentTypes = Symbols.typeView(aggregationReferences);
-            DataType<?> arg = argumentTypes.get(0);
+            DataType<?> arg = reference.valueType();
             switch (arg.id()) {
                 case ByteType.ID:
                 case ShortType.ID:
@@ -237,12 +229,12 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
                 case LongType.ID:
                 case TimestampType.ID_WITH_TZ:
                 case TimestampType.ID_WITHOUT_TZ:
-                    return new LongMax(fieldTypes.get(0).name(), arg);
+                    return new LongMax(reference.column().fqn(), arg);
 
                 case FloatType.ID:
-                    return new FloatMax(fieldTypes.get(0).name());
+                    return new FloatMax(reference.column().fqn());
                 case DoubleType.ID:
-                    return new DoubleMax(fieldTypes.get(0).name());
+                    return new DoubleMax(reference.column().fqn());
 
                 default:
                     return null;

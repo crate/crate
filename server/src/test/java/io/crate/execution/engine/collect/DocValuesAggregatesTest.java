@@ -21,6 +21,20 @@
 
 package io.crate.execution.engine.collect;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.util.List;
+import java.util.Map;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
@@ -30,6 +44,7 @@ import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -40,20 +55,6 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
 
@@ -99,7 +100,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
             List.of(longSumAggregation),
-            fqn -> new NumberFieldMapper.NumberFieldType(fqn, NumberFieldMapper.NumberType.LONG),
             List.of(e.asSymbol("tbl.x")),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
@@ -112,7 +112,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
             List.of(longSumAggregation),
-            fqn -> new NumberFieldMapper.NumberFieldType(fqn, NumberFieldMapper.NumberType.LONG),
             List.of(e.asSymbol("tbl.x::real")),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
@@ -122,7 +121,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
         aggregators = DocValuesAggregates.createAggregators(
             functions,
             List.of(longSumAggregation),
-            fqn -> new NumberFieldMapper.NumberFieldType(fqn, NumberFieldMapper.NumberType.LONG),
             List.of(e.asSymbol("tbl.x::numeric")),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
@@ -135,7 +133,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
             List.of(longSumAggregation),
-            fqn -> new NumberFieldMapper.NumberFieldType(fqn, NumberFieldMapper.NumberType.LONG),
             List.of(Literal.of(1)),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
@@ -148,7 +145,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
             List.of(longSumAggregation),
-            fqn -> null,
             List.of(Literal.of(1)),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
@@ -158,15 +154,34 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_create_aggregators_for_reference_and_without_doc_value_field_returns_null() {
+        Reference xRef = (Reference) e.asSymbol("tbl.x");
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
             List.of(longSumAggregation),
-            fqn -> new NumberFieldMapper.NumberFieldType(fqn, NumberFieldMapper.NumberType.LONG, true, false),
-            List.of(e.asSymbol("tbl.x")),
+            List.of(xRef),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
-        assertThat(aggregators, is(nullValue()));
+        assertThat(aggregators, is(Matchers.notNullValue()));
+
+        aggregators = DocValuesAggregates.createAggregators(
+            functions,
+            List.of(longSumAggregation),
+            List.of(new Reference(
+                xRef.ident(),
+                xRef.granularity(),
+                xRef.valueType(),
+                xRef.columnPolicy(),
+                xRef.indexType(),
+                xRef.isNullable(),
+                false,
+                xRef.position(),
+                xRef.defaultExpression())
+            ),
+            SearchPath.pathWithPGCatalogAndDoc(),
+            table
+        );
+        assertThat(aggregators, is(Matchers.nullValue()));
     }
 
     @Test
@@ -191,7 +206,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                         List.of(new InputColumn(2, DataTypes.LONG)))
 
             ),
-            fqn -> new KeywordFieldMapper.KeywordFieldType(fqn, true, true),  //MappedFieldType for ObjectTypes
             List.of(e.asSymbol("tbl.Payload_subInt"), e.asSymbol("tbl.payload_subInt"),e.asSymbol("tbl.x")),
             SearchPath.pathWithPGCatalogAndDoc(),
             table

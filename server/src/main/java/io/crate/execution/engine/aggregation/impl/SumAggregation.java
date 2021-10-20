@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -37,19 +36,16 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.common.MutableDouble;
 import io.crate.common.MutableFloat;
 import io.crate.common.MutableLong;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Reference;
@@ -192,27 +188,23 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
-                                                       Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
-        var fieldTypes = getMappedFieldTypes.apply(
-            Lists2.map(aggregationReferences, s -> ((Reference)s).column().fqn())
-        );
-        if (fieldTypes == null) {
+        Reference reference = aggregationReferences.get(0);
+        if (!reference.hasDocValues()) {
             return null;
         }
-        var argumentTypes = Symbols.typeView(aggregationReferences);
-        switch (argumentTypes.get(0).id()) {
+        switch (reference.valueType().id()) {
             case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:
             case LongType.ID:
-                return new SumLong(fieldTypes.get(0).name());
+                return new SumLong(reference.column().fqn());
 
             case FloatType.ID:
-                return new SumFloat(fieldTypes.get(0).name());
+                return new SumFloat(reference.column().fqn());
             case DoubleType.ID:
-                return new SumDouble(fieldTypes.get(0).name());
+                return new SumDouble(reference.column().fqn());
 
             default:
                 return null;

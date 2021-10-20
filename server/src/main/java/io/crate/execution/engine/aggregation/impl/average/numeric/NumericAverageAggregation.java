@@ -23,7 +23,6 @@ package io.crate.execution.engine.aggregation.impl.average.numeric;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
@@ -51,13 +50,11 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.function.Function;
 
 import static io.crate.execution.engine.aggregation.impl.average.AverageAggregation.NAMES;
 import static io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageStateType.INIT_SIZE;
@@ -189,22 +186,18 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
-                                                       Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
-
-        var fieldTypes = getMappedFieldTypes.apply(
-            Lists2.map(aggregationReferences, s -> ((Reference)s).column().fqn())
-        );
-        if (fieldTypes == null) {
+        Reference reference = aggregationReferences.get(0);
+        if (!reference.hasDocValues()) {
             return null;
         }
         var argumentTypes = Symbols.typeView(aggregationReferences);
         return switch (argumentTypes.get(0).id()) {
             case ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID ->
-                new AvgLong(returnType, fieldTypes.get(0).name());
-            case FloatType.ID -> new AvgFloat(returnType, fieldTypes.get(0).name());
-            case DoubleType.ID -> new AvgDouble(returnType, fieldTypes.get(0).name());
+                new AvgLong(returnType, reference.column().fqn());
+            case FloatType.ID -> new AvgFloat(returnType, reference.column().fqn());
+            case DoubleType.ID -> new AvgDouble(returnType, reference.column().fqn());
             default -> null;
         };
     }
