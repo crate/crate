@@ -191,16 +191,6 @@ public final class KeywordFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Object valueForDisplay(Object value) {
-            if (value == null) {
-                return null;
-            }
-            // keywords are internally stored as utf8 bytes
-            BytesRef binaryValue = (BytesRef) value;
-            return binaryValue.utf8ToString();
-        }
-
-        @Override
         protected BytesRef indexedValueForSearch(Object value) {
             if (searchAnalyzer() == Lucene.KEYWORD_ANALYZER) {
                 // keyword analyzer with the default attribute source which encodes terms using UTF8

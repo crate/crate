@@ -191,14 +191,6 @@ public class DateFieldMapper extends FieldMapper {
             return dateTimeFormatter().parser().parseMillis(value);
         }
 
-        @Override
-        public Object valueForDisplay(Object value) {
-            Long val = (Long) value;
-            if (val == null) {
-                return null;
-            }
-            return dateTimeFormatter().printer().print(val);
-        }
     }
 
     private final Boolean ignoreTimezone;

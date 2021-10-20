@@ -36,7 +36,6 @@ import org.elasticsearch.common.Explicit;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.search.DocValueFormat;
 
 
 /** A {@link FieldMapper} for ip addresses. */
@@ -135,13 +134,6 @@ public class IpFieldMapper extends FieldMapper {
         }
 
 
-        @Override
-        public Object valueForDisplay(Object value) {
-            if (value == null) {
-                return null;
-            }
-            return DocValueFormat.IP.format((BytesRef) value);
-        }
     }
 
     private final InetAddress nullValue;
