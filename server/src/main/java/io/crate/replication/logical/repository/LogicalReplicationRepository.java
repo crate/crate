@@ -21,6 +21,7 @@
 
 package io.crate.replication.logical.repository;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.action.GetStoreMetadataAction;
@@ -32,9 +33,13 @@ import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.StepListener;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -70,7 +75,9 @@ import org.elasticsearch.transport.ConnectTransportException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Derived from org.opensearch.replication.repository.RemoteClusterRepository
@@ -146,47 +153,97 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         return new SnapshotInfo(snapshotId, stateResponse.concreteIndices(), SnapshotState.SUCCESS, Version.CURRENT);
     }
 
-    @Override
-    public Metadata getSnapshotGlobalMetadata(SnapshotId snapshotId) {
-        var stateResponse = getPublicationsState();
-        var remoteClusterState = getRemoteClusterState(stateResponse.concreteIndices().toArray(new String[0]));
-        return remoteClusterState.metadata();
+    public void getSnapshotInfo(SnapshotId snapshotId, ActionListener<SnapshotInfo> listener) {
+        assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
+        StepListener<PublicationsStateAction.Response> responseStepListener = new StepListener<>();
+        getPublicationsState(responseStepListener);
+        responseStepListener.whenComplete(stateResponse -> {
+            listener.onResponse(new SnapshotInfo(snapshotId,
+                                             stateResponse.concreteIndices(),
+                                             SnapshotState.SUCCESS,
+                                             Version.CURRENT));
+        }, listener::onFailure);
     }
 
     @Override
-    public IndexMetadata getSnapshotIndexMetadata(SnapshotId snapshotId,
-                                                  IndexId index) throws IOException {
+    public void getSnapshotGlobalMetadata(SnapshotId snapshotId, ActionListener<Metadata> listener) {
+        StepListener< PublicationsStateAction.Response> responseStepListener = new StepListener<>();
+        getPublicationsState(responseStepListener);
+        responseStepListener.whenComplete(stateResponse -> {
+            var indices = stateResponse.concreteIndices().toArray(new String[0]);
+            StepListener<ClusterState> clusterStateStepListener = new StepListener<>();
+            getRemoteClusterState(clusterStateStepListener, indices);
+            clusterStateStepListener.whenComplete(remoteClusterState -> {
+                listener.onResponse(remoteClusterState.metadata());
+            }, listener::onFailure);
+        }, listener::onFailure);
+    }
+
+    @Override
+    public void getSnapshotIndexMetadata(SnapshotId snapshotId,
+                                         Collection<IndexId> indexIds,
+                                         ActionListener<Collection<IndexMetadata>> listener) {
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
-        var remoteClusterState = getRemoteClusterState(index.getName());
-        var indexMetadata = remoteClusterState.metadata().index(index.getName());
+        var remoteIndices = indexIds.stream().map(IndexId::getName).toArray(String[]::new);
+        StepListener<ClusterState> stepListener = new StepListener<>();
+        getRemoteClusterState(stepListener, remoteIndices);
+        stepListener.whenComplete(remoteClusterState -> {
+            var result = new ArrayList<IndexMetadata>();
+            for (var i : remoteClusterState.metadata().indices()) {
+                var indexName = i.key;
+                var indexMetadata = i.value;
+                // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
+                var builder = Settings.builder().put(indexMetadata.getSettings());
+                builder.put(LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX.getKey(), indexName);
 
-        // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
-        var builder = Settings.builder().put(indexMetadata.getSettings());
-        builder.put(LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX.getKey(), index.getName());
+                var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
+                indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));
+                result.add(indexMdBuilder.build());
+            }
+            listener.onResponse(result);
+        }, listener::onFailure);
+    }
 
-        var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
-        indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));
-        return indexMdBuilder.build();
+    public void getSnapshotIndexMetadata(SnapshotId snapshotId, IndexId index, ActionListener<IndexMetadata> listener) throws IOException {
+        assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
+        StepListener<ClusterState> stepListener = new StepListener<>();
+        getRemoteClusterState(stepListener, index.getName());
+        stepListener.whenComplete(remoteClusterState -> {
+            var indexMetadata = remoteClusterState.metadata().index(index.getName());
+            // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
+            var builder = Settings.builder().put(indexMetadata.getSettings());
+            builder.put(LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX.getKey(), index.getName());
+
+            var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
+            indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));
+            listener.onResponse(indexMdBuilder.build());
+        }, listener::onFailure);
     }
 
     @Override
     public void getRepositoryData(ActionListener<RepositoryData> listener) {
-        var stateResponse = getPublicationsState();
-        var remoteClusterState = getRemoteClusterState(stateResponse.concreteIndices().toArray(new String[0]));
-        var remoteMetadata = remoteClusterState.metadata();
-        var shardGenerations = ShardGenerations.builder();
+        StepListener<PublicationsStateAction.Response> responseStepListener = new StepListener<>();
+        getPublicationsState(responseStepListener);
+        responseStepListener.whenComplete(stateResponse -> {
+            StepListener<ClusterState> clusterStateStepListener = new StepListener<>();
+            getRemoteClusterState(clusterStateStepListener, stateResponse.concreteIndices().toArray(new String[0]));
+            clusterStateStepListener.whenComplete(remoteClusterState -> {
+                var remoteMetadata = remoteClusterState.metadata();
+                var shardGenerations = ShardGenerations.builder();
 
-        var it = remoteMetadata.getIndices().valuesIt();
-        while (it.hasNext()) {
-            var indexMetadata = it.next();
-            var indexId = new IndexId(indexMetadata.getIndex().getName(), indexMetadata.getIndexUUID());
-            for (int i = 0; i < indexMetadata.getNumberOfShards(); i++) {
-                shardGenerations.put(indexId, i, "dummy");
-            }
-        }
-        var repositoryData = RepositoryData.EMPTY
-            .addSnapshot(SNAPSHOT_ID, SnapshotState.SUCCESS, Version.CURRENT, shardGenerations.build());
-        listener.onResponse(repositoryData);
+                var it = remoteMetadata.getIndices().valuesIt();
+                while (it.hasNext()) {
+                    var indexMetadata = it.next();
+                    var indexId = new IndexId(indexMetadata.getIndex().getName(), indexMetadata.getIndexUUID());
+                    for (int i = 0; i < indexMetadata.getNumberOfShards(); i++) {
+                        shardGenerations.put(indexId, i, "dummy");
+                    }
+                }
+                var repositoryData = RepositoryData.EMPTY
+                    .addSnapshot(SNAPSHOT_ID, SnapshotState.SUCCESS, Version.CURRENT, shardGenerations.build());
+                listener.onResponse(repositoryData);
+            }, listener::onFailure);
+        }, listener::onFailure);
     }
 
     @Override
@@ -243,28 +300,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public IndexShardSnapshotStatus getShardSnapshotStatus(SnapshotId snapshotId,
-                                                           IndexId indexId,
-                                                           ShardId shardId) {
-        assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
-        final String remoteIndex = indexId.getName();
-        final IndicesStatsResponse response = getRemoteClusterClient().admin().indices().prepareStats(remoteIndex)
-            .clear().setStore(true)
-            .execute().actionGet(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC);
-        for (ShardStats shardStats : response.getIndex(remoteIndex).getShards()) {
-            final ShardRouting shardRouting = shardStats.getShardRouting();
-            if (shardRouting.shardId().id() == shardId.getId()
-                && shardRouting.primary()
-                && shardRouting.active()) {
-                // we only care about the shard size here for shard allocation, populate the rest with dummy values
-                final long totalSize = shardStats.getStats().getStore().getSizeInBytes();
-                return IndexShardSnapshotStatus.newDone(0L, 0L, 1, 1, totalSize, totalSize, "");
-            }
-        }
-        throw new ElasticsearchException("Could not get shard stats for primary of index " + remoteIndex + " on publisher cluster");
-    }
-
-    @Override
     public void updateState(ClusterState state) {
         throw new UnsupportedOperationException("Operation not permitted");
     }
@@ -285,6 +320,12 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
 
     }
 
+    @Override
+    public void getShardSnapshotStatus(SnapshotId snapshotId,
+                                       Map<ShardId, IndexId> shardIndexIds,
+                                       ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener) {
+    }
+
     private void restoreShardUsingMultiChunkTransfer(Store store,
                                                      IndexId indexId,
                                                      ShardId snapshotShardId,
@@ -292,105 +333,114 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                                      ActionListener<Void> listener) {
         var subscriberShardId = store.shardId();
         // 1. Get all the files info from the publisher cluster for this shardId
-        var publisherClusterState = getRemoteClusterState(true, true, indexId.getName());
-        var publisherShardRouting = publisherClusterState.routingTable()
-            .shardRoutingTable(
+        StepListener<ClusterState> clusterStateStepListener = new StepListener<>();
+        getRemoteClusterState(true, true, clusterStateStepListener, indexId.getName());
+        clusterStateStepListener.whenComplete(publisherClusterState -> {
+            var publisherShardRouting = publisherClusterState.routingTable()
+                .shardRoutingTable(
+                    snapshotShardId.getIndexName(),
+                    snapshotShardId.getId()
+                )
+                .primaryShard();
+            var publisherShardNode = publisherClusterState.nodes().get(publisherShardRouting.currentNodeId());
+            // Get the index UUID of the publisher cluster for the metadata request
+            var publisherShardId = new ShardId(
                 snapshotShardId.getIndexName(),
+                publisherClusterState.metadata().index(indexId.getName()).getIndexUUID(),
                 snapshotShardId.getId()
-            )
-            .primaryShard();
-        var publisherShardNode = publisherClusterState.nodes().get(publisherShardRouting.currentNodeId());
-        // Get the index UUID of the publisher cluster for the metadata request
-        var publisherShardId = new ShardId(
-            snapshotShardId.getIndexName(),
-            publisherClusterState.metadata().index(indexId.getName()).getIndexUUID(),
-            snapshotShardId.getId()
-        );
-        var restoreUUID = UUIDs.randomBase64UUID();
-        var getStoreMetadataRequest = new GetStoreMetadataAction.Request(
-            restoreUUID,
-            publisherShardNode,
-            publisherShardId,
-            clusterService.getClusterName().value(),
-            subscriberShardId
-        );
+            );
+            var restoreUUID = UUIDs.randomBase64UUID();
+            var getStoreMetadataRequest = new GetStoreMetadataAction.Request(
+                restoreUUID,
+                publisherShardNode,
+                publisherShardId,
+                clusterService.getClusterName().value(),
+                subscriberShardId
+            );
 
-        var remoteClient = getRemoteClusterClient();
+            var remoteClient = getRemoteClusterClient();
 
-        // Gets the remote store metadata
-        var metadataResponse = remoteClient.execute(
-            GetStoreMetadataAction.INSTANCE,
-            getStoreMetadataRequest
-        ).actionGet(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC);
-        var metadataSnapshot = metadataResponse.metadataSnapshot();
+            // Gets the remote store metadata
+            StepListener<GetStoreMetadataAction.Response> responseStepListener = new StepListener<>();
+           remoteClient.execute(GetStoreMetadataAction.INSTANCE, getStoreMetadataRequest, responseStepListener);
+           responseStepListener.whenComplete(metadataResponse -> {
+                var metadataSnapshot = metadataResponse.metadataSnapshot();
 
-        // 2. Request for individual files from publisher cluster for this shardId
-        // make sure the store is not released until we are done.
-        var fileMetadata = new ArrayList<>(metadataSnapshot.asMap().values());
-        var multiChunkTransfer = new RemoteClusterMultiChunkTransfer(
-            LOGGER,
-            clusterService.getClusterName().value(),
-            store,
-            RecoverySettings.INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING.get(settings),
-            restoreUUID,
-            //metadata,
-            publisherShardNode,
-            publisherShardId,
-            fileMetadata,
-            remoteClient,
-            threadPool,
-            recoveryState,
-            RECOVERY_CHUNK_SIZE.get(settings),
-            new ActionListener<>() {
-                @Override
-                public void onResponse(Void unused) {
-                    LOGGER.info("Restore successful for {}", store.shardId());
-                    store.decRef();
-                    releasePublisherResources(restoreUUID, publisherShardNode, publisherShardId, subscriberShardId);
-                    listener.onResponse(null);
-                }
+                // 2. Request for individual files from publisher cluster for this shardId
+                // make sure the store is not released until we are done.
+                var fileMetadata = new ArrayList<>(metadataSnapshot.asMap().values());
+                var multiChunkTransfer = new RemoteClusterMultiChunkTransfer(
+                    LOGGER,
+                    clusterService.getClusterName().value(),
+                    store,
+                    RecoverySettings.INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING.get(settings),
+                    restoreUUID,
+                    //metadata,
+                    publisherShardNode,
+                    publisherShardId,
+                    fileMetadata,
+                    remoteClient,
+                    threadPool,
+                    recoveryState,
+                    RECOVERY_CHUNK_SIZE.get(settings),
+                    new ActionListener<>() {
+                        @Override
+                        public void onResponse(Void unused) {
+                            LOGGER.info("Restore successful for {}", store.shardId());
+                            store.decRef();
+                            releasePublisherResources(restoreUUID,
+                                                      publisherShardNode,
+                                                      publisherShardId,
+                                                      subscriberShardId);
+                            listener.onResponse(null);
+                        }
 
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.error("Restore of " + store.shardId() + " failed due to ", e);
-                    if (e instanceof ConnectTransportException) {
-                        // TODO: retry
-                        LOGGER.info("TODO: Retry restore shard for ${store.shardId()}");
-                    } else {
-                        LOGGER.error("Not retrying restore shard for {}", store.shardId());
+                        @Override
+                        public void onFailure(Exception e) {
+                            LOGGER.error("Restore of " + store.shardId() + " failed due to ", e);
+                            if (e instanceof ConnectTransportException) {
+                                // TODO: retry
+                                LOGGER.info("TODO: Retry restore shard for ${store.shardId()}");
+                            } else {
+                                LOGGER.error("Not retrying restore shard for {}", store.shardId());
+                                store.decRef();
+                                releasePublisherResources(restoreUUID,
+                                                          publisherShardNode,
+                                                          publisherShardId,
+                                                          subscriberShardId);
+                                listener.onFailure(e);
+                            }
+
+                        }
+                    }
+                );
+                if (fileMetadata.isEmpty()) {
+                    LOGGER.info("Initializing with empty store for shard: {}", snapshotShardId.getId());
+                    try {
+                        store.createEmpty(store.indexSettings().getIndexVersionCreated().luceneVersion);
+                        listener.onResponse(null);
+                    } catch (IOException e) {
+                        listener.onFailure(new UncheckedIOException(e));
+                    } finally {
                         store.decRef();
                         releasePublisherResources(restoreUUID, publisherShardNode, publisherShardId, subscriberShardId);
-                        listener.onFailure(e);
                     }
-
+                } else {
+                    multiChunkTransfer.start();
                 }
-            }
-        );
-        if (fileMetadata.isEmpty()) {
-            LOGGER.info("Initializing with empty store for shard: {}", snapshotShardId.getId());
-            try {
-                store.createEmpty(store.indexSettings().getIndexVersionCreated().luceneVersion);
-                listener.onResponse(null);
-            } catch (IOException e) {
-                listener.onFailure(new UncheckedIOException(e));
-            } finally {
-                store.decRef();
-                releasePublisherResources(restoreUUID, publisherShardNode, publisherShardId, subscriberShardId);
-            }
-        } else {
-            multiChunkTransfer.start();
-        }
+            }, listener::onFailure);
+        }, listener::onFailure);
     }
 
     private Client getRemoteClusterClient() {
         return logicalReplicationService.getRemoteClusterClient(threadPool, subscriptionName);
     }
 
-    private ClusterState getRemoteClusterState(String... remoteIndices) {
-        return getRemoteClusterState(false, false, remoteIndices);
+    private void getRemoteClusterState(ActionListener<ClusterState> listener, String... remoteIndices) {
+        getRemoteClusterState(false, false, listener, remoteIndices);
     }
 
-    private ClusterState getRemoteClusterState(boolean includeNodes, boolean includeRouting, String... remoteIndices) {
+    private void getRemoteClusterState(boolean includeNodes, boolean includeRouting, ActionListener<ClusterState> listener, String... remoteIndices) {
         var clusterStateRequest = getRemoteClusterClient().admin().cluster().prepareState()
             .clear()
             .setIndices(remoteIndices)
@@ -398,12 +448,22 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .setNodes(includeNodes)
             .setRoutingTable(includeRouting)
             .setIndicesOptions(IndicesOptions.strictSingleIndexNoExpandForbidClosed())
+            .setWaitForTimeOut(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC))
             .request();
+        getRemoteClusterClient().admin().cluster().execute(
+            ClusterStateAction.INSTANCE, clusterStateRequest, new ActionListener<>() {
+                @Override
+                public void onResponse(ClusterStateResponse clusterStateResponse) {
+                    ClusterState remoteState = clusterStateResponse.getState();
+                    LOGGER.trace("Successfully fetched the cluster state from remote repository {}", remoteState);
+                    listener.onResponse(clusterStateResponse.getState());
+                }
 
-        var remoteState = getRemoteClusterClient().admin().cluster().state(clusterStateRequest)
-            .actionGet(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC).getState();
-        LOGGER.trace("Successfully fetched the cluster state from remote repository {}", remoteState);
-        return remoteState;
+                @Override
+                public void onFailure(Exception e) {
+                    listener.onFailure(e);
+                }
+            });
     }
 
     private PublicationsStateAction.Response getPublicationsState() {
@@ -411,6 +471,14 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             PublicationsStateAction.INSTANCE,
             new PublicationsStateAction.Request(logicalReplicationService.subscriptions().get(subscriptionName).publications())
         ).actionGet(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC);
+    }
+
+    private void getPublicationsState(ActionListener<PublicationsStateAction.Response> listener) {
+        getRemoteClusterClient().execute(
+            PublicationsStateAction.INSTANCE,
+            new PublicationsStateAction.Request(logicalReplicationService.subscriptions().get(subscriptionName).publications()),
+            listener
+        );
     }
 
     private void releasePublisherResources(String restoreUUID,
@@ -424,20 +492,26 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             clusterService.getClusterName().value(),
             subcriberShardId
         );
-        try {
-            var response = getRemoteClusterClient().execute(
-                ReleasePublisherResourcesAction.INSTANCE,
-                releaseResourcesReq
-            ).actionGet(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC);
-            if (response.isAcknowledged()) {
-                LOGGER.info("Successfully released resources at the publisher cluster for {} at {}",
-                            publisherShardId,
-                            publisherShardNode
-                );
-            }
-        } catch (Exception e) {
-            LOGGER.error("Releasing publisher resource failed due to ", e);
-        }
+        getRemoteClusterClient().execute(
+            ReleasePublisherResourcesAction.INSTANCE,
+            releaseResourcesReq,
+            new ActionListener<>() {
+                @Override
+                public void onResponse(AcknowledgedResponse acknowledgedResponse) {
+                    if (acknowledgedResponse.isAcknowledged()) {
+                        LOGGER.info("Successfully released resources at the publisher cluster for {} at {}",
+                                    publisherShardId,
+                                    publisherShardNode
+                        );
+                    }
+                }
 
+                @Override
+                public void onFailure(Exception e) {
+                    LOGGER.error("Releasing publisher resource failed due to ", e);
+                }
+            }
+        );
     }
+
 }
