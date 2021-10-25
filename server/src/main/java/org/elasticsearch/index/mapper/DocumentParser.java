@@ -19,26 +19,24 @@
 
 package org.elasticsearch.index.mapper;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.StreamSupport;
+
 import javax.annotation.Nullable;
+
 import org.elasticsearch.common.Strings;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.DynamicTemplate.XContentFieldType;
-import org.elasticsearch.index.mapper.KeywordFieldMapper.KeywordFieldType;
-import org.elasticsearch.index.mapper.TextFieldMapper.TextFieldType;
 import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.StreamSupport;
+import io.crate.common.collections.Tuple;
 
 /** A parser for documents, given mappings from a DocumentMapper */
 final class DocumentParser {
@@ -402,11 +400,8 @@ final class DocumentParser {
             if (dynamic == ObjectMapper.Dynamic.STRICT) {
                 throw new StrictDynamicMappingException(mapper.fullPath(), currentFieldName);
             } else if (dynamic == ObjectMapper.Dynamic.TRUE) {
-                Mapper.Builder<?> builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.OBJECT);
-                if (builder == null) {
-                    builder = new ObjectMapper.Builder<>(currentFieldName)
+                Mapper.Builder<?> builder = new ObjectMapper.Builder<>(currentFieldName)
                         .position(getPositionForDynamicField(context, mapper));
-                }
                 Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
                 objectMapper = builder.build(builderContext);
                 context.addDynamicMapper(objectMapper);
@@ -452,38 +447,24 @@ final class DocumentParser {
             if (dynamic == ObjectMapper.Dynamic.STRICT) {
                 throw new StrictDynamicMappingException(parentMapper.fullPath(), arrayFieldName);
             } else if (dynamic == ObjectMapper.Dynamic.TRUE) {
-                Mapper.Builder builder = context.root().findTemplateBuilder(context, arrayFieldName, XContentFieldType.OBJECT);
-                if (builder == null) {
-                    DynamicArrayFieldMapperBuilderFactory dynamicArrayFieldMapperBuilderFactory =
-                        context.mapperService().mapperRegistry.getDynamicArrayBuilderFactory();
+                MapperService mapperService = context.mapperService();
+                DynamicArrayFieldMapperBuilderFactory dynamicArrayFieldMapperBuilderFactory =
+                    mapperService.mapperRegistry.getDynamicArrayBuilderFactory();
 
-                    if (dynamicArrayFieldMapperBuilderFactory != null) {
-                        mapper = dynamicArrayFieldMapperBuilderFactory.create(
-                                arrayFieldName,
-                                parentMapper,
-                                context
-                        );
-                        if (mapper != null) {
-                            context.addDynamicMapper(mapper);
-                            context.path().add(arrayFieldName);
-                            parseObjectOrField(context, mapper);
-                            context.path().remove();
-                        }
-                    } else {
-                        parseNonDynamicArray(context, parentMapper, lastFieldName, arrayFieldName);
-                    }
-                } else {
-                    Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
-                    mapper = builder.build(builderContext);
-                    assert mapper != null;
-                    if (mapper instanceof ArrayValueMapperParser) {
+                if (dynamicArrayFieldMapperBuilderFactory != null) {
+                    mapper = dynamicArrayFieldMapperBuilderFactory.create(
+                            arrayFieldName,
+                            parentMapper,
+                            context
+                    );
+                    if (mapper != null) {
                         context.addDynamicMapper(mapper);
                         context.path().add(arrayFieldName);
                         parseObjectOrField(context, mapper);
                         context.path().remove();
-                    } else {
-                        parseNonDynamicArray(context, parentMapper, lastFieldName, arrayFieldName);
                     }
+                } else {
+                    parseNonDynamicArray(context, parentMapper, lastFieldName, arrayFieldName);
                 }
             } else {
                 // TODO: shouldn't this skip, not parse?
@@ -549,52 +530,6 @@ final class DocumentParser {
         }
     }
 
-    private static Mapper.Builder<?> createBuilderFromFieldType(final ParseContext context, MappedFieldType fieldType, String currentFieldName) {
-        Mapper.Builder builder = null;
-        if (fieldType instanceof TextFieldType) {
-            builder = context.root().findTemplateBuilder(context, currentFieldName, "text", XContentFieldType.STRING);
-            if (builder == null) {
-                builder = new TextFieldMapper.Builder(currentFieldName)
-                        .addMultiField(new KeywordFieldMapper.Builder("keyword").ignoreAbove(256));
-            }
-        } else if (fieldType instanceof KeywordFieldType) {
-            builder = context.root().findTemplateBuilder(context, currentFieldName, "keyword", XContentFieldType.STRING);
-        } else {
-            switch (fieldType.typeName()) {
-                case DateFieldMapper.CONTENT_TYPE:
-                    builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.DATE);
-                    break;
-                case "long":
-                    builder = context.root().findTemplateBuilder(context, currentFieldName, "long", XContentFieldType.LONG);
-                    break;
-                case "double":
-                    builder = context.root().findTemplateBuilder(context, currentFieldName, "double", XContentFieldType.DOUBLE);
-                    break;
-                case "integer":
-                    builder = context.root().findTemplateBuilder(context, currentFieldName, "integer", XContentFieldType.LONG);
-                    break;
-                case "float":
-                    builder = context.root().findTemplateBuilder(context, currentFieldName, "float", XContentFieldType.DOUBLE);
-                    break;
-                case BooleanFieldMapper.CONTENT_TYPE:
-                    builder = context.root().findTemplateBuilder(context, currentFieldName, "boolean", XContentFieldType.BOOLEAN);
-                    break;
-                default:
-                    break;
-            }
-        }
-        if (builder == null) {
-            Mapper.TypeParser.ParserContext parserContext = context.docMapperParser().parserContext();
-            Mapper.TypeParser typeParser = parserContext.typeParser(fieldType.typeName());
-            if (typeParser == null) {
-                throw new MapperParsingException("Cannot generate dynamic mappings of type [" + fieldType.typeName()
-                    + "] for [" + currentFieldName + "]");
-            }
-            builder = typeParser.parse(currentFieldName, new HashMap<>(), parserContext);
-        }
-        return builder;
-    }
-
     private static Mapper.Builder<?> newLongBuilder(String name) {
         return new NumberFieldMapper.Builder(name, NumberFieldMapper.NumberType.LONG);
     }
@@ -605,47 +540,21 @@ final class DocumentParser {
 
     static Mapper.Builder<?> createBuilderFromDynamicValue(final ParseContext context, XContentParser.Token token, String currentFieldName) throws IOException {
         if (token == XContentParser.Token.VALUE_STRING) {
-            Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.STRING);
-            if (builder == null) {
-                builder = new TextFieldMapper.Builder(currentFieldName)
-                    .addMultiField(new KeywordFieldMapper.Builder("keyword").ignoreAbove(256));
-            }
-            return builder;
+            return new KeywordFieldMapper.Builder(currentFieldName);
         } else if (token == XContentParser.Token.VALUE_NUMBER) {
             XContentParser.NumberType numberType = context.parser().numberType();
             if (numberType == XContentParser.NumberType.INT || numberType == XContentParser.NumberType.LONG) {
-                Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.LONG);
-                if (builder == null) {
-                    builder = newLongBuilder(currentFieldName);
-                }
-                return builder;
+                return newLongBuilder(currentFieldName);
             } else if (numberType == XContentParser.NumberType.FLOAT || numberType == XContentParser.NumberType.DOUBLE) {
-                Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.DOUBLE);
-                if (builder == null) {
-                    // no templates are defined, we use float by default instead of double
-                    // since this is much more space-efficient and should be enough most of
-                    // the time
-                    builder = newFloatBuilder(currentFieldName);
-                }
-                return builder;
+                // no templates are defined, we use float by default instead of double
+                // since this is much more space-efficient and should be enough most of
+                // the time
+                return newFloatBuilder(currentFieldName);
             }
         } else if (token == XContentParser.Token.VALUE_BOOLEAN) {
-            Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.BOOLEAN);
-            if (builder == null) {
-                builder = new BooleanFieldMapper.Builder(currentFieldName);
-            }
-            return builder;
+            return new BooleanFieldMapper.Builder(currentFieldName);
         } else if (token == XContentParser.Token.START_OBJECT) {
-            Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.OBJECT);
-            if (builder == null) {
-                builder = new ObjectMapper.Builder(currentFieldName);
-            }
-            return builder;
-        } else {
-            Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.STRING);
-            if (builder != null) {
-                return builder;
-            }
+            return new ObjectMapper.Builder(currentFieldName);
         }
         // TODO how do we identify dynamically that its a binary value?
         throw new IllegalStateException("Can't handle serializing a dynamic type with content token [" + token + "] and field name [" + currentFieldName + "]");
@@ -756,10 +665,7 @@ final class DocumentParser {
                     case STRICT:
                         throw new StrictDynamicMappingException(parent.fullPath(), paths[i]);
                     case TRUE:
-                        Mapper.Builder<?> builder = context.root().findTemplateBuilder(context, paths[i], XContentFieldType.OBJECT);
-                        if (builder == null) {
-                            builder = new ObjectMapper.Builder<>(paths[i]);
-                        }
+                        Mapper.Builder<?> builder = new ObjectMapper.Builder<>(paths[i]);
                         Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(),
                             context.path());
                         mapper = (ObjectMapper) builder.build(builderContext);

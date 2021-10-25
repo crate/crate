@@ -141,18 +141,6 @@ public class DefaultTemplateService extends AbstractLifecycleComponent implement
             XContentBuilder builder = XContentFactory.jsonBuilder()
                 .startObject()
                 .startObject(Constants.DEFAULT_MAPPING_TYPE)
-                    .startArray("dynamic_templates")
-                        .startObject()
-                            .startObject("strings")
-                                .field("match_mapping_type", "string")
-                                .startObject("mapping")
-                                    .field("type", "keyword")
-                                    .field("doc_values", true)
-                                    .field("store", false)
-                                .endObject()
-                            .endObject()
-                        .endObject()
-                    .endArray()
                 .endObject()
                 .endObject();
             // @formatter:on
