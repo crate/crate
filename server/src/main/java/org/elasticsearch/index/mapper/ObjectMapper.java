@@ -362,8 +362,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
             custom.toXContent(builder, params);
         }
 
-        doXContent(builder, params);
-
         // sort the mappers so we get consistent serialization format
         Mapper[] sortedMappers = mappers.values().stream().toArray(size -> new Mapper[size]);
         Arrays.sort(sortedMappers, new Comparator<Mapper>() {
@@ -387,9 +385,4 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
         builder.endObject();
     }
-
-    protected void doXContent(XContentBuilder builder, Params params) throws IOException {
-
-    }
-
 }
