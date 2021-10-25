@@ -21,7 +21,9 @@ package org.elasticsearch.repositories;
 
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.lucene.index.IndexCommit;
@@ -95,18 +97,27 @@ public interface Repository extends LifecycleComponent {
      * Returns global metadata associated with the snapshot.
      *
      * @param snapshotId the snapshot id to load the global metadata from
-     * @return the global metadata about the snapshot
+     * @param listener   listener invoked on completion
      */
-    Metadata getSnapshotGlobalMetadata(SnapshotId snapshotId);
+    void getSnapshotGlobalMetadata(SnapshotId snapshotId, ActionListener<Metadata> listener);
 
     /**
      * Returns the index metadata associated with the snapshot.
      *
      * @param snapshotId the snapshot id to load the index metadata from
      * @param index      the {@link IndexId} to load the metadata from
-     * @return the index metadata about the given index for the given snapshot
+     * @param listener   listener invoked on completion
      */
-    IndexMetadata getSnapshotIndexMetadata(SnapshotId snapshotId, IndexId index) throws IOException;
+    void getSnapshotIndexMetadata(SnapshotId snapshotId, IndexId indexId, ActionListener<IndexMetadata> listener) throws IOException;
+
+    /**
+     * Returns index metadata associated with the snapshot.
+     *
+     * @param snapshotId the snapshot id to load the index metadata from
+     * @param indexIds   the Collection of {@link IndexId} to load the metadata from
+     * @param listener   listener invoked on completion
+     */
+    void getSnapshotIndexMetadata(SnapshotId snapshotId, Collection<IndexId> indexIds, ActionListener<Collection<IndexMetadata>> listener);
 
     /**
      * Returns a {@link RepositoryData} to describe the data in the repository, including the snapshots
@@ -220,14 +231,13 @@ public interface Repository extends LifecycleComponent {
                       ActionListener<Void> listener);
 
     /**
-     * Retrieve shard snapshot status for the stored snapshot
+     * Retrieve multiple shard snapshot statuses for the stored snapshot
      *
-     * @param snapshotId snapshot id
-     * @param indexId    the snapshotted index id for the shard to get status for
-     * @param shardId    shard id
-     * @return snapshot status
+     * @param snapshotId    snapshot id
+     * @param shardIndexIds Map containing the shardId and the corresponding snapshotted indexId
+     * @param listener      listener to invoke once done
      */
-    IndexShardSnapshotStatus getShardSnapshotStatus(SnapshotId snapshotId, IndexId indexId, ShardId shardId);
+    void getShardSnapshotStatus(SnapshotId snapshotId, Map<ShardId, IndexId> shardIndexIds, ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener);
 
     /**
      * Update the repository with the incoming cluster state. This method is invoked from {@link RepositoriesService#applyClusterState} and
