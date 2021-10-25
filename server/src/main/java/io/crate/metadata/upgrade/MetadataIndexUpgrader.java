@@ -21,20 +21,18 @@
 
 package io.crate.metadata.upgrade;
 
-import io.crate.Constants;
-import io.crate.common.annotations.VisibleForTesting;
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.UnaryOperator;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.index.mapper.MapperParsingException;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.UnaryOperator;
+import io.crate.Constants;
+import io.crate.common.annotations.VisibleForTesting;
 
 public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
 
@@ -72,8 +70,7 @@ public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
             Object fieldNode = entry.getValue();
             switch (fieldName) {
                 case "dynamic_templates":
-                    handleDynamicTemplates(newMapping, fieldName, (List<?>) fieldNode);
-                    break;
+                    break; // `dynamic_templates` is no longer supported
 
                 case "_all":
                     break; // `_all` is no longer supported and via CREATE TABLE we always set `_all: {enabled: false}` which is safe to remove.
@@ -88,25 +85,6 @@ public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
         } catch (IOException e) {
             logger.error("Failed to upgrade mapping for index '" + indexName + "'", e);
             return mappingMetadata;
-        }
-    }
-
-    private static void handleDynamicTemplates(LinkedHashMap<String, Object> newMapping, String fieldName, List<?> fieldNode) {
-        List<Object> templates = new ArrayList<>();
-        for (Object tmplNode : fieldNode) {
-            //noinspection unchecked
-            Map<String, Object> tmpl = (Map<String, Object>) tmplNode;
-            if (tmpl.size() != 1) {
-                throw new MapperParsingException("A dynamic template must be defined with a name");
-            }
-            Map.Entry<String, Object> tmpEntry = tmpl.entrySet().iterator().next();
-            String templateName = tmpEntry.getKey();
-            if (templateName.equals("strings") == false) {
-                templates.add(tmplNode);
-            }
-        }
-        if (templates.size() > 0) {
-            newMapping.put(fieldName, templates);
         }
     }
 }

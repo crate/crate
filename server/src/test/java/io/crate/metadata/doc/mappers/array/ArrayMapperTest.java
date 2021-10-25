@@ -23,7 +23,10 @@ package io.crate.metadata.doc.mappers.array;
 
 import io.crate.Constants;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+
+import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.index.IndexableFieldType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -48,6 +51,7 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ObjectArrayMapper;
 import org.elasticsearch.index.mapper.ParseContext;
+import org.elasticsearch.index.mapper.ParseContext.Document;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.indices.IndicesModule;
@@ -478,9 +482,11 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         // @formatter:off
 
         List<String> copyValues = new ArrayList<>();
-        for (IndexableField field : doc.docs().get(0).getFields()) {
-            if (field.name().equals("string_array_ft")) {
-                copyValues.add(field.stringValue());
+        Document document = doc.docs().get(0);
+        IndexableField[] fields = document.getFields("string_array_ft");
+        for (var field : fields) {
+            if (field.fieldType().docValuesType() == DocValuesType.SORTED_SET) {
+                copyValues.add(field.binaryValue().utf8ToString());
             }
         }
         assertThat(copyValues, containsInAnyOrder("foo", "bar"));

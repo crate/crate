@@ -30,6 +30,8 @@ import static org.hamcrest.Matchers.is;
 
 import org.junit.Test;
 
+import io.crate.testing.TestingHelpers;
+
 public class FulltextIntegrationTest extends SQLIntegrationTestCase  {
 
     @Test
@@ -140,7 +142,10 @@ public class FulltextIntegrationTest extends SQLIntegrationTestCase  {
         assertThat(response.rowCount(), is(1L));
         // also equals term must work
         execute("SELECT id, keywords FROM t_string_array WHERE keywords_ft = 'foo'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "1| [foo bar]\n"
+        ));
+
         // equals original whole string must not work
         execute("SELECT id, keywords FROM t_string_array WHERE keywords_ft = 'foo bar'");
         assertThat(response.rowCount(), is(0L));
