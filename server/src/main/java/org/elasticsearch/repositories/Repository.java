@@ -20,18 +20,13 @@
 package org.elasticsearch.repositories;
 
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
+import io.crate.analyze.repositories.TypeSettings;
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.index.mapper.MapperService;
@@ -43,7 +38,11 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 
-import io.crate.analyze.repositories.TypeSettings;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 /**
  * An interface for interacting with a repository in snapshot and restore.
@@ -89,9 +88,9 @@ public interface Repository extends LifecycleComponent {
      * Reads snapshot description from repository.
      *
      * @param snapshotId  snapshot id
-     * @return information about snapshot
+     * @param listener   listener invoked on completion
      */
-    SnapshotInfo getSnapshotInfo(SnapshotId snapshotId);
+    void getSnapshotInfo(SnapshotId snapshotId, ActionListener<SnapshotInfo> listener);
 
     /**
      * Returns global metadata associated with the snapshot.
@@ -105,7 +104,7 @@ public interface Repository extends LifecycleComponent {
      * Returns the index metadata associated with the snapshot.
      *
      * @param snapshotId the snapshot id to load the index metadata from
-     * @param index      the {@link IndexId} to load the metadata from
+     * @param indexId    the {@link IndexId} to load the metadata from
      * @param listener   listener invoked on completion
      */
     void getSnapshotIndexMetadata(SnapshotId snapshotId, IndexId indexId, ActionListener<IndexMetadata> listener) throws IOException;

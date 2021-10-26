@@ -29,20 +29,18 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.RepositoryException;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
 import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.Locale;
@@ -236,7 +234,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final SnapshotsService snapshotsService = internalCluster().getCurrentMasterNodeInstance(SnapshotsService.class);
         final ThreadPool threadPool = internalCluster().getCurrentMasterNodeInstance(ThreadPool.class);
         assertThat(PlainActionFuture.get(f -> threadPool.generic().execute(
-            ActionRunnable.supply(f, () -> snapshotsService.hasOldVersionSnapshots(repoName, getRepositoryData(repository), null)))),
+            ActionRunnable.wrap(f, (d) -> snapshotsService.hasOldVersionSnapshots(repoName, getRepositoryData(repository), d, null)))),
             is(true));
 
         logger.info("--> verify that snapshot with missing root level metadata can be deleted");
@@ -244,12 +242,44 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
         logger.info("--> verify that repository is assumed in new metadata format after removing corrupted snapshot");
         assertThat(PlainActionFuture.get(f -> threadPool.generic().execute(
-            ActionRunnable.supply(f, () -> snapshotsService.hasOldVersionSnapshots(repoName, getRepositoryData(repository), null)))),
+            ActionRunnable.wrap(f, (d) -> snapshotsService.hasOldVersionSnapshots(repoName, getRepositoryData(repository), d,null)))),
             is(false));
         final RepositoryData finalRepositoryData = getRepositoryData(repository);
         for (SnapshotId snapshotId : finalRepositoryData.getSnapshotIds()) {
             assertThat(finalRepositoryData.getVersion(snapshotId), is(Version.CURRENT));
         }
+    }
+
+    public void testCorruptedSnapshotIsIgnored() throws Exception {
+        Path repo = randomRepoPath();
+        final String repoName = "test";
+        logger.info("-->  creating repository at {}", repo.toAbsolutePath());
+
+        execute("CREATE REPOSITORY test TYPE fs with (location=?, compress=false, chunk_size=?)",
+                new Object[]{repo.toAbsolutePath().toString(), randomIntBetween(100, 1000) + ByteSizeUnit.BYTES.getSuffix()});
+
+        final String snapshotPrefix = "test-snap-";
+        final int snapshots = randomIntBetween(2, 2);
+        logger.info("--> creating [{}] snapshots", snapshots);
+        for (int i = 0; i < snapshots; ++i) {
+            CreateSnapshotResponse createSnapshotResponse = client().admin().cluster().prepareCreateSnapshot(repoName, snapshotPrefix + i)
+                .setIndices().setWaitForCompletion(true).get();
+            assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), is(0));
+            assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
+                       equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
+        }
+        final Repository repository = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
+        final RepositoryData repositoryData = getRepositoryData(repository);
+
+        final SnapshotId snapshotToCorrupt = randomFrom(repositoryData.getSnapshotIds());
+        logger.info("--> delete root level snapshot metadata blob for snapshot [{}]", snapshotToCorrupt);
+        Files.delete(repo.resolve(String.format(Locale.ROOT, BlobStoreRepository.SNAPSHOT_NAME_FORMAT, snapshotToCorrupt.getUUID())));
+
+        logger.info("--> ensure snapshot list can be retrieved without any error if ignoreUnavailable is set");
+        var resp = client().admin().cluster().prepareGetSnapshots(repoName).setIgnoreUnavailable(true).get();
+        assertThat(resp.getSnapshots().size(), is(snapshots - 1));
+
+        client().admin().cluster().prepareDeleteSnapshot(repoName, snapshotToCorrupt.getName()).get();
     }
 
     private void assertRepositoryBlocked(Client client, String repo, String existingSnapshot) {
