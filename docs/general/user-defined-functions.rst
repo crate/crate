@@ -392,45 +392,8 @@ is returned::
     cr> DROP FUNCTION utc(bigint, bigint, bigint);
     DROP OK, 1 row affected  (... sec)
 
-
-.. _udf-js-array-methods:
-
-Working with ``Array`` methods
-..............................
-
-The JavaScript ``Array`` object has a number of prototype methods you can
-use, such as `join`_, `map`_, `sort`_, `slice`_, `reduce`_, and so on.
-
-Normally, you can call these methods directly from an ``Array`` object, like
-so:
-
-.. code-block:: js
-
-    function array_join(a, b) {
-        return a.join(b);
-    }
-
-However, when writing JavaScript for use with CrateDB, you must explicitly use
-the prototype method:
-
-.. code-block:: js
-
-    function array_join(a, b) {
-        return Array.prototype.join.call(a, b);
-    }
-
-You must do it like this because arguments are not passed as ``Array`` objects,
-and so do not have the associated prototype methods available. Arguments are instead
-passed as array-like objects.
-
-
 .. _ECMAScript 2019: https://262.ecma-international.org/10.0/index.html
 .. _GraalVM JavaScript: https://www.graalvm.org/reference-manual/js/
 .. _GraalVM Polyglot API: https://www.graalvm.org/reference-manual/embed-languages/
 .. _GraalVM Security Guide: https://www.graalvm.org/security-guide/
-.. _join: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
-.. _map: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
-.. _reduce: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce
-.. _slice: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice
-.. _sort: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
 .. _stock host Java VM JIT compilers: https://www.graalvm.org/reference-manual/js/RunOnJDK/
