@@ -138,10 +138,18 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
                 }
             }
 
-            final List<SnapshotInfo> snapshotInfos;
             if (request.verbose()) {
-                snapshotInfos = snapshotsService.snapshots(repository, new ArrayList<>(toResolve), request.ignoreUnavailable());
+                snapshotsService.snapshots(
+                    repository,
+                    new ArrayList<>(toResolve),
+                    request.ignoreUnavailable(),
+                    ActionListener.wrap(
+                        snapshotInfos -> listener.onResponse(new GetSnapshotsResponse(new ArrayList<>(snapshotInfos))),
+                        listener::onFailure
+                    )
+                );
             } else {
+                final List<SnapshotInfo> snapshotInfos;
                 if (repositoryData != null) {
                     // want non-current snapshots as well, which are found in the repository data
                     snapshotInfos = buildSimpleSnapshotInfos(toResolve, repositoryData, currentSnapshots);
@@ -150,8 +158,8 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
                     snapshotInfos = currentSnapshots.stream().map(SnapshotInfo::basic).collect(Collectors.toList());
                     CollectionUtil.timSort(snapshotInfos);
                 }
+                listener.onResponse(new GetSnapshotsResponse(snapshotInfos));
             }
-            listener.onResponse(new GetSnapshotsResponse(snapshotInfos));
         } catch (Exception e) {
             listener.onFailure(e);
         }

@@ -76,8 +76,16 @@ public class SysSnapshotsTest extends ESTestCase {
         }).when(r1).getRepositoryData(any());
 
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
-        when(r1.getSnapshotInfo(eq(s1))).thenThrow(new SnapshotException("repo1", "s1", "Everything is wrong"));
-        when(r1.getSnapshotInfo(eq(s2))).thenReturn(new SnapshotInfo(s2, Collections.emptyList(), SnapshotState.SUCCESS));
+        doAnswer((Answer<Void>) invocation -> {
+            ActionListener<SnapshotInfo> callback = invocation.getArgument(1);
+            callback.onFailure(new SnapshotException("repo1", "s1", "Everything is wrong"));
+            return null;
+        }).when(r1).getSnapshotInfo(eq(s1), any());
+        doAnswer((Answer<Void>) invocation -> {
+            ActionListener<SnapshotInfo> callback = invocation.getArgument(1);
+            callback.onResponse(new SnapshotInfo(s2, Collections.emptyList(), SnapshotState.SUCCESS));
+            return null;
+        }).when(r1).getSnapshotInfo(eq(s2), any());
 
         SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1));
         Stream<SysSnapshot> currentSnapshots = StreamSupport.stream(
