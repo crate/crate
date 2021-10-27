@@ -25,6 +25,7 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.InvalidArgumentException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
@@ -34,9 +35,9 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.replication.logical.action.CreateSubscriptionRequest;
 import io.crate.replication.logical.analyze.AnalyzedCreateSubscription;
 import io.crate.replication.logical.metadata.ConnectionInfo;
-import io.crate.replication.logical.metadata.Subscription;
 import io.crate.types.DataTypes;
 
+import java.util.Locale;
 import java.util.function.Function;
 
 import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
@@ -71,7 +72,12 @@ public class CreateSubscriptionPlan implements Plan {
         var url = validateAndConvertToString(eval.apply(analyzedCreateSubscription.connectionInfo()));
         var connectionInfo = ConnectionInfo.fromURL(url);
         var settings = genericPropertiesToSettings(analyzedCreateSubscription.properties().map(eval));
-        Subscription.validateSettings(settings);
+
+        for (var setting : settings.names()) {
+            throw new InvalidArgumentException(
+                String.format(Locale.ENGLISH, "Setting '%s' is not support on CREATE SUBSCRIPTION", setting)
+            );
+        }
 
         var request = new CreateSubscriptionRequest(
             plannerContext.transactionContext().sessionContext().sessionUser().name(),

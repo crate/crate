@@ -137,8 +137,23 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
             var subscriptionName = entry.getKey();
             if (oldSubscriptions == null || oldSubscriptions.get(subscriptionName) == null) {
                 assert repositoriesService != null : "RepositoriesService is not (yet) set";
+
                 LOGGER.debug("Adding new logical replication repository for subscription '{}'", subscriptionName);
                 repositoriesService.registerInternalRepository(REMOTE_REPOSITORY_PREFIX + subscriptionName, TYPE);
+
+                LOGGER.debug("Start logical replication for subscription '{}'", subscriptionName);
+                startReplication(subscriptionName, entry.getValue(), new ActionListener<>() {
+
+                    @Override
+                    public void onResponse(AcknowledgedResponse acknowledgedResponse) {
+                        LOGGER.debug("Acknowledged logical replication for subscription '{}'", subscriptionName);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        LOGGER.debug("Failure for logical replication for subscription", e);
+                    }
+                });
             }
         }
         if (oldSubscriptions != null) {
@@ -226,8 +241,6 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-
-
     }
 
     public synchronized void updateRemoteConnection(String name,
@@ -285,48 +298,63 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
         return null;
     }
 
-    public void replicate(String subscriptionName,
-                          Subscription subscription,
-                          ActionListener<AcknowledgedResponse> listener) {
-        if (Subscription.ENABLED.get(subscription.settings())) {
-            updateRemoteConnection(
-                subscriptionName,
-                subscription.connectionInfo().settings(),
-                ActionListener.delegateFailure(
-                    listener,
-                    (delegatedListener, response) -> {
-                        var remoteClient = getRemoteClusterClient(
-                            threadPool,
-                            subscriptionName
-                        );
-                        remoteClient.execute(
-                            PublicationsStateAction.INSTANCE,
-                            new PublicationsStateAction.Request(subscription.publications()),
-                            ActionListener.delegateFailure(
-                                listener,
-                                (l, stateResponse) -> {
-                                    try {
-                                        validatePublicationState(subscriptionName, stateResponse);
-                                    } catch (Exception e) {
-                                        listener.onFailure(e);
-                                        return;
-                                    }
-                                    for (var index : stateResponse.concreteIndices()) {
-                                        subscribedIndices.put(index, subscriptionName);
-                                    }
-                                    initiateReplication(subscriptionName, subscription, stateResponse, l);
-                                }
-                            )
-                        );
+    public void startReplication(String subscriptionName,
+                                 Subscription subscription,
+                                 ActionListener<AcknowledgedResponse> listener) {
+        getPublicationState(
+            subscriptionName,
+            subscription,
+            new ActionListener<>() {
+
+                @Override
+                public void onResponse(PublicationsStateAction.Response stateResponse) {
+                    verifyTablesDoNotExist(subscriptionName, stateResponse, listener::onFailure);
+                    for (var index : stateResponse.concreteIndices()) {
+                        subscribedIndices.put(index, subscriptionName);
                     }
-                )
-            );
-        } else {
-            listener.onResponse(new AcknowledgedResponse(true));
-        }
+                    initiateReplication(subscriptionName, subscription, stateResponse, listener);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    listener.onFailure(e);
+                }
+            }
+        );
     }
 
-    private void validatePublicationState(String subscriptionName, PublicationsStateAction.Response stateResponse) {
+    public void verifyTablesDoNotExist(String subscriptionName,
+                                       Subscription subscription,
+                                       Consumer<Exception> consumer) {
+        getPublicationState(
+            subscriptionName,
+            subscription,
+            ActionListener.wrap(x -> verifyTablesDoNotExist(subscriptionName, x, consumer), consumer)
+        );
+    }
+
+    private void getPublicationState(String subscriptionName, Subscription subscription, ActionListener<PublicationsStateAction.Response> listener) {
+        updateRemoteConnection(
+            subscriptionName,
+            subscription.connectionInfo().settings(),
+            ActionListener.delegateFailure(
+                listener,
+                (delegatedListener, response) -> {
+                    var remoteClient = getRemoteClusterClient(
+                        threadPool,
+                        subscriptionName
+                    );
+                    remoteClient.execute(
+                        PublicationsStateAction.INSTANCE,
+                        new PublicationsStateAction.Request(subscription.publications()),
+                        listener
+                    );
+                }
+            )
+        );
+    }
+
+    private void verifyTablesDoNotExist(String subscriptionName, PublicationsStateAction.Response stateResponse, Consumer<Exception> consumer) {
         var metadata = clusterService.state().metadata();
         Consumer<RelationName> onExists = (relation) -> {
             var message = String.format(
@@ -335,7 +363,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                 subscriptionName,
                 relation
             );
-            throw new RelationAlreadyExists(relation, message);
+            consumer.accept(new RelationAlreadyExists(relation, message));
         };
         for (var index : stateResponse.concreteIndices()) {
             if (metadata.hasIndex(index)) {
@@ -395,6 +423,12 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                             afterReplicationStarted(delegatedListener, response)
                     )
                 );
+            }
+
+            @Override
+            public void onAfter() {
+                super.onAfter();
+                listener.onResponse(new AcknowledgedResponse(true));
             }
         });
     }

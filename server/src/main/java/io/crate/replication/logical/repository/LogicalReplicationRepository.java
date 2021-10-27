@@ -146,13 +146,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         return metadata;
     }
 
-    @Override
-    public SnapshotInfo getSnapshotInfo(SnapshotId snapshotId) {
-        assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
-        var stateResponse = getPublicationsState();
-        return new SnapshotInfo(snapshotId, stateResponse.concreteIndices(), SnapshotState.SUCCESS, Version.CURRENT);
-    }
-
     public void getSnapshotInfo(SnapshotId snapshotId, ActionListener<SnapshotInfo> listener) {
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
         StepListener<PublicationsStateAction.Response> responseStepListener = new StepListener<>();

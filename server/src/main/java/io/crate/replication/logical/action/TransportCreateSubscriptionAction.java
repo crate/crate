@@ -25,7 +25,6 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -38,18 +37,14 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
-import java.util.function.Consumer;
 
 public class TransportCreateSubscriptionAction extends TransportMasterNodeAction<CreateSubscriptionRequest, AcknowledgedResponse> {
 
     public static final String ACTION_NAME = "internal:crate:replication/logical/subscription/create";
-
-    private static final Logger LOGGER = Loggers.getLogger(TransportCreateSubscriptionAction.class);
 
     private final String source;
     private final LogicalReplicationService logicalReplicationService;
@@ -84,26 +79,17 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
     protected void masterOperation(CreateSubscriptionRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
-        updateClusterState(
-            request,
-            newState -> {
-                var metadata = (SubscriptionsMetadata) newState.metadata().custom(SubscriptionsMetadata.TYPE);
-                var subscription = metadata.subscription().get(request.name());
-                logicalReplicationService.replicate(request.name(), subscription, listener);
-            },
-            listener::onFailure
+
+        Subscription subscription = new Subscription(
+            request.owner(),
+            request.connectionInfo(),
+            request.publications(),
+            request.settings()
         );
-    }
 
-    @Override
-    protected ClusterBlockException checkBlock(CreateSubscriptionRequest request,
-                                               ClusterState state) {
-        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
-    }
+        logicalReplicationService.verifyTablesDoNotExist(request.name(), subscription, listener::onFailure);
 
-    private void updateClusterState(CreateSubscriptionRequest request,
-                                    Consumer<ClusterState> onSuccess,
-                                    Consumer<Exception> onFailure) {
+        // The subscription request is valid, lets update the cluster state
         clusterService.submitStateUpdateTask(
             source,
             new ClusterStateUpdateTask() {
@@ -119,12 +105,7 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
 
                     // create a new instance of the metadata, to guarantee the cluster changed action.
                     var newMetadata = SubscriptionsMetadata.newInstance(oldMetadata);
-                    newMetadata.subscription().put(request.name(), new Subscription(
-                        request.owner(),
-                        request.connectionInfo(),
-                        request.publications(),
-                        request.settings()
-                    ));
+                    newMetadata.subscription().put(request.name(), subscription);
                     assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
                     mdBuilder.putCustom(SubscriptionsMetadata.TYPE, newMetadata);
 
@@ -133,14 +114,19 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
 
                 @Override
                 public void onFailure(String source, Exception e) {
-                    onFailure.accept(e);
+                    listener.onFailure(e);
                 }
 
                 @Override
                 public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                    onSuccess.accept(newState);
+                    listener.onResponse(new AcknowledgedResponse(true));
                 }
             }
         );
+    }
+
+    @Override
+    protected ClusterBlockException checkBlock(CreateSubscriptionRequest request, ClusterState state) {
+        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }

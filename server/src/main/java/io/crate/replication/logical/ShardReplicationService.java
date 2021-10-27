@@ -86,7 +86,7 @@ public class ShardReplicationService implements Closeable {
         public void afterIndexShardStarted(IndexShard indexShard) {
             if (indexShard.routingEntry().primary()) {
                 var subscription = logicalReplicationService.subscription(indexShard.shardId().getIndexName());
-                if (subscription != null && subscription.isEnabled()) {
+                if (subscription != null) {
                     var tracker = new ShardReplicationChangesTracker(
                         indexShard,
                         replicationSettings,
