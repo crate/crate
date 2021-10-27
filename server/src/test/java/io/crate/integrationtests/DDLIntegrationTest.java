@@ -72,7 +72,6 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\",\"_meta\":{" +
                                  "\"primary_keys\":[\"col1\"]}," +
-                                 "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
                                  // doc_values: true is default and not included
                                  "\"col1\":{\"type\":\"integer\",\"position\":1}," +
@@ -178,7 +177,6 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\",\"_meta\":{" +
                                  "\"primary_keys\":[\"col1\"]}," +
-                                 "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
                                  "\"col1\":{\"type\":\"integer\",\"position\":1}," +
                                  "\"col2\":{\"type\":\"keyword\",\"position\":2}" +
@@ -202,7 +200,6 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\",\"_meta\":{}," +
-                                 "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
                                  "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"position\":1,\"precision\":\"1.0m\",\"distance_error_pct\":0.25}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -213,7 +210,6 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         execute("create table test (col1 text default 'foo')");
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\",\"_meta\":{}," +
-                                 "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{\"col1\":{\"type\":\"keyword\",\"position\":1,\"default_expr\":\"'foo'\"}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
 
@@ -225,7 +221,6 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\",\"_meta\":{}," +
-                                 "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{\"col1\":{\"type\":\"geo_shape\",\"position\":1}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
 
@@ -858,7 +853,6 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
                                  "{\"dynamic\":\"strict\"," +
                                  "\"_meta\":{" +
                                  "\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
-                                 "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
                                  "\"day\":{\"type\":\"date\",\"position\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
                                  "\"ts\":{\"type\":\"date\",\"position\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}" +

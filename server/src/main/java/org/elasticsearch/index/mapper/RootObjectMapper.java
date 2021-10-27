@@ -27,7 +27,6 @@ import org.elasticsearch.common.joda.Joda;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.DynamicTemplate.XContentFieldType;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,7 +50,6 @@ public class RootObjectMapper extends ObjectMapper {
 
     public static class Builder extends ObjectMapper.Builder<Builder> {
 
-        protected Explicit<DynamicTemplate[]> dynamicTemplates = new Explicit<>(new DynamicTemplate[0], false);
         protected Explicit<FormatDateTimeFormatter[]> dynamicDateTimeFormatters = new Explicit<>(Defaults.DYNAMIC_DATE_TIME_FORMATTERS, false);
 
         public Builder(String name) {
@@ -61,11 +59,6 @@ public class RootObjectMapper extends ObjectMapper {
 
         public Builder dynamicDateTimeFormatter(Collection<FormatDateTimeFormatter> dateTimeFormatters) {
             this.dynamicDateTimeFormatters = new Explicit<>(dateTimeFormatters.toArray(new FormatDateTimeFormatter[0]), true);
-            return this;
-        }
-
-        public Builder dynamicTemplates(Collection<DynamicTemplate> templates) {
-            this.dynamicTemplates = new Explicit<>(templates.toArray(new DynamicTemplate[0]), true);
             return this;
         }
 
@@ -82,7 +75,6 @@ public class RootObjectMapper extends ObjectMapper {
                 dynamic,
                 mappers,
                 dynamicDateTimeFormatters,
-                dynamicTemplates,
                 settings
             );
         }
@@ -128,51 +120,19 @@ public class RootObjectMapper extends ObjectMapper {
                     builder.dynamicDateTimeFormatter(Collections.singleton(parseDateTimeFormatter(fieldNode)));
                 }
                 return true;
-            } else if (fieldName.equals("dynamic_templates")) {
-                /*
-                  "dynamic_templates" : [
-                      {
-                          "template_1" : {
-                              "match" : "*_test",
-                              "match_mapping_type" : "string",
-                              "mapping" : { "type" : "string", "store" : "yes" }
-                          }
-                      }
-                  ]
-                */
-                List<?> tmplNodes = (List<?>) fieldNode;
-                List<DynamicTemplate> templates = new ArrayList<>();
-                for (Object tmplNode : tmplNodes) {
-                    Map<String, Object> tmpl = (Map<String, Object>) tmplNode;
-                    if (tmpl.size() != 1) {
-                        throw new MapperParsingException("A dynamic template must be defined with a name");
-                    }
-                    Map.Entry<String, Object> entry = tmpl.entrySet().iterator().next();
-                    String templateName = entry.getKey();
-                    Map<String, Object> templateParams = (Map<String, Object>) entry.getValue();
-                    DynamicTemplate template = DynamicTemplate.parse(templateName, templateParams, indexVersionCreated);
-                    if (template != null) {
-                        templates.add(template);
-                    }
-                }
-                builder.dynamicTemplates(templates);
-                return true;
             }
             return false;
         }
     }
 
     private Explicit<FormatDateTimeFormatter[]> dynamicDateTimeFormatters;
-    private Explicit<DynamicTemplate[]> dynamicTemplates;
 
     RootObjectMapper(String name,
                      Dynamic dynamic,
                      Map<String, Mapper> mappers,
                      Explicit<FormatDateTimeFormatter[]> dynamicDateTimeFormatters,
-                     Explicit<DynamicTemplate[]> dynamicTemplates,
                      Settings settings) {
         super(name, null, name, dynamic, mappers, settings);
-        this.dynamicTemplates = dynamicTemplates;
         this.dynamicDateTimeFormatters = dynamicDateTimeFormatters;
     }
 
@@ -182,50 +142,12 @@ public class RootObjectMapper extends ObjectMapper {
         // for dynamic updates, no need to carry root-specific options, we just
         // set everything to they implicit default value so that they are not
         // applied at merge time
-        update.dynamicTemplates = new Explicit<>(new DynamicTemplate[0], false);
         update.dynamicDateTimeFormatters = new Explicit<FormatDateTimeFormatter[]>(Defaults.DYNAMIC_DATE_TIME_FORMATTERS, false);
         return update;
     }
 
     public FormatDateTimeFormatter[] dynamicDateTimeFormatters() {
         return dynamicDateTimeFormatters.value();
-    }
-
-    @SuppressWarnings("rawtypes")
-    public Mapper.Builder findTemplateBuilder(ParseContext context, String name, XContentFieldType matchType) {
-        return findTemplateBuilder(context, name, matchType.defaultMappingType(), matchType);
-    }
-
-    /**
-     * Find a template. Returns {@code null} if no template could be found.
-     * @param name        the field name
-     * @param dynamicType the field type to give the field if the template does not define one
-     * @param matchType   the type of the field in the json document or null if unknown
-     * @return a mapper builder, or null if there is no template for such a field
-     */
-    @SuppressWarnings("rawtypes")
-    public Mapper.Builder findTemplateBuilder(ParseContext context, String name, String dynamicType, XContentFieldType matchType) {
-        DynamicTemplate dynamicTemplate = findTemplate(context.path(), name, matchType);
-        if (dynamicTemplate == null) {
-            return null;
-        }
-        Mapper.TypeParser.ParserContext parserContext = context.docMapperParser().parserContext();
-        String mappingType = dynamicTemplate.mappingType(dynamicType);
-        Mapper.TypeParser typeParser = parserContext.typeParser(mappingType);
-        if (typeParser == null) {
-            throw new MapperParsingException("failed to find type parsed [" + mappingType + "] for [" + name + "]");
-        }
-        return typeParser.parse(name, dynamicTemplate.mappingForName(name, dynamicType), parserContext);
-    }
-
-    public DynamicTemplate findTemplate(ContentPath path, String name, XContentFieldType matchType) {
-        final String pathAsString = path.pathAsText(name);
-        for (DynamicTemplate dynamicTemplate : dynamicTemplates.value()) {
-            if (dynamicTemplate.match(pathAsString, name, matchType)) {
-                return dynamicTemplate;
-            }
-        }
-        return null;
     }
 
     @Override
@@ -240,9 +162,6 @@ public class RootObjectMapper extends ObjectMapper {
         if (mergeWithObject.dynamicDateTimeFormatters.explicit()) {
             this.dynamicDateTimeFormatters = mergeWithObject.dynamicDateTimeFormatters;
         }
-        if (mergeWithObject.dynamicTemplates.explicit()) {
-            this.dynamicTemplates = mergeWithObject.dynamicTemplates;
-        }
     }
 
     @Override
@@ -253,16 +172,6 @@ public class RootObjectMapper extends ObjectMapper {
             builder.startArray("dynamic_date_formats");
             for (FormatDateTimeFormatter dateTimeFormatter : dynamicDateTimeFormatters.value()) {
                 builder.value(dateTimeFormatter.format());
-            }
-            builder.endArray();
-        }
-
-        if (dynamicTemplates.explicit() || includeDefaults) {
-            builder.startArray("dynamic_templates");
-            for (DynamicTemplate dynamicTemplate : dynamicTemplates.value()) {
-                builder.startObject();
-                builder.field(dynamicTemplate.name(), dynamicTemplate);
-                builder.endObject();
             }
             builder.endArray();
         }
