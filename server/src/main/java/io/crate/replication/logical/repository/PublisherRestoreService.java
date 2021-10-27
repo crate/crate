@@ -85,7 +85,7 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
         return onGoingRestores.putIfAbsent(restoreUUID, constructRestoreContext(restoreUUID, request));
     }
 
-    private RestoreContext getRestoreContext(String restoreUUID) {
+    private RestoreContext getRestoreContextSafe(String restoreUUID) {
         var restoreContext = onGoingRestores.get(restoreUUID);
         if (restoreContext == null) {
             throw new IllegalStateException("missing restoreContext");
@@ -103,7 +103,7 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
                 String.format(Locale.ENGLISH, "Shard [%s] missing", request.publisherShardId()));
         }
         var store = leaderIndexShard.store();
-        var restoreContext = getRestoreContext(restoreUUID);
+        var restoreContext = getRestoreContextSafe(restoreUUID);
         var indexInput = restoreContext.openInput(store, fileName);
 
         return new InputStreamIndexInput(indexInput, length) {
