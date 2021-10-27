@@ -31,11 +31,9 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * A special FunctionImplementation that compute a single result from a set of input values
@@ -119,7 +117,6 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
 
     @Nullable
     public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
-                                                       Function<List<String>, List<MappedFieldType>> getMappedFieldTypes,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         return null;

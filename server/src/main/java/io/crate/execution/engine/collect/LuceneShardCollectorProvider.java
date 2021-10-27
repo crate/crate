@@ -195,7 +195,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             indexShard,
             table,
             luceneQueryBuilder,
-            fieldTypeLookup,
             normalizedPhase,
             collectTask
         );

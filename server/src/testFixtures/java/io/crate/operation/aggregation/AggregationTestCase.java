@@ -55,10 +55,12 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.Reference.IndexType;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.StringType;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -239,7 +241,6 @@ public abstract class AggregationTestCase extends ESTestCase {
             } else {
                 var docValueAggregator = aggregationFunction.getDocValueAggregator(
                     toReference(actualArgumentTypes),
-                    getMappedFieldTypes,
                     mock(DocTableInfo.class),
                     List.of()
                 );
@@ -302,15 +303,21 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
         var toCollectRefs = new ArrayList<Symbol>(argumentTypes.size());
         for (int i = 0; i < argumentTypes.size(); i++) {
+            ReferenceIdent ident = new ReferenceIdent(
+                fromIndexName(shard.routingEntry().getIndexName()),
+                Integer.toString(i));
             toCollectRefs.add(
                 new Reference(
-                    new ReferenceIdent(
-                        fromIndexName(shard.routingEntry().getIndexName()),
-                        Integer.toString(i)),
+                    ident,
                     RowGranularity.DOC,
                     argumentTypes.get(i),
+                    ColumnPolicy.DYNAMIC,
+                    IndexType.PLAIN,
+                    true,
+                    true,
                     i + 1,
-                    null)
+                    null
+                )
             );
         }
         var collectPhase = new RoutedCollectPhase(
@@ -346,7 +353,6 @@ public abstract class AggregationTestCase extends ESTestCase {
             shard,
             mock(DocTableInfo.class),
             new LuceneQueryBuilder(nodeCtx),
-            shard.mapperService()::fullName,
             collectPhase,
             collectTask
         );
@@ -580,7 +586,6 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
         var docValueAggregator = aggregationFunction.getDocValueAggregator(
             toReference(argumentTypes),
-            getMappedFieldTypes,
             mock(DocTableInfo.class),
             List.of()
         );
@@ -602,13 +607,14 @@ public abstract class AggregationTestCase extends ESTestCase {
                     new ReferenceIdent(new RelationName(null, "dummy"), Integer.toString(i)),
                     RowGranularity.DOC,
                     dataTypes.get(i),
+                    ColumnPolicy.DYNAMIC,
+                    IndexType.PLAIN,
+                    true,
+                    true,
                     i + 1,
                     null)
             );
         }
         return references;
     }
-
-    private java.util.function.Function<List<String>, List<MappedFieldType>> getMappedFieldTypes =
-        refNames -> Lists2.map(refNames, refName -> mock(MappedFieldType.class));
 }

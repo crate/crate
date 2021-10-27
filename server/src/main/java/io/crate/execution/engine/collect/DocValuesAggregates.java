@@ -40,7 +40,6 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
@@ -58,7 +57,6 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.Version;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -70,7 +68,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 
 public class DocValuesAggregates {
 
@@ -79,7 +76,6 @@ public class DocValuesAggregates {
                                                  IndexShard indexShard,
                                                  DocTableInfo table,
                                                  LuceneQueryBuilder luceneQueryBuilder,
-                                                 FieldTypeLookup fieldTypeLookup,
                                                  RoutedCollectPhase phase,
                                                  CollectTask collectTask) {
         var shardProjections = Projections.shardProjections(phase.projections());
@@ -90,7 +86,6 @@ public class DocValuesAggregates {
         var aggregators = createAggregators(
             functions,
             aggregateProjection.aggregations(),
-            fieldTypeLookup,
             phase.toCollect(),
             collectTask.txnCtx().sessionSettings().searchPath(),
             table
@@ -140,7 +135,6 @@ public class DocValuesAggregates {
     @SuppressWarnings("rawtypes")
     public static List<DocValueAggregator> createAggregators(Functions functions,
                                                              List<Aggregation> aggregations,
-                                                             FieldTypeLookup fieldTypeLookup,
                                                              List<Symbol> toCollect,
                                                              SearchPath searchPath,
                                                              DocTableInfo table) {
@@ -171,20 +165,8 @@ public class DocValuesAggregates {
                 throw new IllegalStateException(
                     "Expected an aggregationFunction for " + aggregation + " got: " + func);
             }
-            Function<List<String>, List<MappedFieldType>> getMappedFieldTypes = (aggRefs) -> {
-                var fieldTypes = new ArrayList<MappedFieldType>(aggRefs.size());
-                for (var reference : aggRefs) {
-                    var mappedFieldType = fieldTypeLookup.get(reference);
-                    if (mappedFieldType == null || !mappedFieldType.hasDocValues()) {
-                        return null;
-                    }
-                    fieldTypes.add(mappedFieldType);
-                }
-                return fieldTypes;
-            };
             DocValueAggregator<?> docValueAggregator = aggFunc.getDocValueAggregator(
                 aggregationReferences,
-                getMappedFieldTypes,
                 table,
                 literals
             );

@@ -124,7 +124,6 @@ final class DocValuesGroupByOptimizedIterator {
         List<DocValueAggregator> aggregators = DocValuesAggregates.createAggregators(
             functions,
             groupProjection.values(),
-            fieldTypeLookup,
             collectPhase.toCollect(),
             collectTask.txnCtx().sessionSettings().searchPath(),
             table
