@@ -39,7 +39,7 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
     @Rule
     public TestName testName = new TestName();
 
-    private QueryTester queryTester;
+    protected QueryTester queryTester;
 
     @Before
     public void prepare() throws Exception {
