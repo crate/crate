@@ -195,7 +195,7 @@ public final class QueryTester implements AutoCloseable {
                     return Optimizer.optimizeCasts(expressions.normalize(boundSymbol), plannerContext);
                 },
                 symbol -> queryBuilder.convert(
-                    symbol,
+                    Optimizer.optimizeCasts(symbol,plannerContext),
                     systemTxnCtx,
                     indexEnv.mapperService(),
                     indexEnv.indexService().index().getName(),
