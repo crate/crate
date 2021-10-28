@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import io.crate.expression.symbol.AliasResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -143,6 +144,7 @@ public class Optimizer {
 
         @Override
         public Symbol visitFunction(io.crate.expression.symbol.Function symbol, Void context) {
+            symbol = (io.crate.expression.symbol.Function) symbol.accept(AliasResolver.INSTANCE, null);
             visitedFunctions.push(symbol);
             var maybeTransformedSymbol = tryApplyRules(symbol);
             if (symbol.equals(maybeTransformedSymbol) == false) {

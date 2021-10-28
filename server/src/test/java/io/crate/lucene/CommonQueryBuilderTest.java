@@ -24,6 +24,11 @@ package io.crate.lucene;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.functions.Signature;
 import io.crate.user.User;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.RelationName;
@@ -52,8 +57,11 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
@@ -581,6 +589,36 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_eq_on_bool_uses_termquery() throws Exception {
         Query query = convert("bool_col = true");
         assertThat(query, instanceOf(TermQuery.class));
+    }
+
+    @Test
+    public void test_eq_on_alias_uses_termquery() throws Exception {
+        // Testing expression: col as alias = 'foo'
+        AliasSymbol alias = new AliasSymbol("aliased", createReference("name", DataTypes.STRING));
+        var literal = Literal.of("foo");
+        var func = new Function(EqOperator.SIGNATURE, List.of(alias, literal), DataTypes.BOOLEAN);
+        Query query = queryTester.toQuery(func);
+        assertThat(query, instanceOf(TermQuery.class));
+    }
+
+    @Test
+    public void test_eq_on_alias_inner_func_uses_termquery() throws Exception {
+        // Testing expression: f(col as alias) = 'foo'
+        AliasSymbol alias = new AliasSymbol("aliased", createReference("arr", DataTypes.INTEGER_ARRAY));
+        var innerFunction = new Function(
+            Signature.scalar(
+                "array_length",
+                parseTypeSignature("array(E)"),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature()
+            ),
+            List.of(alias, Literal.of(1)), // 1 is a dummy argument for dimension.
+            DataTypes.INTEGER
+        );
+
+        var func = new Function(EqOperator.SIGNATURE, List.of(innerFunction, Literal.of(5)), DataTypes.BOOLEAN);
+        Query query = queryTester.toQuery(func);
+        assertThat(query, instanceOf(BooleanQuery.class));
     }
 
     @Test
