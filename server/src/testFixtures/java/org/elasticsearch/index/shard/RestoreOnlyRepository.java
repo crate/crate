@@ -43,8 +43,6 @@ import org.elasticsearch.snapshots.SnapshotShardFailure;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -86,13 +84,6 @@ public abstract class RestoreOnlyRepository implements Repository {
     public void getSnapshotIndexMetadata(SnapshotId snapshotId,
                                          Collection<IndexId> indexIds,
                                          ActionListener<Collection<IndexMetadata>> listener) {
-
-    }
-
-    @Override
-    public void getShardSnapshotStatus(SnapshotId snapshotId,
-                                       Map<ShardId, IndexId> shardIndexIds,
-                                       ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener) {
 
     }
 
