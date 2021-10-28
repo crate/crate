@@ -117,7 +117,6 @@ import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1761,30 +1760,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     private static InputStream maybeRateLimit(InputStream stream, @Nullable RateLimiter rateLimiter, CounterMetric metric) {
         return rateLimiter == null ? stream : new RateLimitingInputStream(stream, rateLimiter, metric::inc);
-    }
-
-    @Override
-    public void getShardSnapshotStatus(SnapshotId snapshotId, Map<ShardId,IndexId> shardIndexIds, ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener) {
-        try {
-            var result = new HashMap<ShardId, IndexShardSnapshotStatus>();
-            for (var shardIndexId : shardIndexIds.entrySet()) {
-                var shardId = shardIndexId.getKey();
-                var indexId = shardIndexId.getValue();
-                BlobStoreIndexShardSnapshot snapshot = loadShardSnapshot(shardContainer(indexId, shardId), snapshotId);
-                result.put(shardId, IndexShardSnapshotStatus.newDone(
-                    snapshot.startTime(),
-                    snapshot.time(),
-                    snapshot.incrementalFileCount(),
-                    snapshot.totalFileCount(),
-                    snapshot.incrementalSize(),
-                    snapshot.totalSize(),
-                    null)
-                ); // Not adding a real generation here as it doesn't matter to callers
-            }
-            listener.onResponse(result);
-        } catch (SnapshotException e) {
-            listener.onFailure(e);
-        }
     }
 
     @Override

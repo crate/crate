@@ -41,7 +41,6 @@ import org.elasticsearch.snapshots.SnapshotShardFailure;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -52,8 +51,6 @@ import java.util.function.Function;
  * <p>
  * To perform a snapshot:
  * <ul>
- * <li>Master calls {@link #initializeSnapshot(SnapshotId, List, org.elasticsearch.cluster.metadata.Metadata)}
- * with list of indices that will be included into the snapshot</li>
  * <li>Data nodes call {@link Repository#snapshotShard}
  * for each shard</li>
  * <li>When all shard calls return master calls {@link #finalizeSnapshot} with possible list of failures</li>
@@ -228,15 +225,6 @@ public interface Repository extends LifecycleComponent {
      */
     void restoreShard(Store store, SnapshotId snapshotId, IndexId indexId, ShardId snapshotShardId, RecoveryState recoveryState,
                       ActionListener<Void> listener);
-
-    /**
-     * Retrieve multiple shard snapshot statuses for the stored snapshot
-     *
-     * @param snapshotId    snapshot id
-     * @param shardIndexIds Map containing the shardId and the corresponding snapshotted indexId
-     * @param listener      listener to invoke once done
-     */
-    void getShardSnapshotStatus(SnapshotId snapshotId, Map<ShardId, IndexId> shardIndexIds, ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener);
 
     /**
      * Update the repository with the incoming cluster state. This method is invoked from {@link RepositoriesService#applyClusterState} and
