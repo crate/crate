@@ -275,7 +275,7 @@ public class LogicalReplicationITest extends ESTestCase {
         executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
 
         executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        waitforExecuteOnSubscriber("REFRESH TABLE doc.t1");
+        waitUntilExecuteOnSubscriber("REFRESH TABLE doc.t1");
 
         var response = executeOnSubscriber("SELECT * FROM doc.t1");
         assertThat(printedTable(response.rows()), is("1\n" +
@@ -316,14 +316,14 @@ public class LogicalReplicationITest extends ESTestCase {
         executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1, doc.t2");
 
         executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        waitforExecuteOnSubscriber("REFRESH TABLE doc.t1");
+        waitUntilExecuteOnSubscriber("REFRESH TABLE doc.t1");
 
-        waitforExecuteOnSubscriber("REFRESH TABLE doc.t1");
+        waitUntilExecuteOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
 
-        waitforExecuteOnSubscriber("REFRESH TABLE doc.t2");
+        waitUntilExecuteOnSubscriber("REFRESH TABLE doc.t2");
         response = executeOnSubscriber("SELECT * FROM doc.t2");
         assertThat(printedTable(response.rows()), is("3\n" +
                                                      "4\n"));
@@ -340,7 +340,7 @@ public class LogicalReplicationITest extends ESTestCase {
         executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
 
         executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        waitforExecuteOnSubscriber("REFRESH TABLE doc.t1");
+        waitUntilExecuteOnSubscriber("REFRESH TABLE doc.t1");
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1");
@@ -364,7 +364,7 @@ public class LogicalReplicationITest extends ESTestCase {
         executeOnPublisher("CREATE PUBLICATION pub1 FOR ALL TABLES");
 
         executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        waitforExecuteOnSubscriber("REFRESH TABLE doc.t1");
+        waitUntilExecuteOnSubscriber("REFRESH TABLE doc.t1");
 
         var response = executeOnSubscriber("SELECT * FROM doc.t1");
         assertThat(printedTable(response.rows()), is("1| 1\n" +
@@ -377,6 +377,7 @@ public class LogicalReplicationITest extends ESTestCase {
     }
 
     @Test
+    @TestLogging("io.crate.replication.logical:DEBUG")
     public void test_subscribed_tables_are_followed_and_updated() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
                            " number_of_replicas=0," +
@@ -387,27 +388,34 @@ public class LogicalReplicationITest extends ESTestCase {
         executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
 
         executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        waitforExecuteOnSubscriber("REFRESH TABLE doc.t1");
+        waitUntilExecuteOnSubscriber("REFRESH TABLE doc.t1");
 
         var response = executeOnSubscriber("SELECT * FROM doc.t1");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
 
-        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (3), (4)");
+        executeOnPublisher("ALTER TABLE doc.t1 ADD COLUMN value string");
+        executeOnPublisher("INSERT INTO doc.t1 (id, value) VALUES (3, 'value')");
+        executeOnPublisher("REFRESH TABLE doc.t1");
 
-        waitforExecuteOnSubscriber("REFRESH TABLE doc.t1");
+        var res = executeOnPublisher("SELECT * FROM doc.t1");
+        assertThat(printedTable(res.rows()), is("1| NULL\n" +
+                                                "2| NULL\n" +
+                                                "3| value\n"));
+
+        waitUntilExecuteOnSubscriber("REFRESH TABLE doc.t1");
 
         assertBusy(() -> {
-            var res = executeOnSubscriber("SELECT * FROM doc.t1");
-            assertThat(printedTable(res.rows()), is("1\n" +
-                                                    "2\n" +
-                                                    "3\n" +
-                                                    "4\n"));
-        }, 10, TimeUnit.SECONDS);
+            var r = executeOnSubscriber("SELECT * FROM doc.t1");
+            assertThat(printedTable(r.rows()), is("1| NULL\n" +
+                                                    "2| NULL\n" +
+                                                    "3| value\n"));
+
+        }, 100, TimeUnit.SECONDS);
 
     }
 
-    private void waitforExecuteOnSubscriber(String sql) throws Exception {
+    private void waitUntilExecuteOnSubscriber(String sql) throws Exception {
         assertBusy(() -> {
             try {
                 executeOnSubscriber(sql);

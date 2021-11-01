@@ -87,6 +87,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
     private final Map<String, String> subscribedIndices = ConcurrentCollections.newConcurrentMap();
     private SubscriptionsMetadata subscriptionsMetadata;
     private PublicationsMetadata publicationsMetadata;
+    private final IndexMappingChangesTracker indexMappingChangesTracker;
 
     public LogicalReplicationService(Settings settings,
                                      ClusterService clusterService,
@@ -97,6 +98,9 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         clusterService.addListener(this);
+        this.indexMappingChangesTracker = new IndexMappingChangesTracker(threadPool,
+                                                                         clusterName -> getRemoteClusterClient(threadPool,
+                                                                                                      clusterName));
     }
 
     public void repositoriesService(RepositoriesService repositoriesService) {
@@ -147,6 +151,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                     @Override
                     public void onResponse(AcknowledgedResponse acknowledgedResponse) {
                         LOGGER.debug("Acknowledged logical replication for subscription '{}'", subscriptionName);
+                        indexMappingChangesTracker.start(subscriptionName);
                     }
 
                     @Override
@@ -156,6 +161,8 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                 });
             }
         }
+
+
         if (oldSubscriptions != null) {
             for (var entry : oldSubscriptions.entrySet()) {
                 var subscriptionName = entry.getKey();
