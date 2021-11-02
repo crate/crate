@@ -22,11 +22,11 @@
 package io.crate.metadata.upgrade;
 
 import io.crate.Constants;
-import io.crate.metadata.DefaultTemplateService;
 import io.crate.metadata.PartitionName;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -35,7 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.metadata.DefaultTemplateService.TEMPLATE_NAME;
+import static io.crate.metadata.upgrade.IndexTemplateUpgrader.TEMPLATE_NAME;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -55,7 +55,7 @@ public class IndexTemplateUpgraderTest {
         templates.put(TEMPLATE_NAME, oldTemplate);
 
         Map<String, IndexTemplateMetadata> upgradedTemplates = upgrader.apply(templates);
-        assertThat(upgradedTemplates.get(TEMPLATE_NAME), is(DefaultTemplateService.createDefaultIndexTemplateMetadata()));
+        assertThat(upgradedTemplates.get(TEMPLATE_NAME), Matchers.nullValue());
     }
 
     @Test
