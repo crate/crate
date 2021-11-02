@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
@@ -90,7 +91,8 @@ public class IndexMappingChangesTracker implements Closeable {
                                 followedTables.addAll(publication.tables());
                             }
                         }
-                        // Check for all of these tables if there were any changes in the metadata
+                        // Check for all the subscribed tables if there were any changes in the metadata and take them
+                        // over from the publisher cluster to the subscriber cluster
                         Metadata.Builder metadataBuilder = Metadata.builder(localClusterState.metadata());
                         boolean updateRequired = false;
                         for (RelationName followedTable : followedTables) {
@@ -99,7 +101,7 @@ public class IndexMappingChangesTracker implements Closeable {
                             if (!remoteIndexMetadata.equals(localIndexMetadata)) {
                                 LOGGER.debug("Metadata changed for table {} detected", followedTable.name());
                                 IndexMetadata.Builder builder = IndexMetadata.builder(localIndexMetadata).putMapping(
-                                    remoteIndexMetadata.mapping());
+                                    remoteIndexMetadata.mapping()).mappingVersion(localIndexMetadata.getMappingVersion() +1 );
                                 metadataBuilder.put(builder.build(), true);
                                 updateRequired = true;
                             }
