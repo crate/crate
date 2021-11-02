@@ -76,7 +76,6 @@ import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
-import io.crate.metadata.DefaultTemplateService;
 import io.crate.metadata.MetadataModule;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetadataBlobModule;
@@ -148,7 +147,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             PostgresNetty.class,
             TasksService.class,
             Schemas.class,
-            DefaultTemplateService.class,
             ArrayMapperService.class,
             DanglingArtifactsService.class,
             SslContextProviderService.class
