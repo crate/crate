@@ -377,7 +377,8 @@ public class LogicalReplicationITest extends ESTestCase {
     }
 
     @Test
-    @TestLogging("io.crate.replication.logical:DEBUG")
+    //@TestLogging("io.crate:DEBUG")
+    @TestLogging(value = "org.elasticsearch:DEBUG,io.crate.replication.logical:DEBUG")
     public void test_subscribed_tables_are_followed_and_updated() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
                            " number_of_replicas=0," +
@@ -390,9 +391,11 @@ public class LogicalReplicationITest extends ESTestCase {
         executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
         waitUntilExecuteOnSubscriber("REFRESH TABLE doc.t1");
 
+        assertBusy(() -> {
         var response = executeOnSubscriber("SELECT * FROM doc.t1");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
+        }, 100, TimeUnit.SECONDS);
 
         executeOnPublisher("ALTER TABLE doc.t1 ADD COLUMN value string");
         executeOnPublisher("INSERT INTO doc.t1 (id, value) VALUES (3, 'value')");
@@ -403,13 +406,19 @@ public class LogicalReplicationITest extends ESTestCase {
                                                 "2| NULL\n" +
                                                 "3| value\n"));
 
-        waitUntilExecuteOnSubscriber("REFRESH TABLE doc.t1");
 
         assertBusy(() -> {
+            try {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            } catch (Exception e) {
+                fail();
+            }
             var r = executeOnSubscriber("SELECT * FROM doc.t1");
-            assertThat(printedTable(r.rows()), is("1| NULL\n" +
-                                                    "2| NULL\n" +
-                                                    "3| value\n"));
+            String actual = printedTable(r.rows());
+            System.out.println(actual);
+            assertThat(actual, is("1| NULL\n" +
+                                  "2| NULL\n" +
+                                  "3| value\n"));
 
         }, 100, TimeUnit.SECONDS);
 

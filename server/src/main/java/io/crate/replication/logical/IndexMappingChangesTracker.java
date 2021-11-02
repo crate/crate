@@ -22,18 +22,28 @@
 package io.crate.replication.logical;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.function.Function;
 
 public class IndexMappingChangesTracker implements Closeable {
@@ -42,24 +52,74 @@ public class IndexMappingChangesTracker implements Closeable {
 
     private final ThreadPool threadPool;
     private final Function<String, Client> remoteClient;
+    private final ClusterService clusterService;
     public static final long REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC = 60000L;
 
-    public IndexMappingChangesTracker(ThreadPool threadPool, Function<String, Client> remoteClient) {
+    public IndexMappingChangesTracker(ThreadPool threadPool, Function<String, Client> remoteClient, ClusterService clusterService) {
         this.threadPool = threadPool;
         this.remoteClient = remoteClient;
+        this.clusterService = clusterService;
     }
 
     public void start(String clusterName) {
         LOGGER.debug("Schedule tracking for remote cluster state");
-        threadPool.scheduleWithFixedDelay(() -> trackMapping(clusterName), TimeValue.timeValueSeconds(1), ThreadPool.Names.SAME);
+        Scheduler.Cancellable cancellable = threadPool.scheduleWithFixedDelay(() -> trackMapping(clusterName),
+                                                                              TimeValue.timeValueSeconds(1),
+                                                                              ThreadPool.Names.SNAPSHOT);
     }
 
     private void trackMapping(String clusterName) {
         LOGGER.debug("Start tracking for remote cluster state");
-        getRemoteClusterState(clusterName, false, false, new ActionListener<>() {
+        getRemoteClusterState(clusterName, new ActionListener<>() {
             @Override
             public void onResponse(ClusterState remoteClusterState) {
-                LOGGER.debug("Fetched remote cluster state {}", remoteClusterState.term());
+                clusterService.submitStateUpdateTask("track-remote-metadata-changes", new ClusterStateUpdateTask() {
+                    @Override
+                    public ClusterState execute(ClusterState localClusterState) throws Exception {
+                        if(!localClusterState.getNodes().getMasterNodeId().equals(localClusterState.getNodes().getLocalNodeId())) {
+                            return localClusterState;
+                        }
+                        LOGGER.debug("Successfully fetched the cluster state from remote repository");
+                        PublicationsMetadata publicationsMetadata = remoteClusterState.metadata().custom(PublicationsMetadata.TYPE);
+                        SubscriptionsMetadata subscriptionsMetadata = localClusterState.metadata().custom(SubscriptionsMetadata.TYPE);
+                        var followedTables = new HashSet<RelationName>();
+                        // Find all tables we are subscribed to
+                        for (var subscription  : subscriptionsMetadata.subscription().values()) {
+                            for (String publicationName : subscription.publications()) {
+                                Publication publication = publicationsMetadata.publications().get(publicationName);
+                                followedTables.addAll(publication.tables());
+                            }
+                        }
+                        // Check for all of these tables if there were any changes in the metadata
+                        Metadata.Builder metadataBuilder = Metadata.builder(localClusterState.metadata());
+                        boolean updateRequired = false;
+                        for (RelationName followedTable : followedTables) {
+                            IndexMetadata remoteIndexMetadata = remoteClusterState.metadata().index(followedTable.indexNameOrAlias());
+                            IndexMetadata localIndexMetadata = localClusterState.metadata().index(followedTable.indexNameOrAlias());
+                            if (!remoteIndexMetadata.equals(localIndexMetadata)) {
+                                LOGGER.debug("Metadata changed for table {} detected", followedTable.name());
+                                IndexMetadata.Builder builder = IndexMetadata.builder(localIndexMetadata).putMapping(
+                                    remoteIndexMetadata.mapping());
+                                metadataBuilder.put(builder.build(), true);
+                                updateRequired = true;
+                            }
+                        }
+
+                        if (updateRequired) {
+                            LOGGER.debug("Update mapping from remote changes");
+                            ClusterState newClusterState = ClusterState.builder(localClusterState).metadata(metadataBuilder).build();
+                            return newClusterState;
+                        } else {
+                            LOGGER.debug("No mapping update required");
+                            return localClusterState;
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(String source, Exception e) {
+
+                    }
+                });
             }
             @Override
             public void onFailure(Exception e) {
@@ -69,25 +129,15 @@ public class IndexMappingChangesTracker implements Closeable {
     }
 
 
-    private void getRemoteClusterState(
-        String clusterName,
-        boolean includeNodes,
-        boolean includeRouting,
-        ActionListener<ClusterState> listener) {
+    private void getRemoteClusterState(String clusterName, ActionListener<ClusterState> listener) {
         var clusterStateRequest = remoteClient.apply(clusterName).admin().cluster().prepareState()
-            .clear()
-            .setMetadata(true)
-            .setNodes(includeNodes)
-            .setRoutingTable(includeRouting)
-            .setIndicesOptions(IndicesOptions.strictSingleIndexNoExpandForbidClosed())
             .setWaitForTimeOut(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC))
             .request();
+
         remoteClient.apply(clusterName).admin().cluster().execute(
             ClusterStateAction.INSTANCE, clusterStateRequest, new ActionListener<>() {
                 @Override
                 public void onResponse(ClusterStateResponse clusterStateResponse) {
-                    ClusterState remoteState = clusterStateResponse.getState();
-                    LOGGER.trace("Successfully fetched the cluster state from remote repository {}", remoteState);
                     listener.onResponse(clusterStateResponse.getState());
                 }
 
@@ -102,4 +152,5 @@ public class IndexMappingChangesTracker implements Closeable {
     public void close() throws IOException {
 
     }
+
 }

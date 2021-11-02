@@ -44,6 +44,7 @@ import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
@@ -73,6 +74,7 @@ import static io.crate.replication.logical.repository.LogicalReplicationReposito
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
 import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
 
+@Singleton
 public class LogicalReplicationService extends RemoteClusterAware implements ClusterStateListener, Closeable {
 
     private static final Logger LOGGER = LogManager.getLogger(LogicalReplicationService.class);
@@ -89,6 +91,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
     private PublicationsMetadata publicationsMetadata;
     private final IndexMappingChangesTracker indexMappingChangesTracker;
 
+
     public LogicalReplicationService(Settings settings,
                                      ClusterService clusterService,
                                      TransportService transportService,
@@ -100,7 +103,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
         clusterService.addListener(this);
         this.indexMappingChangesTracker = new IndexMappingChangesTracker(threadPool,
                                                                          clusterName -> getRemoteClusterClient(threadPool,
-                                                                                                      clusterName));
+                                                                                                      clusterName), clusterService);
     }
 
     public void repositoriesService(RepositoriesService repositoriesService) {
@@ -150,7 +153,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
 
                     @Override
                     public void onResponse(AcknowledgedResponse acknowledgedResponse) {
-                        LOGGER.debug("Acknowledged logical replication for subscription '{}'", subscriptionName);
+                        LOGGER.debug("Finishd logical replication for subscription '{}'", subscriptionName);
                         indexMappingChangesTracker.start(subscriptionName);
                     }
 
@@ -320,6 +323,8 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                         subscribedIndices.put(index, subscriptionName);
                     }
                     initiateReplication(subscriptionName, subscription, stateResponse, listener);
+                    // once finished start tracking of metadata
+
                 }
 
                 @Override
