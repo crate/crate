@@ -397,21 +397,21 @@ public class LogicalReplicationITest extends ESTestCase {
         }, 100, TimeUnit.SECONDS);
 
         executeOnPublisher("ALTER TABLE doc.t1 ADD COLUMN value string");
-//        executeOnPublisher("INSERT INTO doc.t1 (id, value) VALUES (3, 'value')");
+        executeOnPublisher("INSERT INTO doc.t1 (id, value) VALUES (3, 'value')");
         executeOnPublisher("REFRESH TABLE doc.t1");
 
         var res = executeOnPublisher("SELECT * FROM doc.t1");
         assertThat(printedTable(res.rows()), is("1| NULL\n" +
-//                                                "2| NULL\n" +
-                                                "2| NULL\n"));
+                                                "2| NULL\n" +
+                                                "3| value\n"));
 
         waitUntilExecuteOnSubscriber("REFRESH TABLE doc.t1");
 
         assertBusy(() -> {
             var r = executeOnSubscriber("SELECT * FROM doc.t1");
             assertThat(printedTable(r.rows()), is("1| NULL\n" +
-//                                  "2| NULL\n" +
-                                  "2| NULL\n"));
+                                  "2| NULL\n" +
+                                  "3| value\n"));
 
         }, 100, TimeUnit.SECONDS);
 

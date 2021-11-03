@@ -21,6 +21,8 @@
 
 package io.crate.replication.logical.action;
 
+import io.crate.common.unit.TimeValue;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.WriteResponse;
@@ -28,13 +30,17 @@ import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -46,6 +52,7 @@ import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ReplayChangesAction extends ActionType<ReplayChangesAction.Response> {
 
@@ -60,6 +67,8 @@ public class ReplayChangesAction extends ActionType<ReplayChangesAction.Response
     @Singleton
     public static class TransportAction
         extends TransportWriteAction<Request, Request, Response> {
+
+        private static final Logger LOGGER = Loggers.getLogger(ReplayChangesAction.class);
 
         @Inject
         public TransportAction(TransportService transportService,
@@ -103,7 +112,7 @@ public class ReplayChangesAction extends ActionType<ReplayChangesAction.Response
         }
 
         public Translog.Location performOnPrimary(Request request, IndexShard primary) throws Exception {
-            Translog.Location location = null;
+            AtomicReference<Translog.Location> location = new AtomicReference<>();
 
             for (var o : request.changes()) {
                 final var op = withPrimaryTerm(o, primary.getOperationPrimaryTerm());
@@ -111,15 +120,54 @@ public class ReplayChangesAction extends ActionType<ReplayChangesAction.Response
                     primary.advanceMaxSeqNoOfUpdatesOrDeletes(request.maxSeqNoOfUpdatesOrDeletes());
                 }
                 var result = primary.applyTranslogOperation(op, Engine.Operation.Origin.PRIMARY);
-                if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                    throw new RuntimeException("Mapping update required");
-                    syncRemoteMapping(request.)
-                }
+                if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED ||
+                    result.getResultType() == Engine.Result.Type.FAILURE) {
+                    Metadata metadata = clusterService.state().metadata();
+                    var currentMappingVersion = metadata.index(request.shardId().getIndexName()).getMappingVersion();
+                    ClusterStateObserver clusterStateObserver = new ClusterStateObserver(clusterService, LOGGER);
+                    clusterStateObserver.waitForNextChange(new ClusterStateObserver.Listener() {
+                        @Override
+                        public void onNewClusterState(ClusterState state) {
+                            try {
+                                var result1 = primary.applyTranslogOperation(op, Engine.Operation.Origin.PRIMARY);
+                                location.getAndUpdate(x -> syncOperationResultOrThrowRuntime(result1, x));
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
 
-                location = syncOperationResultOrThrow(result, location);
+                        @Override
+                        public void onClusterServiceClose() {
+
+                        }
+
+                        @Override
+                        public void onTimeout(TimeValue timeout) {
+                            throw new RuntimeException("Mapping update timed out");
+                        }
+                    }, cs -> {
+                        var newMappingVersion = cs.metadata().index(request.shardId().getIndexName()).getMappingVersion();
+                        return newMappingVersion > currentMappingVersion;
+                    }, TimeValue.timeValueSeconds(10));
+                } else {
+                    location.getAndUpdate(x -> syncOperationResultOrThrowRuntime(result, x));
+                }
             }
-            return location;
+            return location.get();
         }
+
+
+        private static Translog.Location syncOperationResultOrThrowRuntime(final Engine.Result operationResult,
+                                                                           final Translog.Location currentLocation) {
+            try {
+                return syncOperationResultOrThrow(operationResult, currentLocation);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+
+
 
         @Override
         protected WriteReplicaResult<Request> shardOperationOnReplica(Request request,
