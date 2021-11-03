@@ -113,6 +113,7 @@ public class ReplayChangesAction extends ActionType<ReplayChangesAction.Response
                 var result = primary.applyTranslogOperation(op, Engine.Operation.Origin.PRIMARY);
                 if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                     throw new RuntimeException("Mapping update required");
+                    syncRemoteMapping(request.)
                 }
 
                 location = syncOperationResultOrThrow(result, location);
@@ -143,6 +144,10 @@ public class ReplayChangesAction extends ActionType<ReplayChangesAction.Response
                 location = syncOperationResultOrThrow(result, location);
             }
             return location;
+
+        }
+
+        private  void syncRemoteMapping(String leaderAlias, String leaderIndex, String followerIndex, String type) {
 
         }
 

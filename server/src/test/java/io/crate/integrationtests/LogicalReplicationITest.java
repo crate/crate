@@ -377,7 +377,6 @@ public class LogicalReplicationITest extends ESTestCase {
     }
 
     @Test
-    //@TestLogging("io.crate:DEBUG")
     @TestLogging(value = "org.elasticsearch:DEBUG,io.crate.replication.logical:DEBUG")
     public void test_subscribed_tables_are_followed_and_updated() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +

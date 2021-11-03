@@ -196,6 +196,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
     @Override
     public void close() throws IOException {
         IOUtils.close(remoteClusters.values());
+        indexMappingChangesTracker.close();
     }
 
     @Override
