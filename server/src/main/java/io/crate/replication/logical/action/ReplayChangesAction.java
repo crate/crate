@@ -124,7 +124,7 @@ public class ReplayChangesAction extends ActionType<ReplayChangesAction.Response
             }
         }
 
-        private void waitMappingUpdateInClusterState(Translog.Operation op, IndexShard primary, Request request, Exception failure, Consumer<Engine.Result> result) {
+        private void waitMappingUpdateInClusterState(Translog.Operation op, IndexShard primary, Request request, Exception failure, Consumer<Engine.Result> collectResult) {
             final var indexName = request.shardId().getIndexName();
             Metadata metadata = clusterService.state().metadata();
             var currentMappingVersion = metadata.index(indexName).getMappingVersion();
@@ -133,7 +133,8 @@ public class ReplayChangesAction extends ActionType<ReplayChangesAction.Response
                 new ClusterStateObserver.Listener() {
                     @Override
                     public void onNewClusterState(ClusterState state) {
-                        result.accept(applyTransLogOperation(op, primary, request));
+                        var result = applyTransLogOperation(op, primary, request);
+                        collectResult.accept(result);
                     }
 
                     @Override
@@ -145,7 +146,6 @@ public class ReplayChangesAction extends ActionType<ReplayChangesAction.Response
                     }
 
                 }, cs -> isIndexMetaDataOnClusterStateUpdated(cs, request.shardId().getIndexName(), currentMappingVersion)
-                , TimeValue.timeValueSeconds(10)
             );
         }
 
@@ -161,11 +161,7 @@ public class ReplayChangesAction extends ActionType<ReplayChangesAction.Response
                 result.getAndUpdate(x -> applyTransLogOperation(op, primary, request));
                 if (result.get().getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED ||
                     result.get().getResultType() == Engine.Result.Type.FAILURE) {
-                    waitMappingUpdateInClusterState(op,
-                                                    primary,
-                                                    request,
-                                                    result.get().getFailure(),
-                                                    r -> result.getAndUpdate(l -> r));
+                    waitMappingUpdateInClusterState(op, primary, request, result.get().getFailure(), result::set);
                 }
                 location =  syncOperationResultOrThrow(result.get(), location);
             }
