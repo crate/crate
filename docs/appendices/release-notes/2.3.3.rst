@@ -21,7 +21,7 @@ Released on 2018/02/15.
 
 .. _rolling upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
 .. _full restart upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
-.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _back up your data: https://crate.io/blog/backing-up-and-restoring-cratedb/
 
 .. rubric:: Table of contents
 
