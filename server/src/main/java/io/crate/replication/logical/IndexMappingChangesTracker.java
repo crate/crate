@@ -72,54 +72,23 @@ public final class IndexMappingChangesTracker implements Closeable {
         getRemoteClusterState(clusterName, new ActionListener<>() {
             @Override
             public void onResponse(ClusterState remoteClusterState) {
-                clusterService.submitStateUpdateTask("track-remote-cluster-metadata-changes", new ClusterStateUpdateTask() {
-                    @Override
-                    public ClusterState execute(ClusterState localClusterState) throws Exception {
-                        if (!localClusterState.getNodes().getMasterNodeId().equals(localClusterState.getNodes().getLocalNodeId())) {
-                            return localClusterState;
-                        }
+                clusterService.submitStateUpdateTask("track-remote-cluster-metadata-changes",
+                                                     new ClusterStateUpdateTask() {
+                                                         @Override
+                                                         public ClusterState execute(ClusterState localClusterState) throws Exception {
+                                                             if (!localClusterState.getNodes().getMasterNodeId().equals(
+                                                                 localClusterState.getNodes().getLocalNodeId())) {
+                                                                 return localClusterState;
+                                                             }
+                                                             return syncIndexMetaData(remoteClusterState,
+                                                                                      localClusterState);
+                                                         }
 
-                        PublicationsMetadata publicationsMetadata = remoteClusterState.metadata().custom(PublicationsMetadata.TYPE);
-                        SubscriptionsMetadata subscriptionsMetadata = localClusterState.metadata().custom(SubscriptionsMetadata.TYPE);
-
-                        // Find all subscribed tables
-                        var subscribedTables = new HashSet<RelationName>();
-                        for (var subscription : subscriptionsMetadata.subscription().values()) {
-                            for (String publicationName : subscription.publications()) {
-                                Publication publication = publicationsMetadata.publications().get(publicationName);
-                                subscribedTables.addAll(publication.tables());
-                            }
-                        }
-                        // Check for all the subscribed tables if the index metadata changed and apply
-                        // the changes from the publisher cluster state to the subscriber cluster state
-                        Metadata.Builder metadataBuilder = Metadata.builder(localClusterState.metadata());
-                        boolean mappingsChanged = false;
-                        for (RelationName followedTable : subscribedTables) {
-                            IndexMetadata remoteIndexMetadata = remoteClusterState.metadata().index(followedTable.indexNameOrAlias());
-                            IndexMetadata localIndexMetadata = localClusterState.metadata().index(followedTable.indexNameOrAlias());
-                            if (!remoteIndexMetadata.equals(localIndexMetadata)) {
-                                LOGGER.debug("Metadata changed for table {} detected", followedTable.name());
-                                IndexMetadata.Builder builder = IndexMetadata.builder(localIndexMetadata).putMapping(
-                                    remoteIndexMetadata.mapping()).mappingVersion(localIndexMetadata.getMappingVersion() + 1);
-                                metadataBuilder.put(builder.build(), true);
-                                mappingsChanged = true;
-                            }
-                        }
-
-                        if (mappingsChanged) {
-                            LOGGER.debug("Update index metadata from remote cluster");
-                            return ClusterState.builder(localClusterState).metadata(metadataBuilder).build();
-                        } else {
-                            LOGGER.debug("No mapping update required");
-                            return localClusterState;
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(String source, Exception e) {
-                        LOGGER.error(e);
-                    }
-                });
+                                                         @Override
+                                                         public void onFailure(String source, Exception e) {
+                                                             LOGGER.error(e);
+                                                         }
+                                                     });
             }
 
             @Override
@@ -127,6 +96,42 @@ public final class IndexMappingChangesTracker implements Closeable {
                 LOGGER.error(e);
             }
         });
+    }
+
+    private ClusterState syncIndexMetaData(ClusterState remoteClusterState, ClusterState localClusterState) {
+        PublicationsMetadata publicationsMetadata = remoteClusterState.metadata().custom(PublicationsMetadata.TYPE);
+        SubscriptionsMetadata subscriptionsMetadata = localClusterState.metadata().custom(SubscriptionsMetadata.TYPE);
+
+        // Find all subscribed tables
+        var subscribedTables = new HashSet<RelationName>();
+        for (var subscription : subscriptionsMetadata.subscription().values()) {
+            for (String publicationName : subscription.publications()) {
+                Publication publication = publicationsMetadata.publications().get(publicationName);
+                subscribedTables.addAll(publication.tables());
+            }
+        }
+        // Check for all the subscribed tables if the index metadata changed and apply
+        // the changes from the publisher cluster state to the subscriber cluster state
+        Metadata.Builder metadataBuilder = Metadata.builder(localClusterState.metadata());
+        boolean mappingsChanged = false;
+        for (RelationName followedTable : subscribedTables) {
+            IndexMetadata remoteIndexMetadata = remoteClusterState.metadata().index(followedTable.indexNameOrAlias());
+            IndexMetadata localIndexMetadata = localClusterState.metadata().index(followedTable.indexNameOrAlias());
+            if (!remoteIndexMetadata.equals(localIndexMetadata)) {
+                LOGGER.debug("Metadata changed for table {} detected", followedTable.name());
+                IndexMetadata.Builder builder = IndexMetadata.builder(localIndexMetadata).putMapping(
+                    remoteIndexMetadata.mapping()).mappingVersion(localIndexMetadata.getMappingVersion() + 1);
+                metadataBuilder.put(builder.build(), true);
+                mappingsChanged = true;
+            }
+        }
+        if (mappingsChanged) {
+            LOGGER.debug("Update index metadata from remote cluster");
+            return ClusterState.builder(localClusterState).metadata(metadataBuilder).build();
+        } else {
+            LOGGER.debug("No mapping update required");
+            return localClusterState;
+        }
     }
 
     //TODO Duplicated code, remove that

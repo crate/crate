@@ -310,13 +310,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         restoreShardUsingMultiChunkTransfer(store, indexId, snapshotShardId, recoveryState, listener);
         // We will do decRef and releaseResources ultimately, not while during our retries/restarts of
         // restoreShard .
-
-    }
-
-    @Override
-    public void getShardSnapshotStatus(SnapshotId snapshotId,
-                                       Map<ShardId, IndexId> shardIndexIds,
-                                       ActionListener<Map<ShardId, IndexShardSnapshotStatus>> listener) {
     }
 
     private void restoreShardUsingMultiChunkTransfer(Store store,
