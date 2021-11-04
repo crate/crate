@@ -1779,7 +1779,7 @@ License check
 .. NOTE::
 
    This check was removed in version 4.5 because CrateDB no longer requires an
-   enterprise license
+   enterprise license, see also `Farewell to the CrateDB Enterprise License`_.
 
 
 This check warns you when your license is close to expiration, is already
@@ -2296,3 +2296,6 @@ been analyzed.
 
     Not all data types support creating statistics. So some columns may not
     show up in the table.
+
+
+.. _Farewell to the CrateDB Enterprise License: https://crate.io/blog/farewell-to-the-cratedb-enterprise-license-faq
