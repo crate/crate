@@ -37,6 +37,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.Closeable;
@@ -52,6 +53,7 @@ public final class IndexMappingChangesTracker implements Closeable {
     private final Function<String, Client> remoteClient;
     private final ClusterService clusterService;
     public static final long REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC = 60000L;
+    private Scheduler.Cancellable cancellable;
 
     public IndexMappingChangesTracker(ThreadPool threadPool, Function<String, Client> remoteClient, ClusterService clusterService) {
         this.threadPool = threadPool;
@@ -62,8 +64,7 @@ public final class IndexMappingChangesTracker implements Closeable {
     // This should become an add method handling multiple tables at the same time
     public void start(String clusterName) {
         LOGGER.debug("Schedule tracking for remote cluster state");
-        //TODO stop task when this service is closed
-        threadPool.scheduleWithFixedDelay(() -> replicateMappings(clusterName), TimeValue.timeValueSeconds(1), ThreadPool.Names.LOGICAL_REPLICATION);
+        cancellable = threadPool.scheduleWithFixedDelay(() -> replicateMappings(clusterName), TimeValue.timeValueSeconds(1), ThreadPool.Names.LOGICAL_REPLICATION);
     }
 
     private void replicateMappings(String clusterName) {
@@ -89,7 +90,6 @@ public final class IndexMappingChangesTracker implements Closeable {
                                 subscribedTables.addAll(publication.tables());
                             }
                         }
-
                         // Check for all the subscribed tables if the index metadata changed and apply
                         // the changes from the publisher cluster state to the subscriber cluster state
                         Metadata.Builder metadataBuilder = Metadata.builder(localClusterState.metadata());
@@ -151,7 +151,9 @@ public final class IndexMappingChangesTracker implements Closeable {
 
     @Override
     public void close() throws IOException {
-    //TODO cancel task
+        if (cancellable != null) {
+            cancellable.cancel();
+        }
     }
 
 }
