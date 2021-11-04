@@ -77,10 +77,6 @@ Below are two ways you can disable UDC. However we hope you support us offering
 the open source edition, and leave UDC on, so we learn how many people use
 CrateDB.
 
-.. NOTE::
-
-   If UDC is disabled on the CrateDB server the Intercom service is
-   deactivated.
 
 .. highlight:: yaml
 
