@@ -47,7 +47,7 @@ Hardware Address  MAC address to uniquely identify instances behind
                   firewalls.
 Processor count   Number of available CPUs as reported by
                   ``Runtime.availableProcessors``
-Enterprise        Identifies whether the Enterprise Edition is used.
+Enterprise        Identifies whether the Enterprise Edition is used. [#f1]_
 ================  =========================================================
 
 After startup, UDC waits for 10 minutes before sending the first ping. It does
@@ -95,3 +95,10 @@ a system property setting like this will also make sure that UDC is never
 activated::
 
     -Cudc.enabled=false
+
+
+.. [#f1] The "CrateDB Enterprise Edition" has been dissolved starting with
+         CrateDB 4.5.0, see also `Farewell to the CrateDB Enterprise License`_.
+
+
+.. _Farewell to the CrateDB Enterprise License: https://crate.io/blog/farewell-to-the-cratedb-enterprise-license-faq
