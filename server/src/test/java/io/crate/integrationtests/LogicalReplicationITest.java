@@ -23,13 +23,18 @@ package io.crate.integrationtests;
 
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.StringJoiner;
 
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
@@ -44,6 +49,86 @@ public class LogicalReplicationITest extends LogicalReplicationIntegrationTest {
         // flush documents to lucene immediately so they can be seen by the changes tracker
         joiner.add("\"translog.flush_threshold_size\"='64b'");
         return joiner.toString();
+    }
+
+    @Test
+    public void test_create_publication_checks_owner_was_not_deleted_before_creation() {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+
+        String publicationOwner = "publication_owner";
+        executeOnPublisher("CREATE USER " + publicationOwner);
+        executeOnPublisher("GRANT AL TO " + publicationOwner);
+        executeOnPublisher("GRANT DQL, DML, DDL ON TABLE doc.t1 TO " + publicationOwner);
+        UserLookup userLookup = publisherCluster.getInstance(UserLookup.class);
+        User user = Objects.requireNonNull(userLookup.findUser(publicationOwner), "User " + publicationOwner + " must exist");
+
+        executeOnPublisher("DROP USER " + publicationOwner);
+        assertThrowsMatches(
+            () ->  executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user),
+            IllegalStateException.class,
+            "Publication 'pub1' cannot be created as the user 'publication_owner' owning the publication has been dropped."
+        );
+    }
+
+
+    @Test
+    public void test_create_subscription_checks_owner_was_not_deleted_before_creation() {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+        createPublication("pub1", false, List.of("doc.t1"));
+
+        String subscriptionOwner = "subscription_owner";
+        executeOnSubscriber("CREATE USER " + subscriptionOwner);
+        executeOnSubscriber("GRANT AL TO " + subscriptionOwner);
+
+        UserLookup userLookup = subscriberCluster.getInstance(UserLookup.class);
+        User user = Objects.requireNonNull(userLookup.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
+
+        executeOnSubscriber("DROP USER " + subscriptionOwner);
+        assertThrowsMatches(
+            () -> createSubscriptionAsUser("sub1", "pub1", user),
+            IllegalStateException.class,
+            "Subscription 'sub1' cannot be created as the user 'subscription_owner' owning the subscription has been dropped."
+        );
+    }
+
+    @Test
+    public void test_cannot_drop_user_who_owns_publications() {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+
+        String publicationOwner = "publication_owner";
+        executeOnPublisher("CREATE USER " + publicationOwner);
+        executeOnPublisher("GRANT AL TO " + publicationOwner);
+        executeOnPublisher("GRANT DQL, DML, DDL ON TABLE doc.t1 TO " + publicationOwner);
+
+        UserLookup userLookup = publisherCluster.getInstance(UserLookup.class);
+        User user = Objects.requireNonNull(userLookup.findUser(publicationOwner), "User " + publicationOwner + " must exist");
+        executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user);
+
+        assertThrowsMatches(
+            () -> executeOnPublisher("DROP USER " + publicationOwner),
+            IllegalStateException.class,
+            "User 'publication_owner' cannot be dropped. Publication 'pub1' needs to be dropped first."
+       );
+    }
+
+    @Test
+    public void test_cannot_drop_user_who_owns_subscriptions() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+        createPublication("pub1", false, List.of("doc.t1"));
+
+        String subscriptionOwner = "subscription_owner";
+        executeOnSubscriber("CREATE USER " + subscriptionOwner);
+        executeOnSubscriber("GRANT AL TO " + subscriptionOwner);
+
+        UserLookup userLookup = subscriberCluster.getInstance(UserLookup.class);
+        User user = Objects.requireNonNull(userLookup.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
+        createSubscriptionAsUser("sub1", "pub1", user);
+
+        assertThrowsMatches(
+            () -> executeOnSubscriber("DROP USER " + subscriptionOwner),
+            IllegalStateException.class,
+            "User 'subscription_owner' cannot be dropped. Subscription 'sub1' needs to be dropped first."
+        );
     }
 
     @Test
@@ -87,11 +172,11 @@ public class LogicalReplicationITest extends LogicalReplicationIntegrationTest {
     }
 
     @Test
-    public void test_drop_subscription() {
+    public void test_drop_subscription() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() +")");
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
 
-        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
+        createPublication("pub1", false, List.of("doc.t1"));
+        createSubscription("sub1", "pub1");
 
         LogicalReplicationService replicationService = subscriberCluster.getInstance(LogicalReplicationService.class);
         assertTrue(replicationService.subscriptions().containsKey("sub1"));
@@ -101,16 +186,29 @@ public class LogicalReplicationITest extends LogicalReplicationIntegrationTest {
     }
 
     @Test
+    public void test_create_subscription_subscribing_user_not_found() {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() +")");
+
+        // createPublication is not used in order not to create SUBSCRIBING_USER and verify that check is done in PublicationsStateAction
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
+
+        assertThrowsMatches(
+            () ->   createSubscription("sub1", "pub1"),
+            IllegalStateException.class,
+            "Cannot create a subscription, subscribing user '" + SUBSCRIBING_USER + "' was not found."
+        );
+    }
+
+    @Test
     public void test_subscribing_to_single_publication() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
                            defaultTableSettings() +
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
 
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
+        createPublication("pub1", false, List.of("doc.t1"));
 
-        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        ensureGreenOnSubscriber();
+        createSubscription("sub1", "pub1");
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
@@ -125,13 +223,13 @@ public class LogicalReplicationITest extends LogicalReplicationIntegrationTest {
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
 
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
+        createPublication("pub1", false, List.of("doc.t1"));
 
         executeOnSubscriber("CREATE TABLE doc.t1 (id int)");
         assertThrows(
             "Subscription 'sub1' cannot be created as included relation 'doc.t1' already exists",
             RelationAlreadyExists.class,
-            () -> executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1")
+            () ->  createSubscription("sub1", "pub1")
         );
     }
 
@@ -147,10 +245,9 @@ public class LogicalReplicationITest extends LogicalReplicationIntegrationTest {
                            ")");
         executeOnPublisher("INSERT INTO doc.t2 (id) VALUES (3), (4)");
 
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1, doc.t2");
+        createPublication("pub1", false, List.of("doc.t1", "doc.t2"));
 
-        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        ensureGreenOnSubscriber();
+        createSubscription("sub1", "pub1");
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
@@ -170,10 +267,9 @@ public class LogicalReplicationITest extends LogicalReplicationIntegrationTest {
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
 
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
+        createPublication("pub1", false, List.of("doc.t1"));
 
-        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        ensureGreenOnSubscriber();
+        createSubscription("sub1", "pub1");
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
@@ -192,10 +288,9 @@ public class LogicalReplicationITest extends LogicalReplicationIntegrationTest {
                            ")");
         executeOnPublisher("INSERT INTO my_schema.t2 (id) VALUES (1), (2)");
 
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR ALL TABLES");
+        createPublication("pub1", false, List.of("doc.t1", "my_schema.t2"));
 
-        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        ensureGreenOnSubscriber();
+        createSubscription("sub1", "pub1");
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
@@ -216,10 +311,10 @@ public class LogicalReplicationITest extends LogicalReplicationIntegrationTest {
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
 
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
 
-        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        ensureGreenOnSubscriber();
+        createPublication("pub1", false, List.of("doc.t1"));
+
+        createSubscription("sub1", "pub1");
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
