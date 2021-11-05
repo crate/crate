@@ -35,30 +35,26 @@ public class RestoreShardRequest<T extends SingleShardRequest<T>> extends Single
 
     private final String restoreUUID;
     private final DiscoveryNode node;
-    private final ShardId publisherShardId;
+    private final ShardId shardId;
     private final String subscriberClusterName;
-    private final ShardId subscriberShardId;
 
     public RestoreShardRequest(String restoreUUID,
                                DiscoveryNode node,
-                               ShardId publisherShardId,
-                               String subscriberClusterName,
-                               ShardId subscriberShardId) {
-        super(publisherShardId.getIndexName());
+                               ShardId shardId,
+                               String subscriberClusterName) {
+        super(shardId.getIndexName());
         this.restoreUUID = restoreUUID;
         this.node = node;
-        this.publisherShardId = publisherShardId;
+        this.shardId = shardId;
         this.subscriberClusterName = subscriberClusterName;
-        this.subscriberShardId = subscriberShardId;
     }
 
     public RestoreShardRequest(StreamInput in) throws IOException {
         super(in);
         this.restoreUUID = in.readString();
         this.node = new DiscoveryNode(in);
-        this.publisherShardId = new ShardId(in);
+        this.shardId = new ShardId(in);
         this.subscriberClusterName = in.readString();
-        this.subscriberShardId = new ShardId(in);
     }
 
     @Override
@@ -66,9 +62,8 @@ public class RestoreShardRequest<T extends SingleShardRequest<T>> extends Single
         super.writeTo(out);
         out.writeString(restoreUUID);
         node.writeTo(out);
-        publisherShardId.writeTo(out);
+        shardId.writeTo(out);
         out.writeString(subscriberClusterName);
-        subscriberShardId.writeTo(out);
     }
 
     @Override
@@ -76,16 +71,12 @@ public class RestoreShardRequest<T extends SingleShardRequest<T>> extends Single
         return node;
     }
 
-    public ShardId publisherShardId() {
-        return publisherShardId;
+    public ShardId shardId() {
+        return shardId;
     }
 
     public String subscriberClusterName() {
         return subscriberClusterName;
-    }
-
-    public ShardId subscriberShardId() {
-        return subscriberShardId;
     }
 
     public String restoreUUID() {
@@ -97,9 +88,8 @@ public class RestoreShardRequest<T extends SingleShardRequest<T>> extends Single
         return "RestoreShardRequest{" +
                "restoreUUID='" + restoreUUID + '\'' +
                ", node=" + node +
-               ", publisherShardId=" + publisherShardId +
+               ", shardId=" + shardId +
                ", subscriberClusterName='" + subscriberClusterName + '\'' +
-               ", subscriberShardId=" + subscriberShardId +
                ", index='" + index + '\'' +
                '}';
     }
