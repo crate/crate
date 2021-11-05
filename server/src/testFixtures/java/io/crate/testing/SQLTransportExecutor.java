@@ -45,9 +45,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -219,6 +217,11 @@ public class SQLTransportExecutor {
             searchPath.currentSchema(),
             User.CRATE_USER
         );
+    }
+
+    public SQLResponse executeAs(String stmt, User user) {
+        Session session = clientProvider.sqlOperations().createSession(null, user);
+        return FutureUtils.get(execute(stmt, null, session), SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
     }
 
     public SQLResponse exec(String statement, @Nullable Object[] args, Session session, TimeValue timeout) {
@@ -714,5 +717,4 @@ public class SQLTransportExecutor {
             super.fail(t);
         }
     }
-
 }

@@ -25,6 +25,7 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.user.UserLookup;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -41,6 +42,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.Locale;
 
 public class TransportCreateSubscriptionAction extends TransportMasterNodeAction<CreateSubscriptionRequest, AcknowledgedResponse> {
 
@@ -48,13 +50,15 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
 
     private final String source;
     private final LogicalReplicationService logicalReplicationService;
+    private final UserLookup userLookup;
 
     @Inject
     public TransportCreateSubscriptionAction(TransportService transportService,
                                              ClusterService clusterService,
                                              LogicalReplicationService logicalReplicationService,
                                              ThreadPool threadPool,
-                                             IndexNameExpressionResolver indexNameExpressionResolver) {
+                                             IndexNameExpressionResolver indexNameExpressionResolver,
+                                             UserLookup userLookup) {
         super(ACTION_NAME,
               transportService,
               clusterService,
@@ -62,6 +66,7 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
               CreateSubscriptionRequest::new,
               indexNameExpressionResolver);
         this.logicalReplicationService = logicalReplicationService;
+        this.userLookup = userLookup;
         this.source = "create-subscription";
     }
 
@@ -79,6 +84,17 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
     protected void masterOperation(CreateSubscriptionRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
+
+        // Ensure subscription owner exists
+        if (userLookup.findUser(request.owner()) == null) {
+            throw new IllegalStateException(
+                String.format(
+                    Locale.ENGLISH, "Subscription '%s' cannot be created as the user '%s' owning the subscription has been dropped.",
+                    request.name(),
+                    request.owner()
+                )
+            );
+        }
 
         Subscription subscription = new Subscription(
             request.owner(),
