@@ -23,6 +23,7 @@ package io.crate.replication.logical.action;
 
 import io.crate.replication.logical.repository.PublisherRestoreService;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.single.shard.TransportSingleShardAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -87,19 +88,23 @@ public class GetStoreMetadataAction extends ActionType<GetStoreMetadataAction.Re
         }
 
         @Override
-        protected Response shardOperation(Request request,
-                                          ShardId shardId) throws IOException {
+        protected Response shardOperation(Request request, ShardId shardId) throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        protected void asyncShardOperation(Request request,
+                                           ShardId shardId,
+                                           ActionListener<Response> listener) throws IOException {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Processing request: " + request.toString());
             }
-            var metadataSnapshot = publisherRestoreService.createRestoreContext(
+            publisherRestoreService.createRestoreContext(
                 request.restoreUUID(),
-                request
-            ).metadataSnapshot();
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("MetadataSnapshot: {}", metadataSnapshot.asMap());
-            }
-            return new Response(metadataSnapshot);
+                request,
+                context -> listener.onResponse(new Response(context.metadataSnapshot())),
+                listener::onFailure
+            );
         }
 
         @Override
