@@ -31,6 +31,9 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.Publication;
+import io.crate.user.Privilege;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
@@ -59,6 +62,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+
+import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
 
 public class PublicationsStateAction extends ActionType<PublicationsStateAction.Response> {
 
@@ -81,6 +87,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
         private final LogicalReplicationService logicalReplicationService;
         private final Schemas schemas;
+        private final UserLookup userLookup;
 
         @Inject
         public TransportAction(TransportService transportService,
@@ -88,7 +95,8 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                                ThreadPool threadPool,
                                IndexNameExpressionResolver indexNameExpressionResolver,
                                LogicalReplicationService logicalReplicationService,
-                               Schemas schemas) {
+                               Schemas schemas,
+                               UserLookup userLookup) {
             super(Settings.EMPTY,
                   NAME,
                   false,
@@ -99,6 +107,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                   Request::new);
             this.logicalReplicationService = logicalReplicationService;
             this.schemas = schemas;
+            this.userLookup = userLookup;
 
             TransportActionProxy.registerProxyAction(transportService, NAME, Response::new);
         }
@@ -121,6 +130,18 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
             ArrayList<String> concreteIndices = new ArrayList<>();
             ArrayList<String> concreteTemplates = new ArrayList<>();
 
+            // Ensure subscribing user was not dropped after remote connection was established on another side.
+            // Subscribing users must be checked on a publisher side as they belong to the publishing cluster.
+            User subscriber = userLookup.findUser(request.subscribingUserName());
+            if (subscriber == null) {
+                throw new IllegalStateException(
+                    String.format(
+                        Locale.ENGLISH, "Cannot create a subscription, subscribing user '%s' was not found.",
+                        request.subscribingUserName()
+                    )
+                );
+            }
+
             for (var publicationName : request.publications()) {
                 var publication = logicalReplicationService.publications().get(publicationName);
                 if (publication == null) {
@@ -128,7 +149,11 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                     return;
                 }
 
-                List<RelationName> relationNamesOfPublication = resolveRelationsNames(publication, schemas);
+                // Publication owner cannot be null as we ensure that users who owns publication cannot be dropped.
+                // Also, before creating publication or subscription we check that owner was not dropped right before creation.
+                User publicationOwner = userLookup.findUser(publication.owner());
+
+                List<RelationName> relationNamesOfPublication = resolveRelationsNames(publication, schemas, publicationOwner, subscriber);
                 for (var relationName : relationNamesOfPublication) {
 
                     var indexNameOrTemplateName = relationName.indexNameOrAlias();
@@ -163,7 +188,11 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
         }
 
         @VisibleForTesting
-        static List<RelationName> resolveRelationsNames(Publication publication, Schemas schemas) {
+        static List<RelationName> resolveRelationsNames(Publication publication,
+                                                        Schemas schemas,
+                                                        User publicationOwner,
+                                                        User subscribedUser) {
+
             List<RelationName> relationNames;
             if (publication.isForAllTables()) {
                 relationNames = InformationSchemaIterables.tablesStream(schemas)
@@ -183,36 +212,68 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                         }
                         return false;
                     })
+                    .filter(t -> userCanPublish(t.ident(), publicationOwner))
+                    .filter(t -> subscriberCanRead(t.ident(), subscribedUser))
                     .map(RelationInfo::ident)
                     .toList();
             } else {
-                relationNames = publication.tables();
+                // No need to call userCanPublish() since for the pre-defined tables case this check was already done on the publication creation.
+                // Soft deletes check for pre-defined tables was done in LogicalReplicationAnalyzer on the publication creation.
+                relationNames = publication.tables()
+                    .stream()
+                    .filter(t -> subscriberCanRead(t, subscribedUser))
+                    .toList();
             }
             return relationNames;
+        }
+
+        private static boolean subscriberCanRead(RelationName relationName, User subscriber) {
+            return subscriber.hasPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, relationName.fqn(), Schemas.DOC_SCHEMA_NAME);
+        }
+
+        private static boolean userCanPublish(RelationName relationName, User publicationOwner) {
+            for (Privilege.Type type: READ_WRITE_DEFINE) {
+                // This check is triggered only on ALL TABLES case.
+                // Required privileges correspond to those we check for the pre-defined tables case in AccessControlImpl.visitCreatePublication.
+
+                // Schemas.DOC_SCHEMA_NAME is a dummy parameter since we are passing fqn as ident.
+                if (!publicationOwner.hasPrivilege(type, Privilege.Clazz.TABLE, relationName.fqn(), Schemas.DOC_SCHEMA_NAME)) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 
     public static class Request extends MasterNodeReadRequest<Request> {
 
         private final List<String> publications;
+        private final String subscribingUserName;
 
-        public Request(List<String> publications) {
+        public Request(List<String> publications, String subscribingUserName) {
             this.publications = publications;
+            this.subscribingUserName = subscribingUserName;
         }
 
         public Request(StreamInput in) throws IOException {
             super(in);
             publications = in.readList(StreamInput::readString);
+            subscribingUserName = in.readString();
         }
 
         public List<String> publications() {
             return publications;
         }
 
+        public String subscribingUserName() {
+            return subscribingUserName;
+        }
+
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             super.writeTo(out);
             out.writeStringCollection(publications);
+            out.writeString(subscribingUserName);
         }
     }
 
