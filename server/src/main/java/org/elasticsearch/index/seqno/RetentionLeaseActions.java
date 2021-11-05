@@ -157,12 +157,11 @@ public class RetentionLeaseActions {
                     request.getSource(),
                     ActionListener.map(listener, r -> new Response()));
             }
+        }
 
-            @Override
-            protected Writeable.Reader<Response> getResponseReader() {
-                return Response::new;
-            }
-
+        @Override
+        public Writeable.Reader<Response> getResponseReader() {
+            return Response::new;
         }
     }
 
@@ -202,7 +201,11 @@ public class RetentionLeaseActions {
                 indexShard.renewRetentionLease(request.getId(), request.getRetainingSequenceNumber(), request.getSource());
                 listener.onResponse(new Response());
             }
+        }
 
+        @Override
+        public Writeable.Reader<Response> getResponseReader() {
+            return Response::new;
         }
     }
 
@@ -241,7 +244,11 @@ public class RetentionLeaseActions {
                     request.getId(),
                     ActionListener.map(listener, r -> new Response()));
             }
+        }
 
+        @Override
+        public Writeable.Reader<Response> getResponseReader() {
+            return Response::new;
         }
     }
 
