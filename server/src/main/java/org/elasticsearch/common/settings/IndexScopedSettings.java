@@ -120,7 +120,7 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         Setting.groupSetting("index.analysis.", Property.IndexScope),
         BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED,
         BlobIndicesService.SETTING_INDEX_BLOBS_PATH,
-        LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX
+        LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME
     );
 
     public static final IndexScopedSettings DEFAULT_SCOPED_SETTINGS = new IndexScopedSettings(Settings.EMPTY, BUILT_IN_INDEX_SETTINGS);

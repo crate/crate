@@ -179,11 +179,10 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         stepListener.whenComplete(remoteClusterState -> {
             var result = new ArrayList<IndexMetadata>();
             for (var i : remoteClusterState.metadata().indices()) {
-                var indexName = i.key;
                 var indexMetadata = i.value;
                 // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
                 var builder = Settings.builder().put(indexMetadata.getSettings());
-                builder.put(LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX.getKey(), indexName);
+                builder.put(LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
 
                 var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
                 indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));
@@ -201,7 +200,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             var indexMetadata = remoteClusterState.metadata().index(index.getName());
             // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
             var builder = Settings.builder().put(indexMetadata.getSettings());
-            builder.put(LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX.getKey(), index.getName());
+            builder.put(LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
 
             var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
             indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));

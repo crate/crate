@@ -220,7 +220,7 @@ public class IndicesModule extends AbstractModule {
     public Collection<Function<IndexSettings, Optional<EngineFactory>>> getEngineFactories() {
         return List.of(
             indexSettings -> {
-                if (indexSettings.getSettings().get(LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX.getKey()) != null) {
+                if (indexSettings.getSettings().get(LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME.getKey()) != null) {
                     return Optional.of(SubscriberEngine::new);
                 }
                 return Optional.empty();
