@@ -26,6 +26,7 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
@@ -53,10 +54,9 @@ public class MetadataTrackerITest extends LogicalReplicationIntegrationTest {
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
 
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
+        createPublication("pub1", false, List.of("doc.t1"));
 
-        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        ensureGreenOnSubscriber();
+        createSubscription("sub1", "pub1");
 
         assertBusy(() -> {
             var response = executeOnSubscriber("SELECT * FROM doc.t1");
@@ -86,10 +86,9 @@ public class MetadataTrackerITest extends LogicalReplicationIntegrationTest {
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
 
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
+        createPublication("pub1", false, List.of("doc.t1"));
 
-        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        ensureGreenOnSubscriber();
+        createSubscription("sub1", "pub1");
 
         executeOnPublisher("ALTER TABLE doc.t1 ADD COLUMN name varchar");
         //This insert is synced to the subscriber and the mapping might not be updated yet
@@ -133,10 +132,9 @@ public class MetadataTrackerITest extends LogicalReplicationIntegrationTest {
             executeOnPublisher("INSERT INTO " + tableName + " (id) VALUES (1), (2)");
         }
 
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE " + String.join(",", tableNames));
+        createPublication("pub1", false, tableNames);
 
-        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-        ensureGreenOnSubscriber();
+        createSubscription("sub1", "pub1");
 
         for (String tableName : tableNames) {
             executeOnPublisher("ALTER TABLE " + tableName + " ADD COLUMN name varchar");

@@ -27,6 +27,7 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
+import io.crate.user.User;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
@@ -49,6 +50,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -69,6 +71,8 @@ public abstract class LogicalReplicationIntegrationTest extends ESTestCase {
 
     InternalTestCluster subscriberCluster;
     SQLTransportExecutor subscriberSqlExecutor;
+
+    protected static final String SUBSCRIBING_USER = "subscriber";
 
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return List.of(
@@ -150,6 +154,10 @@ public abstract class LogicalReplicationIntegrationTest extends ESTestCase {
         return publisherSqlExecutor.exec(sql);
     }
 
+    SQLResponse executeOnPublisherAsUser(String sql, User user) {
+        return publisherSqlExecutor.executeAs(sql, user);
+    }
+
     long[] executeBulkOnPublisher(String sql, @Nullable Object[][] bulkArgs) {
         return publisherSqlExecutor.execBulk(sql, bulkArgs);
     }
@@ -225,20 +233,21 @@ public abstract class LogicalReplicationIntegrationTest extends ESTestCase {
         );
     }
 
-    String publisherConnectionUrl() {
+    private String publisherConnectionUrl() {
         var transportService = publisherCluster.getInstance(TransportService.class);
         InetSocketAddress address = transportService.boundAddress().publishAddress().address();
         return String.format(
             Locale.ENGLISH,
-            "crate://%s:%d?mode=sniff&seeds=%s:%d",
+            "crate://%s:%d?user=%s&mode=sniff&seeds=%s:%d",
             address.getHostName(),
             address.getPort(),
+            SUBSCRIBING_USER,
             address.getHostName(),
             address.getPort()
         );
     }
 
-    void ensureGreenOnSubscriber() throws Exception {
+    private void ensureGreenOnSubscriber() throws Exception {
         assertBusy(() -> {
             try {
                 var response = executeOnSubscriber(
@@ -249,6 +258,31 @@ public abstract class LogicalReplicationIntegrationTest extends ESTestCase {
                 fail();
             }
         }, 10, TimeUnit.SECONDS);
+
+    }
+
+    protected void createPublication(String pub, boolean isForAllTables, List<String> tables) {
+        String tablesAsString = tables.stream().collect(Collectors.joining(","));
+        if (isForAllTables) {
+            executeOnPublisher("CREATE PUBLICATION " + pub + " FOR ALL TABLES");
+        } else {
+            executeOnPublisher("CREATE PUBLICATION " + pub + " FOR TABLE " + tablesAsString);
+        }
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE " + tablesAsString + " TO " + SUBSCRIBING_USER);
+    }
+
+    protected void createSubscription(String subName, String pubName) throws Exception {
+        executeOnSubscriber("CREATE SUBSCRIPTION " + subName +
+                " CONNECTION '" + publisherConnectionUrl() + "' publication " + pubName);
+        ensureGreenOnSubscriber();
+
+    }
+
+    protected void createSubscriptionAsUser(String subName, String pubName, User user) throws Exception {
+        subscriberSqlExecutor.executeAs("CREATE SUBSCRIPTION " + subName +
+            " CONNECTION '" + publisherConnectionUrl() + "' publication " + pubName, user);
+        ensureGreenOnSubscriber();
 
     }
 }

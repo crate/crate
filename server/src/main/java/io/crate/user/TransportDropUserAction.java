@@ -22,6 +22,7 @@
 package io.crate.user;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
 import org.elasticsearch.action.ActionListener;
@@ -41,14 +42,18 @@ import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Locale;
 
 public class TransportDropUserAction extends TransportMasterNodeAction<DropUserRequest, WriteUserResponse> {
+
+    private final LogicalReplicationService logicalReplicationService;
 
     @Inject
     public TransportDropUserAction(TransportService transportService,
                                    ClusterService clusterService,
                                    ThreadPool threadPool,
-                                   IndexNameExpressionResolver indexNameExpressionResolver) {
+                                   IndexNameExpressionResolver indexNameExpressionResolver,
+                                   LogicalReplicationService logicalReplicationService) {
         super(
             "internal:crate:sql/user/drop",
             transportService,
@@ -57,6 +62,7 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
             DropUserRequest::new,
             indexNameExpressionResolver
         );
+        this.logicalReplicationService = logicalReplicationService;
     }
 
     @Override
@@ -73,6 +79,34 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
     protected void masterOperation(DropUserRequest request,
                                    ClusterState state,
                                    ActionListener<WriteUserResponse> listener) throws Exception {
+
+
+        String errorMsg = "User '%s' cannot be dropped. %s '%s' needs to be dropped first.";
+
+        // Ensure user doesn't own subscriptions.
+        logicalReplicationService
+                .subscriptions()
+                .entrySet()
+                .forEach(entry -> {
+                    if (entry.getValue().owner().equals(request.userName())) {
+                        throw new IllegalStateException(
+                            String.format(Locale.ENGLISH, errorMsg, request.userName(), "Subscription", entry.getKey())
+                        );
+                    }
+                });
+
+        // Ensure user doesn't own publications.
+        logicalReplicationService
+                .publications()
+                .entrySet()
+                .forEach(entry -> {
+                    if (entry.getValue().owner().equals(request.userName())) {
+                        throw new IllegalStateException(
+                            String.format(Locale.ENGLISH, errorMsg, request.userName(), "Publication", entry.getKey())
+                        );
+                    }
+                });
+
         clusterService.submitStateUpdateTask("drop_user [" + request.userName() + "]",
             new AckedClusterStateUpdateTask<WriteUserResponse>(Priority.URGENT, request, listener) {
 
