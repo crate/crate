@@ -109,10 +109,10 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
                                                  RestoreShardRequest request,
                                                  String fileName,
                                                  long length) {
-        var leaderIndexShard = indicesService.getShardOrNull(request.publisherShardId());
+        var leaderIndexShard = indicesService.getShardOrNull(request.shardId());
         if (leaderIndexShard == null) {
             throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "Shard [%s] missing", request.publisherShardId()));
+                String.format(Locale.ENGLISH, "Shard [%s] missing", request.shardId()));
         }
         var restoreContext = getRestoreContextSafe(restoreUUID);
         var indexInput = restoreContext.openInput(fileName);
@@ -130,10 +130,10 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
                                          RestoreShardRequest request,
                                          Consumer<RestoreContext> onSuccess,
                                          Consumer<Exception> onFailure) {
-        var leaderIndexShard = indicesService.getShardOrNull(request.publisherShardId());
+        var leaderIndexShard = indicesService.getShardOrNull(request.shardId());
         if (leaderIndexShard == null) {
             onFailure.accept(new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "Shard [%s] missing", request.publisherShardId())));
+                String.format(Locale.ENGLISH, "Shard [%s] missing", request.shardId())));
             return;
         }
         /**
@@ -170,8 +170,7 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
         final var finalMetadataSnapshot = metadataSnapshot;
         // Adds the retention lease for fromSeqNo for the next stage of the replication.
         RetentionLeaseHelper.addRetentionLease(
-            request.publisherShardId(),
-            request.subscriberShardId(),
+            request.shardId(),
             fromSeqNo,
             request.subscriberClusterName(),
             nodeClient,

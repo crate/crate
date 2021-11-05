@@ -279,7 +279,6 @@ public class ShardReplicationChangesTracker implements Closeable {
             shardId.getIndex(),
             client -> RetentionLeaseHelper.renewRetentionLease(
                 shardId,
-                shardId,
                 toSeqNoReceived,
                 clusterName,
                 client,
@@ -352,7 +351,6 @@ public class ShardReplicationChangesTracker implements Closeable {
         shardReplicationService.getRemoteClusterClient(
             shardId.getIndex(),
             client -> RetentionLeaseHelper.attemptRetentionLeaseRemoval(
-                shardId,
                 shardId,
                 clusterName,
                 client,

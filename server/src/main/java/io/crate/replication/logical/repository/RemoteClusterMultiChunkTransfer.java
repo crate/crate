@@ -105,7 +105,6 @@ public class RemoteClusterMultiChunkTransfer extends MultiChunkTransfer<StoreFil
             remoteNode,
             remoteShardId,
             localClusterName,
-            recoveryState.getShardId(),
             request.storeFileMetadata(),
             request.offset(),
             request.length()
