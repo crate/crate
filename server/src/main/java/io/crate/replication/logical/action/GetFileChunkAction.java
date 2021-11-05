@@ -130,7 +130,7 @@ public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> 
         @Override
         protected ShardsIterator shards(ClusterState state,
                                         InternalRequest request) {
-            return state.routingTable().shardRoutingTable(request.request().publisherShardId()).primaryShardIt();
+            return state.routingTable().shardRoutingTable(request.request().shardId()).primaryShardIt();
         }
     }
 
@@ -142,13 +142,12 @@ public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> 
 
         public Request(String restoreUUID,
                        DiscoveryNode node,
-                       ShardId publisherShardId,
+                       ShardId shardId,
                        String subscriberClusterName,
-                       ShardId subscriberShardId,
                        StoreFileMetadata storeFileMetadata,
                        long offset,
                        int length) {
-            super(restoreUUID, node, publisherShardId, subscriberClusterName, subscriberShardId);
+            super(restoreUUID, node, shardId, subscriberClusterName);
             this.storeFileMetadata = storeFileMetadata;
             this.offset = offset;
             this.length = length;
