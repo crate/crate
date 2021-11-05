@@ -23,9 +23,10 @@ package io.crate.replication.logical;
 
 import io.crate.plugin.IndexEventListenerProxy;
 import io.crate.replication.logical.exceptions.NoSubscriptionForIndexException;
-import io.crate.replication.logical.metadata.Subscription;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -55,6 +56,7 @@ public class ShardReplicationService implements Closeable {
     private final LogicalReplicationSettings replicationSettings;
     private final Client client;
     private final ThreadPool threadPool;
+    private final ClusterName clusterName;
     private final Map<ShardId, ShardReplicationChangesTracker> shards = new ConcurrentHashMap<>();
     private final Map<String, String> subscribedIndices = ConcurrentCollections.newConcurrentMap();
 
@@ -63,11 +65,13 @@ public class ShardReplicationService implements Closeable {
                                    LogicalReplicationService logicalReplicationService,
                                    LogicalReplicationSettings replicationSettings,
                                    Client client,
-                                   ThreadPool threadPool) {
+                                   ThreadPool threadPool,
+                                   ClusterService clusterService) {
         this.logicalReplicationService = logicalReplicationService;
         this.replicationSettings = replicationSettings;
         this.client = client;
         this.threadPool = threadPool;
+        this.clusterName = clusterService.getClusterName();
         indexEventListenerProxy.addLast(new LifecycleListener());
     }
 
@@ -105,15 +109,6 @@ public class ShardReplicationService implements Closeable {
         return subscribedIndices.get(indexUUID);
     }
 
-    @Nullable
-    private Subscription subscription(String indexUUID) {
-        var subscriptionName = subscribedIndices.get(indexUUID);
-        if (subscriptionName != null) {
-            return logicalReplicationService.subscriptions().get(subscriptionName);
-        }
-        return null;
-    }
-
 
     private class LifecycleListener implements IndexEventListener {
 
@@ -139,13 +134,15 @@ public class ShardReplicationService implements Closeable {
         @Override
         public void afterIndexShardStarted(IndexShard indexShard) {
             if (indexShard.routingEntry().primary()) {
-                var subscription = subscription(indexShard.shardId().getIndex().getUUID());
+                var subscriptionName = subscriptionName(indexShard.shardId().getIndex().getUUID());
+                var subscription = logicalReplicationService.subscriptions().get(subscriptionName);
                 if (subscription != null) {
                     var tracker = new ShardReplicationChangesTracker(
                         indexShard,
-                        replicationSettings,
                         threadPool,
+                        replicationSettings,
                         ShardReplicationService.this,
+                        clusterName.value(),
                         client
                     );
                     shards.put(indexShard.shardId(), tracker);
