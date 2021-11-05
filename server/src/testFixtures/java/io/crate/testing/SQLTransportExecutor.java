@@ -235,6 +235,11 @@ public class SQLTransportExecutor {
         );
     }
 
+    public SQLResponse executeAs(String stmt, User user) {
+        Session session = clientProvider.sqlOperations().createSession(null, user);
+        return execute(stmt, null, session).actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+    }
+
     public SQLResponse exec(String statement, Session session) {
         return execute(statement, null, session).actionGet(REQUEST_TIMEOUT);
     }

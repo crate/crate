@@ -27,6 +27,7 @@ import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.action.GetStoreMetadataAction;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexCommit;
@@ -444,7 +445,10 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     private void getPublicationsState(ActionListener<PublicationsStateAction.Response> listener) {
         getRemoteClusterClient().execute(
             PublicationsStateAction.INSTANCE,
-            new PublicationsStateAction.Request(logicalReplicationService.subscriptions().get(subscriptionName).publications()),
+            new PublicationsStateAction.Request(
+                logicalReplicationService.subscriptions().get(subscriptionName).publications(),
+                logicalReplicationService.subscriptions().get(subscriptionName).connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
+            ),
             listener
         );
     }
