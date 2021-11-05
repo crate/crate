@@ -24,6 +24,7 @@ package io.crate.replication.logical;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.PublicationsStateAction;
@@ -36,6 +37,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreClusterStateListener;
+import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
@@ -43,6 +45,7 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
@@ -84,7 +87,6 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
     private RestoreService restoreService;
 
     private final Map<String, RemoteClusterConnection> remoteClusters = ConcurrentCollections.newConcurrentMap();
-    private final Map<String, String> subscribedIndices = ConcurrentCollections.newConcurrentMap();
     private volatile SubscriptionsMetadata currentSubscriptionsMetadata = new SubscriptionsMetadata();
     private volatile PublicationsMetadata currentPublicationsMetadata = new PublicationsMetadata();
 
@@ -118,7 +120,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
         if ((prevSubscriptionsMetadata == null && newSubscriptionsMetadata != null)
             || (prevSubscriptionsMetadata != null && prevSubscriptionsMetadata.equals(newSubscriptionsMetadata) == false)) {
             currentSubscriptionsMetadata = newSubscriptionsMetadata;
-            onChangedSubscriptions(prevSubscriptionsMetadata, newSubscriptionsMetadata);
+            handleRepositoriesForChangedSubscriptions(prevSubscriptionsMetadata, newSubscriptionsMetadata);
         }
 
         PublicationsMetadata prevPublicationsMetadata = prevMetadata.custom(PublicationsMetadata.TYPE);
@@ -130,8 +132,12 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
         }
     }
 
-    private void onChangedSubscriptions(@Nullable SubscriptionsMetadata prevSubscriptionsMetadata,
-                                        SubscriptionsMetadata newSubscriptionsMetadata) {
+    /**
+     * Register/unregister logical replication repositories.
+     * If on a MASTER node, initial restore will be triggered.
+     */
+    private void handleRepositoriesForChangedSubscriptions(@Nullable SubscriptionsMetadata prevSubscriptionsMetadata,
+                                                           SubscriptionsMetadata newSubscriptionsMetadata) {
         Map<String, Subscription> oldSubscriptions = prevSubscriptionsMetadata == null
             ? Collections.emptyMap() : prevSubscriptionsMetadata.subscription();
         var newSubscriptions = newSubscriptionsMetadata.subscription();
@@ -145,19 +151,32 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                 LOGGER.debug("Adding new logical replication repository for subscription '{}'", subscriptionName);
                 repositoriesService.registerInternalRepository(REMOTE_REPOSITORY_PREFIX + subscriptionName, TYPE);
 
-                LOGGER.debug("Start logical replication for subscription '{}'", subscriptionName);
-                startReplication(subscriptionName, entry.getValue(), new ActionListener<>() {
+                if (clusterService.localNode().isMasterEligibleNode()) {
+                    withRetry(
+                        () -> {
+                            // The startReplication will initiate the remote connection upfront
+                            LOGGER.debug("Start logical replication for subscription '{}'", subscriptionName);
+                            startReplication(subscriptionName, entry.getValue(), new ActionListener<>() {
 
-                    @Override
-                    public void onResponse(AcknowledgedResponse acknowledgedResponse) {
-                        LOGGER.debug("Acknowledged logical replication for subscription '{}'", subscriptionName);
-                    }
+                                @Override
+                                public void onResponse(AcknowledgedResponse acknowledgedResponse) {
+                                    LOGGER.debug("Acknowledged logical replication for subscription '{}'",
+                                                 subscriptionName);
+                                }
 
-                    @Override
-                    public void onFailure(Exception e) {
-                        LOGGER.debug("Failure for logical replication for subscription", e);
-                    }
-                });
+                                @Override
+                                public void onFailure(Exception e) {
+                                    LOGGER.debug("Failure for logical replication for subscription", e);
+                                }
+                            });
+                        }
+                    ).run();
+                } else {
+                    // Initiate the remote connection for the subscription, needed on all nodes to restore the
+                    // repository and for following remote shard changes.
+                    // Must run inside a transport thread
+                    withRetry(() -> updateRemoteConnection(subscriptionName)).run();
+                }
             }
         }
         for (var entry : oldSubscriptions.entrySet()) {
@@ -169,7 +188,19 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                              subscriptionName);
                 repositoriesService.unregisterInternalRepository(REMOTE_REPOSITORY_PREFIX + subscriptionName);
             }
+
+            // Close connection for removed subscription (must not run inside a transport thread)
+            withRetry(() -> updateRemoteConnection(subscriptionName, Settings.EMPTY));
         }
+    }
+
+    private Runnable withRetry(Runnable runnable) {
+        return new RetryRunnable(
+            threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
+            threadPool.scheduler(),
+            runnable,
+            BackoffPolicy.exponentialBackoff()
+        );
     }
 
     public Map<String, Subscription> subscriptions() {
@@ -205,7 +236,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
         getRemoteClusterConnection(clusterAlias).ensureConnected(listener);
     }
 
-    RemoteClusterConnection getRemoteClusterConnection(String cluster) {
+    private RemoteClusterConnection getRemoteClusterConnection(String cluster) {
         RemoteClusterConnection connection = remoteClusters.get(cluster);
         if (connection == null) {
             throw new NoSuchRemoteClusterException(cluster);
@@ -215,16 +246,23 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
 
     @Override
     public Client getRemoteClusterClient(ThreadPool threadPool,
-                                         String clusterAlias) {
-        if (remoteClusters.containsKey(clusterAlias) == false) {
-            throw new NoSuchRemoteClusterException(clusterAlias);
+                                         String subcriptionName) {
+        if (remoteClusters.containsKey(subcriptionName) == false) {
+            throw new NoSuchRemoteClusterException(subcriptionName);
         }
-        return new RemoteClusterAwareClient(settings, threadPool, transportService, clusterAlias, this);
+        return new RemoteClusterAwareClient(settings, threadPool, transportService, subcriptionName, this);
     }
 
-    public void updateRemoteConnection(String name, Settings connectionSettings) {
+    private void updateRemoteConnection(String subscriptionName) {
+        var subscription = subscriptions().get(subscriptionName);
+        if (subscription != null) {
+            updateRemoteConnection(subscriptionName, subscription.connectionInfo().settings());
+        }
+    }
+
+    private void updateRemoteConnection(String name, Settings connectionSettings) {
         CountDownLatch latch = new CountDownLatch(1);
-        updateRemoteConnection(name, connectionSettings, ActionListener.wrap(latch::countDown));
+        updateRemoteConnection(name, connectionSettings, r -> latch.countDown(), e -> latch.countDown());
 
         try {
             // Wait 10 seconds for a connections. We must use a latch instead of a future because we
@@ -242,7 +280,8 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
 
     public synchronized void updateRemoteConnection(String name,
                                                     Settings connectionSettings,
-                                                    ActionListener<Void> listener) {
+                                                    CheckedConsumer<Void, Exception> onSuccess,
+                                                    Consumer<Exception> onFailure) {
         RemoteClusterConnection remote = this.remoteClusters.get(name);
         if (RemoteConnectionStrategy.isConnectionEnabled(connectionSettings) == false) {
             try {
@@ -251,7 +290,11 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                 LOGGER.warn("failed to close remote cluster connections for cluster: " + name, e);
             }
             remoteClusters.remove(name);
-            listener.onResponse(null);
+            try {
+                onSuccess.accept(null);
+            } catch (Exception e) {
+                onFailure.accept(e);
+            }
             return;
         }
 
@@ -259,7 +302,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
             // this is a new cluster we have to add a new representation
             remote = new RemoteClusterConnection(settings, connectionSettings, name, transportService);
             remoteClusters.put(name, remote);
-            remote.ensureConnected(listener);
+            remote.ensureConnected(ActionListener.wrap(onSuccess, onFailure));
         } else if (remote.shouldRebuildConnection(connectionSettings)) {
             // Changes to connection configuration. Must tear down existing connection
             try {
@@ -270,29 +313,15 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
             remoteClusters.remove(name);
             remote = new RemoteClusterConnection(settings, connectionSettings, name, transportService);
             remoteClusters.put(name, remote);
-            remote.ensureConnected(listener);
+            remote.ensureConnected(ActionListener.wrap(onSuccess, onFailure));
         } else {
             // No changes to connection configuration.
-            listener.onResponse(null);
+            try {
+                onSuccess.accept(null);
+            } catch (Exception e) {
+                onFailure.accept(e);
+            }
         }
-    }
-
-    public boolean isSubscribedIndex(String indexName) {
-        return subscribedIndices.containsKey(indexName);
-    }
-
-    @Nullable
-    public String subscriptionName(String indexName) {
-        return subscribedIndices.get(indexName);
-    }
-
-    @Nullable
-    public Subscription subscription(String indexName) {
-        var subscriptionName = subscribedIndices.get(indexName);
-        if (subscriptionName != null) {
-            return currentSubscriptionsMetadata.subscription().get(subscriptionName);
-        }
-        return null;
     }
 
     public void startReplication(String subscriptionName,
@@ -308,12 +337,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                     verifyTablesDoNotExist(
                         subscriptionName,
                         stateResponse,
-                        r -> {
-                            for (var index : stateResponse.concreteIndices()) {
-                                subscribedIndices.put(index, subscriptionName);
-                            }
-                            initiateReplication(subscriptionName, subscription, stateResponse, listener);
-                        },
+                        r -> initiateReplication(subscriptionName, subscription, stateResponse, listener),
                         listener::onFailure
                     );
                 }
@@ -332,20 +356,18 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
         updateRemoteConnection(
             subscriptionName,
             subscription.connectionInfo().settings(),
-            ActionListener.delegateFailure(
-                listener,
-                (delegatedListener, response) -> {
-                    var remoteClient = getRemoteClusterClient(
-                        threadPool,
-                        subscriptionName
-                    );
-                    remoteClient.execute(
-                        PublicationsStateAction.INSTANCE,
-                        new PublicationsStateAction.Request(subscription.publications()),
-                        listener
-                    );
-                }
-            )
+            response -> {
+                var remoteClient = getRemoteClusterClient(
+                    threadPool,
+                    subscriptionName
+                );
+                remoteClient.execute(
+                    PublicationsStateAction.INSTANCE,
+                    new PublicationsStateAction.Request(subscription.publications()),
+                    listener
+                );
+            },
+            listener::onFailure
         );
     }
 
