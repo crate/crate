@@ -73,6 +73,12 @@ public class CreateSubscriptionPlan implements Plan {
         var connectionInfo = ConnectionInfo.fromURL(url);
         var settings = genericPropertiesToSettings(analyzedCreateSubscription.properties().map(eval));
 
+        var subscribingUser = connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey());
+        if (subscribingUser == null || subscribingUser.isEmpty()) {
+            throw new InvalidArgumentException(
+                String.format(Locale.ENGLISH, "Setting '%s' must be provided on CREATE SUBSCRIPTION", ConnectionInfo.USERNAME.getKey())
+            );
+        }
         for (var setting : settings.names()) {
             throw new InvalidArgumentException(
                 String.format(Locale.ENGLISH, "Setting '%s' is not support on CREATE SUBSCRIPTION", setting)
