@@ -326,7 +326,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 .primaryShard();
             var publisherShardNode = publisherClusterState.nodes().get(publisherShardRouting.currentNodeId());
             // Get the index UUID of the publisher cluster for the metadata request
-            var publisherShardId = new ShardId(
+            var shardId = new ShardId(
                 snapshotShardId.getIndexName(),
                 publisherClusterState.metadata().index(indexId.getName()).getIndexUUID(),
                 snapshotShardId.getId()
@@ -335,9 +335,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             var getStoreMetadataRequest = new GetStoreMetadataAction.Request(
                 restoreUUID,
                 publisherShardNode,
-                publisherShardId,
-                clusterService.getClusterName().value(),
-                subscriberShardId
+                shardId,
+                clusterService.getClusterName().value()
             );
 
             var remoteClient = getRemoteClusterClient();
@@ -359,7 +358,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                     restoreUUID,
                     //metadata,
                     publisherShardNode,
-                    publisherShardId,
+                    shardId,
                     fileMetadata,
                     remoteClient,
                     threadPool,
@@ -370,10 +369,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         public void onResponse(Void unused) {
                             LOGGER.info("Restore successful for {}", store.shardId());
                             store.decRef();
-                            releasePublisherResources(restoreUUID,
-                                                      publisherShardNode,
-                                                      publisherShardId,
-                                                      subscriberShardId);
+                            releasePublisherResources(restoreUUID, publisherShardNode, shardId);
                             recoveryState.getIndex().setFileDetailsComplete();
                             listener.onResponse(null);
                         }
@@ -387,10 +383,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                             } else {
                                 LOGGER.error("Not retrying restore shard for {}", store.shardId());
                                 store.decRef();
-                                releasePublisherResources(restoreUUID,
-                                                          publisherShardNode,
-                                                          publisherShardId,
-                                                          subscriberShardId);
+                                releasePublisherResources(restoreUUID, publisherShardNode, shardId);
                                 listener.onFailure(e);
                             }
 
@@ -398,7 +391,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                     }
                 );
                 if (fileMetadata.isEmpty()) {
-                    LOGGER.info("Initializing with empty store for shard: {}", snapshotShardId.getId());
+                    LOGGER.info("Initializing with empty store for shard: {}", shardId.getId());
                     try {
                         store.createEmpty(store.indexSettings().getIndexVersionCreated().luceneVersion);
                         listener.onResponse(null);
@@ -406,7 +399,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         listener.onFailure(new UncheckedIOException(e));
                     } finally {
                         store.decRef();
-                        releasePublisherResources(restoreUUID, publisherShardNode, publisherShardId, subscriberShardId);
+                        releasePublisherResources(restoreUUID, publisherShardNode, shardId);
                     }
                 } else {
                     multiChunkTransfer.start();
@@ -459,14 +452,12 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
 
     private void releasePublisherResources(String restoreUUID,
                                            DiscoveryNode publisherShardNode,
-                                           ShardId publisherShardId,
-                                           ShardId subcriberShardId) {
+                                           ShardId shardId) {
         var releaseResourcesReq = new ReleasePublisherResourcesAction.Request(
             restoreUUID,
             publisherShardNode,
-            publisherShardId,
-            clusterService.getClusterName().value(),
-            subcriberShardId
+            shardId,
+            clusterService.getClusterName().value()
         );
         getRemoteClusterClient().execute(
             ReleasePublisherResourcesAction.INSTANCE,
@@ -476,7 +467,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 public void onResponse(AcknowledgedResponse acknowledgedResponse) {
                     if (acknowledgedResponse.isAcknowledged()) {
                         LOGGER.info("Successfully released resources at the publisher cluster for {} at {}",
-                                    publisherShardId,
+                                    shardId,
                                     publisherShardNode
                         );
                     }

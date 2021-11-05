@@ -121,7 +121,7 @@ public class GetStoreMetadataAction extends ActionType<GetStoreMetadataAction.Re
         @Override
         protected ShardsIterator shards(ClusterState state,
                                         InternalRequest request) {
-            return state.routingTable().shardRoutingTable(request.request().publisherShardId()).primaryShardIt();
+            return state.routingTable().shardRoutingTable(request.request().shardId()).primaryShardIt();
         }
     }
 
@@ -129,10 +129,9 @@ public class GetStoreMetadataAction extends ActionType<GetStoreMetadataAction.Re
 
         public Request(String restoreUUID,
                        DiscoveryNode node,
-                       ShardId publisherShardId,
-                       String subscriberClusterName,
-                       ShardId subscriberShardId) {
-            super(restoreUUID, node, publisherShardId, subscriberClusterName, subscriberShardId);
+                       ShardId shardId,
+                       String subscriberClusterName) {
+            super(restoreUUID, node, shardId, subscriberClusterName);
         }
 
         public Request(StreamInput in) throws IOException {
