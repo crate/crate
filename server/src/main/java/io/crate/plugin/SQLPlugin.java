@@ -149,7 +149,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(SslSettings.SSL_RESOURCE_POLL_INTERVAL);
 
         // Logical replication
-        settings.add(LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX);
+        settings.add(LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME);
 
         settings.addAll(CrateSettings.CRATE_CLUSTER_SETTINGS);
 
@@ -352,7 +352,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public Optional<EngineFactory> getEngineFactory(IndexSettings indexSettings) {
-        if (indexSettings.getSettings().get(LogicalReplicationSettings.REPLICATION_SUBSCRIBED_INDEX.getKey()) != null) {
+        if (indexSettings.getSettings().get(LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME.getKey()) != null) {
             return Optional.of(SubscriberEngine::new);
         }
         return Optional.empty();

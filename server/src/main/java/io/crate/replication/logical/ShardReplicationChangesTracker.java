@@ -22,8 +22,8 @@
 package io.crate.replication.logical;
 
 import io.crate.common.collections.Tuple;
-import io.crate.common.unit.TimeValue;
 import io.crate.execution.support.RetryListener;
+import io.crate.execution.support.RetryRunnable;
 import io.crate.replication.logical.action.ReplayChangesAction;
 import io.crate.replication.logical.action.ShardChangesAction;
 import org.apache.logging.log4j.Logger;
@@ -34,8 +34,8 @@ import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.threadpool.Scheduler;
@@ -46,13 +46,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Replicates batches of {@link org.elasticsearch.index.translog.Translog.Operation}'s to the subscribers target shards.
@@ -67,41 +65,35 @@ public class ShardReplicationChangesTracker implements Closeable {
     private final LogicalReplicationSettings replicationSettings;
     private final ThreadPool threadPool;
     private final Client localClient;
-    private final Function<String, Client> remoteClientResolver;
+    private final ShardReplicationService shardReplicationService;
     private final List<Tuple<Long, Long>> missingBatches = Collections.synchronizedList(new ArrayList<>());
     private final AtomicLong observedSeqNoAtLeader;
     private final AtomicLong seqNoAlreadyRequested;
-    private final Iterator<TimeValue> delay;
     private Scheduler.ScheduledCancellable cancellable;
 
     public ShardReplicationChangesTracker(IndexShard indexShard,
                                           LogicalReplicationSettings replicationSettings,
                                           ThreadPool threadPool,
-                                          Function<String, Client> remoteClientResolver,
+                                          ShardReplicationService shardReplicationService,
                                           Client client) {
         this.shardId = indexShard.shardId();
         this.replicationSettings = replicationSettings;
         this.threadPool = threadPool;
         this.localClient = client;
-        this.remoteClientResolver = remoteClientResolver;
-        this.delay = BackoffPolicy.exponentialBackoff().iterator();
+        this.shardReplicationService = shardReplicationService;
         observedSeqNoAtLeader = new AtomicLong(indexShard.getLocalCheckpoint());
         seqNoAlreadyRequested = new AtomicLong(indexShard.getLocalCheckpoint());
     }
 
     public void start() {
         LOGGER.debug("[{}] Spawning the shard changes reader", shardId);
-        var executor = threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION);
-
-        try {
-            executor.execute(this::requestBatchToFetch);
-        } catch (EsRejectedExecutionException e) {
-            threadPool.schedule(
-                this::requestBatchToFetch,
-                delay.next(),
-                ThreadPool.Names.LOGICAL_REPLICATION
-            );
-        }
+        var runnable = new RetryRunnable(
+            threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
+            threadPool.scheduler(),
+            this::requestBatchToFetch,
+            BackoffPolicy.exponentialBackoff()
+        );
+        runnable.run();
     }
 
     private void requestBatchToFetch() {
@@ -154,10 +146,14 @@ public class ShardReplicationChangesTracker implements Closeable {
                         LOGGER.info("[{}] Node not connected. Retrying.. {}",
                                     shardId, e.getStackTrace());
                         updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
+                    } else if (e instanceof IndexShardClosedException){
+                        LOGGER.warn("[{}] Remote shard closed, will stop tracking changes", shardId);
                     } else {
-                        LOGGER.error("[{}] Unable to get changes from seqNo: {}. {}",
-                                     shardId, fromSeqNo, e.getCause());
-                        updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
+                        LOGGER.warn(
+                            String.format(Locale.ENGLISH,
+                                          "[%s] Unable to get changes from seqNo: %d, will stop tracking",
+                                          shardId, fromSeqNo),
+                            e);
                     }
 
                 }
@@ -209,12 +205,14 @@ public class ShardReplicationChangesTracker implements Closeable {
                             Long toSeqNo,
                             CheckedConsumer<ShardChangesAction.Response, ? extends Exception> onSuccess,
                             Consumer<Exception> onFailure) {
-        var remoteClient = remoteClientResolver.apply(shardId.getIndexName());
-        if (remoteClient == null) {
-            throw new RuntimeException("Could not resolve a remote client for index=" + shardId.getIndexName());
-        }
-        var request = new ShardChangesAction.Request(shardId, fromSeqNo, toSeqNo);
-        remoteClient.execute(ShardChangesAction.INSTANCE, request, ActionListener.wrap(onSuccess, onFailure));
+        shardReplicationService.getRemoteClusterClient(
+            shardId.getIndex(),
+            remoteClient -> {
+                var request = new ShardChangesAction.Request(shardId, fromSeqNo, toSeqNo);
+                remoteClient.execute(ShardChangesAction.INSTANCE, request, ActionListener.wrap(onSuccess, onFailure));
+            },
+            onFailure
+        );
     }
 
 
