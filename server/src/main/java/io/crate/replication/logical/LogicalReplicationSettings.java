@@ -46,10 +46,11 @@ public class LogicalReplicationSettings {
     );
 
     /**
-     * Internal index setting marking an index as subscribed/replicated
+     * Internal index setting marking an index as subscribed/replicated and stores to what subscription
+     * this index belongs to.
      */
-    public static final Setting<String> REPLICATION_SUBSCRIBED_INDEX = Setting.simpleString(
-        "index.replication.logical.subscribed",
+    public static final Setting<String> REPLICATION_SUBSCRIPTION_NAME = Setting.simpleString(
+        "index.replication.logical.subscription_name",
         Setting.Property.InternalIndex,
         Setting.Property.IndexScope
     );
