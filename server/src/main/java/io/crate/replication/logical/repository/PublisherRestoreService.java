@@ -26,6 +26,7 @@ import io.crate.replication.logical.action.RestoreShardRequest;
 import io.crate.replication.logical.seqno.RetentionLeaseHelper;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -43,6 +44,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /*
  * Restore source service tracks all the ongoing restore operations
@@ -80,9 +82,19 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
         IOUtils.close(closableResources);
     }
 
-    public RestoreContext createRestoreContext(String restoreUUID,
-                                               RestoreShardRequest request) {
-        return onGoingRestores.putIfAbsent(restoreUUID, constructRestoreContext(restoreUUID, request));
+    public void createRestoreContext(String restoreUUID,
+                                     RestoreShardRequest request,
+                                     Consumer<RestoreContext> onSuccess,
+                                     Consumer<Exception> onFailure) {
+        constructRestoreContext(
+            restoreUUID,
+            request,
+            context -> {
+                onGoingRestores.putIfAbsent(restoreUUID, context);
+                onSuccess.accept(context);
+            },
+            onFailure
+        );
     }
 
     private RestoreContext getRestoreContextSafe(String restoreUUID) {
@@ -114,12 +126,15 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
         };
     }
 
-    public RestoreContext constructRestoreContext(String restoreUUID,
-                                                  RestoreShardRequest request) {
+    private void constructRestoreContext(String restoreUUID,
+                                         RestoreShardRequest request,
+                                         Consumer<RestoreContext> onSuccess,
+                                         Consumer<Exception> onFailure) {
         var leaderIndexShard = indicesService.getShardOrNull(request.publisherShardId());
         if (leaderIndexShard == null) {
-            throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "Shard [%s] missing", request.publisherShardId()));
+            onFailure.accept(new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "Shard [%s] missing", request.publisherShardId())));
+            return;
         }
         /**
          * ODFE Replication supported for >= CrateDB 4.5. History of operations directly from
@@ -143,7 +158,8 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
         try {
             metadataSnapshot = store.getMetadata(indexCommitRef.getIndexCommit());
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            onFailure.accept(new UncheckedIOException(e));
+            return;
         } finally {
             store.decRef();
         }
@@ -151,32 +167,46 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
         // Identifies the seq no to start the replication operations from
         var fromSeqNo = RetentionLeaseActions.RETAIN_ALL;
 
-        // Passing nodeclient of the leader to acquire the retention lease on leader shard
-        var retentionLeaseHelper = new RetentionLeaseHelper(request.subscriberClusterName(), nodeClient);
+        final var finalMetadataSnapshot = metadataSnapshot;
         // Adds the retention lease for fromSeqNo for the next stage of the replication.
-        retentionLeaseHelper.addRetentionLease(
+        RetentionLeaseHelper.addRetentionLease(
             request.publisherShardId(),
-            fromSeqNo,
             request.subscriberShardId(),
-            LogicalReplicationRepository.REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC
-        );
+            fromSeqNo,
+            request.subscriberClusterName(),
+            nodeClient,
+            ActionListener.wrap(
+                r -> {
+                    /**
+                     * At this point, it should be safe to release retention lock as the retention lease
+                     * is acquired from the local checkpoint and the rest of the follower replay actions
+                     * can be performed using this retention lease.
+                     */
+                    if (closeRetentionLock(retentionLock, onFailure)) {
+                        var restoreContext = new RestoreContext(indexCommitRef, finalMetadataSnapshot);
+                        onGoingRestores.put(restoreUUID, restoreContext);
 
-        /**
-         * At this point, it should be safe to release retention lock as the retention lease
-         * is acquired from the local checkpoint and the rest of the follower replay actions
-         * can be performed using this retention lease.
-         */
+                        closableResources.add(restoreContext);
+                        onSuccess.accept(restoreContext);
+                    }
+                },
+                e -> {
+                    if (closeRetentionLock(retentionLock, onFailure)) {
+                        onFailure.accept(e);
+                    }
+                }
+            )
+        );
+    }
+
+    private boolean closeRetentionLock(Closeable retentionLock, Consumer<Exception> onFailure) {
         try {
             retentionLock.close();
+            return true;
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            onFailure.accept(new UncheckedIOException(e));
+            return false;
         }
-
-        var restoreContext = new RestoreContext(indexCommitRef, metadataSnapshot);
-        onGoingRestores.put(restoreUUID, restoreContext);
-
-        closableResources.add(restoreContext);
-        return restoreContext;
     }
 
     public void removeRestoreContext(String restoreUUID) {
