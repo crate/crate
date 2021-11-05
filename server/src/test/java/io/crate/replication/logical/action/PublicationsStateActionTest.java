@@ -22,9 +22,14 @@
 package io.crate.replication.logical.action;
 
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.replication.logical.metadata.Publication;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.user.Privilege;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
 import org.apache.logging.log4j.Level;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.MockLogAppender;
@@ -33,8 +38,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.contains;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -56,6 +64,12 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_resolve_relation_names_for_all_tables_ignores_table_with_soft_delete_disabled() throws Exception {
+        var user = new User("dummy", Set.of(), Set.of(), null) {
+            @Override
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+                return true; // This test case doesn't check privileges.
+            }
+        };
         var s = SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
             .addTable("CREATE TABLE doc.t2 (id int) with (\"soft_deletes.enabled\" = false)")
@@ -73,9 +87,121 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         var resolvedRelations = PublicationsStateAction.TransportAction.resolveRelationsNames(
             publication,
-            s.schemas()
+            s.schemas(),
+            user,
+            user
         );
         assertThat(resolvedRelations, contains(new RelationName("doc", "t1")));
         appender.assertAllExpectationsMatched();
+    }
+
+    @Test
+    public void test_resolve_relation_names_for_all_tables_ignores_table_when_pub_owner_doesnt_have_read_write_define_permissions() throws Exception {
+        var publicationOwner = new User("publisher", Set.of(), Set.of(), null) {
+            @Override
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+                return ident.equals("doc.t1");
+            }
+        };
+        var subscriber = new User("subscriber", Set.of(), Set.of(), null) {
+            @Override
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+                return true;
+            }
+        };
+
+        UserLookup userLookup = mock(UserLookup.class);
+        when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
+        when(userLookup.findUser("subscriber")).thenReturn(subscriber);
+
+        var s = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int)")
+            .addTable("CREATE TABLE doc.t3 (id int)")
+            .build();
+        var publication = new Publication("publisher", true, List.of());
+
+        var resolvedRelations = PublicationsStateAction.TransportAction.resolveRelationsNames(
+            publication,
+            s.schemas(),
+            publicationOwner,
+            subscriber
+        );
+
+        assertThat(resolvedRelations, contains(new RelationName("doc", "t1")));
+    }
+
+    @Test
+    public void test_resolve_relation_names_for_all_tables_ignores_table_when_subscriber_doesnt_have_read_permissions() throws Exception {
+        var publicationOwner = new User("publisher", Set.of(), Set.of(), null) {
+            @Override
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+                return true;
+            }
+        };
+
+        var subscriber = new User("subscriber", Set.of(), Set.of(), null) {
+            @Override
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+                return ident.equals("doc.t1");
+            }
+        };
+
+        UserLookup userLookup = mock(UserLookup.class);
+        when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
+        when(userLookup.findUser("subscriber")).thenReturn(subscriber);
+
+        var s = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int)")
+            .addTable("CREATE TABLE doc.t3 (id int)")
+            .build();
+        var publication = new Publication("publisher", true, List.of());
+
+        var resolvedRelations = PublicationsStateAction.TransportAction.resolveRelationsNames(
+            publication,
+            s.schemas(),
+            publicationOwner,
+            subscriber
+        );
+        assertThat(resolvedRelations, contains(new RelationName("doc", "t1")));
+    }
+
+    @Test
+    public void test_resolve_relation_names_for_fixed_tables_ignores_table_when_subscriber_doesnt_have_read_permissions() throws Exception {
+        var publicationOwner = new User("publisher", Set.of(), Set.of(), null) {
+            @Override
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+                return true;
+            }
+        };
+
+        var subscriber = new User("subscriber", Set.of(), Set.of(), null) {
+            @Override
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+                return ident.equals("doc.t1");
+            }
+        };
+
+        UserLookup userLookup = mock(UserLookup.class);
+        when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
+        when(userLookup.findUser("subscriber")).thenReturn(subscriber);
+
+        var s = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int)")
+            .addTable("CREATE TABLE doc.t2 (id int)")
+            .build();
+        var publication = new Publication("publisher", false,
+            List.of(
+                RelationName.of(QualifiedName.of("t1"), Schemas.DOC_SCHEMA_NAME),
+                RelationName.of(QualifiedName.of("t2"), Schemas.DOC_SCHEMA_NAME)
+            )
+        );
+
+        var resolvedRelations = PublicationsStateAction.TransportAction.resolveRelationsNames(
+            publication,
+            s.schemas(),
+            publicationOwner,
+            subscriber
+        );
+        assertThat(resolvedRelations, contains(new RelationName("doc", "t1")));
     }
 }
