@@ -40,21 +40,20 @@ public class RetentionLeaseHelper {
         return "logical_replication:" + subscriberClusterName;
     }
 
-    private static String retentionLeaseIdForShard(String subscriberClusterName, ShardId subscriberShardId) {
+    private static String retentionLeaseIdForShard(String subscriberClusterName, ShardId shardId) {
         var retentionLeaseSource = retentionLeaseSource(subscriberClusterName);
-        return retentionLeaseSource + ":" + subscriberShardId;
+        return retentionLeaseSource + ":" + shardId;
     }
 
 
-    public static void addRetentionLease(ShardId publisherShardId,
-                                  ShardId subscriberShardId,
-                                  long seqNo,
-                                  String subscriberClusterName,
-                                  Client client,
-                                  ActionListener<RetentionLeaseActions.Response> listener) {
-        var retentionLeaseId = retentionLeaseIdForShard(subscriberClusterName, subscriberShardId);
+    public static void addRetentionLease(ShardId shardId,
+                                         long seqNo,
+                                         String subscriberClusterName,
+                                         Client client,
+                                         ActionListener<RetentionLeaseActions.Response> listener) {
+        var retentionLeaseId = retentionLeaseIdForShard(subscriberClusterName, shardId);
         var request = new RetentionLeaseActions.AddOrRenewRequest(
-            publisherShardId,
+            shardId,
             retentionLeaseId,
             seqNo,
             retentionLeaseSource(subscriberClusterName)
@@ -70,7 +69,7 @@ public class RetentionLeaseHelper {
                         LOGGER.info("Renew retention lease as it already exists {} with {}", retentionLeaseId, seqNo);
                         // Only one retention lease should exists for the follower shard
                         // Ideally, this should have got cleaned-up
-                        renewRetentionLease(publisherShardId, subscriberShardId, seqNo, subscriberClusterName, client, listener);
+                        renewRetentionLease(shardId, seqNo, subscriberClusterName, client, listener);
                     } else {
                         listener.onFailure(e);
                     }
@@ -79,25 +78,27 @@ public class RetentionLeaseHelper {
         );
     }
 
-    public static void renewRetentionLease(ShardId publisherShardId,
-                                           ShardId subscriberShardId,
+    public static void renewRetentionLease(ShardId shardId,
                                            long seqNo,
                                            String subscriberClusterName,
                                            Client client,
                                            ActionListener<RetentionLeaseActions.Response> listener) {
-        var retentionLeaseId = retentionLeaseIdForShard(subscriberClusterName, subscriberShardId);
+        var retentionLeaseId = retentionLeaseIdForShard(subscriberClusterName, shardId);
         var request = new RetentionLeaseActions.AddOrRenewRequest(
-            publisherShardId, retentionLeaseId, seqNo, retentionLeaseSource(subscriberClusterName));
+            shardId,
+            retentionLeaseId,
+            seqNo,
+            retentionLeaseSource(subscriberClusterName)
+        );
         client.execute(RetentionLeaseActions.Renew.INSTANCE, request, listener);
     }
 
-    public static void attemptRetentionLeaseRemoval(ShardId publisherShardId,
-                                                    ShardId subscriberShardId,
+    public static void attemptRetentionLeaseRemoval(ShardId shardId,
                                                     String subscriberClusterName,
                                                     Client client,
                                                     ActionListener<RetentionLeaseActions.Response> listener) {
-        var retentionLeaseId = retentionLeaseIdForShard(subscriberClusterName, subscriberShardId);
-        var request = new RetentionLeaseActions.RemoveRequest(publisherShardId, retentionLeaseId);
+        var retentionLeaseId = retentionLeaseIdForShard(subscriberClusterName, shardId);
+        var request = new RetentionLeaseActions.RemoveRequest(shardId, retentionLeaseId);
         client.execute(
             RetentionLeaseActions.Remove.INSTANCE,
             request,
