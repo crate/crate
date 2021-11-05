@@ -28,6 +28,7 @@ import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.Subscription;
@@ -384,7 +385,10 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                 );
                 remoteClient.execute(
                     PublicationsStateAction.INSTANCE,
-                    new PublicationsStateAction.Request(subscription.publications()),
+                    new PublicationsStateAction.Request(
+                        subscription.publications(),
+                        subscription.connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
+                    ),
                     listener
                 );
             },

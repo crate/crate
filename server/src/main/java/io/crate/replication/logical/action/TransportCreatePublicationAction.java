@@ -28,6 +28,7 @@ import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.user.UserLookup;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -41,16 +42,20 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.Locale;
+
 @Singleton
 public class TransportCreatePublicationAction extends AbstractDDLTransportAction<CreatePublicationRequest, AcknowledgedResponse> {
 
     public static final String ACTION_NAME = "internal:crate:replication/logical/publication/create";
+    private final UserLookup userLookup;
 
     @Inject
     public TransportCreatePublicationAction(TransportService transportService,
                                             ClusterService clusterService,
                                             ThreadPool threadPool,
-                                            IndexNameExpressionResolver indexNameExpressionResolver) {
+                                            IndexNameExpressionResolver indexNameExpressionResolver,
+                                            UserLookup userLookup) {
         super(ACTION_NAME,
               transportService,
               clusterService,
@@ -60,6 +65,7 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
               AcknowledgedResponse::new,
               AcknowledgedResponse::new,
               "create-publication");
+        this.userLookup = userLookup;
     }
 
     @Override
@@ -74,6 +80,17 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
                 var oldMetadata = (PublicationsMetadata) mdBuilder.getCustom(PublicationsMetadata.TYPE);
                 if (oldMetadata != null && oldMetadata.publications().containsKey(request.name())) {
                     throw new PublicationAlreadyExistsException(request.name());
+                }
+
+                // Ensure publication owner exists
+                if (userLookup.findUser(request.owner()) == null) {
+                    throw new IllegalStateException(
+                        String.format(
+                            Locale.ENGLISH, "Publication '%s' cannot be created as the user '%s' owning the publication has been dropped.",
+                            request.name(),
+                            request.owner()
+                        )
+                    );
                 }
 
                 // Ensure tables exists
