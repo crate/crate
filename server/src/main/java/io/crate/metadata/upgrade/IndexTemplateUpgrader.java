@@ -22,7 +22,6 @@
 package io.crate.metadata.upgrade;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.metadata.DefaultTemplateService;
 import io.crate.metadata.IndexParts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -40,13 +39,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
-import static io.crate.metadata.DefaultTemplateService.TEMPLATE_NAME;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
 
 public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTemplateMetadata>> {
 
     private final Logger logger;
+    public static final String TEMPLATE_NAME = "crate_defaults";
 
     public IndexTemplateUpgrader() {
         this.logger = LogManager.getLogger(IndexTemplateUpgrader.class);
@@ -55,11 +54,7 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
     @Override
     public Map<String, IndexTemplateMetadata> apply(Map<String, IndexTemplateMetadata> templates) {
         HashMap<String, IndexTemplateMetadata> upgradedTemplates = archiveUnknownOrInvalidSettings(templates);
-        try {
-            upgradedTemplates.put(TEMPLATE_NAME, DefaultTemplateService.createDefaultIndexTemplateMetadata());
-        } catch (IOException e) {
-            logger.error("Error while trying to upgrade the default template", e);
-        }
+        upgradedTemplates.remove(TEMPLATE_NAME);
         return upgradedTemplates;
     }
 

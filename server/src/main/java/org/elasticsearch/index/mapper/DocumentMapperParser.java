@@ -106,6 +106,13 @@ public class DocumentMapperParser {
             String fieldName = entry.getKey();
             Object fieldNode = entry.getValue();
 
+            // Dynamic template support got removed and is removed from mappings on index upgrade
+            // But in the rolling upgrade case, indices from lower version nodes still contain the entries.
+            if (fieldName.equals("dynamic_templates")) {
+                iterator.remove();
+                continue;
+            }
+
             MetadataFieldMapper.TypeParser typeParser = rootTypeParsers.get(fieldName);
             if (typeParser != null) {
                 iterator.remove();

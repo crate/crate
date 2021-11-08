@@ -19,26 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.expression.symbol;
 
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterState;
-import org.junit.Test;
+public class AliasResolver extends FunctionCopyVisitor<Void> {
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+    public static AliasResolver INSTANCE = new AliasResolver();
 
-public class DefaultTemplateServiceTest {
-
-    @Test
-    public void testAddDefaultTemplate() throws Exception {
-        ClusterState state = ClusterState.builder(new ClusterName("foo")).build();
-
-        ClusterState newState = DefaultTemplateService.addDefaultTemplate(state);
-        assertThat(newState.getMetadata().templates().containsKey(DefaultTemplateService.TEMPLATE_NAME), is(true));
-
-        // verify that it doesn't fail it the template already exists
-        newState = DefaultTemplateService.addDefaultTemplate(newState);
-        assertThat(newState.getMetadata().templates().containsKey(DefaultTemplateService.TEMPLATE_NAME), is(true));
+    @Override
+    public Symbol visitAlias(AliasSymbol aliasSymbol, Void context) {
+        return aliasSymbol.symbol().accept(this, context);
     }
 }

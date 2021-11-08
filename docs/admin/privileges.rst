@@ -200,14 +200,6 @@ Behavior of ``GRANT``, ``DENY`` and ``REVOKE``
     must :ref:`create a user <administration_user_management>` and then
     configure privileges.
 
-.. CAUTION::
-
-    Stale permissions might be introduced if ``DDL`` statements were invoked
-    while the Enterprise Edition is temporarily disabled. To allow clients
-    to remove such stale permissions even, if the table does not exist anymore,
-    the ``REVOKE`` statement does not perform any validation checks on the
-    table ident.
-
 ``GRANT``
 .........
 

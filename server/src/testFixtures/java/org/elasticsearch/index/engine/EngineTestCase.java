@@ -60,6 +60,7 @@ import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
@@ -103,6 +104,7 @@ import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
 import org.elasticsearch.index.mapper.IdFieldMapper;
+import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParseContext;
@@ -317,13 +319,20 @@ public abstract class EngineTestCase extends ESTestCase {
         return document;
     }
 
+    protected static ParseContext.Document testDocumentWithKeywordField(String value) {
+        ParseContext.Document document = testDocument();
+        var binaryValue = new BytesRef(value);
+        document.add(new Field("value", binaryValue, KeywordFieldMapper.Defaults.FIELD_TYPE));
+        document.add(new SortedSetDocValuesField("value", binaryValue));
+        return document;
+    }
 
     protected static ParseContext.Document testDocument() {
         return new ParseContext.Document();
     }
 
     public static ParsedDocument createParsedDoc(String id, String routing) {
-        return testParsedDocument(id, routing, testDocumentWithTextField(), new BytesArray("{ \"value\" : \"test\" }"), null);
+        return testParsedDocument(id, routing, testDocumentWithKeywordField("test"), new BytesArray("{ \"value\" : \"test\" }"), null);
     }
 
     public static ParsedDocument createParsedDoc(String id, String routing, boolean recoverySource) {
