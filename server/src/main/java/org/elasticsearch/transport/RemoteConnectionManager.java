@@ -54,10 +54,10 @@ public class RemoteConnectionManager implements ConnectionManager {
     }
 
     @Override
-    public void connectToNode(DiscoveryNode node, ConnectionProfile connectionProfile,
+    public void connectToNode(DiscoveryNode node,
                               ConnectionManager.ConnectionValidator connectionValidator,
                               ActionListener<Void> listener) throws ConnectTransportException {
-        delegate.connectToNode(node, connectionProfile, connectionValidator, listener);
+        delegate.connectToNode(node, connectionValidator, listener);
     }
 
     @Override
