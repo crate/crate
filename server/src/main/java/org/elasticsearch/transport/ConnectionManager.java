@@ -34,7 +34,7 @@ public interface ConnectionManager extends Closeable {
 
     void openConnection(DiscoveryNode node, ConnectionProfile connectionProfile, ActionListener<Transport.Connection> listener);
 
-    void connectToNode(DiscoveryNode node, ConnectionProfile connectionProfile,
+    void connectToNode(DiscoveryNode node,
                        ConnectionValidator connectionValidator,
                        ActionListener<Void> listener) throws ConnectTransportException;
 
