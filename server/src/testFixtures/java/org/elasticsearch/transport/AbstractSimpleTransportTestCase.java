@@ -33,18 +33,7 @@ public abstract class AbstractSimpleTransportTestCase extends ESTestCase {
      * @param node the node to connect to
      */
     public static void connectToNode(TransportService service, DiscoveryNode node) throws ConnectTransportException {
-        connectToNode(service, node, null);
-    }
-
-    /**
-     * Connect to the specified node with the given connection profile
-     *
-     * @param service service to connect from
-     * @param node the node to connect to
-     * @param connectionProfile the connection profile to use when connecting to this node
-     */
-    public static void connectToNode(TransportService service, DiscoveryNode node, ConnectionProfile connectionProfile) {
-        PlainActionFuture.get(fut -> service.connectToNode(node, connectionProfile, ActionListener.map(fut, x -> null)));
+        PlainActionFuture.get(fut -> service.connectToNode(node, ActionListener.map(fut, x -> null)));
     }
 
     /**
