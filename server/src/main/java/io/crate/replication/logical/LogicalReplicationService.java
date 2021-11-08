@@ -22,7 +22,6 @@
 package io.crate.replication.logical;
 
 import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -65,8 +64,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
@@ -186,11 +183,6 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
     }
 
     @Override
-    protected void updateRemoteCluster(String clusterAlias, Settings settings) {
-        updateRemoteConnection(clusterAlias, settings);
-    }
-
-    @Override
     public Transport.Connection getConnection(DiscoveryNode node, String cluster) {
         return getRemoteClusterConnection(cluster).getConnection(node);
     }
@@ -220,24 +212,6 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
             throw new NoSuchRemoteClusterException(clusterAlias);
         }
         return new RemoteClusterAwareClient(settings, threadPool, transportService, clusterAlias, this);
-    }
-
-    public void updateRemoteConnection(String name, Settings connectionSettings) {
-        CountDownLatch latch = new CountDownLatch(1);
-        updateRemoteConnection(name, connectionSettings, ActionListener.wrap(latch::countDown));
-
-        try {
-            // Wait 10 seconds for a connections. We must use a latch instead of a future because we
-            // are on the cluster state thread and our custom future implementation will throw an
-            // assertion.
-            if (latch.await(10, TimeUnit.SECONDS) == false) {
-                LOGGER.warn("failed to connect to new remote cluster {} within {}",
-                            name,
-                            TimeValue.timeValueSeconds(10));
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
     }
 
     public synchronized void updateRemoteConnection(String name,

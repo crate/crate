@@ -44,18 +44,6 @@ public abstract class RemoteClusterAware {
         this.settings = settings;
     }
 
-    void validateAndUpdateRemoteCluster(String clusterAlias, Settings settings) {
-        if (RemoteClusterAware.LOCAL_CLUSTER_GROUP_KEY.equals(clusterAlias)) {
-            throw new IllegalArgumentException("remote clusters must not have the empty string as its key");
-        }
-        updateRemoteCluster(clusterAlias, settings);
-    }
-
-    /**
-     * Subclasses must implement this to receive information about updated cluster aliases.
-     */
-    protected abstract void updateRemoteCluster(String clusterAlias, Settings settings);
-
     /**
      * Returns a connection to the given node on the given remote cluster
      *
