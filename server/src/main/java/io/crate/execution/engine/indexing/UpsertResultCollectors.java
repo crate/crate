@@ -52,6 +52,21 @@ final class UpsertResultCollectors {
         ));
     }
 
+    static UpsertResultCollector newSummaryOnFailOrRowCountOnSuccessCollector(DiscoveryNode localNode) {
+        return new SummaryCollector(Map.of("id", localNode.getId(), "name", localNode.getName())) {
+            @Override
+            public Function<UpsertResults, Iterable<Row>> finisher() {
+                return r -> {
+                    if (r.containsErrors()) { // the collected summary is returned only if the results contain errors
+                        return r.rowsIterable();
+                    } else {
+                        return Collections.singletonList(new Row1(r.getSuccessRowCountForAllUris()));
+                    }
+                };
+            }
+        };
+    }
+
     private static class ResultRowCollector implements UpsertResultCollector {
 
         private final Object lock = new Object();

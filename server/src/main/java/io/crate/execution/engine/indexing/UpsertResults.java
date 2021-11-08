@@ -23,6 +23,7 @@ package io.crate.execution.engine.indexing;
 
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.exceptions.JobKilledException;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -85,6 +86,14 @@ class UpsertResults {
         return getResultSafe(null).successRowCount;
     }
 
+    long getSuccessRowCountForAllUris() {
+        return resultsByUri.values().stream().mapToLong(result -> result.successRowCount).sum();
+    }
+
+    boolean containsErrors() {
+        return resultsByUri.values().stream().anyMatch(result -> result.errorRowCount > 0);
+    }
+
     List<Object[]> getResultRowsForNoUri() {
         return getResultSafe(null).resultRows;
     }
@@ -112,6 +121,29 @@ class UpsertResults {
                 }
             });
         return s::iterator;
+    }
+
+    static Throwable resultsToFailure(UpsertResults results) {
+        StringBuilder sb = new StringBuilder();
+        if (results.nodeInfo != null) {
+            String nodeName = results.nodeInfo.get("name");
+            if (nodeName != null) {
+                sb.append("NODE: ").append(nodeName);
+            }
+        }
+        var it = results.resultsByUri.entrySet().iterator();
+        while (it.hasNext()) {
+            var e = it.next();
+            sb.append("\n").append("[");
+            sb.append("URI: ").append(e.getKey())
+                .append(", ")
+                .append("ERRORS: ").append(e.getValue().errors);
+            sb.append("]");
+            if (it.hasNext()) {
+                sb.append(",");
+            }
+        }
+        return JobKilledException.of(sb.toString());
     }
 
     static class Result {

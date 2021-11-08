@@ -168,6 +168,8 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
             collector.combiner(),
             collector.supplier().get(),
             shouldPause,
+            null,
+            null,
             req -> nodeLimits.get(resolveNodeId(req)).getLastRtt(TimeUnit.MILLISECONDS)
         ).consumeIteratorAndExecute()
             .thenApply(collector.finisher());

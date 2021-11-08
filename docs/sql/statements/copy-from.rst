@@ -372,6 +372,16 @@ specifies the size of one batch. The provided value must be greater than 0, the
 default value is 10000.
 
 
+.. _sql-copy-from-fail_fast:
+
+``fail_fast``
+'''''''''''''
+
+A boolean value indicating if the ``COPY FROM`` operation should abort early
+after an error. This is best effort and due to the distributed execution, it
+may continue processing some records before it aborts.
+Defaults to ``false``.
+
 .. _sql-copy-from-shared:
 
 ``shared``

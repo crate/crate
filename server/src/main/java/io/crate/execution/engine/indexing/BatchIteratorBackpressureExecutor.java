@@ -37,6 +37,7 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
+import io.crate.exceptions.JobKilledException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -64,6 +65,8 @@ public class BatchIteratorBackpressureExecutor<T, R> {
     private final BinaryOperator<R> combiner;
     private final Predicate<T> pauseConsumption;
     private final BiConsumer<R, Throwable> continueConsumptionOrFinish;
+    @Nullable private final Predicate<R> earlyTerminationCondition;
+    @Nullable private final Function<R, Throwable> resultsToFailure;
     private final AtomicInteger inFlightExecutions = new AtomicInteger(0);
     private final CompletableFuture<R> resultFuture = new CompletableFuture<>();
     private final Semaphore semaphore = new Semaphore(1);
@@ -89,6 +92,8 @@ public class BatchIteratorBackpressureExecutor<T, R> {
                                              BinaryOperator<R> combiner,
                                              R identity,
                                              Predicate<T> pauseConsumption,
+                                             @Nullable Predicate<R> earlyTerminationCondition,
+                                             @Nullable Function<R, Throwable> resultsToFailure,
                                              Function<T, Long> getDelayInMs) {
 
         this.jobId = jobId;
@@ -101,6 +106,8 @@ public class BatchIteratorBackpressureExecutor<T, R> {
         this.getDelayInMs = getDelayInMs;
         this.resultRef = new AtomicReference<>(identity);
         this.continueConsumptionOrFinish = this::continueConsumptionOrFinish;
+        this.earlyTerminationCondition = earlyTerminationCondition == null ? (results) -> false : earlyTerminationCondition;
+        this.resultsToFailure = resultsToFailure == null ? (result) -> JobKilledException.of(null) : resultsToFailure;
     }
 
     public CompletableFuture<R> consumeIteratorAndExecute() {
@@ -110,6 +117,10 @@ public class BatchIteratorBackpressureExecutor<T, R> {
 
     private void continueConsumptionOrFinish(@Nullable R result, Throwable failure) {
         if (result != null) {
+            if (earlyTerminationCondition.test(result)) {
+                setResult(null, resultsToFailure.apply(result));
+                return;
+            }
             resultRef.accumulateAndGet(result, combiner);
         }
         if (failure != null) {

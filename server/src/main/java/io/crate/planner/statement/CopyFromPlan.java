@@ -227,10 +227,10 @@ public final class CopyFromPlan implements Plan {
         }
 
         SourceIndexWriterProjection sourceIndexWriterProjection;
-
         List<? extends Symbol> projectionOutputs = AbstractIndexWriterProjection.OUTPUTS;
         boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
-        if (returnSummary) {
+        boolean failFast = boundedCopyFrom.settings().getAsBoolean("fail_fast", false);
+        if (returnSummary || failFast) {
             final InputColumn sourceUriSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
             toCollect.add(SourceUriExpression.getReferenceForRelation(table.ident()));
 
@@ -240,8 +240,10 @@ public final class CopyFromPlan implements Plan {
             final InputColumn lineNumberSymbol = new InputColumn(toCollect.size(), DataTypes.LONG);
             toCollect.add(SourceLineNumberExpression.getReferenceForRelation(table.ident()));
 
-            List<? extends Symbol> fields = ((AnalyzedCopyFromReturnSummary) copyFrom).outputs();
-            projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
+            if (returnSummary) {
+                List<? extends Symbol> fields = ((AnalyzedCopyFromReturnSummary) copyFrom).outputs();
+                projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
+            }
 
             sourceIndexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
                 table.ident(),

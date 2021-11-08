@@ -22,11 +22,13 @@
 
 DIR=$(dirname "$0")
 
-if hash python3.7 2> /dev/null; then
-    PYTHON=python3.7
+if hash python3.9 2> /dev/null; then
+    PYTHON=python3.9
+
+# Fall back to `python3` in case there is no `python3.9` alias.
 elif hash python3 2> /dev/null; then
-    # fallback to python3 in case there is no python3.7 alias; should be 3.7+
     PYTHON=python3
+
 else
     echo 'python3.7+ required'
     exit 1
