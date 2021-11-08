@@ -450,13 +450,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             });
     }
 
-    private PublicationsStateAction.Response getPublicationsState() {
-        return getRemoteClusterClient().execute(
-            PublicationsStateAction.INSTANCE,
-            new PublicationsStateAction.Request(logicalReplicationService.subscriptions().get(subscriptionName).publications())
-        ).actionGet(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC);
-    }
-
     private void getPublicationsState(ActionListener<PublicationsStateAction.Response> listener) {
         getRemoteClusterClient().execute(
             PublicationsStateAction.INSTANCE,
