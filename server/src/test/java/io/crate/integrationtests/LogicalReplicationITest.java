@@ -287,7 +287,7 @@ public class LogicalReplicationITest extends ESTestCase {
         ensureGreenOnSubscriber();
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
-        var response = executeOnSubscriber("SELECT * FROM doc.t1");
+        var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
     }
@@ -329,12 +329,12 @@ public class LogicalReplicationITest extends ESTestCase {
         ensureGreenOnSubscriber();
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
-        var response = executeOnSubscriber("SELECT * FROM doc.t1");
+        var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
 
         executeOnSubscriber("REFRESH TABLE doc.t2");
-        response = executeOnSubscriber("SELECT * FROM doc.t2");
+        response = executeOnSubscriber("SELECT * FROM doc.t2 ORDER BY id");
         assertThat(printedTable(response.rows()), is("3\n" +
                                                      "4\n"));
     }
@@ -353,7 +353,7 @@ public class LogicalReplicationITest extends ESTestCase {
         ensureGreenOnSubscriber();
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
-        var response = executeOnSubscriber("SELECT * FROM doc.t1");
+        var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1| 1\n" +
                                                      "2| 2\n"));
     }
@@ -377,12 +377,12 @@ public class LogicalReplicationITest extends ESTestCase {
         ensureGreenOnSubscriber();
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
-        var response = executeOnSubscriber("SELECT * FROM doc.t1");
+        var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1| 1\n" +
                                                      "2| 2\n"));
 
         executeOnSubscriber("REFRESH TABLE my_schema.t2");
-        response = executeOnSubscriber("SELECT * FROM my_schema.t2");
+        response = executeOnSubscriber("SELECT * FROM my_schema.t2 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
     }
@@ -401,7 +401,7 @@ public class LogicalReplicationITest extends ESTestCase {
         ensureGreenOnSubscriber();
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
-        var response = executeOnSubscriber("SELECT * FROM doc.t1");
+        var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
 
