@@ -249,7 +249,6 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
                                  proxyAddress);
                     final DiscoveryNode handshakeNodeWithProxy = maybeAddProxyAddress(proxyAddress, handshakeNode);
                     connectionManager.connectToNode(handshakeNodeWithProxy,
-                                                    null,
                                                     transportService.connectionValidator(handshakeNodeWithProxy),
                                                     fullConnectionStep);
                 } else {
@@ -334,7 +333,6 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
                     final DiscoveryNode nodeWithProxy = maybeAddProxyAddress(proxyAddress, node);
                     connectionManager.connectToNode(
                         nodeWithProxy,
-                        null,
                         transportService.connectionValidator(node),
                         new ActionListener<>() {
                             @Override
