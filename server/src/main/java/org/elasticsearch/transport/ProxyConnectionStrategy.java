@@ -189,7 +189,7 @@ public class ProxyConnectionStrategy extends RemoteConnectionStrategy {
                 DiscoveryNode node = new DiscoveryNode(id, resolved, attributes, DiscoveryNodeRole.BUILT_IN_ROLES,
                                                        Version.CURRENT.minimumCompatibilityVersion());
 
-                connectionManager.connectToNode(node, null, clusterNameValidator, new ActionListener<Void>() {
+                connectionManager.connectToNode(node, clusterNameValidator, new ActionListener<Void>() {
                     @Override
                     public void onResponse(Void v) {
                         compositeListener.onResponse(v);
