@@ -72,7 +72,7 @@ public class ShardReplicationService implements Closeable {
     private Client getRemoteClusterClient(String indexName) {
         var subscriptionName = logicalReplicationService.subscriptionName(indexName);
         if (subscriptionName != null) {
-            return logicalReplicationService.getRemoteClusterClient(threadPool, subscriptionName);
+            return logicalReplicationService.getRemoteClusterClient(subscriptionName);
         }
         return null;
     }

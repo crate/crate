@@ -19,61 +19,60 @@
 
 package org.elasticsearch.transport;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.client.support.AbstractClient;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-public final class RemoteClusterAwareClient extends AbstractClient {
+import io.crate.exceptions.Exceptions;
+
+public final class RemoteClusterClient extends AbstractClient {
 
     private final TransportService service;
-    private final String clusterAlias;
-    private final RemoteClusterAware remoteClusterAware;
+    private final RemoteCluster remoteCluster;
 
-    public RemoteClusterAwareClient(Settings settings,
-                                    ThreadPool threadPool,
-                                    TransportService service,
-                                    String clusterAlias,
-                                    RemoteClusterAware remoteClusterAware) {
+    public RemoteClusterClient(Settings settings,
+                               ThreadPool threadPool,
+                               TransportService service,
+                               RemoteCluster remoteCluster) {
         super(settings, threadPool);
         this.service = service;
-        this.clusterAlias = clusterAlias;
-        this.remoteClusterAware = remoteClusterAware;
+        this.remoteCluster = remoteCluster;
     }
 
     @Override
     protected <Request extends TransportRequest, Response extends TransportResponse> void doExecute(ActionType<Response> action,
                                                                                                     Request request,
                                                                                                     ActionListener<Response> listener) {
-        remoteClusterAware.ensureConnected(
-            clusterAlias,
-            ActionListener.wrap(
-                v -> {
-                    Transport.Connection connection;
-                    if (request instanceof RemoteClusterAwareRequest) {
-                        DiscoveryNode preferredTargetNode = ((RemoteClusterAwareRequest) request).getPreferredTargetNode();
-                        connection = remoteClusterAware.getConnection(preferredTargetNode, clusterAlias);
-                    } else {
-                        connection = remoteClusterAware.getConnection(clusterAlias);
-                    }
-                    service.sendRequest(connection, action.name(), request, TransportRequestOptions.EMPTY,
-                                        new ActionListenerResponseHandler<>(listener, action.getResponseReader()));
-                },
-                listener::onFailure
-            )
-        );
+        CompletableFuture<Transport.Connection> connection;
+        if (request instanceof RemoteClusterAwareRequest) {
+            DiscoveryNode preferredTargetNode = ((RemoteClusterAwareRequest) request).getPreferredTargetNode();
+            connection = remoteCluster.getConnection(preferredTargetNode);
+        } else {
+            connection = remoteCluster.getConnection(null);
+        }
+        connection.whenComplete((conn, err) -> {
+            if (err == null) {
+                service.sendRequest(
+                    conn,
+                    action.name(),
+                    request,
+                    TransportRequestOptions.EMPTY,
+                    new ActionListenerResponseHandler<>(listener, action.getResponseReader())
+                );
+            } else {
+                listener.onFailure(Exceptions.toRuntimeException(err));
+            }
+        });
     }
 
     @Override
     public void close() {
         // do nothing
-    }
-
-    public Client getRemoteClusterClient(String clusterAlias) {
-        return remoteClusterAware.getRemoteClusterClient(threadPool(), clusterAlias);
     }
 }

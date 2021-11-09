@@ -21,6 +21,40 @@
 
 package io.crate.replication.logical;
 
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
+import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreClusterStateListener;
+import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.snapshots.RestoreInfo;
+import org.elasticsearch.snapshots.RestoreService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.RemoteClusters;
+import org.elasticsearch.transport.TransportService;
+
 import io.crate.common.io.IOUtils;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.PartitionName;
@@ -31,68 +65,29 @@ import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.replication.logical.repository.LogicalReplicationRepository;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreClusterStateListener;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.snapshots.RestoreInfo;
-import org.elasticsearch.snapshots.RestoreService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.NoSuchRemoteClusterException;
-import org.elasticsearch.transport.RemoteClusterAware;
-import org.elasticsearch.transport.RemoteClusterAwareClient;
-import org.elasticsearch.transport.RemoteClusterConnection;
-import org.elasticsearch.transport.RemoteConnectionStrategy;
-import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Locale;
-import java.util.Map;
-import java.util.function.Consumer;
-
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
-import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
-
-public class LogicalReplicationService extends RemoteClusterAware implements ClusterStateListener, Closeable {
+public class LogicalReplicationService implements ClusterStateListener, Closeable {
 
     private static final Logger LOGGER = LogManager.getLogger(LogicalReplicationService.class);
 
-    private final TransportService transportService;
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private RepositoriesService repositoriesService;
     private RestoreService restoreService;
 
-    private final Map<String, RemoteClusterConnection> remoteClusters = ConcurrentCollections.newConcurrentMap();
+    private final RemoteClusters remoteClusters;
     private final Map<String, String> subscribedIndices = ConcurrentCollections.newConcurrentMap();
     private volatile SubscriptionsMetadata currentSubscriptionsMetadata = new SubscriptionsMetadata();
     private volatile PublicationsMetadata currentPublicationsMetadata = new PublicationsMetadata();
+
 
     public LogicalReplicationService(Settings settings,
                                      ClusterService clusterService,
                                      TransportService transportService,
                                      ThreadPool threadPool) {
-        super(settings);
-        this.transportService = transportService;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
+        this.remoteClusters = new RemoteClusters(settings, threadPool, transportService);
         clusterService.addListener(this);
     }
 
@@ -179,76 +174,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
 
     @Override
     public void close() throws IOException {
-        IOUtils.close(remoteClusters.values());
-    }
-
-    @Override
-    public Transport.Connection getConnection(DiscoveryNode node, String cluster) {
-        return getRemoteClusterConnection(cluster).getConnection(node);
-    }
-
-    @Override
-    public Transport.Connection getConnection(String cluster) {
-        return getRemoteClusterConnection(cluster).getConnection();
-    }
-
-    @Override
-    public void ensureConnected(String clusterAlias, ActionListener<Void> listener) {
-        getRemoteClusterConnection(clusterAlias).ensureConnected(listener);
-    }
-
-    RemoteClusterConnection getRemoteClusterConnection(String cluster) {
-        RemoteClusterConnection connection = remoteClusters.get(cluster);
-        if (connection == null) {
-            throw new NoSuchRemoteClusterException(cluster);
-        }
-        return connection;
-    }
-
-    @Override
-    public Client getRemoteClusterClient(ThreadPool threadPool,
-                                         String clusterAlias) {
-        if (remoteClusters.containsKey(clusterAlias) == false) {
-            throw new NoSuchRemoteClusterException(clusterAlias);
-        }
-        return new RemoteClusterAwareClient(settings, threadPool, transportService, clusterAlias, this);
-    }
-
-    public synchronized void updateRemoteConnection(String name,
-                                                    Settings connectionSettings,
-                                                    ActionListener<Void> listener) {
-        RemoteClusterConnection remote = this.remoteClusters.get(name);
-        if (RemoteConnectionStrategy.isConnectionEnabled(connectionSettings) == false) {
-            try {
-                IOUtils.close(remote);
-            } catch (IOException e) {
-                LOGGER.warn("failed to close remote cluster connections for cluster: " + name, e);
-            }
-            remoteClusters.remove(name);
-            listener.onResponse(null);
-            return;
-        }
-
-        if (remote == null) {
-            // this is a new cluster we have to add a new representation
-            remote = new RemoteClusterConnection(settings, connectionSettings, name, transportService);
-            remoteClusters.put(name, remote);
-            remote.ensureConnected(listener);
-        } else if (remote.shouldRebuildConnection(connectionSettings)) {
-            // Changes to connection configuration. Must tear down existing connection
-            try {
-                IOUtils.close(remote);
-            } catch (IOException e) {
-                LOGGER.warn("failed to close remote cluster connections for cluster: " + name, e);
-            }
-            remoteClusters.remove(name);
-            remote = new RemoteClusterConnection(settings, connectionSettings, name, transportService);
-            remoteClusters.put(name, remote);
-            remote.ensureConnected(listener);
-        } else {
-            // No changes to connection configuration.
-            listener.onResponse(null);
-        }
+        IOUtils.close(remoteClusters);
     }
 
     public boolean isSubscribedIndex(String indexName) {
@@ -303,24 +229,14 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
     public void getPublicationState(String subscriptionName,
                                     Subscription subscription,
                                     ActionListener<PublicationsStateAction.Response> listener) {
-        updateRemoteConnection(
-            subscriptionName,
-            subscription.connectionInfo().settings(),
-            ActionListener.delegateFailure(
-                listener,
-                (delegatedListener, response) -> {
-                    var remoteClient = getRemoteClusterClient(
-                        threadPool,
-                        subscriptionName
-                    );
-                    remoteClient.execute(
-                        PublicationsStateAction.INSTANCE,
-                        new PublicationsStateAction.Request(subscription.publications()),
-                        listener
-                    );
-                }
-            )
-        );
+        remoteClusters.connectAndGetClient(subscriptionName, subscription.connectionInfo().settings())
+            .whenComplete((client, err) -> {
+                client.execute(
+                    PublicationsStateAction.INSTANCE,
+                    new PublicationsStateAction.Request(subscription.publications()),
+                    listener
+                );
+            });
     }
 
     public void verifyTablesDoNotExist(String subscriptionName,
@@ -431,5 +347,9 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                 }
             })
         );
+    }
+
+    public Client getRemoteClusterClient(String subscriptionName) {
+        return remoteClusters.getClient(subscriptionName);
     }
 }

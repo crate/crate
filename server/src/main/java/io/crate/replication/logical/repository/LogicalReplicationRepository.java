@@ -416,7 +416,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     private Client getRemoteClusterClient() {
-        return logicalReplicationService.getRemoteClusterClient(threadPool, subscriptionName);
+        return logicalReplicationService.getRemoteClusterClient(subscriptionName);
     }
 
     private void getRemoteClusterState(ActionListener<ClusterState> listener, String... remoteIndices) {

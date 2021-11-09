@@ -41,8 +41,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
-import static org.elasticsearch.transport.RemoteConnectionStrategy.REMOTE_CONNECTION_MODE;
-import static org.elasticsearch.transport.SniffConnectionStrategy.REMOTE_CLUSTER_SEEDS;
 
 public class ConnectionInfo implements Writeable {
 
@@ -61,9 +59,9 @@ public class ConnectionInfo implements Writeable {
     private static final Set<String> SUPPORTED_SETTINGS = Set.of(
         USERNAME.getKey(),
         PASSWORD.getKey(),
-        SSLMODE.getKey(),
-        REMOTE_CONNECTION_MODE.getKey(),
-        REMOTE_CLUSTER_SEEDS.getKey()
+        SSLMODE.getKey()
+        // REMOTE_CONNECTION_MODE.getKey(),
+        // REMOTE_CLUSTER_SEEDS.getKey()
     );
 
     private static final String DEFAULT_PORT = "4300";
