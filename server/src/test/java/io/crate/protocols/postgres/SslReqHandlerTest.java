@@ -24,6 +24,7 @@ package io.crate.protocols.postgres;
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.auth.Protocol;
 import io.crate.protocols.ssl.SslContextProvider;
 
 import org.elasticsearch.common.settings.Settings;
@@ -105,7 +106,7 @@ public class SslReqHandlerTest extends ESTestCase {
         return new SslContextProvider(Settings.EMPTY) {
 
             @Override
-            public SslContext getServerContext() {
+            public SslContext getServerContext(Protocol protocol) {
                 try {
                     SelfSignedCertificate ssc = new SelfSignedCertificate();
                     return SslContextBuilder
