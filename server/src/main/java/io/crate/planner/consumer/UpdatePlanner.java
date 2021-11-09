@@ -31,7 +31,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -281,9 +281,9 @@ public final class UpdatePlanner {
         WhereClause where = detailedQuery.toBoundWhereClause(
             tableInfo, params, subQueryResults, plannerCtx.transactionContext(), plannerCtx.nodeContext());
         if (where.hasVersions()) {
-            throw VersioninigValidationException.versionInvalidUsage();
+            throw VersioningValidationException.versionInvalidUsage();
         } else if (where.hasSeqNoAndPrimaryTerm()) {
-            throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
+            throw VersioningValidationException.seqNoAndPrimaryTermUsage();
         }
 
         if (returnValues == null) {

@@ -22,7 +22,7 @@
 package io.crate.analyze.where;
 
 
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.Operator;
@@ -142,9 +142,9 @@ public final class WhereClauseValidator {
 
         private void validateSysReference(Context context, String columnName) {
             if (columnName.equalsIgnoreCase(VERSION)) {
-                validateSysReference(context, VERSIONING_ALLOWED_COMPARISONS, VersioninigValidationException::versionInvalidUsage);
+                validateSysReference(context, VERSIONING_ALLOWED_COMPARISONS, VersioningValidationException::versionInvalidUsage);
             } else if (columnName.equalsIgnoreCase(SEQ_NO) || columnName.equalsIgnoreCase(PRIMARY_TERM)) {
-                validateSysReference(context, VERSIONING_ALLOWED_COMPARISONS, VersioninigValidationException::seqNoAndPrimaryTermUsage);
+                validateSysReference(context, VERSIONING_ALLOWED_COMPARISONS, VersioningValidationException::seqNoAndPrimaryTermUsage);
             } else if (columnName.equalsIgnoreCase(SCORE)) {
                 validateSysReference(context, SCORE_ALLOWED_COMPARISONS, () -> new UnsupportedOperationException(SCORE_ERROR));
             } else if (columnName.equalsIgnoreCase(DocSysColumns.RAW.name())) {

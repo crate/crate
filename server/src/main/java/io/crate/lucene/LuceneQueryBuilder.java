@@ -50,7 +50,7 @@ import org.elasticsearch.index.query.QueryShardContext;
 
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -203,9 +203,9 @@ public class LuceneQueryBuilder {
          * the LuceneQueryBuilder is never used)
          */
         static final Map<String, String> UNSUPPORTED_FIELDS = Map.of(
-            "_version", VersioninigValidationException.VERSION_COLUMN_USAGE_MSG,
-            "_seq_no", VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG,
-            "_primary_term", VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
+            "_version", VersioningValidationException.VERSION_COLUMN_USAGE_MSG,
+            "_seq_no", VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG,
+            "_primary_term", VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
         );
 
         @Nullable

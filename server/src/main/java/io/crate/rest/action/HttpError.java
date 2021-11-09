@@ -58,7 +58,7 @@ import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.exceptions.UserUnknownException;
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -161,7 +161,7 @@ public class HttpError {
                 httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
             } else if (crateException instanceof UnsupportedFeatureException) {
                 httpErrorStatus = HttpErrorStatus.POSSIBLE_FEATURE_NOT_SUPPROTED_YET;
-            } else if (crateException instanceof VersioninigValidationException) {
+            } else if (crateException instanceof VersioningValidationException) {
                 httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
             } else if (crateException instanceof AnalyzerUnknownException) {
                 httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_ANALYZER_DEFINITION;

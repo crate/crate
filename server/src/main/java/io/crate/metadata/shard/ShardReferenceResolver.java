@@ -82,8 +82,12 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
                 );
                 i++;
             }
-        } catch (ResourceUnknownException e) {
-            LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, relationName.fqn());
+        } catch (Exception e) {
+            if (e instanceof ResourceUnknownException) {
+                LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, relationName.fqn());
+            } else {
+                throw e;
+            }
         }
         return new MapBackedRefResolver(builder.immutableMap());
     }

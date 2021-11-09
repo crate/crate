@@ -21,13 +21,21 @@
 
 package io.crate.exceptions;
 
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import java.io.IOException;
+
 /**
  * This exception can be in the <p>anonymous</p> scope as it can only be thrown when executed with proper authorization.
  */
-public class GroupByOnArrayUnsupportedException extends RuntimeException implements UnscopedException {
+public class GroupByOnArrayUnsupportedException extends ElasticsearchException implements UnscopedException {
 
     public GroupByOnArrayUnsupportedException(String columnName) {
         super("Column \"" + columnName + "\" has a value that is an array. Group by doesn't work on Arrays");
     }
 
+    public GroupByOnArrayUnsupportedException(StreamInput in) throws IOException {
+        super(in);
+    }
 }

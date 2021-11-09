@@ -21,7 +21,12 @@
 
 package io.crate.exceptions;
 
-public class InvalidArgumentException extends RuntimeException implements CrateException {
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import java.io.IOException;
+
+public class InvalidArgumentException extends ElasticsearchException implements CrateException {
 
     public InvalidArgumentException(String message) {
         super(message);
@@ -29,5 +34,9 @@ public class InvalidArgumentException extends RuntimeException implements CrateE
 
     public <C, R> R accept(CrateExceptionVisitor<C, R> exceptionVisitor, C context) {
         return exceptionVisitor.visitCrateException(this, context);
+    }
+
+    public InvalidArgumentException(StreamInput in) throws IOException {
+        super(in);
     }
 }

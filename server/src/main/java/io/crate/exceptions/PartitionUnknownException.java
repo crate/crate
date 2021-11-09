@@ -27,7 +27,7 @@ import io.crate.metadata.RelationName;
 import java.util.Collections;
 import java.util.Locale;
 
-public class PartitionUnknownException extends ResourceUnknownException implements TableScopeException {
+public class PartitionUnknownException extends RuntimeException implements ResourceUnknownException, TableScopeException {
 
     private RelationName relationName;
 

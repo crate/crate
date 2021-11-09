@@ -159,8 +159,8 @@ public class CreateSnapshotPlan implements Plan {
                         Operation.CREATE_SNAPSHOT,
                         txnCtx.sessionContext().sessionUser(),
                         txnCtx.sessionContext().searchPath());
-                } catch (ResourceUnknownException e) {
-                    if (ignoreUnavailable) {
+                } catch (Exception e) {
+                    if (ignoreUnavailable && e instanceof ResourceUnknownException) {
                         LOGGER.info(
                             "Ignore unknown relation '{}' for the '{}' snapshot'",
                             table.getName(), createSnapshot.snapshot());

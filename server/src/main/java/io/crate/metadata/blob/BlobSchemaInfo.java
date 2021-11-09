@@ -21,20 +21,19 @@
 
 package io.crate.metadata.blob;
 
-import java.util.Collections;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Stream;
-
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+
+import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 public class BlobSchemaInfo implements SchemaInfo {
 
@@ -58,8 +57,11 @@ public class BlobSchemaInfo implements SchemaInfo {
                 name,
                 n -> blobTableInfoFactory.create(new RelationName(NAME, n), clusterService.state())
             );
-        } catch (ResourceUnknownException e) {
-            return null;
+        } catch (Exception e) {
+            if (e instanceof ResourceUnknownException) {
+                return null;
+            }
+            throw e;
         }
     }
 

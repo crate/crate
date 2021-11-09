@@ -53,7 +53,7 @@ import org.junit.Test;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NodeOperation;
@@ -976,8 +976,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
 
-        expectedException.expect(VersioninigValidationException.class);
-        expectedException.expectMessage(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
+        expectedException.expect(VersioningValidationException.class);
+        expectedException.expectMessage(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
         e.plan("select * from users where _seq_no = 2 and _primary_term = 1");
     }
 
@@ -1362,8 +1362,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThrowsMatches(
             () -> e.plan("select id from users where id = 1 and _seq_no = 11"),
-            VersioninigValidationException.class,
-            VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
+            VersioningValidationException.class,
+            VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
         );
     }
 
@@ -1375,8 +1375,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThrowsMatches(
             () -> e.plan("select id from users where _seq_no = 11 and _primary_term = 1"),
-            VersioninigValidationException.class,
-            VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
+            VersioningValidationException.class,
+            VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
         );
     }
 

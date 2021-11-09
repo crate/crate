@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
@@ -76,13 +76,13 @@ public class JobIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
 
         assertThrowsMatches(() -> execute("insert into users (name) (select name from users where _version = 1)"),
-                     isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                     isSQLError(containsString(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));
 
         assertThrowsMatches(() -> execute("select name from users where _version = 1"),
-                     isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                     isSQLError(containsString(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));

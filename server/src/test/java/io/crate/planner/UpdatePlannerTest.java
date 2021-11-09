@@ -25,7 +25,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -154,8 +154,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateUsingSeqNoRequiresPk() {
-        expectedException.expect(VersioninigValidationException.class);
-        expectedException.expectMessage(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
+        expectedException.expect(VersioningValidationException.class);
+        expectedException.expectMessage(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
         UpdatePlanner.Update plan = e.plan("update users set name = 'should not update' where _seq_no = 11 and _primary_term = 1");
         plan.createExecutionPlan.create(
             e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
@@ -165,8 +165,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_update_where_id_and_seq_missing_primary_term() throws Exception {
         assertThrowsMatches(
             () -> e.plan("update users set name = 'should not update' where id = 1 and _seq_no = 11"),
-            VersioninigValidationException.class,
-            VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
+            VersioningValidationException.class,
+            VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
         );
     }
 

@@ -23,7 +23,7 @@ package io.crate.planner;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -95,8 +95,8 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWhereVersionIsNullPredicate() throws Exception {
-        expectedException.expect(VersioninigValidationException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
+        expectedException.expect(VersioningValidationException.class);
+        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
         e.plan("delete from users where _version is null");
     }
 
@@ -104,8 +104,8 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_delete_where_id_and_seq_missing_primary_term() throws Exception {
         assertThrowsMatches(
             () -> e.plan("delete from users where id = 1 and _seq_no = 11"),
-            VersioninigValidationException.class,
-            VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
+            VersioningValidationException.class,
+            VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
         );
     }
 }

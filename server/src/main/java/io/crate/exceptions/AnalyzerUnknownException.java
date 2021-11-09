@@ -23,7 +23,7 @@ package io.crate.exceptions;
 
 import java.util.Locale;
 
-public class AnalyzerUnknownException extends ResourceUnknownException implements ClusterScopeException {
+public class AnalyzerUnknownException extends RuntimeException implements ResourceUnknownException, ClusterScopeException {
 
     public AnalyzerUnknownException(String analyzerName) {
         super(String.format(Locale.ENGLISH, "Analyzer '%s' unknown", analyzerName));

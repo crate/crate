@@ -28,7 +28,7 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.Objects;
 
-public class ColumnUnknownException extends ResourceUnknownException implements TableScopeException {
+public class ColumnUnknownException extends RuntimeException implements ResourceUnknownException, TableScopeException {
 
     private final RelationName relationName;
 

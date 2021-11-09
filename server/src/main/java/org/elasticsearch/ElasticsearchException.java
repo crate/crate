@@ -19,11 +19,10 @@
 
 package org.elasticsearch;
 
+import io.crate.common.CheckedFunction;
 import org.elasticsearch.action.admin.indices.alias.AliasesNotFoundException;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import io.crate.common.CheckedFunction;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -38,6 +37,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TcpTransport;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1009,7 +1009,57 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             org.elasticsearch.index.seqno.RetentionLeaseInvalidRetainingSeqNoException.class,
             org.elasticsearch.index.seqno.RetentionLeaseInvalidRetainingSeqNoException::new,
             158,
-            Version.V_4_3_0);
+            Version.V_4_3_0),
+        RELATION_ALREADY_EXISTS(
+            io.crate.exceptions.RelationAlreadyExists.class,
+            io.crate.exceptions.RelationAlreadyExists::new,
+            159,
+            Version.V_4_7_0),
+        RELATION_UNKNOWN(
+            io.crate.exceptions.RelationUnknown.class,
+            io.crate.exceptions.RelationUnknown::new,
+            160,
+            Version.V_4_7_0),
+        SCHEMA_UNKNOWN(
+            io.crate.exceptions.SchemaUnknownException.class,
+            io.crate.exceptions.SchemaUnknownException::new,
+            161,
+            Version.V_4_7_0),
+        GROUP_BY_ON_ARRAY_UNSUPPORTED_EXCEPTION(
+            io.crate.exceptions.GroupByOnArrayUnsupportedException.class,
+            io.crate.exceptions.GroupByOnArrayUnsupportedException::new,
+            162,
+            Version.V_4_7_0),
+        INVALID_ARGUMENT_EXCEPTION(
+            io.crate.exceptions.InvalidArgumentException.class,
+            io.crate.exceptions.InvalidArgumentException::new,
+            163,
+            Version.V_4_7_0),
+        INVALID_COLUMN_NAME_EXCEPTION(
+            io.crate.exceptions.InvalidColumnNameException.class,
+            io.crate.exceptions.InvalidColumnNameException::new,
+            164,
+            Version.V_4_7_0),
+        UNSUPPORTED_FEATURE_EXCEPTION(
+            io.crate.exceptions.UnsupportedFeatureException.class,
+            io.crate.exceptions.UnsupportedFeatureException::new,
+            165,
+            Version.V_4_7_0),
+        USER_DEFINED_FUNCTION_ALREADY_EXISTS_EXCEPTION(
+            io.crate.exceptions.UserDefinedFunctionAlreadyExistsException.class,
+            io.crate.exceptions.UserDefinedFunctionAlreadyExistsException::new,
+            166,
+            Version.V_4_7_0),
+        USER_DEFINED_FUNCTION_UNKNOWN_EXCEPTION(
+            io.crate.exceptions.UserDefinedFunctionUnknownException.class,
+            io.crate.exceptions.UserDefinedFunctionUnknownException::new,
+            167,
+            Version.V_4_7_0),
+        VERSIONING_VALIDATION_EXCEPTION(
+            io.crate.exceptions.VersioningValidationException.class,
+            io.crate.exceptions.VersioningValidationException::new,
+            168,
+            Version.V_4_7_0);
 
 
         final Class<? extends ElasticsearchException> exceptionClass;

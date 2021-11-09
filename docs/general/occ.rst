@@ -115,7 +115,7 @@ Known limitations
    result in an error::
 
     cr> DELETE FROM sensors WHERE id = 'ID1' AND "_seq_no" = 3;
-    VersioninigValidationException["_seq_no" and "_primary_term" columns can only be used together in the WHERE clause with equals comparisons and if there are also equals comparisons on primary key columns]
+    VersioningValidationException["_seq_no" and "_primary_term" columns can only be used together in the WHERE clause with equals comparisons and if there are also equals comparisons on primary key columns]
 
 .. NOTE::
 

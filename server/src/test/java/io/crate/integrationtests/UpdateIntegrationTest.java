@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.common.collections.MapBuilder;
@@ -650,7 +650,7 @@ public class UpdateIntegrationTest extends SQLIntegrationTestCase {
 
         assertThrowsMatches(() -> execute(
             "update test set c = 4 where _version = 2 or _version=1"),
-                     isSQLError(Matchers.is(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                     isSQLError(Matchers.is(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));
@@ -665,7 +665,7 @@ public class UpdateIntegrationTest extends SQLIntegrationTestCase {
 
         assertThrowsMatches(() -> execute(
             "update test set c = 4 where _version in (1,2)"),
-                     isSQLError(Matchers.is(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                     isSQLError(Matchers.is(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));

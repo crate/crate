@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.data.Input;
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -96,18 +96,18 @@ public class WhereClause {
     public static void validateVersioningColumnsUsage(Symbol query) {
         if (Symbols.containsColumn(query, DocSysColumns.SEQ_NO)) {
             if (!Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM)) {
-                throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
+                throw VersioningValidationException.seqNoAndPrimaryTermUsage();
             } else {
                 if (Symbols.containsColumn(query, DocSysColumns.VERSION)) {
-                    throw VersioninigValidationException.mixedVersioningMeachanismsUsage();
+                    throw VersioningValidationException.mixedVersioningMeachanismsUsage();
                 }
             }
         } else if (Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM)) {
             if (!Symbols.containsColumn(query, DocSysColumns.SEQ_NO)) {
-                throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
+                throw VersioningValidationException.seqNoAndPrimaryTermUsage();
             } else {
                 if (Symbols.containsColumn(query, DocSysColumns.VERSION)) {
-                    throw VersioninigValidationException.mixedVersioningMeachanismsUsage();
+                    throw VersioningValidationException.mixedVersioningMeachanismsUsage();
                 }
             }
         }

@@ -21,14 +21,6 @@
 
 package io.crate.exceptions;
 
-public abstract class ConflictException extends RuntimeException implements CrateException {
-
-    public ConflictException(String message) {
-        super(message);
-    }
-
-    public ConflictException(String message, Throwable cause) {
-        super(message, cause);
-    }
+public interface ConflictException extends CrateException {
 
 }

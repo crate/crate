@@ -30,7 +30,7 @@ import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Assignments;
@@ -458,66 +458,66 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateWhereVersionUsingWrongOperator() throws Exception {
-        expectedException.expect(VersioninigValidationException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
+        expectedException.expect(VersioningValidationException.class);
+        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
         execute(e.plan("update users set text = ? where text = ? and \"_version\" >= ?"),
             new RowN(new Object[]{"already in panic", "don't panic", 3}));
     }
 
     @Test
     public void testUpdateWhereVersionIsColumn() throws Exception {
-        expectedException.expect(VersioninigValidationException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
+        expectedException.expect(VersioningValidationException.class);
+        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
         execute(e.plan("update users set col2 = ? where _version = id"), new Row1(1));
     }
 
     @Test
     public void testUpdateWhereVersionInOperatorColumn() throws Exception {
-        expectedException.expect(VersioninigValidationException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
+        expectedException.expect(VersioningValidationException.class);
+        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
         execute(e.plan("update users set col2 = 'x' where _version in (1,2,3)"), Row.EMPTY);
     }
 
     @Test
     public void testUpdateWhereVersionOrOperatorColumn() throws Exception {
-        expectedException.expect(VersioninigValidationException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
+        expectedException.expect(VersioningValidationException.class);
+        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
         execute(e.plan("update users set col2 = ? where _version = 1 or _version = 2"), new Row1(1));
     }
 
 
     @Test
     public void testUpdateWhereVersionAddition() throws Exception {
-        expectedException.expect(VersioninigValidationException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
+        expectedException.expect(VersioningValidationException.class);
+        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
         execute(e.plan("update users set col2 = ? where _version + 1 = 2"), new Row1(1));
     }
 
     @Test
     public void testUpdateWhereVersionNotPredicate() throws Exception {
-        expectedException.expect(VersioninigValidationException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
+        expectedException.expect(VersioningValidationException.class);
+        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
         execute(e.plan("update users set text = ? where not (_version = 1 and id = 1)"), new Row1(1));
     }
 
     @Test
     public void testUpdateWhereVersionOrOperator() throws Exception {
-        expectedException.expect(VersioninigValidationException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
+        expectedException.expect(VersioningValidationException.class);
+        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
         execute(e.plan("update users set awesome = true where _version = 1 or _version = 2"), Row.EMPTY);
     }
 
     @Test
     public void testUpdateWithVersionZero() throws Exception {
-        expectedException.expect(VersioninigValidationException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
+        expectedException.expect(VersioningValidationException.class);
+        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
         execute(e.plan("update users set awesome=true where name='Ford' and _version=0"), Row.EMPTY);
     }
 
     @Test
     public void testSelectWhereVersionIsNullPredicate() throws Exception {
-        expectedException.expect(VersioninigValidationException.class);
-        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
+        expectedException.expect(VersioningValidationException.class);
+        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
         execute(e.plan("update users set col2 = 'x' where _version is null"), Row.EMPTY);
     }
 
