@@ -21,15 +21,6 @@
 
 package io.crate.replication.logical.metadata;
 
-import io.crate.exceptions.InvalidArgumentException;
-import io.crate.metadata.settings.Validators;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -40,6 +31,18 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.RemoteCluster;
+
+import io.crate.common.collections.Lists2;
+import io.crate.exceptions.InvalidArgumentException;
+import io.crate.metadata.settings.Validators;
+import io.crate.types.DataTypes;
 
 
 public class ConnectionInfo implements Writeable {
@@ -56,12 +59,15 @@ public class ConnectionInfo implements Writeable {
         DataTypes.STRING
     );
 
-    private static final Set<String> SUPPORTED_SETTINGS = Set.of(
-        USERNAME.getKey(),
-        PASSWORD.getKey(),
-        SSLMODE.getKey()
-        // REMOTE_CONNECTION_MODE.getKey(),
-        // REMOTE_CLUSTER_SEEDS.getKey()
+    private static final Set<String> SUPPORTED_SETTINGS = Set.copyOf(
+        Lists2.concat(
+            List.of(
+                USERNAME.getKey(),
+                PASSWORD.getKey(),
+                SSLMODE.getKey()
+            ),
+            RemoteCluster.SETTING_NAMES
+        )
     );
 
     private static final String DEFAULT_PORT = "4300";
@@ -116,6 +122,8 @@ public class ConnectionInfo implements Writeable {
                 }
                 hosts.add(address);
             } else {
+                // TODO: With pg-tunnel as a connection strategy having a default port is
+                // probably trappy and we should require it to be specified.
                 hosts.add(address + ":" + DEFAULT_PORT);
             }
         }
