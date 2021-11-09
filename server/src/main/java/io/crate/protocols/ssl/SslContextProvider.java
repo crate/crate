@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.KeyManager;
@@ -64,7 +66,7 @@ public class SslContextProvider {
     private static final String TLS_VERSION = "TLSv1.2";
     private static final Logger LOGGER = LogManager.getLogger(SslContextProvider.class);
 
-    private volatile SslContext sslContext;
+    private final Map<Protocol, SslContext> sslContextPerProtocol = new ConcurrentHashMap<>();
 
     private final Settings settings;
     private final String keystorePath;
@@ -86,26 +88,13 @@ public class SslContextProvider {
         this.trustStorePass = SslSettings.SSL_TRUSTSTORE_PASSWORD.get(settings).toCharArray();
     }
 
-    public SslContext getServerContext() {
-        return getServerContext(null);
-    }
-
-    public SslContext getServerContext(@Nullable Protocol protocol) {
-        var localRef = sslContext;
-        if (localRef == null) {
-            synchronized (this) {
-                localRef = sslContext;
-                if (localRef == null) {
-                    sslContext = localRef = serverContext(protocol);
-                }
-            }
-        }
-        return localRef;
+    public SslContext getServerContext(Protocol protocol) {
+        return sslContextPerProtocol.computeIfAbsent(protocol, p -> serverContext(p));
     }
 
     public void reloadSslContext() {
         synchronized (this) {
-            sslContext = serverContext(null);
+            sslContextPerProtocol.keySet().forEach(protocol -> sslContextPerProtocol.put(protocol, serverContext(protocol)));
             LOGGER.info("SSL configuration is reloaded.");
         }
     }
@@ -171,7 +160,7 @@ public class SslContextProvider {
         return null;
     }
 
-    private SslContext serverContext(@Nullable Protocol protocol) {
+    private SslContext serverContext(Protocol protocol) {
         try {
             var keyStore = loadKeyStore(keystorePath, keystorePass);
             var keyManagers = createKeyManagers(keyStore, keystoreKeyPass);

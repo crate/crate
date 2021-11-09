@@ -41,7 +41,10 @@ public class AuthSettingsTest {
             .put("auth.host_based.config.2.ssl", "password")
             .build();
 
-        assertThat(AuthSettings.resolveClientAuth(settings, null), is(ClientAuth.NONE));
+        // When no protocol is specified in HBA, all protocols will have the same value.
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP), is(ClientAuth.NONE));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT), is(ClientAuth.NONE));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES), is(ClientAuth.NONE));
     }
 
     @Test
@@ -51,7 +54,10 @@ public class AuthSettingsTest {
             .put("auth.host_based.config.2.method", "cert")
             .build();
 
-        assertThat(AuthSettings.resolveClientAuth(settings, null), is(ClientAuth.REQUIRE));
+        // When no protocol is specified in HBA, all protocols will have the same value.
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP), is(ClientAuth.REQUIRE));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT), is(ClientAuth.REQUIRE));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES), is(ClientAuth.REQUIRE));
     }
 
     @Test
@@ -60,7 +66,10 @@ public class AuthSettingsTest {
             .put("auth.host_based.config.1.method", "cert")
             .put("auth.host_based.config.2.method", "password")
             .build();
-        assertThat(AuthSettings.resolveClientAuth(settings, null), is(ClientAuth.OPTIONAL));
+        // When no protocol is specified in HBA, all protocols will have the same value.
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP), is(ClientAuth.OPTIONAL));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT), is(ClientAuth.OPTIONAL));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES), is(ClientAuth.OPTIONAL));
     }
 
     @Test
@@ -70,8 +79,25 @@ public class AuthSettingsTest {
             .put("auth.host_based.config.1.protocol", "transport")
             .put("auth.host_based.config.2.method", "password")
             .build();
+
+        // TRANSPORT is optional because of protocol-agnostic password entry
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT), is(ClientAuth.OPTIONAL));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP), is(ClientAuth.NONE));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES), is(ClientAuth.NONE));
+    }
+
+    @Test
+    public void test_cert_required_only_on_transport_http_is_not_affected() throws Exception {
+        Settings settings = Settings.builder()
+            .put("auth.host_based.config.1.method", "cert")
+            .put("auth.host_based.config.1.protocol", "transport")
+            .put("auth.host_based.config.2.method", "password")
+            .put("auth.host_based.config.2.protocol", "http")
+            .build();
+
+        // See https://github.com/crate/crate/issues/11856
         assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT), is(ClientAuth.REQUIRE));
         assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP), is(ClientAuth.NONE));
-        assertThat(AuthSettings.resolveClientAuth(settings, null), is(ClientAuth.OPTIONAL));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES), is(ClientAuth.NONE));
     }
 }

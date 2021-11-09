@@ -43,6 +43,7 @@ import java.security.cert.X509Certificate;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 
+import io.crate.auth.Protocol;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
@@ -78,7 +79,7 @@ public class SslContextProviderTest extends ESTestCase {
         expectedException.expect(SslConfigurationException.class);
         expectedException.expectMessage("Failed to build SSL configuration");
         var sslContextProvider = new SslContextProvider(settings);
-        sslContextProvider.getServerContext();
+        sslContextProvider.getServerContext(Protocol.TRANSPORT);
     }
 
     @Test
@@ -93,7 +94,7 @@ public class SslContextProviderTest extends ESTestCase {
             .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "keystorePassword")
             .build();
         var sslContextProvider = new SslContextProvider(settings);
-        SslContext sslContext = sslContextProvider.getServerContext();
+        SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
         assertThat(sslContext, instanceOf(SslContext.class));
         assertThat(sslContext.isServer(), is(true));
         assertThat(sslContext.cipherSuites(), not(empty()));
@@ -109,7 +110,7 @@ public class SslContextProviderTest extends ESTestCase {
             .put(SslSettings.SSL_KEYSTORE_PASSWORD_SETTING_NAME, KEYSTORE_PASSWORD)
             .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, KEYSTORE_KEY_PASSWORD)
         .build();
-        SslContext sslContext = new SslContextProvider(settings).getServerContext();
+        SslContext sslContext = new SslContextProvider(settings).getServerContext(Protocol.TRANSPORT);
         assertThat(sslContext.isServer(), is(true));
         assertThat(sslContext.cipherSuites(), not(empty()));
         // check that we don't offer NULL ciphers which do not encrypt
