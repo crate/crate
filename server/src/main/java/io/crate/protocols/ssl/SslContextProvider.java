@@ -63,7 +63,6 @@ public class SslContextProvider {
     private volatile SslContext sslContextClientAuthNeeded;
     private volatile SslContext sslContextClientAuthNotNeeded;
 
-    private final Settings settings;
     private final String keystorePath;
     private final char[] keystorePass;
     private final char[] keystoreKeyPass;
@@ -72,7 +71,6 @@ public class SslContextProvider {
 
     @Inject
     public SslContextProvider(Settings settings) {
-        this.settings = settings;
         this.keystorePath = SslSettings.SSL_KEYSTORE_FILEPATH.get(settings);
         this.keystorePass = SslSettings.SSL_KEYSTORE_PASSWORD.get(settings).toCharArray();
         this.keystoreKeyPass = SslSettings.SSL_KEYSTORE_KEY_PASSWORD.get(settings).toCharArray();
