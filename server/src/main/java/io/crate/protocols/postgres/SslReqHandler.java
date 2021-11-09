@@ -71,7 +71,7 @@ public final class SslReqHandler {
      * @param pipeline The Netty pipeline which may be modified
      * @return The state of the handler
      */
-    public State process(ByteBuf buffer, ChannelPipeline pipeline) {
+    public State process(ByteBuf buffer, ChannelPipeline pipeline, boolean isClientAuthNeeded) {
         if (buffer.readableBytes() < SSL_REQUEST_BYTE_LENGTH) {
             return State.WAITING_FOR_INPUT;
         }
@@ -81,7 +81,7 @@ public final class SslReqHandler {
         if (buffer.readInt() == SSL_REQUEST_BYTE_LENGTH && buffer.readInt() == SSL_REQUEST_CODE) {
             final SslContext sslContext;
             if (sslContextProvider != null) {
-                sslContext = sslContextProvider.getServerContext();
+                sslContext = sslContextProvider.getServerContext(isClientAuthNeeded);
             } else {
                 sslContext = null;
             }

@@ -43,6 +43,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
+import io.netty.handler.ssl.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Inject;
@@ -50,13 +51,8 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.auth.AuthSettings;
-import io.crate.auth.Protocol;
 import io.crate.common.Optionals;
 import io.crate.common.annotations.VisibleForTesting;
-import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
 
 @Singleton
 public class SslContextProvider {
@@ -64,7 +60,8 @@ public class SslContextProvider {
     private static final String TLS_VERSION = "TLSv1.2";
     private static final Logger LOGGER = LogManager.getLogger(SslContextProvider.class);
 
-    private volatile SslContext sslContext;
+    private volatile SslContext sslContextClientAuthNeeded;
+    private volatile SslContext sslContextClientAuthNotNeeded;
 
     private final Settings settings;
     private final String keystorePath;
@@ -72,8 +69,6 @@ public class SslContextProvider {
     private final char[] keystoreKeyPass;
     private final String trustStorePath;
     private final char[] trustStorePass;
-
-
 
     @Inject
     public SslContextProvider(Settings settings) {
@@ -86,17 +81,20 @@ public class SslContextProvider {
         this.trustStorePass = SslSettings.SSL_TRUSTSTORE_PASSWORD.get(settings).toCharArray();
     }
 
-    public SslContext getServerContext() {
-        return getServerContext(null);
+    public SslContext getServerContext(boolean isClientAuthNeeded) {
+        if (isClientAuthNeeded) {
+            return getSslContext(sslContextClientAuthNeeded, isClientAuthNeeded);
+        } else {
+            return getSslContext(sslContextClientAuthNotNeeded, isClientAuthNeeded);
+        }
     }
 
-    public SslContext getServerContext(@Nullable Protocol protocol) {
-        var localRef = sslContext;
+    private SslContext getSslContext(SslContext localRef, boolean isClientAuthNeeded) {
         if (localRef == null) {
             synchronized (this) {
-                localRef = sslContext;
+                localRef = sslContextClientAuthNeeded;
                 if (localRef == null) {
-                    sslContext = localRef = serverContext(protocol);
+                    sslContextClientAuthNeeded = localRef = serverContext(isClientAuthNeeded);
                 }
             }
         }
@@ -105,7 +103,8 @@ public class SslContextProvider {
 
     public void reloadSslContext() {
         synchronized (this) {
-            sslContext = serverContext(null);
+            sslContextClientAuthNotNeeded = serverContext(false);
+            sslContextClientAuthNeeded = serverContext(true);
             LOGGER.info("SSL configuration is reloaded.");
         }
     }
@@ -171,7 +170,7 @@ public class SslContextProvider {
         return null;
     }
 
-    private SslContext serverContext(@Nullable Protocol protocol) {
+    private SslContext serverContext(boolean isClientAuthNeeded) {
         try {
             var keyStore = loadKeyStore(keystorePath, keystorePass);
             var keyManagers = createKeyManagers(keyStore, keystoreKeyPass);
@@ -193,7 +192,7 @@ public class SslContextProvider {
                 .forServer(privateKey, keyStoreCertChain)
                 .ciphers(List.of(sslContext.createSSLEngine().getEnabledCipherSuites()))
                 .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
-                .clientAuth(AuthSettings.resolveClientAuth(settings, protocol))
+                .clientAuth(isClientAuthNeeded ? ClientAuth.REQUIRE : ClientAuth.NONE)
                 .trustManager(concat(keyStoreCertChain, trustStoreRootCerts))
                 .sessionCacheSize(0)
                 .sessionTimeout(0)

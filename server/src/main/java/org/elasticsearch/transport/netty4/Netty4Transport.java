@@ -21,14 +21,18 @@ package org.elasticsearch.transport.netty4;
 
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Authentication;
+import io.crate.auth.HostBasedAuthentication;
 import io.crate.auth.Protocol;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.BorrowedItem;
 import io.crate.netty.EventLoopGroups;
+import io.crate.protocols.SSL;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslSettings.SSLMode;
 import io.crate.types.DataTypes;
+import io.crate.user.User;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.AdaptiveRecvByteBufAllocator;
@@ -66,13 +70,16 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.TransportSettings;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.AbstractList;
 import java.util.Map;
 
 import static org.elasticsearch.common.settings.Setting.byteSizeSetting;
@@ -327,7 +334,20 @@ public class Netty4Transport extends TcpTransport {
         protected void initChannel(Channel ch) throws Exception {
             SSLMode sslMode = SslSettings.SSL_TRANSPORT_MODE.get(settings);
             if (sslMode == SSLMode.ON) {
-                SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
+                InetAddress remoteAddress = Netty4HttpServerTransport.getRemoteAddress(ch);
+                SslContext sslContext;
+                if(authentication instanceof HostBasedAuthentication hostBasedAuthentication) {
+                    boolean isClientAuthNeeded = hostBasedAuthentication.correspondingEntryHasCert(
+                        User.CRATE_USER.name(),
+                        remoteAddress,
+                        Protocol.TRANSPORT
+                    );
+                    sslContext = sslContextProvider.getServerContext(isClientAuthNeeded);
+                } else {
+                    // AlwaysOKAuthentication stands for TrustMethod.
+                    sslContext = sslContextProvider.getServerContext(false);
+                }
+
                 SslHandler sslHandler = sslContext.newHandler(ch.alloc());
                 ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME, sslHandler);
             }

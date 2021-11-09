@@ -26,10 +26,7 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
-import io.crate.auth.Authentication;
-import io.crate.auth.AuthenticationMethod;
-import io.crate.auth.Protocol;
-import io.crate.auth.AccessControl;
+import io.crate.auth.*;
 import io.crate.user.User;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
@@ -798,7 +795,7 @@ public class PostgresWireProtocol {
         private ByteBuf decode(ByteBuf buffer, ChannelPipeline pipeline) {
             switch (state) {
                 case PRE_STARTUP:
-                    if (sslReqHandler.process(buffer, pipeline) == SslReqHandler.State.DONE) {
+                    if (sslReqHandler.process(buffer, pipeline, authContext.getAuthMethod().name().equals(ClientCertAuth.NAME)) == SslReqHandler.State.DONE) {
                         state = STARTUP_HEADER;
                         // We need to call decode again in case there are additional bytes in the buffer
                         return decode(buffer, pipeline);

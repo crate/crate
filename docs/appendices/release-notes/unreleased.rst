@@ -155,3 +155,9 @@ Fixes
 - Fixed a performance regression introduced in 4.2 which caused queries with
   ``WHERE`` clause on aliased column on top of views or virtual tables to be
   slow.
+
+- Fixed an issue in ``HBA`` which caused entries with method ``cert`` affect
+  other entries in the way that client certificate was optional for ``trust``
+  or ``password`` entries. Even though optional means connection is allowed if
+  no certificate is provided, some clients, for example ``curl``, might use
+  local certificate which is not trusted on the server.

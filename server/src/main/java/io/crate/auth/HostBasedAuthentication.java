@@ -34,6 +34,7 @@ import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
+import javax.security.sasl.AuthenticationException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -54,6 +55,8 @@ public class HostBasedAuthentication implements Authentication {
     private static final String KEY_METHOD = "method";
     private static final String KEY_PROTOCOL = "protocol";
     private static final String KEY_SWITCH_TO_PLAINTEXT = "switch_to_plaintext";
+
+
 
     public enum SSL {
         REQUIRED("on"),
@@ -146,6 +149,22 @@ public class HostBasedAuthentication implements Authentication {
         return null;
     }
 
+    public boolean correspondingEntryHasCert(String username, InetAddress remoteAddress, Protocol protocol) throws AuthenticationException {
+        if (username == null || remoteAddress == null || protocol == null) {
+            throw new AuthenticationException("No valid auth.host_based entry found for: " + remoteAddress);
+        }
+        return hbaConf.entrySet().stream()
+            .filter(e -> Matchers.isValidUser(e, username))
+            .filter(e -> Matchers.isValidAddress(e.getValue().get(KEY_ADDRESS), remoteAddress, dnsResolver))
+            .filter(e -> Matchers.isValidProtocol(e.getValue().get(KEY_PROTOCOL), protocol))
+            .filter(e -> Matchers.isValidForSslConnection(e.getValue().get(SSL.KEY)))
+            .findFirst()
+            .orElseThrow(() -> new AuthenticationException("No valid auth.host_based entry found for: " + remoteAddress))
+            .getValue()
+            .getOrDefault(KEY_METHOD, DEFAULT_AUTH_METHOD)
+            .equals(ClientCertAuth.NAME);
+    }
+
     @VisibleForTesting
     Map<String, Map<String, String>> hbaConf() {
         return hbaConf;
@@ -220,6 +239,17 @@ public class HostBasedAuthentication implements Authentication {
                 case OPTIONAL -> true;
                 case NEVER -> !connectionProperties.hasSSL();
                 case REQUIRED -> connectionProperties.hasSSL();
+            };
+        }
+
+        static boolean isValidForSslConnection(String hbaConnectionMode) {
+            if (hbaConnectionMode == null || hbaConnectionMode.isEmpty()) {
+                return true;
+            }
+            SSL sslMode = SSL.parseValue(hbaConnectionMode);
+            return switch (sslMode) {
+                case OPTIONAL, REQUIRED -> true;
+                case NEVER -> false;
             };
         }
 

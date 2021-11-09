@@ -57,6 +57,10 @@ class AuthenticationContext implements Closeable {
         this.password = null;
     }
 
+    public AuthenticationMethod getAuthMethod() {
+        return authMethod;
+    }
+
     @Nullable
     User authenticate() {
         User user = authMethod.authenticate(userName, password, connProperties);
