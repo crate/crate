@@ -111,7 +111,9 @@ public class PipelineRegistry {
         }
 
         if (sslContextProvider != null) {
-            SslContext sslContext = sslContextProvider.getServerContext();
+            // no user, not channel(remote address) to resolve like in transport protocol
+            // and no already resolved authMethod like in PostgresWireProtocol
+            SslContext sslContext = sslContextProvider.getServerContext(??);
             if (sslContext != null) {
                 SslHandler sslHandler = sslContext.newHandler(pipeline.channel().alloc());
                 pipeline.addFirst(sslHandler);
