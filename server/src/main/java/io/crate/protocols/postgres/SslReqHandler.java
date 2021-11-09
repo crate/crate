@@ -21,6 +21,7 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.auth.Protocol;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -81,7 +82,7 @@ public final class SslReqHandler {
         if (buffer.readInt() == SSL_REQUEST_BYTE_LENGTH && buffer.readInt() == SSL_REQUEST_CODE) {
             final SslContext sslContext;
             if (sslContextProvider != null) {
-                sslContext = sslContextProvider.getServerContext();
+                sslContext = sslContextProvider.getServerContext(Protocol.POSTGRES);
             } else {
                 sslContext = null;
             }

@@ -21,6 +21,7 @@
 
 package io.crate.plugin;
 
+import io.crate.auth.Protocol;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.netty.channel.ChannelHandler;
@@ -111,7 +112,7 @@ public class PipelineRegistry {
         }
 
         if (sslContextProvider != null) {
-            SslContext sslContext = sslContextProvider.getServerContext();
+            SslContext sslContext = sslContextProvider.getServerContext(Protocol.HTTP);
             if (sslContext != null) {
                 SslHandler sslHandler = sslContext.newHandler(pipeline.channel().alloc());
                 pipeline.addFirst(sslHandler);
