@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -123,7 +123,7 @@ public class VersionHandlingIntegrationTest extends SQLIntegrationTestCase {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
         assertThrowsMatches(() -> execute("update test set col2 = ? where \"_version\" = ?", new Object[]{"ok now panic", 1}),
-                     isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                     isSQLError(containsString(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));
@@ -163,7 +163,7 @@ public class VersionHandlingIntegrationTest extends SQLIntegrationTestCase {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
         assertThrowsMatches(() -> execute("select _version from test where col2 = 'hello' and _version = 1"),
-                     isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                     isSQLError(containsString(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));

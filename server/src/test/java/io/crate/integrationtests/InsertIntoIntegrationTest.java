@@ -22,12 +22,11 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
@@ -827,7 +826,7 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
         execute("create table users (name string) clustered into 1 shards");
 
         assertThrowsMatches(() -> execute("insert into users (name) (select name from users where _version = 1)"),
-                     isSQLError(containsString(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG),
+                     isSQLError(containsString(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));

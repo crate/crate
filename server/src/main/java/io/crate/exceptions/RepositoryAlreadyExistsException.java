@@ -23,7 +23,7 @@ package io.crate.exceptions;
 
 import java.util.Locale;
 
-public class RepositoryAlreadyExistsException extends ConflictException implements ClusterScopeException {
+public class RepositoryAlreadyExistsException extends RuntimeException implements ConflictException, ClusterScopeException {
 
     public RepositoryAlreadyExistsException(String repositoryName) {
         super(String.format(Locale.ENGLISH, "Repository '%s' already exists", repositoryName));

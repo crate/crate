@@ -22,12 +22,16 @@
 package io.crate.exceptions;
 
 import io.crate.sql.Identifiers;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-public class SchemaUnknownException extends ResourceUnknownException implements SchemaScopeException {
+public class SchemaUnknownException extends ElasticsearchException implements ResourceUnknownException, SchemaScopeException {
 
     private static final String MESSAGE_TMPL = "Schema '%s' unknown";
 
@@ -58,6 +62,17 @@ public class SchemaUnknownException extends ResourceUnknownException implements 
     private SchemaUnknownException(String schema, String errorMessage) {
         super(errorMessage);
         this.schemaName = schema;
+    }
+
+    public SchemaUnknownException(StreamInput in) throws IOException {
+        super(in);
+        schemaName = in.readString();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(schemaName);
     }
 
     @Override

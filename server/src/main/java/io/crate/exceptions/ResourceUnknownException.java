@@ -21,14 +21,5 @@
 
 package io.crate.exceptions;
 
-public abstract class ResourceUnknownException extends RuntimeException implements CrateException {
-
-    public ResourceUnknownException(String s) {
-        super(s);
-    }
-
-    public ResourceUnknownException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
+public interface ResourceUnknownException extends CrateException {
 }

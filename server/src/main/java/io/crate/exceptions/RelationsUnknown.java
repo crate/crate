@@ -26,7 +26,7 @@ import io.crate.metadata.RelationName;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-public class RelationsUnknown extends ResourceUnknownException implements TableScopeException {
+public class RelationsUnknown extends RuntimeException implements ResourceUnknownException, TableScopeException {
 
     private final Iterable<RelationName> relations;
 

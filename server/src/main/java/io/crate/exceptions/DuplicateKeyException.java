@@ -25,7 +25,7 @@ import io.crate.metadata.RelationName;
 
 import java.util.Collections;
 
-public class DuplicateKeyException extends ConflictException implements TableScopeException {
+public class DuplicateKeyException extends RuntimeException implements ConflictException, TableScopeException {
 
     private final RelationName relationName;
 

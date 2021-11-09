@@ -30,7 +30,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
-import io.crate.exceptions.VersioninigValidationException;
+import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
@@ -289,9 +289,9 @@ public class Collect implements LogicalPlan {
             plannerContext.transactionContext(),
             plannerContext.nodeContext());
         if (where.hasVersions()) {
-            throw VersioninigValidationException.versionInvalidUsage();
+            throw VersioningValidationException.versionInvalidUsage();
         } else if (where.hasSeqNoAndPrimaryTerm()) {
-            throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
+            throw VersioningValidationException.seqNoAndPrimaryTermUsage();
         }
 
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();

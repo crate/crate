@@ -27,7 +27,7 @@ import io.crate.metadata.RelationName;
 import java.util.Collections;
 import java.util.Locale;
 
-public class PartitionAlreadyExistsException extends ConflictException implements TableScopeException {
+public class PartitionAlreadyExistsException extends RuntimeException implements ConflictException, TableScopeException {
 
     private final RelationName relationName;
 

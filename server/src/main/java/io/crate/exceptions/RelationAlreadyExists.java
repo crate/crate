@@ -22,24 +22,39 @@
 package io.crate.exceptions;
 
 import io.crate.metadata.RelationName;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.Index;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Locale;
 
-public final class RelationAlreadyExists extends ConflictException implements TableScopeException {
-
-    private RelationName relationName;
+public final class RelationAlreadyExists extends ElasticsearchException implements ConflictException, TableScopeException {
 
     private static final String MESSAGE_TMPL = "Relation '%s' already exists.";
+
+    private RelationName relationName;
 
     public RelationAlreadyExists(RelationName relationName) {
         super(String.format(Locale.ENGLISH, MESSAGE_TMPL, relationName));
         this.relationName = relationName;
     }
 
-    RelationAlreadyExists(String tableName, Throwable e) {
-        super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableName), e);
-        this.relationName = RelationName.fromIndexName(tableName);
+    RelationAlreadyExists(Index index, Throwable e) {
+        super(String.format(Locale.ENGLISH, MESSAGE_TMPL, index.getName()), e);
+        this.relationName = RelationName.fromIndexName(index.getName());
+    }
+
+    public RelationAlreadyExists(StreamInput in) throws IOException {
+        super(in);
+        relationName = new RelationName(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        relationName.writeTo(out);
     }
 
     @Override

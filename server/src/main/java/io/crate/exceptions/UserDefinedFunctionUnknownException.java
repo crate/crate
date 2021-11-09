@@ -22,12 +22,16 @@
 package io.crate.exceptions;
 
 import io.crate.types.DataType;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-public class UserDefinedFunctionUnknownException extends ResourceUnknownException implements SchemaScopeException {
+public class UserDefinedFunctionUnknownException extends ElasticsearchException implements ResourceUnknownException, SchemaScopeException {
 
     private final String schema;
 
@@ -36,6 +40,17 @@ public class UserDefinedFunctionUnknownException extends ResourceUnknownExceptio
             schema, name, types.stream().map(DataType::getName).collect(Collectors.joining(",")))
         );
         this.schema = schema;
+    }
+
+    public UserDefinedFunctionUnknownException(StreamInput in) throws IOException {
+        super(in);
+        this.schema = in.readString();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(schema);
     }
 
     @Override

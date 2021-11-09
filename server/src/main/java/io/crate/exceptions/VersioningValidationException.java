@@ -21,7 +21,12 @@
 
 package io.crate.exceptions;
 
-public class VersioninigValidationException extends RuntimeException implements UnscopedException {
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import java.io.IOException;
+
+public class VersioningValidationException extends ElasticsearchException implements UnscopedException {
 
     public static final String VERSION_COLUMN_USAGE_MSG = "\"_version\" column can only be used in the WHERE clause " +
                                                           "with equals comparisons and if there are also equals comparisons on primary key columns";
@@ -34,19 +39,23 @@ public class VersioninigValidationException extends RuntimeException implements 
         "\"_version\" column cannot be used in conjunction with the \"_seq_no\" and \"_primary_term\" columns. " +
         "Use one of the two versioning mechanisms, but not both at the same time.";
 
-    private VersioninigValidationException(String errorMessage) {
+    private VersioningValidationException(String errorMessage) {
         super(errorMessage);
     }
 
-    public static VersioninigValidationException versionInvalidUsage() {
-        return new VersioninigValidationException(VERSION_COLUMN_USAGE_MSG);
+    public static VersioningValidationException versionInvalidUsage() {
+        return new VersioningValidationException(VERSION_COLUMN_USAGE_MSG);
     }
 
-    public static VersioninigValidationException seqNoAndPrimaryTermUsage() {
-        return new VersioninigValidationException(SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
+    public static VersioningValidationException seqNoAndPrimaryTermUsage() {
+        return new VersioningValidationException(SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
     }
 
-    public static VersioninigValidationException mixedVersioningMeachanismsUsage() {
-        return new VersioninigValidationException(MIXED_VERSIONING_COLUMNS_USAGE_MSG);
+    public static VersioningValidationException mixedVersioningMeachanismsUsage() {
+        return new VersioningValidationException(MIXED_VERSIONING_COLUMNS_USAGE_MSG);
+    }
+
+    public VersioningValidationException(StreamInput in) throws IOException {
+        super(in);
     }
 }

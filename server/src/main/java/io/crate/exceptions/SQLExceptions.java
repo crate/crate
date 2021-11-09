@@ -21,16 +21,10 @@
 
 package io.crate.exceptions;
 
-import java.util.Locale;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Predicate;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.util.concurrent.UncheckedExecutionException;
-
+import io.crate.auth.AccessControl;
+import io.crate.metadata.PartitionName;
+import io.crate.sql.parser.ParsingException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
@@ -48,9 +42,12 @@ import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.transport.TransportException;
 
-import io.crate.auth.AccessControl;
-import io.crate.metadata.PartitionName;
-import io.crate.sql.parser.ParsingException;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Locale;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
 
 public class SQLExceptions {
 
@@ -142,11 +139,11 @@ public class SQLExceptions {
                 ((EngineException) unwrappedError).getIndex().getName(),
                 "A document with the same primary key exists already", unwrappedError);
         } else if (unwrappedError instanceof ResourceAlreadyExistsException) {
-            return new RelationAlreadyExists(((ResourceAlreadyExistsException) unwrappedError).getIndex().getName(), unwrappedError);
+            return new RelationAlreadyExists(((ResourceAlreadyExistsException) unwrappedError).getIndex(), unwrappedError);
         } else if ((unwrappedError instanceof InvalidIndexNameException)) {
             if (unwrappedError.getMessage().contains("already exists as alias")) {
                 // treat an alias like a table as aliases are not officially supported
-                return new RelationAlreadyExists(((InvalidIndexNameException) unwrappedError).getIndex().getName(),
+                return new RelationAlreadyExists(((InvalidIndexNameException) unwrappedError).getIndex(),
                     unwrappedError);
             }
             return new InvalidRelationName(((InvalidIndexNameException) unwrappedError).getIndex().getName(), unwrappedError);

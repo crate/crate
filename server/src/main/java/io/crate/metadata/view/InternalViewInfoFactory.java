@@ -77,10 +77,14 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
                                   null));
             }
             columns = collectedColumns;
-        } catch (ResourceUnknownException e) {
-            // Return ViewInfo with no columns in case the statement could not be analyzed,
-            // because the underlying table of the view could not be found.
-            columns = Collections.emptyList();
+        } catch (Exception e) {
+            if (e instanceof ResourceUnknownException) {
+                // Return ViewInfo with no columns in case the statement could not be analyzed,
+                // because the underlying table of the view could not be found.
+                columns = Collections.emptyList();
+            } else {
+                throw e;
+            }
         }
         return new ViewInfo(ident, view.stmt(), columns, view.owner());
     }

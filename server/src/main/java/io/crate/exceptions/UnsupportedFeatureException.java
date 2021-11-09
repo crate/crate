@@ -21,7 +21,12 @@
 
 package io.crate.exceptions;
 
-public class UnsupportedFeatureException extends RuntimeException implements ClusterScopeException {
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import java.io.IOException;
+
+public class UnsupportedFeatureException extends ElasticsearchException implements ClusterScopeException {
 
     public UnsupportedFeatureException(String msg) {
         super(msg);
@@ -31,4 +36,7 @@ public class UnsupportedFeatureException extends RuntimeException implements Clu
         super(msg, e);
     }
 
+    public UnsupportedFeatureException(StreamInput in) throws IOException {
+        super(in);
+    }
 }

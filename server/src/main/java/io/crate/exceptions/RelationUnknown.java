@@ -24,13 +24,17 @@ package io.crate.exceptions;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.RelationName;
 import io.crate.sql.Identifiers;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-public class RelationUnknown extends ResourceUnknownException implements TableScopeException {
+public class RelationUnknown extends ElasticsearchException implements ResourceUnknownException, TableScopeException {
 
     private final RelationName relationName;
 
@@ -69,6 +73,17 @@ public class RelationUnknown extends ResourceUnknownException implements TableSc
     private RelationUnknown(RelationName relationName, String errorMessage) {
         super(errorMessage);
         this.relationName = relationName;
+    }
+
+    public RelationUnknown(StreamInput in) throws IOException {
+        super(in);
+        relationName = new RelationName(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        relationName.writeTo(out);
     }
 
     @Override

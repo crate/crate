@@ -21,12 +21,19 @@
 
 package io.crate.exceptions;
 
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import java.io.IOException;
 import java.util.Locale;
 
-public class InvalidColumnNameException extends RuntimeException implements ClusterScopeException {
+public class InvalidColumnNameException extends ElasticsearchException implements ClusterScopeException {
 
     public InvalidColumnNameException(String columnName, String message) {
         super(String.format(Locale.ENGLISH, "\"%s\" %s", columnName, message));
     }
 
+    public InvalidColumnNameException(StreamInput in) throws IOException {
+        super(in);
+    }
 }

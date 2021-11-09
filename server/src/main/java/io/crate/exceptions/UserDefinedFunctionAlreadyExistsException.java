@@ -22,10 +22,14 @@
 package io.crate.exceptions;
 
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
+import java.io.IOException;
 import java.util.Locale;
 
-public class UserDefinedFunctionAlreadyExistsException extends ConflictException implements SchemaScopeException {
+public class UserDefinedFunctionAlreadyExistsException extends ElasticsearchException implements ConflictException, SchemaScopeException {
 
     private final String schema;
 
@@ -35,6 +39,17 @@ public class UserDefinedFunctionAlreadyExistsException extends ConflictException
             udfMetadata.specificName())
         );
         this.schema = udfMetadata.schema();
+    }
+
+    public UserDefinedFunctionAlreadyExistsException(StreamInput in) throws IOException {
+        super(in);
+        schema = in.readString();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(schema);
     }
 
     @Override
