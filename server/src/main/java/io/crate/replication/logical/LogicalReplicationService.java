@@ -59,6 +59,7 @@ import io.crate.common.io.IOUtils;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
@@ -83,11 +84,12 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
     public LogicalReplicationService(Settings settings,
                                      ClusterService clusterService,
+                                     PgClientFactory pgClientFactory,
                                      TransportService transportService,
                                      ThreadPool threadPool) {
         this.clusterService = clusterService;
         this.threadPool = threadPool;
-        this.remoteClusters = new RemoteClusters(settings, threadPool, transportService);
+        this.remoteClusters = new RemoteClusters(settings, threadPool, pgClientFactory, transportService);
         clusterService.addListener(this);
     }
 
@@ -229,7 +231,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     public void getPublicationState(String subscriptionName,
                                     Subscription subscription,
                                     ActionListener<PublicationsStateAction.Response> listener) {
-        remoteClusters.connectAndGetClient(subscriptionName, subscription.connectionInfo().settings())
+        remoteClusters.connectAndGetClient(subscriptionName, subscription.connectionInfo())
             .whenComplete((client, err) -> {
                 client.execute(
                     PublicationsStateAction.INSTANCE,

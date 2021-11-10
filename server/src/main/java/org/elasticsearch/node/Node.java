@@ -31,6 +31,7 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.netty.EventLoopGroups;
+import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.types.DataTypes;
@@ -516,6 +517,7 @@ public class Node implements Closeable {
             final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
                 settings,
                 clusterService,
+                new PgClientFactory(settings, eventLoopGroups),
                 transportService,
                 threadPool
             );

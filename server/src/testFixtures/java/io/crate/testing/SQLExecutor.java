@@ -83,6 +83,7 @@ import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.LoadedRules;
+import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.replication.logical.metadata.Publication;
@@ -308,6 +309,7 @@ public class SQLExecutor {
             logicalReplicationService = new LogicalReplicationService(
                 Settings.EMPTY,
                 clusterService,
+                mock(PgClientFactory.class),
                 mock(TransportService.class),
                 mock(ThreadPool.class)
             );

@@ -25,6 +25,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.protocols.postgres.PostgresWireProtocol;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
@@ -283,13 +284,26 @@ public class LogicalReplicationITest extends ESTestCase {
 
         executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
 
-        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
+        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherPgConnectionUrl() + "' publication pub1");
         ensureGreenOnSubscriber();
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
+    }
+
+    private String publisherPgConnectionUrl() {
+        var netty = publisherCluster.getInstance(PostgresNetty.class);
+        InetSocketAddress address = netty.boundAddress().publishAddress().address();
+        return String.format(
+            Locale.ENGLISH,
+            "crate://%s:%d?mode=pg_tunnel",
+            address.getHostName(),
+            address.getPort(),
+            address.getHostName(),
+            address.getPort()
+        );
     }
 
     @Test

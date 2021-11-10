@@ -28,7 +28,7 @@ import java.net.UnknownHostException;
 
 public final class RemoteConnectionParser {
 
-    static InetSocketAddress parseConfiguredAddress(String configuredAddress) {
+    public static InetSocketAddress parseConfiguredAddress(String configuredAddress) {
         final String host = parseHost(configuredAddress);
         final int port = parsePort(configuredAddress);
         InetAddress hostAddress;

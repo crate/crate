@@ -49,6 +49,10 @@ import org.elasticsearch.transport.TransportService.HandshakeResponse;
 import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.Exceptions;
+import io.crate.netty.EventLoopGroups;
+import io.crate.protocols.postgres.PgClient;
+import io.crate.protocols.postgres.PgClientFactory;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.types.DataTypes;
 
 public final class RemoteCluster implements Closeable {
@@ -96,11 +100,21 @@ public final class RemoteCluster implements Closeable {
     private final List<DiscoveryNode> seedNodes;
     private final TransportService transportService;
     private final ConnectionProfile connectionProfile;
+    private final ConnectionInfo connectionInfo;
+    private final PgClientFactory pgClientFactory;
+
     private final SetOnce<ClusterName> remoteClusterName = new SetOnce<>();
 
-    public RemoteCluster(String clusterName, Settings settings, TransportService transportService) {
+
+    public RemoteCluster(String clusterName,
+                         ConnectionInfo connectionInfo,
+                         PgClientFactory pgClientFactory,
+                         TransportService transportService) {
+        this.pgClientFactory = pgClientFactory;
+        Settings settings = connectionInfo.settings();
         this.clusterName = clusterName;
         this.connectionProfile = ConnectionProfile.buildDefaultConnectionProfile(settings);
+        this.connectionInfo = connectionInfo;
         this.transportService = transportService;
         this.connectionStrategy = REMOTE_CONNECTION_MODE.get(settings);
         this.seedNodes = Lists2.map(REMOTE_CLUSTER_SEEDS.get(settings), this::resolveSeedNode);
@@ -125,23 +139,29 @@ public final class RemoteCluster implements Closeable {
 
     @Override
     public void close() throws IOException {
+        // TODO: close connections
     }
 
-    private CompletableFuture<Connection> connectPgTunnel(@Nullable DiscoveryNode node) {
-        return CompletableFuture.failedFuture(new UnsupportedOperationException("not implemented"));
+    private CompletableFuture<Connection> connectPgTunnel(@Nullable DiscoveryNode preferredNode) {
+        List<String> hosts = connectionInfo.hosts();
+        if (hosts.isEmpty()) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("No hosts configured for remote cluster [" + clusterName + "]"));
+        }
+        PgClient client = pgClientFactory.createClient(hosts.get(0));
+        return client.connect();
     }
 
-    private CompletableFuture<Connection> connectSniff(@Nullable DiscoveryNode node) {
-        if (node == null) {
+    private CompletableFuture<Connection> connectSniff(@Nullable DiscoveryNode preferredNode) {
+        if (preferredNode == null) {
             Iterator<DiscoveryNode> iterator = seedNodes.iterator();
             if (iterator.hasNext()) {
-                node = iterator.next();
+                preferredNode = iterator.next();
             } else {
                 return CompletableFuture.failedFuture(new IllegalStateException("no seed nodes configured"));
             }
         }
         FutureActionListener<Connection, Connection> openConnFuture = FutureActionListener.newInstance();
-        transportService.transport.openConnection(node, connectionProfile, openConnFuture);
+        transportService.transport.openConnection(preferredNode, connectionProfile, openConnFuture);
         return openConnFuture
             .thenCompose(this::handshake)
             .thenCompose(this::finalizeConnection);
