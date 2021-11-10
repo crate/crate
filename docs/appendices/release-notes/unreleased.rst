@@ -137,6 +137,9 @@ Changes
 - Added the `column_details` column to the `information_schema.columns` table
   including the top level column name and path information of object elements.
 
+- Registered the scalar function :ref:`age <scalar-age>`
+  under the `pg_catalog` schema.
+
 Fixes
 =====
 

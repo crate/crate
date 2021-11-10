@@ -207,5 +207,6 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         PgFunctionIsVisibleFunction.register(this);
         PgGetFunctionResultFunction.register(this);
         PgPostmasterStartTime.register(this);
+        AgeFunction.register(this);
     }
 }
