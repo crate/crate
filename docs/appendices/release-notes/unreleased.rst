@@ -75,3 +75,6 @@ Fixes
 - Fixed an issue in ``HBA`` which caused entries with method ``cert`` for one
   protocol affect entries of other protocols in the way that client certificate
   is requested for ``trust`` or ``password`` entries of other protocols.
+
+- Fixed an issue that threw an unexpected exception while converting a WKT
+  string representing a valid polygon to ``geo_shape``.
