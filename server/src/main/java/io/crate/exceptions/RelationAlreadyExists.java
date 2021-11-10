@@ -54,6 +54,7 @@ public final class RelationAlreadyExists extends ElasticsearchException implemen
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
         relationName.writeTo(out);
     }
 
