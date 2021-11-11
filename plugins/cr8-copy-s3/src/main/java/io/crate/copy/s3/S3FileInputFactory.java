@@ -19,18 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.collect.files;
+package io.crate.copy.s3;
 
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import io.crate.execution.engine.collect.files.FileInput;
+import io.crate.execution.engine.collect.files.FileInputFactory;
 
-public class FileCollectModule extends AbstractModule {
+public class S3FileInputFactory implements FileInputFactory {
+
+    public static final String NAME = "s3";
 
     @Override
-    protected void configure() {
-        MapBinder<String, FileInputFactory> binder = MapBinder.newMapBinder(binder(), String.class, FileInputFactory.class);
-
-        binder.addBinding(LocalFsFileInputFactory.NAME).to(LocalFsFileInputFactory.class).asEagerSingleton();
-        binder.addBinding(S3FileInputFactory.NAME).to(S3FileInputFactory.class).asEagerSingleton();
+    public FileInput create() {
+        return new S3FileInput();
     }
 }
