@@ -19,8 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.collect.files;
+package io.crate.copy.s3;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
@@ -28,18 +34,22 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.engine.collect.files.FileReadingIterator;
+import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.reference.file.SourceLineExpression;
 import io.crate.expression.reference.file.SourceUriFailureExpression;
+import io.crate.external.S3ClientHelper;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import org.elasticsearch.test.ESTestCase;
+import io.crate.metadata.TransactionContext;
+import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -50,24 +60,28 @@ import org.mockito.stubbing.Answer;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-public class FileReadingCollectorTest extends ESTestCase {
+public class S3FileReadingCollectorTest extends ESTestCase {
 
     private static File tmpFile;
     private static File tmpFileGz;
@@ -86,15 +100,17 @@ public class FileReadingCollectorTest extends ESTestCase {
         tmpFileEmptyLine = File.createTempFile("emptyLine", ".json", copy_from_empty.toFile());
         try (BufferedWriter writer =
                  new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(tmpFileGz)),
-                     StandardCharsets.UTF_8))) {
+                                                           StandardCharsets.UTF_8))) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile),
+                                                                StandardCharsets.UTF_8)) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFileEmptyLine), StandardCharsets.UTF_8)) {
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFileEmptyLine),
+                                                                StandardCharsets.UTF_8)) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
@@ -115,80 +131,31 @@ public class FileReadingCollectorTest extends ESTestCase {
     }
 
     @Test
-    public void testUmlautsAndWhitespacesWithExplicitURIThrowsAre() throws Throwable {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Illegal character in path at index 12: file:///this will fäil.json");
-        getObjects("file:///this will fäil.json");
+    public void testCollectFromS3Uri() throws Throwable {
+        // this test just verifies the s3 schema detection and bucketName / prefix extraction from the uri.
+        // real s3 interaction is mocked completely.
+        TestingRowConsumer projector = getObjects("s3://fakebucket/foo");
+        projector.getResult();
     }
 
     @Test
-    public void testNoErrorIfNoSuchFile() throws Throwable {
-        // no error, -> don't want to fail just because one node doesn't have a file
-        getObjects("file:///some/path/that/shouldnt/exist/foo.json");
-        getObjects("file:///some/path/that/shouldnt/exist/*");
-    }
+    public void testCollectWithOneSocketTimeout() throws Throwable {
+        S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testRelativeImport() throws Throwable {
-        TestingRowConsumer projector = getObjects("xy");
-        assertCorrectResult(projector.getBucket());
-    }
+        when(inputStream.read(any(byte[].class), anyInt(), anyInt()))
+            .thenAnswer(new WriteBufferAnswer(new byte[]{102, 111, 111, 10}))  // first line: foo
+            .thenThrow(new SocketTimeoutException())  // exception causes retry
+            .thenAnswer(new WriteBufferAnswer(new byte[]{102, 111, 111, 10}))  // first line again, because of retry
+            .thenAnswer(new WriteBufferAnswer(new byte[]{98, 97, 114, 10}))  // second line: bar
+            .thenReturn(-1);
 
-    @Test
-    public void testCollectFromUriWithGlob() throws Throwable {
-        TestingRowConsumer projector = getObjects(
-            Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "file*.json");
-        assertCorrectResult(projector.getBucket());
-    }
-
-    @Test
-    public void testCollectFromDirectory() throws Throwable {
-        TestingRowConsumer projector = getObjects(
-            Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "*");
-        assertCorrectResult(projector.getBucket());
-    }
-
-    @Test
-    public void testDoCollectRaw() throws Throwable {
-        TestingRowConsumer consumer = getObjects(Paths.get(tmpFile.toURI()).toUri().toString());
-        assertCorrectResult(consumer.getBucket());
-    }
-
-    @Test
-    public void testDoCollectRawFromCompressed() throws Throwable {
-        TestingRowConsumer consumer = getObjects(Collections.singletonList(Paths.get(tmpFileGz.toURI()).toUri().toString()), "gzip");
-        assertCorrectResult(consumer.getBucket());
-    }
-
-    @Test
-    public void testCollectWithEmptyLine() throws Throwable {
-        TestingRowConsumer consumer = getObjects(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
-        assertCorrectResult(consumer.getBucket());
-    }
-
-    @Test
-    public void unsupportedURITest() throws Throwable {
-        getObjects("invalid://crate.io/docs/en/latest/sql/reference/copy_from.html", true).getBucket();
-        assertThat(sourceUriFailureInput.value(), is("unknown protocol: invalid"));
-    }
-
-    @Test
-    public void testMultipleUriSupport() throws Throwable {
-        List<String> fileUris = new ArrayList<>();
-        fileUris.add(Paths.get(tmpFile.toURI()).toUri().toString());
-        fileUris.add(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
-        TestingRowConsumer consumer = getObjects(fileUris, null);
-        Iterator<Row> it = consumer.getBucket().iterator();
-        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
-        assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
-        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
-        assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
-    }
-
-    private void assertCorrectResult(Bucket rows) throws Throwable {
-        Iterator<Row> it = rows.iterator();
-        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
-        assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
+        TestingRowConsumer consumer = getObjects(Collections.singletonList("s3://fakebucket/foo"),
+                                                 null,
+                                                 inputStream,
+                                                 false);
+        Bucket rows = consumer.getBucket();
+        assertThat(rows.size(), is(2));
+        assertThat(TestingHelpers.printedTable(rows), is("foo\nbar\n"));
     }
 
     private TestingRowConsumer getObjects(String fileUri) throws Throwable {
@@ -200,28 +167,37 @@ public class FileReadingCollectorTest extends ESTestCase {
     }
 
     private TestingRowConsumer getObjects(Collection<String> fileUris,
-                                          String compression) throws Throwable {
-        return getObjects(fileUris, compression, false);
+                                          String compression,
+                                          boolean collectSourceUriFailure) throws Throwable {
+        S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
+        when(inputStream.read(any(byte[].class), anyInt(), anyInt())).thenReturn(-1);
+        return getObjects(fileUris, compression, inputStream, collectSourceUriFailure);
     }
 
     private TestingRowConsumer getObjects(Collection<String> fileUris,
                                           String compression,
+                                          S3ObjectInputStream s3InputStream,
                                           boolean collectSourceUriFailure) throws Throwable {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        getObjects(fileUris, compression, consumer, collectSourceUriFailure);
+        getObjects(fileUris, compression, s3InputStream, consumer, collectSourceUriFailure);
         return consumer;
     }
 
     private void getObjects(Collection<String> fileUris,
                             String compression,
+                            final S3ObjectInputStream s3InputStream,
                             RowConsumer consumer,
                             boolean collectSourceUriFailure) throws Throwable {
-        BatchIterator<Row> iterator = createBatchIterator(fileUris, compression, collectSourceUriFailure);
+        BatchIterator<Row> iterator = createBatchIterator(fileUris,
+                                                          compression,
+                                                          s3InputStream,
+                                                          collectSourceUriFailure);
         consumer.accept(iterator, null);
     }
 
     private BatchIterator<Row> createBatchIterator(Collection<String> fileUris,
                                                    String compression,
+                                                   final S3ObjectInputStream s3InputStream,
                                                    boolean collectSourceUriFailure) {
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
@@ -239,7 +215,25 @@ public class FileReadingCollectorTest extends ESTestCase {
             inputs,
             ctx.expressions(),
             compression,
-            Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
+            Map.of(
+                S3FileInputFactory.NAME, () -> new S3FileInput(new S3ClientHelper() {
+                    @Override
+                    protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
+                        AmazonS3 client = mock(AmazonS3Client.class);
+                        ObjectListing objectListing = mock(ObjectListing.class);
+                        S3ObjectSummary summary = mock(S3ObjectSummary.class);
+                        S3Object s3Object = mock(S3Object.class);
+                        when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
+                        when(objectListing.getObjectSummaries()).thenReturn(Collections.singletonList(summary));
+                        when(summary.getKey()).thenReturn("foo");
+                        when(client.getObject("fakebucket", "foo")).thenReturn(s3Object);
+                        when(s3Object.getObjectContent()).thenReturn(s3InputStream);
+                        when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
+                        when(objectListing.isTruncated()).thenReturn(false);
+                        return client;
+                    }
+                })
+            ),
             false,
             1,
             0,

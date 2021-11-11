@@ -50,6 +50,8 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.net.ssl.SNIHostName;
 
+import io.crate.execution.engine.collect.files.CopyModule;
+import io.crate.plugin.CopyPlugin;
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -523,6 +525,9 @@ public class Node implements Closeable {
                 xContentRegistry
             );
             modules.add(repositoriesModule);
+
+            CopyModule copyModule = new CopyModule(pluginsService.filterPlugins(CopyPlugin.class));
+            modules.add(copyModule);
 
             RepositoriesService repositoryService = repositoriesModule.repositoryService();
 
