@@ -36,7 +36,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import java.net.InetSocketAddress;
 import java.util.List;
-
+import java.util.concurrent.TimeUnit;
 
 public final class ConnectionTest {
 
@@ -114,7 +114,7 @@ public final class ConnectionTest {
             return ProbeResult.SSL_MISSING;
         }
         finally {
-            group.shutdownGracefully().sync();
+            group.shutdownGracefully(0, 5, TimeUnit.SECONDS).sync();
         }
     }
 
