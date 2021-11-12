@@ -43,6 +43,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.engine.MissingHistoryOperationsException;
 import org.elasticsearch.index.seqno.RetentionLease;
+import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
@@ -94,7 +95,7 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
                   transportService,
                   indexNameExpressionResolver,
                   Request::new,
-                  ThreadPool.Names.LOGICAL_REPLICATION);
+                  ThreadPool.Names.SEARCH);
             this.indicesService = indicesService;
             TransportActionProxy.registerProxyAction(transportService, NAME, Response::new);
         }
@@ -112,8 +113,14 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
 
             // TODO: read changes from translog, see org.opensearch.replication.seqno.RemoteClusterTranslogService
 
-            LOGGER.info("Fetching changes from lucene for {} - from:{}, to:{}",
-                        request.shardId(), request.fromSeqNo(), toSeqNo);
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.info("[{}] Fetching changes from lucene for {} - from:{}, to:{}",
+                            shardId,
+                            request.shardId(),
+                            request.fromSeqNo(),
+                            toSeqNo
+                );
+            }
             var source = "logical-replication";
             try (Translog.Snapshot snapshot = indexShard.newChangesSnapshot(source, fromSeqNo, toSeqNo, true)) {
                 var op = snapshot.next();
@@ -143,10 +150,19 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
                                            ShardId shardId,
                                            ActionListener<Response> listener) throws IOException {
             var indexShard = indicesService.indexServiceSafe(shardId.getIndex()).getShard(shardId.id());
-            if (indexShard.getLastSyncedGlobalCheckpoint() < request.fromSeqNo()) {
+            final SeqNoStats seqNoStats = indexShard.seqNoStats();
+            if (seqNoStats.getGlobalCheckpoint() < request.fromSeqNo()) {
                 // There are no new operations to sync. Do a long poll and wait for GlobalCheckpoint to advance. If
                 // the checkpoint doesn't advance by the timeout this throws an ESTimeoutException which the caller
                 // should catch and start a new poll.
+
+                if (logger.isTraceEnabled()) {
+                    LOGGER.trace("[{}] Waiting for globalCheckpoint to advance from {} to {}",
+                                 shardId,
+                                 seqNoStats.getGlobalCheckpoint(),
+                                 request.fromSeqNo()
+                    );
+                }
 
                 indexShard.addGlobalCheckpointListener(
                     request.fromSeqNo(),
@@ -170,10 +186,20 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
                             assert e != null : "Exception expected if globalCheckout != " + UNASSIGNED_SEQ_NO;
                             if (e instanceof TimeoutException) {
                                 LOGGER.trace("Waiting for advanced globalCheckpoint timed out", e);
+                                var latestSeqNoStats = indexShard.seqNoStats();
+                                var indexService = indicesService.indexServiceSafe(shardId.getIndex());
+                                var response = new Response(
+                                    List.of(),
+                                    request.fromSeqNo(),
+                                    indexShard.getMaxSeqNoOfUpdatesOrDeletes(),
+                                    latestSeqNoStats.getGlobalCheckpoint(),
+                                    indexService.getMetadata().getVersion()
+                                );
+                                listener.onResponse(response);
                             } else {
                                 LOGGER.error("Error occurred while waiting for advanced globalCheckpoint", e);
+                                listener.onFailure(e);
                             }
-                            listener.onFailure(e);
                         }
                     },
                     WAIT_FOR_NEW_OPS_TIMEOUT
