@@ -281,10 +281,15 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
     }
 
     public synchronized void updateRemoteConnection(String name,
-                                                    Settings connectionSettings,
+                                                    Settings connectionSettingsOfSubscription,
                                                     CheckedConsumer<Void, Exception> onSuccess,
                                                     Consumer<Exception> onFailure) {
         RemoteClusterConnection remote = this.remoteClusters.get(name);
+        // The ConnectionManager uses node settings in addition to connection settings
+        var connectionSettings = Settings.builder()
+            .put(settings)
+            .put(connectionSettingsOfSubscription)
+            .build();
         if (RemoteConnectionStrategy.isConnectionEnabled(connectionSettings) == false) {
             try {
                 IOUtils.close(remote);
