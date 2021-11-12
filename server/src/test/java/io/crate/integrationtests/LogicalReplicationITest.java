@@ -39,6 +39,7 @@ import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.MockTcpTransportPlugin;
 import org.elasticsearch.transport.Netty4Plugin;
@@ -55,6 +56,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -234,6 +236,16 @@ public class LogicalReplicationITest extends ESTestCase {
         );
     }
 
+    private String defaultTableSettings() {
+        var joiner = new StringJoiner(",");
+        // disable replicas to avoid waiting on global checkpoint synchronization on the remote cluster
+        // which slows down test speed a lot
+        joiner.add("number_of_replicas=0");
+        // flush documents to lucene immediately so they can be seen by the changes tracker
+        joiner.add("\"translog.flush_threshold_size\"='64b'");
+        return joiner.toString();
+    }
+
     @Test
     public void test_create_publication_for_concrete_table() {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
@@ -276,8 +288,8 @@ public class LogicalReplicationITest extends ESTestCase {
 
     @Test
     public void test_subscribing_to_single_publication() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
-                           " \"translog.flush_threshold_size\"='64b'" +
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+                           defaultTableSettings() +
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
 
@@ -294,8 +306,8 @@ public class LogicalReplicationITest extends ESTestCase {
 
     @Test
     public void test_subscribing_to_publication_while_table_exists_raises_error() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
-                           " \"translog.flush_threshold_size\"='64b'" +
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+                           defaultTableSettings() +
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
 
@@ -311,15 +323,13 @@ public class LogicalReplicationITest extends ESTestCase {
 
     @Test
     public void test_subscribing_to_single_publication_with_multiple_tables() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
-                           " number_of_replicas=0," +
-                           " \"translog.flush_threshold_size\"='64b'" +
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+                           defaultTableSettings() +
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
 
         executeOnPublisher("CREATE TABLE doc.t2 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
-                           " number_of_replicas=0," +
-                           " \"translog.flush_threshold_size\"='64b'" +
+                           defaultTableSettings() +
                            ")");
         executeOnPublisher("INSERT INTO doc.t2 (id) VALUES (3), (4)");
 
@@ -341,9 +351,8 @@ public class LogicalReplicationITest extends ESTestCase {
 
     @Test
     public void test_subscribing_to_single_publication_with_partitioned_table() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT, p INT) CLUSTERED INTO 1 SHARDS PARTITIONED BY (p) WITH(" +
-                           " number_of_replicas=0," +
-                           " \"translog.flush_threshold_size\"='64b'" +
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) WITH(" +
+                           defaultTableSettings() +
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
 
@@ -360,14 +369,12 @@ public class LogicalReplicationITest extends ESTestCase {
 
     @Test
     public void test_subscribing_to_single_publication_for_all_tables() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT, p INT) CLUSTERED INTO 1 SHARDS PARTITIONED BY (p) WITH(" +
-                           " number_of_replicas=0," +
-                           " \"translog.flush_threshold_size\"='64b'" +
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) WITH(" +
+                           defaultTableSettings() +
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
-        executeOnPublisher("CREATE TABLE my_schema.t2 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
-                           " number_of_replicas=0," +
-                           " \"translog.flush_threshold_size\"='64b'" +
+        executeOnPublisher("CREATE TABLE my_schema.t2 (id INT) WITH(" +
+                           defaultTableSettings() +
                            ")");
         executeOnPublisher("INSERT INTO my_schema.t2 (id) VALUES (1), (2)");
 
@@ -387,11 +394,11 @@ public class LogicalReplicationITest extends ESTestCase {
                                                      "2\n"));
     }
 
+    @TestLogging("io.crate.replication.logical:TRACE,org.elasticsearch.index.seqno:TRACE")
     @Test
     public void test_subscribed_tables_are_followed_and_updated() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
-                           " number_of_replicas=0," +
-                           " \"translog.flush_threshold_size\"='64b'" +
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+                           defaultTableSettings() +
                            ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
 
