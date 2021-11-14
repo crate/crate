@@ -100,7 +100,7 @@ public class AgeFunction extends Scalar<Long, Object> {
             return null;
 
         Object earliestValue = args[args.length - 1].value();
-        Long timestampEarliest = DataTypes.LONG.sanitizeValue(earliestValue);
+        Long timestampEarliest = DataTypes.TIMESTAMP.implicitCast(earliestValue);
         Long timestampNewest = getNewestDateValue(txnCtx, args);
         Long duration = timestampNewest.longValue() - timestampEarliest.longValue();
 
@@ -127,7 +127,7 @@ public class AgeFunction extends Scalar<Long, Object> {
 
         if (args.length == 2) {
             Object newestValue = args[0].value();
-            timestampNewest = DataTypes.LONG.sanitizeValue(newestValue);
+            timestampNewest =  DataTypes.TIMESTAMP.implicitCast(newestValue);
         } else {
             timestampNewest = getTodayMidnightAtUTC(txnCtx);
         }
