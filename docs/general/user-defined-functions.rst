@@ -242,6 +242,16 @@ Also, even though user-defined functions implemented with ECMA-compliant
 JavaScript, objects that are normally accessible with a web browser
 (e.g. ``window``, ``console``, and so on) are not available.
 
+.. NOTE::
+    
+    GraalVM treats objects provided to JavaScript user-defined functions as 
+    close as possible to their respective counterparts and therefore by default 
+    only a subset of prototype functions are available in user-defined 
+    functions. For CrateDB 4.6 and earlier the object prototype was disabled.
+    
+    Please refer to the `GraalVM JavaScript Compatibility FAQ`_ to learn more 
+    about the compatibility.
+
 
 .. _udf-js-supported-types:
 
@@ -394,6 +404,7 @@ is returned::
 
 .. _ECMAScript 2019: https://262.ecma-international.org/10.0/index.html
 .. _GraalVM JavaScript: https://www.graalvm.org/reference-manual/js/
+.. _GraalVM JavaScript Compatibility FAQ: https://www.graalvm.org/reference-manual/js/FAQ/#compatibility
 .. _GraalVM Polyglot API: https://www.graalvm.org/reference-manual/embed-languages/
 .. _GraalVM Security Guide: https://www.graalvm.org/security-guide/
 .. _stock host Java VM JIT compilers: https://www.graalvm.org/reference-manual/js/RunOnJDK/
