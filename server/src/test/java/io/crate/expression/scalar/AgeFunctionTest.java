@@ -50,38 +50,13 @@ public class AgeFunctionTest extends ScalarTestCase
 
 
     @Test
-    public void testAgeDateTimeZoneAware() throws Exception {
+    public void testAgeDate() throws Exception {
 
-        long midnightMoscow = LocalDate.now( ZoneOffset.UTC ).atTime(3,0).toEpochSecond(ZoneOffset.UTC) * 1000;
-        long midnightVienna = LocalDate.now( ZoneOffset.UTC ).atTime(1,0).toEpochSecond(ZoneOffset.UTC) * 1000;
         long midnightUTC = LocalDate.now( ZoneOffset.UTC ).atStartOfDay( ZoneOffset.UTC ).toInstant().toEpochMilli();
-        Long expected3 =midnightMoscow-LocalDate.of(2021, Month.NOVEMBER, 8).atTime(3,0).toEpochSecond(ZoneOffset.UTC) * 1000;
-        Long expected1 =midnightVienna-LocalDate.of(2021, Month.NOVEMBER, 8).atTime(1,0).toEpochSecond(ZoneOffset.UTC) * 1000;
         Long expected0 =midnightUTC-LocalDate.of(2021, Month.NOVEMBER, 8).atStartOfDay().toEpochSecond(ZoneOffset.UTC) * 1000;
         assertEvaluate("age('2021-11-08')", expected0);
-        assertEvaluate("age('Europe/Vienna', '2021-11-08')", expected1);  // +0100
-        assertEvaluate("age('+01:00', '2021-11-08')",expected1);         // +0100
-        assertEvaluate("age('CET', '2021-11-08')", expected1);           // +0100
-        assertEvaluate("age('Europe/Moscow', '2021-11-08')", expected3); // +0300
-        assertEvaluate("age('+03:00', '2021-11-08')",expected3);         // +0300
 
 
-    }
-    @Test
-    public void testAgeDateTimeTimeZoneAware() throws Exception {
-
-        long midnightMoscow = LocalDate.now( ZoneOffset.UTC ).atTime(3,0).toEpochSecond(ZoneOffset.UTC) * 1000;
-        long midnightVienna = LocalDate.now( ZoneOffset.UTC ).atTime(1,0).toEpochSecond(ZoneOffset.UTC) * 1000;
-        long midnightUTC = LocalDate.now( ZoneOffset.UTC ).atStartOfDay( ZoneOffset.UTC ).toInstant().toEpochMilli();
-        Long expected4 = midnightMoscow - LocalDate.of(2021, Month.NOVEMBER, 8).atTime(4,0).toEpochSecond(ZoneOffset.UTC) * 1000;
-        Long expected2 = midnightVienna - LocalDate.of(2021, Month.NOVEMBER, 8).atTime(2,0).toEpochSecond(ZoneOffset.UTC) * 1000;
-        Long expected1 = midnightUTC - LocalDate.of(2021, Month.NOVEMBER, 8).atTime(1,0).toEpochSecond(ZoneOffset.UTC) * 1000;
-        assertEvaluate("age('2021-11-08 01:00')", expected1);
-        assertEvaluate("age('Europe/Vienna', '2021-11-08 01:00')", expected2);  // +0100
-        assertEvaluate("age('+01:00', '2021-11-08 01:00')",expected2);         // +0100
-        assertEvaluate("age('CET', '2021-11-08 01:00')", expected2);           // +0100
-        assertEvaluate("age('Europe/Moscow', '2021-11-08 01:00')", expected4); // +0300
-        assertEvaluate("age('+03:00', '2021-11-08 01:00')",expected4);         // +0300
 
     }
 

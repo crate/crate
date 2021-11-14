@@ -1464,27 +1464,20 @@ specified interval added to the timestamp of ``0000/01/01 00:00:00``::
 
 .. _scalar-age:
 
-``age(['timezone',][timestamp,]timestamp)``
+``age([timestamp,]timestamp)``
 -------------------------------------------
 
 Returns: ``bigint``
 
 The ``age`` function can be used to calculate the difference between timestamp inputs
-or timestamp input and today at midnight if is called with one timestamp parameter.
+or today at midnight and timestamp input.
 
 The return value is the age in milliseconds.
 
-It is implemented to improve compatibility with
-clients that use the PostgreSQL wire protocol.
-
 If at least one argument is ``NULL``, the return value is ``NULL``.
 
-Valid values for ``timezone`` are either the name of a time zone (for example
-'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00'). To
-get a complete overview of all possible values take a look at the `available
-time zones`_ supported by `Joda-Time`_.
 
- ``age`` function  example from today at 00:00 till 2021-11-5 ::
+Example with ``age`` between  today at 00:00 and 2021-11-5: ::
 
 
     cr> select
@@ -1496,6 +1489,16 @@ time zones`_ supported by `Joda-Time`_.
     +--------------+
     SELECT 1 row in set (... sec)
 
+Example with ``age`` between 2021-11-03 and 2020-09-01: ::
+
+    cr> select
+    ...     pg_catalog.age(timestamp '2021-11-03', timestamp '2020-09-01') as age;
+    +--------------+
+    |          age |
+    +--------------+
+    |  36979200000 |
+    +--------------+
+    SELECT 1 row in set (... sec)
 
 
 .. _scalar-geo:
@@ -3655,7 +3658,7 @@ Example:
     SELECT 1 row in set (... sec)
 
 
-If the given ``OID`` is not k(now, ``???`` is returned::
+If the given ``OID`` is not know, ``???`` is returned::
 
 
     cr> SELECT pg_catalog.format_type(3, null) AS name;
@@ -3663,7 +3666,7 @@ If the given ``OID`` is not k(now, ``???`` is returned::
     | name |
     +------+
     |  ??? |
-    +------+)
+    +------+
     SELECT 1 row in set (... sec)
 
 
