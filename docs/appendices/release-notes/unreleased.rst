@@ -147,21 +147,3 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Fixed an issue that caused ``UNION ALL`` statements to succeed or throw
-  unexpected exceptions when the ``SELECT`` results for ``UNION ALL`` included
-  object types with identically named but differently typed sub-columns.
-
-- Fixed an issue that caused ``date_format()`` to return wrong values when used
-  with the ``%D`` specifier (day of month as ordinal number) for 11th, 12th and
-  13th.
-
-- Fixed a performance regression introduced in 4.2 which caused queries with
-  ``WHERE`` clause on aliased column on top of views or virtual tables to be
-  slow.
-
-- Fixed an issue in ``HBA`` which caused entries with method ``cert`` for one
-  protocol affect entries of other protocols in the way that client certificate
-  is requested for ``trust`` or ``password`` entries of other protocols.
-
-- Fixed an issue that threw an unexpected exception while converting a WKT
-  string representing a valid polygon to ``geo_shape``.
