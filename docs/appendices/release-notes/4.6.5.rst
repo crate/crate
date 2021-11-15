@@ -1,0 +1,54 @@
+.. _version_4.6.5:
+
+=============
+Version 4.6.5
+=============
+
+Released on 2021-11-12.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 4.6.5.
+
+    We recommend that you upgrade to the latest 4.3 release before moving to
+    4.6.5.
+
+    A rolling upgrade from 4.5.x to 4.6.5 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.6.0` release notes for a full list of changes in the
+4.6 series.
+
+Fixes
+=====
+
+- Fixed an issue that caused ``UNION ALL`` statements to succeed or throw
+  unexpected exceptions when the ``SELECT`` results for ``UNION ALL`` included
+  object types with identically named but differently typed sub-columns.
+
+- Fixed an issue that caused ``date_format()`` to return wrong values when used
+  with the ``%D`` specifier (day of month as ordinal number) for 11th, 12th and
+  13th.
+
+- Fixed a performance regression introduced in 4.2 which caused queries with
+  ``WHERE`` clause on aliased column on top of views or virtual tables to be
+  slow.
+
+- Fixed an issue in ``HBA`` which caused entries with method ``cert`` for one
+  protocol affect entries of other protocols in the way that client certificate
+  is requested for ``trust`` or ``password`` entries of other protocols.
+
+- Fixed an issue that threw an unexpected exception while converting a WKT
+  string representing a valid polygon to ``geo_shape``.
