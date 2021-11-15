@@ -42,6 +42,7 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.action.TransportCreatePublicationAction;
 import io.crate.replication.logical.action.TransportCreateSubscriptionAction;
 import io.crate.replication.logical.action.TransportDropPublicationAction;
+import io.crate.replication.logical.action.TransportDropSubscriptionAction;
 import io.crate.statistics.TransportAnalyzeAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -84,6 +85,7 @@ public class DependencyCarrier {
     private final TransportCreatePublicationAction createPublicationAction;
     private final TransportDropPublicationAction dropPublicationAction;
     private final TransportCreateSubscriptionAction createSubscriptionAction;
+    private final TransportDropSubscriptionAction dropSubscriptionAction;
     private final LogicalReplicationService logicalReplicationService;
 
     @Inject
@@ -111,6 +113,7 @@ public class DependencyCarrier {
                              TransportCreatePublicationAction createPublicationAction,
                              TransportDropPublicationAction dropPublicationAction,
                              TransportCreateSubscriptionAction createSubscriptionAction,
+                             TransportDropSubscriptionAction dropSubscriptionAction,
                              LogicalReplicationService logicalReplicationService) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
@@ -137,6 +140,7 @@ public class DependencyCarrier {
         this.createPublicationAction = createPublicationAction;
         this.dropPublicationAction = dropPublicationAction;
         this.createSubscriptionAction = createSubscriptionAction;
+        this.dropSubscriptionAction = dropSubscriptionAction;
         this.logicalReplicationService = logicalReplicationService;
     }
 
@@ -246,6 +250,10 @@ public class DependencyCarrier {
 
     public TransportCreateSubscriptionAction createSubscriptionAction() {
         return createSubscriptionAction;
+    }
+
+    public TransportDropSubscriptionAction dropSubscriptionAction() {
+        return dropSubscriptionAction;
     }
 
     public LogicalReplicationService logicalReplicationService() {
