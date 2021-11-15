@@ -25,6 +25,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
@@ -284,6 +285,20 @@ public class LogicalReplicationITest extends ESTestCase {
         assertThat(response.rowCount(), is(0L));
         response = executeOnPublisher("SELECT * FROM pg_publication_tables WHERE pubname = 'pub2'");
         assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void test_drop_subscription() {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
+
+        executeOnSubscriber("CREATE SUBSCRIPTION sub1 CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
+
+        LogicalReplicationService replicationService = subscriberCluster.getInstance(LogicalReplicationService.class);
+        assertTrue(replicationService.subscriptions().containsKey("sub1"));
+
+        executeOnSubscriber("DROP SUBSCRIPTION sub1 ");
+        assertFalse(replicationService.subscriptions().containsKey("sub1"));
     }
 
     @Test
