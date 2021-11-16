@@ -21,12 +21,17 @@
 
 package io.crate.replication.logical.action;
 
+import io.crate.common.unit.TimeValue;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -34,7 +39,9 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.mapper.StrictDynamicMappingException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -44,7 +51,9 @@ import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class ReplayChangesAction extends ActionType<ReplicationResponse> {
 
@@ -59,6 +68,8 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
     @Singleton
     public static class TransportAction
         extends TransportWriteAction<Request, Request, ReplicationResponse> {
+
+        private static final Logger LOGGER = Loggers.getLogger(ReplayChangesAction.class);
 
         @Inject
         public TransportAction(TransportService transportService,
@@ -86,63 +97,106 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
         }
 
         @Override
-        protected void shardOperationOnPrimary(Request request,
-                                               IndexShard primary,
-                                               ActionListener<PrimaryResult<Request, ReplicationResponse>> listener) {
-            ActionListener.completeWith(
-                listener,
-                () -> new WritePrimaryResult<>(
+        protected void shardOperationOnPrimary(Request request, IndexShard primary, ActionListener<PrimaryResult<Request, ReplicationResponse>> listener) {
+            performOnPrimary(primary, request, new ArrayList<>(), 0, results -> {
+                Translog.Location location = null;
+                try {
+                    for (Engine.Result engineResult : results) {
+                        location = syncOperationResultOrThrow(engineResult, location);
+                    }
+                } catch (Exception e) {
+                    listener.onFailure(e);
+                }
+                listener.onResponse(new WritePrimaryResult<>(
                     request,
                     new ReplicationResponse(),
-                    performOnPrimary(request, primary),
+                    location,
                     null,
-                    primary
-                )
-            );
+                    primary)
+                );
+            }, listener::onFailure);
         }
 
-        public Translog.Location performOnPrimary(Request request, IndexShard primary) throws Exception {
-            Translog.Location location = null;
-
-            for (var translogOp : request.changes()) {
-                final var op = withPrimaryTerm(translogOp, primary.getOperationPrimaryTerm());
+        private void performOnPrimary(IndexShard primary, Request request, List<Engine.Result> accumulator, int offset, Consumer<List<Engine.Result>> result, Consumer<Exception> failure) {
+            for (int i = offset; i < request.changes().size(); i++) {
+                final var op = request.changes().get(i);
+                final var opWithPrimary = withPrimaryTerm(op, primary.getOperationPrimaryTerm());
                 if (primary.getMaxSeqNoOfUpdatesOrDeletes() < request.maxSeqNoOfUpdatesOrDeletes()) {
                     primary.advanceMaxSeqNoOfUpdatesOrDeletes(request.maxSeqNoOfUpdatesOrDeletes());
                 }
-                var result = primary.applyTranslogOperation(op, Engine.Operation.Origin.PRIMARY);
-                if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                    throw new RuntimeException("Mapping update required");
+                Engine.Result engineResult = null;
+                try {
+                    engineResult = primary.applyTranslogOperation(opWithPrimary, Engine.Operation.Origin.PRIMARY);
+                } catch (IOException e) {
+                    failure.accept(e);
+                    return;
                 }
-
-                location = syncOperationResultOrThrow(result, location);
+                if (engineResult.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED ||
+                    (engineResult.getResultType() == Engine.Result.Type.FAILURE &&
+                     engineResult.getFailure() instanceof StrictDynamicMappingException)
+                ) {
+                    // Retry to process the translog operations, once the mappings are updated
+                    retryWhenMappingsAreUpdated(primary, request, accumulator, i, result, failure);
+                    return;
+                }
+                accumulator.add(engineResult);
             }
-            return location;
+            result.accept(accumulator);
+        }
+
+        private void retryWhenMappingsAreUpdated(IndexShard primary, Request request, List<Engine.Result> accumulator, int offset, Consumer<List<Engine.Result>> result, Consumer<Exception> failure) {
+            var indexName = request.shardId().getIndexName();
+            var currentMappingVersion = clusterService.state().metadata().index(indexName).getMappingVersion();
+            var clusterStateObserver = new ClusterStateObserver(clusterService, LOGGER);
+            clusterStateObserver.waitForNextChange(
+                new ClusterStateObserver.Listener() {
+                    @Override
+                    public void onNewClusterState(ClusterState state) {
+                        performOnPrimary(primary, request, accumulator, offset, result, failure);
+                    }
+
+                    @Override
+                    public void onClusterServiceClose() {
+                        failure.accept(new IllegalStateException("ClusterService was closed while waiting for mapping update"));
+                    }
+
+                    @Override
+                    public void onTimeout(TimeValue timeout) {
+                        failure.accept(new ElasticsearchTimeoutException("Mappings did not update in time"));
+                    }
+
+                }, cs -> isIndexMetadataUpdated(cs, indexName, currentMappingVersion)
+            );
+        }
+
+        private static boolean isIndexMetadataUpdated(ClusterState cs, String indexName, long mappingVersion) {
+            var indexMetadata = cs.metadata().index(indexName);
+            if (indexMetadata == null) {
+                return false;
+            } else {
+                var newMappingVersion = indexMetadata.getMappingVersion();
+                return newMappingVersion > mappingVersion;
+            }
         }
 
         @Override
-        protected WriteReplicaResult<Request> shardOperationOnReplica(Request request,
-                                                                      IndexShard replica) throws Exception {
+        protected WriteReplicaResult<Request> shardOperationOnReplica(Request request, IndexShard replica) throws Exception {
             Translog.Location location = performOnReplica(request, replica);
             return new WriteReplicaResult<>(request, location, null, replica, logger);
         }
 
-        private Translog.Location performOnReplica(Request request,
-                                                   IndexShard replica) throws Exception {
+        private Translog.Location performOnReplica(Request request, IndexShard replica) throws Exception {
             Translog.Location location = null;
-
             for (var translogOp : request.changes()) {
                 final var op = withPrimaryTerm(translogOp, replica.getOperationPrimaryTerm());
                 var result = replica.applyTranslogOperation(op, Engine.Operation.Origin.REPLICA);
                 if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                     throw new TransportReplicationAction.RetryOnReplicaException(
-                        replica.shardId(),
-                        "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
+                        replica.shardId(), "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
                 }
-
                 location = syncOperationResultOrThrow(result, location);
             }
             return location;
-
         }
 
         private static Translog.Operation withPrimaryTerm(Translog.Operation op, long operationPrimaryTerm) {
