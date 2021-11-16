@@ -29,7 +29,7 @@ import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationComman
 
 import io.crate.auth.Authentication;
 import io.crate.common.CheckedFunction;
-import io.crate.netty.EventLoopGroups;
+import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 
 import org.elasticsearch.common.ParseField;
@@ -106,7 +106,7 @@ public final class NetworkModule {
                          NamedWriteableRegistry namedWriteableRegistry,
                          NamedXContentRegistry xContentRegistry,
                          NetworkService networkService,
-                         EventLoopGroups eventLoopGroups,
+                         NettyBootstrap nettyBootstrap,
                          Authentication authentication,
                          SslContextProvider sslContextProvider,
                          NodeClient nodeClient) {
@@ -120,7 +120,7 @@ public final class NetworkModule {
                 namedWriteableRegistry,
                 xContentRegistry,
                 networkService,
-                eventLoopGroups,
+                nettyBootstrap,
                 nodeClient
             );
             for (Map.Entry<String, Supplier<HttpServerTransport>> entry : httpTransportFactory.entrySet()) {
@@ -134,7 +134,7 @@ public final class NetworkModule {
                 circuitBreakerService,
                 namedWriteableRegistry,
                 networkService,
-                eventLoopGroups,
+                nettyBootstrap,
                 authentication,
                 sslContextProvider
             );

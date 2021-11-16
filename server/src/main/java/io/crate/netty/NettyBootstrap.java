@@ -40,10 +40,10 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.Future;
 
 @Singleton
-public class EventLoopGroups {
+public class NettyBootstrap {
 
     public static final String WORKER_THREAD_PREFIX = "netty-worker";
-    private static final Logger LOGGER = LogManager.getLogger(EventLoopGroups.class);
+    private static final Logger LOGGER = LogManager.getLogger(NettyBootstrap.class);
 
     private int refs = 0;
     private EventLoopGroup worker;
@@ -60,7 +60,7 @@ public class EventLoopGroups {
         }
         refs++;
         return new BorrowedItem<>(worker, () -> {
-            synchronized (EventLoopGroups.this) {
+            synchronized (NettyBootstrap.this) {
                 refs--;
                 if (refs == 0) {
                     Future<?> shutdownGracefully = worker.shutdownGracefully(0, 5, TimeUnit.SECONDS);

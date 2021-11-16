@@ -100,7 +100,7 @@ import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import io.crate.common.collections.BorrowedItem;
-import io.crate.netty.EventLoopGroups;
+import io.crate.netty.NettyBootstrap;
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.crate.types.DataTypes;
@@ -230,7 +230,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     private final NodeClient nodeClient;
 
-    private final EventLoopGroups eventLoopGroups;
+    private final NettyBootstrap nettyBootstrap;
 
     private BorrowedItem<EventLoopGroup> eventLoopGroup;
 
@@ -240,7 +240,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
                                      ThreadPool threadPool,
                                      NamedXContentRegistry xContentRegistry,
                                      PipelineRegistry pipelineRegistry,
-                                     EventLoopGroups eventLoopGroups,
+                                     NettyBootstrap nettyBootstrap,
                                      NodeClient nodeClient) {
         Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
         this.settings = settings;
@@ -249,7 +249,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         this.threadPool = threadPool;
         this.xContentRegistry = xContentRegistry;
         this.pipelineRegistry = pipelineRegistry;
-        this.eventLoopGroups = eventLoopGroups;
+        this.nettyBootstrap = nettyBootstrap;
         this.nodeClient = nodeClient;
 
         this.maxContentLength = SETTING_HTTP_MAX_CONTENT_LENGTH.get(settings);
@@ -293,7 +293,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         boolean success = false;
         try {
             this.serverOpenChannels = new Netty4OpenChannelsHandler(logger);
-            eventLoopGroup = eventLoopGroups.getEventLoopGroup(settings);
+            eventLoopGroup = nettyBootstrap.getEventLoopGroup(settings);
             serverBootstrap = new ServerBootstrap();
             serverBootstrap.group(eventLoopGroup.item());
             if (Epoll.isAvailable()) {

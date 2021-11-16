@@ -24,7 +24,7 @@ import io.crate.auth.Authentication;
 import io.crate.auth.Protocol;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.BorrowedItem;
-import io.crate.netty.EventLoopGroups;
+import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslSettings.SSLMode;
@@ -113,7 +113,7 @@ public class Netty4Transport extends TcpTransport {
     private final ByteSizeValue receivePredictorMax;
     private volatile Bootstrap clientBootstrap;
     private final Map<String, ServerBootstrap> serverBootstraps = newConcurrentMap();
-    private final EventLoopGroups eventLoopGroups;
+    private final NettyBootstrap nettyBootstrap;
     private final SslContextProvider sslContextProvider;
     private final Authentication authentication;
 
@@ -130,13 +130,13 @@ public class Netty4Transport extends TcpTransport {
                            PageCacheRecycler pageCacheRecycler,
                            NamedWriteableRegistry namedWriteableRegistry,
                            CircuitBreakerService circuitBreakerService,
-                           EventLoopGroups eventLoopGroups,
+                           NettyBootstrap nettyBootstrap,
                            Authentication authentication,
                            SslContextProvider sslContextProvider) {
         super(settings, version, threadPool, pageCacheRecycler, circuitBreakerService, namedWriteableRegistry, networkService);
         Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
         this.authentication = authentication;
-        this.eventLoopGroups = eventLoopGroups;
+        this.nettyBootstrap = nettyBootstrap;
         this.sslContextProvider = sslContextProvider;
 
         // See AdaptiveReceiveBufferSizePredictor#DEFAULT_XXX for default values in netty..., we can use higher ones for us, even fixed one
@@ -154,7 +154,7 @@ public class Netty4Transport extends TcpTransport {
     protected void doStart() {
         boolean success = false;
         try {
-            eventLoopGroup = eventLoopGroups.getEventLoopGroup(settings);
+            eventLoopGroup = nettyBootstrap.getEventLoopGroup(settings);
             clientBootstrap = createClientBootstrap(eventLoopGroup.item());
             if (NetworkService.NETWORK_SERVER.get(settings)) {
                 for (ProfileSettings profileSettings : profileSettings) {
