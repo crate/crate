@@ -42,11 +42,6 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.RecvByteBufAllocator;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollServerSocketChannel;
-import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
@@ -174,11 +169,7 @@ public class Netty4Transport extends TcpTransport {
     private Bootstrap createClientBootstrap(EventLoopGroup eventLoopGroup) {
         final Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(eventLoopGroup);
-        if (Epoll.isAvailable()) {
-            bootstrap.channel(EpollSocketChannel.class);
-        } else {
-            bootstrap.channel(NioSocketChannel.class);
-        }
+        bootstrap.channel(NettyBootstrap.clientChannel());
 
         bootstrap.option(ChannelOption.TCP_NODELAY, TransportSettings.TCP_NO_DELAY.get(settings));
         bootstrap.option(ChannelOption.SO_KEEPALIVE, TransportSettings.TCP_KEEP_ALIVE.get(settings));
@@ -212,12 +203,7 @@ public class Netty4Transport extends TcpTransport {
 
         final ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(eventLoopGroup);
-
-        if (Epoll.isAvailable()) {
-            serverBootstrap.channel(EpollServerSocketChannel.class);
-        } else {
-            serverBootstrap.channel(NioServerSocketChannel.class);
-        }
+        serverBootstrap.channel(NettyBootstrap.serverChannel());
 
         serverBootstrap.childHandler(new ServerChannelInitializer(name));
         serverBootstrap.handler(new ServerChannelExceptionHandler());
