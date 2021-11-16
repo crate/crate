@@ -114,9 +114,6 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.RecvByteBufAllocator;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollServerSocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.http.HttpContentDecompressor;
@@ -296,11 +293,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             eventLoopGroup = nettyBootstrap.getEventLoopGroup(settings);
             serverBootstrap = new ServerBootstrap();
             serverBootstrap.group(eventLoopGroup.item());
-            if (Epoll.isAvailable()) {
-                serverBootstrap.channel(EpollServerSocketChannel.class);
-            } else {
-                serverBootstrap.channel(NioServerSocketChannel.class);
-            }
+            serverBootstrap.channel(NettyBootstrap.serverChannel());
 
             serverBootstrap.childHandler(configureServerChannelHandler());
 
