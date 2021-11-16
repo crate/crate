@@ -64,6 +64,9 @@ Deprecations
 Changes
 =======
 
+- Added support for the :ref:`END <ref-end>` statement for improved PostgreSQL
+  compatibility.
+
 - Registered the scalar function :ref:`array_to_string
   <scalar-array_to_string>` under the `pg_catalog` schema.
 

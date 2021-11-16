@@ -121,6 +121,12 @@ public class PostgresCompatIntegrationTest extends SQLIntegrationTestCase {
         assertNoErrorResponse(response);
     }
 
+    @Test
+    public void testEndStatement() {
+        execute("END");
+        assertNoErrorResponse(response);
+    }
+
     /**
      * In CrateDB -1 means row-count unknown, and -2 means error.
      * In JDBC -2 means row-count unknown and -3 means error.

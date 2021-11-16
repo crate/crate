@@ -38,6 +38,7 @@ SQL Statements
     drop-table
     drop-user
     drop-view
+    end
     explain
     grant
     insert
