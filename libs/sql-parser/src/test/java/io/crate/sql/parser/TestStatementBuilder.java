@@ -215,6 +215,15 @@ public class TestStatementBuilder {
     @Test
     public void testCommit() {
         printStatement("COMMIT");
+        printStatement("COMMIT WORK");
+        printStatement("COMMIT TRANSACTION");
+    }
+
+    @Test
+    public void testEnd() {
+        printStatement("END");
+        printStatement("END WORK");
+        printStatement("END TRANSACTION");
     }
 
     @Test
