@@ -19,6 +19,33 @@
 
 package org.elasticsearch.transport.netty4;
 
+import static org.elasticsearch.common.settings.Setting.byteSizeSetting;
+import static org.elasticsearch.common.settings.Setting.intSetting;
+import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.Map;
+
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.lease.Releasables;
+import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.util.PageCacheRecycler;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TcpTransport;
+import org.elasticsearch.transport.TransportSettings;
+
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Authentication;
 import io.crate.auth.Protocol;
@@ -42,42 +69,11 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.RecvByteBufAllocator;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollServerSocketChannel;
-import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.AttributeKey;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.lease.Releasables;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TcpTransport;
-import org.elasticsearch.transport.TransportSettings;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.Map;
-
-import static org.elasticsearch.common.settings.Setting.byteSizeSetting;
-import static org.elasticsearch.common.settings.Setting.intSetting;
-import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
 
 /**
  * There are 4 types of connections per node, low/med/high/ping. Low if for batch oriented APIs (like recovery or

@@ -21,30 +21,31 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.auth.AlwaysOKAuthentication;
-import io.crate.netty.EventLoopGroups;
-import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.user.StubUserManager;
-import io.crate.user.User;
-
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.http.BindHttpException;
-import org.elasticsearch.transport.BindTransportException;
-import org.junit.Test;
-
-import java.net.UnknownHostException;
-import java.util.Collections;
-
 import static io.crate.protocols.postgres.PostgresNetty.resolvePublishPort;
 import static java.net.InetAddress.getByName;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
+
+import java.net.UnknownHostException;
+import java.util.Collections;
+
+import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.BindHttpException;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.transport.BindTransportException;
+import org.elasticsearch.transport.TcpTransport;
+import org.junit.Test;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.netty.EventLoopGroups;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.user.StubUserManager;
+import io.crate.user.User;
 
 public class PostgresNettyPublishPortTest extends ESTestCase {
 
@@ -87,7 +88,9 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             networkService,
             new AlwaysOKAuthentication(userManager),
             new EventLoopGroups(),
-            mock(SslContextProvider.class));
+            mock(TcpTransport.class),
+            mock(SslContextProvider.class)
+        );
         try {
             psql.doStart();
         } finally {
@@ -109,7 +112,9 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             networkService,
             new AlwaysOKAuthentication(userManager),
             new EventLoopGroups(),
-            mock(SslContextProvider.class));
+            mock(TcpTransport.class),
+            mock(SslContextProvider.class)
+        );
         try {
             psql.doStart();
             fail("Should have failed due to custom hostname");
@@ -135,6 +140,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             networkService,
             new AlwaysOKAuthentication(userManager),
             new EventLoopGroups(),
+            mock(TcpTransport.class),
             mock(SslContextProvider.class));
         try {
             psql.doStart();
@@ -161,6 +167,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             networkService,
             new AlwaysOKAuthentication(userName -> User.CRATE_USER),
             new EventLoopGroups(),
+            mock(TcpTransport.class),
             mock(SslContextProvider.class));
         try {
             psql.doStart();

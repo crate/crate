@@ -50,6 +50,7 @@ import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.transport.BindTransportException;
+import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 
 import io.crate.action.sql.SQLOperations;
@@ -117,6 +118,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                          NetworkService networkService,
                          Authentication authentication,
                          EventLoopGroups eventLoopGroups,
+                         TcpTransport tcpTransport,
                          SslContextProvider sslContextProvider) {
         this.settings = settings;
         this.userManager = userManager;
@@ -162,6 +164,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                 PostgresWireProtocol postgresWireProtocol = new PostgresWireProtocol(
                     sqlOperations,
                     userManager::getAccessControl,
+                    chPipeline -> {},
                     authentication,
                     sslContextProvider);
                 pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);

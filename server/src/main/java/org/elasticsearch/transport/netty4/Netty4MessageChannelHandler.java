@@ -33,6 +33,7 @@ import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.InboundPipeline;
+import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.Transports;
 
@@ -44,16 +45,16 @@ import java.util.Queue;
  * A handler (must be the last one!) that does size based frame decoding and forwards the actual message
  * to the relevant action.
  */
-final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
+public final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
 
-    private final Netty4Transport transport;
+    private final TcpTransport transport;
 
     private final Queue<WriteOperation> queuedWrites = new ArrayDeque<>();
 
     private WriteOperation currentWrite;
     private final InboundPipeline pipeline;
 
-    Netty4MessageChannelHandler(PageCacheRecycler recycler, Netty4Transport transport) {
+    public Netty4MessageChannelHandler(PageCacheRecycler recycler, TcpTransport transport) {
         this.transport = transport;
         final ThreadPool threadPool = transport.getThreadPool();
         final Transport.RequestHandlers requestHandlers = transport.getRequestHandlers();

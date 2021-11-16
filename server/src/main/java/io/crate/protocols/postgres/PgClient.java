@@ -135,15 +135,27 @@ public class PgClient implements Closeable {
             int msgLength = msg.readInt() - 4; // exclude self
 
             switch (msgType) {
-                // Authentication request
                 case 'R' -> handleAuth(msg);
+                case 'S' -> handleParameterStatus(msg);
+                case 'Z' -> handleReadyForQuery(msg);
                 default -> throw new IllegalStateException("Unexpected message type: " + msgType);
             }
         }
 
+        private void handleReadyForQuery(ByteBuf msg) {
+            byte transactionStatus = msg.readByte();
+            System.out.println("transactionStatus=" + (char) transactionStatus);
+        }
+
+        private void handleParameterStatus(ByteBuf msg) {
+            String name = PostgresWireProtocol.readCString(msg);
+            String value = PostgresWireProtocol.readCString(msg);
+            System.out.println(name + "=" + value);
+        }
+
         private void handleAuth(ByteBuf msg) {
             AuthType authType = AuthType.of(msg.readInt());
-            System.out.println(authType);
+            System.out.println("AuthType=" + authType);
             switch (authType) {
                 case Ok:
                     break;
