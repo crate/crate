@@ -91,6 +91,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
     private final Map<String, RemoteClusterConnection> remoteClusters = ConcurrentCollections.newConcurrentMap();
     private volatile SubscriptionsMetadata currentSubscriptionsMetadata = new SubscriptionsMetadata();
     private volatile PublicationsMetadata currentPublicationsMetadata = new PublicationsMetadata();
+    private final MetadataTracker metadataTracker;
 
     public LogicalReplicationService(Settings settings,
                                      ClusterService clusterService,
@@ -100,6 +101,12 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
+        this.metadataTracker = new MetadataTracker(
+            settings,
+            threadPool,
+            subscriptionName -> getRemoteClusterClient(threadPool, subscriptionName),
+            clusterService
+        );
         clusterService.addListener(this);
     }
 
@@ -146,54 +153,62 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
 
         for (var entry : newSubscriptions.entrySet()) {
             var subscriptionName = entry.getKey();
-            if (oldSubscriptions.get(subscriptionName) == null) {
-                assert repositoriesService != null
-                    : "RepositoriesService must be set immediately after LogicalReplicationService construction";
-
-                LOGGER.debug("Adding new logical replication repository for subscription '{}'", subscriptionName);
-                repositoriesService.registerInternalRepository(REMOTE_REPOSITORY_PREFIX + subscriptionName, TYPE);
-
-                if (clusterService.localNode().isMasterEligibleNode()) {
-                    withRetry(
-                        () -> {
-                            // The startReplication will initiate the remote connection upfront
-                            LOGGER.debug("Start logical replication for subscription '{}'", subscriptionName);
-                            startReplication(subscriptionName, entry.getValue(), new ActionListener<>() {
-
-                                @Override
-                                public void onResponse(AcknowledgedResponse acknowledgedResponse) {
-                                    LOGGER.debug("Acknowledged logical replication for subscription '{}'",
-                                                 subscriptionName);
-                                }
-
-                                @Override
-                                public void onFailure(Exception e) {
-                                    LOGGER.debug("Failure for logical replication for subscription", e);
-                                }
-                            });
-                        }
-                    ).run();
-                } else {
-                    // Initiate the remote connection for the subscription, needed on all nodes to restore the
-                    // repository and for following remote shard changes.
-                    // Must run inside a transport thread
-                    withRetry(() -> updateRemoteConnection(subscriptionName)).run();
-                }
+            boolean subscriptionAdded = oldSubscriptions.get(subscriptionName) == null;
+            if (subscriptionAdded) {
+                addSubscription(subscriptionName, entry.getValue());
             }
         }
         for (var entry : oldSubscriptions.entrySet()) {
             var subscriptionName = entry.getKey();
-            if (newSubscriptions.get(subscriptionName) == null) {
-                assert repositoriesService != null
-                    : "RepositoriesService must be set immediately after LogicalReplicationService construction";
-                LOGGER.debug("Removing logical replication repository for dropped subscription '{}'",
-                             subscriptionName);
-                repositoriesService.unregisterInternalRepository(REMOTE_REPOSITORY_PREFIX + subscriptionName);
+            boolean subscriptionRemoved = newSubscriptions.get(subscriptionName) == null;
+            if (subscriptionRemoved) {
+                removeSubscription(subscriptionName);
             }
-
             // Close connection for removed subscription (must not run inside a transport thread)
             withRetry(() -> updateRemoteConnection(subscriptionName, Settings.EMPTY));
         }
+    }
+
+    private void addSubscription(String subscriptionName, Subscription subscription) {
+        assert repositoriesService != null
+            : "RepositoriesService must be set immediately after LogicalReplicationService construction";
+        LOGGER.debug("Adding new logical replication repository for subscription '{}'", subscriptionName);
+        repositoriesService.registerInternalRepository(REMOTE_REPOSITORY_PREFIX + subscriptionName, TYPE);
+
+        if (clusterService.localNode().isMasterEligibleNode()) {
+            withRetry(
+                () -> {
+                    // The startReplication will initiate the remote connection upfront
+                    LOGGER.debug("Start logical replication for subscription '{}'", subscriptionName);
+                    startReplication(subscriptionName, subscription, new ActionListener<>() {
+                        @Override
+                        public void onResponse(AcknowledgedResponse acknowledgedResponse) {
+                            LOGGER.debug("Acknowledged logical replication for subscription '{}'", subscriptionName);
+                            metadataTracker.startTracking(subscriptionName);
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            LOGGER.debug("Failure for logical replication for subscription", e);
+                        }
+                    });
+                }
+            ).run();
+        } else {
+            // Initiate the remote connection for the subscription, needed on all nodes to restore the
+            // repository and for following remote shard changes.
+            // Must run inside a transport thread
+            withRetry(() -> updateRemoteConnection(subscriptionName)).run();
+        }
+    }
+
+    private void removeSubscription(String subscriptionName) {
+        assert repositoriesService != null
+            : "RepositoriesService must be set immediately after LogicalReplicationService construction";
+        LOGGER.debug("Removing logical replication repository for dropped subscription '{}'",
+                     subscriptionName);
+        repositoriesService.unregisterInternalRepository(REMOTE_REPOSITORY_PREFIX + subscriptionName);
+        metadataTracker.stopTracking(subscriptionName);
     }
 
     private Runnable withRetry(Runnable runnable) {
@@ -215,6 +230,7 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
 
     @Override
     public void close() throws IOException {
+        metadataTracker.close();
         IOUtils.close(remoteClusters.values());
     }
 
