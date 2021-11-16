@@ -61,7 +61,6 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
 import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
-import com.carrotsearch.randomizedtesting.generators.CodepointSetGenerator;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
@@ -589,10 +588,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         return bytes;
     }
 
-    public static short randomShort() {
-        return (short) random().nextInt();
-    }
-
     public static int randomInt() {
         return random().nextInt();
     }
@@ -611,35 +606,6 @@ public abstract class ESTestCase extends LuceneTestCase {
 
     public static double randomDouble() {
         return random().nextDouble();
-    }
-
-    /**
-     * Returns a double value in the interval [start, end) if lowerInclusive is
-     * set to true, (start, end) otherwise.
-     *
-     * @param start          lower bound of interval to draw uniformly distributed random numbers from
-     * @param end            upper bound
-     * @param lowerInclusive whether or not to include lower end of the interval
-     */
-    public static double randomDoubleBetween(double start, double end, boolean lowerInclusive) {
-        double result = 0.0;
-
-        if (start == -Double.MAX_VALUE || end == Double.MAX_VALUE) {
-            // formula below does not work with very large doubles
-            result = Double.longBitsToDouble(randomLong());
-            while (result < start || result > end || Double.isNaN(result)) {
-                result = Double.longBitsToDouble(randomLong());
-            }
-        } else {
-            result = randomDouble();
-            if (lowerInclusive == false) {
-                while (result <= 0.0) {
-                    result = randomDouble();
-                }
-            }
-            result = result * end + (1.0 - result) * start;
-        }
-        return result;
     }
 
     public static long randomLong() {
@@ -704,10 +670,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         return RandomizedTest.randomRealisticUnicodeOfLengthBetween(minCodeUnits, maxCodeUnits);
     }
 
-    public static String randomRealisticUnicodeOfLength(int codeUnits) {
-        return RandomizedTest.randomRealisticUnicodeOfLength(codeUnits);
-    }
-
     public static String randomRealisticUnicodeOfCodepointLengthBetween(int minCodePoints, int maxCodePoints) {
         return RandomizedTest.randomRealisticUnicodeOfCodepointLengthBetween(minCodePoints, maxCodePoints);
     }
@@ -732,19 +694,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         return generateRandomStringArray(maxArraySize, stringSize, allowNull, true);
     }
 
-    public static <T> T[] randomArray(int maxArraySize, IntFunction<T[]> arrayConstructor, Supplier<T> valueConstructor) {
-        return randomArray(0, maxArraySize, arrayConstructor, valueConstructor);
-    }
-
-    public static <T> T[] randomArray(int minArraySize, int maxArraySize, IntFunction<T[]> arrayConstructor, Supplier<T> valueConstructor) {
-        final int size = randomIntBetween(minArraySize, maxArraySize);
-        final T[] array = arrayConstructor.apply(size);
-        for (int i = 0; i < array.length; i++) {
-            array[i] = valueConstructor.get();
-        }
-        return array;
-    }
-
 
     private static final String[] TIME_SUFFIXES = new String[]{"d", "h", "ms", "s", "m", "micros", "nanos"};
 
@@ -764,35 +713,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         return randomTimeValue(1, 1000);
     }
 
-    /**
-     * generate a random DateTimeZone from the ones available in joda library
-     */
-    public static DateTimeZone randomDateTimeZone() {
-        return DateTimeZone.forID(randomFrom(JODA_TIMEZONE_IDS));
-    }
-
-    /**
-     * generate a random TimeZone from the ones available in java.util
-     */
-    public static TimeZone randomTimeZone() {
-        return TimeZone.getTimeZone(randomFrom(JAVA_TIMEZONE_IDS));
-    }
-
-    /**
-     * generate a random TimeZone from the ones available in java.time
-     */
-    public static ZoneId randomZone() {
-        return ZoneId.of(randomFrom(JAVA_ZONE_IDS));
-    }
-
-    /**
-     * helper to randomly perform on <code>consumer</code> with <code>value</code>
-     */
-    public static <T> void maybeSet(Consumer<T> consumer, T value) {
-        if (randomBoolean()) {
-            consumer.accept(value);
-        }
-    }
 
     /**
      * helper to get a random value in a certain range that's different from the input
@@ -985,26 +905,12 @@ public abstract class ESTestCase extends LuceneTestCase {
         return things;
     }
 
-    public static String randomGeohash(int minPrecision, int maxPrecision) {
-        return geohashGenerator.ofStringLength(random(), minPrecision, maxPrecision);
-    }
-
     public static String getTestTransportType() {
         return MockTcpTransportPlugin.MOCK_TCP_TRANSPORT_NAME;
     }
 
     public static Class<? extends Plugin> getTestTransportPlugin() {
         return MockTcpTransportPlugin.class;
-    }
-
-    private static final GeohashGenerator geohashGenerator = new GeohashGenerator();
-
-    public static class GeohashGenerator extends CodepointSetGenerator {
-        private static final char[] ASCII_SET = "0123456789bcdefghjkmnpqrstuvwxyz".toCharArray();
-
-        public GeohashGenerator() {
-            super(ASCII_SET);
-        }
     }
 
     /**
