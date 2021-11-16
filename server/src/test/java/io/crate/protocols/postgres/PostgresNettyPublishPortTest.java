@@ -23,7 +23,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AlwaysOKAuthentication;
-import io.crate.netty.EventLoopGroups;
+import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.user.StubUserManager;
 import io.crate.user.User;
@@ -86,7 +86,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             userManager,
             networkService,
             new AlwaysOKAuthentication(userManager),
-            new EventLoopGroups(),
+            new NettyBootstrap(),
             mock(SslContextProvider.class));
         try {
             psql.doStart();
@@ -108,7 +108,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             userManager,
             networkService,
             new AlwaysOKAuthentication(userManager),
-            new EventLoopGroups(),
+            new NettyBootstrap(),
             mock(SslContextProvider.class));
         try {
             psql.doStart();
@@ -134,7 +134,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             userManager,
             networkService,
             new AlwaysOKAuthentication(userManager),
-            new EventLoopGroups(),
+            new NettyBootstrap(),
             mock(SslContextProvider.class));
         try {
             psql.doStart();
@@ -160,7 +160,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             userManager,
             networkService,
             new AlwaysOKAuthentication(userName -> User.CRATE_USER),
-            new EventLoopGroups(),
+            new NettyBootstrap(),
             mock(SslContextProvider.class));
         try {
             psql.doStart();
