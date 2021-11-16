@@ -24,7 +24,7 @@ import io.crate.auth.Authentication;
 import io.crate.auth.Protocol;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.BorrowedItem;
-import io.crate.netty.EventLoopGroups;
+import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslSettings.SSLMode;
@@ -42,11 +42,6 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.RecvByteBufAllocator;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollServerSocketChannel;
-import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
@@ -113,7 +108,7 @@ public class Netty4Transport extends TcpTransport {
     private final ByteSizeValue receivePredictorMax;
     private volatile Bootstrap clientBootstrap;
     private final Map<String, ServerBootstrap> serverBootstraps = newConcurrentMap();
-    private final EventLoopGroups eventLoopGroups;
+    private final NettyBootstrap nettyBootstrap;
     private final SslContextProvider sslContextProvider;
     private final Authentication authentication;
 
@@ -130,13 +125,13 @@ public class Netty4Transport extends TcpTransport {
                            PageCacheRecycler pageCacheRecycler,
                            NamedWriteableRegistry namedWriteableRegistry,
                            CircuitBreakerService circuitBreakerService,
-                           EventLoopGroups eventLoopGroups,
+                           NettyBootstrap nettyBootstrap,
                            Authentication authentication,
                            SslContextProvider sslContextProvider) {
         super(settings, version, threadPool, pageCacheRecycler, circuitBreakerService, namedWriteableRegistry, networkService);
         Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
         this.authentication = authentication;
-        this.eventLoopGroups = eventLoopGroups;
+        this.nettyBootstrap = nettyBootstrap;
         this.sslContextProvider = sslContextProvider;
 
         // See AdaptiveReceiveBufferSizePredictor#DEFAULT_XXX for default values in netty..., we can use higher ones for us, even fixed one
@@ -154,7 +149,7 @@ public class Netty4Transport extends TcpTransport {
     protected void doStart() {
         boolean success = false;
         try {
-            eventLoopGroup = eventLoopGroups.getEventLoopGroup(settings);
+            eventLoopGroup = nettyBootstrap.getEventLoopGroup(settings);
             clientBootstrap = createClientBootstrap(eventLoopGroup.item());
             if (NetworkService.NETWORK_SERVER.get(settings)) {
                 for (ProfileSettings profileSettings : profileSettings) {
@@ -174,11 +169,7 @@ public class Netty4Transport extends TcpTransport {
     private Bootstrap createClientBootstrap(EventLoopGroup eventLoopGroup) {
         final Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(eventLoopGroup);
-        if (Epoll.isAvailable()) {
-            bootstrap.channel(EpollSocketChannel.class);
-        } else {
-            bootstrap.channel(NioSocketChannel.class);
-        }
+        bootstrap.channel(NettyBootstrap.clientChannel());
 
         bootstrap.option(ChannelOption.TCP_NODELAY, TransportSettings.TCP_NO_DELAY.get(settings));
         bootstrap.option(ChannelOption.SO_KEEPALIVE, TransportSettings.TCP_KEEP_ALIVE.get(settings));
@@ -212,12 +203,7 @@ public class Netty4Transport extends TcpTransport {
 
         final ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(eventLoopGroup);
-
-        if (Epoll.isAvailable()) {
-            serverBootstrap.channel(EpollServerSocketChannel.class);
-        } else {
-            serverBootstrap.channel(NioServerSocketChannel.class);
-        }
+        serverBootstrap.channel(NettyBootstrap.serverChannel());
 
         serverBootstrap.childHandler(new ServerChannelInitializer(name));
         serverBootstrap.handler(new ServerChannelExceptionHandler());

@@ -1,11 +1,11 @@
 .. highlight:: psql
-.. _ref-commit:
+.. _ref-end:
 
-==========
-``COMMIT``
-==========
+=======
+``END``
+=======
 
-Commit the current transaction
+A synonym for :ref:`ref-commit`.
 
 .. rubric:: Table of contents
 
@@ -17,7 +17,7 @@ Synopsis
 
 ::
 
-   COMMIT [ WORK | TRANSACTION ]
+   END [ WORK | TRANSACTION ]
 
 
 Parameters
@@ -27,7 +27,6 @@ Parameters
 `TRANSACTION`
 
 Optional keywords. They have no effect.
-
 
 Description
 ===========

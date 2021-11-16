@@ -56,8 +56,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.auth.Authentication;
 import io.crate.user.UserManager;
 import io.crate.common.collections.BorrowedItem;
-import io.crate.netty.CrateChannelBootstrapFactory;
-import io.crate.netty.EventLoopGroups;
+import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.types.DataTypes;
@@ -91,7 +90,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final String[] publishHosts;
     private final String port;
     private final Authentication authentication;
-    private final EventLoopGroups eventLoopGroups;
+    private final NettyBootstrap nettyBootstrap;
     private final Logger namedLogger;
     private final Settings settings;
     private final UserManager userManager;
@@ -116,7 +115,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                          UserManager userManager,
                          NetworkService networkService,
                          Authentication authentication,
-                         EventLoopGroups eventLoopGroups,
+                         NettyBootstrap nettyBootstrap,
                          SslContextProvider sslContextProvider) {
         this.settings = settings;
         this.userManager = userManager;
@@ -124,7 +123,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
         this.authentication = authentication;
-        this.eventLoopGroups = eventLoopGroups;
+        this.nettyBootstrap = nettyBootstrap;
 
         if (SslSettings.isPSQLSslEnabled(settings)) {
             namedLogger.info("PSQL SSL support is enabled.");
@@ -150,8 +149,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         if (!enabled) {
             return;
         }
-        eventLoopGroup = eventLoopGroups.getEventLoopGroup(settings);
-        bootstrap = CrateChannelBootstrapFactory.newChannelBootstrap(settings, eventLoopGroup.item());
+        eventLoopGroup = nettyBootstrap.getEventLoopGroup(settings);
+        bootstrap = NettyBootstrap.newServerBootstrap(settings, eventLoopGroup.item());
         this.openChannels = new Netty4OpenChannelsHandler(LOGGER);
 
         bootstrap.childHandler(new ChannelInitializer<>() {

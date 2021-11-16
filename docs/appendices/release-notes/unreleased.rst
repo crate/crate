@@ -64,6 +64,9 @@ Deprecations
 Changes
 =======
 
+- Added support for the :ref:`END <ref-end>` statement for improved PostgreSQL
+  compatibility.
+
 - Registered the scalar function :ref:`array_to_string
   <scalar-array_to_string>` under the `pg_catalog` schema.
 
@@ -136,6 +139,9 @@ Changes
 
 - Added the `column_details` column to the `information_schema.columns` table
   including the top level column name and path information of object elements.
+
+- Enabled the setting of most prototype methods for JavaScript Objects (e.g. 
+  Array.prototype, Object.prototype) in :ref:`user-defined functions <user-defined-functions>`
 
 Fixes
 =====

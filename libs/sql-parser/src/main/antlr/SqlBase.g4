@@ -33,7 +33,8 @@ statement
     : query                                                                          #default
     | BEGIN (WORK | TRANSACTION)? (transactionMode (',' transactionMode)*)?          #begin
     | START TRANSACTION (transactionMode (',' transactionMode)*)?                    #startTransaction
-    | COMMIT                                                                         #commit
+    | COMMIT (WORK | TRANSACTION)?                                                   #commit
+    | END (WORK | TRANSACTION)?                                                      #commit
     | EXPLAIN (ANALYZE)? statement                                                   #explain
     | OPTIMIZE TABLE tableWithPartitions withProperties?                             #optimize
     | REFRESH TABLE tableWithPartitions                                              #refreshTable

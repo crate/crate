@@ -36,7 +36,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 
 import io.crate.auth.Authentication;
-import io.crate.netty.EventLoopGroups;
+import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 
 /**
@@ -56,7 +56,7 @@ public interface NetworkPlugin {
                                                            CircuitBreakerService circuitBreakerService,
                                                            NamedWriteableRegistry namedWriteableRegistry,
                                                            NetworkService networkService,
-                                                           EventLoopGroups eventLoopGroups,
+                                                           NettyBootstrap nettyBootstrap,
                                                            Authentication authentication,
                                                            SslContextProvider sslContextProvider) {
         return Collections.emptyMap();
@@ -73,7 +73,7 @@ public interface NetworkPlugin {
                                                                          NamedWriteableRegistry namedWriteableRegistry,
                                                                          NamedXContentRegistry xContentRegistry,
                                                                          NetworkService networkService,
-                                                                         EventLoopGroups eventLoopGroups,
+                                                                         NettyBootstrap nettyBootstrap,
                                                                          NodeClient nodeClient) {
         return Collections.emptyMap();
     }

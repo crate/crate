@@ -20,7 +20,7 @@
 package org.elasticsearch.transport;
 
 import io.crate.auth.Authentication;
-import io.crate.netty.EventLoopGroups;
+import io.crate.netty.NettyBootstrap;
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.ssl.SslContextProvider;
 import org.elasticsearch.Version;
@@ -114,7 +114,7 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                                                           CircuitBreakerService circuitBreakerService,
                                                           NamedWriteableRegistry namedWriteableRegistry,
                                                           NetworkService networkService,
-                                                          EventLoopGroups eventLoopGroups,
+                                                          NettyBootstrap nettyBootstrap,
                                                           Authentication authentication,
                                                           SslContextProvider sslContextProvider) {
         return Collections.singletonMap(
@@ -127,7 +127,7 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                 pageCacheRecycler,
                 namedWriteableRegistry,
                 circuitBreakerService,
-                eventLoopGroups,
+                nettyBootstrap,
                 authentication,
                 sslContextProvider
             )
@@ -142,7 +142,7 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                                                                         NamedWriteableRegistry namedWriteableRegistry,
                                                                         NamedXContentRegistry xContentRegistry,
                                                                         NetworkService networkService,
-                                                                        EventLoopGroups eventLoopGroups,
+                                                                        NettyBootstrap nettyBootstrap,
                                                                         NodeClient nodeClient) {
         return Collections.singletonMap(
             NETTY_HTTP_TRANSPORT_NAME,
@@ -153,7 +153,7 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                 threadPool,
                 xContentRegistry,
                 pipelineRegistry,
-                eventLoopGroups,
+                nettyBootstrap,
                 nodeClient
             )
         );
