@@ -64,7 +64,7 @@ public enum Operation {
     public static final EnumSet<Operation> METADATA_DISABLED_OPERATIONS = EnumSet.of(READ, UPDATE, INSERT, DELETE,
         ALTER_BLOCKS, ALTER_OPEN_CLOSE, ALTER_REROUTE, REFRESH, SHOW_CREATE, OPTIMIZE);
     public static final EnumSet<Operation> LOGICAL_REPLICATED = EnumSet.of(
-        READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE);
+        READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE, ALTER_OPEN_CLOSE);
 
     private final String representation;
 

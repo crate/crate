@@ -56,7 +56,7 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
 
     @Override
     protected ClusterState execute(ClusterState currentState, OpenCloseTableOrPartitionRequest request) throws Exception {
-        Context context = prepare(currentState, request);
+        Context context = prepare(currentState, request.tableIdent(), request.partitionIndexName());
 
         Set<Index> indicesToClose = context.indicesMetadata().stream()
             .map(IndexMetadata::getIndex)

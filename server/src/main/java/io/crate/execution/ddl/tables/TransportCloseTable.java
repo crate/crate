@@ -27,12 +27,16 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
+import io.crate.common.unit.TimeValue;
+import io.crate.metadata.RelationName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -82,9 +86,11 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.cluster.DDLClusterStateService;
+
+
+import static io.crate.metadata.cluster.AbstractOpenCloseTableClusterStateTaskExecutor.OpenCloseTable;
 
 public final class TransportCloseTable extends TransportMasterNodeAction<CloseTableRequest, AcknowledgedResponse> {
 
@@ -138,39 +144,47 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
         assert state.nodes().getMinNodeVersion().onOrAfter(Version.V_4_3_0)
             : "All nodes must be on 4.3 to use the new dedicated close action";
+        closeTables(listener, List.of(new OpenCloseTable(request.table(), request.partition())), request.ackTimeout());
 
-        clusterService.submitStateUpdateTask("add-block-close-table", new AddCloseBlocksTask(listener, request));
+    }
+
+    public void closeTables(ActionListener listener, List<OpenCloseTable> tablesToClose, TimeValue requestAckTimeout) {
+        clusterService.submitStateUpdateTask("add-block-close-table",
+            new AddCloseBlocksTask(listener, tablesToClose, requestAckTimeout));
     }
 
     /**
      * Step 3 - Move index states from OPEN to CLOSE in cluster state for indices that are ready for closing.
-     * @param target
      */
     static ClusterState closeRoutingTable(ClusterState currentState,
-                                          AlterTableTarget target,
+                                          List<AlterTableTarget> targets,
                                           DDLClusterStateService ddlClusterStateService,
                                           Map<Index, ClusterBlock> blockedIndices,
                                           Map<Index, AcknowledgedResponse> results) {
         // Remove the index routing table of closed indices if the cluster is in a mixed version
         // that does not support the replication of closed indices
         final boolean removeRoutingTable = currentState.nodes().getMinNodeVersion().before(Version.V_4_3_0);
+        ClusterState updatedState = null;
+        for (AlterTableTarget target: targets) {
 
-        IndexTemplateMetadata templateMetadata = target.templateMetadata();
-        ClusterState updatedState;
-        if (templateMetadata == null) {
-            updatedState = currentState;
-        } else {
-            Metadata.Builder metadata = Metadata.builder(currentState.metadata());
-            metadata.put(closePartitionTemplate(templateMetadata));
-            updatedState = ClusterState.builder(currentState).metadata(metadata).build();
-        }
+            IndexTemplateMetadata templateMetadata = target.templateMetadata();
+            if (templateMetadata == null) {
+                // Update only on the first iteration otherwise just use value from the previous iteration
+                updatedState = updatedState == null ? currentState : updatedState;
+            } else {
+                Metadata.Builder metadata = Metadata.builder(currentState.metadata());
+                metadata.put(closePartitionTemplate(templateMetadata));
+                updatedState = ClusterState.builder(currentState).metadata(metadata).build();
+            }
 
-        String partition = target.partition();
-        if (partition != null) {
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(partition);
-            updatedState = ddlClusterStateService.onCloseTablePartition(updatedState, partitionName);
-        } else {
-            updatedState = ddlClusterStateService.onCloseTable(updatedState, target.table());
+            String partition = target.partition();
+            if (partition != null) {
+                PartitionName partitionName = PartitionName.fromIndexOrTemplate(partition);
+                updatedState = ddlClusterStateService.onCloseTablePartition(updatedState, partitionName);
+            } else {
+                updatedState = ddlClusterStateService.onCloseTable(updatedState, target.table());
+            }
+
         }
 
         final Metadata.Builder metadata = Metadata.builder(updatedState.metadata());
@@ -341,21 +355,25 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     private final class AddCloseBlocksTask extends ClusterStateUpdateTask {
 
         private final ActionListener<AcknowledgedResponse> listener;
-        private final CloseTableRequest request;
+        private final List<OpenCloseTable> tablesToClose;
+        private final TimeValue requestAckTimeout;
         private final Map<Index, ClusterBlock> blockedIndices = new HashMap<>();
 
         private AddCloseBlocksTask(ActionListener<AcknowledgedResponse> listener,
-                                   CloseTableRequest request) {
+                                   List<OpenCloseTable> tablesToClose,
+                                   TimeValue requestAckTimeout) {
             this.listener = listener;
-            this.request = request;
+            this.tablesToClose = tablesToClose;
+            this.requestAckTimeout = requestAckTimeout;
         }
 
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
-            RelationName table = request.table();
-            String partition = request.partition();
-            Index[] indices = indexNameExpressionResolver.concreteIndices(currentState,
-                    IndicesOptions.lenientExpandOpen(), partition == null ? table.indexNameOrAlias() : partition);
+            var allIndexExpressions = tablesToClose.stream()
+                .map(openCloseTable -> openCloseTable.partitionIndexName() == null ? openCloseTable.relationName().indexNameOrAlias() : openCloseTable.partitionIndexName())
+                .toArray(String[]::new);
+
+            Index[] indices = indexNameExpressionResolver.concreteIndices(currentState, IndicesOptions.lenientExpandOpen(), allIndexExpressions);
             if (indices.length == 0) {
                 return currentState;
             }
@@ -386,9 +404,9 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                                 Priority.URGENT,
                                 blockedIndices,
                                 results,
-                                request,
-                                listener
-                            )
+                                listener,
+                                tablesToClose,
+                                requestAckTimeout)
                         ),
                         listener::onFailure)
                     )
@@ -401,33 +419,36 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         private final Map<Index, AcknowledgedResponse> results;
         private final Map<Index, ClusterBlock> blockedIndices;
         private final ActionListener<AcknowledgedResponse> listener;
-        private final CloseTableRequest request;
-
+        private final List<OpenCloseTable> tablesToClose;
+        private final TimeValue requestAckTimeout;
         boolean acknowledged = true;
 
         private CloseRoutingTableTask(Priority priority,
                                       Map<Index, ClusterBlock> blockedIndices,
                                       Map<Index, AcknowledgedResponse> results,
-                                      CloseTableRequest request,
-                                      ActionListener<AcknowledgedResponse> listener) {
+                                      ActionListener<AcknowledgedResponse> listener,
+                                      List<OpenCloseTable> tablesToClose,
+                                      TimeValue requestAckTimeout) {
             super(priority);
             this.blockedIndices = blockedIndices;
             this.results = results;
             this.listener = listener;
-            this.request = request;
+            this.tablesToClose = tablesToClose;
+            this.requestAckTimeout = requestAckTimeout;
         }
 
         @Override
         public ClusterState execute(final ClusterState currentState) throws Exception {
-            AlterTableTarget target = AlterTableTarget.resolve(
+            List<AlterTableTarget> targets = tablesToClose.stream().map(tablesToClose -> AlterTableTarget.resolve(
                 indexNameExpressionResolver,
                 currentState,
-                request.table(),
-                request.partition()
-            );
+                tablesToClose.relationName(),
+                tablesToClose.partitionIndexName())
+            ).collect(Collectors.toList());
+
             final ClusterState updatedState = closeRoutingTable(
                 currentState,
-                target,
+                targets,
                 ddlClusterStateService,
                 blockedIndices,
                 results
@@ -460,7 +481,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 .toArray(String[]::new);
             if (indices.length > 0) {
                 activeShardsObserver.waitForActiveShards(indices, ActiveShardCount.ONE,
-                    request.ackTimeout(), shardsAcknowledged -> {
+                    requestAckTimeout, shardsAcknowledged -> {
                         if (shardsAcknowledged == false && LOGGER.isDebugEnabled()) {
                             LOGGER.debug("[{}] indices closed, but the operation timed out while waiting " +
                                 "for enough shards to be started.", Arrays.toString(indices));

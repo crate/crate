@@ -21,8 +21,10 @@
 
 package io.crate.metadata.cluster;
 
+import java.util.List;
 import java.util.Set;
 
+import io.crate.metadata.RelationName;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -34,18 +36,24 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 
 import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
 import io.crate.execution.ddl.tables.TransportCloseTable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
+@Singleton
 public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClusterStateTaskExecutor {
 
     private final MetadataIndexUpgradeService metadataIndexUpgradeService;
     private final IndicesService indicesService;
 
+    @Inject
     public OpenTableClusterStateTaskExecutor(IndexNameExpressionResolver indexNameExpressionResolver,
                                       AllocationService allocationService,
                                       DDLClusterStateService ddlClusterStateService,
@@ -63,7 +71,21 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
 
     @Override
     protected ClusterState execute(ClusterState currentState, OpenCloseTableOrPartitionRequest request) throws Exception {
-        Context context = prepare(currentState, request);
+        return openTables(List.of(new OpenCloseTable(request.tableIdent(), request.partitionIndexName())), null, currentState);
+    }
+
+    public ClusterState openTables(@Nonnull List<OpenCloseTable> openCloseTables,
+                                   @Nullable List<IndexMetadata> relevantIndices,
+                                   ClusterState currentState) {
+        Context context;
+        if (relevantIndices != null) {
+            // DROP SUBSCRIPTION step, indices are already known.
+            context = prepare(relevantIndices);
+        } else {
+            // ALTER TABLE, context is created from single RelationName and optionally partitionIndexName
+            context = prepare(currentState, openCloseTables.get(0).relationName(), openCloseTables.get(0).partitionIndexName());
+        }
+
         Set<IndexMetadata> indicesToOpen = context.indicesMetadata();
         IndexTemplateMetadata templateMetadata = context.templateMetadata();
 
@@ -116,9 +138,12 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
 
         // call possible registered modifiers
         if (context.partitionName() != null) {
+            // only ALTER TABLE
             updatedState = ddlClusterStateService.onOpenTablePartition(updatedState, context.partitionName());
         } else {
-            updatedState = ddlClusterStateService.onOpenTable(updatedState, request.tableIdent());
+            for(OpenCloseTable tableToOpen: openCloseTables) {
+                updatedState = ddlClusterStateService.onOpenTable(updatedState, tableToOpen.relationName());
+            }
         }
 
         RoutingTable.Builder rtBuilder = RoutingTable.builder(updatedState.routingTable());
@@ -131,4 +156,5 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
             ClusterState.builder(updatedState).routingTable(rtBuilder.build()).build(),
             "indices opened " + indicesToOpen);
     }
+
 }
