@@ -82,7 +82,7 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
 
     @Override
     public EnumSet<Metadata.XContentContext> context() {
-        return EnumSet.of(Metadata.XContentContext.GATEWAY, Metadata.XContentContext.SNAPSHOT);
+        return EnumSet.of(Metadata.XContentContext.GATEWAY, Metadata.XContentContext.SNAPSHOT, Metadata.XContentContext.API);
     }
 
     @Override
