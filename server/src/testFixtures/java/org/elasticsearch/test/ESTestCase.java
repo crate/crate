@@ -914,21 +914,6 @@ public abstract class ESTestCase extends LuceneTestCase {
     }
 
     /**
-     * Returns the bytes that represent the XContent output of the provided {@link ToXContent} object, using the provided
-     * {@link XContentType}. Wraps the output into a new anonymous object according to the value returned
-     * by the {@link ToXContent#isFragment()} method returns. Shuffles the keys to make sure that parsing never relies on keys ordering.
-     */
-    protected final BytesReference toShuffledXContent(ToXContent toXContent, XContentType xContentType, ToXContent.Params params,
-                                                      boolean humanReadable, String... exceptFieldNames) throws IOException{
-        BytesReference bytes = XContentHelper.toXContent(toXContent, xContentType, params, humanReadable);
-        try (XContentParser parser = createParser(xContentType.xContent(), bytes)) {
-            try (XContentBuilder builder = shuffleXContent(parser, rarely(), exceptFieldNames)) {
-                return BytesReference.bytes(builder);
-            }
-        }
-    }
-
-    /**
      * Randomly shuffles the fields inside objects in the {@link XContentBuilder} passed in.
      * Recursively goes through inner objects and also shuffles them. Exceptions for this
      * recursive shuffling behavior can be made by passing in the names of fields which
@@ -1042,27 +1027,6 @@ public abstract class ESTestCase extends LuceneTestCase {
     /**
      * Create a new {@link XContentParser}.
      */
-    protected final XContentParser createParser(XContent xContent, String data) throws IOException {
-        return xContent.createParser(xContentRegistry(), LoggingDeprecationHandler.INSTANCE, data);
-    }
-
-    /**
-     * Create a new {@link XContentParser}.
-     */
-    protected final XContentParser createParser(XContent xContent, InputStream data) throws IOException {
-        return xContent.createParser(xContentRegistry(), LoggingDeprecationHandler.INSTANCE, data);
-    }
-
-    /**
-     * Create a new {@link XContentParser}.
-     */
-    protected final XContentParser createParser(XContent xContent, byte[] data) throws IOException {
-        return xContent.createParser(xContentRegistry(), LoggingDeprecationHandler.INSTANCE, data);
-    }
-
-    /**
-     * Create a new {@link XContentParser}.
-     */
     protected final XContentParser createParser(XContent xContent, BytesReference data) throws IOException {
         return xContent.createParser(xContentRegistry(), LoggingDeprecationHandler.INSTANCE, data.streamInput());
     }
@@ -1103,24 +1067,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         assertEquals(expected.isNativeMethod(), actual.isNativeMethod());
     }
 
-    protected static long spinForAtLeastOneMillisecond() {
-        return spinForAtLeastNMilliseconds(1);
-    }
-
-    protected static long spinForAtLeastNMilliseconds(final long ms) {
-        long nanosecondsInMillisecond = TimeUnit.NANOSECONDS.convert(ms, TimeUnit.MILLISECONDS);
-        /*
-         * Force at least ms milliseconds to elapse, but ensure the clock has enough resolution to
-         * observe the passage of time.
-         */
-        long start = System.nanoTime();
-        long elapsed;
-        while ((elapsed = (System.nanoTime() - start)) < nanosecondsInMillisecond) {
-            // busy spin
-        }
-        return elapsed;
-    }
-
     /**
      * Creates an TestAnalysis with all the default analyzers configured.
      */
@@ -1153,23 +1099,6 @@ public abstract class ESTestCase extends LuceneTestCase {
             analysisRegistry.buildTokenFilterFactories(indexSettings),
             analysisRegistry.buildTokenizerFactories(indexSettings),
             analysisRegistry.buildCharFilterFactories(indexSettings));
-    }
-
-    /** Creates an IndicesModule for testing with the given mappers and metadata mappers. */
-    public static IndicesModule newTestIndicesModule(Map<String, Mapper.TypeParser> extraMappers,
-                                                     Map<String, MetadataFieldMapper.TypeParser> extraMetadataMappers) {
-        return new IndicesModule(Collections.singletonList(
-            new MapperPlugin() {
-                @Override
-                public Map<String, Mapper.TypeParser> getMappers() {
-                    return extraMappers;
-                }
-                @Override
-                public Map<String, MetadataFieldMapper.TypeParser> getMetadataMappers() {
-                    return extraMetadataMappers;
-                }
-            }
-        ));
     }
 
     /**
