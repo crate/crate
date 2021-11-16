@@ -176,7 +176,7 @@ import io.crate.execution.engine.window.WindowFunctionModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.settings.session.SessionSettingModule;
-import io.crate.netty.EventLoopGroups;
+import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
@@ -470,7 +470,7 @@ public class Node implements Closeable {
                 : new AlwaysOKAuthentication(userLookup);
 
             final SslContextProvider sslContextProvider = new SslContextProvider(settings);
-            final EventLoopGroups eventLoopGroups = new EventLoopGroups();
+            final NettyBootstrap nettyBootstrap = new NettyBootstrap();
             final NetworkModule networkModule = new NetworkModule(
                 settings,
                 pluginsService.filterPlugins(NetworkPlugin.class),
@@ -481,7 +481,7 @@ public class Node implements Closeable {
                 namedWriteableRegistry,
                 xContentRegistry,
                 networkService,
-                eventLoopGroups,
+                nettyBootstrap,
                 authentication,
                 sslContextProvider,
                 client);
@@ -621,7 +621,7 @@ public class Node implements Closeable {
                     }
                     b.bind(HttpServerTransport.class).toInstance(httpServerTransport);
                     b.bind(ShardLimitValidator.class).toInstance(shardLimitValidator);
-                    b.bind(EventLoopGroups.class).toInstance(eventLoopGroups);
+                    b.bind(NettyBootstrap.class).toInstance(nettyBootstrap);
                     b.bind(SslContextProvider.class).toInstance(sslContextProvider);
                     b.bind(RerouteService.class).toInstance(rerouteService);
                     b.bind(UserLookup.class).toInstance(userLookup);

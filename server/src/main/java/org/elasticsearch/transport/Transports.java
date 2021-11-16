@@ -21,7 +21,7 @@ package org.elasticsearch.transport;
 
 import java.util.Arrays;
 
-import io.crate.netty.EventLoopGroups;
+import io.crate.netty.NettyBootstrap;
 
 public enum Transports {
     ;
@@ -37,7 +37,7 @@ public enum Transports {
     public static boolean isTransportThread(Thread t) {
         final String threadName = t.getName();
         for (String s : Arrays.asList(
-                EventLoopGroups.WORKER_THREAD_PREFIX,
+                NettyBootstrap.WORKER_THREAD_PREFIX,
                 TEST_MOCK_TRANSPORT_THREAD_PREFIX)) {
             if (threadName.contains(s)) {
                 return true;
