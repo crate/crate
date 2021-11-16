@@ -137,6 +137,9 @@ Changes
 - Added the `column_details` column to the `information_schema.columns` table
   including the top level column name and path information of object elements.
 
+- Enabled the setting of most prototype methods for JavaScript Objects (e.g. 
+  Array.prototype, Object.prototype) in :ref:`user-defined functions <user-defined-functions>`
+
 Fixes
 =====
 
