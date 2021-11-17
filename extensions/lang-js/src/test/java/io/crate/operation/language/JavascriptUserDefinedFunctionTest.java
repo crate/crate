@@ -349,7 +349,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             "f",
             DataTypes.STRING,
             List.of(DataTypes.STRING_ARRAY),
-            "function f(a) { return Array.prototype.join.call(a, '.'); }");
+            "function f(a) { return a.join('.'); }");
         assertEvaluate("f(['a', 'b'])", is("a.b"));
         assertEvaluate("f(['a', 'b'])", is("a.b"), Literal.of(List.of("a", "b"), DataTypes.STRING_ARRAY));
     }

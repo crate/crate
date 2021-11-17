@@ -61,7 +61,6 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
 import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
-import com.carrotsearch.randomizedtesting.generators.CodepointSetGenerator;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
@@ -589,10 +588,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         return bytes;
     }
 
-    public static short randomShort() {
-        return (short) random().nextInt();
-    }
-
     public static int randomInt() {
         return random().nextInt();
     }
@@ -611,35 +606,6 @@ public abstract class ESTestCase extends LuceneTestCase {
 
     public static double randomDouble() {
         return random().nextDouble();
-    }
-
-    /**
-     * Returns a double value in the interval [start, end) if lowerInclusive is
-     * set to true, (start, end) otherwise.
-     *
-     * @param start          lower bound of interval to draw uniformly distributed random numbers from
-     * @param end            upper bound
-     * @param lowerInclusive whether or not to include lower end of the interval
-     */
-    public static double randomDoubleBetween(double start, double end, boolean lowerInclusive) {
-        double result = 0.0;
-
-        if (start == -Double.MAX_VALUE || end == Double.MAX_VALUE) {
-            // formula below does not work with very large doubles
-            result = Double.longBitsToDouble(randomLong());
-            while (result < start || result > end || Double.isNaN(result)) {
-                result = Double.longBitsToDouble(randomLong());
-            }
-        } else {
-            result = randomDouble();
-            if (lowerInclusive == false) {
-                while (result <= 0.0) {
-                    result = randomDouble();
-                }
-            }
-            result = result * end + (1.0 - result) * start;
-        }
-        return result;
     }
 
     public static long randomLong() {
@@ -704,10 +670,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         return RandomizedTest.randomRealisticUnicodeOfLengthBetween(minCodeUnits, maxCodeUnits);
     }
 
-    public static String randomRealisticUnicodeOfLength(int codeUnits) {
-        return RandomizedTest.randomRealisticUnicodeOfLength(codeUnits);
-    }
-
     public static String randomRealisticUnicodeOfCodepointLengthBetween(int minCodePoints, int maxCodePoints) {
         return RandomizedTest.randomRealisticUnicodeOfCodepointLengthBetween(minCodePoints, maxCodePoints);
     }
@@ -732,19 +694,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         return generateRandomStringArray(maxArraySize, stringSize, allowNull, true);
     }
 
-    public static <T> T[] randomArray(int maxArraySize, IntFunction<T[]> arrayConstructor, Supplier<T> valueConstructor) {
-        return randomArray(0, maxArraySize, arrayConstructor, valueConstructor);
-    }
-
-    public static <T> T[] randomArray(int minArraySize, int maxArraySize, IntFunction<T[]> arrayConstructor, Supplier<T> valueConstructor) {
-        final int size = randomIntBetween(minArraySize, maxArraySize);
-        final T[] array = arrayConstructor.apply(size);
-        for (int i = 0; i < array.length; i++) {
-            array[i] = valueConstructor.get();
-        }
-        return array;
-    }
-
 
     private static final String[] TIME_SUFFIXES = new String[]{"d", "h", "ms", "s", "m", "micros", "nanos"};
 
@@ -764,35 +713,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         return randomTimeValue(1, 1000);
     }
 
-    /**
-     * generate a random DateTimeZone from the ones available in joda library
-     */
-    public static DateTimeZone randomDateTimeZone() {
-        return DateTimeZone.forID(randomFrom(JODA_TIMEZONE_IDS));
-    }
-
-    /**
-     * generate a random TimeZone from the ones available in java.util
-     */
-    public static TimeZone randomTimeZone() {
-        return TimeZone.getTimeZone(randomFrom(JAVA_TIMEZONE_IDS));
-    }
-
-    /**
-     * generate a random TimeZone from the ones available in java.time
-     */
-    public static ZoneId randomZone() {
-        return ZoneId.of(randomFrom(JAVA_ZONE_IDS));
-    }
-
-    /**
-     * helper to randomly perform on <code>consumer</code> with <code>value</code>
-     */
-    public static <T> void maybeSet(Consumer<T> consumer, T value) {
-        if (randomBoolean()) {
-            consumer.accept(value);
-        }
-    }
 
     /**
      * helper to get a random value in a certain range that's different from the input
@@ -985,41 +905,12 @@ public abstract class ESTestCase extends LuceneTestCase {
         return things;
     }
 
-    public static String randomGeohash(int minPrecision, int maxPrecision) {
-        return geohashGenerator.ofStringLength(random(), minPrecision, maxPrecision);
-    }
-
     public static String getTestTransportType() {
         return MockTcpTransportPlugin.MOCK_TCP_TRANSPORT_NAME;
     }
 
     public static Class<? extends Plugin> getTestTransportPlugin() {
         return MockTcpTransportPlugin.class;
-    }
-
-    private static final GeohashGenerator geohashGenerator = new GeohashGenerator();
-
-    public static class GeohashGenerator extends CodepointSetGenerator {
-        private static final char[] ASCII_SET = "0123456789bcdefghjkmnpqrstuvwxyz".toCharArray();
-
-        public GeohashGenerator() {
-            super(ASCII_SET);
-        }
-    }
-
-    /**
-     * Returns the bytes that represent the XContent output of the provided {@link ToXContent} object, using the provided
-     * {@link XContentType}. Wraps the output into a new anonymous object according to the value returned
-     * by the {@link ToXContent#isFragment()} method returns. Shuffles the keys to make sure that parsing never relies on keys ordering.
-     */
-    protected final BytesReference toShuffledXContent(ToXContent toXContent, XContentType xContentType, ToXContent.Params params,
-                                                      boolean humanReadable, String... exceptFieldNames) throws IOException{
-        BytesReference bytes = XContentHelper.toXContent(toXContent, xContentType, params, humanReadable);
-        try (XContentParser parser = createParser(xContentType.xContent(), bytes)) {
-            try (XContentBuilder builder = shuffleXContent(parser, rarely(), exceptFieldNames)) {
-                return BytesReference.bytes(builder);
-            }
-        }
     }
 
     /**
@@ -1136,27 +1027,6 @@ public abstract class ESTestCase extends LuceneTestCase {
     /**
      * Create a new {@link XContentParser}.
      */
-    protected final XContentParser createParser(XContent xContent, String data) throws IOException {
-        return xContent.createParser(xContentRegistry(), LoggingDeprecationHandler.INSTANCE, data);
-    }
-
-    /**
-     * Create a new {@link XContentParser}.
-     */
-    protected final XContentParser createParser(XContent xContent, InputStream data) throws IOException {
-        return xContent.createParser(xContentRegistry(), LoggingDeprecationHandler.INSTANCE, data);
-    }
-
-    /**
-     * Create a new {@link XContentParser}.
-     */
-    protected final XContentParser createParser(XContent xContent, byte[] data) throws IOException {
-        return xContent.createParser(xContentRegistry(), LoggingDeprecationHandler.INSTANCE, data);
-    }
-
-    /**
-     * Create a new {@link XContentParser}.
-     */
     protected final XContentParser createParser(XContent xContent, BytesReference data) throws IOException {
         return xContent.createParser(xContentRegistry(), LoggingDeprecationHandler.INSTANCE, data.streamInput());
     }
@@ -1197,24 +1067,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         assertEquals(expected.isNativeMethod(), actual.isNativeMethod());
     }
 
-    protected static long spinForAtLeastOneMillisecond() {
-        return spinForAtLeastNMilliseconds(1);
-    }
-
-    protected static long spinForAtLeastNMilliseconds(final long ms) {
-        long nanosecondsInMillisecond = TimeUnit.NANOSECONDS.convert(ms, TimeUnit.MILLISECONDS);
-        /*
-         * Force at least ms milliseconds to elapse, but ensure the clock has enough resolution to
-         * observe the passage of time.
-         */
-        long start = System.nanoTime();
-        long elapsed;
-        while ((elapsed = (System.nanoTime() - start)) < nanosecondsInMillisecond) {
-            // busy spin
-        }
-        return elapsed;
-    }
-
     /**
      * Creates an TestAnalysis with all the default analyzers configured.
      */
@@ -1247,23 +1099,6 @@ public abstract class ESTestCase extends LuceneTestCase {
             analysisRegistry.buildTokenFilterFactories(indexSettings),
             analysisRegistry.buildTokenizerFactories(indexSettings),
             analysisRegistry.buildCharFilterFactories(indexSettings));
-    }
-
-    /** Creates an IndicesModule for testing with the given mappers and metadata mappers. */
-    public static IndicesModule newTestIndicesModule(Map<String, Mapper.TypeParser> extraMappers,
-                                                     Map<String, MetadataFieldMapper.TypeParser> extraMetadataMappers) {
-        return new IndicesModule(Collections.singletonList(
-            new MapperPlugin() {
-                @Override
-                public Map<String, Mapper.TypeParser> getMappers() {
-                    return extraMappers;
-                }
-                @Override
-                public Map<String, MetadataFieldMapper.TypeParser> getMetadataMappers() {
-                    return extraMetadataMappers;
-                }
-            }
-        ));
     }
 
     /**
