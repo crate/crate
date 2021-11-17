@@ -32,6 +32,8 @@ import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTablesTable;
+import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionRelTable;
+import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
 import io.crate.statistics.TableStats;
 import io.crate.user.Privilege;
 import org.elasticsearch.common.inject.Inject;
@@ -156,6 +158,7 @@ public class PgCatalogTableDefinitions {
             PgIndexesTable.create().expressions(),
             false
         ));
+
         Iterable<PgPublicationTable.PublicationRow> publicationRows =
             () -> logicalReplicationService.publications().entrySet().stream()
                 .map(e -> new PgPublicationTable.PublicationRow(e.getKey(), e.getValue()))
@@ -170,6 +173,24 @@ public class PgCatalogTableDefinitions {
             () -> PgPublicationTablesTable.rows(logicalReplicationService, schemas),
             (user, p) -> p.owner().equals(user.name()),
             PgPublicationTablesTable.create().expressions()
+        ));
+
+        // pg_subscription
+        Iterable<PgSubscriptionTable.SubscriptionRow> subscriptionRows =
+            () -> logicalReplicationService.subscriptions().entrySet().stream()
+                .map(e -> new PgSubscriptionTable.SubscriptionRow(e.getKey(), e.getValue()))
+                .iterator();
+        tableDefinitions.put(PgSubscriptionTable.IDENT, new StaticTableDefinition<>(
+            () -> subscriptionRows,
+            (user, s) -> s.owner().equals(user.name()),
+            PgSubscriptionTable.create().expressions()
+        ));
+
+        // pg_subscription_rel
+        tableDefinitions.put(PgSubscriptionRelTable.IDENT, new StaticTableDefinition<>(
+            () -> PgSubscriptionRelTable.rows(logicalReplicationService, schemas),
+            (user, p) -> p.owner().equals(user.name()),
+            PgSubscriptionRelTable.create().expressions()
         ));
     }
 
