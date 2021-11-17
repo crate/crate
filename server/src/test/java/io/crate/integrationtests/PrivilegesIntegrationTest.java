@@ -449,7 +449,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     public void testAccessesToPgClassEntriesWithRespectToPrivileges() throws Exception {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         execute("select relname from pg_catalog.pg_class order by relname", null, testUserSession());
-        assertThat(response.rowCount(), is(40L));
+        assertThat(response.rowCount(), is(42L));
         assertThat(printedTable(response.rows()), is(
             """
                 character_sets
@@ -475,6 +475,8 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
                 pg_roles
                 pg_settings
                 pg_stats
+                pg_subscription
+                pg_subscription_rel
                 pg_tablespace
                 pg_type
                 referential_constraints
@@ -582,7 +584,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     public void testAccessesToPgAttributeEntriesWithRespectToPrivileges() throws Exception {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         execute("select * from pg_catalog.pg_attribute order by attname", null, testUserSession());
-        assertThat(response.rowCount(), is(445L));
+        assertThat(response.rowCount(), is(459L));
 
         //create a table with an attribute that a new user is not privileged to access
         executeAsSuperuser("create table test_schema.my_table (my_col int)");
