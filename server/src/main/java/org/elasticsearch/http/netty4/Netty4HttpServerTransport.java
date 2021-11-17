@@ -99,7 +99,6 @@ import org.elasticsearch.transport.BindTransportException;
 import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
-import io.crate.common.collections.BorrowedItem;
 import io.crate.netty.NettyBootstrap;
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.http.MainAndStaticFileHandler;
@@ -122,6 +121,7 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.util.concurrent.Future;
 
 public class Netty4HttpServerTransport extends AbstractLifecycleComponent implements HttpServerTransport {
 
@@ -229,7 +229,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     private final NettyBootstrap nettyBootstrap;
 
-    private BorrowedItem<EventLoopGroup> eventLoopGroup;
+    private EventLoopGroup eventLoopGroup;
 
     public Netty4HttpServerTransport(Settings settings,
                                      NetworkService networkService,
@@ -290,9 +290,9 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         boolean success = false;
         try {
             this.serverOpenChannels = new Netty4OpenChannelsHandler(logger);
-            eventLoopGroup = nettyBootstrap.getEventLoopGroup(settings);
+            eventLoopGroup = NettyBootstrap.newEventLoopGroup(settings);
             serverBootstrap = new ServerBootstrap();
-            serverBootstrap.group(eventLoopGroup.item());
+            serverBootstrap.group(eventLoopGroup);
             serverBootstrap.channel(NettyBootstrap.serverChannel());
 
             serverBootstrap.childHandler(configureServerChannelHandler());
@@ -469,7 +469,8 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             serverOpenChannels = null;
         }
         if (eventLoopGroup != null) {
-            eventLoopGroup.close();
+            Future<?> future = eventLoopGroup.shutdownGracefully(0, 5, TimeUnit.SECONDS);
+            future.awaitUninterruptibly();
             eventLoopGroup = null;
         }
 
