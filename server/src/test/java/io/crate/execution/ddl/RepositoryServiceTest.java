@@ -21,7 +21,15 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
@@ -42,18 +50,17 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.transport.MockTransportService;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
+
+    @BeforeClass
+    public static void disableProcessorCheck() {
+        System.setProperty("es.set.netty.runtime.available.processors", "false");
+    }
 
     @Test
     public void testConvertException() throws Throwable {
@@ -82,9 +89,10 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
 
 
         final AtomicBoolean deleteRepoCalled = new AtomicBoolean(false);
+        MockTransportService transportService = MockTransportService.createNewService(
+            Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings());
         TransportDeleteRepositoryAction deleteRepositoryAction = new TransportDeleteRepositoryAction(
-            MockTransportService.createNewService(
-                Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings()),
+            transportService,
             clusterService,
             mock(RepositoriesService.class),
             THREAD_POOL,
@@ -97,8 +105,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         };
 
         TransportPutRepositoryAction putRepo = new TransportPutRepositoryAction(
-            MockTransportService.createNewService(
-                Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings()),
+            transportService,
             clusterService,
             mock(RepositoriesService.class),
             THREAD_POOL,
