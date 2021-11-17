@@ -138,30 +138,6 @@ public final class MockTransportService extends TransportService {
     public MockTransportService(Settings settings,
                                 Transport transport,
                                 ThreadPool threadPool,
-                                @Nullable ClusterSettings clusterSettings) {
-        this(
-            settings,
-            transport,
-            threadPool,
-            (boundAddress) -> DiscoveryNode.createLocal(
-                settings,
-                boundAddress.publishAddress(),
-                settings.get(Node.NODE_NAME_SETTING.getKey(),
-                UUIDs.randomBase64UUID())
-            ),
-            clusterSettings
-        );
-    }
-
-    /**
-     * Build the service.
-     *
-     * @param clusterSettings if non null the {@linkplain TransportService} will register with the {@link ClusterSettings} for settings
-     *                        updates for {@link TransportSettings#TRACE_LOG_EXCLUDE_SETTING} and {@link TransportSettings#TRACE_LOG_INCLUDE_SETTING}.
-     */
-    public MockTransportService(Settings settings,
-                                Transport transport,
-                                ThreadPool threadPool,
                                 Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
                                 @Nullable ClusterSettings clusterSettings) {
         this(settings, new StubbableTransport(transport), threadPool, localNodeFactory, clusterSettings);

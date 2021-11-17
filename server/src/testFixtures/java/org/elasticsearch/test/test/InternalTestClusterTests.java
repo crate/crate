@@ -69,7 +69,7 @@ import static org.hamcrest.Matchers.not;
 public class InternalTestClusterTests extends ESTestCase {
 
     private static Collection<Class<? extends Plugin>> mockPlugins() {
-        return Arrays.asList(getTestTransportPlugin(), MockHttpTransport.TestPlugin.class);
+        return Arrays.asList(MockHttpTransport.TestPlugin.class);
     }
 
     public void testInitializiationIsConsistent() {
