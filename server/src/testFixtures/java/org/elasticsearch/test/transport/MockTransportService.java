@@ -19,43 +19,8 @@
 
 package org.elasticsearch.test.transport;
 
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.ClusterModule;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.ConnectTransportException;
-import org.elasticsearch.transport.ConnectionManager;
-import org.elasticsearch.transport.ConnectionProfile;
-import org.elasticsearch.transport.MockTcpTransport;
-import org.elasticsearch.transport.RequestHandlerRegistry;
-import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportService;
-import org.elasticsearch.transport.TransportSettings;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -70,6 +35,46 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterModule;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.PageCacheRecycler;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.ConnectTransportException;
+import org.elasticsearch.transport.ConnectionManager;
+import org.elasticsearch.transport.ConnectionProfile;
+import org.elasticsearch.transport.RequestHandlerRegistry;
+import org.elasticsearch.transport.TcpTransport;
+import org.elasticsearch.transport.Transport;
+import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportRequestOptions;
+import org.elasticsearch.transport.TransportService;
+import org.elasticsearch.transport.TransportSettings;
+import org.elasticsearch.transport.netty4.Netty4Transport;
+
+import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
+import io.crate.netty.NettyBootstrap;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.user.User;
 
 /**
  * A mock delegate service that allows to simulate different network topology failures.
@@ -95,24 +100,25 @@ public final class MockTransportService extends TransportService {
                                                         Version version,
                                                         ThreadPool threadPool,
                                                         @Nullable ClusterSettings clusterSettings) {
-        MockTcpTransport mockTcpTransport = newMockTransport(settings, version, threadPool);
-        return createNewService(settings, mockTcpTransport, version, threadPool, clusterSettings);
-    }
-
-    public static MockTcpTransport newMockTransport(Settings settings, Version version, ThreadPool threadPool) {
-        settings = Settings.builder().put(TransportSettings.PORT.getKey(), ESTestCase.getPortRange()).put(settings).build();
-        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
-        return new MockTcpTransport(settings, threadPool, new PageCacheRecycler(settings), BigArrays.NON_RECYCLING_INSTANCE,
-            new NoneCircuitBreakerService(), namedWriteableRegistry, new NetworkService(Collections.emptyList()), version);
-    }
-
-    public static MockTransportService createNewService(Settings settings,
-                                                        Transport transport,
-                                                        Version version,
-                                                        ThreadPool threadPool,
-                                                        @Nullable ClusterSettings clusterSettings) {
+        var allSettings = Settings.builder()
+            .put(TransportSettings.PORT.getKey(), ESTestCase.getPortRange())
+            .put(settings)
+            .build();
+        var namedWriteableRegistry = new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
+        var transport = new Netty4Transport(
+            allSettings,
+            version,
+            threadPool,
+            new NetworkService(List.of()),
+            new PageCacheRecycler(allSettings),
+            namedWriteableRegistry,
+            new NoneCircuitBreakerService(),
+            new NettyBootstrap(),
+            new AlwaysOKAuthentication(name -> User.CRATE_USER),
+            new SslContextProvider(allSettings)
+        );
         return new MockTransportService(
-            settings,
+            allSettings,
             transport,
             threadPool,
             boundAddress -> new DiscoveryNode(
