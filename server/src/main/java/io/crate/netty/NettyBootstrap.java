@@ -57,15 +57,9 @@ public class NettyBootstrap {
     private int refs = 0;
     private EventLoopGroup worker;
 
-    public synchronized BorrowedItem<EventLoopGroup> getEventLoopGroup(Settings settings) {
+    public synchronized BorrowedItem<EventLoopGroup> getSharedEventLoopGroup(Settings settings) {
         if (worker == null) {
-            ThreadFactory workerThreads = daemonThreadFactory(settings, WORKER_THREAD_PREFIX);
-            int workerCount = Netty4Transport.WORKER_COUNT.get(settings);
-            if (Epoll.isAvailable()) {
-                worker = new EpollEventLoopGroup(workerCount, workerThreads);
-            } else {
-                worker = new NioEventLoopGroup(workerCount, workerThreads);
-            }
+            worker = newEventLoopGroup(settings);
         }
         refs++;
         return new BorrowedItem<>(worker, () -> {
@@ -81,6 +75,16 @@ public class NettyBootstrap {
                 }
             }
         });
+    }
+
+    public static EventLoopGroup newEventLoopGroup(Settings settings) {
+        ThreadFactory workerThreads = daemonThreadFactory(settings, WORKER_THREAD_PREFIX);
+        int workerCount = Netty4Transport.WORKER_COUNT.get(settings);
+        if (Epoll.isAvailable()) {
+            return new EpollEventLoopGroup(workerCount, workerThreads);
+        } else {
+            return new NioEventLoopGroup(workerCount, workerThreads);
+        }
     }
 
     public static Class<? extends Channel> clientChannel() {
