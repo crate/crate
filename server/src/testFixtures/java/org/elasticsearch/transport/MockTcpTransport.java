@@ -92,18 +92,15 @@ public class MockTcpTransport extends TcpTransport {
     private final ExecutorService executor;
     private final BigArrays bigArrays;
 
-    public MockTcpTransport(Settings settings, ThreadPool threadPool, PageCacheRecycler recycler, BigArrays bigArrays,
-                            CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
+    public MockTcpTransport(Settings settings,
+                            ThreadPool threadPool,
+                            PageCacheRecycler recycler,
+                            BigArrays bigArrays,
+                            CircuitBreakerService circuitBreakerService,
+                            NamedWriteableRegistry namedWriteableRegistry,
                             NetworkService networkService) {
-        this(settings, threadPool, recycler, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService,
-             Version.CURRENT);
-    }
-
-    public MockTcpTransport(Settings settings, ThreadPool threadPool, PageCacheRecycler recycler, BigArrays bigArrays,
-                            CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
-                            NetworkService networkService, Version mockVersion) {
         super(settings,
-              mockVersion,
+              Version.CURRENT,
               threadPool,
               recycler,
               circuitBreakerService,
@@ -112,8 +109,8 @@ public class MockTcpTransport extends TcpTransport {
         this.bigArrays = bigArrays;
         // we have our own crazy cached threadpool this one is not bounded at all...
         // using the ES thread factory here is crucial for tests otherwise disruption tests won't block that thread
-        executor = Executors.newCachedThreadPool(EsExecutors.daemonThreadFactory(settings,
-                                                                                 Transports.TEST_MOCK_TRANSPORT_THREAD_PREFIX));
+        executor = Executors.newCachedThreadPool(
+            EsExecutors.daemonThreadFactory(settings, Transports.TEST_MOCK_TRANSPORT_THREAD_PREFIX));
     }
 
     @Override
