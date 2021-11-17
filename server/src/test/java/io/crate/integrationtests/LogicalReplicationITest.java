@@ -183,6 +183,11 @@ public class LogicalReplicationITest extends LogicalReplicationIntegrationTest {
 
         executeOnSubscriber("DROP SUBSCRIPTION sub1 ");
         assertFalse(replicationService.subscriptions().containsKey("sub1"));
+
+        var response = executeOnSubscriber("SELECT * FROM pg_subscription");
+        assertThat(response.rowCount(), is(0L));
+        response = executeOnSubscriber("SELECT * FROM pg_subscription_rel");
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test
@@ -214,6 +219,29 @@ public class LogicalReplicationITest extends LogicalReplicationIntegrationTest {
         var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
+    }
+
+    @Test
+    public void test_create_subscription_system_tables_filled() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("CREATE TABLE doc.t2 (id INT) WITH(" + defaultTableSettings() + ")");
+
+        // If isForAllTables is true, list argument is used only to grant DQL (to make subscribe work) but publication is not aware of tables in the moment of creation.
+        createPublication("pub1", true, List.of("doc.t1, doc.t2"));
+        createSubscription("sub1", "pub1");
+
+        // s.subconninfo is not being selected since
+        // it's different from run to run due to different port in host.
+        var systemTableResponse = executeOnSubscriber(
+            "SELECT s.oid, s.subdbid, s.subname, s.subowner, s.subenabled, s.subbinary, s.substream, s.subslotname, s.subsynccommit, s.subpublications, " +
+                " sr.srsubid, sr.srrelid, sr.srsubstate, r.relname" +
+                " FROM pg_subscription s" +
+                " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                " JOIN pg_class r ON sr.srrelid = r.oid" +
+                " ORDER BY s.subname, r.relname");
+        assertThat(printedTable(systemTableResponse.rows()),
+            is("530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 728874843| NULL| t1\n" +
+                     "530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 1737494392| NULL| t2\n"));
     }
 
     @Test
