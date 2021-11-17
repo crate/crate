@@ -60,4 +60,9 @@ None
 Fixes
 =====
 
-None
+.. If you add an entry here, the fix needs to be backported to the latest
+.. stable branch. You can add a version label (`v/X.Y`) to the pull request for
+.. an automated mergify backport.
+
+- Fixed an issue that could cause a deadlock, leading to an unavailable cluster
+  if using blob tables and uploading multiple files in parallel.

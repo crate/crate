@@ -150,7 +150,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         if (!enabled) {
             return;
         }
-        eventLoopGroup = eventLoopGroups.getEventLoopGroup(settings);
+        eventLoopGroup = eventLoopGroups.getSharedEventLoopGroup(settings);
         bootstrap = CrateChannelBootstrapFactory.newChannelBootstrap(settings, eventLoopGroup.item());
         this.openChannels = new Netty4OpenChannelsHandler(LOGGER);
 
