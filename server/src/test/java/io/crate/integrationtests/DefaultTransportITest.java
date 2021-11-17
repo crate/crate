@@ -55,11 +55,6 @@ public class DefaultTransportITest extends SQLIntegrationTestCase {
     }
 
     @Override
-    protected boolean addMockTransportService() {
-        return false;
-    }
-
-    @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
