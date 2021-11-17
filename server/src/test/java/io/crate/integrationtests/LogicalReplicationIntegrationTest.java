@@ -44,6 +44,7 @@ import org.elasticsearch.transport.Netty4Plugin;
 import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -78,6 +79,11 @@ public abstract class LogicalReplicationIntegrationTest extends ESTestCase {
             SQLPlugin.class,
             Netty4Plugin.class
         );
+    }
+
+    @BeforeClass
+    public static void disableProcessorCheck() {
+        System.setProperty("es.set.netty.runtime.available.processors", "false");
     }
 
     @Before

@@ -30,6 +30,8 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTablesTable;
+import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionRelTable;
+import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
 import io.crate.statistics.TableStats;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -72,7 +74,9 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
             Map.entry(PgTablespaceTable.IDENT.name(), PgTablespaceTable.create()),
             Map.entry(PgIndexesTable.IDENT.name(), PgIndexesTable.create()),
             Map.entry(PgPublicationTable.IDENT.name(), PgPublicationTable.create()),
-            Map.entry(PgPublicationTablesTable.IDENT.name(), PgPublicationTablesTable.create())
+            Map.entry(PgPublicationTablesTable.IDENT.name(), PgPublicationTablesTable.create()),
+            Map.entry(PgSubscriptionTable.IDENT.name(), PgSubscriptionTable.create()),
+            Map.entry(PgSubscriptionRelTable.IDENT.name(), PgSubscriptionRelTable.create())
         );
     }
 
