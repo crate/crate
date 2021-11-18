@@ -21,23 +21,35 @@
 
 package io.crate.execution.engine.export;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import io.crate.execution.dsl.projection.WriterProjection;
 
 import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.Path;
+import java.net.URI;
+import java.util.concurrent.Executor;
+import java.util.zip.GZIPOutputStream;
 
-import static org.hamcrest.Matchers.instanceOf;
+public class LocalFsFileOutput implements FileOutput {
 
-public class OutputFileTest extends ESTestCase {
-
-    @Test
-    public void testIsBufferedOutputStream() throws Exception {
-        Path file = createTempFile("out", "json");
-        OutputFile outputFile = new OutputFile(file.toUri(), null);
-        try (OutputStream os = outputFile.acquireOutputStream()) {
-            assertThat(os, instanceOf(BufferedOutputStream.class));
+    @Override
+    public OutputStream getStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException {
+        if (uri.getHost() != null) {
+            throw new IllegalArgumentException("the URI host must be defined");
         }
+        String path = uri.getPath();
+        File outFile = new File(path);
+        if (outFile.exists()) {
+            if (outFile.isDirectory()) {
+                throw new IOException("Output path is a directory: " + path);
+            }
+        }
+        OutputStream os = new FileOutputStream(outFile);
+        if (compressionType != null) {
+            os = new GZIPOutputStream(os);
+        }
+        return new BufferedOutputStream(os);
     }
 }

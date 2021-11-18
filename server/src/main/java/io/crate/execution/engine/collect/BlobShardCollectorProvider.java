@@ -71,7 +71,8 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
             settings,
             transportActionProvider,
             blobShard.indexShard(),
-            new ShardRowContext(blobShard, clusterService)
+            new ShardRowContext(blobShard, clusterService),
+            null
         );
         inputFactory = new InputFactory(nodeCtx);
         this.blobShard = blobShard;

@@ -27,6 +27,7 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.engine.collect.BlobShardCollectorProvider;
 import io.crate.execution.engine.collect.LuceneShardCollectorProvider;
 import io.crate.execution.engine.collect.ShardCollectorProvider;
+import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.NodeContext;
@@ -37,6 +38,8 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import java.util.Map;
 
 import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 
@@ -54,6 +57,7 @@ public class ShardCollectorProviderFactory {
     private final BigArrays bigArrays;
     private final Settings settings;
     private final CircuitBreakerService circuitBreakerService;
+    private final Map<String, FileOutputFactory> fileOutputFactoryMap;
 
     ShardCollectorProviderFactory(ClusterService clusterService,
                                   CircuitBreakerService circuitBreakerService,
@@ -65,7 +69,8 @@ public class ShardCollectorProviderFactory {
                                   NodeContext nodeCtx,
                                   LuceneQueryBuilder luceneQueryBuilder,
                                   NodeLimits nodeJobsCounter,
-                                  BigArrays bigArrays) {
+                                  BigArrays bigArrays,
+                                  Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.settings = settings;
         this.circuitBreakerService = circuitBreakerService;
         this.schemas = schemas;
@@ -77,6 +82,7 @@ public class ShardCollectorProviderFactory {
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.nodeJobsCounter = nodeJobsCounter;
         this.bigArrays = bigArrays;
+        this.fileOutputFactoryMap = fileOutputFactoryMap;
     }
 
     public ShardCollectorProvider create(IndexShard indexShard) {
@@ -105,7 +111,8 @@ public class ShardCollectorProviderFactory {
                 settings,
                 transportActionProvider,
                 indexShard,
-                bigArrays);
+                bigArrays,
+                fileOutputFactoryMap);
         }
     }
 }

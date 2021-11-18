@@ -64,7 +64,8 @@ public class FileWriterProjectorTest extends ESTestCase {
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, file.toUri().toString(),
             null, null, Set.of(), new HashMap<>(),
-            null, WriterProjection.OutputFormat.JSON_OBJECT);
+            null, WriterProjection.OutputFormat.JSON_OBJECT,
+            null);
 
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
 
@@ -85,7 +86,8 @@ public class FileWriterProjectorTest extends ESTestCase {
         FileWriterProjector fileWriterProjector = new FileWriterProjector(
             executorService, directory.toUri().toString(),
             null, null, Set.of(), new HashMap<>(),
-            null, WriterProjection.OutputFormat.JSON_OBJECT);
+            null, WriterProjection.OutputFormat.JSON_OBJECT,
+            null);
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
     }
 
@@ -98,7 +100,8 @@ public class FileWriterProjectorTest extends ESTestCase {
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, uri,
             null, null, Set.of(), new HashMap<>(),
-            null, WriterProjection.OutputFormat.JSON_OBJECT);
+            null, WriterProjection.OutputFormat.JSON_OBJECT,
+            null);
 
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
     }

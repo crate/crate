@@ -21,10 +21,12 @@
 
 package io.crate.execution.engine.collect;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
+import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.metadata.NodeContext;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -59,6 +61,7 @@ public abstract class ShardCollectorProvider {
     private final ShardRowContext shardRowContext;
     protected final IndexShard indexShard;
     final EvaluatingNormalizer shardNormalizer;
+    private Map<String, FileOutputFactory> fileOutputFactoryMap;
 
     ShardCollectorProvider(ClusterService clusterService,
                            CircuitBreakerService circuitBreakerService,
@@ -69,7 +72,8 @@ public abstract class ShardCollectorProvider {
                            Settings settings,
                            TransportActionProvider transportActionProvider,
                            IndexShard indexShard,
-                           ShardRowContext shardRowContext) {
+                           ShardRowContext shardRowContext,
+                           Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.indexShard = indexShard;
         this.shardRowContext = shardRowContext;
         shardNormalizer = new EvaluatingNormalizer(
@@ -78,6 +82,7 @@ public abstract class ShardCollectorProvider {
             new ShardReferenceResolver(schemas, shardRowContext),
             null
         );
+        this.fileOutputFactoryMap = fileOutputFactoryMap;
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,
@@ -91,7 +96,8 @@ public abstract class ShardCollectorProvider {
             t -> null,
             t -> null,
             indexShard.indexSettings().getIndexVersionCreated(),
-            indexShard.shardId()
+            indexShard.shardId(),
+            fileOutputFactoryMap
         );
     }
 

@@ -19,21 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.plugin;
+package io.crate.execution.engine.export;
 
-import io.crate.execution.engine.collect.files.FileInputFactory;
-import io.crate.execution.engine.export.FileOutputFactory;
+public interface FileOutputFactory {
 
-import java.util.Collections;
-import java.util.Map;
-
-public interface CopyPlugin {
-
-    default Map<String, FileInputFactory> getFileInputFactories() {
-        return Collections.emptyMap();
-    }
-
-    default Map<String, FileOutputFactory> getFileOutputFactories() {
-        return Collections.emptyMap();
-    }
+    FileOutput create();
 }

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,21 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.plugin;
+package io.crate.execution.engine.export;
 
-import io.crate.execution.engine.collect.files.FileInputFactory;
-import io.crate.execution.engine.export.FileOutputFactory;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
-import java.util.Collections;
-import java.util.Map;
+import java.io.BufferedOutputStream;
+import java.io.OutputStream;
+import java.nio.file.Path;
+import java.util.concurrent.Executor;
 
-public interface CopyPlugin {
+import static org.hamcrest.Matchers.instanceOf;
+import static org.mockito.Mockito.mock;
 
-    default Map<String, FileInputFactory> getFileInputFactories() {
-        return Collections.emptyMap();
-    }
+public class LocalFsFileOutputTest extends ESTestCase {
 
-    default Map<String, FileOutputFactory> getFileOutputFactories() {
-        return Collections.emptyMap();
+    @Test
+    public void testIsBufferedOutputStream() throws Exception {
+        Path file = createTempFile("out", "json");
+        LocalFsFileOutput localFsFileOutput = new LocalFsFileOutput();
+        try (OutputStream os = localFsFileOutput.getStream(mock(Executor.class), file.toUri(), null)) {
+            assertThat(os, instanceOf(BufferedOutputStream.class));
+        }
     }
 }

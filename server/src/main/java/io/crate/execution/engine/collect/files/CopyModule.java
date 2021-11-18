@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.collect.files;
 
+import io.crate.execution.engine.export.FileOutputFactory;
+import io.crate.execution.engine.export.LocalFsFileOutputFactory;
 import io.crate.plugin.CopyPlugin;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
@@ -37,14 +39,19 @@ public class CopyModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        MapBinder<String, FileInputFactory> binder = MapBinder.newMapBinder(binder(),
-                                                                            String.class,
-                                                                            FileInputFactory.class);
-
-        binder.addBinding(LocalFsFileInputFactory.NAME).to(LocalFsFileInputFactory.class).asEagerSingleton();
+        MapBinder<String, FileInputFactory> fileInputFactoryMapBinder = MapBinder.newMapBinder(binder(), String.class, FileInputFactory.class);
+        fileInputFactoryMapBinder.addBinding(LocalFsFileInputFactory.NAME).to(LocalFsFileInputFactory.class).asEagerSingleton();
         for (var copyPlugin : copyPlugins) {
             for (var e : copyPlugin.getFileInputFactories().entrySet()) {
-                binder.addBinding(e.getKey()).toInstance(e.getValue());
+                fileInputFactoryMapBinder.addBinding(e.getKey()).toInstance(e.getValue());
+            }
+        }
+
+        MapBinder<String, FileOutputFactory> fileOutputFactoryMapBinder = MapBinder.newMapBinder(binder(), String.class, FileOutputFactory.class);
+        fileOutputFactoryMapBinder.addBinding(LocalFsFileOutputFactory.NAME).to(LocalFsFileOutputFactory.class).asEagerSingleton();
+        for (var copyPlugin : copyPlugins) {
+            for (var e : copyPlugin.getFileOutputFactories().entrySet()) {
+                fileOutputFactoryMapBinder.addBinding(e.getKey()).toInstance(e.getValue());
             }
         }
     }

@@ -45,6 +45,7 @@ import io.crate.execution.engine.collect.RowsTransformer;
 import io.crate.execution.engine.collect.ShardCollectorProvider;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OrderedLuceneBatchIteratorFactory;
+import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.pipeline.Projectors;
@@ -174,7 +175,8 @@ public class ShardCollectSource implements CollectSource {
                               IndexEventListenerProxy indexEventListenerProxy,
                               BlobIndicesService blobIndicesService,
                               PageCacheRecycler pageCacheRecycler,
-                              CircuitBreakerService circuitBreakerService) {
+                              CircuitBreakerService circuitBreakerService,
+                              Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.unassignedShardReferenceResolver = new StaticTableReferenceResolver<>(
             SysShardsTableInfo.unassignedShardsExpressions());
         this.shardReferenceResolver = new StaticTableReferenceResolver<>(SysShardsTableInfo.create().expressions());
@@ -197,7 +199,8 @@ public class ShardCollectSource implements CollectSource {
             nodeCtx,
             luceneQueryBuilder,
             nodeJobsCounter,
-            bigArrays);
+            bigArrays,
+            fileOutputFactoryMap);
         EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(
             nodeCtx,
             RowGranularity.DOC,

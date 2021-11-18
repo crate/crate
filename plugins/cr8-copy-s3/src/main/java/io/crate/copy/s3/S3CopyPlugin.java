@@ -21,8 +21,8 @@
 
 package io.crate.copy.s3;
 
-import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.FileInputFactory;
+import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.plugin.CopyPlugin;
 import org.elasticsearch.plugins.Plugin;
 
@@ -34,6 +34,11 @@ public class S3CopyPlugin extends Plugin implements CopyPlugin {
         return Map.of(S3FileInputFactory.NAME, new S3FileInputFactory());
     }
 
+    public Map<String, FileOutputFactory> getFileOutputFactories() {
+        return Map.of(S3FileOutputFactory.NAME, new S3FileOutputFactory());
+    }
+
+    /*
     public static class S3FileInputFactory implements FileInputFactory {
 
         public static final String NAME = "s3";
@@ -43,4 +48,6 @@ public class S3CopyPlugin extends Plugin implements CopyPlugin {
             return new S3FileInput();
         }
     }
+
+     */
 }

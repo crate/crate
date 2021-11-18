@@ -57,49 +57,52 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 /**
- * Collector implementation which writes the rows to the configured {@link Output}
+ * Collector implementation which writes the rows to the configured {@link FileOutput}
  * and returns a count representing the number of written rows
  */
 public class FileWriterCountCollector implements Collector<Row, long[], Iterable<Row>> {
 
     private static final byte NEW_LINE = (byte) '\n';
 
+    private final Executor executor;
     private final Iterable<CollectExpression<Row, ?>> collectExpressions;
     private final List<Input<?>> inputs;
+    private final URI uri;
+    private Map<String, FileOutputFactory> fileOutputFactories;
     private final Map<String, Object> overwrites;
+    private final WriterProjection.CompressionType compressionType;
     @Nullable
     private final List<String> outputNames;
     private final WriterProjection.OutputFormat outputFormat;
-    private Output output;
 
     private final RowWriter rowWriter;
 
     FileWriterCountCollector(Executor executor,
-                             String uri,
+                             String uriStr,
                              @Nullable WriterProjection.CompressionType compressionType,
                              @Nullable List<Input<?>> inputs,
                              Iterable<CollectExpression<Row, ?>> collectExpressions,
                              Map<ColumnIdent, Object> overwrites,
                              @Nullable List<String> outputNames,
-                             WriterProjection.OutputFormat outputFormat) {
+                             WriterProjection.OutputFormat outputFormat,
+                             Map<String, FileOutputFactory> fileOutputFactories) {
+        this.executor = executor;
         this.collectExpressions = collectExpressions;
         this.inputs = inputs;
         this.overwrites = toNestedStringObjectMap(overwrites);
+        this.compressionType = compressionType;
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
-        URI uri1;
         try {
-            uri1 = new URI(uri);
+            uri = new URI(uriStr);
         } catch (URISyntaxException e) {
-            throw new SQLParseException(String.format(Locale.ENGLISH, "Invalid uri '%s'", uri), e);
+            throw new SQLParseException(String.format(Locale.ENGLISH, "Invalid uri '%s'", uriStr), e);
         }
-        if (uri1.getScheme() == null || uri1.getScheme().equals("file")) {
-            this.output = new OutputFile(uri1, compressionType);
-        } else if (uri1.getScheme().equalsIgnoreCase("s3")) {
-            this.output = new OutputS3(executor, uri1, compressionType);
-        } else {
-            throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", uri1.getScheme()));
+        // is this needed??
+        if (uri.getScheme() != null && uri.getScheme().equals("file") == false && uri.getScheme().equalsIgnoreCase("s3") == false) {
+            throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", uri.getScheme()));
         }
+        this.fileOutputFactories = fileOutputFactories;
         this.rowWriter = initWriter();
     }
 
@@ -142,16 +145,17 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
     }
 
     private RowWriter initWriter() {
+        FileOutput fileOutput = fileOutputFactories.get(uri.getScheme()).create();
         try {
             if (!overwrites.isEmpty()) {
                 return new DocWriter(
-                    output.acquireOutputStream(), collectExpressions, overwrites);
+                    fileOutput.getStream(executor, uri, compressionType), collectExpressions, overwrites);
             } else if (outputFormat.equals(WriterProjection.OutputFormat.JSON_ARRAY)) {
-                return new ColumnRowWriter(output.acquireOutputStream(), collectExpressions, inputs);
+                return new ColumnRowWriter(fileOutput.getStream(executor, uri, compressionType), collectExpressions, inputs);
             } else if (outputNames != null && outputFormat.equals(WriterProjection.OutputFormat.JSON_OBJECT)) {
-                return new ColumnRowObjectWriter(output.acquireOutputStream(), collectExpressions, inputs, outputNames);
+                return new ColumnRowObjectWriter(fileOutput.getStream(executor, uri, compressionType), collectExpressions, inputs, outputNames);
             } else {
-                return new RawRowWriter(output.acquireOutputStream());
+                return new RawRowWriter(fileOutput.getStream(executor, uri, compressionType));
             }
         } catch (IOException e) {
             throw new UnhandledServerException(String.format(Locale.ENGLISH, "Failed to open output: '%s'", e.getMessage()), e);

@@ -46,22 +46,12 @@ import java.util.concurrent.Executor;
 import java.util.zip.GZIPOutputStream;
 
 @NotThreadSafe
-public class OutputS3 extends Output {
-
-    private final Executor executor;
-    private final URI uri;
-    private final boolean compression;
-
-    public OutputS3(Executor executor, URI uri, WriterProjection.CompressionType compressionType) {
-        this.executor = executor;
-        this.uri = uri;
-        compression = compressionType != null;
-    }
+public class S3FileOutput implements FileOutput {
 
     @Override
-    public OutputStream acquireOutputStream() throws IOException {
+    public OutputStream getStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException {
         OutputStream outputStream = new S3OutputStream(executor, uri, new S3ClientHelper());
-        if (compression) {
+        if (compressionType != null) {
             outputStream = new GZIPOutputStream(outputStream);
         }
         return outputStream;

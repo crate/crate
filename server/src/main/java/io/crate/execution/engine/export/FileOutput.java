@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,21 +19,21 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.plugin;
+package io.crate.execution.engine.export;
 
-import io.crate.execution.engine.collect.files.FileInputFactory;
-import io.crate.execution.engine.export.FileOutputFactory;
+import io.crate.execution.dsl.projection.WriterProjection;
 
-import java.util.Collections;
-import java.util.Map;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.concurrent.Executor;
 
-public interface CopyPlugin {
+public interface FileOutput {
 
-    default Map<String, FileInputFactory> getFileInputFactories() {
-        return Collections.emptyMap();
-    }
-
-    default Map<String, FileOutputFactory> getFileOutputFactories() {
-        return Collections.emptyMap();
-    }
+    /**
+     * calling this method creates & acquires an OutputStream which must be closed by the caller if it is no longer needed
+     *
+     * @throws IOException in case the Output can't be created (e.g. due to file permission errors or something like that)
+     */
+    OutputStream getStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException;
 }

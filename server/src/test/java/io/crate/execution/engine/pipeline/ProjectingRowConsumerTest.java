@@ -102,7 +102,8 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             t -> null,
             t -> null,
             Version.CURRENT,
-            new ShardId("dummy", UUID.randomUUID().toString(), 0)
+            new ShardId("dummy", UUID.randomUUID().toString(), 0),
+            null
         );
     }
 
