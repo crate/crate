@@ -873,12 +873,12 @@ language
 ``type='synonym'``
 
 Allows to easily handle synonyms during the analysis process. Synonyms are
-configured using a configuration file.
+configured using a file in the Solr/WordNet synonym format.
 
 .. rubric:: Parameters
 
 synonyms_path
-    Path to synonyms configuration file
+    Path to synonyms configuration file, relative to the config directory.
 
 ignore_case
     Defaults to ``false``
