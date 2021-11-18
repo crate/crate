@@ -117,7 +117,8 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                     null,
                     null,
                     Settings.EMPTY,
-                    null
+                    null,
+                    Map.of()
                 );
                 assertNotNull(collectorProvider);
             } catch (Exception e) {

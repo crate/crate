@@ -27,19 +27,27 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.engine.collect.BlobShardCollectorProvider;
 import io.crate.execution.engine.collect.LuceneShardCollectorProvider;
 import io.crate.execution.engine.collect.ShardCollectorProvider;
+import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import java.util.Map;
 
 import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 
+@Singleton
 public class ShardCollectorProviderFactory {
 
     private final Schemas schemas;
@@ -54,18 +62,21 @@ public class ShardCollectorProviderFactory {
     private final BigArrays bigArrays;
     private final Settings settings;
     private final CircuitBreakerService circuitBreakerService;
+    private final Map<String, FileOutputFactory> fileOutputFactoryMap;
 
-    ShardCollectorProviderFactory(ClusterService clusterService,
-                                  CircuitBreakerService circuitBreakerService,
-                                  Settings settings,
-                                  Schemas schemas,
-                                  ThreadPool threadPool,
-                                  TransportActionProvider transportActionProvider,
-                                  BlobIndicesService blobIndicesService,
-                                  NodeContext nodeCtx,
-                                  LuceneQueryBuilder luceneQueryBuilder,
-                                  NodeLimits nodeJobsCounter,
-                                  BigArrays bigArrays) {
+    @Inject
+    public ShardCollectorProviderFactory(ClusterService clusterService,
+                                         CircuitBreakerService circuitBreakerService,
+                                         Settings settings,
+                                         Schemas schemas,
+                                         ThreadPool threadPool,
+                                         TransportActionProvider transportActionProvider,
+                                         BlobIndicesService blobIndicesService,
+                                         NodeContext nodeCtx,
+                                         LuceneQueryBuilder luceneQueryBuilder,
+                                         NodeLimits nodeJobsCounter,
+                                         PageCacheRecycler pageCacheRecycler,
+                                         Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.settings = settings;
         this.circuitBreakerService = circuitBreakerService;
         this.schemas = schemas;
@@ -76,7 +87,8 @@ public class ShardCollectorProviderFactory {
         this.nodeCtx = nodeCtx;
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.nodeJobsCounter = nodeJobsCounter;
-        this.bigArrays = bigArrays;
+        this.bigArrays = new BigArrays(pageCacheRecycler, circuitBreakerService, HierarchyCircuitBreakerService.QUERY, true);
+        this.fileOutputFactoryMap = fileOutputFactoryMap;
     }
 
     public ShardCollectorProvider create(IndexShard indexShard) {
@@ -91,7 +103,8 @@ public class ShardCollectorProviderFactory {
                 nodeCtx,
                 threadPool,
                 settings,
-                transportActionProvider
+                transportActionProvider,
+                fileOutputFactoryMap
             );
         } else {
             return new LuceneShardCollectorProvider(
@@ -105,7 +118,8 @@ public class ShardCollectorProviderFactory {
                 settings,
                 transportActionProvider,
                 indexShard,
-                bigArrays);
+                bigArrays,
+                fileOutputFactoryMap);
         }
     }
 }

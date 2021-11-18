@@ -19,21 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.plugin;
+package io.crate.copy.s3;
 
-import io.crate.execution.engine.collect.files.FileInputFactory;
+import io.crate.execution.engine.export.FileOutput;
 import io.crate.execution.engine.export.FileOutputFactory;
 
-import java.util.Collections;
-import java.util.Map;
+public class S3FileOutputFactory implements FileOutputFactory {
 
-public interface CopyPlugin {
+    public static final String NAME = "s3";
 
-    default Map<String, FileInputFactory> getFileInputFactories() {
-        return Collections.emptyMap();
-    }
-
-    default Map<String, FileOutputFactory> getFileOutputFactories() {
-        return Collections.emptyMap();
+    @Override
+    public FileOutput create() {
+        return new S3FileOutput();
     }
 }

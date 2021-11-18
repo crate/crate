@@ -46,6 +46,7 @@ public class FileWriterProjector implements Projector {
     private final WriterProjection.OutputFormat outputFormat;
     private final WriterProjection.CompressionType compressionType;
     private final Executor executor;
+    private final Map<String, FileOutputFactory> fileOutputFactoryMap;
 
     /**
      * @param inputs a list of {@link Input}.
@@ -62,7 +63,8 @@ public class FileWriterProjector implements Projector {
                                Iterable<CollectExpression<Row, ?>> collectExpressions,
                                Map<ColumnIdent, Object> overwrites,
                                @Nullable List<String> outputNames,
-                               WriterProjection.OutputFormat outputFormat) {
+                               WriterProjection.OutputFormat outputFormat,
+                               Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.collectExpressions = collectExpressions;
         this.executor = executor;
         this.inputs = inputs;
@@ -71,6 +73,7 @@ public class FileWriterProjector implements Projector {
         this.outputFormat = outputFormat;
         this.compressionType = compressionType;
         this.uri = uri;
+        this.fileOutputFactoryMap = fileOutputFactoryMap;
     }
 
     @Override
@@ -85,7 +88,8 @@ public class FileWriterProjector implements Projector {
                 collectExpressions,
                 overwrites,
                 outputNames,
-                outputFormat
+                outputFormat,
+                fileOutputFactoryMap
             )
         );
     }

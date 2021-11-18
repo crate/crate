@@ -61,6 +61,7 @@ import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.engine.export.FileWriterProjector;
 import io.crate.execution.engine.fetch.FetchProjector;
 import io.crate.execution.engine.fetch.TransportFetchOperation;
@@ -154,6 +155,7 @@ public class ProjectionToProjectorVisitor
     @Nullable
     private final ShardId shardId;
     private final int numProcessors;
+    private final Map<String, FileOutputFactory> fileOutputFactoryMap;
 
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
@@ -168,7 +170,8 @@ public class ProjectionToProjectorVisitor
                                         Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter,
                                         Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter,
                                         Version indexVersionCreated,
-                                        @Nullable ShardId shardId) {
+                                        @Nullable ShardId shardId,
+                                        Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.clusterService = clusterService;
         this.nodeJobsCounter = nodeJobsCounter;
         this.circuitBreakerService = circuitBreakerService;
@@ -183,6 +186,7 @@ public class ProjectionToProjectorVisitor
         this.indexVersionCreated = indexVersionCreated;
         this.shardId = shardId;
         this.numProcessors = EsExecutors.numberOfProcessors(settings);
+        this.fileOutputFactoryMap = fileOutputFactoryMap;
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
@@ -208,6 +212,7 @@ public class ProjectionToProjectorVisitor
             sysUpdaterGetter,
             staticTableDefinitionGetter,
             Version.CURRENT,
+            null,
             null
         );
     }
@@ -377,7 +382,8 @@ public class ProjectionToProjectorVisitor
             ctx.expressions(),
             overwrites,
             projection.outputNames(),
-            projection.outputFormat()
+            projection.outputFormat(),
+            fileOutputFactoryMap
         );
     }
 

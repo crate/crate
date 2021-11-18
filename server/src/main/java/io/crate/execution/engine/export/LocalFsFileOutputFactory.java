@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,15 +21,11 @@
 
 package io.crate.execution.engine.export;
 
-import java.io.IOException;
-import java.io.OutputStream;
+public class LocalFsFileOutputFactory implements FileOutputFactory {
+    public static final String NAME = "file";
 
-public abstract class Output {
-
-    /**
-     * calling this method creates & acquires an OutputStream which must be closed by the caller if it is no longer needed
-     *
-     * @throws IOException in case the Output can't be created (e.g. due to file permission errors or something like that)
-     */
-    public abstract OutputStream acquireOutputStream() throws IOException;
+    @Override
+    public FileOutput create() {
+        return new LocalFsFileOutput();
+    }
 }

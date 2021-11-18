@@ -21,23 +21,19 @@
 
 package io.crate.execution.engine.export;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import io.crate.execution.dsl.projection.WriterProjection;
 
-import java.io.BufferedOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.Path;
+import java.net.URI;
+import java.util.concurrent.Executor;
 
-import static org.hamcrest.Matchers.instanceOf;
+public interface FileOutput {
 
-public class OutputFileTest extends ESTestCase {
-
-    @Test
-    public void testIsBufferedOutputStream() throws Exception {
-        Path file = createTempFile("out", "json");
-        OutputFile outputFile = new OutputFile(file.toUri(), null);
-        try (OutputStream os = outputFile.acquireOutputStream()) {
-            assertThat(os, instanceOf(BufferedOutputStream.class));
-        }
-    }
+    /**
+     * calling this method creates & acquires an OutputStream which must be closed by the caller if it is no longer needed
+     *
+     * @throws IOException in case the Output can't be created (e.g. due to file permission errors or something like that)
+     */
+    OutputStream acquireOutputStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException;
 }

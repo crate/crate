@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.export;
+package io.crate.copy.s3;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
@@ -30,6 +30,7 @@ import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.engine.export.FileOutput;
 import io.crate.external.S3ClientHelper;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -46,22 +47,12 @@ import java.util.concurrent.Executor;
 import java.util.zip.GZIPOutputStream;
 
 @NotThreadSafe
-public class OutputS3 extends Output {
-
-    private final Executor executor;
-    private final URI uri;
-    private final boolean compression;
-
-    public OutputS3(Executor executor, URI uri, WriterProjection.CompressionType compressionType) {
-        this.executor = executor;
-        this.uri = uri;
-        compression = compressionType != null;
-    }
+public class S3FileOutput implements FileOutput {
 
     @Override
-    public OutputStream acquireOutputStream() throws IOException {
+    public OutputStream acquireOutputStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException {
         OutputStream outputStream = new S3OutputStream(executor, uri, new S3ClientHelper());
-        if (compression) {
+        if (compressionType != null) {
             outputStream = new GZIPOutputStream(outputStream);
         }
         return outputStream;
