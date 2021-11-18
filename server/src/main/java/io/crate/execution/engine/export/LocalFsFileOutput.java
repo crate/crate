@@ -23,43 +23,31 @@ package io.crate.execution.engine.export;
 
 import io.crate.execution.dsl.projection.WriterProjection;
 
-import javax.annotation.Nullable;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.concurrent.Executor;
 import java.util.zip.GZIPOutputStream;
 
-public class OutputFile extends Output {
+public class LocalFsFileOutput implements FileOutput {
 
-    private final String path;
-    private final boolean overwrite;
-    private final boolean compression;
-
-    public OutputFile(URI uri, @Nullable WriterProjection.CompressionType compressionType) {
+    @Override
+    public OutputStream acquireOutputStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException {
         if (uri.getHost() != null) {
             throw new IllegalArgumentException("the URI host must be defined");
         }
-        this.path = uri.getPath();
-        compression = compressionType != null;
-        this.overwrite = true;
-    }
-
-    @Override
-    public OutputStream acquireOutputStream() throws IOException {
+        String path = uri.getPath();
         File outFile = new File(path);
         if (outFile.exists()) {
-            if (!overwrite) {
-                throw new IOException("File exists: " + path);
-            }
             if (outFile.isDirectory()) {
                 throw new IOException("Output path is a directory: " + path);
             }
         }
         OutputStream os = new FileOutputStream(outFile);
-        if (compression) {
+        if (compressionType != null) {
             os = new GZIPOutputStream(os);
         }
         return new BufferedOutputStream(os);

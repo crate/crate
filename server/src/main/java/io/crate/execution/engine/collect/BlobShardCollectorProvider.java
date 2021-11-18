@@ -30,6 +30,7 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.collectors.BlobOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
+import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
@@ -46,6 +47,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.util.Map;
 
 public class BlobShardCollectorProvider extends ShardCollectorProvider {
 
@@ -60,7 +62,8 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       NodeContext nodeCtx,
                                       ThreadPool threadPool,
                                       Settings settings,
-                                      TransportActionProvider transportActionProvider) {
+                                      TransportActionProvider transportActionProvider,
+                                      Map<String, FileOutputFactory> fileOutputFactoryMap) {
         super(
             clusterService,
             circuitBreakerService,
@@ -71,7 +74,8 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
             settings,
             transportActionProvider,
             blobShard.indexShard(),
-            new ShardRowContext(blobShard, clusterService)
+            new ShardRowContext(blobShard, clusterService),
+            fileOutputFactoryMap
         );
         inputFactory = new InputFactory(nodeCtx);
         this.blobShard = blobShard;

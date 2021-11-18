@@ -26,15 +26,12 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
+import io.crate.execution.engine.export.LocalFsFileOutputFactory;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -102,7 +99,8 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             t -> null,
             t -> null,
             Version.CURRENT,
-            new ShardId("dummy", UUID.randomUUID().toString(), 0)
+            new ShardId("dummy", UUID.randomUUID().toString(), 0),
+            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory())
         );
     }
 

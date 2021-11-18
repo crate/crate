@@ -26,7 +26,6 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
-import io.crate.blob.v2.BlobIndicesService;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
@@ -57,12 +56,10 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
-import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
@@ -79,8 +76,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -92,7 +87,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -161,20 +155,17 @@ public class ShardCollectSource implements CollectSource {
 
     @Inject
     public ShardCollectSource(Settings settings,
-                              Schemas schemas,
                               IndicesService indicesService,
                               NodeContext nodeCtx,
                               ClusterService clusterService,
                               NodeLimits nodeJobsCounter,
-                              LuceneQueryBuilder luceneQueryBuilder,
                               ThreadPool threadPool,
                               TransportActionProvider transportActionProvider,
                               RemoteCollectorFactory remoteCollectorFactory,
                               SystemCollectSource systemCollectSource,
                               IndexEventListenerProxy indexEventListenerProxy,
-                              BlobIndicesService blobIndicesService,
-                              PageCacheRecycler pageCacheRecycler,
-                              CircuitBreakerService circuitBreakerService) {
+                              CircuitBreakerService circuitBreakerService,
+                              ShardCollectorProviderFactory shardCollectorProviderFactory) {
         this.unassignedShardReferenceResolver = new StaticTableReferenceResolver<>(
             SysShardsTableInfo.unassignedShardsExpressions());
         this.shardReferenceResolver = new StaticTableReferenceResolver<>(SysShardsTableInfo.create().expressions());
@@ -185,19 +176,7 @@ public class ShardCollectSource implements CollectSource {
         this.availableThreads = numIdleThreads(executor, EsExecutors.numberOfProcessors(settings));
         this.executor = executor;
         this.inputFactory = new InputFactory(nodeCtx);
-        BigArrays bigArrays = new BigArrays(pageCacheRecycler, circuitBreakerService, HierarchyCircuitBreakerService.QUERY, true);
-        this.shardCollectorProviderFactory = new ShardCollectorProviderFactory(
-            clusterService,
-            circuitBreakerService,
-            settings,
-            schemas,
-            threadPool,
-            transportActionProvider,
-            blobIndicesService,
-            nodeCtx,
-            luceneQueryBuilder,
-            nodeJobsCounter,
-            bigArrays);
+        this.shardCollectorProviderFactory = shardCollectorProviderFactory;
         EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(
             nodeCtx,
             RowGranularity.DOC,

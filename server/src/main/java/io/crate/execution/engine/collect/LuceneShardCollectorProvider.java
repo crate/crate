@@ -21,12 +21,14 @@
 
 package io.crate.execution.engine.collect;
 
+import java.util.Map;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.SentinelRow;
+import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.metadata.NodeContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -86,7 +88,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         IndexShard indexShard,
-                                        BigArrays bigArrays) {
+                                        BigArrays bigArrays,
+                                        Map<String, FileOutputFactory> fileOutputFactoryMap) {
         super(
             clusterService,
             circuitBreakerService,
@@ -97,7 +100,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             settings,
             transportActionProvider,
             indexShard,
-            new ShardRowContext(indexShard, clusterService)
+            new ShardRowContext(indexShard, clusterService),
+            fileOutputFactoryMap
         );
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.nodeCtx = nodeCtx;
