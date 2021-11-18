@@ -19,12 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.collect.files;
+package io.crate.copy.s3;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.external.S3ClientHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,7 +54,9 @@ public class S3FileInput implements FileInput {
     }
 
     @Override
-    public List<URI> listUris(@Nullable final URI fileUri, final URI preGlobUri, final Predicate<URI> uriPredicate) throws IOException {
+    public List<URI> listUris(@Nullable final URI fileUri,
+                              final URI preGlobUri,
+                              final Predicate<URI> uriPredicate) throws IOException {
         String bucketName = preGlobUri.getHost();
         if (client == null) {
             client = clientBuilder.client(preGlobUri);

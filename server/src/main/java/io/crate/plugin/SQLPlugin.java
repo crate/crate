@@ -63,7 +63,6 @@ import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.TransportExecutorModule;
 import io.crate.execution.engine.collect.CollectOperationModule;
-import io.crate.execution.engine.collect.files.FileCollectModule;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.jobs.JobModule;
 import io.crate.execution.jobs.TasksService;
@@ -162,7 +161,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new TransportExecutorModule());
         modules.add(new JobModule());
         modules.add(new CollectOperationModule());
-        modules.add(new FileCollectModule());
         modules.add(new MetadataModule());
         modules.add(new MetadataSysModule());
         modules.add(new MetadataBlobModule());
