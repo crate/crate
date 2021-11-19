@@ -184,8 +184,10 @@ public class LogicalReplicationService extends RemoteClusterAware implements Clu
                     startReplication(subscriptionName, subscription, new ActionListener<>() {
                         @Override
                         public void onResponse(AcknowledgedResponse acknowledgedResponse) {
-                            LOGGER.debug("Acknowledged logical replication for subscription '{}'", subscriptionName);
-                            metadataTracker.startTracking(subscriptionName);
+                            if (acknowledgedResponse.isAcknowledged()) {
+                                LOGGER.debug("Acknowledged logical replication for subscription '{}'", subscriptionName);
+                                metadataTracker.startTracking(subscriptionName);
+                            }
                         }
 
                         @Override
