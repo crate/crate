@@ -25,13 +25,11 @@ import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.StringJoiner;
-
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.Asserts.assertThrowsMatches;
@@ -331,7 +329,6 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                                                      "2\n"));
     }
 
-    @TestLogging("io.crate.replication.logical:TRACE,org.elasticsearch.index.seqno:TRACE")
     @Test
     public void test_subscribed_tables_are_followed_and_updated() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
