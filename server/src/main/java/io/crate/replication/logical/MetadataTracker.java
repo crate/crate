@@ -23,6 +23,7 @@ package io.crate.replication.logical;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
@@ -33,9 +34,11 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -95,12 +98,14 @@ public final class MetadataTracker implements Closeable {
     }
 
     private void schedule() {
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Reschedule tracking metadata");
+        }
         cancellable = threadPool.schedule(
             this::run,
             pollDelay,
             ThreadPool.Names.LOGICAL_REPLICATION
         );
-        isActive = true;
     }
 
     public boolean startTracking(String subscriptionName) {
@@ -127,32 +132,59 @@ public final class MetadataTracker implements Closeable {
         }
     }
 
+
     private void run() {
+        var countDown = new CountdownFutureCallback(subscriptionsToTrack.size());
         for (String subscriptionName : subscriptionsToTrack) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Start tracking metadata for subscription {}", subscriptionName);
             }
             getRemoteClusterState(subscriptionName, remoteClusterState -> {
-                clusterService.submitStateUpdateTask("track-metadata", new ClusterStateUpdateTask() {
+                clusterService.submitStateUpdateTask("track-metadata", new AckedClusterStateUpdateTask<>(
+                    new AckMetadataUpdateRequest(),
+                    countDownActionListener(subscriptionName, countDown)
+                ) {
+
                     @Override
                     public ClusterState execute(ClusterState localClusterState) throws Exception {
                         return updateMetadata(subscriptionName, localClusterState, remoteClusterState);
                     }
 
                     @Override
-                    public void onFailure(String source, Exception e) {
-                        LOGGER.error(e);
+                    protected AcknowledgedResponse newResponse(boolean acknowledged) {
+                        return new AcknowledgedResponse(acknowledged);
                     }
                 });
             });
         }
-        if (isActive) {
-            schedule();
-        }
+        countDown.thenRun(() -> {
+            if (isActive) {
+                schedule();
+            }
+        });
+    }
+
+    private static ActionListener<AcknowledgedResponse> countDownActionListener(String subscriptionName,
+                                                                                CountdownFutureCallback countDown) {
+        return ActionListener.wrap(r -> {
+            if (r.isAcknowledged()) {
+                countDown.onSuccess();
+            }
+        }, t -> {
+            LOGGER.error("Tracking metadata failed for subscription {} {}", subscriptionName, t);
+            countDown.onFailure(t);
+        });
+    }
+
+    private static class AckMetadataUpdateRequest extends AcknowledgedRequest<AckMetadataUpdateRequest> {
+
     }
 
     @VisibleForTesting
     static ClusterState updateMetadata(String subscriptionName, ClusterState subscriberClusterState, ClusterState publisherClusterState) {
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Process cluster state for subscription {}", subscriptionName);
+        }
         PublicationsMetadata publicationsMetadata = publisherClusterState.metadata().custom(PublicationsMetadata.TYPE);
         SubscriptionsMetadata subscriptionsMetadata = subscriberClusterState.metadata().custom(SubscriptionsMetadata.TYPE);
         if (publicationsMetadata == null || subscriptionsMetadata == null) {
