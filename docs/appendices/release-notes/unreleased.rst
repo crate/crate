@@ -74,6 +74,9 @@ Changes
   <scalar-pg_encoding_to_char>` which converts an PostgreSQL encoding's internal
   identifier to a human-readable name.
 
+- Added the scalar function :ref:`age <scalar-pg-age>` which returns
+  :ref:`interval <type-interval>` between 2 timestamps.
+
 - Added a :ref:`sys node check for max shards per node
   <sys-node_checks_max_shards_per_node>` to verify that the amount of shards on the
   current node is less than 90 % of  :ref:`cluster.max_shards_per_node
