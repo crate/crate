@@ -21,9 +21,15 @@
 
 package io.crate.replication.logical.engine;
 
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.UnsupportedFeatureException;
+import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.engine.InternalEngine;
 import org.elasticsearch.index.seqno.SequenceNumbers;
+
+import java.io.IOException;
 
 public class SubscriberEngine extends InternalEngine {
 
@@ -44,5 +50,29 @@ public class SubscriberEngine extends InternalEngine {
         assert seqNo != SequenceNumbers.UNASSIGNED_SEQ_NO :
             "Expected valid sequence number for replicated op but was unassigned";
         return true;
+    }
+
+    @VisibleForTesting
+    static void validate(final Operation operation) {
+        if (operation.seqNo() == SequenceNumbers.UNASSIGNED_SEQ_NO) {
+            throw new UnsupportedFeatureException("A subscriber engine does not accept operations without an " +
+                                                  "assigned sequence number");
+        }
+        if ((operation.origin() == Engine.Operation.Origin.PRIMARY) != (operation.versionType() == VersionType.EXTERNAL)) {
+            throw new IllegalStateException("Invalid version_type in a subscriber engine; version_type="
+                                            + operation.versionType() + " origin=" + operation.origin());
+        }
+    }
+
+    @Override
+    protected IndexingStrategy indexingStrategyForOperation(Index index) throws IOException {
+        validate(index);
+        return super.indexingStrategyForOperation(index);
+    }
+
+    @Override
+    protected DeletionStrategy deletionStrategyForOperation(Delete delete) throws IOException {
+        validate(delete);
+        return super.deletionStrategyForOperation(delete);
     }
 }
