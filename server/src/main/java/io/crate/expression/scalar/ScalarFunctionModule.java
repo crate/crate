@@ -142,6 +142,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         DateFormatFunction.register(this);
         CurrentDateFunction.register(this);
         DateBinFunction.register(this);
+        AgeFunction.register(this);
 
         ToCharFunction.register(this);
 
