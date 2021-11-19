@@ -331,7 +331,6 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                                                      "2\n"));
     }
 
-    @TestLogging("io.crate.replication.logical:TRACE,org.elasticsearch.index.seqno:TRACE")
     @Test
     public void test_subscribed_tables_are_followed_and_updated() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
