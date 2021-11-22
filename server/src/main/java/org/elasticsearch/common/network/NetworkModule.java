@@ -46,7 +46,6 @@ import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.Transport;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -90,7 +89,6 @@ public final class NetworkModule {
             AllocateStalePrimaryAllocationCommand.COMMAND_NAME_FIELD);
     }
 
-    private final Map<String, Supplier<Transport>> transportFactories = new HashMap<>();
     private final Map<String, Supplier<HttpServerTransport>> transportHttpFactories = new HashMap<>();
 
     /**
@@ -126,28 +124,6 @@ public final class NetworkModule {
             for (Map.Entry<String, Supplier<HttpServerTransport>> entry : httpTransportFactory.entrySet()) {
                 registerHttpTransport(entry.getKey(), entry.getValue());
             }
-            Map<String, Supplier<Transport>> transportFactory = plugin.getTransports(
-                settings,
-                threadPool,
-                bigArrays,
-                pageCacheRecycler,
-                circuitBreakerService,
-                namedWriteableRegistry,
-                networkService,
-                nettyBootstrap,
-                authentication,
-                sslContextProvider
-            );
-            for (Map.Entry<String, Supplier<Transport>> entry : transportFactory.entrySet()) {
-                registerTransport(entry.getKey(), entry.getValue());
-            }
-        }
-    }
-
-    /** Adds a transport implementation that can be selected by setting {@link #TRANSPORT_TYPE_KEY}. */
-    private void registerTransport(String key, Supplier<Transport> factory) {
-        if (transportFactories.putIfAbsent(key, factory) != null) {
-            throw new IllegalArgumentException("transport for name: " + key + " is already registered");
         }
     }
 
@@ -193,20 +169,6 @@ public final class NetworkModule {
         final Supplier<HttpServerTransport> factory = transportHttpFactories.get(name);
         if (factory == null) {
             throw new IllegalStateException("Unsupported http.type [" + name + "]");
-        }
-        return factory;
-    }
-
-    public Supplier<Transport> getTransportSupplier() {
-        final String name;
-        if (TRANSPORT_TYPE_SETTING.exists(settings)) {
-            name = TRANSPORT_TYPE_SETTING.get(settings);
-        } else {
-            name = TRANSPORT_DEFAULT_TYPE_SETTING.get(settings);
-        }
-        final Supplier<Transport> factory = transportFactories.get(name);
-        if (factory == null) {
-            throw new IllegalStateException("Unsupported transport.type [" + name + "]");
         }
         return factory;
     }

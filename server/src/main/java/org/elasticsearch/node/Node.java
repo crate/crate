@@ -50,6 +50,8 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.net.ssl.SNIHostName;
 
+import io.crate.execution.engine.collect.files.CopyModule;
+import io.crate.plugin.CopyPlugin;
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -123,8 +125,8 @@ import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.gateway.GatewayMetaState;
 import org.elasticsearch.gateway.GatewayModule;
 import org.elasticsearch.gateway.GatewayService;
-import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.gateway.MetaStateService;
+import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
@@ -155,8 +157,8 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.RepositoriesModule;
-import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotShardsService;
 import org.elasticsearch.snapshots.SnapshotsService;
@@ -164,6 +166,7 @@ import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
+import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.AuthSettings;
@@ -503,7 +506,18 @@ public class Node implements Closeable {
                                                                                                             settingsModule.getIndexScopedSettings(),
                                                                                                             indexMetadataUpgraders);
             new TemplateUpgradeService(client, clusterService, threadPool, indexTemplateMetadataUpgraders);
-            final Transport transport = networkModule.getTransportSupplier().get();
+            final Transport transport = new Netty4Transport(
+                settings,
+                Version.CURRENT,
+                threadPool,
+                networkService,
+                pageCacheRecycler,
+                namedWriteableRegistry,
+                circuitBreakerService,
+                nettyBootstrap,
+                authentication,
+                sslContextProvider
+            );
             final TransportService transportService = newTransportService(
                 settings,
                 transport,
@@ -523,6 +537,9 @@ public class Node implements Closeable {
                 xContentRegistry
             );
             modules.add(repositoriesModule);
+
+            CopyModule copyModule = new CopyModule(pluginsService.filterPlugins(CopyPlugin.class));
+            modules.add(copyModule);
 
             RepositoriesService repositoryService = repositoriesModule.repositoryService();
 

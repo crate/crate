@@ -57,11 +57,6 @@ public class SSLTrustedZoneITest extends SQLIntegrationTestCase {
     }
 
     @Override
-    protected boolean addMockTransportService() {
-        return false;
-    }
-
-    @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         var commonSettings =  Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))

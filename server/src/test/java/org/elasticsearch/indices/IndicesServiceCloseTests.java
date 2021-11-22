@@ -27,6 +27,7 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcke
 
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.cluster.ClusterName;
@@ -40,9 +41,11 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.node.MockNode;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.MockHttpTransport;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Test;
 
 public class IndicesServiceCloseTests extends ESTestCase {
@@ -68,7 +71,8 @@ public class IndicesServiceCloseTests extends ESTestCase {
             .putList(INITIAL_MASTER_NODES_SETTING.getKey(), nodeName)
             .build();
 
-        Node node = new MockNode(settings, Arrays.asList(MockHttpTransport.TestPlugin.class, getTestTransportPlugin()), true);
+        Collection<Class<? extends Plugin>> plugins = Arrays.asList(MockHttpTransport.TestPlugin.class, Netty4Plugin.class);
+        Node node = new MockNode(settings, plugins, true);
         node.start();
         return node;
     }
