@@ -124,7 +124,6 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         UserLookup userLookup = subscriberCluster.getInstance(UserLookup.class);
         User user = Objects.requireNonNull(userLookup.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
         createSubscriptionAsUser("sub1", "pub1", user);
-
         assertThrowsMatches(
             () -> executeOnSubscriber("DROP USER " + subscriptionOwner),
             IllegalStateException.class,
@@ -382,12 +381,43 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnPublisher("REFRESH TABLE doc.t1");
         createPublication("pub1", false, List.of("doc.t1"));
         executeOnPublisher("ALTER table doc.t1 set (\"blocks.write\" = true)");
+
         assertThrowsMatches(() -> executeOnPublisher("ALTER TABLE doc.t1 set (number_of_shards = 5)"),
             SQLParseException.class,
             "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' published for logical replication"
         );
     }
 
+    public void test_dynamic_settings_updates_are_replicated() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        createPublication("pub1", false, List.of("doc.t1"));
+        createSubscription("sub1", "pub1");
 
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var response = executeOnSubscriber("SELECT count(*) FROM doc.t1");
+            assertThat(printedTable(response.rows()), is("2\n"));
+        }, 10, TimeUnit.SECONDS);
+
+        executeOnPublisher("ALTER table doc.t1 set (\"refresh_interval\" = '2000ms')");
+        var res = executeOnPublisher("select settings['refresh_interval'] from information_schema.tables where table_name = 't1'");
+        assertThat(printedTable(res.rows()), is("2000\n"));
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var response = executeOnSubscriber("select settings['refresh_interval'] from information_schema.tables where table_name = 't1'");
+            assertThat(printedTable(response.rows()), is("2000\n"));
+        }, 10, TimeUnit.SECONDS);
+
+        executeOnPublisher("ALTER table doc.t1 set (\"refresh_interval\" = '3000ms')");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var response = executeOnSubscriber("select settings['refresh_interval'] from information_schema.tables where table_name = 't1'");
+            assertThat(printedTable(response.rows()), is("3000\n"));
+        }, 10, TimeUnit.SECONDS);
+    }
 
 }

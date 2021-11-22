@@ -532,6 +532,7 @@ public class Node implements Closeable {
 
             RemoteClusters remoteClusters = new RemoteClusters(settings, threadPool, transportService);
             final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
+                settingsModule.getIndexScopedSettings(),
                 settings,
                 clusterService,
                 remoteClusters,

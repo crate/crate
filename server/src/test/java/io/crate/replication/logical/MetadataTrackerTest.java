@@ -21,6 +21,7 @@
 
 package io.crate.replication.logical;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.replication.logical.metadata.Publication;
@@ -33,20 +34,26 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 public class MetadataTrackerTest extends ESTestCase {
 
     @Test
-    public void test_index_mappings_is_transfered_between_two_clusterstates() throws Exception {
+    public void test_metadata_is_transferred_between_two_clustering_for_logical_replication() throws Exception {
         var mappingMetadata = new MappingMetadata("test", Map.of("1", "one"));
         var indexMetadata = IndexMetadata.builder("test").putMapping(mappingMetadata)
             .settings(settings(Version.CURRENT))
@@ -79,24 +86,54 @@ public class MetadataTrackerTest extends ESTestCase {
             .metadata(Metadata.builder().put(indexMetadata, true).putCustom(SubscriptionsMetadata.TYPE, subscriptionsMetadata).build())
             .build();
 
-        var syncedSubriberClusterState = MetadataTracker.updateMetadata("sub1", subscriberClusterState, publisherClusterState);
+        var syncedSubriberClusterState = MetadataTracker.updateIndexMetadata("sub1", subscriberClusterState, publisherClusterState, IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
         // Nothing in the indexMetadata changed, so the clusterstate must be equal
         assertThat(subscriberClusterState, is(syncedSubriberClusterState));
 
 
-        //Now lets change the mapping on the publisher publisherClusterState
+        // Let's change the mapping on the publisher publisherClusterState
         var updatedMappingMetadata = new MappingMetadata("test", Map.of("1", "one", "2", "two"));
         var updatedIndexMetadata = IndexMetadata.builder(indexMetadata).putMapping(updatedMappingMetadata).mappingVersion(2L).build();
         var updatedPublisherClusterState = ClusterState.builder(publisherClusterState).metadata(Metadata.builder().put(
             updatedIndexMetadata,
             true).putCustom(PublicationsMetadata.TYPE, publicationsMetadata).build()).build();
 
-        syncedSubriberClusterState = MetadataTracker.updateMetadata("sub1", subscriberClusterState, updatedPublisherClusterState);
+        syncedSubriberClusterState = MetadataTracker.updateIndexMetadata("sub1", subscriberClusterState, updatedPublisherClusterState,  IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
 
         assertThat(subscriberClusterState, is(not(syncedSubriberClusterState)));
 
         var syncedIndexMetadata = syncedSubriberClusterState.metadata().index("test");
-        // Verify that mappings are in-sync between updated publisher cluster and new subscriber clusterstate
+        // Verify that mappings are in-sync
         assertThat(syncedIndexMetadata.mapping(), is(updatedIndexMetadata.mapping()));
+        assertThat(updatedIndexMetadata.mapping(), is(updatedMappingMetadata));
+
+        // Let's change a dynamic setting
+        Settings.Builder settingsBuilder = settings(Version.CURRENT).put(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey(), TimeValue.timeValueSeconds(5));
+        updatedIndexMetadata = IndexMetadata.builder(indexMetadata).settings(settingsBuilder).settings(settingsBuilder).numberOfShards(1).numberOfReplicas(0).version(1).build();
+        updatedPublisherClusterState = ClusterState.builder(publisherClusterState).metadata(Metadata.builder().put(updatedIndexMetadata, true).putCustom(PublicationsMetadata.TYPE, publicationsMetadata).build()).build();
+        syncedSubriberClusterState = MetadataTracker.updateIndexMetadata("sub1", subscriberClusterState, updatedPublisherClusterState,  IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
+        syncedIndexMetadata = syncedSubriberClusterState.metadata().index("test");
+        assertThat(syncedIndexMetadata.getSettings(), is(updatedIndexMetadata.getSettings()));
+        assertThat(syncedIndexMetadata.getSettings().getAsTime(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey(), null), is(TimeValue.timeValueSeconds(5)));
+
+        // Let`s make sure a private setting is not replicated
+        var randomBase64UUID = UUIDs.randomBase64UUID();
+        settingsBuilder = settings(Version.CURRENT).put(SETTING_INDEX_UUID, randomBase64UUID);
+        updatedIndexMetadata = IndexMetadata.builder(indexMetadata).settings(settingsBuilder).settings(settingsBuilder).numberOfShards(1).numberOfReplicas(0).version(1).build();
+        updatedPublisherClusterState = ClusterState.builder(publisherClusterState).metadata(Metadata.builder().put(updatedIndexMetadata, true).putCustom(PublicationsMetadata.TYPE, publicationsMetadata).build()).build();
+        syncedSubriberClusterState = MetadataTracker.updateIndexMetadata("sub1", subscriberClusterState, updatedPublisherClusterState,  IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
+        syncedIndexMetadata = syncedSubriberClusterState.metadata().index("test");
+        assertThat(syncedIndexMetadata.getSettings(), is(not(updatedIndexMetadata.getSettings())));
+        assertThat(syncedIndexMetadata.getSettings().get(SETTING_INDEX_UUID, "default"), is(not(randomBase64UUID)));
+
+        // Let`s make sure number of replicas is not replicated
+        settingsBuilder = settings(Version.CURRENT).put(INDEX_NUMBER_OF_REPLICAS_SETTING.getKey(), 5);
+        updatedIndexMetadata = IndexMetadata.builder(indexMetadata).settings(settingsBuilder).settings(settingsBuilder).numberOfShards(1).numberOfReplicas(0).version(1).build();
+        updatedPublisherClusterState = ClusterState.builder(publisherClusterState).metadata(Metadata.builder().put(updatedIndexMetadata, true).putCustom(PublicationsMetadata.TYPE, publicationsMetadata).build()).build();
+        syncedSubriberClusterState = MetadataTracker.updateIndexMetadata("sub1", subscriberClusterState, updatedPublisherClusterState,  IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
+        syncedIndexMetadata = syncedSubriberClusterState.metadata().index("test");
+        assertThat(syncedIndexMetadata.getSettings(), is(updatedIndexMetadata.getSettings()));
+        assertThat(syncedIndexMetadata.getSettings().get(INDEX_NUMBER_OF_REPLICAS_SETTING.getKey(), "default"), is("0"));
+
     }
 }
