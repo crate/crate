@@ -24,6 +24,8 @@ package org.elasticsearch.test;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+
+import io.crate.common.collections.Lists2;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.testing.SQLTransportExecutor;
@@ -81,6 +83,7 @@ import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.store.MockFSIndexStore;
 import org.elasticsearch.test.transport.MockTransportService;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -1122,15 +1125,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         }
         Collection<Class<? extends Plugin>> mockPlugins = getMockPlugins();
         final NodeConfigurationSource nodeConfigurationSource = getNodeConfigSource();
-        if (addMockTransportService()) {
-            ArrayList<Class<? extends Plugin>> mocks = new ArrayList<>(mockPlugins);
-            // add both mock plugins - local and tcp if they are not there
-            // we do this in case somebody overrides getMockPlugins and misses to call super
-            if (mockPlugins.contains(getTestTransportPlugin()) == false) {
-                mocks.add(getTestTransportPlugin());
-            }
-            mockPlugins = mocks;
-        }
         return new InternalTestCluster(
             seed,
             createTempDir(),
@@ -1142,17 +1136,14 @@ public abstract class ESIntegTestCase extends ESTestCase {
             nodeConfigurationSource,
             getNumClientNodes(),
             nodePrefix,
-            mockPlugins,
+            Lists2.concat(mockPlugins, Netty4Plugin.class),
             forbidPrivateIndexSettings()
         );
     }
 
     private NodeConfigurationSource getNodeConfigSource() {
         Settings.Builder initialNodeSettings = Settings.builder();
-        if (addMockTransportService()) {
-            initialNodeSettings.put(NetworkModule.TRANSPORT_TYPE_KEY, getTestTransportType());
-        }
-
+        initialNodeSettings.put(NetworkModule.TRANSPORT_TYPE_KEY, Netty4Plugin.NETTY_TRANSPORT_NAME);
         return new NodeConfigurationSource() {
             @Override
             public Settings nodeSettings(int nodeOrdinal) {
@@ -1173,14 +1164,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         };
     }
 
-    /**
-     * Iff this returns true mock transport implementations are used for the test runs. Otherwise not mock transport impls are used.
-     * The default is {@code true}.
-     */
-    protected boolean addMockTransportService() {
-        return true;
-    }
-
     /** Returns {@code true} iff this test cluster should use a dummy http transport */
     protected boolean addMockHttpTransport() {
         return true;
@@ -1197,9 +1180,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
     protected Collection<Class<? extends Plugin>> getMockPlugins() {
         final ArrayList<Class<? extends Plugin>> mocks = new ArrayList<>();
         if (MOCK_MODULES_ENABLED && randomBoolean()) { // sometimes run without those completely
-            if (randomBoolean() && addMockTransportService()) {
-                mocks.add(MockTransportService.TestPlugin.class);
-            }
             if (randomBoolean()) {
                 mocks.add(MockFSIndexStore.TestPlugin.class);
             }
@@ -1212,10 +1192,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
             if (randomBoolean()) {
                 mocks.add(MockFieldFilterPlugin.class);
             }
-        }
-
-        if (addMockTransportService()) {
-            mocks.add(getTestTransportPlugin());
         }
 
         if (addMockHttpTransport()) {

@@ -137,7 +137,7 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.junit.listeners.LoggingListener;
 import org.elasticsearch.test.junit.listeners.ReproduceInfoPrinter;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.MockTcpTransportPlugin;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.hamcrest.Matchers;
 import org.joda.time.DateTimeZone;
 import org.junit.After;
@@ -906,11 +906,7 @@ public abstract class ESTestCase extends LuceneTestCase {
     }
 
     public static String getTestTransportType() {
-        return MockTcpTransportPlugin.MOCK_TCP_TRANSPORT_NAME;
-    }
-
-    public static Class<? extends Plugin> getTestTransportPlugin() {
-        return MockTcpTransportPlugin.class;
+        return Netty4Plugin.NETTY_TRANSPORT_NAME;
     }
 
     /**

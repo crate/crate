@@ -27,6 +27,7 @@ import io.crate.execution.engine.collect.sources.FileCollectSource;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -1003,6 +1004,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             }
 
             refresh();
+            waitUntilThreadPoolTasksFinished(ThreadPool.Names.SEARCH);
 
             // bulk_size is 2 and with the failing URI containing 1 passing and 1 failing record, the 1 passing record must be inserted
             execute("select count(*) from tbl where a = '987654321'");

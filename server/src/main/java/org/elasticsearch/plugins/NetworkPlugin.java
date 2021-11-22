@@ -28,39 +28,18 @@ import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.Transport;
 
-import io.crate.auth.Authentication;
 import io.crate.netty.NettyBootstrap;
-import io.crate.protocols.ssl.SslContextProvider;
 
 /**
  * Plugin for extending network and transport related classes
  */
 public interface NetworkPlugin {
 
-
-    /**
-     * Returns a map of {@link Transport} suppliers.
-     * See {@link org.elasticsearch.common.network.NetworkModule#TRANSPORT_TYPE_KEY} to configure a specific implementation.
-     */
-    default Map<String, Supplier<Transport>> getTransports(Settings settings,
-                                                           ThreadPool threadPool,
-                                                           BigArrays bigArrays,
-                                                           PageCacheRecycler pageCacheRecycler,
-                                                           CircuitBreakerService circuitBreakerService,
-                                                           NamedWriteableRegistry namedWriteableRegistry,
-                                                           NetworkService networkService,
-                                                           NettyBootstrap nettyBootstrap,
-                                                           Authentication authentication,
-                                                           SslContextProvider sslContextProvider) {
-        return Collections.emptyMap();
-    }
 
     /**
      * Returns a map of {@link HttpServerTransport} suppliers.

@@ -49,7 +49,7 @@ public class Netty4Utils {
 
     }
 
-    private static AtomicBoolean isAvailableProcessorsSet = new AtomicBoolean();
+    private static final AtomicBoolean IS_AVAILABLE_PROCESSORS_SET = new AtomicBoolean();
 
     /**
      * Set the number of available processors that Netty uses for sizing various resources (e.g., thread pools).
@@ -68,7 +68,7 @@ public class Netty4Utils {
          * This can be invoked twice, once from Netty4Transport and another time from Netty4HttpServerTransport; however,
          * Netty4Runtime#availableProcessors forbids settings the number of processors twice so we prevent double invocation here.
          */
-        if (isAvailableProcessorsSet.compareAndSet(false, true)) {
+        if (IS_AVAILABLE_PROCESSORS_SET.compareAndSet(false, true)) {
             NettyRuntime.setAvailableProcessors(availableProcessors);
         } else if (availableProcessors != NettyRuntime.availableProcessors()) {
             /*

@@ -19,11 +19,8 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.auth.Authentication;
 import io.crate.netty.NettyBootstrap;
 import io.crate.plugin.PipelineRegistry;
-import io.crate.protocols.ssl.SslContextProvider;
-import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -33,7 +30,6 @@ import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
@@ -104,34 +100,6 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
             .put(NetworkModule.TRANSPORT_DEFAULT_TYPE_SETTING.getKey(), NETTY_TRANSPORT_NAME)
             .put(HttpTransportSettings.SETTING_HTTP_COMPRESSION.getKey(), false)
             .build();
-    }
-
-    @Override
-    public Map<String, Supplier<Transport>> getTransports(Settings settings,
-                                                          ThreadPool threadPool,
-                                                          BigArrays bigArrays,
-                                                          PageCacheRecycler pageCacheRecycler,
-                                                          CircuitBreakerService circuitBreakerService,
-                                                          NamedWriteableRegistry namedWriteableRegistry,
-                                                          NetworkService networkService,
-                                                          NettyBootstrap nettyBootstrap,
-                                                          Authentication authentication,
-                                                          SslContextProvider sslContextProvider) {
-        return Collections.singletonMap(
-            NETTY_TRANSPORT_NAME,
-            () -> new Netty4Transport(
-                settings,
-                Version.CURRENT,
-                threadPool,
-                networkService,
-                pageCacheRecycler,
-                namedWriteableRegistry,
-                circuitBreakerService,
-                nettyBootstrap,
-                authentication,
-                sslContextProvider
-            )
-        );
     }
 
     @Override
