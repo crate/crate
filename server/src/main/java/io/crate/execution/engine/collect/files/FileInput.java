@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect.files;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -36,12 +37,13 @@ public interface FileInput {
      *                     (and may optionally contain a "file hint" - which is the part after the last slash.)
      *                     a concrete implementation may ignore the file hint.
      * @param uriPredicate predicate that a concrete implementation of FileInput must use to pre-filter the returned uris
+     * @param protocolSetting
      * @return a list of Uris
      * @throws IOException
      */
-    List<URI> listUris(URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate) throws IOException;
+    List<URI> listUris(URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate, @Nullable String protocolSetting) throws IOException;
 
-    InputStream getStream(URI uri) throws IOException;
+    InputStream getStream(URI uri, @Nullable String protocolSetting) throws IOException;
 
     boolean sharedStorageDefault();
 }

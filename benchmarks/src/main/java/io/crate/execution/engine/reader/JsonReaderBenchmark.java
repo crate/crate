@@ -149,7 +149,8 @@ public class JsonReaderBenchmark {
             1,
             0,
             CopyFromParserProperties.DEFAULT,
-            JSON);
+            JSON,
+            null);
 
         while (batchIterator.moveNext()) {
             blackhole.consume(batchIterator.currentElement().get(0));

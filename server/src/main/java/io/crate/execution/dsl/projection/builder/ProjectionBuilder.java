@@ -201,8 +201,9 @@ public class ProjectionBuilder {
                                                     @Nullable WriterProjection.CompressionType compressionType,
                                                     Map<ColumnIdent, Symbol> overwrites,
                                                     @Nullable List<String> outputNames,
-                                                    WriterProjection.OutputFormat outputFormat) {
+                                                    WriterProjection.OutputFormat outputFormat,
+                                                    @Nullable String protocolSetting) {
         return new WriterProjection(
-            InputColumn.mapToInputColumns(inputs), uri, compressionType, overwrites, outputNames, outputFormat);
+            InputColumn.mapToInputColumns(inputs), uri, compressionType, overwrites, outputNames, outputFormat, protocolSetting);
     }
 }

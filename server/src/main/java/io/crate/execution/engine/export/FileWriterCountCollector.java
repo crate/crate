@@ -72,6 +72,8 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
     private final Map<String, Object> overwrites;
     private final WriterProjection.CompressionType compressionType;
     @Nullable
+    private final String protocolSetting;
+    @Nullable
     private final List<String> outputNames;
     private final WriterProjection.OutputFormat outputFormat;
 
@@ -80,6 +82,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
     FileWriterCountCollector(Executor executor,
                              String uriStr,
                              @Nullable WriterProjection.CompressionType compressionType,
+                             @Nullable String protocolSetting,
                              @Nullable List<Input<?>> inputs,
                              Iterable<CollectExpression<Row, ?>> collectExpressions,
                              Map<ColumnIdent, Object> overwrites,
@@ -91,6 +94,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         this.inputs = inputs;
         this.overwrites = toNestedStringObjectMap(overwrites);
         this.compressionType = compressionType;
+        this.protocolSetting = protocolSetting;
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
         try {
@@ -150,13 +154,18 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         try {
             if (!overwrites.isEmpty()) {
                 return new DocWriter(
-                    fileOutput.acquireOutputStream(executor, uri, compressionType), collectExpressions, overwrites);
+                    fileOutput.acquireOutputStream(executor, uri, compressionType, protocolSetting),
+                    collectExpressions, overwrites);
             } else if (outputFormat.equals(WriterProjection.OutputFormat.JSON_ARRAY)) {
-                return new ColumnRowWriter(fileOutput.acquireOutputStream(executor, uri, compressionType), collectExpressions, inputs);
+                return new ColumnRowWriter(
+                    fileOutput.acquireOutputStream(executor, uri, compressionType, protocolSetting),
+                    collectExpressions, inputs);
             } else if (outputNames != null && outputFormat.equals(WriterProjection.OutputFormat.JSON_OBJECT)) {
-                return new ColumnRowObjectWriter(fileOutput.acquireOutputStream(executor, uri, compressionType), collectExpressions, inputs, outputNames);
+                return new ColumnRowObjectWriter(
+                    fileOutput.acquireOutputStream(executor, uri, compressionType, protocolSetting),
+                    collectExpressions, inputs, outputNames);
             } else {
-                return new RawRowWriter(fileOutput.acquireOutputStream(executor, uri, compressionType));
+                return new RawRowWriter(fileOutput.acquireOutputStream(executor, uri, compressionType, protocolSetting));
             }
         } catch (IOException e) {
             throw new UnhandledServerException(String.format(Locale.ENGLISH, "Failed to open output: '%s'", e.getMessage()), e);

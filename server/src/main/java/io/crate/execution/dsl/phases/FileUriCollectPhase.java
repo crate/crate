@@ -48,6 +48,8 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
     private final Boolean sharedStorage;
     private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
     private final InputFormat inputFormat;
+    @Nullable
+    private final String protocolSetting;
 
     public FileUriCollectPhase(UUID jobId,
                                int phaseId,
@@ -59,7 +61,8 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
                                String compression,
                                Boolean sharedStorage,
                                CopyFromParserProperties parserProperties,
-                               InputFormat inputFormat) {
+                               InputFormat inputFormat,
+                               @Nullable String protocolSetting) {
         super(jobId, phaseId, name, projections);
         this.executionNodes = executionNodes;
         this.targetUri = targetUri;
@@ -69,6 +72,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
         outputTypes = extractOutputTypes(toCollect, projections);
+        this.protocolSetting = protocolSetting;
     }
 
     public enum InputFormat {
@@ -112,6 +116,11 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         return parserProperties;
     }
 
+    @Nullable
+    public String getProtocolSetting() {
+        return protocolSetting;
+    }
+
     public FileUriCollectPhase(StreamInput in) throws IOException {
         super(in);
         compression = in.readOptionalString();
@@ -131,6 +140,12 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         } else {
             parserProperties = CopyFromParserProperties.DEFAULT;
         }
+        if (in.getVersion().onOrAfter((Version.V_4_7_0))) {
+            String temp = in.readString();
+            protocolSetting = temp.equals("") ? null : temp;
+        } else {
+            protocolSetting = null;
+        }
     }
 
     @Override
@@ -147,6 +162,9 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         out.writeVInt(inputFormat.ordinal());
         if (out.getVersion().onOrAfter(Version.V_4_4_0)) {
             parserProperties.writeTo(out);
+        }
+        if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
+            out.writeString(protocolSetting != null ? protocolSetting : "");
         }
     }
 
@@ -184,7 +202,8 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
                Objects.equals(compression, that.compression) &&
                Objects.equals(sharedStorage, that.sharedStorage) &&
                Objects.equals(distributionInfo, that.distributionInfo) &&
-               inputFormat == that.inputFormat;
+               inputFormat == that.inputFormat &&
+               Objects.equals(protocolSetting, that.protocolSetting);
     }
 
     @Override
@@ -198,7 +217,8 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
             compression,
             sharedStorage,
             distributionInfo,
-            inputFormat);
+            inputFormat,
+            protocolSetting);
     }
 
     @Override
@@ -212,6 +232,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
                ", sharedStorage=" + sharedStorage +
                ", distributionInfo=" + distributionInfo +
                ", inputFormat=" + inputFormat +
+               ", protocolSetting=" + protocolSetting +
                '}';
     }
 }

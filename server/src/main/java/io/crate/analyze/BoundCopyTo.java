@@ -43,6 +43,8 @@ public class BoundCopyTo {
     @Nullable
     private final WriterProjection.OutputFormat outputFormat;
     @Nullable
+    private final String protocolSetting;
+    @Nullable
     private final List<String> outputNames;
     /*
      * add values that should be added or overwritten
@@ -56,6 +58,7 @@ public class BoundCopyTo {
                        Symbol uri,
                        @Nullable WriterProjection.CompressionType compressionType,
                        @Nullable WriterProjection.OutputFormat outputFormat,
+                       @Nullable String protocolSetting,
                        @Nullable List<String> outputNames,
                        boolean columnsDefined,
                        @Nullable Map<ColumnIdent, Symbol> overwrites) {
@@ -66,6 +69,7 @@ public class BoundCopyTo {
         this.columnsDefined = columnsDefined;
         this.compressionType = compressionType;
         this.outputNames = outputNames;
+        this.protocolSetting = protocolSetting;
         this.outputFormat = outputFormat;
         this.overwrites = Objects.requireNonNullElse(overwrites, Map.of());
     }
@@ -98,6 +102,11 @@ public class BoundCopyTo {
     @Nullable
     public WriterProjection.OutputFormat outputFormat() {
         return outputFormat;
+    }
+
+    @Nullable
+    public String getProtocolSetting() {
+        return protocolSetting;
     }
 
     @Nullable

@@ -22,6 +22,7 @@
 package io.crate.execution.engine.collect.files;
 
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -45,7 +46,8 @@ import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 public class LocalFsFileInput implements FileInput {
 
     @Override
-    public List<URI> listUris(final URI fileUri, final URI preGlobUri, final Predicate<URI> uriPredicate) throws IOException {
+    public List<URI> listUris(final URI fileUri, final URI preGlobUri, final Predicate<URI> uriPredicate,
+                              @Nullable String protocolSetting) throws IOException {
         assert fileUri != null : "fileUri must not be null";
         assert preGlobUri != null : "preGlobUri must not be null";
         assert uriPredicate != null : "uriPredicate must not be null";
@@ -94,7 +96,7 @@ public class LocalFsFileInput implements FileInput {
     }
 
     @Override
-    public InputStream getStream(URI uri) throws IOException {
+    public InputStream getStream(URI uri, @Nullable String protocolSetting) throws IOException {
         File file = new File(uri);
         return new FileInputStream(file);
     }

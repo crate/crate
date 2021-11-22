@@ -171,11 +171,11 @@ public class FileReadingIteratorTest extends ESTestCase {
                 path + "nested_dir/*/2_*",
                 path + "nested_dir/nested_dir_2/*/sub.json",
                 path + "nested_dir/nested_dir_*/*/sub.json",
-                "s3://fakeBucket3/prefix*/*.json",
-                "s3://fakeBucket3/*/*.json",
-                "s3://fakeBucket3/*/prefix2/prefix3/a.json",
-                "s3://fakeBucket3/*/prefix2/*/*.json",
-                "s3://fakeBucket3/prefix/p*x/*/*.json"
+                "s3:///fakeBucket3/prefix*/*.json",
+                "s3://play.min.io:443/fakeBucket3/*/*.json",
+                "s3://i:p@play.min.io:443/fakeBucket3/*/prefix2/prefix3/a.json",
+                "s3://a:b@/fakeBucket3/*/prefix2/*/*.json",
+                "s3://a:b@fakeBucket3/prefix/p*x/*/*.json"
             ),
             JSON
         )).urisWithGlob;
@@ -186,11 +186,11 @@ public class FileReadingIteratorTest extends ESTestCase {
             path + "nested_dir/",
             path + "nested_dir/nested_dir_2/",
             path + "nested_dir/",
-            "s3://fakeBucket3/",
-            "s3://fakeBucket3/",
-            "s3://fakeBucket3/",
-            "s3://fakeBucket3/",
-            "s3://fakeBucket3/prefix/"
+            "s3:///fakeBucket3/",
+            "s3://play.min.io:443/fakeBucket3/",
+            "s3://i:p@play.min.io:443/fakeBucket3/",
+            "s3://a:b@/fakeBucket3/",
+            "s3://a:b@/fakeBucket3/prefix/"
         )));
     }
 
@@ -211,6 +211,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             1,
             0,
             CopyFromParserProperties.DEFAULT,
-            format);
+            format,
+                null);
     }
 }

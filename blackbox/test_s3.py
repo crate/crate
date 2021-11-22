@@ -166,3 +166,44 @@ class S3SnapshotIntegrationTest(unittest.TestCase):
                 self.assertEqual(rowcount, 0)
 
                 [self.assertEqual(n.object_name.endswith('.dat'), False) for n in client.list_objects('backups')]
+
+
+class S3CopyIntegrationTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        crate_node.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        crate_node.stop()
+
+    def test(self):
+        client = Minio('127.0.0.1:9000',
+                       access_key = MinioServer.MINIO_ACCESS_KEY,
+                       secret_key = MinioServer.MINIO_SECRET_KEY,
+                       secure = False)
+
+        with MinioServer() as minio:
+            t = threading.Thread(target=minio.run)
+            t.daemon = True
+            t.start()
+            wait_until(lambda: _is_up('127.0.0.1', 9000))
+
+            client.make_bucket("my-bucket")
+
+            with connect(crate_node.http_url) as conn:
+                c = conn.cursor()
+                c.execute('CREATE TABLE t1 (x int)')
+                c.execute('INSERT INTO t1 (x) VALUES (1), (2), (3)')
+                c.execute('REFRESH TABLE t1')
+                c.execute("""
+                    COPY t1 TO DIRECTORY 's3://minio:miniostorage@127.0.0.1:9000/my-bucket/key' WITH (protocol = 'http')
+                """)
+                c.execute("""
+                    COPY t1 FROM 's3://minio:miniostorage@127.0.0.1:9000/my-bucket/k*y/*' WITH (protocol = 'http')
+                """)
+                c.execute('REFRESH TABLE t1')
+                c.execute('SELECT COUNT(*) FROM t1')
+                rowcount = c.fetchone()[0]
+                self.assertEqual(rowcount, 6)

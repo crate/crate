@@ -23,6 +23,7 @@ package io.crate.external;
 
 import com.amazonaws.http.IdleConnectionReaper;
 import com.amazonaws.services.s3.AmazonS3;
+import io.crate.execution.engine.collect.files.URIHelper;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
 import org.junit.Test;
@@ -44,10 +45,11 @@ public class S3ClientHelperTest extends ESTestCase {
 
     @Test
     public void testClient() throws Exception {
-        assertNotNull(s3ClientHelper.client(new URI("s3://baz")));
-        assertNotNull(s3ClientHelper.client(new URI("s3://baz/path/to/file")));
-        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@baz")));
-        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@baz/path/to/file")));
+        assertNotNull(s3ClientHelper.client(new URI(URIHelper.convertToURI("s3://baz")), null));
+        assertNotNull(s3ClientHelper.client(new URI(URIHelper.convertToURI("s3://baz/path/to/file")), null));
+        assertNotNull(s3ClientHelper.client(new URI(URIHelper.convertToURI("s3://foo:inv%2Falid@/baz")), null));
+        assertNotNull(s3ClientHelper.client(new URI(URIHelper.convertToURI("s3://foo:inv%2Falid@/baz/path/to/file")), null));
+        assertNotNull(s3ClientHelper.client(new URI(URIHelper.convertToURI("s3://foo:inv%2Falid@host:9000/baz/path/to/file")), "HTTP"));
     }
 
     @Test
@@ -56,7 +58,7 @@ public class S3ClientHelperTest extends ESTestCase {
         expectedException.expectMessage("Invalid URI. Please make sure that given URI is encoded properly.");
         // 'inv/alid' should be 'inv%2Falid'
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-        s3ClientHelper.client(new URI("s3://foo:inv/alid@baz/path/to/file"));
+        s3ClientHelper.client(new URI("s3://foo:inv/alid@baz/path/to/file"), null);
     }
 
     @Test
@@ -65,12 +67,12 @@ public class S3ClientHelperTest extends ESTestCase {
         expectedException.expectMessage("Invalid URI. Please make sure that given URI is encoded properly.");
         // 'fo/o' should be 'fo%2Fo'
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-        s3ClientHelper.client(new URI("s3://fo/o:inv%2Falid@baz"));
+        s3ClientHelper.client(new URI("s3://fo/o:inv%2Falid@baz"), null);
     }
 
     @Test
     public void testWithCredentials() throws Exception {
-        AmazonS3 s3Client = s3ClientHelper.client(new URI("s3://user:password@host/path"));
+        AmazonS3 s3Client = s3ClientHelper.client(new URI(URIHelper.convertToURI("s3://user:password@host/path")), null);
         URL url = s3Client.generatePresignedUrl("bucket", "key", new Date(0L));
         assertThat(url.toString(), is("https://bucket.s3.amazonaws.com/key?AWSAccessKeyId=user&Expires=0&Signature=o5V2voSQbVEErsUXId6SssCq9OY%3D"));
     }

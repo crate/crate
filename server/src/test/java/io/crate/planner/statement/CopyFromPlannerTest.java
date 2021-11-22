@@ -89,7 +89,8 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyFromPlanWithParameters() {
         Collect collect = plan("copy users " +
-                               "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true, fail_fast = true)");
+                               "from '/path/to/file.ext'" +
+                               "with (bulk_size=30, compression='gzip', shared=true, fail_fast = true, region = 'us-east-7', protocol = 'http')");
         assertThat(collect.collectPhase(), instanceOf(FileUriCollectPhase.class));
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) collect.collectPhase();
@@ -98,6 +99,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.compression(), is("gzip"));
         assertThat(collectPhase.sharedStorage(), is(true));
         assertThat(indexWriterProjection.failFast(), is(true));
+        assertThat(collectPhase.getProtocolSetting(), is("http"));
 
         // verify defaults:
         collect = plan("copy users from '/path/to/file.ext'");
@@ -106,6 +108,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.compression(), is(nullValue()));
         assertThat(collectPhase.sharedStorage(), is(nullValue()));
         assertThat(indexWriterProjection.failFast(), is(false));
+        assertThat(collectPhase.getProtocolSetting(), is (nullValue()));
     }
 
     @Test

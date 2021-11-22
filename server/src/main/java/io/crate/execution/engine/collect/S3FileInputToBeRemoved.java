@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.s3;
+package io.crate.execution.engine.collect;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
@@ -38,18 +38,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class S3FileInput implements FileInput {
+public class S3FileInputToBeRemoved implements FileInput {
 
     private AmazonS3 client; // to prevent early GC during getObjectContent() in getStream()
-    private static final Logger LOGGER = LogManager.getLogger(S3FileInput.class);
+    private static final Logger LOGGER = LogManager.getLogger(S3FileInputToBeRemoved.class);
 
     final S3ClientHelper clientBuilder;
 
-    public S3FileInput() {
+    public S3FileInputToBeRemoved() {
         clientBuilder = new S3ClientHelper();
     }
 
-    public S3FileInput(S3ClientHelper clientBuilder) {
+    public S3FileInputToBeRemoved(S3ClientHelper clientBuilder) {
         this.clientBuilder = clientBuilder;
     }
 
@@ -78,9 +78,8 @@ public class S3FileInput implements FileInput {
     private void addKeyUris(List<URI> uris, ObjectListing list, URI uri, Predicate<URI> uriPredicate) {
         List<S3ObjectSummary> summaries = list.getObjectSummaries();
         for (S3ObjectSummary summary : summaries) {
-            String key = summary.getKey();
-            if (!key.endsWith("/")) {
-                URI keyUri = uri.resolve("/" + summary.getBucketName() + "/" + key);
+            if (!summary.getKey().endsWith("/")) {
+                URI keyUri = uri.resolve("/" + summary.getBucketName() + "/" + summary.getKey());
                 if (uriPredicate.test(keyUri)) {
                     uris.add(keyUri);
                     if (LOGGER.isDebugEnabled()) {

@@ -76,6 +76,7 @@ import java.util.function.Function;
 import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.OUTPUT_FORMAT_SETTING;
 import static io.crate.analyze.CopyStatementSettings.OUTPUT_SETTINGS;
+import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
@@ -147,7 +148,8 @@ public final class CopyToPlan implements Plan {
             boundedCopyTo.compressionType(),
             boundedCopyTo.overwrites(),
             boundedCopyTo.outputNames(),
-            outputFormat);
+            outputFormat,
+            boundedCopyTo.getProtocolSetting());
 
         LogicalPlan collect = Collect.create(
             new DocTableRelation(boundedCopyTo.table()),
@@ -241,6 +243,7 @@ public final class CopyToPlan implements Plan {
             settingAsEnum(WriterProjection.CompressionType.class, COMPRESSION_SETTING.get(settings));
         WriterProjection.OutputFormat outputFormat =
             settingAsEnum(WriterProjection.OutputFormat.class, OUTPUT_FORMAT_SETTING.get(settings));
+        String protocolSetting = settings.get(PROTOCOL_SETTING.getKey(), null);
 
         if (!columnsDefined && outputFormat == WriterProjection.OutputFormat.JSON_ARRAY) {
             throw new UnsupportedFeatureException("Output format not supported without specifying columns.");
@@ -254,6 +257,7 @@ public final class CopyToPlan implements Plan {
             Literal.of(DataTypes.STRING.sanitizeValue(eval.apply(copyTo.uri()))),
             compressionType,
             outputFormat,
+            protocolSetting,
             outputNames.isEmpty() ? null : outputNames,
             columnsDefined,
             overwrites);

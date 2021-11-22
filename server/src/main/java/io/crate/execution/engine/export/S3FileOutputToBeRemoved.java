@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.s3;
+package io.crate.execution.engine.export;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
@@ -31,7 +31,6 @@ import com.amazonaws.services.s3.model.UploadPartResult;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.collect.files.URIHelper;
-import io.crate.execution.engine.export.FileOutput;
 import io.crate.external.S3ClientHelper;
 
 import javax.annotation.Nullable;
@@ -49,7 +48,7 @@ import java.util.concurrent.Executor;
 import java.util.zip.GZIPOutputStream;
 
 @NotThreadSafe
-public class S3FileOutput implements FileOutput {
+public class S3FileOutputToBeRemoved implements FileOutput {
 
     @Override
     public OutputStream acquireOutputStream(Executor executor,

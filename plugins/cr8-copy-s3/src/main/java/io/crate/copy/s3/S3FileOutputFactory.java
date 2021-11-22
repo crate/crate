@@ -24,7 +24,7 @@ package io.crate.copy.s3;
 import io.crate.execution.engine.export.FileOutput;
 import io.crate.execution.engine.export.FileOutputFactory;
 
-public class S3FileOutputFactory implements FileOutputFactory {
+class S3FileOutputFactory implements FileOutputFactory {
 
     public static final String NAME = "s3";
 

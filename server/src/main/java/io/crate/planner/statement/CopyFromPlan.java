@@ -82,6 +82,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
+import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
@@ -304,7 +305,8 @@ public final class CopyFromPlan implements Plan {
             boundedCopyFrom.settings().get("compression", null),
             boundedCopyFrom.settings().getAsBoolean("shared", null),
             CopyFromParserProperties.of(boundedCopyFrom.settings()),
-            boundedCopyFrom.inputFormat()
+            boundedCopyFrom.inputFormat(),
+            boundedCopyFrom.settings().get(PROTOCOL_SETTING.getKey(), null)
         );
 
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, -1, null);

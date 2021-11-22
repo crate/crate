@@ -44,7 +44,7 @@ public class LocalFsFileInputTest extends ESTestCase {
         URI preGlobeUri = new URI(preGlob);
         URI uri = URI.create(originalUri);
         Predicate<URI> uriPredicate = new GlobPredicate(uri);
-        return Lists2.map(new LocalFsFileInput().listUris(uri, preGlobeUri, uriPredicate), URI::toString);
+        return Lists2.map(new LocalFsFileInput().listUris(uri, preGlobeUri, uriPredicate, null), URI::toString);
     }
 
     @Test

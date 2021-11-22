@@ -21,8 +21,10 @@
 
 package io.crate.execution.engine.collect.files;
 
+import io.crate.execution.engine.collect.S3FileInputFactoryToBeRemoved;
 import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.engine.export.LocalFsFileOutputFactory;
+import io.crate.execution.engine.export.S3FileOutputFactoryToBeRemoved;
 import io.crate.plugin.CopyPlugin;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
@@ -44,6 +46,8 @@ public class CopyModule extends AbstractModule {
 
         fileInputFactoryMapBinder.addBinding(LocalFsFileInputFactory.NAME).to(LocalFsFileInputFactory.class).asEagerSingleton();
         fileOutputFactoryMapBinder.addBinding(LocalFsFileOutputFactory.NAME).to(LocalFsFileOutputFactory.class).asEagerSingleton();
+        fileOutputFactoryMapBinder.addBinding(S3FileOutputFactoryToBeRemoved.NAME).to(S3FileOutputFactoryToBeRemoved.class).asEagerSingleton();
+        fileInputFactoryMapBinder.addBinding(S3FileInputFactoryToBeRemoved.NAME).to(S3FileInputFactoryToBeRemoved.class).asEagerSingleton();
 
         for (var copyPlugin : copyPlugins) {
             for (var e : copyPlugin.getFileInputFactories().entrySet()) {

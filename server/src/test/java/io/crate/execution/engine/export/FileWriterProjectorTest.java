@@ -63,8 +63,9 @@ public class FileWriterProjectorTest extends ESTestCase {
     public void testWriteRawToFile() throws Exception {
         Path file = createTempFile("out", "json");
 
-        FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, file.toUri().toString(),
-            null, null, Set.of(), new HashMap<>(),
+        FileWriterProjector fileWriterProjector = new FileWriterProjector(
+            executorService, file.toUri().toString(),null,
+                null, null, Set.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT,
             Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()));
 
@@ -85,7 +86,7 @@ public class FileWriterProjectorTest extends ESTestCase {
         Path directory = createTempDir();
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(
-            executorService, directory.toUri().toString(),
+            executorService, directory.toUri().toString(), null,
             null, null, Set.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT,
             Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()));
@@ -99,8 +100,9 @@ public class FileWriterProjectorTest extends ESTestCase {
 
         String uri = Paths.get(folder.newFile().toURI()).resolve("out.json").toUri().toString();
 
-        FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, uri,
-            null, null, Set.of(), new HashMap<>(),
+        FileWriterProjector fileWriterProjector = new FileWriterProjector(
+            executorService, uri, null,
+                null, null, Set.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT,
             Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()));
 

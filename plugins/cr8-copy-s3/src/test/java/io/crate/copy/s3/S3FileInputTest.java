@@ -24,6 +24,7 @@ package io.crate.copy.s3;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import io.crate.execution.engine.collect.files.URIHelper;
 import io.crate.external.S3ClientHelper;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
@@ -57,12 +58,12 @@ public class S3FileInputTest extends ESTestCase {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        preGlobUri = new URI("s3://fakeBucket/prefix");
+        preGlobUri = new URI(URIHelper.convertToURI("s3://fakeBucket/prefix"));
         s3FileInput = new S3FileInput(clientBuilder);
 
         when(uriPredicate.test(any(URI.class))).thenReturn(true);
         when(amazonS3.listObjects(BUCKET_NAME, PREFIX)).thenReturn(objectListing);
-        when(clientBuilder.client(preGlobUri)).thenReturn(amazonS3);
+        when(clientBuilder.client(preGlobUri, null)).thenReturn(amazonS3);
     }
 
     @Test
@@ -75,20 +76,20 @@ public class S3FileInputTest extends ESTestCase {
 
         when(objectListing.getObjectSummaries()).thenReturn(listObjectSummaries);
 
-        List<URI> uris = s3FileInput.listUris(null, preGlobUri, uriPredicate);
+        List<URI> uris = s3FileInput.listUris(null, preGlobUri, uriPredicate, null);
         assertThat(uris.size(), is(2));
-        assertThat(uris.get(0).toString(), is("s3://fakeBucket/prefix/test1.json.gz"));
-        assertThat(uris.get(1).toString(), is("s3://fakeBucket/prefix/test2.json.gz"));
+        assertThat(uris.get(0).getPath(), is("/fakeBucket/prefix/test1.json.gz"));
+        assertThat(uris.get(1).getPath(), is("/fakeBucket/prefix/test2.json.gz"));
     }
 
     @Test
     public void testListListUrlsWithCorrectKeys() throws Exception {
         when(objectListing.getObjectSummaries()).thenReturn(objectSummaries());
 
-        List<URI> uris = s3FileInput.listUris(null, preGlobUri, uriPredicate);
+        List<URI> uris = s3FileInput.listUris(null, preGlobUri, uriPredicate, null);
         assertThat(uris.size(), is(2));
-        assertThat(uris.get(0).toString(), is("s3://fakeBucket/prefix/test1.json.gz"));
-        assertThat(uris.get(1).toString(), is("s3://fakeBucket/prefix/test2.json.gz"));
+        assertThat(uris.get(0).getPath(), is("/fakeBucket/prefix/test1.json.gz"));
+        assertThat(uris.get(1).getPath(), is("/fakeBucket/prefix/test2.json.gz"));
     }
 
     private List<S3ObjectSummary> objectSummaries() {

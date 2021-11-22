@@ -35,6 +35,11 @@ public final class CopyStatementSettings {
     private CopyStatementSettings() {
     }
 
+    public static final Setting<String> PROTOCOL_SETTING = Setting.simpleString(
+        "protocol",
+        "https",
+        Setting.Property.Dynamic);
+
     public static final Setting<String> COMPRESSION_SETTING = Setting.simpleString(
         "compression",
         Validators.stringValidator("compression", "gzip"),
@@ -74,7 +79,8 @@ public final class CopyStatementSettings {
 
     public static final Map<String, Setting<?>> OUTPUT_SETTINGS = Map.of(
         COMPRESSION_SETTING.getKey(), COMPRESSION_SETTING,
-        OUTPUT_FORMAT_SETTING.getKey(), OUTPUT_FORMAT_SETTING
+        OUTPUT_FORMAT_SETTING.getKey(), OUTPUT_FORMAT_SETTING,
+        PROTOCOL_SETTING.getKey(), PROTOCOL_SETTING
     );
 
     public static <E extends Enum<E>> E settingAsEnum(Class<E> settingsEnum, String settingValue) {

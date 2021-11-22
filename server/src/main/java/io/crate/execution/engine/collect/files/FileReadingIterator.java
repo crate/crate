@@ -67,6 +67,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private final int numReaders;
     private final int readerNumber;
     private final boolean compressed;
+    @Nullable
+    private final String protocolSetting;
     private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("^((s3://|file://|/)[^\\*]*/)[^\\*]*\\*.*");
     private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
 
@@ -95,7 +97,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                 int numReaders,
                                 int readerNumber,
                                 CopyFromParserProperties parserProperties,
-                                FileUriCollectPhase.InputFormat inputFormat) {
+                                FileUriCollectPhase.InputFormat inputFormat,
+                                @Nullable String protocolSetting) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
         this.fileInputFactories = fileInputFactories;
@@ -107,6 +110,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
         initCollectorState();
+        this.protocolSetting = protocolSetting;
     }
 
     @Override
@@ -128,7 +132,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                                  int numReaders,
                                                  int readerNumber,
                                                  CopyFromParserProperties parserProperties,
-                                                 FileUriCollectPhase.InputFormat inputFormat) {
+                                                 FileUriCollectPhase.InputFormat inputFormat,
+                                                 @Nullable String protocolSetting) {
         return new FileReadingIterator(
             fileUris,
             inputs,
@@ -139,7 +144,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
             numReaders,
             readerNumber,
             parserProperties,
-            inputFormat);
+            inputFormat,
+            protocolSetting);
     }
 
     private void initCollectorState() {
@@ -211,7 +217,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
 
     private void initCurrentReader(FileInput fileInput, URI uri) throws IOException {
         lineProcessor.startWithUri(uri);
-        InputStream stream = fileInput.getStream(uri);
+        InputStream stream = fileInput.getStream(uri, protocolSetting);
         currentReader = createBufferedReader(stream);
         currentLineNumber = 0;
         lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
@@ -308,6 +314,9 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private static List<UriWithGlob> getUrisWithGlob(Collection<String> fileUris) {
         List<UriWithGlob> uris = new ArrayList<>(fileUris.size());
         for (String fileUri : fileUris) {
+            if (fileUri.startsWith("s3") || fileUri.startsWith("S3")) {
+                fileUri = URIHelper.convertToURI(fileUri);
+            }
             URI uri = toURI(fileUri);
 
             URI preGlobUri = null;
@@ -381,10 +390,10 @@ public class FileReadingIterator implements BatchIterator<Row> {
         return reader;
     }
 
-    private static List<URI> getUris(FileInput fileInput, URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate) throws IOException {
+    private List<URI> getUris(FileInput fileInput, URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate) throws IOException {
         List<URI> uris;
         if (preGlobUri != null) {
-            uris = fileInput.listUris(fileUri, preGlobUri, uriPredicate);
+            uris = fileInput.listUris(fileUri, preGlobUri, uriPredicate, protocolSetting);
         } else if (uriPredicate.test(fileUri)) {
             uris = List.of(fileUri);
         } else {

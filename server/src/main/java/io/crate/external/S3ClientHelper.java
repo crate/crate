@@ -27,14 +27,17 @@ import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSCredentialsProviderChain;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.retry.PredefinedRetryPolicies;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 
@@ -75,24 +78,51 @@ public class S3ClientHelper {
 
     private final IntObjectMap<AmazonS3> clientMap = new IntObjectHashMap<>(1);
 
-    protected AmazonS3 initClient(@Nullable String accessKey, @Nullable String secretKey) throws IOException {
-        if (accessKey == null || secretKey == null) {
-            return new AmazonS3Client(DEFAULT_CREDENTIALS_PROVIDER_CHAIN, CLIENT_CONFIGURATION);
+    protected AmazonS3 initClient(@Nullable String accessKey, @Nullable String secretKey, @Nullable String endPoint,
+                                  @Nullable String protocolSetting) throws IOException {
+        AmazonS3 client;
+        if (endPoint == null) {
+            if (accessKey == null || secretKey == null) {
+                return new AmazonS3Client(DEFAULT_CREDENTIALS_PROVIDER_CHAIN, CLIENT_CONFIGURATION);
+            } else {
+                return new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey), CLIENT_CONFIGURATION);
+            }
+        } else {
+            if (protocolSetting == null) {
+                protocolSetting = Protocol.HTTPS.toString();
+            }
+            client = AmazonS3ClientBuilder
+                .standard()
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(protocolSetting + "://" + endPoint, null))
+                //.withPathStyleAccessEnabled(true)
+                .withClientConfiguration(CLIENT_CONFIGURATION) // does not override protocolSetting passed to EndpointConfiguration
+                .withCredentials(
+                    (accessKey == null || secretKey == null) ?
+                        DEFAULT_CREDENTIALS_PROVIDER_CHAIN :
+                        new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
+                .build();
         }
-        return new AmazonS3Client(
-            new BasicAWSCredentials(accessKey, secretKey),
-            CLIENT_CONFIGURATION
-        );
+        return client;
     }
 
-    public AmazonS3 client(URI uri) throws IOException {
+    public AmazonS3 client(URI uri, @Nullable String protocolSetting) throws IOException {
         String accessKey = null;
         String secretKey = null;
-        if (uri.getHost() == null) {
-            throw new IllegalArgumentException(INVALID_URI_MSG);
+        String userInfo = null;
+        if (uri.getHost() == null && uri.getPort() == -1 && uri.getUserInfo() == null) {
+            // userInfo is provided by the user and is contained in authority but NOT in userInfo
+            // this happens when host is not provided
+            if (uri.getAuthority() != null) {
+                int idx = uri.getAuthority().indexOf('@');
+                if (idx != -1) {
+                    userInfo = uri.getAuthority().substring(0, idx);
+                }
+            }
+        } else {
+            userInfo = uri.getUserInfo();
         }
-        if (uri.getUserInfo() != null) {
-            String[] userInfoParts = uri.getUserInfo().split(":");
+        if (userInfo != null) {
+            String[] userInfoParts = userInfo.split(":");
             try {
                 accessKey = userInfoParts[0];
                 secretKey = userInfoParts[1];
@@ -104,20 +134,46 @@ public class S3ClientHelper {
         } else if (uri.toString().contains("@") && uri.toString().contains(":")) {
             throw new IllegalArgumentException(INVALID_URI_MSG);
         }
-        return client(accessKey, secretKey);
+
+        String endPoint = null;
+        if (uri.getHost() != null) {
+            endPoint = uri.getHost() + ":" + uri.getPort();
+        }
+
+        return client(accessKey, secretKey, endPoint, protocolSetting);
     }
 
-    private AmazonS3 client(@Nullable String accessKey, @Nullable String secretKey) throws IOException {
-        int hash = hash(accessKey, secretKey);
+    private AmazonS3 client(@Nullable String accessKey, @Nullable String secretKey, @Nullable String endPoint,
+                            @Nullable String protocolSetting) throws IOException {
+        int hash = hash(accessKey, secretKey, endPoint, protocolSetting);
         AmazonS3 client = clientMap.get(hash);
         if (client == null) {
-            client = initClient(accessKey, secretKey);
+            client = initClient(accessKey, secretKey, endPoint, protocolSetting);
             clientMap.put(hash, client);
         }
         return client;
     }
 
-    private static int hash(@Nullable String accessKey, @Nullable String secretKey) {
-        return 31 * (accessKey == null ? 1 : accessKey.hashCode()) + (secretKey == null ? 1 : secretKey.hashCode());
+    private static int hash(@Nullable String accessKey, @Nullable String secretKey, @Nullable String endPoint,
+                            @Nullable String protocolSetting) {
+        return 31 * (31 * (31 * (accessKey == null ? 1 : accessKey.hashCode())
+            + (secretKey == null ? 1 : secretKey.hashCode()))
+            + (endPoint == null ? 1 : endPoint.hashCode()))
+            + (protocolSetting == null ? 1 : protocolSetting.hashCode());
+    }
+
+    public static class PathParser {
+        public final String bucket;
+        public final String key;
+
+        public PathParser(String pathComponent) {
+            try {
+                int splitIndex = pathComponent.indexOf('/', 1);
+                this.bucket = pathComponent.substring(1, splitIndex);
+                this.key = pathComponent.substring(splitIndex + 1);
+            } catch (IndexOutOfBoundsException e) {
+                throw new IllegalArgumentException(INVALID_URI_MSG);
+            }
+        }
     }
 }

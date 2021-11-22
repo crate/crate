@@ -88,7 +88,8 @@ public class FileCollectSource implements CollectSource {
             fileUriCollectPhase.nodeIds().size(),
             getReaderNumber(fileUriCollectPhase.nodeIds(), clusterService.state().nodes().getLocalNodeId()),
             fileUriCollectPhase.parserProperties(),
-            fileUriCollectPhase.inputFormat()
+            fileUriCollectPhase.inputFormat(),
+            fileUriCollectPhase.getProtocolSetting()
         ));
     }
 

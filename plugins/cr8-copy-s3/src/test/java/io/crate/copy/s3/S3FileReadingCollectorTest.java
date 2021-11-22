@@ -218,7 +218,8 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             Map.of(
                 S3FileInputFactory.NAME, () -> new S3FileInput(new S3ClientHelper() {
                     @Override
-                    protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
+                    protected AmazonS3 initClient(String accessKey, String secretKey, String endPoint,
+                                                  String protocolSetting) throws IOException {
                         AmazonS3 client = mock(AmazonS3Client.class);
                         ObjectListing objectListing = mock(ObjectListing.class);
                         S3ObjectSummary summary = mock(S3ObjectSummary.class);
@@ -238,7 +239,8 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             1,
             0,
             CopyFromParserProperties.DEFAULT,
-            FileUriCollectPhase.InputFormat.JSON);
+            FileUriCollectPhase.InputFormat.JSON,
+            null);
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {

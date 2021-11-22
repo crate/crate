@@ -83,7 +83,8 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             null,
             false,
             CopyFromParserProperties.DEFAULT,
-            FileUriCollectPhase.InputFormat.JSON
+            FileUriCollectPhase.InputFormat.JSON,
+            null
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         CollectTask collectTask = mock(CollectTask.class);

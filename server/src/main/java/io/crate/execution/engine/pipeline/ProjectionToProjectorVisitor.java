@@ -378,6 +378,7 @@ public class ProjectionToProjectorVisitor
             threadPool.generic(),
             uri,
             projection.compressionType(),
+            projection.getProtocolSetting(),
             inputs,
             ctx.expressions(),
             overwrites,

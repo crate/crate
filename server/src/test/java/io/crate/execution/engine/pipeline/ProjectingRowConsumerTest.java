@@ -198,7 +198,8 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             null,
             Collections.emptyMap(),
             Collections.emptyList(),
-            WriterProjection.OutputFormat.JSON_OBJECT);
+            WriterProjection.OutputFormat.JSON_OBJECT,
+            "dummyHTTP");
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         RowConsumer rowConsumer = ProjectingRowConsumer.create(

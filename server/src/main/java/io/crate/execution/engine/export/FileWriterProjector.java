@@ -45,6 +45,8 @@ public class FileWriterProjector implements Projector {
     private final List<String> outputNames;
     private final WriterProjection.OutputFormat outputFormat;
     private final WriterProjection.CompressionType compressionType;
+    @Nullable
+    private final String protocolSetting;
     private final Executor executor;
     private final Map<String, FileOutputFactory> fileOutputFactoryMap;
 
@@ -59,6 +61,7 @@ public class FileWriterProjector implements Projector {
     public FileWriterProjector(Executor executor,
                                String uri,
                                @Nullable WriterProjection.CompressionType compressionType,
+                               @Nullable String protocolSetting,
                                @Nullable List<Input<?>> inputs,
                                Iterable<CollectExpression<Row, ?>> collectExpressions,
                                Map<ColumnIdent, Object> overwrites,
@@ -72,6 +75,7 @@ public class FileWriterProjector implements Projector {
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
         this.compressionType = compressionType;
+        this.protocolSetting = protocolSetting;
         this.uri = uri;
         this.fileOutputFactoryMap = fileOutputFactoryMap;
     }
@@ -84,6 +88,7 @@ public class FileWriterProjector implements Projector {
                 executor,
                 uri,
                 compressionType,
+                protocolSetting,
                 inputs,
                 collectExpressions,
                 overwrites,

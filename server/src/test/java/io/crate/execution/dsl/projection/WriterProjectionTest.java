@@ -25,6 +25,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import org.elasticsearch.Version;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -44,7 +45,8 @@ public class WriterProjectionTest extends ESTestCase {
             MapBuilder.<ColumnIdent, Symbol>newMapBuilder().put(
                 new ColumnIdent("partitionColumn"), Literal.of(1)).map(),
             List.of("foo"),
-            WriterProjection.OutputFormat.JSON_OBJECT
+            WriterProjection.OutputFormat.JSON_OBJECT,
+            "dummyHTTPS"
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -54,5 +56,40 @@ public class WriterProjectionTest extends ESTestCase {
         WriterProjection p2 = (WriterProjection) Projection.fromStream(in);
 
         assertEquals(p, p2);
+    }
+
+    @Test
+    public void testStreamingBefore4_7_0() throws Exception {
+        WriterProjection actualInput = new WriterProjection(
+            List.of(new InputColumn(1)),
+            Literal.of("/foo.json"),
+            WriterProjection.CompressionType.GZIP,
+            MapBuilder.<ColumnIdent, Symbol>newMapBuilder().put(
+                new ColumnIdent("partitionColumn"), Literal.of(1)).map(),
+            List.of("foo"),
+            WriterProjection.OutputFormat.JSON_OBJECT,
+            "dummyHTTPS"
+        );
+
+        WriterProjection expected = new WriterProjection(
+            List.of(new InputColumn(1)),
+            Literal.of("/foo.json"),
+            WriterProjection.CompressionType.GZIP,
+            MapBuilder.<ColumnIdent, Symbol>newMapBuilder().put(
+                new ColumnIdent("partitionColumn"), Literal.of(1)).map(),
+            List.of("foo"),
+            WriterProjection.OutputFormat.JSON_OBJECT,
+            null
+        );
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_4_6_0);
+        Projection.toStream(actualInput, out);
+
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_4_6_0);
+        WriterProjection actual = (WriterProjection) Projection.fromStream(in);
+
+        assertEquals(expected, actual);
     }
 }

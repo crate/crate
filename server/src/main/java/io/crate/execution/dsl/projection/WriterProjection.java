@@ -37,6 +37,7 @@ import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.StringType;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -107,18 +108,23 @@ public class WriterProjection extends Projection {
         GZIP
     }
 
+    @Nullable
+    private final String protocolSetting;
+
     public WriterProjection(List<Symbol> inputs,
                             Symbol uri,
                             @Nullable CompressionType compressionType,
                             Map<ColumnIdent, Symbol> overwrites,
                             @Nullable List<String> outputNames,
-                            OutputFormat outputFormat) {
+                            OutputFormat outputFormat,
+                            @Nullable String protocolSetting) {
         this.inputs = inputs;
         this.uri = uri;
         this.overwrites = overwrites;
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
         this.compressionType = compressionType;
+        this.protocolSetting = protocolSetting;
     }
 
     public WriterProjection(StreamInput in) throws IOException {
@@ -141,6 +147,12 @@ public class WriterProjection extends Projection {
         int compressionTypeOrdinal = in.readInt();
         compressionType = compressionTypeOrdinal >= 0 ? CompressionType.values()[compressionTypeOrdinal] : null;
         outputFormat = OutputFormat.values()[in.readInt()];
+        if (in.getVersion().onOrAfter(Version.V_4_7_0)) {
+            var temp = in.readString();
+            protocolSetting = temp.equals("") ? null : temp;
+        } else {
+            protocolSetting = null;
+        }
     }
 
     @Override
@@ -182,6 +194,11 @@ public class WriterProjection extends Projection {
         return compressionType;
     }
 
+    @Nullable
+    public String getProtocolSetting() {
+        return protocolSetting;
+    }
+
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitWriterProjection(this, context);
@@ -208,6 +225,9 @@ public class WriterProjection extends Projection {
         }
         out.writeInt(compressionType != null ? compressionType.ordinal() : -1);
         out.writeInt(outputFormat.ordinal());
+        if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
+            out.writeString(protocolSetting != null ? protocolSetting : "");
+        }
     }
 
     @Override
@@ -224,8 +244,7 @@ public class WriterProjection extends Projection {
         if (!Objects.equals(compressionType, that.compressionType))
             return false;
         if (!outputFormat.equals(that.outputFormat)) return false;
-
-        return true;
+        return Objects.equals(protocolSetting, that.protocolSetting);
     }
 
     @Override
@@ -236,6 +255,7 @@ public class WriterProjection extends Projection {
         result = 31 * result + overwrites.hashCode();
         result = 31 * result + (compressionType != null ? compressionType.hashCode() : 0);
         result = 31 * result + outputFormat.hashCode();
+        result = 31 * result + (protocolSetting != null ? protocolSetting.hashCode() : 0);
         return result;
     }
 
@@ -258,7 +278,8 @@ public class WriterProjection extends Projection {
                 compressionType,
                 overwrites,
                 outputNames,
-                outputFormat
+                outputFormat,
+                protocolSetting
             );
         }
         return this;

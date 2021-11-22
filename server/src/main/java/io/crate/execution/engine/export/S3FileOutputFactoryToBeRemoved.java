@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,27 +21,12 @@
 
 package io.crate.execution.engine.export;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+public class S3FileOutputFactoryToBeRemoved implements FileOutputFactory {
 
-import java.io.BufferedOutputStream;
-import java.io.OutputStream;
-import java.nio.file.Path;
-import java.util.concurrent.Executor;
+    public static final String NAME = "s3";
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.Mockito.mock;
-
-public class LocalFsFileOutputTest extends ESTestCase {
-
-    @Test
-    public void testIsBufferedOutputStream() throws Exception {
-        Path file = createTempFile("out", "json");
-        LocalFsFileOutput localFsFileOutput = new LocalFsFileOutput();
-        try (OutputStream os = localFsFileOutput.acquireOutputStream(mock(Executor.class),
-                                                                     file.toUri(),
-                                                                     null, null)) {
-            assertThat(os, instanceOf(BufferedOutputStream.class));
-        }
+    @Override
+    public FileOutput create() {
+        return new S3FileOutputToBeRemoved();
     }
 }

@@ -23,6 +23,7 @@ package io.crate.execution.engine.export;
 
 import io.crate.execution.dsl.projection.WriterProjection;
 
+import javax.annotation.Nullable;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -35,7 +36,10 @@ import java.util.zip.GZIPOutputStream;
 public class LocalFsFileOutput implements FileOutput {
 
     @Override
-    public OutputStream acquireOutputStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException {
+    public OutputStream acquireOutputStream(Executor executor,
+                                            URI uri,
+                                            WriterProjection.CompressionType compressionType,
+                                            @Nullable String protocolSetting) throws IOException {
         if (uri.getHost() != null) {
             throw new IllegalArgumentException("the URI host must be defined");
         }

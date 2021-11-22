@@ -45,8 +45,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
 
 public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -131,5 +132,19 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Given partition ident does not match partition evaluated from where clause");
         plan("copy parted partition (date=1395874800000) where date = 1395961200000 to directory '/tmp/foo'");
+    }
+
+    @Test
+    public void testCopyToPlanWithParameters() {
+        Merge merge = plan("copy users to directory '/path/to' with (protocol = 'http')");
+        Collect collect = (Collect) merge.subPlan();
+        WriterProjection writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
+        assertThat(writerProjection.getProtocolSetting(), is("http"));
+
+        // verify defaults:
+        merge = plan("copy users to directory '/path/to/'");
+        collect = (Collect) merge.subPlan();
+        writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
+        assertThat(writerProjection.getProtocolSetting(), is (nullValue()));
     }
 }

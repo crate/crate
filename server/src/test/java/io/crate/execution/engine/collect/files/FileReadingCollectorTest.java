@@ -244,7 +244,8 @@ public class FileReadingCollectorTest extends ESTestCase {
             1,
             0,
             CopyFromParserProperties.DEFAULT,
-            FileUriCollectPhase.InputFormat.JSON);
+            FileUriCollectPhase.InputFormat.JSON,
+            null);
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {
