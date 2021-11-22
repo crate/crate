@@ -19,24 +19,9 @@
 
 package org.elasticsearch.transport;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.PlainActionFuture;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.VersionUtils;
-import org.elasticsearch.test.transport.MockTransportService;
-import org.elasticsearch.threadpool.TestThreadPool;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
+import static org.hamcrest.Matchers.containsString;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,9 +29,30 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
-import static org.hamcrest.Matchers.containsString;
+import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.PageCacheRecycler;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.VersionUtils;
+import org.elasticsearch.test.transport.MockTransportService;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.netty4.Netty4Transport;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.netty.NettyBootstrap;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.user.User;
 
 public class TransportServiceHandshakeTests extends ESTestCase {
 
@@ -61,23 +67,43 @@ public class TransportServiceHandshakeTests extends ESTestCase {
     private List<TransportService> transportServices = new ArrayList<>();
 
     private NetworkHandle startServices(String nodeNameAndId, Settings settings, Version version) {
-        MockTcpTransport transport =
-                new MockTcpTransport(settings,
-                                     threadPool,
-                                     PageCacheRecycler.NON_RECYCLING_INSTANCE,
-                                     BigArrays.NON_RECYCLING_INSTANCE,
-                                     new NoneCircuitBreakerService(),
-                                     new NamedWriteableRegistry(Collections.emptyList()),
-                                     new NetworkService(Collections.emptyList())
-                                     );
-        TransportService transportService = new MockTransportService(settings, transport, threadPool,
-                                                                     (boundAddress) -> new DiscoveryNode(
-            nodeNameAndId,
-            nodeNameAndId,
-            boundAddress.publishAddress(),
-            emptyMap(),
-            emptySet(),
-            version), null);
+        var allSettings = Settings.builder()
+            .put(TransportSettings.PORT.getKey(), ESTestCase.getPortRange())
+            .put(settings)
+            .build();
+        var transport = new Netty4Transport(
+            allSettings,
+            // Not using `version` here although it would be the right thing to do.
+            // `testIncompatibleVersions` would fail because `InboundDecoder` would already throw an exception
+            // which would end up triggering `ExceptionsHelper.maybeDieOnAnotherThread(cause)`
+            // making it impossible to catch the exception.
+            //
+            // This is inherited from ES, we should eventually update the test case to
+            // handle the real world scenario instead of a faked one.
+            Version.CURRENT,
+            threadPool,
+            new NetworkService(Collections.emptyList()),
+            PageCacheRecycler.NON_RECYCLING_INSTANCE,
+            new NamedWriteableRegistry(Collections.emptyList()),
+            new NoneCircuitBreakerService(),
+            new NettyBootstrap(),
+            new AlwaysOKAuthentication(userName -> User.CRATE_USER),
+            new SslContextProvider(settings)
+        );
+        TransportService transportService = new MockTransportService(
+            allSettings,
+            transport,
+            threadPool,
+            (boundAddress) -> new DiscoveryNode(
+                nodeNameAndId,
+                nodeNameAndId,
+                boundAddress.publishAddress(),
+                emptyMap(),
+                emptySet(),
+                version
+            ),
+            null
+        );
         transportService.start();
         transportService.acceptIncomingRequests();
         transportServices.add(transportService);
@@ -146,6 +172,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
         assertFalse(handleA.transportService.nodeConnected(discoveryNode));
     }
 
+    @Test
     public void testIncompatibleVersions() {
         Settings settings = Settings.builder().put("cluster.name", "test").build();
         NetworkHandle handleA = startServices("TS_A", settings, Version.CURRENT);
