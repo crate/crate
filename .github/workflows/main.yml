@@ -27,6 +27,14 @@ jobs:
         with:
           arguments: :server:test -Dtests.crate.run-windows-incompatible=${{ matrix.os == 'ubuntu-latest' }}
 
+      - name: Upload results to wacklig
+        if: always()
+        env:
+          WACKLIG_TOKEN: ${{ secrets.WACKLIG_TOKEN }}
+        run: |
+          curl -s https://raw.githubusercontent.com/pipifein/wacklig-uploader/master/wacklig.py | python - --token $WACKLIG_TOKEN || echo "Upload to wacklig failed"
+
+
   forbiddenApis:
     name: forbiddenApisMain
     runs-on: ubuntu-latest
