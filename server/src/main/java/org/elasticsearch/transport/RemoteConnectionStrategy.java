@@ -178,17 +178,6 @@ public abstract class RemoteConnectionStrategy implements TransportConnectionLis
         }
     }
 
-    public static boolean isConnectionEnabled(Settings connectionSettings) {
-        ConnectionStrategy mode = REMOTE_CONNECTION_MODE.get(connectionSettings);
-        if (mode.equals(ConnectionStrategy.SNIFF)) {
-            List<String> seeds = SniffConnectionStrategy.REMOTE_CLUSTER_SEEDS.get(connectionSettings);
-            return seeds.isEmpty() == false;
-        } else {
-            String address = ProxyConnectionStrategy.PROXY_ADDRESS.get(connectionSettings);
-            return Strings.isEmpty(address) == false;
-        }
-    }
-
     @SuppressWarnings("unchecked")
     public static boolean isConnectionEnabled(Map<Setting<?>, Object> connectionSettings) {
         ConnectionStrategy mode = (ConnectionStrategy) connectionSettings.get(REMOTE_CONNECTION_MODE);
