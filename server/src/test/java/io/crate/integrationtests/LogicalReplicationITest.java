@@ -39,7 +39,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
 
-public class LogicalReplicationITest extends LogicalReplicationIntegrationTest {
+public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     private String defaultTableSettings() {
         var joiner = new StringJoiner(",");
