@@ -21,11 +21,9 @@
 
 package io.crate.execution.support;
 
-import io.crate.action.FutureActionListener;
-import io.crate.exceptions.Exceptions;
+import java.util.Locale;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -37,9 +35,7 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
+import io.crate.exceptions.Exceptions;
 
 
 @Singleton
@@ -52,25 +48,6 @@ public class Transports {
     public Transports(ClusterService clusterService, TransportService transportService) {
         this.clusterService = clusterService;
         this.transportService = transportService;
-    }
-
-    /**
-     * Convenience to turn
-     *
-     *      `action.execute(request, listener) -> void`
-     *
-     *  into
-     *
-     *      `execute(action, request, convertResp) -> resultFuture`
-     */
-    public static <Req extends TransportRequest, Resp extends TransportResponse, Result> CompletableFuture<Result> execute(
-        TransportAction<Req, Resp> transportAction,
-        Req request,
-        Function<? super Resp, Result> convertResponse) {
-
-        FutureActionListener<Resp, Result> listener = new FutureActionListener<>(convertResponse);
-        transportAction.execute(request, listener);
-        return listener;
     }
 
     public <TRequest extends TransportRequest, TResponse extends TransportResponse> void sendRequest(

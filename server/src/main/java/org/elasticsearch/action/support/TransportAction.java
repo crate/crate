@@ -19,12 +19,14 @@
 
 package org.elasticsearch.action.support;
 
-import static org.elasticsearch.action.support.PlainActionFuture.newFuture;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
-import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
+
+import io.crate.action.FutureActionListener;
 
 public abstract class TransportAction<Request extends TransportRequest, Response extends TransportResponse> {
 
@@ -34,10 +36,14 @@ public abstract class TransportAction<Request extends TransportRequest, Response
         this.actionName = actionName;
     }
 
-    public final ActionFuture<Response> execute(Request request) {
-        PlainActionFuture<Response> future = newFuture();
-        execute(request, future);
-        return future;
+    public final CompletableFuture<Response> execute(Request request) {
+        return execute(request, x -> x);
+    }
+
+    public final <T> CompletableFuture<T> execute(Request request, Function<? super Response, ? extends T> mapper) {
+        FutureActionListener<Response, T> listener = new FutureActionListener<>(mapper);
+        execute(request, listener);
+        return listener;
     }
 
     public final void execute(Request request, ActionListener<Response> listener) {
