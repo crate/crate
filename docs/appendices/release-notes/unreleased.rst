@@ -64,6 +64,9 @@ Deprecations
 Changes
 =======
 
+- Added the scalar function :ref:`array_append
+  <scalar-array_append>` which adds a value at the end of an array
+
 - Added support for the :ref:`END <ref-end>` statement for improved PostgreSQL
   compatibility.
 
