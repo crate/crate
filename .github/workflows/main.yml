@@ -40,6 +40,19 @@ jobs:
         run: |
           ./gradlew forbiddenApisMain
 
+  checkstyle:
+    name: checkstyle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Gradle Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 17
+      - name: Run checkstyleMain
+        run: |
+          ./gradlew checkstyleMain
+
   linkcheck:
     name: Sphinx linkcheck
     runs-on: ubuntu-latest

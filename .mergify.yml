@@ -12,6 +12,7 @@ pull_request_rules:
       - status-success~=^Test CrateDB SQL on ubuntu
       - status-success~=^Test CrateDB SQL on windows
       - status-success=docs/readthedocs.org:crate
+      - status-success~=^CrateDB SQL / checkstyle
     name: default
   - actions:
       backport:
