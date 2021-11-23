@@ -68,6 +68,7 @@ import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
+import org.elasticsearch.transport.RemoteClusters;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -105,15 +106,18 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     private final ThreadPool threadPool;
     private final Settings settings;
     private final ClusterService clusterService;
+    private final RemoteClusters remoteClusters;
 
     public LogicalReplicationRepository(Settings settings,
                                         ClusterService clusterService,
                                         LogicalReplicationService logicalReplicationService,
+                                        RemoteClusters remoteClusters,
                                         RepositoryMetadata metadata,
                                         ThreadPool threadPool) {
         this.settings = settings;
         this.clusterService = clusterService;
         this.logicalReplicationService = logicalReplicationService;
+        this.remoteClusters = remoteClusters;
         this.metadata = metadata;
         assert metadata.name().startsWith(REMOTE_REPOSITORY_PREFIX)
             : "SubscriptionRepository metadata.name() must start with: " + REMOTE_REPOSITORY_PREFIX;
@@ -340,7 +344,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 clusterService.getClusterName().value()
             );
 
-            var remoteClient = getRemoteClusterClient();
+            var remoteClient = getRemoteClient();
 
             // Gets the remote store metadata
             StepListener<GetStoreMetadataAction.Response> responseStepListener = new StepListener<>();
@@ -409,8 +413,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         }, listener::onFailure);
     }
 
-    private Client getRemoteClusterClient() {
-        return logicalReplicationService.getRemoteClusterClient(threadPool, subscriptionName);
+    private Client getRemoteClient() {
+        return remoteClusters.getClient(subscriptionName);
     }
 
     private void getRemoteClusterState(ActionListener<ClusterState> listener, String... remoteIndices) {
@@ -418,7 +422,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     private void getRemoteClusterState(boolean includeNodes, boolean includeRouting, ActionListener<ClusterState> listener, String... remoteIndices) {
-        var clusterStateRequest = getRemoteClusterClient().admin().cluster().prepareState()
+        var clusterStateRequest = getRemoteClient().admin().cluster().prepareState()
             .clear()
             .setIndices(remoteIndices)
             .setMetadata(true)
@@ -427,7 +431,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .setIndicesOptions(IndicesOptions.strictSingleIndexNoExpandForbidClosed())
             .setWaitForTimeOut(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC))
             .request();
-        getRemoteClusterClient().admin().cluster().execute(
+        getRemoteClient().admin().cluster().execute(
             ClusterStateAction.INSTANCE, clusterStateRequest, new ActionListener<>() {
                 @Override
                 public void onResponse(ClusterStateResponse clusterStateResponse) {
@@ -444,7 +448,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     private void getPublicationsState(ActionListener<PublicationsStateAction.Response> listener) {
-        getRemoteClusterClient().execute(
+        getRemoteClient().execute(
             PublicationsStateAction.INSTANCE,
             new PublicationsStateAction.Request(
                 logicalReplicationService.subscriptions().get(subscriptionName).publications(),
@@ -463,7 +467,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             shardId,
             clusterService.getClusterName().value()
         );
-        getRemoteClusterClient().execute(
+        getRemoteClient().execute(
             ReleasePublisherResourcesAction.INSTANCE,
             releaseResourcesReq,
             new ActionListener<>() {
