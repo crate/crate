@@ -19,9 +19,11 @@
 
 package org.elasticsearch.repositories;
 
-import io.crate.analyze.repositories.TypeSettings;
-import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.replication.logical.repository.LogicalReplicationRepository;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -31,12 +33,12 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.RemoteClusters;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import io.crate.analyze.repositories.TypeSettings;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.repository.LogicalReplicationRepository;
 
 /**
  * Sets up classes for Snapshot/Restore.
@@ -50,6 +52,7 @@ public class RepositoriesModule extends AbstractModule {
                               TransportService transportService,
                               ClusterService clusterService,
                               LogicalReplicationService logicalReplicationService,
+                              RemoteClusters remoteClusters,
                               ThreadPool threadPool,
                               NamedXContentRegistry namedXContentRegistry) {
         Map<String, Repository.Factory> factories = new HashMap<>();
@@ -74,6 +77,7 @@ public class RepositoriesModule extends AbstractModule {
                         clusterService.getSettings(),
                         clusterService,
                         logicalReplicationService,
+                        remoteClusters,
                         metadata,
                         threadPool
                     );
