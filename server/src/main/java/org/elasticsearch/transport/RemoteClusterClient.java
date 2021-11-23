@@ -22,58 +22,48 @@ package org.elasticsearch.transport;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.client.support.AbstractClient;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-public final class RemoteClusterAwareClient extends AbstractClient {
+public final class RemoteClusterClient extends AbstractClient {
 
     private final TransportService service;
-    private final String clusterAlias;
-    private final RemoteClusterAware remoteClusterAware;
+    private final RemoteClusterConnection remoteClusterConnection;
 
-    public RemoteClusterAwareClient(Settings settings,
-                                    ThreadPool threadPool,
-                                    TransportService service,
-                                    String clusterAlias,
-                                    RemoteClusterAware remoteClusterAware) {
+    public RemoteClusterClient(Settings settings,
+                               ThreadPool threadPool,
+                               TransportService service,
+                               RemoteClusterConnection remoteClusterConnection) {
         super(settings, threadPool);
         this.service = service;
-        this.clusterAlias = clusterAlias;
-        this.remoteClusterAware = remoteClusterAware;
+        this.remoteClusterConnection = remoteClusterConnection;
     }
 
     @Override
     protected <Request extends TransportRequest, Response extends TransportResponse> void doExecute(ActionType<Response> action,
                                                                                                     Request request,
                                                                                                     ActionListener<Response> listener) {
-        remoteClusterAware.ensureConnected(
-            clusterAlias,
-            ActionListener.wrap(
-                v -> {
-                    Transport.Connection connection;
-                    if (request instanceof RemoteClusterAwareRequest) {
-                        DiscoveryNode preferredTargetNode = ((RemoteClusterAwareRequest) request).getPreferredTargetNode();
-                        connection = remoteClusterAware.getConnection(preferredTargetNode, clusterAlias);
-                    } else {
-                        connection = remoteClusterAware.getConnection(clusterAlias);
-                    }
-                    service.sendRequest(connection, action.name(), request, TransportRequestOptions.EMPTY,
-                                        new ActionListenerResponseHandler<>(listener, action.getResponseReader()));
-                },
-                listener::onFailure
-            )
+        ActionListener<Void> onConnection = ActionListener.wrap(
+            v -> {
+                var connection = request instanceof RemoteClusterAwareRequest remoteClusterAware
+                    ? remoteClusterConnection.getConnection(remoteClusterAware.getPreferredTargetNode())
+                    : remoteClusterConnection.getConnection();
+                service.sendRequest(
+                    connection,
+                    action.name(),
+                    request,
+                    TransportRequestOptions.EMPTY,
+                    new ActionListenerResponseHandler<>(listener, action.getResponseReader())
+                );
+            },
+            listener::onFailure
         );
+        remoteClusterConnection.ensureConnected(onConnection);
     }
 
     @Override
     public void close() {
         // do nothing
-    }
-
-    public Client getRemoteClusterClient(String clusterAlias) {
-        return remoteClusterAware.getRemoteClusterClient(threadPool(), clusterAlias);
     }
 }
