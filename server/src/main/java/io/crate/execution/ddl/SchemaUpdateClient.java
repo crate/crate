@@ -27,9 +27,11 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.Mapping;
+
+import io.crate.common.unit.TimeValue;
 
 @Singleton
 public class SchemaUpdateClient {
@@ -53,7 +55,7 @@ public class SchemaUpdateClient {
 
     public void blockingUpdateOnMaster(Index index, Mapping mappingUpdate) {
         TimeValue timeout = this.dynamicMappingUpdateTimeout;
-        var response = schemaUpdateAction.execute(new SchemaUpdateRequest(index, mappingUpdate.toString())).actionGet();
+        var response = FutureUtils.get(schemaUpdateAction.execute(new SchemaUpdateRequest(index, mappingUpdate.toString())));
         if (!response.isAcknowledged()) {
             throw new ElasticsearchTimeoutException("Failed to acknowledge mapping update within [" + timeout + "]");
         }
