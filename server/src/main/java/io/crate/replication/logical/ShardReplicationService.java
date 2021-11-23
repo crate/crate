@@ -26,8 +26,8 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -46,6 +46,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.RemoteClusters;
 
 import io.crate.replication.logical.exceptions.NoSubscriptionForIndexException;
 
@@ -60,15 +61,18 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
     private final ClusterName clusterName;
     private final Map<ShardId, ShardReplicationChangesTracker> shards = new ConcurrentHashMap<>();
     private final Map<String, String> subscribedIndices = ConcurrentCollections.newConcurrentMap();
+    private final RemoteClusters remoteClusters;
 
     @Inject
     public ShardReplicationService(LogicalReplicationService logicalReplicationService,
                                    LogicalReplicationSettings replicationSettings,
+                                   RemoteClusters remoteClusters,
                                    Client client,
                                    ThreadPool threadPool,
                                    ClusterService clusterService) {
         this.logicalReplicationService = logicalReplicationService;
         this.replicationSettings = replicationSettings;
+        this.remoteClusters = remoteClusters;
         this.client = client;
         this.threadPool = threadPool;
         this.clusterName = clusterService.getClusterName();
@@ -81,31 +85,16 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
         }
     }
 
-    void getRemoteClusterClient(Index index, Consumer<Client> onSuccess, Consumer<Exception> onFailure) {
-        var subscriptionName = subscriptionName(index.getUUID());
-        if (subscriptionName != null) {
-            var subscription = logicalReplicationService.subscriptions().get(subscriptionName);
-            if (subscription != null) {
-                logicalReplicationService.updateRemoteConnection(
-                    subscriptionName,
-                    subscription.connectionInfo().settings(),
-                    ignored -> onSuccess.accept(
-                        logicalReplicationService.getRemoteClusterClient(threadPool, subscriptionName)
-                    ),
-                    onFailure
-                );
-            } else {
-                onFailure.accept(new NoSubscriptionForIndexException(index));
-            }
-
-        } else {
-            onFailure.accept(new NoSubscriptionForIndexException(index));
+    CompletableFuture<Client> getRemoteClusterClient(Index index) {
+        String subscriptionName = subscribedIndices.get(index.getUUID());
+        if (subscriptionName == null) {
+            return CompletableFuture.failedFuture(new NoSubscriptionForIndexException(index));
         }
-    }
-
-    @Nullable
-    private String subscriptionName(String indexUUID) {
-        return subscribedIndices.get(indexUUID);
+        var subscription = logicalReplicationService.subscriptions().get(subscriptionName);
+        if (subscription == null) {
+            return CompletableFuture.failedFuture(new NoSubscriptionForIndexException(index));
+        }
+        return remoteClusters.connect(subscriptionName, subscription.connectionInfo());
     }
 
     @Override
@@ -129,7 +118,10 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
     @Override
     public void afterIndexShardStarted(IndexShard indexShard) {
         if (indexShard.routingEntry().primary()) {
-            var subscriptionName = subscriptionName(indexShard.shardId().getIndex().getUUID());
+            var subscriptionName = subscribedIndices.get(indexShard.shardId().getIndex().getUUID());
+            if (subscriptionName == null) {
+                return;
+            }
             var subscription = logicalReplicationService.subscriptions().get(subscriptionName);
             if (subscription != null) {
                 var tracker = new ShardReplicationChangesTracker(
