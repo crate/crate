@@ -2386,13 +2386,25 @@ Examples
 Array functions
 ===============
 
-.. NOTE::
+.. _scalar-array_append:
 
-    Please be aware of that all array scalar functions are not operating
-    atomically when used inside update statements. We use :ref:`sql_occ`
-    control to ensure that the update operation used the latest state of the
-    row. But only 3 retry attempts are made by fetching the newest version
-    again and if they all fail, the query fails.
+``array_append(anyarray, value)``
+----------------------------------------
+
+The ``array_append`` function adds the value at the end of the array
+
+Returns: ``array``
+
+::
+
+    cr> select
+    ...     array_append([1,2,3], 4) AS array_append;
+    +--------------+
+    | array_append |
+    +--------------+
+    | [1, 2, 3, 4] |
+    +--------------+
+    SELECT 1 row in set (... sec)
 
 
 .. _scalar-array_cat:
