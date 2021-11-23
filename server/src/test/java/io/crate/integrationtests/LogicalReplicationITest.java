@@ -39,7 +39,7 @@ import io.crate.user.User;
 import io.crate.user.UserLookup;
 
 
-public class LogicalReplicationITest extends LogicalReplicationIntegrationTest {
+public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     private String defaultTableSettings() {
         var joiner = new StringJoiner(",");
