@@ -50,8 +50,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.net.ssl.SNIHostName;
 
-import io.crate.execution.engine.collect.files.CopyModule;
-import io.crate.plugin.CopyPlugin;
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -164,6 +162,7 @@ import org.elasticsearch.snapshots.SnapshotShardsService;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.RemoteClusters;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
@@ -175,11 +174,13 @@ import io.crate.auth.HostBasedAuthentication;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
+import io.crate.execution.engine.collect.files.CopyModule;
 import io.crate.execution.engine.window.WindowFunctionModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.netty.NettyBootstrap;
+import io.crate.plugin.CopyPlugin;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.types.DataTypes;
@@ -529,10 +530,11 @@ public class Node implements Closeable {
             final GatewayMetaState gatewayMetaState = new GatewayMetaState();
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
+            RemoteClusters remoteClusters = new RemoteClusters(settings, threadPool, transportService);
             final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
                 settings,
                 clusterService,
-                transportService,
+                remoteClusters,
                 threadPool
             );
 
@@ -542,6 +544,7 @@ public class Node implements Closeable {
                 transportService,
                 clusterService,
                 logicalReplicationService,
+                remoteClusters,
                 threadPool,
                 xContentRegistry
             );
@@ -655,6 +658,7 @@ public class Node implements Closeable {
                     b.bind(UserLookup.class).toInstance(userLookup);
                     b.bind(Authentication.class).toInstance(authentication);
                     b.bind(LogicalReplicationService.class).toInstance(logicalReplicationService);
+                    b.bind(RemoteClusters.class).toInstance(remoteClusters);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                 }
             );
