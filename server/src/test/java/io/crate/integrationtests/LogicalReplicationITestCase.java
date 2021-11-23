@@ -49,7 +49,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -63,7 +62,7 @@ import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDE
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
 import static org.hamcrest.Matchers.is;
 
-public abstract class LogicalReplicationIntegrationTest extends ESTestCase {
+public abstract class LogicalReplicationITestCase extends ESTestCase {
 
     InternalTestCluster publisherCluster;
     SQLTransportExecutor publisherSqlExecutor;

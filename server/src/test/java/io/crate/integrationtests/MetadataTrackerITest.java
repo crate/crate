@@ -33,7 +33,7 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
-public class MetadataTrackerITest extends LogicalReplicationIntegrationTest {
+public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
     @Override
     Settings logicalReplicationSettings() {
