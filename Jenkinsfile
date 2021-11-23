@@ -29,7 +29,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon --parallel -Dtests.crate.slow=true -PtestForks=8 test checkstyleMain jacocoReport'
+            sh './gradlew --no-daemon --parallel -Dtests.crate.slow=true -PtestForks=8 test jacocoReport'
 
             // Upload coverage report to Codecov.
             // https://about.codecov.io/blog/introducing-codecovs-new-uploader/
