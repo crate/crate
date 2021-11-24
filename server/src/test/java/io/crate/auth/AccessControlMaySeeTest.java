@@ -21,21 +21,7 @@
 
 package io.crate.auth;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.core.Is.is;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.collect.Lists;
-
-import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matcher;
-import org.junit.Before;
-import org.junit.Test;
-
 import io.crate.action.sql.SessionContext;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.SchemaUnknownException;
@@ -44,6 +30,18 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
 import io.crate.user.Privilege;
 import io.crate.user.User;
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matcher;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.core.Is.is;
 
 public class AccessControlMaySeeTest extends ESTestCase {
 
@@ -62,7 +60,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
                 return true;
             }
         };
-        accessControl = new AccessControlImpl(userName -> user, new SessionContext(user));
+        accessControl = new AccessControlImpl(new SessionContext(user));
     }
 
     @SuppressWarnings("unchecked")

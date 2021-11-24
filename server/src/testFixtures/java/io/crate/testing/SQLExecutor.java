@@ -27,6 +27,7 @@ import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.AnalyzerModule;
 import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.CreateBlobTableAnalyzer;
 import io.crate.analyze.CreateTableStatementAnalyzer;
@@ -41,6 +42,7 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
+import io.crate.analyze.validator.StatementValidators;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Row;
 import io.crate.execution.ddl.RepositoryService;
@@ -83,6 +85,7 @@ import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.LoadedRules;
+import io.crate.plugin.SQLPlugin;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.replication.logical.metadata.Publication;
@@ -230,6 +233,7 @@ public class SQLExecutor {
         private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
         private final UserDefinedFunctionService udfService;
         private final LogicalReplicationService logicalReplicationService;
+        private StatementValidators statementValidators;
         private String[] searchPath = new String[]{Schemas.DOC_SCHEMA_NAME};
         private User user = User.CRATE_USER;
         private UserManager userManager = new StubUserManager();
@@ -312,6 +316,8 @@ public class SQLExecutor {
                 mock(ThreadPool.class)
             );
             logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
+
+            buildStatementValidators();
 
             publishInitialClusterState();
         }
@@ -419,6 +425,7 @@ public class SQLExecutor {
                         mock(TransportPutRepositoryAction.class)
                     ),
                     userManager,
+                    statementValidators,
                     sessionSettingRegistry,
                     logicalReplicationService
                 ),
@@ -668,6 +675,7 @@ public class SQLExecutor {
 
         public Builder setUserManager(UserManager userManager) {
             this.userManager = userManager;
+            buildStatementValidators();
             return this;
         }
 
@@ -679,6 +687,13 @@ public class SQLExecutor {
         public Builder addUDF(UserDefinedFunctionMetadata udf) {
             udfService.updateImplementations(udf.schema(), Stream.of(udf));
             return this;
+        }
+
+        private void buildStatementValidators() {
+            statementValidators =  new StatementValidators(List.of(
+                (statement, userLookup, sessionContext) ->
+                    userManager.getAccessControl(sessionContext).ensureMayExecute(statement, userLookup, sessionContext)
+            ));
         }
     }
 

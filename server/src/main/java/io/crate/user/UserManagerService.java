@@ -21,17 +21,6 @@
 
 package io.crate.user;
 
-import java.util.Collection;
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
-
-import javax.annotation.Nullable;
-
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.SessionContext;
 import io.crate.auth.AccessControl;
@@ -42,6 +31,15 @@ import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.user.metadata.SysPrivilegesTableInfo;
 import io.crate.user.metadata.SysUsersTableInfo;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+
+import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 @Singleton
 public class UserManagerService implements UserManager {
@@ -160,7 +158,7 @@ public class UserManagerService implements UserManager {
 
     @Override
     public AccessControl getAccessControl(SessionContext sessionContext) {
-        return new AccessControlImpl(userLookup, sessionContext);
+        return new AccessControlImpl(sessionContext);
     }
 
 

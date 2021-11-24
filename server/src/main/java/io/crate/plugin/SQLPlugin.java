@@ -62,6 +62,8 @@ import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.analyze.validator.StatementValidator;
+import io.crate.auth.AccessControlImpl;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.AuthenticationModule;
 import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
@@ -112,7 +114,7 @@ import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
 
 
-public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin, EnginePlugin {
+public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin, EnginePlugin, AnalyzerPlugin {
 
     private final Settings settings;
     @Nullable
@@ -356,5 +358,13 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             return Optional.of(SubscriberEngine::new);
         }
         return Optional.empty();
+    }
+
+    @Override
+    public Collection<StatementValidator> statementValidators() {
+        StatementValidator userAccessControl =
+            (statement, userLookup, sessionContext) ->
+                new AccessControlImpl(sessionContext).ensureMayExecute(statement, userLookup, sessionContext);
+        return List.of(userAccessControl);
     }
 }

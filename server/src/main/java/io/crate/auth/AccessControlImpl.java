@@ -104,8 +104,6 @@ public final class AccessControlImpl implements AccessControl {
 
     private final User sessionUser;
     private final User authenticatedUser;
-    private final UserLookup userLookup;
-    private final SessionContext sessionContext;
 
     /**
      * @param sessionContext for user and defaultSchema information.
@@ -113,15 +111,13 @@ public final class AccessControlImpl implements AccessControl {
      *                       observe updates to the default schema.
      *                       (Which can change at runtime within the life-time of a session)
      */
-    public AccessControlImpl(UserLookup userLookup, SessionContext sessionContext) {
-        this.userLookup = userLookup;
-        this.sessionContext = sessionContext;
+    public AccessControlImpl(SessionContext sessionContext) {
         this.sessionUser = sessionContext.sessionUser();
         this.authenticatedUser = sessionContext.authenticatedUser();
     }
 
     @Override
-    public void ensureMayExecute(AnalyzedStatement statement) {
+    public void ensureMayExecute(AnalyzedStatement statement, UserLookup userLookup, SessionContext sessionContext) {
         if (!sessionUser.isSuperUser()) {
             statement.accept(
                 new StatementVisitor(

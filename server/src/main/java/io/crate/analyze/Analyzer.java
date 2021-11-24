@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.analyze.validator.StatementValidators;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -120,6 +121,7 @@ public class Analyzer {
     private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
     private final DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer;
     private final UserManager userManager;
+    private final StatementValidators statementValidators;
     private final RefreshTableAnalyzer refreshTableAnalyzer;
     private final OptimizeTableAnalyzer optimizeTableAnalyzer;
     private final AlterTableAnalyzer alterTableAnalyzer;
@@ -159,6 +161,7 @@ public class Analyzer {
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
                     UserManager userManager,
+                    StatementValidators statementValidators,
                     SessionSettingRegistry sessionSettingRegistry,
                     LogicalReplicationService logicalReplicationService
     ) {
@@ -166,6 +169,7 @@ public class Analyzer {
         this.dropTableAnalyzer = new DropTableAnalyzer(clusterService, schemas);
         this.dropCheckConstraintAnalyzer = new DropCheckConstraintAnalyzer(schemas);
         this.userManager = userManager;
+        this.statementValidators = statementValidators;
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(nodeCtx);
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, nodeCtx);
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, nodeCtx);
@@ -214,7 +218,7 @@ public class Analyzer {
             new Analysis(
                 new CoordinatorTxnCtx(sessionContext),
                 paramTypeHints));
-        userManager.getAccessControl(sessionContext).ensureMayExecute(analyzedStatement);
+        statementValidators.validate(analyzedStatement, userManager, sessionContext);
         return analyzedStatement;
     }
 
