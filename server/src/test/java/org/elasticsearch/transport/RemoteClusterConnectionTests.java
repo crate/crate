@@ -153,7 +153,7 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 CountDownLatch listenerCalled = new CountDownLatch(1);
                 AtomicReference<Exception> exceptionReference = new AtomicReference<>();
                 String clusterAlias = "test-cluster";
-                Settings connectionSettings = buildRandomSettings(addresses(seedNode));
+                Settings connectionSettings = buildSniffSettings(addresses(seedNode));
                 try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionSettings, clusterAlias, service)) {
                     ActionListener<Void> listener = ActionListener.wrap(x -> {
                         listenerCalled.countDown();
@@ -201,7 +201,7 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 service.start();
                 service.acceptIncomingRequests();
                 String clusterAlias = "test-cluster";
-                Settings connectionSettings = buildRandomSettings(seedNodes);
+                Settings connectionSettings = buildSniffSettings(seedNodes);
                 try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionSettings, clusterAlias, service)) {
                     int numThreads = randomIntBetween(4, 10);
                     Thread[] threads = new Thread[numThreads];
@@ -286,7 +286,7 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 service.start();
                 service.acceptIncomingRequests();
                 String clusterAlias = "test-cluster";
-                Settings connectionSettings = buildRandomSettings(addresses(seedNode));
+                Settings connectionSettings = buildSniffSettings(addresses(seedNode));
 
                 try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionSettings, clusterAlias, service)) {
                     CountDownLatch responseLatch = new CountDownLatch(1);
@@ -323,7 +323,7 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 service.start();
                 service.acceptIncomingRequests();
                 String clusterAlias = "test-cluster";
-                Settings connectionSettings = buildRandomSettings(addresses(seedNode));
+                Settings connectionSettings = buildSniffSettings(addresses(seedNode));
 
                 try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionSettings, clusterAlias, service)) {
                     PlainActionFuture<Void> plainActionFuture = new PlainActionFuture<>();
@@ -365,7 +365,7 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 service.acceptIncomingRequests();
 
                 String clusterAlias = "test-cluster";
-                Settings connectionSettings = buildRandomSettings(seedNodes);
+                Settings connectionSettings = buildSniffSettings(seedNodes);
                 try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionSettings, clusterAlias, service)) {
                     final int numGetThreads = randomIntBetween(4, 10);
                     final Thread[] getThreads = new Thread[numGetThreads];
@@ -439,7 +439,7 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 service.start();
                 service.acceptIncomingRequests();
                 String clusterAlias = "test-cluster";
-                Settings connectionSettings = buildRandomSettings(addresses(seedNode));
+                Settings connectionSettings = buildSniffSettings(addresses(seedNode));
                 try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionSettings, clusterAlias, service)) {
                     PlainActionFuture.get(fut -> connection.ensureConnected(ActionListener.map(fut, x -> null)));
                     for (int i = 0; i < 10; i++) {
@@ -462,22 +462,6 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 }
             }
         }
-    }
-
-    private Settings buildRandomSettings(List<String> addresses) {
-        if (randomBoolean()) {
-            return buildProxySettings(addresses);
-        } else {
-            return buildSniffSettings(addresses);
-        }
-    }
-
-    private static Settings buildProxySettings(List<String> addresses) {
-        Settings.Builder builder = Settings.builder();
-        builder.put(ProxyConnectionStrategy.PROXY_ADDRESS.getKey(),
-                    addresses.get(0));
-        builder.put(RemoteConnectionStrategy.REMOTE_CONNECTION_MODE.getKey(), "proxy");
-        return builder.build();
     }
 
     private static Settings buildSniffSettings(List<String> seedNodes) {
