@@ -21,7 +21,6 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -658,27 +657,6 @@ public class SniffConnectionStrategyTests extends ESTestCase {
             DiscoveryNode node = new DiscoveryNode("id", address, Collections.singletonMap("gateway", "true"),
                                                    allRoles, Version.CURRENT);
             assertTrue(nodePredicate.test(node));
-        }
-    }
-
-    public void testModeSettingsCannotBeUsedWhenInDifferentMode() {
-        List<Tuple<Setting<?>, String>> restrictedSettings = Arrays.asList(
-            new Tuple<>(SniffConnectionStrategy.REMOTE_CLUSTER_SEEDS, "192.168.0.1:8080"),
-            new Tuple<>(SniffConnectionStrategy.REMOTE_NODE_CONNECTIONS, "2"));
-
-        RemoteConnectionStrategy.ConnectionStrategy proxy = RemoteConnectionStrategy.ConnectionStrategy.PROXY;
-
-        Settings settings = Settings.builder()
-            .put(RemoteConnectionStrategy.REMOTE_CONNECTION_MODE.getKey(), proxy.name())
-            .build();
-
-        for (Tuple<Setting<?>, String> restrictedSetting : restrictedSettings) {
-            Setting<?> concreteSetting = restrictedSetting.v1();
-            Settings invalid = Settings.builder().put(settings).put(concreteSetting.getKey(), restrictedSetting.v2()).build();
-            IllegalArgumentException iae = expectThrows(IllegalArgumentException.class, () ->  concreteSetting.get(invalid));
-            String expected = "Setting \"" + concreteSetting.getKey() + "\" cannot be used with the configured " +
-                              "\"mode\" [required=SNIFF, configured=PROXY]";
-            assertEquals(expected, iae.getMessage());
         }
     }
 
