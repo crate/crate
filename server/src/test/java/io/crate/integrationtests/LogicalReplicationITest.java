@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.exceptions.SQLParseException;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
@@ -362,4 +363,31 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             assertThat(res.rowCount(), is((long) (numDocs + 2)));
         }, 10, TimeUnit.SECONDS);
     }
+
+    @Test
+    public void test_alter_static_settings_on_published_tables_is_prevented() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) clustered into 1 shards WITH(" + defaultTableSettings() + ")");
+        createPublication("pub1", false, List.of("doc.t1"));
+
+        assertThrowsMatches(() -> executeOnPublisher("ALTER table doc.t1 set (\"codec\" = 'best_compression')"),
+            SQLParseException.class,
+            "Setting [index.codec] cannot be applied to table 'doc.t1' published for logical replication"
+        );
+    }
+
+    @Test
+    public void test_alter_number_of_shards_on_published_tables_is_prevented() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) clustered into 10 shards with (number_of_replicas='0-all')");
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2), (3), (4), (5), (6), (7), (8), (9), (10)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        createPublication("pub1", false, List.of("doc.t1"));
+        executeOnPublisher("ALTER table doc.t1 set (\"blocks.write\" = true)");
+        assertThrowsMatches(() -> executeOnPublisher("ALTER TABLE doc.t1 set (number_of_shards = 5)"),
+            SQLParseException.class,
+            "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' published for logical replication"
+        );
+    }
+
+
+
 }

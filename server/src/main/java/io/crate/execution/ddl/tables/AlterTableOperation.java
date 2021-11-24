@@ -39,6 +39,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 
+import io.crate.replication.logical.metadata.PublicationsMetadata;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -54,6 +55,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
@@ -84,6 +86,7 @@ public class AlterTableOperation {
     private final TransportCloseTable transportCloseTable;
     private final SQLOperations sqlOperations;
     private Session session;
+    private IndexScopedSettings indexScopedSettings;
 
 
     @Inject
@@ -95,7 +98,8 @@ public class AlterTableOperation {
                                TransportDeleteIndexAction transportDeleteIndexAction,
                                TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
                                TransportAlterTableAction transportAlterTableAction,
-                               SQLOperations sqlOperations) {
+                               SQLOperations sqlOperations,
+                               IndexScopedSettings indexScopedSettings) {
 
         this.clusterService = clusterService;
         this.transportRenameTableAction = transportRenameTableAction;
@@ -106,6 +110,7 @@ public class AlterTableOperation {
         this.transportCloseTable = transportCloseTable;
         this.transportAlterTableAction = transportAlterTableAction;
         this.sqlOperations = sqlOperations;
+        this.indexScopedSettings = indexScopedSettings;
     }
 
     public CompletableFuture<Long> executeAlterTableAddColumn(final BoundAddColumn analysis) {
@@ -155,6 +160,7 @@ public class AlterTableOperation {
     }
 
     public CompletableFuture<Long> executeAlterTable(BoundAlterTable analysis) {
+        validateForPublishedTables(analysis, clusterService.state(), indexScopedSettings);
         final Settings settings = analysis.tableParameter().settings();
         final boolean includesNumberOfShardsSetting = settings.hasValue(SETTING_NUMBER_OF_SHARDS);
         final boolean isResizeOperationRequired = includesNumberOfShardsSetting &&
@@ -286,6 +292,32 @@ public class AlterTableOperation {
         if (!readOnly) {
             throw new IllegalStateException("Table/Partition needs to be at a read-only state." +
                                                " Use 'ALTER table ... set (\"blocks.write\"=true)' and retry");
+        }
+    }
+
+    private static void validateForPublishedTables(BoundAlterTable alterTable,
+                                                   ClusterState currentState,
+                                                   IndexScopedSettings indexScopedSettings) {
+        PublicationsMetadata publicationsMetadata = currentState.metadata().custom(PublicationsMetadata.TYPE);
+        if (publicationsMetadata != null) {
+            var publications = publicationsMetadata.publications();
+            for (var publication : publications.values()) {
+                for (var table : publication.tables()) {
+                    if (table.equals(alterTable.table().ident())) {
+                        for (var key : alterTable.tableParameter().settings().keySet()) {
+                            if (!indexScopedSettings.isDynamicSetting(key)) {
+                                throw new IllegalArgumentException(
+                                    String.format(
+                                        "Setting [%s] cannot be applied to table '%s' published for logical replication",
+                                        key,
+                                        alterTable.table().ident().toString()
+                                    )
+                                );
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
