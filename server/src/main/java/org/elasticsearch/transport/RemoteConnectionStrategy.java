@@ -19,28 +19,14 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.types.DataTypes;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.threadpool.ThreadPool;
+import static org.elasticsearch.common.settings.Setting.boolSetting;
+import static org.elasticsearch.common.settings.Setting.timeSetting;
 
-import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -50,8 +36,22 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import static org.elasticsearch.common.settings.Setting.boolSetting;
-import static org.elasticsearch.common.settings.Setting.timeSetting;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.store.AlreadyClosedException;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 public abstract class RemoteConnectionStrategy implements TransportConnectionListener, Closeable {
 
@@ -60,12 +60,6 @@ public abstract class RemoteConnectionStrategy implements TransportConnectionLis
             @Override
             public String toString() {
                 return "sniff";
-            }
-        },
-        PROXY(ProxyConnectionStrategy.CHANNELS_PER_CONNECTION, ProxyConnectionStrategy::enablementSettings) {
-            @Override
-            public String toString() {
-                return "proxy";
             }
         };
 
@@ -166,27 +160,8 @@ public abstract class RemoteConnectionStrategy implements TransportConnectionLis
                     nodeSettings,
                     connectionSettings
                 );
-            case PROXY:
-                return new ProxyConnectionStrategy(
-                    clusterAlias,
-                    transportService,
-                    connectionManager,
-                    connectionSettings
-                );
             default:
                 throw new AssertionError("Invalid connection strategy" + mode);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public static boolean isConnectionEnabled(Map<Setting<?>, Object> connectionSettings) {
-        ConnectionStrategy mode = (ConnectionStrategy) connectionSettings.get(REMOTE_CONNECTION_MODE);
-        if (mode.equals(ConnectionStrategy.SNIFF)) {
-            List<String> seeds = (List<String>) connectionSettings.get(SniffConnectionStrategy.REMOTE_CLUSTER_SEEDS);
-            return seeds.isEmpty() == false;
-        } else {
-            String address = (String) connectionSettings.get(ProxyConnectionStrategy.PROXY_ADDRESS);
-            return Strings.isEmpty(address) == false;
         }
     }
 
