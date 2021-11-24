@@ -30,26 +30,13 @@ import static org.mockito.Mockito.mock;
 
 public class RemoteConnectionStrategyTests extends ESTestCase {
 
-    public void testStrategyChangeMeansThatStrategyMustBeRebuilt() {
-        ClusterConnectionManager connectionManager = new ClusterConnectionManager(Settings.EMPTY, mock(Transport.class));
-        RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager("cluster-alias", connectionManager);
-        FakeConnectionStrategy first = new FakeConnectionStrategy("cluster-alias", mock(TransportService.class), remoteConnectionManager,
-                                                                  RemoteConnectionStrategy.ConnectionStrategy.PROXY);
-        Settings newSettings = Settings.builder()
-            .put(RemoteConnectionStrategy.REMOTE_CONNECTION_MODE.getKey(), "sniff")
-            .put(SniffConnectionStrategy.REMOTE_CLUSTER_SEEDS.getKey(), "127.0.0.1:9300")
-            .build();
-        assertTrue(first.shouldRebuildConnection(newSettings));
-    }
-
     public void testSameStrategyChangeMeansThatStrategyDoesNotNeedToBeRebuilt() {
         ClusterConnectionManager connectionManager = new ClusterConnectionManager(Settings.EMPTY, mock(Transport.class));
         RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager("cluster-alias", connectionManager);
         FakeConnectionStrategy first = new FakeConnectionStrategy("cluster-alias", mock(TransportService.class), remoteConnectionManager,
-                                                                  RemoteConnectionStrategy.ConnectionStrategy.PROXY);
+                                                                  RemoteConnectionStrategy.ConnectionStrategy.SNIFF);
         Settings newSettings = Settings.builder()
-            .put(RemoteConnectionStrategy.REMOTE_CONNECTION_MODE.getKey(), "proxy")
-            .put(ProxyConnectionStrategy.PROXY_ADDRESS.getKey(), "127.0.0.1:9300")
+            .put(RemoteConnectionStrategy.REMOTE_CONNECTION_MODE.getKey(), "sniff")
             .build();
         assertFalse(first.shouldRebuildConnection(newSettings));
     }
@@ -60,11 +47,10 @@ public class RemoteConnectionStrategyTests extends ESTestCase {
         assertEquals(false, connectionManager.getConnectionProfile().getCompressionEnabled());
         RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager("cluster-alias", connectionManager);
         FakeConnectionStrategy first = new FakeConnectionStrategy("cluster-alias", mock(TransportService.class), remoteConnectionManager,
-                                                                  RemoteConnectionStrategy.ConnectionStrategy.PROXY);
+                                                                  RemoteConnectionStrategy.ConnectionStrategy.SNIFF);
 
         Settings.Builder newBuilder = Settings.builder();
-        newBuilder.put(RemoteConnectionStrategy.REMOTE_CONNECTION_MODE.getKey(), "proxy");
-        newBuilder.put(ProxyConnectionStrategy.PROXY_ADDRESS.getKey(), "127.0.0.1:9300");
+        newBuilder.put(RemoteConnectionStrategy.REMOTE_CONNECTION_MODE.getKey(), "sniff");
         if (randomBoolean()) {
             newBuilder.put(RemoteConnectionStrategy.REMOTE_CONNECTION_PING_SCHEDULE.getKey(),
                            TimeValue.timeValueSeconds(5));
