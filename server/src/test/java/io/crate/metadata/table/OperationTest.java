@@ -21,11 +21,28 @@
 
 package io.crate.metadata.table;
 
-import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import static io.crate.metadata.table.Operation.ALL;
+import static io.crate.metadata.table.Operation.ALTER;
+import static io.crate.metadata.table.Operation.ALTER_BLOCKS;
+import static io.crate.metadata.table.Operation.ALTER_OPEN_CLOSE;
+import static io.crate.metadata.table.Operation.ALTER_REROUTE;
+import static io.crate.metadata.table.Operation.COPY_TO;
+import static io.crate.metadata.table.Operation.CREATE_SNAPSHOT;
+import static io.crate.metadata.table.Operation.DELETE;
+import static io.crate.metadata.table.Operation.DROP;
+import static io.crate.metadata.table.Operation.INSERT;
+import static io.crate.metadata.table.Operation.OPTIMIZE;
+import static io.crate.metadata.table.Operation.READ;
+import static io.crate.metadata.table.Operation.READ_ONLY;
+import static io.crate.metadata.table.Operation.REFRESH;
+import static io.crate.metadata.table.Operation.SHOW_CREATE;
+import static io.crate.metadata.table.Operation.UPDATE;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 
@@ -33,30 +50,30 @@ public class OperationTest extends ESTestCase {
 
     @Test
     public void testBuildFromEmptyIndexBlocks() throws Exception {
-        assertThat(Operation.buildFromIndexSettingsAndState(Settings.EMPTY, IndexMetadata.State.OPEN), is(Operation.ALL));
+        assertThat(Operation.buildFromIndexSettingsAndState(Settings.EMPTY, IndexMetadata.State.OPEN), is(ALL));
     }
 
     @Test
     public void testBuildFromSingleIndexBlocks() throws Exception {
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder().put(
                 IndexMetadata.SETTING_READ_ONLY, true).build(), IndexMetadata.State.OPEN),
-            is(Operation.READ_ONLY));
+            is(READ_ONLY));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_READ, true).build(), IndexMetadata.State.OPEN),
-            containsInAnyOrder(Operation.UPDATE, Operation.INSERT, Operation.DELETE, Operation.DROP, Operation.ALTER,
-                Operation.ALTER_OPEN_CLOSE, Operation.ALTER_BLOCKS, Operation.REFRESH, Operation.OPTIMIZE, Operation.ALTER_REROUTE));
+            containsInAnyOrder(UPDATE, INSERT, DELETE, DROP, ALTER,
+                               ALTER_OPEN_CLOSE, ALTER_BLOCKS, REFRESH, OPTIMIZE, ALTER_REROUTE));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_WRITE, true).build(), IndexMetadata.State.OPEN),
-            containsInAnyOrder(Operation.READ, Operation.ALTER, Operation.ALTER_OPEN_CLOSE, Operation.ALTER_BLOCKS,
-                Operation.SHOW_CREATE, Operation.REFRESH, Operation.OPTIMIZE, Operation.COPY_TO,
-                Operation.CREATE_SNAPSHOT, Operation.ALTER_REROUTE));
+            containsInAnyOrder(READ, ALTER, ALTER_OPEN_CLOSE, ALTER_BLOCKS,
+                               SHOW_CREATE, REFRESH, OPTIMIZE, COPY_TO,
+                               CREATE_SNAPSHOT, ALTER_REROUTE));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_METADATA, true).build(), IndexMetadata.State.OPEN),
-            containsInAnyOrder(Operation.READ, Operation.UPDATE, Operation.INSERT, Operation.DELETE, Operation.ALTER_BLOCKS,
-                Operation.ALTER_OPEN_CLOSE, Operation.REFRESH, Operation.SHOW_CREATE, Operation.OPTIMIZE, Operation.ALTER_REROUTE));
+            containsInAnyOrder(READ, UPDATE, INSERT, DELETE, ALTER_BLOCKS,
+                               ALTER_OPEN_CLOSE, REFRESH, SHOW_CREATE, OPTIMIZE, ALTER_REROUTE));
     }
 
     @Test
@@ -64,19 +81,30 @@ public class OperationTest extends ESTestCase {
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_READ, true)
                 .put(IndexMetadata.SETTING_BLOCKS_WRITE, true).build(), IndexMetadata.State.OPEN),
-            containsInAnyOrder(Operation.ALTER, Operation.ALTER_OPEN_CLOSE, Operation.ALTER_BLOCKS, Operation.REFRESH,
-                Operation.OPTIMIZE, Operation.ALTER_REROUTE));
+            containsInAnyOrder(ALTER, ALTER_OPEN_CLOSE, ALTER_BLOCKS, REFRESH,
+                OPTIMIZE, ALTER_REROUTE));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_WRITE, true)
                 .put(IndexMetadata.SETTING_BLOCKS_METADATA, true).build(), IndexMetadata.State.OPEN),
-            containsInAnyOrder(Operation.READ, Operation.ALTER_OPEN_CLOSE, Operation.ALTER_BLOCKS, Operation.REFRESH,
-                Operation.SHOW_CREATE, Operation.OPTIMIZE, Operation.ALTER_REROUTE));
+            containsInAnyOrder(READ, ALTER_OPEN_CLOSE, ALTER_BLOCKS, REFRESH,
+                               SHOW_CREATE, OPTIMIZE, ALTER_REROUTE));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_READ, true)
                 .put(IndexMetadata.SETTING_BLOCKS_METADATA, true).build(), IndexMetadata.State.OPEN),
-            containsInAnyOrder(Operation.INSERT, Operation.UPDATE, Operation.DELETE, Operation.ALTER_OPEN_CLOSE,
-                Operation.ALTER_BLOCKS, Operation.REFRESH, Operation.OPTIMIZE, Operation.ALTER_REROUTE));
+            containsInAnyOrder(INSERT, UPDATE, DELETE, ALTER_OPEN_CLOSE,
+                ALTER_BLOCKS, REFRESH, OPTIMIZE, ALTER_REROUTE));
+    }
+
+    @Test
+    public void test_allowed_operations_for_replicated_table() {
+        var replicatedIndexSettings = Settings.builder()
+            .put(REPLICATION_SUBSCRIPTION_NAME.getKey(), "sub1")
+            .build();
+        assertThat(
+            Operation.buildFromIndexSettingsAndState(replicatedIndexSettings, IndexMetadata.State.OPEN),
+            containsInAnyOrder(READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE)
+        );
     }
 }
