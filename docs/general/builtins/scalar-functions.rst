@@ -2358,6 +2358,14 @@ Examples
 Array functions
 ===============
 
+.. NOTE::
+
+    Please be aware of that all array scalar functions are not operating
+    atomically when used inside update statements. We use :ref:`sql_occ`
+    control to ensure that the update operation used the latest state of the
+    row. But only 3 retry attempts are made by fetching the newest version
+    again and if they all fail, the query fails.
+
 
 .. _scalar-array_cat:
 
@@ -2379,57 +2387,6 @@ Returns: ``array``
     +-----------------------+
     SELECT 1 row in set (... sec)
 
-It can be used to append elements to array fields
-
-::
-
-    cr> create table array_cat_example (
-    ...     list array(integer)
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-::
-
-    cr> insert into array_cat_example (
-    ...     list
-    ... ) values (
-    ...     [1,2,3]
-    ... );
-    INSERT OK, 1 row affected (... sec)
-
-.. Hidden: refresh array_cat_example
-
-    cr> refresh table array_cat_example
-    REFRESH OK, 1 row affected (... sec)
-
-::
-
-    cr> update array_cat_example
-    ... set list = array_cat(list, [4, 5, 6]);
-    UPDATE OK, 1 row affected (... sec)
-
-.. Hidden: refresh array_cat_example
-
-    cr> refresh table array_cat_example
-    REFRESH OK, 1 row affected (... sec)
-
-::
-
-    cr> select * from array_cat_example;
-    +--------------------+
-    | list               |
-    +--------------------+
-    | [1, 2, 3, 4, 5, 6] |
-    +--------------------+
-    SELECT 1 row in set (... sec)
-
-.. NOTE::
-
-    Appending to arrays with array_cat in updates is handy, but unfortunately
-    not isolated. We use optimistic concurrency control to ensure that your
-    update operation used the latest state of the row. But only 3 retry
-    attempts are made by fetching the newest version again and if they all
-    fail, the query fails.
 
 You can also use the concat :ref:`operator <gloss-operator>` ``||`` with
 arrays::
@@ -2508,52 +2465,6 @@ Returns: ``array``
     +---------------------+
     | [1, 4, 5, 7, 8, 10] |
     +---------------------+
-    SELECT 1 row in set (... sec)
-
-It can be used to remove elements from array fields.
-
-::
-
-    cr> create table array_difference_example (
-    ...     list array(integer)
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-::
-
-    cr> insert into array_difference_example (
-    ...     list
-    ... ) values (
-    ...     [1,2,3,4,5,6,7,8,9,10]
-    ... );
-    INSERT OK, 1 row affected (... sec)
-
-.. Hidden: refresh array_difference_example
-
-    cr> refresh table array_difference_example
-    REFRESH OK, 1 row affected (... sec)
-
-::
-
-    cr> update array_difference_example
-    ... set list = array_difference(
-    ...     list, [6]
-    ... );
-    UPDATE OK, 1 row affected (... sec)
-
-.. Hidden: refresh array_difference_example
-
-    cr> refresh table array_difference_example
-    REFRESH OK, 1 row affected (... sec)
-
-::
-
-    cr> select * from array_difference_example;
-    +------------------------------+
-    | list                         |
-    +------------------------------+
-    | [1, 2, 3, 4, 5, 7, 8, 9, 10] |
-    +------------------------------+
     SELECT 1 row in set (... sec)
 
 
