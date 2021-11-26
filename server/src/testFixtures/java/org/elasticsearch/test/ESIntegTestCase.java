@@ -24,7 +24,6 @@ package org.elasticsearch.test;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-
 import io.crate.common.collections.Lists2;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -82,7 +81,6 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.store.MockFSIndexStore;
-import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -179,11 +177,6 @@ import static org.hamcrest.core.IsEqual.equalTo;
  */
 @LuceneTestCase.SuppressFileSystems("ExtrasFS") // doesn't work with potential multi data path from test cluster yet
 public abstract class ESIntegTestCase extends ESTestCase {
-
-    @BeforeClass
-    public static void disableProcessorCheck() {
-        System.setProperty("es.set.netty.runtime.available.processors", "false");
-    }
 
     /** node names of the corresponding clusters will start with these prefixes */
     public static final String SUITE_CLUSTER_NODE_PREFIX = "node_s";

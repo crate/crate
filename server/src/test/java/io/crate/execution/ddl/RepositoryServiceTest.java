@@ -21,15 +21,7 @@
 
 package io.crate.execution.ddl;
 
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
@@ -50,17 +42,18 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.transport.MockTransportService;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
 
 public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
-
-    @BeforeClass
-    public static void disableProcessorCheck() {
-        System.setProperty("es.set.netty.runtime.available.processors", "false");
-    }
 
     @Test
     public void testConvertException() throws Throwable {

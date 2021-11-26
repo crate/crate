@@ -21,16 +21,12 @@
 
 package io.crate.protocols.http;
 
-import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
-import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.Mockito.mock;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.Collections;
-
+import io.crate.netty.NettyBootstrap;
+import io.crate.plugin.PipelineRegistry;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.protocols.ssl.SslSettings;
+import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.ssl.SslHandler;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
@@ -43,22 +39,20 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.crate.netty.NettyBootstrap;
-import io.crate.plugin.PipelineRegistry;
-import io.crate.protocols.ssl.SslSettings;
-import io.crate.protocols.ssl.SslContextProvider;
-import io.netty.channel.embedded.EmbeddedChannel;
-import io.netty.handler.ssl.SslHandler;
+import java.io.File;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.Collections;
+
+import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.mockito.Mockito.mock;
 
 public class CrateHttpsTransportTest extends ESTestCase {
 
     private static File trustStoreFile;
     private static File keyStoreFile;
-
-    @BeforeClass
-    public static void disableProcessorCheck() {
-        System.setProperty("es.set.netty.runtime.available.processors", "false");
-    }
 
     @BeforeClass
     public static void beforeTests() throws IOException {

@@ -302,6 +302,11 @@ public abstract class ESTestCase extends LuceneTestCase {
     protected void afterIfSuccessful() throws Exception {
     }
 
+    @BeforeClass
+    public static void disableProcessorCheck() {
+        System.setProperty("es.set.netty.runtime.available.processors", "false");
+    }
+
     // setup mock filesystems for this test run. we change PathUtils
     // so that all accesses are plumbed thru any mock wrappers
 
