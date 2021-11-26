@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.user.User;
@@ -358,5 +359,21 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             var res = executeOnSubscriber("SELECT * FROM doc.t1");
             assertThat(res.rowCount(), is((long) (numDocs + 2)));
         }, 10, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void test_write_to_subscribed_table_is_forbidden() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+                           defaultTableSettings() +
+                           ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        createPublication("pub1", false, List.of("doc.t1"));
+        createSubscription("sub1", "pub1");
+
+        assertThrowsMatches(
+            () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
+            OperationOnInaccessibleRelationException.class,
+            "The relation \"doc.t1\" doesn't support or allow INSERT operations."
+        );
     }
 }
