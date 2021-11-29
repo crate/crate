@@ -40,6 +40,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
@@ -48,6 +49,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashSet;
@@ -56,8 +58,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
 
 public final class MetadataTracker implements Closeable {
 
@@ -189,7 +191,10 @@ public final class MetadataTracker implements Closeable {
     }
 
     @VisibleForTesting
-    static ClusterState updateIndexMetadata(String subscriptionName, ClusterState subscriberClusterState, ClusterState publisherClusterState, IndexScopedSettings indexScopedSettings) {
+    static ClusterState updateIndexMetadata(String subscriptionName,
+                                            ClusterState subscriberClusterState,
+                                            ClusterState publisherClusterState,
+                                            IndexScopedSettings indexScopedSettings) {
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("Process cluster state for subscription {}", subscriptionName);
         }
@@ -214,19 +219,22 @@ public final class MetadataTracker implements Closeable {
         var updatedMetadataBuilder = Metadata.builder(subscriberClusterState.metadata());
         var updateClusterState = false;
         for (var followedTable : subscribedTables) {
-            var isIndexMetadataUpdated = false;
             var publisherIndexMetadata = publisherClusterState.metadata().index(followedTable.indexNameOrAlias());
             var subscriberIndexMetadata = subscriberClusterState.metadata().index(followedTable.indexNameOrAlias());
             if (publisherIndexMetadata != null && subscriberIndexMetadata != null) {
                 var updatedIndexMetadataBuilder = IndexMetadata.builder(subscriberIndexMetadata);
-                isIndexMetadataUpdated =
-                    updateIndexMetadataSettings(updatedIndexMetadataBuilder, publisherIndexMetadata, subscriberIndexMetadata, indexScopedSettings) ||
-                    updateIndexMetadataMapping(updatedIndexMetadataBuilder, publisherIndexMetadata, subscriberIndexMetadata);
-
-                if (isIndexMetadataUpdated) {
-                    updatedMetadataBuilder.put(updatedIndexMetadataBuilder.build(), true);
+                var updatedMapping = getNewMapping(publisherIndexMetadata, subscriberIndexMetadata);
+                if (updatedMapping != null) {
+                    updatedIndexMetadataBuilder.putMapping(updatedMapping).mappingVersion(publisherIndexMetadata.getMappingVersion());
                 }
-                updateClusterState = updateClusterState || isIndexMetadataUpdated;
+                var updatedSettings = updateIndexMetadataSettings(publisherIndexMetadata, subscriberIndexMetadata, indexScopedSettings);
+                if (updatedSettings != null) {
+                    updatedIndexMetadataBuilder.settings(updatedSettings).settingsVersion(publisherIndexMetadata.getSettingsVersion());
+                }
+                if (updatedMapping != null || updatedSettings != null) {
+                    updatedMetadataBuilder.put(updatedIndexMetadataBuilder.build(), true);
+                    updateClusterState = true;
+                }
             }
         }
         if (updateClusterState) {
@@ -239,9 +247,9 @@ public final class MetadataTracker implements Closeable {
         }
     }
 
-    private static boolean updateIndexMetadataMapping(IndexMetadata.Builder updatedIndexMetadata,
-                                              IndexMetadata publisherIndexMetadata,
-                                              IndexMetadata subscriberIndexMetadata) {
+    @Nullable
+    private static MappingMetadata getNewMapping(IndexMetadata publisherIndexMetadata,
+                                                 IndexMetadata subscriberIndexMetadata) {
         var publisherMapping = publisherIndexMetadata.mapping();
         var subscriberMapping = subscriberIndexMetadata.mapping();
         if (publisherMapping != null && subscriberMapping != null) {
@@ -249,55 +257,49 @@ public final class MetadataTracker implements Closeable {
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug("Updated index mapping {} for subscription {}", subscriberIndexMetadata.getIndex().getName(), publisherMapping.toString());
                 }
-                updatedIndexMetadata.putMapping(publisherMapping).mappingVersion(publisherIndexMetadata.getMappingVersion());
-                return true;
+                return publisherMapping;
             }
         }
-        return false;
+        return null;
     }
 
-    private static boolean updateIndexMetadataSettings(IndexMetadata.Builder updatedIndexMetadata,
-                                               IndexMetadata publisherMetadata,
-                                               IndexMetadata subscriberMetadata,
-                                               IndexScopedSettings indexScopedSettings) {
-        var isUpdated = false;
-        var publisherMetadataSetting = publisherMetadata.getSettings();
-        var subscriberMetadataSetting = subscriberMetadata.getSettings();
-        var newSubscriberIndexMetadataSettings = Settings.builder();
-        // Take all initial settings from the subscriber
-        for (var key : subscriberMetadataSetting.keySet()) {
-            newSubscriberIndexMetadataSettings.copy(key, subscriberMetadataSetting);
+    @Nullable
+    private static Settings updateIndexMetadataSettings(IndexMetadata publisherMetadata,
+                                                       IndexMetadata subscriberMetadata,
+                                                       IndexScopedSettings indexScopedSettings) {
+        if (publisherMetadata.getSettingsVersion() <= subscriberMetadata.getSettingsVersion()) {
+            return null;
         }
-        // Add or update all settings from the publisher. Skip private settings which are not transferable
-        // such as uuid or creation date and ignore static settings which are not allowed to change on published tables
-        for (var key : publisherMetadataSetting.keySet()) {
-            if (INDEX_NUMBER_OF_REPLICAS_SETTING.getKey().equals(key)) {
-                // Don't replicate number of replicas setting as this can get dynamically adapted
-                continue;
-            }
-            var setting = indexScopedSettings.get(key);
-            if (
-                setting != null &&
-                !setting.isInternalIndex() &&
-                !setting.isPrivateIndex() &&
-                indexScopedSettings.isDynamicSetting(key) &&
-                !indexScopedSettings.isPrivateSetting(key) &&
-                !Objects.equals(subscriberMetadataSetting.get(key), publisherMetadataSetting.get(key))
-            ) {
+        var publisherSettings = publisherMetadata.getSettings().filter(key -> isReplicatableSetting(key, indexScopedSettings));
+        if (publisherSettings.isEmpty()) {
+            return null;
+        }
+        var subscriberMetadataSetting = subscriberMetadata.getSettings();
+        var newSubscriberIndexMetadataSettings = Settings.builder().put(subscriberMetadata.getSettings());
+        var isUpdated = false;
+        for (var key : publisherSettings.keySet()) {
+            if (!Objects.equals(subscriberMetadataSetting.get(key), publisherSettings.get(key))) {
                 if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("Update setting {} for index {}", key, publisherMetadata.getIndex());
+                    LOGGER.debug("Update setting {} for index {}", key, subscriberMetadata.getIndex());
                 }
-                newSubscriberIndexMetadataSettings.copy(key, publisherMetadataSetting);
+                newSubscriberIndexMetadataSettings.copy(key, publisherSettings);
                 isUpdated = true;
             }
         }
-
         if (isUpdated) {
-            updatedIndexMetadata
-                .settings(Settings.builder().put(newSubscriberIndexMetadataSettings.build()))
-                .settingsVersion(subscriberMetadata.getSettingsVersion() + 1L);
+          return newSubscriberIndexMetadataSettings.build();
         }
-        return isUpdated;
+        return null;
+    }
+
+    private static boolean isReplicatableSetting(String key, IndexScopedSettings indexScopedSettings) {
+        var setting = indexScopedSettings.get(key);
+        return setting != null &&
+               !setting.isInternalIndex() &&
+               !setting.isPrivateIndex() &&
+               indexScopedSettings.isDynamicSetting(key) &&
+               !indexScopedSettings.isPrivateSetting(key) &&
+               !NON_REPLICATED_SETTINGS.contains(setting);
     }
 
     private void getRemoteClusterState(String subscriptionName, Consumer<ClusterState> consumer) {

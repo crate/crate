@@ -39,6 +39,7 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -52,6 +53,7 @@ import static org.hamcrest.Matchers.not;
 
 public class MetadataTrackerTest extends ESTestCase {
 
+    @TestLogging("io.crate.replication.logical:TRACE")
     @Test
     public void test_metadata_is_transferred_between_two_clustering_for_logical_replication() throws Exception {
         var mappingMetadata = new MappingMetadata("test", Map.of("1", "one"));
@@ -108,13 +110,13 @@ public class MetadataTrackerTest extends ESTestCase {
         assertThat(updatedIndexMetadata.mapping(), is(updatedMappingMetadata));
 
         // Let's change a dynamic setting
-        Settings.Builder settingsBuilder = settings(Version.CURRENT).put(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey(), TimeValue.timeValueSeconds(5));
+        Settings.Builder settingsBuilder = settings(Version.CURRENT).put(IndexSettings.MAX_NGRAM_DIFF_SETTING.getKey(), 5);
         updatedIndexMetadata = IndexMetadata.builder(indexMetadata).settings(settingsBuilder).settings(settingsBuilder).numberOfShards(1).numberOfReplicas(0).version(1).build();
         updatedPublisherClusterState = ClusterState.builder(publisherClusterState).metadata(Metadata.builder().put(updatedIndexMetadata, true).putCustom(PublicationsMetadata.TYPE, publicationsMetadata).build()).build();
         syncedSubriberClusterState = MetadataTracker.updateIndexMetadata("sub1", subscriberClusterState, updatedPublisherClusterState,  IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
         syncedIndexMetadata = syncedSubriberClusterState.metadata().index("test");
         assertThat(syncedIndexMetadata.getSettings(), is(updatedIndexMetadata.getSettings()));
-        assertThat(syncedIndexMetadata.getSettings().getAsTime(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey(), null), is(TimeValue.timeValueSeconds(5)));
+        assertThat(syncedIndexMetadata.getSettings().getAsInt(IndexSettings.MAX_NGRAM_DIFF_SETTING.getKey(), null), is(5));
 
         // Let`s make sure a private setting is not replicated
         var randomBase64UUID = UUIDs.randomBase64UUID();
