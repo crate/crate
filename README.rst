@@ -20,7 +20,7 @@ About
 =====
 
 CrateDB is a distributed SQL database that makes it simple to store and analyze
-massive amounts of machine data in real-time.
+massive amounts of data in real-time.
 
 CrateDB offers the `benefits`_ of an SQL database *and* the scalability and
 flexibility typically associated with NoSQL databases. Modest CrateDB clusters
