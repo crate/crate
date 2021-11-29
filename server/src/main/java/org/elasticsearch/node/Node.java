@@ -597,12 +597,14 @@ public class Node implements Closeable {
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
             RemoteClusters remoteClusters = new RemoteClusters(settings, threadPool, transportService);
+            resourcesToClose.add(remoteClusters);
             final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
                 settings,
                 clusterService,
                 remoteClusters,
                 threadPool
             );
+            resourcesToClose.add(logicalReplicationService);
 
             RepositoriesModule repositoriesModule = new RepositoriesModule(
                 this.environment,
@@ -1063,6 +1065,11 @@ public class Node implements Closeable {
         toClose.add(injector.getInstance(GatewayService.class));
         toClose.add(() -> stopWatch.stop().start("transport"));
         toClose.add(injector.getInstance(TransportService.class));
+
+        toClose.add(() -> stopWatch.stop().start("remote_clusters"));
+        toClose.add(injector.getInstance(RemoteClusters.class));
+        toClose.add(() -> stopWatch.stop().start("logical_replication_service"));
+        toClose.add(injector.getInstance(LogicalReplicationService.class));
 
         toClose.add(() -> stopWatch.stop().start("gateway_meta_state"));
         toClose.add(injector.getInstance(GatewayMetaState.class));
