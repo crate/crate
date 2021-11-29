@@ -39,7 +39,8 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 
-import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.metadata.Publication;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -64,6 +65,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -85,8 +87,10 @@ public class AlterTableOperation {
     private final TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction;
     private final TransportCloseTable transportCloseTable;
     private final SQLOperations sqlOperations;
+    private final IndexScopedSettings indexScopedSettings;
+    private final LogicalReplicationService logicalReplicationService;
+
     private Session session;
-    private IndexScopedSettings indexScopedSettings;
 
 
     @Inject
@@ -99,7 +103,8 @@ public class AlterTableOperation {
                                TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
                                TransportAlterTableAction transportAlterTableAction,
                                SQLOperations sqlOperations,
-                               IndexScopedSettings indexScopedSettings) {
+                               IndexScopedSettings indexScopedSettings,
+                               LogicalReplicationService logicalReplicationService) {
 
         this.clusterService = clusterService;
         this.transportRenameTableAction = transportRenameTableAction;
@@ -111,6 +116,7 @@ public class AlterTableOperation {
         this.transportAlterTableAction = transportAlterTableAction;
         this.sqlOperations = sqlOperations;
         this.indexScopedSettings = indexScopedSettings;
+        this.logicalReplicationService = logicalReplicationService;
     }
 
     public CompletableFuture<Long> executeAlterTableAddColumn(final BoundAddColumn analysis) {
@@ -160,7 +166,11 @@ public class AlterTableOperation {
     }
 
     public CompletableFuture<Long> executeAlterTable(BoundAlterTable analysis) {
-        validateForPublishedTables(analysis, clusterService.state(), indexScopedSettings);
+        validateSettingsForPublishedTables(analysis.table().ident(),
+                                           analysis.tableParameter().settings(),
+                                           logicalReplicationService.publications(),
+                                           indexScopedSettings);
+
         final Settings settings = analysis.tableParameter().settings();
         final boolean includesNumberOfShardsSetting = settings.hasValue(SETTING_NUMBER_OF_SHARDS);
         final boolean isResizeOperationRequired = includesNumberOfShardsSetting &&
@@ -295,26 +305,29 @@ public class AlterTableOperation {
         }
     }
 
-    private static void validateForPublishedTables(BoundAlterTable alterTable,
-                                                   ClusterState currentState,
+    @VisibleForTesting
+    static void validateSettingsForPublishedTables(RelationName relationName,
+                                                   Settings settings,
+                                                   Map<String, Publication> publications,
                                                    IndexScopedSettings indexScopedSettings) {
-        PublicationsMetadata publicationsMetadata = currentState.metadata().custom(PublicationsMetadata.TYPE);
-        if (publicationsMetadata != null) {
-            var publications = publicationsMetadata.publications();
-            for (var publication : publications.values()) {
-                for (var table : publication.tables()) {
-                    if (table.equals(alterTable.table().ident())) {
-                        for (var key : alterTable.tableParameter().settings().keySet()) {
-                            if (!indexScopedSettings.isDynamicSetting(key)) {
-                                throw new IllegalArgumentException(
-                                    String.format(
-                                        "Setting [%s] cannot be applied to table '%s' published for logical replication",
-                                        key,
-                                        alterTable.table().ident().toString()
-                                    )
-                                );
-                            }
-                        }
+        // Static settings changes must be prevented for tables included
+        // in logical replication publication. Static settings cannot not be applied ad-hoc on
+        // an open table and may also cause the shard tracking as part of the logical replication
+        // to fail e.g. when the number of shards is changed on a table which is tracked.
+        for (var entry : publications.entrySet()) {
+            var publicationName = entry.getKey();
+            var publication = entry.getValue();
+            if (publication.isForAllTables() || publication.tables().contains(relationName)) {
+                for (var key : settings.keySet()) {
+                    if (!indexScopedSettings.isDynamicSetting(key)) {
+                        throw new IllegalArgumentException(
+                            String.format(
+                                "Setting [%s] cannot be applied to table '%s' because it is included in a logical replication publication '%s'",
+                                key,
+                                relationName.toString(),
+                                publicationName
+                            )
+                        );
                     }
                 }
             }

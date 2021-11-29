@@ -363,31 +363,6 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         }, 10, TimeUnit.SECONDS);
     }
 
-    @Test
-    public void test_alter_static_settings_on_published_tables_is_prevented() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) clustered into 1 shards WITH(" + defaultTableSettings() + ")");
-        createPublication("pub1", false, List.of("doc.t1"));
-
-        assertThrowsMatches(() -> executeOnPublisher("ALTER table doc.t1 set (\"codec\" = 'best_compression')"),
-            SQLParseException.class,
-            "Setting [index.codec] cannot be applied to table 'doc.t1' published for logical replication"
-        );
-    }
-
-    @Test
-    public void test_alter_number_of_shards_on_published_tables_is_prevented() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) clustered into 10 shards with (number_of_replicas='0-all')");
-        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2), (3), (4), (5), (6), (7), (8), (9), (10)");
-        executeOnPublisher("REFRESH TABLE doc.t1");
-        createPublication("pub1", false, List.of("doc.t1"));
-        executeOnPublisher("ALTER table doc.t1 set (\"blocks.write\" = true)");
-
-        assertThrowsMatches(() -> executeOnPublisher("ALTER TABLE doc.t1 set (number_of_shards = 5)"),
-            SQLParseException.class,
-            "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' published for logical replication"
-        );
-    }
-
     public void test_dynamic_settings_updates_are_replicated() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
