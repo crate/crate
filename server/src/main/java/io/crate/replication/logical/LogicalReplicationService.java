@@ -45,6 +45,7 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -80,8 +81,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     private volatile PublicationsMetadata currentPublicationsMetadata = new PublicationsMetadata();
     private final MetadataTracker metadataTracker;
 
-
-    public LogicalReplicationService(Settings settings,
+    public LogicalReplicationService(IndexScopedSettings indexScopedSettings,
+                                     Settings settings,
                                      ClusterService clusterService,
                                      RemoteClusters remoteClusters,
                                      ThreadPool threadPool) {
@@ -89,6 +90,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         this.threadPool = threadPool;
         this.remoteClusters = remoteClusters;
         this.metadataTracker = new MetadataTracker(
+            indexScopedSettings,
             settings,
             threadPool,
             subscriptionName -> remoteClusters.getClient(subscriptionName),

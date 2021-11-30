@@ -22,11 +22,22 @@
 package io.crate.replication.logical;
 
 import io.crate.common.unit.TimeValue;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.routing.UnassignedInfo;
+import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.MergePolicyConfig;
+import org.elasticsearch.index.MergeSchedulerConfig;
+import org.elasticsearch.index.engine.EngineConfig;
+
+import java.util.Set;
 
 @Singleton
 public class LogicalReplicationSettings {
@@ -55,6 +66,56 @@ public class LogicalReplicationSettings {
         Setting.Property.IndexScope
     );
 
+    /**
+     * These settings are not suitable to replicate between subscribed/replicated indices
+     */
+    public static final Set<Setting<?>> NON_REPLICATED_SETTINGS = Set.of(
+        IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING,
+        IndexMetadata.INDEX_AUTO_EXPAND_REPLICAS_SETTING,
+        IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING,
+        IndexMetadata.INDEX_ROUTING_INCLUDE_GROUP_SETTING,
+        IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING,
+        IndexMetadata.INDEX_READ_ONLY_SETTING,
+        IndexMetadata.INDEX_BLOCKS_READ_SETTING,
+        IndexMetadata.INDEX_BLOCKS_WRITE_SETTING,
+        IndexMetadata.INDEX_BLOCKS_METADATA_SETTING,
+        IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
+        IndexMetadata.INDEX_PRIORITY_SETTING,
+        IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
+        EnableAllocationDecider.INDEX_ROUTING_REBALANCE_ENABLE_SETTING,
+        EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING,
+        ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING,
+        MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY,
+        UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING,
+        IndexSettings.INDEX_WARMER_ENABLED_SETTING,
+        IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
+        IndexSettings.DEFAULT_FIELD_SETTING,
+        IndexSettings.ALLOW_UNMAPPED,
+        IndexSettings.INDEX_SEARCH_IDLE_AFTER,
+        IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING,
+        IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING,
+        IndexSettings.INDEX_TRANSLOG_RETENTION_AGE_SETTING,
+        IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING,
+        IndexSettings.INDEX_TRANSLOG_GENERATION_THRESHOLD_SIZE_SETTING,
+        IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING,
+        IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING,
+        IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING,
+        IndexSettings.INDEX_FLUSH_AFTER_MERGE_THRESHOLD_SIZE_SETTING,
+        IndexSettings.INDEX_GC_DELETES_SETTING,
+        IndexSettings.MAX_REFRESH_LISTENERS_PER_SHARD,
+        MergePolicyConfig.INDEX_COMPOUND_FORMAT_SETTING,
+        MergePolicyConfig.INDEX_MERGE_POLICY_MAX_MERGE_AT_ONCE_SETTING,
+        MergePolicyConfig.INDEX_MERGE_POLICY_SEGMENTS_PER_TIER_SETTING,
+        MergePolicyConfig.INDEX_MERGE_POLICY_DELETES_PCT_ALLOWED_SETTING,
+        MergePolicyConfig.INDEX_MERGE_POLICY_EXPUNGE_DELETES_ALLOWED_SETTING,
+        MergePolicyConfig.INDEX_MERGE_POLICY_FLOOR_SEGMENT_SETTING,
+        MergePolicyConfig.INDEX_MERGE_POLICY_MAX_MERGE_AT_ONCE_EXPLICIT_SETTING,
+        MergePolicyConfig.INDEX_MERGE_POLICY_MAX_MERGED_SEGMENT_SETTING,
+        MergeSchedulerConfig.AUTO_THROTTLE_SETTING,
+        MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING,
+        MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
+        EngineConfig.INDEX_CODEC_SETTING
+    );
 
     private long batchSize;
     private TimeValue pollDelay;
@@ -83,4 +144,5 @@ public class LogicalReplicationSettings {
     public void pollDelay(TimeValue pollDelay) {
         this.pollDelay = pollDelay;
     }
+
 }
