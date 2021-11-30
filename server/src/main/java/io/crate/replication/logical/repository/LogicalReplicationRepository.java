@@ -216,7 +216,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     @Override
     public void getRepositoryData(ActionListener<RepositoryData> listener) {
         StepListener<PublicationsStateAction.Response> responseStepListener = new StepListener<>();
-        getPublicationsState(responseStepListener);
         responseStepListener.whenComplete(stateResponse -> {
             StepListener<ClusterState> clusterStateStepListener = new StepListener<>();
             getRemoteClusterState(clusterStateStepListener, stateResponse.concreteIndices().toArray(new String[0]));
@@ -237,6 +236,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 listener.onResponse(repositoryData);
             }, listener::onFailure);
         }, listener::onFailure);
+        getPublicationsState(responseStepListener);
     }
 
     @Override
