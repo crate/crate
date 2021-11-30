@@ -182,7 +182,7 @@ public class MetadataTrackerTest extends ESTestCase {
                                                                              IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
         var syncedIndexMetadata = syncedSubriberClusterState.metadata().index("test");
         assertThat(syncedIndexMetadata.getSettings(), is(updatedPublisherMetadata.getSettings()));
-        assertThat(INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedIndexMetadata.getSettings()), is("0"));
+        assertThat(INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedIndexMetadata.getSettings()), is(0));
     }
 
 }
