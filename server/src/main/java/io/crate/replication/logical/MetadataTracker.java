@@ -223,7 +223,7 @@ public final class MetadataTracker implements Closeable {
             var subscriberIndexMetadata = subscriberClusterState.metadata().index(followedTable.indexNameOrAlias());
             if (publisherIndexMetadata != null && subscriberIndexMetadata != null) {
                 var updatedIndexMetadataBuilder = IndexMetadata.builder(subscriberIndexMetadata);
-                var updatedMapping = getNewMapping(publisherIndexMetadata, subscriberIndexMetadata);
+                var updatedMapping = updateIndexMetadataMappings(publisherIndexMetadata, subscriberIndexMetadata);
                 if (updatedMapping != null) {
                     updatedIndexMetadataBuilder.putMapping(updatedMapping).mappingVersion(publisherIndexMetadata.getMappingVersion());
                 }
@@ -248,8 +248,8 @@ public final class MetadataTracker implements Closeable {
     }
 
     @Nullable
-    private static MappingMetadata getNewMapping(IndexMetadata publisherIndexMetadata,
-                                                 IndexMetadata subscriberIndexMetadata) {
+    private static MappingMetadata updateIndexMetadataMappings(IndexMetadata publisherIndexMetadata,
+                                                               IndexMetadata subscriberIndexMetadata) {
         var publisherMapping = publisherIndexMetadata.mapping();
         var subscriberMapping = subscriberIndexMetadata.mapping();
         if (publisherMapping != null && subscriberMapping != null) {
@@ -267,7 +267,7 @@ public final class MetadataTracker implements Closeable {
     private static Settings updateIndexMetadataSettings(IndexMetadata publisherMetadata,
                                                        IndexMetadata subscriberMetadata,
                                                        IndexScopedSettings indexScopedSettings) {
-        if (publisherMetadata.getSettingsVersion() <= subscriberMetadata.getSettingsVersion()) {
+        if (publisherMetadata.getSettingsVersion() < subscriberMetadata.getSettingsVersion()) {
             return null;
         }
         var publisherSettings = publisherMetadata.getSettings().filter(key -> isReplicatableSetting(key, indexScopedSettings));
