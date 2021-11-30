@@ -21,38 +21,100 @@
 
 package io.crate.replication.logical.metadata;
 
+import io.crate.metadata.RelationName;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class Subscription implements Writeable {
+
+    public enum State {
+        INITIALIZING("i"),
+        RESTORING("d"),
+        SYNCHRONIZED("s"),
+        MONITORING("r"),
+        FAILED("e");
+
+        private static final State[] VALUES = State.values();
+
+        private final String pg_state;
+
+        State(String pg_state) {
+            this.pg_state = pg_state;
+        }
+
+        public String pg_state() {
+            return pg_state;
+        }
+    }
+
+    public static RelationState updateRelationState(@Nullable RelationState oldState, RelationState newState) {
+        if (oldState == null) {
+            return newState;
+        }
+        // Do not override existing same states, e.g. do not override a failed state with a new reason to preserve
+        // existing causes
+        if (oldState.state.equals(newState.state)) {
+            return oldState;
+        }
+        return newState;
+    }
+
+    public record RelationState(State state, @Nullable String reason) {
+
+        public static void writeTo(StreamOutput out, RelationState relationState) throws IOException {
+            out.writeVInt(relationState.state.ordinal());
+            out.writeOptionalString(relationState.reason);
+        }
+
+        public static RelationState readFrom(StreamInput in) throws IOException {
+            return new RelationState(
+                State.VALUES[in.readVInt()],
+                in.readOptionalString()
+            );
+        }
+    }
 
     private final String owner;
     private final ConnectionInfo connectionInfo;
     private final List<String> publications;
     private final Settings settings;
+    private final Map<RelationName, RelationState> relations;
 
     public Subscription(String owner,
                         ConnectionInfo connectionInfo,
                         List<String> publications,
-                        Settings settings) {
+                        Settings settings,
+                        Map<RelationName, RelationState> relations) {
         this.owner = owner;
         this.connectionInfo = connectionInfo;
         this.publications = publications;
         this.settings = settings;
+        this.relations = relations;
     }
 
-    Subscription(StreamInput in) throws IOException {
+    public Subscription(StreamInput in) throws IOException {
         owner = in.readString();
         connectionInfo = new ConnectionInfo(in);
         publications = Arrays.stream(in.readStringArray()).toList();
         settings = Settings.readSettingsFromStream(in);
+        int relSize = in.readVInt();
+        HashMap<RelationName, RelationState> relations = new HashMap<>();
+        for (int i = 0; i < relSize; i++) {
+            RelationName relationName = new RelationName(in);
+            RelationState relationState = RelationState.readFrom(in);
+            relations.put(relationName, relationState);
+        }
+        this.relations = relations;
     }
 
     public String owner() {
@@ -71,12 +133,21 @@ public class Subscription implements Writeable {
         return settings;
     }
 
+    public Map<RelationName, RelationState> relations() {
+        return relations;
+    }
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(owner);
         connectionInfo.writeTo(out);
         out.writeStringArray(publications.toArray(new String[0]));
         Settings.writeSettingsToStream(settings, out);
+        out.writeVInt(relations.size());
+        for (var entry : relations.entrySet()) {
+            entry.getKey().writeTo(out);
+            RelationState.writeTo(out, entry.getValue());
+        }
     }
 
     @Override
@@ -89,11 +160,23 @@ public class Subscription implements Writeable {
         }
         Subscription that = (Subscription) o;
         return owner.equals(that.owner) && connectionInfo.equals(that.connectionInfo) &&
-               publications.equals(that.publications) && settings.equals(that.settings);
+               publications.equals(that.publications) && settings.equals(that.settings) &&
+               relations.equals(that.relations);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(owner, connectionInfo, publications, settings);
+        return Objects.hash(owner, connectionInfo, publications, settings, relations);
+    }
+
+    @Override
+    public String toString() {
+        return "Subscription{" +
+               "owner='" + owner + '\'' +
+               ", connectionInfo=" + connectionInfo +
+               ", publications=" + publications +
+               ", settings=" + settings +
+               ", relations=" + relations +
+               '}';
     }
 }

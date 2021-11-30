@@ -21,6 +21,7 @@
 
 package io.crate.replication.logical.action;
 
+import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
 import io.crate.replication.logical.metadata.Subscription;
@@ -42,6 +43,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Locale;
 
 public class TransportCreateSubscriptionAction extends TransportMasterNodeAction<CreateSubscriptionRequest, AcknowledgedResponse> {
@@ -96,22 +98,16 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
             );
         }
 
-        Subscription subscription = new Subscription(
-            request.owner(),
-            request.connectionInfo(),
-            request.publications(),
-            request.settings()
-        );
-
         logicalReplicationService.getPublicationState(
             request.name(),
-            subscription,
+            request.publications(),
+            request.connectionInfo(),
             ActionListener.wrap(
-                response ->
+                publicationsStateResponse ->
                     logicalReplicationService.verifyTablesDoNotExist(
                         request.name(),
-                        response,
-                        r -> submitClusterStateTask(request, subscription, listener),
+                        publicationsStateResponse,
+                        r -> submitClusterStateTask(request, publicationsStateResponse, listener),
                         listener::onFailure
                     ),
                 listener::onFailure
@@ -120,7 +116,7 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
     }
 
     private void submitClusterStateTask(CreateSubscriptionRequest request,
-                                        Subscription subscription,
+                                        PublicationsStateAction.Response publicationsStateResponse,
                                         ActionListener<AcknowledgedResponse> listener) {
         clusterService.submitStateUpdateTask(
             source,
@@ -134,6 +130,23 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                     if (oldMetadata != null && oldMetadata.subscription().containsKey(request.name())) {
                         throw new SubscriptionAlreadyExistsException(request.name());
                     }
+
+                    HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
+                    for (var relation : publicationsStateResponse.tables()) {
+                        relations.put(
+                            relation,
+                            new Subscription.RelationState(Subscription.State.INITIALIZING, null)
+                        );
+                    }
+
+                    Subscription subscription = new Subscription(
+                        request.owner(),
+                        request.connectionInfo(),
+                        request.publications(),
+                        request.settings(),
+                        relations
+                    );
+
 
                     var newMetadata = SubscriptionsMetadata.newInstance(oldMetadata);
                     newMetadata.subscription().put(request.name(), subscription);

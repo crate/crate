@@ -21,19 +21,19 @@
 
 package io.crate.replication.logical;
 
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
-import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Locale;
-import java.util.Map;
-import java.util.function.Consumer;
-
-import javax.annotation.Nullable;
-
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.execution.support.RetryRunnable;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.UpdateSubscriptionAction;
+import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.replication.logical.repository.LogicalReplicationRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -41,6 +41,7 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreClusterSt
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -54,18 +55,19 @@ import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
-import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.execution.support.RetryRunnable;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.action.PublicationsStateAction;
-import io.crate.replication.logical.metadata.ConnectionInfo;
-import io.crate.replication.logical.metadata.Publication;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.replication.logical.metadata.Subscription;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.replication.logical.repository.LogicalReplicationRepository;
+import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Consumer;
+
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
+import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
 
 public class LogicalReplicationService implements ClusterStateListener, Closeable {
 
@@ -74,6 +76,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final RemoteClusters remoteClusters;
+    private final Client client;
     private RepositoriesService repositoriesService;
     private RestoreService restoreService;
 
@@ -85,15 +88,17 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                                      Settings settings,
                                      ClusterService clusterService,
                                      RemoteClusters remoteClusters,
-                                     ThreadPool threadPool) {
+                                     ThreadPool threadPool,
+                                     Client client) {
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.remoteClusters = remoteClusters;
+        this.client = client;
         this.metadataTracker = new MetadataTracker(
             indexScopedSettings,
             settings,
             threadPool,
-            subscriptionName -> remoteClusters.getClient(subscriptionName),
+            remoteClusters::getClient,
             clusterService
         );
         clusterService.addListener(this);
@@ -172,13 +177,25 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                         public void onResponse(AcknowledgedResponse acknowledgedResponse) {
                             if (acknowledgedResponse.isAcknowledged()) {
                                 LOGGER.debug("Acknowledged logical replication for subscription '{}'", subscriptionName);
-                                metadataTracker.startTracking(subscriptionName);
+                                updateSubscriptionState(
+                                    subscriptionName,
+                                    ActionListener.wrap(r -> metadataTracker.startTracking(subscriptionName), ignored -> {}),
+                                    Subscription.State.MONITORING,
+                                    null
+                                );
                             }
                         }
 
                         @Override
                         public void onFailure(Exception e) {
                             LOGGER.debug("Failure for logical replication for subscription", e);
+                            // Set a generic error reason if state is not already "FAILED" (same states won't be overridden)
+                            updateSubscriptionState(
+                                subscriptionName,
+                                ActionListener.wrap(() -> {}),
+                                Subscription.State.FAILED,
+                                e.getMessage()
+                            );
                         }
                     });
                 }
@@ -225,7 +242,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                                  ActionListener<AcknowledgedResponse> listener) {
         getPublicationState(
             subscriptionName,
-            subscription,
+            subscription.publications(),
+            subscription.connectionInfo(),
             new ActionListener<>() {
 
                 @Override
@@ -240,28 +258,39 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
                 @Override
                 public void onFailure(Exception e) {
-                    listener.onFailure(e);
+                    updateSubscriptionState(
+                        subscriptionName,
+                        ActionListener.wrap(() -> listener.onFailure(e)),
+                        Subscription.State.FAILED,
+                        "Failed to request the publications state"
+                    );
                 }
             }
         );
     }
 
     public void getPublicationState(String subscriptionName,
-                                    Subscription subscription,
+                                    List<String> publications,
+                                    ConnectionInfo connectionInfo,
                                     ActionListener<PublicationsStateAction.Response> listener) {
-        remoteClusters.connect(subscriptionName, subscription.connectionInfo())
+        remoteClusters.connect(subscriptionName, connectionInfo)
             .whenComplete((client, err) -> {
                 if (err == null) {
                     client.execute(
                         PublicationsStateAction.INSTANCE,
                         new PublicationsStateAction.Request(
-                            subscription.publications(),
-                            subscription.connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
+                            publications,
+                            connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey())
                         ),
                         listener
                     );
                 } else {
-                    listener.onFailure(Exceptions.toRuntimeException(err));
+                    updateSubscriptionState(
+                        subscriptionName,
+                        ActionListener.wrap(() -> listener.onFailure(Exceptions.toRuntimeException(err))),
+                        Subscription.State.FAILED,
+                        "Failed to connect to the remote cluster"
+                    );
                 }
             });
     }
@@ -328,30 +357,43 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
             @Override
             public void onFailure(Exception e) {
-                listener.onFailure(e);
-            }
-
-            @Override
-            protected void doRun() {
-                restoreService.restoreSnapshot(
-                    restoreRequest,
-                    ActionListener.delegateFailure(
-                        listener,
-                        (delegatedListener, response) ->
-                            afterReplicationStarted(delegatedListener, response)
-                    )
+                updateSubscriptionState(
+                    subscriptionName,
+                    ActionListener.wrap(() -> listener.onFailure(e)),
+                    Subscription.State.FAILED,
+                    "Error happened while initial restoring the subscription relations"
                 );
             }
 
             @Override
-            public void onAfter() {
-                super.onAfter();
-                listener.onResponse(new AcknowledgedResponse(true));
+            protected void doRun() {
+                updateSubscriptionState(
+                    subscriptionName,
+                    ActionListener.wrap(
+                        () -> restoreService.restoreSnapshot(
+                            restoreRequest,
+                            ActionListener.wrap(
+                                response -> afterReplicationStarted(subscriptionName, listener, response),
+                                (e) -> {
+                                    updateSubscriptionState(
+                                        subscriptionName,
+                                        ActionListener.wrap(() -> listener.onFailure(e)),
+                                        Subscription.State.FAILED,
+                                        "Failed restoring subscription, error=" + e.getMessage());
+                                }
+                            )
+                        )
+                    ),
+                    Subscription.State.RESTORING,
+                    null
+                );
+                ;
             }
         });
     }
 
-    private void afterReplicationStarted(ActionListener<AcknowledgedResponse> listener,
+    private void afterReplicationStarted(String subscriptionName,
+                                         ActionListener<AcknowledgedResponse> listener,
                                          RestoreService.RestoreCompletionResponse response) {
         RestoreClusterStateListener.createAndRegisterListener(
             clusterService,
@@ -361,18 +403,61 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                 if (restoreInfo == null) {
                     LOGGER.error(
                         "Restore failed, restoreInfo = NULL, seems like a master failure happened while restoring");
-                    delegatedListener.onResponse(new AcknowledgedResponse(false));
+                    updateSubscriptionState(
+                        subscriptionName,
+                        ActionListener.wrap(() -> delegatedListener.onResponse(new AcknowledgedResponse(false))),
+                        Subscription.State.FAILED,
+                        "Error while initial restoring the subscription relations"
+                    );
                 } else if (restoreInfo.failedShards() == 0) {
                     LOGGER.debug("Restore success, following will start once shards are active");
-                    delegatedListener.onResponse(new AcknowledgedResponse(true));
+                    updateSubscriptionState(
+                        subscriptionName,
+                        ActionListener.wrap(() -> delegatedListener.onResponse(new AcknowledgedResponse(true))),
+                        Subscription.State.SYNCHRONIZED,
+                        null
+                    );
                 } else {
                     assert restoreInfo.failedShards() > 0 : "Some failed shards are expected";
                     LOGGER.error("Failed to restore {}/{} shards",
                                  restoreInfo.failedShards(),
                                  restoreInfo.totalShards());
-                    delegatedListener.onResponse(new AcknowledgedResponse(false));
+                    var msg = "Error while initial restoring the subscription relations";
+                    if (restoreInfo.failedShards() != restoreInfo.totalShards()) {
+                        msg = String.format(Locale.ENGLISH,
+                                            "Restoring the subscription relations failed partially. Failed to restore %d/%d shards",
+                                            restoreInfo.failedShards(),
+                                            restoreInfo.totalShards());
+                    }
+                    updateSubscriptionState(
+                        subscriptionName,
+                        ActionListener.wrap(() -> delegatedListener.onResponse(new AcknowledgedResponse(false))),
+                        Subscription.State.FAILED,
+                        msg
+                    );
                 }
             })
         );
+    }
+
+    private void updateSubscriptionState(final String subscriptionName,
+                                         ActionListener<AcknowledgedResponse> listener,
+                                         final Subscription.State newState,
+                                         @Nullable final String failureReason) {
+        var oldSubscription = subscriptions().get(subscriptionName);
+        assert oldSubscription != null : "Cannot find existing subscription " + subscriptionName;
+        HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
+        for (var entry : oldSubscription.relations().entrySet()) {
+            relations.put(entry.getKey(), new Subscription.RelationState(newState, failureReason));
+        }
+        var newSubscription = new Subscription(
+            oldSubscription.owner(),
+            oldSubscription.connectionInfo(),
+            oldSubscription.publications(),
+            oldSubscription.settings(),
+            relations
+        );
+        var request = new UpdateSubscriptionAction.Request(subscriptionName, newSubscription);
+        client.execute(UpdateSubscriptionAction.INSTANCE,  request, listener);
     }
 }
