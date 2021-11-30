@@ -272,7 +272,7 @@ public final class MetadataTracker implements Closeable {
         }
         var publisherSettings = publisherMetadata.getSettings();
         var subscriberMetadataSetting = subscriberMetadata.getSettings();
-        var newSubscriberIndexMetadataSettings = Settings.builder().put(subscriberMetadata.getSettings());
+        var newSubscriberIndexMetadataSettings = Settings.builder().put(subscriberMetadataSetting);
         var isUpdated = false;
         for (var key : publisherSettings.keySet()) {
             if (isReplicatableSetting(key, indexScopedSettings) &&
