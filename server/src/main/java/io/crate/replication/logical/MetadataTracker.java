@@ -287,7 +287,7 @@ public final class MetadataTracker implements Closeable {
             }
         }
         if (isUpdated) {
-          return newSubscriberIndexMetadataSettings.build();
+            return newSubscriberIndexMetadataSettings.build();
         }
         return null;
     }
