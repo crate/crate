@@ -41,6 +41,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -74,11 +75,13 @@ public class MetadataTrackerTest extends ESTestCase {
 
     ClusterState buildSubscriberClusterState(IndexMetadata indexMetadata) {
         var subscriptionsMetadata = new SubscriptionsMetadata(
-            Map.of("sub1", new Subscription(
+            Map.of("sub1",
+                   new Subscription(
                        "user1",
                        ConnectionInfo.fromURL("crate://example.com:4310?user=valid_user&password=123"),
                        List.of("pub1"),
-                       Settings.EMPTY
+                       Settings.EMPTY,
+                       Collections.emptyMap()
                    )
             )
         );

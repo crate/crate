@@ -44,10 +44,14 @@ import org.elasticsearch.transport.Netty4Plugin;
 import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -65,10 +69,10 @@ import static org.hamcrest.Matchers.is;
 
 public abstract class LogicalReplicationITestCase extends ESTestCase {
 
-    InternalTestCluster publisherCluster;
+    protected InternalTestCluster publisherCluster;
     SQLTransportExecutor publisherSqlExecutor;
 
-    InternalTestCluster subscriberCluster;
+    public InternalTestCluster subscriberCluster;
     SQLTransportExecutor subscriberSqlExecutor;
 
     protected static final String SUBSCRIBING_USER = "subscriber";
@@ -92,10 +96,10 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         publisherCluster = new InternalTestCluster(
             randomLong(),
             createTempDir(),
-            true,
-            true,
-            2,
-            2,
+            getPublisherSupportsDedicatedMasters(),
+            getPublisherAutoManageMasterNodes(),
+            getPublisherNumberOfNodes(),
+            getPublisherNumberOfNodes(),
             "publishing_cluster",
             createNodeConfigurationSource(),
             0,
@@ -105,16 +109,16 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             true
         );
         publisherCluster.beforeTest(random());
-        publisherCluster.ensureAtLeastNumDataNodes(2);
+        publisherCluster.ensureAtLeastNumDataNodes(getPublisherNumberOfNodes());
         publisherSqlExecutor = sqlExecutor(publisherCluster);
 
         subscriberCluster = new InternalTestCluster(
             randomLong(),
             createTempDir(),
-            false,
-            true,
-            1,
-            1,
+            getSubscriberSupportsDedicatedMasters(),
+            getSubscriberAutoManageMasterNodes(),
+            getSubscriberNumberOfNodes(),
+            getSubscriberNumberOfNodes(),
             "subscribing_cluster",
             createNodeConfigurationSource(),
             0,
@@ -124,7 +128,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             true
         );
         subscriberCluster.beforeTest(random());
-        subscriberCluster.ensureAtLeastNumDataNodes(1);
+        subscriberCluster.ensureAtLeastNumDataNodes(getSubscriberNumberOfNodes());
         subscriberSqlExecutor = sqlExecutor(subscriberCluster);
     }
 
@@ -148,7 +152,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         }
     }
 
-    SQLResponse executeOnPublisher(String sql) {
+    public SQLResponse executeOnPublisher(String sql) {
         return publisherSqlExecutor.exec(sql);
     }
 
@@ -160,7 +164,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         return publisherSqlExecutor.execBulk(sql, bulkArgs);
     }
 
-    SQLResponse executeOnSubscriber(String sql) {
+    public SQLResponse executeOnSubscriber(String sql) {
         return subscriberSqlExecutor.exec(sql);
     }
 
@@ -226,7 +230,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         );
     }
 
-    private String publisherConnectionUrl() {
+    public String publisherConnectionUrl() {
         var transportService = publisherCluster.getInstance(TransportService.class);
         InetSocketAddress address = transportService.boundAddress().publishAddress().address();
         return String.format(
@@ -277,5 +281,66 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             " CONNECTION '" + publisherConnectionUrl() + "' publication " + pubName, user);
         ensureGreenOnSubscriber();
 
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.TYPE})
+    public @interface PublisherClusterScope {
+        int numberOfNodes() default 2;
+
+        boolean supportsDedicatedMasters() default true;
+
+        boolean autoManageMasterNodes() default true;
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.TYPE})
+    public @interface SubscriberClusterScope {
+        int numberOfNodes() default 2;
+
+        boolean supportsDedicatedMasters() default true;
+
+        boolean autoManageMasterNodes() default true;
+    }
+
+    private int getPublisherNumberOfNodes() {
+        PublisherClusterScope annotation = getAnnotation(this.getClass(), PublisherClusterScope.class);
+        return annotation == null ? 2 : annotation.numberOfNodes();
+    }
+
+    private boolean getPublisherSupportsDedicatedMasters() {
+        PublisherClusterScope annotation = getAnnotation(this.getClass(), PublisherClusterScope.class);
+        return annotation == null || annotation.supportsDedicatedMasters();
+    }
+
+    private boolean getPublisherAutoManageMasterNodes() {
+        PublisherClusterScope annotation = getAnnotation(this.getClass(), PublisherClusterScope.class);
+        return annotation == null || annotation.autoManageMasterNodes();
+    }
+
+    private int getSubscriberNumberOfNodes() {
+        PublisherClusterScope annotation = getAnnotation(this.getClass(), PublisherClusterScope.class);
+        return annotation == null ? 2 : annotation.numberOfNodes();
+    }
+
+    private boolean getSubscriberSupportsDedicatedMasters() {
+        PublisherClusterScope annotation = getAnnotation(this.getClass(), PublisherClusterScope.class);
+        return annotation == null || annotation.supportsDedicatedMasters();
+    }
+
+    private boolean getSubscriberAutoManageMasterNodes() {
+        PublisherClusterScope annotation = getAnnotation(this.getClass(), PublisherClusterScope.class);
+        return annotation == null || annotation.autoManageMasterNodes();
+    }
+
+    private static <A extends Annotation> A getAnnotation(Class<?> clazz, Class<A> annotationClass) {
+        if (clazz == Object.class || clazz == LogicalReplicationITestCase.class) {
+            return null;
+        }
+        A annotation = clazz.getAnnotation(annotationClass);
+        if (annotation != null) {
+            return annotation;
+        }
+        return getAnnotation(clazz.getSuperclass(), annotationClass);
     }
 }
