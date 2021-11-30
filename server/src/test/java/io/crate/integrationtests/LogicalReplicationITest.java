@@ -23,11 +23,17 @@ package io.crate.integrationtests;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.StringJoiner;
@@ -35,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 
@@ -232,15 +239,18 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         // s.subconninfo is not being selected since
         // it's different from run to run due to different port in host.
         var systemTableResponse = executeOnSubscriber(
-            "SELECT s.oid, s.subdbid, s.subname, s.subowner, s.subenabled, s.subbinary, s.substream, s.subslotname, s.subsynccommit, s.subpublications, " +
-                " sr.srsubid, sr.srrelid, sr.srsubstate, r.relname" +
-                " FROM pg_subscription s" +
-                " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
-                " JOIN pg_class r ON sr.srrelid = r.oid" +
-                " ORDER BY s.subname, r.relname");
+            "SELECT " +
+            " s.oid, s.subdbid, s.subname, s.subowner, s.subenabled, s.subbinary, s.substream, s.subslotname," +
+            " s.subsynccommit, s.subpublications," +
+            " sr.srsubid, sr.srrelid, r.relname" +
+            " FROM pg_subscription s" +
+            " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+            " JOIN pg_class r ON sr.srrelid = r.oid" +
+            " ORDER BY s.subname, r.relname"
+        );
         assertThat(printedTable(systemTableResponse.rows()),
-            is("530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 728874843| NULL| t1\n" +
-                     "530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 1737494392| NULL| t2\n"));
+            is("530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 728874843| t1\n" +
+                     "530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 1737494392| t2\n"));
     }
 
     @Test
@@ -375,5 +385,56 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             OperationOnInaccessibleRelationException.class,
             "The relation \"doc.t1\" doesn't support or allow INSERT operations."
         );
+    }
+
+    @Test
+    public void test_subscription_state_order() throws Exception {
+        String subscriptionName = "sub1";
+        ArrayList<Subscription.State> subscriptionStates = new ArrayList<>();
+        ClusterService clusterService = subscriberCluster.getMasterNodeInstance(ClusterService.class);
+        clusterService.addListener(
+            event -> {
+                if (event.metadataChanged() == false) {
+                    return;
+                }
+                Metadata currentMetadata = event.state().metadata();
+                var metadata = (SubscriptionsMetadata) currentMetadata.custom(SubscriptionsMetadata.TYPE);
+                if (metadata != null) {
+                    var subscription = metadata.subscription().get(subscriptionName);
+                    if (subscription != null) {
+                        var currentState = subscription.relations().get(RelationName.fromIndexName("doc.t1")).state();
+                        var size = subscriptionStates.size();
+                        if (size == 0 || subscriptionStates.get(size -1).equals(currentState) == false) {
+                            subscriptionStates.add(currentState);
+                        }
+                    }
+                }
+            });
+
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+                           defaultTableSettings() +
+                           ")");
+        createPublication("pub1", false, List.of("doc.t1"));
+        createSubscription("sub1", "pub1");
+
+        // Tracking (MONITORING state) may not have started even if table is green, so lets use a busy loop
+        assertBusy(
+            () -> assertThat(
+                subscriptionStates,
+                contains(Subscription.State.INITIALIZING,
+                         Subscription.State.RESTORING,
+                         Subscription.State.SYNCHRONIZED,
+                         Subscription.State.MONITORING)
+            )
+        );
+
+        // check final exposed `r`(MONITORING) state
+        var res = executeOnSubscriber(
+            "SELECT" +
+            " s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
+            " FROM pg_subscription s" +
+            " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+            " JOIN pg_class r ON sr.srrelid = r.oid");
+        assertThat(printedTable(res.rows()), is("sub1| t1| r| NULL\n"));
     }
 }

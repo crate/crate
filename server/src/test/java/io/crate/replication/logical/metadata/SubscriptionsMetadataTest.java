@@ -21,6 +21,7 @@
 
 package io.crate.replication.logical.metadata;
 
+import io.crate.metadata.RelationName;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -50,14 +51,22 @@ public class SubscriptionsMetadataTest extends ESTestCase {
                 "user1",
                 ConnectionInfo.fromURL("crate://example.com:4310?user=valid_user&password=123"),
                 List.of("pub1"),
-                Settings.EMPTY
+                Settings.EMPTY,
+                Map.of(
+                    RelationName.fromIndexName("doc.t1"),
+                    new Subscription.RelationState(Subscription.State.INITIALIZING, null)
+                )
             ),
             "my_subscription",
             new Subscription(
                 "user2",
                 ConnectionInfo.fromURL("crate://localhost"),
                 List.of("some_publication", "another_publication"),
-                Settings.builder().put("enable", "true").build()
+                Settings.builder().put("enable", "true").build(),
+                Map.of(
+                    RelationName.fromIndexName("doc.t1"),
+                    new Subscription.RelationState(Subscription.State.FAILED, "Subscription failed on restore")
+                )
             )
         );
         return new SubscriptionsMetadata(map);

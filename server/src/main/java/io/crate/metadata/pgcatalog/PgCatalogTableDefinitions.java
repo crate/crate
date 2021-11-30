@@ -182,13 +182,13 @@ public class PgCatalogTableDefinitions {
                 .iterator();
         tableDefinitions.put(PgSubscriptionTable.IDENT, new StaticTableDefinition<>(
             () -> subscriptionRows,
-            (user, s) -> s.owner().equals(user.name()),
+            (user, s) -> s.subscription().owner().equals(user.name()),
             PgSubscriptionTable.create().expressions()
         ));
 
         // pg_subscription_rel
         tableDefinitions.put(PgSubscriptionRelTable.IDENT, new StaticTableDefinition<>(
-            () -> PgSubscriptionRelTable.rows(logicalReplicationService, schemas),
+            () -> PgSubscriptionRelTable.rows(logicalReplicationService),
             (user, p) -> p.owner().equals(user.name()),
             PgSubscriptionRelTable.create().expressions()
         ));
