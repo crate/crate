@@ -21,6 +21,7 @@
 
 package io.crate.replication.logical.metadata;
 
+import io.crate.metadata.RelationName;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
@@ -35,6 +36,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -137,6 +139,17 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
                 builder.startObject("settings");
                 subscription.settings().toXContent(builder, params);
                 builder.endObject();
+                builder.startObject("relations");
+                for (var relationEntry : subscription.relations().entrySet()) {
+                    builder.startObject(relationEntry.getKey().fqn());
+                    var state = relationEntry.getValue();
+                    {
+                        builder.field("state", state.state().toString().toLowerCase(Locale.ENGLISH));
+                        builder.field("state_reason", state.reason());
+                    }
+                    builder.endObject();
+                }
+                builder.endObject();
             }
             builder.endObject();
         }
@@ -156,6 +169,7 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
                         ConnectionInfo connectionInfo = null;
                         Settings settings = null;
                         var publications = new ArrayList<String>();
+                        HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
                         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                             if ("owner".equals(parser.currentName())) {
                                 parser.nextToken();
@@ -189,6 +203,29 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
                                 parser.nextToken();
                                 settings = Settings.fromXContent(parser);
                             }
+                            if ("relations".equals(parser.currentName())
+                                && parser.nextToken() == XContentParser.Token.START_OBJECT) {
+                                while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
+                                    RelationName relationName = RelationName.fromIndexName(parser.currentName());
+                                    Subscription.State state = null;
+                                    String stateReason = null;
+                                    while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+                                        if ("state".equals(parser.currentName())) {
+                                            parser.nextToken();
+                                            state = Subscription.State.valueOf(parser.text().toUpperCase(Locale.ENGLISH));
+                                        }
+                                        if ("state_reason".equals(parser.currentName())) {
+                                            parser.nextToken();
+                                            stateReason = parser.textOrNull();
+                                        }
+                                    }
+                                    if (state == null) {
+                                        throw new ElasticsearchParseException("failed to parse subscription relation, expected field 'state' in object");
+                                    }
+                                    relations.put(relationName, new Subscription.RelationState(state, stateReason));
+                                }
+
+                            }
                         }
                         if (owner == null) {
                             throw new ElasticsearchParseException("failed to parse subscription, expected field 'owner' in object");
@@ -202,7 +239,10 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
                         if (settings == null) {
                             throw new ElasticsearchParseException("failed to parse subscription, expected field 'settings' in object");
                         }
-                        subscriptions.put(name, new Subscription(owner, connectionInfo, publications, settings));
+                        subscriptions.put(
+                            name,
+                            new Subscription(owner, connectionInfo, publications, settings, relations)
+                        );
                     }
                 }
             }
@@ -230,5 +270,12 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
     @Override
     public int hashCode() {
         return Objects.hash(subscriptionByName);
+    }
+
+    @Override
+    public String toString() {
+        return "SubscriptionsMetadata{" +
+               "subscriptionByName=" + subscriptionByName +
+               '}';
     }
 }

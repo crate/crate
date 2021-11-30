@@ -21,87 +21,6 @@
 
 package io.crate.testing;
 
-import static io.crate.analyze.TableDefinitions.DEEPLY_NESTED_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.NESTED_PK_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.TEST_DOC_TRANSACTIONS_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION;
-import static io.crate.blob.v2.BlobIndex.fullIndexName;
-import static io.crate.testing.DiscoveryNodes.newFakeAddress;
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
-import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
-import static org.mockito.Mockito.mock;
-
-import java.io.File;
-import java.io.IOException;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
-import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.EmptyClusterInfoService;
-import org.elasticsearch.cluster.metadata.AliasMetadata;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.RoutingTable;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
-import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
-import org.elasticsearch.cluster.routing.allocation.decider.ReplicaAfterPrimaryActiveAllocationDecider;
-import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationDecider;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.analysis.AnalysisRegistry;
-import org.elasticsearch.indices.analysis.AnalysisModule;
-import org.elasticsearch.plugins.AnalysisPlugin;
-import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.test.ClusterServiceUtils;
-import org.elasticsearch.test.gateway.TestGatewayAllocator;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.RemoteClusters;
-
 import io.crate.Constants;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedCreateBlobTable;
@@ -179,6 +98,86 @@ import io.crate.statistics.TableStats;
 import io.crate.user.StubUserManager;
 import io.crate.user.User;
 import io.crate.user.UserManager;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
+import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
+import org.elasticsearch.client.node.NodeClient;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.EmptyClusterInfoService;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.RoutingTable;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
+import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
+import org.elasticsearch.cluster.routing.allocation.decider.ReplicaAfterPrimaryActiveAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationDecider;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
+import org.elasticsearch.indices.analysis.AnalysisModule;
+import org.elasticsearch.plugins.AnalysisPlugin;
+import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.test.ClusterServiceUtils;
+import org.elasticsearch.test.gateway.TestGatewayAllocator;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.RemoteClusters;
+
+import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+import static io.crate.analyze.TableDefinitions.DEEPLY_NESTED_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.NESTED_PK_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_DOC_TRANSACTIONS_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION;
+import static io.crate.blob.v2.BlobIndex.fullIndexName;
+import static io.crate.testing.DiscoveryNodes.newFakeAddress;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
+import static org.mockito.Mockito.mock;
 
 /**
  * Lightweight alternative to {@link SQLTransportExecutor}.
@@ -308,12 +307,14 @@ public class SQLExecutor {
                 new BalancedShardsAllocator(Settings.EMPTY),
                 EmptyClusterInfoService.INSTANCE
             );
+            var threadPool = mock(ThreadPool.class);
             logicalReplicationService = new LogicalReplicationService(
                 IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
                 Settings.EMPTY,
                 clusterService,
                 mock(RemoteClusters.class),
-                mock(ThreadPool.class)
+                threadPool,
+                new NodeClient(Settings.EMPTY, threadPool)
             );
             logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
 
@@ -620,7 +621,8 @@ public class SQLExecutor {
                 user.name(),
                 ConnectionInfo.fromURL("crate://localhost"),
                 List.of(publication),
-                Settings.EMPTY
+                Settings.EMPTY,
+                Collections.emptyMap()
             );
             var subsMetadata = new SubscriptionsMetadata(Map.of(name, subscription));
 
