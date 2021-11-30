@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.exceptions.SQLParseException;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
