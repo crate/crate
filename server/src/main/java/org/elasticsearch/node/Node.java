@@ -19,9 +19,6 @@
 
 package org.elasticsearch.node;
 
-import static java.util.stream.Collectors.toList;
-import static org.elasticsearch.cluster.node.DiscoveryNode.getRolesFromSettings;
-
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.IOException;
@@ -461,7 +458,7 @@ public class Node implements Closeable {
                     .flatMap(p -> p.getNamedXContent().stream()),
                 ClusterModule.getNamedXWriteables().stream(),
                 MetadataModule.getNamedXContents().stream())
-                .flatMap(Function.identity()).collect(toList()));
+                .flatMap(Function.identity()).collect(Collectors.toList()));
             final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, xContentRegistry);
             final PersistedClusterStateService persistedClusterStateService
                 = new PersistedClusterStateService(nodeEnvironment, xContentRegistry, bigArrays, clusterService.getClusterSettings(),
@@ -603,7 +600,8 @@ public class Node implements Closeable {
                 settings,
                 clusterService,
                 remoteClusters,
-                threadPool
+                threadPool,
+                client
             );
             resourcesToClose.add(logicalReplicationService);
 
@@ -1258,7 +1256,7 @@ public class Node implements Closeable {
         public DiscoveryNode apply(BoundTransportAddress boundTransportAddress) {
             // CRATE_PATCH: use existing node attributes to pass and stream http_address between the nodes
             Map<String, String> attributes = new HashMap<>(NODE_ATTRIBUTES.getAsMap(settings));
-            Set<DiscoveryNodeRole> roles = getRolesFromSettings(settings);
+            Set<DiscoveryNodeRole> roles = DiscoveryNode.getRolesFromSettings(settings);
             if (httpPublishAddress != null) {
                 attributes.put("http_address", httpPublishAddress);
             }

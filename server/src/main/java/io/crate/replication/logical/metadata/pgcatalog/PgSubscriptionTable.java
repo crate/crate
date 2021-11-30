@@ -53,8 +53,5 @@ public class PgSubscriptionTable {
     }
 
     public record SubscriptionRow(String name, Subscription subscription) {
-        public String owner() {
-            return subscription.owner();
-        }
     }
 }

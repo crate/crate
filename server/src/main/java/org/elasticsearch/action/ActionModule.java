@@ -114,6 +114,7 @@ import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
 import io.crate.replication.logical.action.ReplayChangesAction;
 import io.crate.replication.logical.action.ShardChangesAction;
+import io.crate.replication.logical.action.UpdateSubscriptionAction;
 
 /**
  * Builds and binds the generic action map, all {@link TransportAction}s
@@ -206,6 +207,7 @@ public class ActionModule extends AbstractModule {
         actions.register(ReleasePublisherResourcesAction.INSTANCE, ReleasePublisherResourcesAction.TransportAction.class);
         actions.register(ShardChangesAction.INSTANCE, ShardChangesAction.TransportAction.class);
         actions.register(ReplayChangesAction.INSTANCE, ReplayChangesAction.TransportAction.class);
+        actions.register(UpdateSubscriptionAction.INSTANCE, UpdateSubscriptionAction.TransportAction.class);
 
         return unmodifiableMap(actions.getRegistry());
     }
