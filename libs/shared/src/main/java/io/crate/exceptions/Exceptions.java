@@ -21,6 +21,8 @@
 
 package io.crate.exceptions;
 
+import java.util.concurrent.CompletionException;
+
 public final class Exceptions {
 
     private Exceptions() {
@@ -48,6 +50,9 @@ public final class Exceptions {
     }
 
     public static RuntimeException toRuntimeException(Throwable t) {
+        if (t instanceof CompletionException) {
+            t = t.getCause();
+        }
         if (t instanceof RuntimeException) {
             return (RuntimeException) t;
         } else {

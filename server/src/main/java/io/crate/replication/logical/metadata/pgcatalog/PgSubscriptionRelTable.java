@@ -21,11 +21,8 @@
 
 package io.crate.replication.logical.metadata.pgcatalog;
 
-import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SystemTable;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.replication.logical.LogicalReplicationService;
@@ -33,8 +30,8 @@ import io.crate.types.Regclass;
 
 import java.util.stream.Stream;
 
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.REGCLASS;
 import static io.crate.types.DataTypes.STRING;
 
@@ -44,38 +41,37 @@ public class PgSubscriptionRelTable {
 
     public static SystemTable<PgSubscriptionRelTable.PgSubscriptionRelRow> create() {
         return SystemTable.<PgSubscriptionRelTable.PgSubscriptionRelRow>builder(IDENT)
-            .add("srsubid", INTEGER, r -> r.subOid())
-            .add("srrelid", REGCLASS, r -> r.relOid())
-            .add("srsubstate", STRING, ignored -> null)
+            .add("srsubid", INTEGER, PgSubscriptionRelRow::subOid)
+            .add("srrelid", REGCLASS, PgSubscriptionRelRow::relOid)
+            .add("srsubstate", STRING, PgSubscriptionRelRow::state)
+            .add("srsubstate_reason", STRING, PgSubscriptionRelRow::state_reason)
+            // CrateDB doesn't have Log Sequence Number per table, only a seqNo per shard (see SysShardsTable)
+            .add("srsublsn", LONG, ignored -> null)
             .build();
     }
 
-    public static Iterable<PgSubscriptionRelTable.PgSubscriptionRelRow> rows(LogicalReplicationService logicalReplicationService,
-                                                                             Schemas schemas) {
+    public static Iterable<PgSubscriptionRelTable.PgSubscriptionRelRow> rows(LogicalReplicationService logicalReplicationService) {
         return () -> {
             Stream<PgSubscriptionRelTable.PgSubscriptionRelRow> s = logicalReplicationService.subscriptions().entrySet().stream()
                 .mapMulti(
                     (e, c) -> {
                         var sub = e.getValue();
-                        InformationSchemaIterables.tablesStream(schemas)
-                            .filter(t -> {
-                                if (t instanceof DocTableInfo dt) {
-                                    return e.getKey().equals(REPLICATION_SUBSCRIPTION_NAME.get(dt.parameters()));
-                                }
-                                return false;
-                            })
-                            .forEach(t -> c.accept(
+                        sub.relations().forEach(
+                            (r, rs) -> c.accept(
                                 new PgSubscriptionRelRow(
                                     OidHash.subscriptionOid(e.getKey(), sub),
-                                    Regclass.fromRelationName(t.ident().fqn()),
-                                    sub.owner()
+                                    new Regclass(OidHash.relationOid(OidHash.Type.TABLE, r), r.fqn()),
+                                    sub.owner(),
+                                    rs.state().pg_state(),
+                                    rs.reason()
                                 )
-                            ));
+                            )
+                        );
                     }
                 );
             return s.iterator();
         };
     }
 
-    public record PgSubscriptionRelRow(int subOid, Regclass relOid, String owner) {}
+    public record PgSubscriptionRelRow(int subOid, Regclass relOid, String owner, String state, String state_reason) {}
 }
