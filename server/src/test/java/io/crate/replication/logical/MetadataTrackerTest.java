@@ -148,8 +148,8 @@ public class MetadataTrackerTest extends ESTestCase {
         var subscriberMetadata = buildIndexMetadata();
         var subscriberClusterState = buildSubscriberClusterState(subscriberMetadata);
 
-        var randomBase64UUID = UUIDs.randomBase64UUID();
-        var settingsBuilder = settings(Version.CURRENT).put(SETTING_INDEX_UUID, randomBase64UUID);
+        var publisherIndexUuid = UUIDs.randomBase64UUID();
+        var settingsBuilder = settings(Version.CURRENT).put(SETTING_INDEX_UUID, publisherIndexUuid);
         var updatedPublisherMetadata = IndexMetadata.builder(publisherMetadata).settings(settingsBuilder).settings(
             settingsBuilder).numberOfShards(1).numberOfReplicas(0).version(1).build();
         var updatedPublisherClusterState = buildPublisherClusterState(updatedPublisherMetadata);
@@ -159,7 +159,7 @@ public class MetadataTrackerTest extends ESTestCase {
                                                                              IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
         var syncedIndexMetadata = syncedSubriberClusterState.metadata().index("test");
         assertThat(syncedIndexMetadata.getSettings(), is(not(updatedPublisherMetadata.getSettings())));
-        assertThat(syncedIndexMetadata.getSettings().get(SETTING_INDEX_UUID, "default"), is(not(randomBase64UUID)));
+        assertThat(syncedIndexMetadata.getSettings().get(SETTING_INDEX_UUID, "default"), is(not(publisherIndexUuid)));
     }
 
     @Test
@@ -169,8 +169,12 @@ public class MetadataTrackerTest extends ESTestCase {
         var subscriberClusterState = buildSubscriberClusterState(subscriberMetadata);
 
         var settingsBuilder = settings(Version.CURRENT).put(INDEX_NUMBER_OF_REPLICAS_SETTING.getKey(), 5);
-        var updatedPublisherMetadata = IndexMetadata.builder(publisherMetadata).settings(settingsBuilder).settings(
-            settingsBuilder).numberOfShards(1).numberOfReplicas(0).version(1).build();
+        var updatedPublisherMetadata = IndexMetadata.builder(publisherMetadata).settings(settingsBuilder)
+            .numberOfShards(1)
+            .numberOfReplicas(0)
+            .version(1)
+            .build();
+
         var updatedPublisherClusterState = buildPublisherClusterState(updatedPublisherMetadata);
         var syncedSubriberClusterState = MetadataTracker.updateIndexMetadata("sub1",
                                                                              subscriberClusterState,
@@ -178,8 +182,7 @@ public class MetadataTrackerTest extends ESTestCase {
                                                                              IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
         var syncedIndexMetadata = syncedSubriberClusterState.metadata().index("test");
         assertThat(syncedIndexMetadata.getSettings(), is(updatedPublisherMetadata.getSettings()));
-        assertThat(syncedIndexMetadata.getSettings().get(INDEX_NUMBER_OF_REPLICAS_SETTING.getKey(), "default"),
-                   is("0"));
+        assertThat(INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedIndexMetadata.getSettings()), is("0"));
     }
 
 }
