@@ -38,6 +38,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_BLOCKS_WR
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
+import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
 
 public class AlterTableOperationTest extends ESTestCase {
 
@@ -74,21 +75,19 @@ public class AlterTableOperationTest extends ESTestCase {
         RelationName t1 = new RelationName("doc", "t1");
         var oneTablePublished = Map.of("pub1", new Publication("owner", false, List.of(t1)));
 
-        assertThrowsMatches(() -> AlterTableOperation.validateSettingsForPublishedTables(t1,
-                                                                                         settings,
-                                                                                         oneTablePublished,
-                                                                                         IndexScopedSettings.DEFAULT_SCOPED_SETTINGS),
-                            IllegalArgumentException.class,
-                            "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' because it is included in a logical replication publication 'pub1'");
+        assertThrowsMatches(
+            () -> AlterTableOperation.validateSettingsForPublishedTables(t1, settings, oneTablePublished, DEFAULT_SCOPED_SETTINGS),
+            IllegalArgumentException.class,
+            "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' because it is included in a logical replication publication 'pub1'"
+        );
 
         var allTablesPublished = Map.of("pub1", new Publication("owner", true, List.of()));
 
-        assertThrowsMatches(() -> AlterTableOperation.validateSettingsForPublishedTables(t1,
-                                                                                         settings,
-                                                                                         allTablesPublished,
-                                                                                         IndexScopedSettings.DEFAULT_SCOPED_SETTINGS),
-                            IllegalArgumentException.class,
-                            "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' because it is included in a logical replication publication 'pub1'");
+        assertThrowsMatches(
+            () -> AlterTableOperation.validateSettingsForPublishedTables(t1, settings, allTablesPublished, DEFAULT_SCOPED_SETTINGS),
+            IllegalArgumentException.class,
+            "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' because it is included in a logical replication publication 'pub1'"
+        );
     }
 
     @Test
