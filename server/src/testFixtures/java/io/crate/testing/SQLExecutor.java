@@ -88,6 +88,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -308,6 +309,7 @@ public class SQLExecutor {
                 EmptyClusterInfoService.INSTANCE
             );
             logicalReplicationService = new LogicalReplicationService(
+                IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
                 Settings.EMPTY,
                 clusterService,
                 mock(RemoteClusters.class),
