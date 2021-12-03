@@ -233,17 +233,26 @@ were performed on each node.
 ``s3``
 ''''''
 
-You can use the ``s3://`` scheme to access buckets on the `Amazon Simple
-Storage Service`_ (Amazon S3).
+You can use the ``s3://`` scheme to access buckets on `Amazon S3`_ compatible
+storage.
 
 For example:
 
 .. code-block:: text
 
-    s3://[<accesskey>:<secretkey>@]<bucketname>/<path>
+    s3://[<accesskey>:<secretkey>@][<host>:<port>]/<bucketname>/<path>
 
-If no credentials are set the s3 client will operate in anonymous mode, see
-`AWS Java Documentation`_.
+Different S3 storage can be specified by the optional pair of host and port,
+which will be defaulted to Amazon S3 if not provided.
+
+Here is a more concrete example:
+
+.. code-block:: text
+
+    COPY t FROM 's3://myAccessKey:mySecretKey@s3.us-east-2.amazonaws.com:443/myBucket/key/a.json' with (protocol = 'https')
+
+Also, if no credentials are set the s3 client will operate in anonymous mode,
+see `AWS Java Documentation`_.
 
 Using the ``s3://`` scheme automatically sets the `shared`_ to true.
 
@@ -451,6 +460,15 @@ the files.
 The default value is ``null``, set to ``gzip`` to read gzipped files.
 
 
+.. _sql-copy-from-protocol:
+
+``protocol``
+'''''''''''''''
+
+Used for :ref:`s3 <sql-copy-from-s3>` scheme only. It is set to HTTPS by
+default.
+
+
 .. _sql-copy-from-overwrite_duplicates:
 
 ``overwrite_duplicates``
@@ -546,7 +564,7 @@ inserted records.
 +---------------------------------------+------------------------------------------------+---------------+
 
 
-.. _Amazon Simple Storage Service: https://aws.amazon.com/s3/
+.. _Amazon S3: https://aws.amazon.com/s3/
 .. _AWS documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
 .. _AWS Java Documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
 .. _Docker volume: https://docs.docker.com/storage/volumes/

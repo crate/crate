@@ -235,14 +235,26 @@ For example:
 ``s3``
 ''''''
 
-You can use the ``s3://`` scheme to access buckets on the `Amazon Simple
-Storage Service`_ (Amazon S3).
+You can use the ``s3://`` scheme to access buckets on `Amazon S3`_ compatible
+storage.
 
 For example:
 
 .. code-block:: text
 
-    s3://[<accesskey>:<secretkey>@]<bucketname>/<path>
+    s3://[<accesskey>:<secretkey>@][<host>:<port>]/<bucketname>/<path>
+
+Different S3 storage can be specified by the optional pair of host and port,
+which will be defaulted to Amazon S3 if not provided.
+
+Here is a more concrete example:
+
+.. code-block:: text
+
+    COPY t TO DIRECTORY 's3://myAccessKey:mySecretKey@s3.us-east-2.amazonaws.com:80/myBucket/key1*/*' with (protocol = 'http')
+
+Also, if no credentials are set the s3 client will operate in anonymous mode,
+see `AWS Java Documentation`_.
 
 .. TIP::
 
@@ -297,6 +309,15 @@ Possible values for the ``compression`` setting are:
   Use gzip_ to compress the data output.
 
 
+.. _sql-copy-to-protocol:
+
+``protocol``
+'''''''''''''''
+
+Used for :ref:`s3 <sql-copy-to-s3>` scheme only. It is set to HTTPS by
+default.
+
+
 .. _sql-copy-to-format:
 
 ``format``
@@ -319,6 +340,7 @@ Possible values for the ``format`` settings are:
 
 .. _Amazon S3: https://aws.amazon.com/s3/
 .. _Amazon Simple Storage Service: https://aws.amazon.com/s3/
+.. _AWS Java Documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
 .. _AWS documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
 .. _Docker volume: https://docs.docker.com/storage/volumes/
 .. _gzip: https://www.gzip.org/

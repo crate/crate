@@ -147,6 +147,12 @@ Changes
 
 - Added the :ref:`scalar-array_slice` scalar function.
 
+- Allowed users to be able to specify different S3 compatible storage endpoints
+  to ``COPY FROM/TO`` statements by embedding the host and port to the ``URI``
+  parameter and also a ``WITH`` clause parameter ``protocol`` to choose between
+  ``HTTP`` or ``HTTPS``.
+
+
 Fixes
 =====
 
