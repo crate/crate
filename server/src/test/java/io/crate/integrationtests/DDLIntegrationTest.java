@@ -861,6 +861,29 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         assertEquals(expectedMapping, getIndexMapping("test"));
     }
 
+    @Test
+    public void testAddGeneratedColumnToTableWithExistingGeneratedColumns() throws Exception {
+        execute(
+            "create table test (" +
+            "   ts timestamp with time zone," +
+            "   day as date_trunc('day', ts)) with (number_of_replicas=0)");
+        execute("alter table test add column added timestamp generated always as date_trunc('day', ts)");
+        ensureYellow();
+        String expectedMapping = "{\"default\":" +
+                                 "{\"dynamic\":\"strict\"," +
+                                 "\"_meta\":{" +
+                                 "\"generated_columns\":{" +
+                                 "\"added\":\"date_trunc('day', ts)\"," +
+                                 "\"day\":\"date_trunc('day', ts)\"}}," +
+                                 "\"properties\":{" +
+                                 "\"added\":{\"type\":\"date\",\"position\":3,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+                                 "\"day\":{\"type\":\"date\",\"position\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
+                                 "}}}";
+
+        assertEquals(expectedMapping, getIndexMapping("test"));
+    }
+
 
     @Test
     public void test_alter_table_cannot_add_broken_generated_column() throws Exception {
