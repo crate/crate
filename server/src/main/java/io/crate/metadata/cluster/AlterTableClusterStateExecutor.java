@@ -277,6 +277,18 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     }
                 );
             }
+
+            var curGeneratedColumns = currentMeta.get("generated_columns");
+            if (curGeneratedColumns != null) {
+                metaDelta.merge(
+                    "generated_columns",
+                    curGeneratedColumns,
+                    (delta, current) -> {
+                        Maps.extendRecursive((Map<String, Object>) delta, (Map<String, Object>) current);
+                        return delta;
+                    }
+                );
+            }
         }
         var builder = XContentFactory.contentBuilder(XContentType.JSON);
         builder.map(mappingDeltaAsMap);
