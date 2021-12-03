@@ -150,5 +150,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Improved the detection of the cgroup version to support kernels where the
+  `cpu.stat` and `memory.stat` files weren't available at the cgroup root
+  level.
+
 - Fixed an issue that could cause a deadlock, leading to an unavailable cluster
   if using blob tables and uploading multiple files in parallel.
