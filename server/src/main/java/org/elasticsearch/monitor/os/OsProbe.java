@@ -24,9 +24,13 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -68,9 +72,9 @@ public class OsProbe {
         "/sys/fs/cgroup/memory"
     );
 
-    private static final List<String> V2_FILES = List.of(
-        "/sys/fs/cgroup/cpu.stat",
-        "/sys/fs/cgroup/memory.stat"
+    private static final List<String> V2_FILE_GLOBS = List.of(
+        "glob:/sys/fs/cgroup/**/cpu.stat",
+        "glob:/sys/fs/cgroup/**/memory.stat"
     );
 
     enum CGroupHierarchy {
@@ -469,7 +473,7 @@ public class OsProbe {
      * @return {@code true} if the stats are available, otherwise {@code false}
      */
     @SuppressForbidden(reason = "access /proc/self/cgroup, /sys/fs/cgroup/cpu, /sys/fs/cgroup/cpuacct and /sys/fs/cgroup/memory")
-    CGroupHierarchy getCgroupHierarchy() {
+    CGroupHierarchy getCgroupHierarchy() throws IOException {
         if (!Files.exists(PathUtils.get("/proc/self/cgroup"))) {
             return CGroupHierarchy.UNAVAILABLE;
         }
@@ -477,8 +481,15 @@ public class OsProbe {
         if (V1_FILES.stream().allMatch(fileExists)) {
             return CGroupHierarchy.V1;
         }
-        if (V2_FILES.stream().allMatch(fileExists)) {
-            return CGroupHierarchy.V2;
+        for (String v2Glob : V2_FILE_GLOBS) {
+            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher(v2Glob);
+            Iterator<Path> it = Files.walk(Paths.get("/sys/fs/cgroup")).iterator();
+            while (it.hasNext()) {
+                Path path = it.next();
+                if (pathMatcher.matches(path)) {
+                    return CGroupHierarchy.V2;
+                }
+            }
         }
         return CGroupHierarchy.UNAVAILABLE;
     }
