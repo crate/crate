@@ -94,7 +94,6 @@ public class S3ClientHelper {
             client = AmazonS3ClientBuilder
                 .standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(protocolSetting + "://" + endPoint, null))
-                //.withPathStyleAccessEnabled(true)
                 .withClientConfiguration(CLIENT_CONFIGURATION) // does not override protocolSetting passed to EndpointConfiguration
                 .withCredentials(
                     (accessKey == null || secretKey == null) ?
