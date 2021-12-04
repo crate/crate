@@ -19,18 +19,52 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.sql.parser;
+package io.crate.analyze;
 
-enum IdentifierSymbol {
-    AT_SIGN('@');
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.QualifiedName;
 
-    private final char symbol;
+import java.util.Optional;
 
-    IdentifierSymbol(char symbol) {
-        this.symbol = symbol;
+public class ArraySliceContext {
+
+    private QualifiedName qualifiedName;
+    private Expression base;
+    private Optional<Expression> from = Optional.empty();
+    private Optional<Expression> to = Optional.empty();
+
+    public ArraySliceContext() {
     }
 
-    public char getSymbol() {
-        return symbol;
+    public QualifiedName getQualifiedName() {
+        return qualifiedName;
+    }
+
+    public void setQualifiedName(QualifiedName qualifiedName) {
+        this.qualifiedName = qualifiedName;
+    }
+
+    public Expression getBase() {
+        return base;
+    }
+
+    public void setBase(Expression base) {
+        this.base = base;
+    }
+
+    public Optional<Expression> getFrom() {
+        return from;
+    }
+
+    public void setFrom(Optional<Expression> from) {
+        this.from = from;
+    }
+
+    public Optional<Expression> getTo() {
+        return to;
+    }
+
+    public void setTo(Optional<Expression> to) {
+        this.to = to;
     }
 }

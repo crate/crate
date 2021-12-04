@@ -35,10 +35,16 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 
 import java.io.IOException;
+import java.sql.Ref;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.expression.scalar.ArraySliceFunction;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
+import io.crate.sql.tree.ColumnPolicy;
 import org.joda.time.Period;
 import org.junit.Before;
 import org.junit.Test;
@@ -392,4 +398,32 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "Cannot cast object element `x` with value `foo` to type `integer`"
         );
     }
+
+    @Test
+    public void testAnalyzeArraySliceFunctionCall() {
+        ReferenceIdent arrayRefIdent = new ReferenceIdent(new RelationName("doc", "tarr"), "xs");
+        Reference arrayRef = new Reference(arrayRefIdent,
+                                           RowGranularity.DOC,
+                                           DataTypes.INTEGER_ARRAY,
+                                           ColumnPolicy.DYNAMIC,
+                                           Reference.IndexType.PLAIN,
+                                           true,
+                                           true,
+                                           1, null);
+        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+        ExpressionAnalysisContext localContext = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        Symbol function = ExpressionAnalyzer.allocateFunction(
+            ArraySliceFunction.NAME,
+            List.of(arrayRef, Literal.of(1), Literal.of(3)),
+            null,
+            localContext,
+            txnCtx,
+            expressions.nodeCtx
+        );
+
+        var result = executor.asSymbol("tarr.xs[1:3]");
+
+        assertThat(result, is(equalTo(function)));
+    }
+
 }

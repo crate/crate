@@ -691,6 +691,46 @@ When using the ``=`` :ref:`operator <gloss-operator>`, as above, the value of
 the array element at index ``n`` is compared. To compare against *any* array
 element, see :ref:`sql_dql_any_array`.
 
+The slice of array elements can be selected from the ``landmarks`` column
+with ``landmarks[from:to]``, where ``from`` and ``to`` are the integer array indices, like so::
+
+    cr> select name, landmarks[1:2] from locations
+    ... where name = 'Frogstar';
+    +----------+-------------------------------------------+
+    | name     | array_slice(landmarks, 1, 2)              |
+    +----------+-------------------------------------------+
+    | Frogstar | ["Total Perspective Vortex", "Milliways"] |
+    +----------+-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+When the ``from`` index is omitted, then the slice starts from the first element::
+
+    cr> select name, landmarks[:2] from locations
+    ... where name = 'Frogstar';
+    +----------+-------------------------------------------+
+    | name     | array_slice(landmarks, NULL, 2)           |
+    +----------+-------------------------------------------+
+    | Frogstar | ["Total Perspective Vortex", "Milliways"] |
+    +----------+-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+When the ``to`` index is omitted, then the slice uses the size of the array as
+an upper-bound::
+
+    cr> select name, landmarks[1:] from locations
+    ... where name = 'Frogstar';
+    +----------+-------------------------------------------+
+    | name     | array_slice(landmarks, 1, NULL)           |
+    +----------+-------------------------------------------+
+    | Frogstar | ["Total Perspective Vortex", "Milliways"] |
+    +----------+-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    The first index value is ``1``. The maximum array index is ``2147483647``.
+    Both the ``from`` and ``to`` index values are inclusive.
+    Using an index greater than the array size results in an empty array.
 
 .. _sql_dql_objects:
 

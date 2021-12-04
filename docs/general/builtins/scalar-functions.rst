@@ -2547,6 +2547,36 @@ Returns: ``integer``
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-array_slice:
+
+``array_slice(anyarray, from, to)``
+-----------------------------------
+
+The ``array_slice`` function returns a slice of the given array using the given
+lower and upper bound.
+
+Returns: ``array``
+
+.. SEEALSO::
+
+    :ref:`Accessing arrays<sql_dql_arrays>`
+
+::
+
+    cr> select array_slice(['a', 'b', 'c', 'd'], 2, 3) AS arr;
+    +------------+
+    | arr        |
+    +------------+
+    | ["b", "c"] |
+    +------------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    The first index value is ``1``. The maximum array index is ``2147483647``.
+    Both the ``from`` and ``to`` index values are inclusive.
+    Using an index greater than the array size results in an empty array.
+
 .. _scalar-array_to_string:
 
 ``array_to_string(anyarray, separator, [ null_string ])``

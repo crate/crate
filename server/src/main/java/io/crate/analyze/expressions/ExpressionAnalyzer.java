@@ -30,6 +30,7 @@ import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,6 +44,10 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.Lists;
 
+import io.crate.analyze.ArraySliceContext;
+import io.crate.analyze.ArraySliceValidator;
+import io.crate.expression.scalar.ArraySliceFunction;
+import io.crate.sql.tree.ArraySliceExpression;
 import org.joda.time.Period;
 
 import io.crate.analyze.DataTypeAnalyzer;
@@ -700,6 +705,28 @@ public class ExpressionAnalyzer {
                 }
                 return name;
             }
+        }
+
+        @Override
+        protected Symbol visitArraySliceExpression(ArraySliceExpression node,
+                                                   ExpressionAnalysisContext context) {
+            ArraySliceContext arraySliceContext = new ArraySliceContext();
+            ArraySliceValidator.validate(node, arraySliceContext);
+
+            Symbol base;
+            if (arraySliceContext.getQualifiedName() != null) {
+                base = fieldProvider.resolveField(arraySliceContext.getQualifiedName(),
+                                                  List.of(),
+                                                  operation,
+                                                  context.errorOnUnknownObjectKey());
+            } else {
+                base = arraySliceContext.getBase().accept(this, context);
+            }
+
+            Symbol from = arraySliceContext.getFrom().map(f -> f.accept(this, context)).orElse(Literal.NULL);
+            Symbol to = arraySliceContext.getTo().map(t -> t.accept(this, context)).orElse(Literal.NULL);
+
+            return allocateFunction(ArraySliceFunction.NAME, Arrays.asList(base, from, to), context);
         }
 
         @Override

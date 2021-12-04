@@ -248,6 +248,10 @@ public abstract class AstVisitor<R, C> {
         return visitExpression(node, context);
     }
 
+    protected R visitArraySliceExpression(ArraySliceExpression node, C context) {
+        return visitExpression(node, context);
+    }
+
     public R visitParameterExpression(ParameterExpression node, C context) {
         return visitExpression(node, context);
     }
