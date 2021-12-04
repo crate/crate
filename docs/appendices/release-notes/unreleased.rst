@@ -143,6 +143,10 @@ Changes
 - Enabled the setting of most prototype methods for JavaScript Objects (e.g.
   Array.prototype, Object.prototype) in :ref:`user-defined functions <user-defined-functions>`
 
+- Added support for the array slice access expression ``anyarray[from:to]``.
+
+- Added the :ref:`scalar-array_slice` scalar function.
+
 Fixes
 =====
 

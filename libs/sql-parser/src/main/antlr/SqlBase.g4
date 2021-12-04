@@ -259,6 +259,8 @@ primaryExpression
     // This is an extension to ANSI SQL, which considers EXISTS to be a <boolean expression>
     | EXISTS '(' query ')'                                                           #exists
     | value=primaryExpression '[' index=valueExpression ']'                          #subscript
+    | base=primaryExpression '[' (from=valueExpression)? ':'
+                                 (to=valueExpression)? ']'                           #arraySlice
     | ident ('.' ident)*                                                             #dereference
     | primaryExpression CAST_OPERATOR dataType                                       #doubleColonCast
     | timestamp=primaryExpression AT TIME ZONE zone=primaryExpression                #atTimezone
@@ -413,7 +415,6 @@ unquotedIdent
     : IDENTIFIER                        #unquotedIdentifier
     | nonReserved                       #unquotedIdentifier
     | DIGIT_IDENTIFIER                  #digitIdentifier        // not supported
-    | COLON_IDENT                       #colonIdentifier        // not supported
     ;
 
 quotedIdent
@@ -1026,10 +1027,6 @@ QUOTED_IDENTIFIER
 
 BACKQUOTED_IDENTIFIER
     : '`' ( ~'`' | '``' )* '`'
-    ;
-
-COLON_IDENT
-    : (LETTER | DIGIT | '_' )+ ':' (LETTER | DIGIT | '_' )+
     ;
 
 fragment EXPONENT
