@@ -87,7 +87,7 @@ public class ClusterBootstrapService {
                     "] is not allowed when [" + DiscoveryModule.DISCOVERY_TYPE_SETTING.getKey() + "] is set to [" +
                     DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE + "]");
             }
-            if (DiscoveryNode.isMasterNode(settings) == false) {
+            if (DiscoveryNode.isMasterEligibleNode(settings) == false) {
                 throw new IllegalArgumentException("node with [" + DiscoveryModule.DISCOVERY_TYPE_SETTING.getKey() + "] set to [" +
                     DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE + "] must be master-eligible");
             }
@@ -116,7 +116,7 @@ public class ClusterBootstrapService {
 
     void onFoundPeersUpdated() {
         final Set<DiscoveryNode> nodes = getDiscoveredNodes();
-        if (bootstrappingPermitted.get() && transportService.getLocalNode().isMasterNode() && bootstrapRequirements.isEmpty() == false
+        if (bootstrappingPermitted.get() && transportService.getLocalNode().isMasterEligibleNode() && bootstrapRequirements.isEmpty() == false
             && isBootstrappedSupplier.getAsBoolean() == false) {
 
             final Tuple<Set<DiscoveryNode>,List<String>> requirementMatchingResult;
@@ -151,7 +151,7 @@ public class ClusterBootstrapService {
             return;
         }
 
-        if (transportService.getLocalNode().isMasterNode() == false) {
+        if (transportService.getLocalNode().isMasterEligibleNode() == false) {
             return;
         }
 
@@ -179,7 +179,7 @@ public class ClusterBootstrapService {
     }
 
     private void startBootstrap(Set<DiscoveryNode> discoveryNodes, List<String> unsatisfiedRequirements) {
-        assert discoveryNodes.stream().allMatch(DiscoveryNode::isMasterNode) : discoveryNodes;
+        assert discoveryNodes.stream().allMatch(DiscoveryNode::isMasterEligibleNode) : discoveryNodes;
         assert unsatisfiedRequirements.size() < discoveryNodes.size() : discoveryNodes + " smaller than " + unsatisfiedRequirements;
         if (bootstrappingPermitted.compareAndSet(true, false)) {
             doBootstrap(new VotingConfiguration(Stream.concat(discoveryNodes.stream().map(DiscoveryNode::getId),
@@ -193,7 +193,7 @@ public class ClusterBootstrapService {
     }
 
     private void doBootstrap(VotingConfiguration votingConfiguration) {
-        assert transportService.getLocalNode().isMasterNode();
+        assert transportService.getLocalNode().isMasterEligibleNode();
 
         try {
             votingConfigurationConsumer.accept(votingConfiguration);

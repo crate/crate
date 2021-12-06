@@ -61,7 +61,7 @@ public class DiscoveryNode implements Writeable, ToXContentFragment {
         return localStorageEnable;
     }
 
-    public static boolean isMasterNode(Settings settings) {
+    public static boolean isMasterEligibleNode(Settings settings) {
         return Node.NODE_MASTER_SETTING.get(settings);
     }
 
@@ -340,7 +340,7 @@ public class DiscoveryNode implements Writeable, ToXContentFragment {
     /**
      * Can this node become master or not.
      */
-    public boolean isMasterNode() {
+    public boolean isMasterEligibleNode() {
         return roles.contains(DiscoveryNodeRole.MASTER_ROLE);
     }
 

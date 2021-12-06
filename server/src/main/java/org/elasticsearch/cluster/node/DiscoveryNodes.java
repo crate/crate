@@ -162,7 +162,7 @@ public class DiscoveryNodes extends AbstractDiffable<DiscoveryNodes> implements 
      */
     public Stream<DiscoveryNode> mastersFirstStream() {
         return Stream.concat(StreamSupport.stream(masterNodes.spliterator(), false).map(cur -> cur.value),
-            StreamSupport.stream(this.spliterator(), false).filter(n -> n.isMasterNode() == false));
+            StreamSupport.stream(this.spliterator(), false).filter(n -> n.isMasterEligibleNode() == false));
     }
 
     /**
@@ -670,11 +670,11 @@ public class DiscoveryNodes extends AbstractDiffable<DiscoveryNodes> implements 
                 if (nodeEntry.value.isDataNode()) {
                     dataNodesBuilder.put(nodeEntry.key, nodeEntry.value);
                 }
-                if (nodeEntry.value.isMasterNode()) {
+                if (nodeEntry.value.isMasterEligibleNode()) {
                     masterNodesBuilder.put(nodeEntry.key, nodeEntry.value);
                 }
                 final Version version = nodeEntry.value.getVersion();
-                if (nodeEntry.value.isDataNode() || nodeEntry.value.isMasterNode()) {
+                if (nodeEntry.value.isDataNode() || nodeEntry.value.isMasterEligibleNode()) {
                     if (minNonClientNodeVersion == null) {
                         minNonClientNodeVersion = version;
                         maxNonClientNodeVersion = version;

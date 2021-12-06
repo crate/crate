@@ -84,7 +84,7 @@ public final class RoutingProvider {
 
     public Routing forRandomMasterOrDataNode(RelationName relationName, DiscoveryNodes nodes) {
         DiscoveryNode localNode = nodes.getLocalNode();
-        if (localNode.isMasterNode() || localNode.isDataNode()) {
+        if (localNode.isMasterEligibleNode() || localNode.isDataNode()) {
             return forTableOnSingleNode(relationName, localNode.getId());
         }
         ImmutableOpenMap<String, DiscoveryNode> masterAndDataNodes = nodes.getMasterAndDataNodes();
