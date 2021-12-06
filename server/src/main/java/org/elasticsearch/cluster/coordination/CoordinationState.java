@@ -506,7 +506,7 @@ public class CoordinationState {
         private final Map<String, DiscoveryNode> nodes;
 
         public boolean addVote(DiscoveryNode sourceNode) {
-            return sourceNode.isMasterNode() && nodes.put(sourceNode.getId(), sourceNode) == null;
+            return sourceNode.isMasterEligibleNode() && nodes.put(sourceNode.getId(), sourceNode) == null;
         }
 
         public VoteCollection() {

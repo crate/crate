@@ -146,7 +146,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         this.repositoriesService = repositoriesService;
         this.threadPool = threadPool;
 
-        if (DiscoveryNode.isMasterNode(settings)) {
+        if (DiscoveryNode.isMasterEligibleNode(settings)) {
             // addLowPriorityApplier to make sure that Repository will be created before snapshot
             clusterService.addLowPriorityApplier(this);
         }

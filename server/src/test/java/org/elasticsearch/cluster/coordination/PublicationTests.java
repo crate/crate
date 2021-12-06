@@ -397,7 +397,7 @@ public class PublicationTests extends ESTestCase {
 
         List<DiscoveryNode> publicationTargets = new ArrayList<>(publication.pendingPublications.keySet());
         List<DiscoveryNode> sortedPublicationTargets = new ArrayList<>(publicationTargets);
-        Collections.sort(sortedPublicationTargets, Comparator.comparing(n -> n.isMasterNode() == false));
+        Collections.sort(sortedPublicationTargets, Comparator.comparing(n -> n.isMasterEligibleNode() == false));
         assertEquals(sortedPublicationTargets, publicationTargets);
     }
 

@@ -77,7 +77,7 @@ public class RepositoriesService implements ClusterStateApplier {
         this.threadPool = threadPool;
         // Doesn't make sense to maintain repositories on non-master and non-data nodes
         // Nothing happens there anyway
-        if (DiscoveryNode.isDataNode(settings) || DiscoveryNode.isMasterNode(settings)) {
+        if (DiscoveryNode.isDataNode(settings) || DiscoveryNode.isMasterEligibleNode(settings)) {
             clusterService.addStateApplier(this);
         }
         this.verifyAction = new VerifyNodeRepositoryAction(transportService, clusterService, this);
@@ -170,7 +170,7 @@ public class RepositoriesService implements ClusterStateApplier {
                 @Override
                 public boolean mustAck(DiscoveryNode discoveryNode) {
                     // repository is created on both master and data nodes
-                    return discoveryNode.isMasterNode() || discoveryNode.isDataNode();
+                    return discoveryNode.isMasterEligibleNode() || discoveryNode.isDataNode();
                 }
             });
     }
@@ -223,7 +223,7 @@ public class RepositoriesService implements ClusterStateApplier {
                 @Override
                 public boolean mustAck(DiscoveryNode discoveryNode) {
                     // repository was created on both master and data nodes
-                    return discoveryNode.isMasterNode() || discoveryNode.isDataNode();
+                    return discoveryNode.isMasterEligibleNode() || discoveryNode.isDataNode();
                 }
             });
     }

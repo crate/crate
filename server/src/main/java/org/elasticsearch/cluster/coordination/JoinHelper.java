@@ -239,7 +239,7 @@ public class JoinHelper {
     }
 
     public void sendJoinRequest(DiscoveryNode destination, Optional<Join> optionalJoin) {
-        assert destination.isMasterNode() : "trying to join master-ineligible " + destination;
+        assert destination.isMasterEligibleNode() : "trying to join master-ineligible " + destination;
         final JoinRequest joinRequest = new JoinRequest(transportService.getLocalNode(), optionalJoin);
         final Tuple<DiscoveryNode, JoinRequest> dedupKey = Tuple.tuple(destination, joinRequest);
         if (pendingOutgoingJoins.add(dedupKey)) {
@@ -278,7 +278,7 @@ public class JoinHelper {
     }
 
     void sendStartJoinRequest(final StartJoinRequest startJoinRequest, final DiscoveryNode destination) {
-        assert startJoinRequest.getSourceNode().isMasterNode()
+        assert startJoinRequest.getSourceNode().isMasterEligibleNode()
             : "sending start-join request for master-ineligible " + startJoinRequest.getSourceNode();
         transportService.sendRequest(destination, START_JOIN_ACTION_NAME,
             startJoinRequest, new TransportResponseHandler<Empty>() {

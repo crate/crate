@@ -79,7 +79,7 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
     protected void processNodePaths(Terminal terminal, Path[] dataPaths, OptionSet options, Environment env) throws IOException {
         assert DiscoveryNode.isDataNode(env.settings()) == false;
 
-        if (DiscoveryNode.isMasterNode(env.settings()) == false) {
+        if (DiscoveryNode.isMasterEligibleNode(env.settings()) == false) {
             processNoMasterNoDataNode(terminal, dataPaths, env);
         } else {
             processMasterNoDataNode(terminal, dataPaths, env);

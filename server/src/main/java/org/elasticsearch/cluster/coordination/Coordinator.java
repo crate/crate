@@ -390,7 +390,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
     private void abdicateTo(DiscoveryNode newMaster) {
         assert Thread.holdsLock(mutex);
         assert mode == Mode.LEADER : "expected to be leader on abdication but was " + mode;
-        assert newMaster.isMasterNode() : "should only abdicate to master-eligible node but was " + newMaster;
+        assert newMaster.isMasterEligibleNode() : "should only abdicate to master-eligible node but was " + newMaster;
         final StartJoinRequest startJoinRequest = new StartJoinRequest(newMaster, Math.max(getCurrentTerm(), maxTermSeen) + 1);
         LOGGER.info("abdicating to {} with term {}", newMaster, startJoinRequest.getTerm());
         getLastAcceptedState().nodes().mastersFirstStream().forEach(node -> joinHelper.sendStartJoinRequest(startJoinRequest, node));
@@ -440,7 +440,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
     private void handleJoinRequest(JoinRequest joinRequest, JoinHelper.JoinCallback joinCallback) {
         assert Thread.holdsLock(mutex) == false;
-        assert getLocalNode().isMasterNode() : getLocalNode() + " received a join but is not master-eligible";
+        assert getLocalNode().isMasterEligibleNode() : getLocalNode() + " received a join but is not master-eligible";
         LOGGER.trace("handleJoinRequest: as {}, handling {}", mode, joinRequest);
 
         if (singleNodeDiscovery && joinRequest.getSourceNode().equals(getLocalNode()) == false) {
@@ -544,7 +544,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
     void becomeLeader(String method) {
         assert Thread.holdsLock(mutex) : "Coordinator mutex not held";
         assert mode == Mode.CANDIDATE : "expected candidate but was " + mode;
-        assert getLocalNode().isMasterNode() : getLocalNode() + " became a leader but is not master-eligible";
+        assert getLocalNode().isMasterEligibleNode() : getLocalNode() + " became a leader but is not master-eligible";
 
         LOGGER.debug("{}: coordinator becoming LEADER in term {} (was {}, lastKnownLeader was [{}])",
             method, getCurrentTerm(), mode, lastKnownLeader);
@@ -565,7 +565,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
     void becomeFollower(String method, DiscoveryNode leaderNode) {
         assert Thread.holdsLock(mutex) : "Coordinator mutex not held";
-        assert leaderNode.isMasterNode() : leaderNode + " became a leader but is not master-eligible";
+        assert leaderNode.isMasterEligibleNode() : leaderNode + " became a leader but is not master-eligible";
         assert mode != Mode.LEADER : "do not switch to follower from leader (should be candidate first)";
 
         if (mode == Mode.FOLLOWER && Optional.of(leaderNode).equals(lastKnownLeader)) {
@@ -821,7 +821,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                 return false;
             }
 
-            if (getLocalNode().isMasterNode() == false) {
+            if (getLocalNode().isMasterEligibleNode() == false) {
                 LOGGER.debug("skip setting initial configuration as local node is not a master-eligible node");
                 throw new CoordinationStateRejectedException(
                     "this node is not master-eligible, but cluster bootstrapping can only happen on a master-eligible node");
@@ -873,13 +873,13 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         // the voting config. We could exclude all the master-ineligible nodes here, but there could be quite a few of them and that makes
         // the logging much harder to follow.
         final Stream<String> masterIneligibleNodeIdsInVotingConfig = StreamSupport.stream(clusterState.nodes().spliterator(), false)
-            .filter(n -> n.isMasterNode() == false
+            .filter(n -> n.isMasterEligibleNode() == false
                 && (clusterState.getLastAcceptedConfiguration().getNodeIds().contains(n.getId())
                 || clusterState.getLastCommittedConfiguration().getNodeIds().contains(n.getId())))
             .map(DiscoveryNode::getId);
 
         final Set<DiscoveryNode> liveNodes = StreamSupport.stream(clusterState.nodes().spliterator(), false)
-            .filter(DiscoveryNode::isMasterNode).filter(coordinationState.get()::containsJoinVoteFor).collect(Collectors.toSet());
+            .filter(DiscoveryNode::isMasterEligibleNode).filter(coordinationState.get()::containsJoinVoteFor).collect(Collectors.toSet());
         final VotingConfiguration newConfig = reconfigurator.reconfigure(liveNodes,
             Stream.concat(masterIneligibleNodeIdsInVotingConfig, excludedNodeIds).collect(Collectors.toSet()),
             getLocalNode(), clusterState.getLastAcceptedConfiguration());
@@ -923,7 +923,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
     // exposed for tests
     boolean missingJoinVoteFrom(DiscoveryNode node) {
-        return node.isMasterNode() && coordinationState.get().containsJoinVoteFor(node) == false;
+        return node.isMasterEligibleNode() && coordinationState.get().containsJoinVoteFor(node) == false;
     }
 
     private void handleJoin(Join join) {
@@ -1152,7 +1152,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
     private void startElectionScheduler() {
         assert electionScheduler == null : electionScheduler;
 
-        if (getLocalNode().isMasterNode() == false) {
+        if (getLocalNode().isMasterEligibleNode() == false) {
             return;
         }
 
@@ -1348,7 +1348,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                                         final ClusterState state = getLastAcceptedState(); // committed state
                                         if (localNodeMayWinElection(state) == false) {
                                             final List<DiscoveryNode> masterCandidates = completedNodes().stream()
-                                                .filter(DiscoveryNode::isMasterNode)
+                                                .filter(DiscoveryNode::isMasterEligibleNode)
                                                 .filter(node -> nodeMayWinElection(state, node))
                                                 .collect(Collectors.toList());
                                             if (masterCandidates.isEmpty() == false) {

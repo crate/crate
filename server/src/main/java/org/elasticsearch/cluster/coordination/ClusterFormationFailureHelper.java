@@ -146,7 +146,7 @@ public class ClusterFormationFailureHelper {
             final String discoveryStateIgnoringQuorum = String.format(Locale.ROOT, "have discovered %s; %s",
                 foundPeers, discoveryWillContinueDescription);
 
-            if (clusterState.nodes().getLocalNode().isMasterNode() == false) {
+            if (clusterState.nodes().getLocalNode().isMasterEligibleNode() == false) {
                 return String.format(Locale.ROOT, "master not discovered yet: %s", discoveryStateIgnoringQuorum);
             }
 

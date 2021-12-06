@@ -73,7 +73,7 @@ public class AddVotingConfigExclusionsRequest extends MasterNodeRequest<AddVotin
     Set<VotingConfigExclusion> resolveVotingConfigExclusions(ClusterState currentState) {
         final DiscoveryNodes allNodes = currentState.nodes();
         final Set<VotingConfigExclusion> resolvedNodes = Arrays.stream(allNodes.resolveNodes(nodeDescriptions))
-                .map(allNodes::get).filter(DiscoveryNode::isMasterNode).map(VotingConfigExclusion::new).collect(Collectors.toSet());
+                .map(allNodes::get).filter(DiscoveryNode::isMasterEligibleNode).map(VotingConfigExclusion::new).collect(Collectors.toSet());
 
         if (resolvedNodes.isEmpty()) {
             throw new IllegalArgumentException("add voting config exclusions request for " + Arrays.asList(nodeDescriptions)
