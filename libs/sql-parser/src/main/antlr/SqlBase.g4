@@ -21,6 +21,11 @@
 
 grammar SqlBase;
 
+
+statements
+    : statement (SEMICOLON statement)* SEMICOLON? EOF
+    ;
+
 singleStatement
     : statement SEMICOLON? EOF
     ;
