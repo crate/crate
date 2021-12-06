@@ -21,12 +21,35 @@
 
 package io.crate.sql.parser;
 
+import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
+import static java.lang.String.format;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.BeginStatement;
+import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateFunction;
@@ -69,26 +92,32 @@ import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
 import io.crate.sql.tree.Window;
-import org.hamcrest.CoreMatchers;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
-import static java.lang.String.format;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestStatementBuilder {
+
+    @Test
+    public void testMultipleStatements() {
+        List<Statement> statements = SqlParser.createStatements("BEGIN; COMMIT;");
+        assertThat(statements, Matchers.contains(
+            instanceOf(BeginStatement.class),
+            instanceOf(CommitStatement.class)
+        ));
+
+        statements = SqlParser.createStatements("BEGIN; COMMIT");
+        assertThat(statements, Matchers.contains(
+            instanceOf(BeginStatement.class),
+            instanceOf(CommitStatement.class)
+        ));
+
+        statements = SqlParser.createStatements("BEGIN");
+        assertThat(statements, Matchers.contains(
+            instanceOf(BeginStatement.class)
+        ));
+        statements = SqlParser.createStatements("SET extra_float_digits = 3");
+        assertThat(statements, Matchers.contains(
+            instanceOf(SetStatement.class)
+        ));
+    }
 
     @Test
     public void testBegin() {
