@@ -150,6 +150,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could result in an error if a client sent multiple
+  statements in a single string using the PostgreSQL simple protocol mode.
+
 - Improved the detection of the cgroup version to support kernels where the
   `cpu.stat` and `memory.stat` files weren't available at the cgroup root
   level.
