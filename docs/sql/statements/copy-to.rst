@@ -242,7 +242,7 @@ For example:
 
 .. code-block:: text
 
-    s3://[<accesskey>:<secretkey>@][<host>:<port>]/<bucketname>/<path>
+    s3://[<accesskey>:<secretkey>@][<host>:<port>/]<bucketname>/<path>
 
 A different S3 storage provider can be used by specifying the optional pair of
 host and port, which defaults to Amazon S3 if not provided.
