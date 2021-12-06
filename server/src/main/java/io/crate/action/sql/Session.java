@@ -276,7 +276,13 @@ public class Session implements AutoCloseable {
                 throw t;
             }
         }
+        analyze(statementName, statement, paramTypes, query);
+    }
 
+    public void analyze(String statementName,
+                        Statement statement,
+                        List<DataType> paramTypes,
+                        @Nullable String query) {
         AnalyzedStatement analyzedStatement;
         DataType[] parameterTypes;
         try {
@@ -291,7 +297,7 @@ public class Session implements AutoCloseable {
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(
                 UUID.randomUUID(),
-                query,
+                query == null ? statementName : query,
                 SQLExceptions.messageOf(t),
                 sessionContext.sessionUser());
             throw t;

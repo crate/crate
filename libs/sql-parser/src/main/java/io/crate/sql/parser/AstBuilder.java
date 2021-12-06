@@ -31,6 +31,7 @@ import io.crate.sql.parser.antlr.v4.SqlBaseParser.ConflictTargetContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.DiscardContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.IsolationLevelContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.SetTransactionContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.StatementsContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.TransactionModeContext;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AliasedRelation;
@@ -128,6 +129,7 @@ import io.crate.sql.tree.LogicalBinaryExpression;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.MatchPredicate;
 import io.crate.sql.tree.MatchPredicateColumnIdent;
+import io.crate.sql.tree.MultiStatement;
 import io.crate.sql.tree.NamedProperties;
 import io.crate.sql.tree.NaturalJoin;
 import io.crate.sql.tree.NegativeExpression;
@@ -224,6 +226,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitSingleStatement(SqlBaseParser.SingleStatementContext context) {
         return visit(context.statement());
+    }
+
+    @Override
+    public Node visitStatements(StatementsContext ctx) {
+        return new MultiStatement(visitCollection(ctx.statement(), Statement.class));
     }
 
     @Override
