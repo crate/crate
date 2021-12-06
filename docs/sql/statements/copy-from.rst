@@ -242,8 +242,8 @@ For example:
 
     s3://[<accesskey>:<secretkey>@][<host>:<port>]/<bucketname>/<path>
 
-Different S3 storage can be specified by the optional pair of host and port,
-which will be defaulted to Amazon S3 if not provided.
+A different S3 storage provider can be used by specifying the optional pair of
+host and port, which defaults to Amazon S3 if not provided.
 
 Here is a more concrete example:
 
@@ -251,8 +251,8 @@ Here is a more concrete example:
 
     COPY t FROM 's3://myAccessKey:mySecretKey@s3.us-east-2.amazonaws.com:443/myBucket/key/a.json' with (protocol = 'https')
 
-Also, if no credentials are set the s3 client will operate in anonymous mode,
-see `AWS Java Documentation`_.
+If no credentials are set the s3 client will operate in anonymous mode.
+See `AWS Java Documentation`_.
 
 Using the ``s3://`` scheme automatically sets the `shared`_ to true.
 
