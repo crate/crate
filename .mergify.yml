@@ -1,10 +1,16 @@
 ---
+queue_rules:
+  - name: default
+    conditions:
+      - check-success=ci/jenkins/pr_tests
+      - check-success~=^Test CrateDB SQL on ubuntu
+      - check-success~=^Test CrateDB SQL on windows
+      - check-success=docs/readthedocs.org:crate
+      - check-success~=^checkstyle
+
+
 pull_request_rules:
-  - actions:
-      merge:
-        method: rebase
-        rebase_fallback: null
-        strict: true
+  - name: automatic merge
     conditions:
       - label=ready-to-merge
       - '#approved-reviews-by>=1'
@@ -13,7 +19,12 @@ pull_request_rules:
       - status-success~=^Test CrateDB SQL on windows
       - status-success=docs/readthedocs.org:crate
       - status-success~=^checkstyle
-    name: default
+    actions:
+      queue:
+        method: rebase
+        name: default
+        rebase_fallback: none
+
   - actions:
       backport:
         ignore_conflicts: true
