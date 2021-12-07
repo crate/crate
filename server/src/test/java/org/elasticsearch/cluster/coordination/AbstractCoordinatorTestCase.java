@@ -128,7 +128,6 @@ import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.gateway.MockGatewayMetaState;
 import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.disruption.DisruptableMockTransport;
 import org.elasticsearch.test.disruption.DisruptableMockTransport.ConnectionStatus;
@@ -280,7 +279,7 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
                 final ClusterNode clusterNode = new ClusterNode(nextNodeIndex.getAndIncrement(),
                     allNodesMasterEligible || i == 0 || randomBoolean(), nodeSettings);
                 clusterNodes.add(clusterNode);
-                if (clusterNode.getLocalNode().isMasterNode()) {
+                if (clusterNode.getLocalNode().isMasterEligibleNode()) {
                     masterEligibleNodeIds.add(clusterNode.getId());
                 }
             }
@@ -666,7 +665,7 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
         }
 
         ClusterNode getAnyBootstrappableNode() {
-            return randomFrom(clusterNodes.stream().filter(n -> n.getLocalNode().isMasterNode())
+            return randomFrom(clusterNodes.stream().filter(n -> n.getLocalNode().isMasterEligibleNode())
                 .filter(n -> initialConfiguration.getNodeIds().contains(n.getLocalNode().getId()))
                 .collect(Collectors.toList()));
         }
@@ -767,7 +766,7 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
                         final long persistedCurrentTerm;
 
                         if ( // node is master-ineligible either before or after the restart ...
-                            (oldState.getLastAcceptedState().nodes().getLocalNode().isMasterNode() && newLocalNode.isMasterNode()) == false
+                            (oldState.getLastAcceptedState().nodes().getLocalNode().isMasterEligibleNode() && newLocalNode.isMasterEligibleNode()) == false
                                 // ... and it's accepted some non-initial state so we can roll back ...
                             && (oldState.getLastAcceptedState().term() > 0L || oldState.getLastAcceptedState().version() > 0L)
                                 // ... and we're feeling lucky ...
@@ -987,7 +986,7 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
                     address.address().getHostString(),
                     address.getAddress(),
                     address, Collections.emptyMap(),
-                    localNode.isMasterNode() && Node.NODE_MASTER_SETTING.get(nodeSettings)
+                    localNode.isMasterEligibleNode() && Node.NODE_MASTER_SETTING.get(nodeSettings)
                         ? Set.of(DiscoveryNodeRole.MASTER_ROLE, DiscoveryNodeRole.DATA_ROLE)
                         : emptySet(),
                     Version.CURRENT
@@ -1205,7 +1204,7 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
             }
 
             private boolean isNotUsefullyBootstrapped() {
-                return getLocalNode().isMasterNode() == false || coordinator.isInitialConfigurationSet() == false;
+                return getLocalNode().isMasterEligibleNode() == false || coordinator.isInitialConfigurationSet() == false;
             }
 
             void allowClusterStateApplicationFailure() {
