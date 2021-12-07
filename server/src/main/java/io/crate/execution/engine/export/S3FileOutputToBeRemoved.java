@@ -30,8 +30,8 @@ import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.execution.engine.collect.files.URIHelper;
-import io.crate.external.S3ClientHelper;
+import io.crate.execution.engine.collect.S3URIToBeRemoved;
+import io.crate.external.S3ClientHelperToBeRemoved;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -55,11 +55,9 @@ public class S3FileOutputToBeRemoved implements FileOutput {
                                             URI uri,
                                             WriterProjection.CompressionType compressionType,
                                             @Nullable String protocolSetting) throws IOException {
-        String fileUri = uri.toString();
-        if (fileUri.startsWith("s3") || fileUri.startsWith("S3")) {
-            fileUri = URIHelper.convertToURI(fileUri);
-        }
-        OutputStream outputStream = new S3OutputStream(executor, URI.create(fileUri), protocolSetting);
+        S3URIToBeRemoved s3URI = new S3URIToBeRemoved(uri);
+        AmazonS3 client = new S3ClientHelperToBeRemoved().client(s3URI.uri, protocolSetting);
+        OutputStream outputStream = new S3OutputStream(executor, s3URI.bucket, s3URI.key, client);
         if (compressionType != null) {
             outputStream = new GZIPOutputStream(outputStream);
         }
@@ -82,13 +80,12 @@ public class S3FileOutputToBeRemoved implements FileOutput {
         long currentPartBytes = 0;
         int partNumber = 1;
 
-        private S3OutputStream(Executor executor, URI uri, String protocolSetting) throws IOException {
+        private S3OutputStream(Executor executor, String bucket, String key, AmazonS3 client) {
             this.executor = executor;
             outputStream = new ByteArrayOutputStream();
-            client = new S3ClientHelper().client(uri, protocolSetting);
-            var bucketAndKey = new S3ClientHelper.PathParser(uri.getPath());
-            bucketName = bucketAndKey.bucket;
-            key = bucketAndKey.key;
+            this.client = client;
+            this.bucketName = bucket;
+            this.key = key;
             multipartUpload = client.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucketName, key));
         }
 

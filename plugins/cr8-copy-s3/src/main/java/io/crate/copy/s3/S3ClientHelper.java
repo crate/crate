@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.external;
+package io.crate.copy.s3;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
@@ -159,20 +159,5 @@ public class S3ClientHelper {
             + (secretKey == null ? 1 : secretKey.hashCode()))
             + (endPoint == null ? 1 : endPoint.hashCode()))
             + (protocolSetting == null ? 1 : protocolSetting.hashCode());
-    }
-
-    public static class PathParser {
-        public final String bucket;
-        public final String key;
-
-        public PathParser(String pathComponent) {
-            try {
-                int splitIndex = pathComponent.indexOf('/', 1);
-                this.bucket = pathComponent.substring(1, splitIndex);
-                this.key = pathComponent.substring(splitIndex + 1);
-            } catch (IndexOutOfBoundsException e) {
-                throw new IllegalArgumentException(INVALID_URI_MSG);
-            }
-        }
     }
 }

@@ -19,49 +19,54 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.collect.files;
+package io.crate.copy.s3;
 
+import io.crate.execution.engine.collect.files.FileReadingIterator;
 import org.junit.Test;
 
 import java.net.URI;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class URIHelperTest {
+public class S3URITest {
 
     @Test
-    public void testAdaptToURIMethod() {
-        assertURIAdapted(
+    public void testValidS3URIs() {
+        assertValidS3URI(
             "s3:///hostname:9000/*/*/a", // bucket named 'hostname:9000'
             null, null, null, -1, "hostname:9000", "*/*/a");
-        assertURIAdapted(
+        assertValidS3URI(
             "s3://minioadmin:minioadmin@play.min.io:9000/mjmyb/localhost:9000/", // key named 'hostname:9000'
             "minioadmin", "minioadmin", "play.min.io", 9000, "mjmyb", "localhost:9000/");
-        assertURIAdapted(
+        assertValidS3URI(
             "s3:///b/k",
             null, null, null, -1, "b", "k");
-        assertURIAdapted(
+        assertValidS3URI(
             "s3:/b/k",
             null, null, null, -1, "b", "k");
-        assertURIAdapted(
+        assertValidS3URI(
+            "s3:/b/", // no key
+            null, null, null, -1, "b", "");
+        assertValidS3URI(
+            "s3:/b", // no key
+            null, null, null, -1, "b", "");
+        assertValidS3URI(
             "s3://@/b/k",
             null, null, null, -1, "b", "k");
-        assertURIAdapted(
-            "s3://@:7000/b/k",
-            null, null, null, -1, "b", "k");
-        assertURIAdapted(
+        assertValidS3URI(
             "s3://h:7/b/k",
             null, null, "h", 7, "b", "k");
-        assertURIAdapted(
+        assertValidS3URI(
             "s3://@h:7/b/*",
             null, null, "h", 7, "b", "*");
-        assertURIAdapted(
+        assertValidS3URI(
             "s3://@h:7/*/*",
             null, null, "h", 7, "*", "*");
-        assertURIAdapted(
+        assertValidS3URI(
             // host should be presented with a port otherwise it will be assumed to be a bucket name
             "s3://@host/bucket/key/*",
             null,
@@ -70,17 +75,20 @@ public class URIHelperTest {
             -1,
             "host",
             "bucket/key/*");
+        assertValidS3URI(
+            "s3:///",
+            null, null, null, -1, "", "");
     }
 
-    private void assertURIAdapted(String toBeParsed,
+    private void assertValidS3URI(String toBeParsed,
                                   String accessKey,
                                   String secretKey,
                                   String host,
                                   int port,
                                   String bucketName,
                                   String key) {
-        String fixed = URIHelper.convertToURI(toBeParsed);
-        URI fixedURI = FileReadingIterator.toURI(fixed);
+        S3URI fixedS3URI = new S3URI(FileReadingIterator.toURI(toBeParsed));
+        URI fixedURI = fixedS3URI.uri;
         if (accessKey != null) {
             assertNotNull(secretKey);
             assertThat(fixedURI.getRawUserInfo(), is(accessKey + ":" + secretKey));
@@ -91,9 +99,11 @@ public class URIHelperTest {
         assertThat(fixedURI.getPort(), is(port));
         if (bucketName != null) {
             assertTrue(fixedURI.getPath().startsWith("/" + bucketName));
+            assertEquals(bucketName, fixedS3URI.bucket);
         }
         if (key != null) {
             assertTrue(fixedURI.getPath().endsWith(key));
+            assertEquals(key, fixedS3URI.key);
         }
     }
 }

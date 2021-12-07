@@ -19,11 +19,10 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.external;
+package io.crate.copy.s3;
 
 import com.amazonaws.http.IdleConnectionReaper;
 import com.amazonaws.services.s3.AmazonS3;
-import io.crate.execution.engine.collect.files.URIHelper;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
 import org.junit.Test;
@@ -32,6 +31,7 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Date;
 
+import static io.crate.copy.s3.S3URI.reformat;
 import static org.hamcrest.Matchers.is;
 
 public class S3ClientHelperTest extends ESTestCase {
@@ -45,11 +45,11 @@ public class S3ClientHelperTest extends ESTestCase {
 
     @Test
     public void testClient() throws Exception {
-        assertNotNull(s3ClientHelper.client(new URI(URIHelper.convertToURI("s3://baz")), null));
-        assertNotNull(s3ClientHelper.client(new URI(URIHelper.convertToURI("s3://baz/path/to/file")), null));
-        assertNotNull(s3ClientHelper.client(new URI(URIHelper.convertToURI("s3://foo:inv%2Falid@/baz")), null));
-        assertNotNull(s3ClientHelper.client(new URI(URIHelper.convertToURI("s3://foo:inv%2Falid@/baz/path/to/file")), null));
-        assertNotNull(s3ClientHelper.client(new URI(URIHelper.convertToURI("s3://foo:inv%2Falid@host:9000/baz/path/to/file")), "HTTP"));
+        assertNotNull(s3ClientHelper.client(reformat(new URI("s3://baz")) /* invalid uri */, null));
+        assertNotNull(s3ClientHelper.client(reformat(new URI("s3://baz/path/to/file")) /* invalid uri */, null));
+        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@/baz"), null));
+        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@/baz/path/to/file"), null));
+        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@host:9000/baz/path/to/file"), "HTTP"));
     }
 
     @Test
@@ -72,7 +72,7 @@ public class S3ClientHelperTest extends ESTestCase {
 
     @Test
     public void testWithCredentials() throws Exception {
-        AmazonS3 s3Client = s3ClientHelper.client(new URI(URIHelper.convertToURI("s3://user:password@host/path")), null);
+        AmazonS3 s3Client = s3ClientHelper.client(reformat(new URI("s3://user:password@host/path")) /* invalid uri */, null);
         URL url = s3Client.generatePresignedUrl("bucket", "key", new Date(0L));
         assertThat(url.toString(), is("https://bucket.s3.amazonaws.com/key?AWSAccessKeyId=user&Expires=0&Signature=o5V2voSQbVEErsUXId6SssCq9OY%3D"));
     }

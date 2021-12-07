@@ -40,7 +40,6 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.reference.file.SourceLineExpression;
 import io.crate.expression.reference.file.SourceUriFailureExpression;
-import io.crate.external.S3ClientHelper;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;

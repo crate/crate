@@ -24,8 +24,6 @@ package io.crate.copy.s3;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import io.crate.execution.engine.collect.files.URIHelper;
-import io.crate.external.S3ClientHelper;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -35,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Predicate;
 
+import static io.crate.copy.s3.S3URI.reformat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -58,7 +57,7 @@ public class S3FileInputTest extends ESTestCase {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        preGlobUri = new URI(URIHelper.convertToURI("s3://fakeBucket/prefix"));
+        preGlobUri = reformat(new URI("s3://fakeBucket/prefix"));
         s3FileInput = new S3FileInput(clientBuilder);
 
         when(uriPredicate.test(any(URI.class))).thenReturn(true);
@@ -85,7 +84,6 @@ public class S3FileInputTest extends ESTestCase {
     @Test
     public void testListListUrlsWithCorrectKeys() throws Exception {
         when(objectListing.getObjectSummaries()).thenReturn(objectSummaries());
-
         List<URI> uris = s3FileInput.listUris(null, preGlobUri, uriPredicate, null);
         assertThat(uris.size(), is(2));
         assertThat(uris.get(0).getPath(), is("/fakeBucket/prefix/test1.json.gz"));

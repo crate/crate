@@ -28,6 +28,7 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 class URLFileInput implements FileInput {
@@ -50,6 +51,11 @@ class URLFileInput implements FileInput {
     public InputStream getStream(URI uri, @Nullable String protocolSetting) throws IOException {
         URL url = uri.toURL();
         return url.openStream();
+    }
+
+    @Override
+    public Function<String, URI> uriFormatter() {
+        return null;
     }
 
     @Override

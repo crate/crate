@@ -39,6 +39,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
@@ -99,6 +100,11 @@ public class LocalFsFileInput implements FileInput {
     public InputStream getStream(URI uri, @Nullable String protocolSetting) throws IOException {
         File file = new File(uri);
         return new FileInputStream(file);
+    }
+
+    @Override
+    public Function<String, URI> uriFormatter() {
+        return null;
     }
 
     @Override

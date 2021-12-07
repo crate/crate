@@ -22,6 +22,7 @@
 package io.crate.execution.engine.collect.files;
 
 import io.crate.analyze.CopyFromParserProperties;
+import io.crate.common.collections.Tuple;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -164,7 +165,7 @@ public class FileReadingIteratorTest extends ESTestCase {
     @Test
     public void test_GetUrisWithGlob() throws Exception {
         String path = Paths.get(getClass().getResource("/essetup/data/").toURI()).toUri().toString();
-        List<FileReadingIterator.UriWithGlob> uriWithGlobs = ((FileReadingIterator) createBatchIterator(
+        List<Tuple<FileInput, FileReadingIterator.UriWithGlob>> fileInputsToUriWithGlobs = ((FileReadingIterator) createBatchIterator(
             List.of(
                 path + "nested_dir/*.json",
                 path + "nested_dir/*_1.json",
@@ -178,8 +179,10 @@ public class FileReadingIteratorTest extends ESTestCase {
                 "s3://a:b@fakeBucket3/prefix/p*x/*/*.json"
             ),
             JSON
-        )).urisWithGlob;
-        List<String> preGlobURIs = uriWithGlobs.stream().map(e -> e.preGlobUri.toString()).toList();
+        )).fileInputsToUriWithGlobs;
+        List<String> preGlobURIs = fileInputsToUriWithGlobs.stream()
+            .map(Tuple::v2)
+            .map(e -> e.preGlobUri.toString()).toList();
         assertThat(preGlobURIs, is(List.of(
             path + "nested_dir/",
             path + "nested_dir/",
@@ -190,7 +193,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             "s3://play.min.io:443/fakeBucket3/",
             "s3://i:p@play.min.io:443/fakeBucket3/",
             "s3://a:b@/fakeBucket3/",
-            "s3://a:b@/fakeBucket3/prefix/"
+            "s3://a:b@fakeBucket3/prefix/"
         )));
     }
 

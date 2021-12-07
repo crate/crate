@@ -51,9 +51,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import static io.crate.exceptions.Exceptions.rethrowUnchecked;
@@ -72,8 +74,9 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("^((s3://|file://|/)[^\\*]*/)[^\\*]*\\*.*");
     private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
 
+    private final Collection<URI> uris;
     @VisibleForTesting
-    final List<UriWithGlob> urisWithGlob;
+    final List<Tuple<FileInput, UriWithGlob>> fileInputsToUriWithGlobs;
     private final Iterable<LineCollectorExpression<?>> collectorExpressions;
 
     private volatile Throwable killed;
@@ -105,10 +108,12 @@ public class FileReadingIterator implements BatchIterator<Row> {
         this.shared = shared;
         this.numReaders = numReaders;
         this.readerNumber = readerNumber;
-        this.urisWithGlob = getUrisWithGlob(fileUris);
+        this.uris = fileUris.stream().map(FileReadingIterator::toURI).collect(Collectors.toList());
         this.collectorExpressions = collectorExpressions;
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
+        this.fileInputsToUriWithGlobs = new ArrayList<>();
+        initFileInputs();
         initCollectorState();
         this.protocolSetting = protocolSetting;
     }
@@ -148,16 +153,19 @@ public class FileReadingIterator implements BatchIterator<Row> {
             protocolSetting);
     }
 
+    private void initFileInputs() {
+        for (URI uri : uris) {
+            FileInput fileInput = getFileInput(uri);
+            if (fileInput != null) {
+                fileInputsToUriWithGlobs.add(new Tuple<>(fileInput, toUriWithGlob(uri, fileInput.uriFormatter())));
+            }
+        }
+    }
+
     private void initCollectorState() {
         lineProcessor = new LineProcessor(parserProperties);
         lineProcessor.startCollect(collectorExpressions);
-
-        List<Tuple<FileInput, UriWithGlob>> fileInputs = new ArrayList<>(urisWithGlob.size());
-        for (UriWithGlob fileUri : urisWithGlob) {
-            FileInput fileInput = getFileInput(fileUri.uri);
-            fileInputs.add(new Tuple<>(fileInput, fileUri));
-        }
-        fileInputsIterator = fileInputs.iterator();
+        fileInputsIterator = fileInputsToUriWithGlobs.iterator();
     }
 
     @Override
@@ -311,46 +319,44 @@ public class FileReadingIterator implements BatchIterator<Row> {
         }
     }
 
-    private static List<UriWithGlob> getUrisWithGlob(Collection<String> fileUris) {
-        List<UriWithGlob> uris = new ArrayList<>(fileUris.size());
-        for (String fileUri : fileUris) {
-            if (fileUri.startsWith("s3") || fileUri.startsWith("S3")) {
-                fileUri = URIHelper.convertToURI(fileUri);
-            }
-            URI uri = toURI(fileUri);
-
-            URI preGlobUri = null;
-            Predicate<URI> globPredicate = null;
-            Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(uri.toString());
-            /*
-             * hasGlobMatcher.group(1) returns part of the path before the wildcards with a trailing backslash,
-             * ex)
-             *      'file:///bucket/prefix/*.json'                           -> 'file:///bucket/prefix/'
-             *      's3://bucket/year=2020/month=12/day=*0/hour=12/*.json'   -> 's3://bucket/year=2020/month=12/'
-             */
-            if (hasGlobMatcher.matches()) {
-                if (fileUri.startsWith("/") || fileUri.startsWith("file://")) {
-                    Path oldPath = Paths.get(toURI(hasGlobMatcher.group(1)));
-                    String oldPathAsString;
-                    String newPathAsString;
-                    try {
-                        oldPathAsString = oldPath.toUri().toString();
-                        newPathAsString = oldPath.toRealPath().toUri().toString();
-                    } catch (IOException e) {
-                        continue;
-                    }
-                    //resolve any links
-                    String resolvedFileUrl = uri.toString().replace(oldPathAsString, newPathAsString);
-                    uri = toURI(resolvedFileUrl);
-                    preGlobUri = toURI(newPathAsString);
-                } else {
-                    preGlobUri = URI.create(hasGlobMatcher.group(1));
-                }
-                globPredicate = new GlobPredicate(uri);
-            }
-            uris.add(new UriWithGlob(uri, preGlobUri, globPredicate));
+    @Nullable
+    private static UriWithGlob toUriWithGlob(URI fileUri, @Nullable Function<String, URI> uriFormatter) {
+        if (uriFormatter != null) {
+            fileUri = uriFormatter.apply(fileUri.toString());
+        } else {
+            uriFormatter = FileReadingIterator::toURI;
         }
-        return uris;
+        String formattedUriStr = fileUri.toString();
+        URI preGlobUri = null;
+        Predicate<URI> globPredicate = null;
+        Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(formattedUriStr);
+        /*
+         * hasGlobMatcher.group(1) returns part of the path before the wildcards with a trailing backslash,
+         * ex)
+         *      'file:///bucket/prefix/*.json'                           -> 'file:///bucket/prefix/'
+         *      's3://bucket/year=2020/month=12/day=*0/hour=12/*.json'   -> 's3://bucket/year=2020/month=12/'
+         */
+        if (hasGlobMatcher.matches()) {
+            if (formattedUriStr.startsWith("/") || formattedUriStr.startsWith("file://")) {
+                Path oldPath = Paths.get(uriFormatter.apply(hasGlobMatcher.group(1)));
+                String oldPathAsString;
+                String newPathAsString;
+                try {
+                    oldPathAsString = oldPath.toUri().toString();
+                    newPathAsString = oldPath.toRealPath().toUri().toString();
+                } catch (IOException e) {
+                    return null;
+                }
+                //resolve any links
+                String resolvedFileUrl = formattedUriStr.replace(oldPathAsString, newPathAsString);
+                fileUri = uriFormatter.apply(resolvedFileUrl);
+                preGlobUri = uriFormatter.apply(newPathAsString);
+            } else {
+                preGlobUri = URI.create(hasGlobMatcher.group(1));
+            }
+            globPredicate = new GlobPredicate(fileUri);
+        }
+        return new UriWithGlob(fileUri, preGlobUri, globPredicate);
     }
 
     @VisibleForTesting

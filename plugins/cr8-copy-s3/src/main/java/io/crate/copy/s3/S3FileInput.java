@@ -26,7 +26,7 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import io.crate.execution.engine.collect.files.FileInput;
-import io.crate.external.S3ClientHelper;
+import io.crate.execution.engine.collect.files.FileReadingIterator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class S3FileInput implements FileInput {
@@ -58,14 +59,12 @@ public class S3FileInput implements FileInput {
                               final URI preGlobUri,
                               final Predicate<URI> uriPredicate,
                               @Nullable String protocolSetting) throws IOException {
+        S3URI preGlobS3Uri = new S3URI(preGlobUri);
         if (client == null) {
-            client = clientBuilder.client(preGlobUri, protocolSetting);
+            client = clientBuilder.client(preGlobS3Uri.uri, protocolSetting);
         }
         List<URI> uris = new ArrayList<>();
-        var bucketAndKey = new S3ClientHelper.PathParser(preGlobUri.getPath());
-        String bucketName = bucketAndKey.bucket;
-        String key = bucketAndKey.key;
-        ObjectListing list = client.listObjects(bucketName, key);
+        ObjectListing list = client.listObjects(preGlobS3Uri.bucket, preGlobS3Uri.key);
         addKeyUris(uris, list, preGlobUri, uriPredicate);
         while (list.isTruncated()) {
             list = client.listNextBatchOfObjects(list);
@@ -93,13 +92,11 @@ public class S3FileInput implements FileInput {
 
     @Override
     public InputStream getStream(URI uri, @Nullable String protocolSetting) throws IOException {
+        S3URI s3URI = new S3URI(uri);
         if (client == null) {
-            client = clientBuilder.client(uri, protocolSetting);
+            client = clientBuilder.client(s3URI.uri, protocolSetting);
         }
-        var bucketAndKey = new S3ClientHelper.PathParser(uri.getPath());
-        String bucketName = bucketAndKey.bucket;
-        String key = bucketAndKey.key;
-        S3Object object = client.getObject(bucketName, key);
+        S3Object object = client.getObject(s3URI.bucket, s3URI.key);
         if (object != null) {
             return object.getObjectContent();
         }
@@ -111,4 +108,8 @@ public class S3FileInput implements FileInput {
         return true;
     }
 
+    @Override
+    public Function<String, URI> uriFormatter() {
+        return fileUri -> S3URI.reformat(FileReadingIterator.toURI(fileUri));
+    }
 }

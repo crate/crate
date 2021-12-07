@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public interface FileInput {
@@ -44,6 +45,14 @@ public interface FileInput {
     List<URI> listUris(URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate, @Nullable String protocolSetting) throws IOException;
 
     InputStream getStream(URI uri, @Nullable String protocolSetting) throws IOException;
+
+    /**
+     * An optional re-formatter that will reformat URIs passed to
+     * {@link FileInput#listUris(URI, URI, Predicate, String)}, and {@link FileInput#getStream(URI, String)}.
+     * It is needed only if the getters of the URIs do not return the expected substrings.
+     * @return a re-formatting function
+     */
+    Function<String, URI> uriFormatter();
 
     boolean sharedStorageDefault();
 }
