@@ -113,12 +113,14 @@ public class UnnestFunction {
         private final RowType returnType;
         private final Signature signature;
         private final Signature boundSignature;
+        private final List<DataType<?>> argumentTypes;
 
         private UnnestTableFunctionImplementation(Signature signature,
                                                   Signature boundSignature,
                                                   RowType returnType) {
             this.signature = signature;
             this.boundSignature = boundSignature;
+            this.argumentTypes = boundSignature.getArgumentDataTypes();
             this.returnType = returnType;
         }
 
@@ -158,14 +160,14 @@ public class UnnestFunction {
             return new ColumnOrientedRowsIterator(() -> createIterators(valuesPerColumn));
         }
 
+        @SuppressWarnings({"unchecked", "rawtypes"})
         private Iterator<Object>[] createIterators(ArrayList<List<Object>> valuesPerColumn) {
             Iterator[] iterators = new Iterator[valuesPerColumn.size()];
             for (int i = 0; i < valuesPerColumn.size(); i++) {
-                DataType<?> dataType = boundSignature.getArgumentDataTypes().get(i);
+                DataType<?> dataType = argumentTypes.get(i);
                 assert dataType instanceof ArrayType : "Argument to unnest must be an array";
                 iterators[i] = createIterator(valuesPerColumn.get(i), (ArrayType<?>) dataType);
             }
-            //noinspection unchecked
             return iterators;
         }
 
