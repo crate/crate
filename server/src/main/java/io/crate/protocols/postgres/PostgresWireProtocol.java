@@ -37,6 +37,9 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -724,28 +727,32 @@ public class PostgresWireProtocol {
         String queryString = readCString(buffer);
         assert queryString != null : "query must not be nulL";
 
-        List<String> queries = QueryStringSplitter.splitQuery(queryString);
+        if (queryString.isEmpty() || ";".equals(queryString)) {
+            Messages.sendEmptyQueryResponse(channel);
+            Messages.sendReadyForQuery(channel, TransactionState.IDLE);
+            return;
+        }
 
+        List<Statement> statements = SqlParser.createStatements(queryString);
         CompletableFuture<?> composedFuture = CompletableFuture.completedFuture(null);
-        for (String query : queries) {
-            composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(query, channel));
+        for (var statement : statements) {
+            composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(statement, channel));
         }
         composedFuture.whenComplete(new ReadyForQueryCallback(channel, TransactionState.IDLE));
     }
 
-    private CompletableFuture<?> handleSingleQuery(String query, DelayableWriteChannel channel) {
-
+    private CompletableFuture<?> handleSingleQuery(Statement statement, DelayableWriteChannel channel) {
         CompletableFuture<?> result = new CompletableFuture<>();
 
-        if (query.isEmpty() || ";".equals(query)) {
-            Messages.sendEmptyQueryResponse(channel);
-            result.complete(null);
-            return result;
+        String query;
+        try {
+            query = SqlFormatter.formatSql(statement);
+        } catch (Exception e) {
+            query = statement.toString();
         }
-
         AccessControl accessControl = getAccessControl.apply(session.sessionContext());
         try {
-            session.parse("", query, Collections.emptyList());
+            session.analyze("", statement, Collections.emptyList(), query);
             session.bind("", "", Collections.emptyList(), null);
             DescribeResult describeResult = session.describe('P', "");
             List<Symbol> fields = describeResult.getFields();

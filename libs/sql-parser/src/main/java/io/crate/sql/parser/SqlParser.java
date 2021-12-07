@@ -21,12 +21,12 @@
 
 package io.crate.sql.parser;
 
-import io.crate.sql.parser.antlr.v4.SqlBaseBaseListener;
-import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.Node;
-import io.crate.sql.tree.Statement;
+import static java.util.Objects.requireNonNull;
+
+import java.util.EnumSet;
+import java.util.List;
+import java.util.function.Function;
+
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonToken;
@@ -40,10 +40,13 @@ import org.antlr.v4.runtime.misc.Pair;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.TerminalNodeImpl;
 
-import java.util.EnumSet;
-import java.util.function.Function;
-
-import static java.util.Objects.requireNonNull;
+import io.crate.sql.parser.antlr.v4.SqlBaseBaseListener;
+import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.MultiStatement;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.Statement;
 
 public class SqlParser {
     private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
@@ -69,6 +72,14 @@ public class SqlParser {
 
     public static Statement createStatement(String sql) {
         return INSTANCE.generateStatement(sql);
+    }
+
+    public static List<Statement> createStatements(String sql) {
+        return ((MultiStatement) INSTANCE.generateStatements(sql)).statements();
+    }
+
+    private Statement generateStatements(String sql) {
+        return (Statement) invokeParser("statements", sql, SqlBaseParser::statements);
     }
 
     private Statement generateStatement(String sql) {
