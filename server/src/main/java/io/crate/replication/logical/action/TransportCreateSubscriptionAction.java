@@ -21,6 +21,7 @@
 
 package io.crate.replication.logical.action;
 
+import io.crate.exceptions.Exceptions;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
 import io.crate.replication.logical.metadata.Subscription;
@@ -43,6 +44,7 @@ import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 public class TransportCreateSubscriptionAction extends TransportMasterNodeAction<CreateSubscriptionRequest, AcknowledgedResponse> {
 
@@ -103,25 +105,27 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
             request.settings()
         );
 
-        logicalReplicationService.getPublicationState(
-            request.name(),
-            subscription,
-            ActionListener.wrap(
-                response ->
-                    logicalReplicationService.verifyTablesDoNotExist(
-                        request.name(),
-                        response,
-                        r -> submitClusterStateTask(request, subscription, listener),
-                        listener::onFailure
-                    ),
-                listener::onFailure
+        logicalReplicationService.getPublicationState(request.name(), subscription)
+            .thenCompose(
+                response -> {
+                    logicalReplicationService.verifyTablesDoNotExist(request.name(), response);
+                    return submitClusterStateTask(request, subscription);
+                }
             )
-        );
+            .whenComplete(
+                (ignore, err) -> {
+                    if (err == null) {
+                        listener.onResponse(new AcknowledgedResponse(true));
+                    } else {
+                        listener.onFailure(Exceptions.toRuntimeException(err));
+                    }
+                }
+            );
     }
 
-    private void submitClusterStateTask(CreateSubscriptionRequest request,
-                                        Subscription subscription,
-                                        ActionListener<AcknowledgedResponse> listener) {
+    private CompletableFuture<Void> submitClusterStateTask(CreateSubscriptionRequest request,
+                                                           Subscription subscription) {
+        var future = new CompletableFuture<Void>();
         clusterService.submitStateUpdateTask(
             source,
             new ClusterStateUpdateTask() {
@@ -145,15 +149,16 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
 
                 @Override
                 public void onFailure(String source, Exception e) {
-                    listener.onFailure(e);
+                    future.completeExceptionally(e);
                 }
 
                 @Override
                 public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                    listener.onResponse(new AcknowledgedResponse(true));
+                    future.complete(null);
                 }
             }
         );
+        return future;
     }
 
     @Override
