@@ -42,8 +42,8 @@ public class RestoreClusterStateListener implements ClusterStateListener {
     private final ActionListener<RestoreSnapshotResponse> listener;
 
 
-    private RestoreClusterStateListener(ClusterService clusterService, RestoreService.RestoreCompletionResponse response,
-                                        ActionListener<RestoreSnapshotResponse> listener) {
+    public RestoreClusterStateListener(ClusterService clusterService, RestoreService.RestoreCompletionResponse response,
+                                       ActionListener<RestoreSnapshotResponse> listener) {
         this.clusterService = clusterService;
         this.uuid = response.getUuid();
         this.listener = listener;
