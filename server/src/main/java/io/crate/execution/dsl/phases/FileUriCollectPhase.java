@@ -35,8 +35,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+
+import static java.util.stream.Collectors.joining;
 
 public class FileUriCollectPhase extends AbstractProjectionsPhase implements CollectPhase {
 
@@ -48,8 +51,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
     private final Boolean sharedStorage;
     private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
     private final InputFormat inputFormat;
-    @Nullable
-    private final String protocolSetting;
+    private final Map<String, Object> schemeSpecificWithClauseOptions;
 
     public FileUriCollectPhase(UUID jobId,
                                int phaseId,
@@ -62,7 +64,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
                                Boolean sharedStorage,
                                CopyFromParserProperties parserProperties,
                                InputFormat inputFormat,
-                               @Nullable String protocolSetting) {
+                               Map<String, Object> schemeSpecificWithClauseOptions) {
         super(jobId, phaseId, name, projections);
         this.executionNodes = executionNodes;
         this.targetUri = targetUri;
@@ -72,7 +74,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
         outputTypes = extractOutputTypes(toCollect, projections);
-        this.protocolSetting = protocolSetting;
+        this.schemeSpecificWithClauseOptions = schemeSpecificWithClauseOptions;
     }
 
     public enum InputFormat {
@@ -116,9 +118,8 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         return parserProperties;
     }
 
-    @Nullable
-    public String getProtocolSetting() {
-        return protocolSetting;
+    public Map<String, Object> schemeSpecificWithClauseOptions() {
+        return schemeSpecificWithClauseOptions;
     }
 
     public FileUriCollectPhase(StreamInput in) throws IOException {
@@ -141,10 +142,9 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
             parserProperties = CopyFromParserProperties.DEFAULT;
         }
         if (in.getVersion().onOrAfter((Version.V_4_7_0))) {
-            String temp = in.readString();
-            protocolSetting = temp.equals("") ? null : temp;
+            schemeSpecificWithClauseOptions = (Map) in.readMap();
         } else {
-            protocolSetting = null;
+            schemeSpecificWithClauseOptions = Map.of();
         }
     }
 
@@ -164,7 +164,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
             parserProperties.writeTo(out);
         }
         if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
-            out.writeString(protocolSetting != null ? protocolSetting : "");
+            out.writeMap((Map) schemeSpecificWithClauseOptions);
         }
     }
 
@@ -203,7 +203,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
                Objects.equals(sharedStorage, that.sharedStorage) &&
                Objects.equals(distributionInfo, that.distributionInfo) &&
                inputFormat == that.inputFormat &&
-               Objects.equals(protocolSetting, that.protocolSetting);
+               Objects.equals(schemeSpecificWithClauseOptions, that.schemeSpecificWithClauseOptions);
     }
 
     @Override
@@ -218,7 +218,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
             sharedStorage,
             distributionInfo,
             inputFormat,
-            protocolSetting);
+            schemeSpecificWithClauseOptions);
     }
 
     @Override
@@ -232,7 +232,8 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
                ", sharedStorage=" + sharedStorage +
                ", distributionInfo=" + distributionInfo +
                ", inputFormat=" + inputFormat +
-               ", protocolSetting=" + protocolSetting +
+               ", schemeSpecificWithClauseOptions{" + schemeSpecificWithClauseOptions.entrySet().stream()
+                   .map(e -> e.getKey() + "=" + e.getValue()).collect(joining(",")) +
                '}';
     }
 }

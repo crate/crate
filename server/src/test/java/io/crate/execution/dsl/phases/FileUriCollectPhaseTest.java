@@ -34,8 +34,10 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -97,7 +99,7 @@ public class FileUriCollectPhaseTest {
             false,
             new CopyFromParserProperties(true, '|'),
             FileUriCollectPhase.InputFormat.CSV,
-            null
+            Map.of()
         );
 
         BytesStreamOutput output = new BytesStreamOutput();
@@ -127,7 +129,7 @@ public class FileUriCollectPhaseTest {
             false,
             new CopyFromParserProperties(true, '|'),
             FileUriCollectPhase.InputFormat.CSV,
-            null
+            Map.of()
         );
 
         var actualInput = new FileUriCollectPhase(
@@ -142,7 +144,7 @@ public class FileUriCollectPhaseTest {
             false,
             new CopyFromParserProperties(true, '|'),
             FileUriCollectPhase.InputFormat.CSV,
-            "protocol"
+            Map.of(PROTOCOL_SETTING.getKey(), "protocol")
         );
 
         BytesStreamOutput output = new BytesStreamOutput();

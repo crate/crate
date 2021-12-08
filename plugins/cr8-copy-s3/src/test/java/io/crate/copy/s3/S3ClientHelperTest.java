@@ -30,13 +30,16 @@ import org.junit.Test;
 import java.net.URI;
 import java.net.URL;
 import java.util.Date;
+import java.util.Map;
 
+import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 import static io.crate.copy.s3.S3URI.reformat;
 import static org.hamcrest.Matchers.is;
 
 public class S3ClientHelperTest extends ESTestCase {
 
     private final S3ClientHelper s3ClientHelper = new S3ClientHelper();
+    private final Map<String, Object> withClauseOptions = Map.of(PROTOCOL_SETTING.getKey(), "https");
 
     @After
     public void cleanUpS3() {
@@ -45,11 +48,11 @@ public class S3ClientHelperTest extends ESTestCase {
 
     @Test
     public void testClient() throws Exception {
-        assertNotNull(s3ClientHelper.client(reformat(new URI("s3://baz")) /* invalid uri */, null));
-        assertNotNull(s3ClientHelper.client(reformat(new URI("s3://baz/path/to/file")) /* invalid uri */, null));
-        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@/baz"), null));
-        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@/baz/path/to/file"), null));
-        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@host:9000/baz/path/to/file"), "HTTP"));
+        assertNotNull(s3ClientHelper.client(reformat(new URI("s3://baz")) /* invalid uri */, withClauseOptions));
+        assertNotNull(s3ClientHelper.client(reformat(new URI("s3://baz/path/to/file")) /* invalid uri */, withClauseOptions));
+        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@/baz"), withClauseOptions));
+        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@/baz/path/to/file"), withClauseOptions));
+        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@host:9000/baz/path/to/file"), withClauseOptions));
     }
 
     @Test
@@ -58,7 +61,7 @@ public class S3ClientHelperTest extends ESTestCase {
         expectedException.expectMessage("Invalid URI. Please make sure that given URI is encoded properly.");
         // 'inv/alid' should be 'inv%2Falid'
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-        s3ClientHelper.client(new URI("s3://foo:inv/alid@baz/path/to/file"), null);
+        s3ClientHelper.client(new URI("s3://foo:inv/alid@baz/path/to/file"), withClauseOptions);
     }
 
     @Test
@@ -67,12 +70,12 @@ public class S3ClientHelperTest extends ESTestCase {
         expectedException.expectMessage("Invalid URI. Please make sure that given URI is encoded properly.");
         // 'fo/o' should be 'fo%2Fo'
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-        s3ClientHelper.client(new URI("s3://fo/o:inv%2Falid@baz"), null);
+        s3ClientHelper.client(new URI("s3://fo/o:inv%2Falid@baz"), withClauseOptions);
     }
 
     @Test
     public void testWithCredentials() throws Exception {
-        AmazonS3 s3Client = s3ClientHelper.client(reformat(new URI("s3://user:password@host/path")) /* invalid uri */, null);
+        AmazonS3 s3Client = s3ClientHelper.client(reformat(new URI("s3://user:password@host/path")) /* invalid uri */, withClauseOptions);
         URL url = s3Client.generatePresignedUrl("bucket", "key", new Date(0L));
         assertThat(url.toString(), is("https://bucket.s3.amazonaws.com/key?AWSAccessKeyId=user&Expires=0&Signature=o5V2voSQbVEErsUXId6SssCq9OY%3D"));
     }

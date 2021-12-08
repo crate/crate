@@ -23,10 +23,11 @@ package io.crate.execution.engine.export;
 
 import io.crate.execution.dsl.projection.WriterProjection;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 public interface FileOutput {
@@ -39,5 +40,11 @@ public interface FileOutput {
     OutputStream acquireOutputStream(Executor executor,
                                      URI uri,
                                      WriterProjection.CompressionType compressionType,
-                                     @Nullable String protocolSetting) throws IOException;
+                                     Map<String, Object> withClauseOptions) throws IOException;
+
+    /**
+     * This method returns a set of valid with-clause parameters that are valid for the scheme.
+     * @return A set of Strings.
+     */
+    Set<String> validWithClauseOptions();
 }

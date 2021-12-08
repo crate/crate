@@ -44,6 +44,9 @@ import com.carrotsearch.hppc.IntObjectMap;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Map;
+
+import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 
 public class S3ClientHelperToBeRemoved {
 
@@ -77,7 +80,7 @@ public class S3ClientHelperToBeRemoved {
     private final IntObjectMap<AmazonS3> clientMap = new IntObjectHashMap<>(1);
 
     protected AmazonS3 initClient(@Nullable String accessKey, @Nullable String secretKey, @Nullable String endPoint,
-                                  @Nullable String protocolSetting) throws IOException {
+                                  String protocolSetting) throws IOException {
         AmazonS3 client;
         if (endPoint == null) {
             if (accessKey == null || secretKey == null) {
@@ -102,7 +105,8 @@ public class S3ClientHelperToBeRemoved {
         return client;
     }
 
-    public AmazonS3 client(URI uri, @Nullable String protocolSetting) throws IOException {
+    public AmazonS3 client(URI uri, Map<String, Object> withClauseOptions) throws IOException {
+        assert withClauseOptions != null : "with-clause parameters are missing";
         String accessKey = null;
         String secretKey = null;
         String userInfo = null;
@@ -137,11 +141,15 @@ public class S3ClientHelperToBeRemoved {
             endPoint = uri.getHost() + ":" + uri.getPort();
         }
 
-        return client(accessKey, secretKey, endPoint, protocolSetting);
+        if (!(withClauseOptions.get(PROTOCOL_SETTING.getKey()) instanceof String protocol)) {
+            throw new IllegalArgumentException("the with-clause option, protocol, is invalid");
+        }
+        return client(accessKey, secretKey, endPoint, protocol);
     }
 
     private AmazonS3 client(@Nullable String accessKey, @Nullable String secretKey, @Nullable String endPoint,
-                            @Nullable String protocolSetting) throws IOException {
+                            String protocolSetting) throws IOException {
+        assert protocolSetting != null : "protocol setting is missing";
         int hash = hash(accessKey, secretKey, endPoint, protocolSetting);
         AmazonS3 client = clientMap.get(hash);
         if (client == null) {
@@ -152,10 +160,10 @@ public class S3ClientHelperToBeRemoved {
     }
 
     private static int hash(@Nullable String accessKey, @Nullable String secretKey, @Nullable String endPoint,
-                            @Nullable String protocolSetting) {
+                            String protocolSetting) {
         return 31 * (31 * (31 * (accessKey == null ? 1 : accessKey.hashCode())
                            + (secretKey == null ? 1 : secretKey.hashCode()))
                      + (endPoint == null ? 1 : endPoint.hashCode()))
-               + (protocolSetting == null ? 1 : protocolSetting.hashCode());
+               + (protocolSetting.hashCode());
     }
 }

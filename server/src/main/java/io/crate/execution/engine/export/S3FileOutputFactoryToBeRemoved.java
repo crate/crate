@@ -21,12 +21,24 @@
 
 package io.crate.execution.engine.export;
 
-public class S3FileOutputFactoryToBeRemoved implements FileOutputFactory {
+import java.util.Map;
+import java.util.Set;
+
+public class S3FileOutputFactoryToBeRemoved extends FileOutputFactory {
 
     public static final String NAME = "s3";
 
     @Override
     public FileOutput create() {
         return new S3FileOutputToBeRemoved();
+    }
+
+    @Override
+    public void validate(Set<String> validWithClauseOptions,
+                         Map<String, Object> allWithClauseOptions) {
+        //for example
+        if (allWithClauseOptions.keySet().equals(validWithClauseOptions) == false) {
+            throw new IllegalArgumentException("invalid with options for the given URI scheme");
+        }
     }
 }

@@ -22,7 +22,24 @@
 package io.crate.execution.engine.collect.files;
 
 
-public interface FileInputFactory {
+import java.util.Map;
+import java.util.Set;
 
-    FileInput create();
+public abstract class FileInputFactory {
+
+    public final FileInput create(Map<String, Object> withClauseOptions) {
+        FileInput fileOutput = create();
+        validate(fileOutput.validWithClauseOptions(), withClauseOptions);
+        return fileOutput;
+    }
+
+    public abstract FileInput create();
+
+    /**
+     * A method to validate with-clause parameters according to the scheme.
+     * @param validWithClauseOptions A set of valid with clause parameters.
+     * @param allWithClauseOptions A map of all available with clause parameters and its values.
+     */
+    public abstract void validate(Set<String> validWithClauseOptions,
+                                  Map<String, Object> allWithClauseOptions);
 }

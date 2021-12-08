@@ -33,6 +33,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
+
+import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 
 public class WriterProjectionTest extends ESTestCase {
 
@@ -46,7 +49,7 @@ public class WriterProjectionTest extends ESTestCase {
                 new ColumnIdent("partitionColumn"), Literal.of(1)).map(),
             List.of("foo"),
             WriterProjection.OutputFormat.JSON_OBJECT,
-            "dummyHTTPS"
+            Map.of(PROTOCOL_SETTING.getKey(), "dummyHTTPS")
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -68,7 +71,7 @@ public class WriterProjectionTest extends ESTestCase {
                 new ColumnIdent("partitionColumn"), Literal.of(1)).map(),
             List.of("foo"),
             WriterProjection.OutputFormat.JSON_OBJECT,
-            "dummyHTTPS"
+            Map.of(PROTOCOL_SETTING.getKey(), "dummyHTTPS")
         );
 
         WriterProjection expected = new WriterProjection(
@@ -79,7 +82,7 @@ public class WriterProjectionTest extends ESTestCase {
                 new ColumnIdent("partitionColumn"), Literal.of(1)).map(),
             List.of("foo"),
             WriterProjection.OutputFormat.JSON_OBJECT,
-            null
+            Map.of()
         );
 
         BytesStreamOutput out = new BytesStreamOutput();

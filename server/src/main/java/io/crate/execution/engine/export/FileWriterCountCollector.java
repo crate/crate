@@ -71,8 +71,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
     private final FileOutput fileOutput;
     private final Map<String, Object> overwrites;
     private final WriterProjection.CompressionType compressionType;
-    @Nullable
-    private final String protocolSetting;
+    private final Map<String, Object> schemeSpecificWithClauseOptions;
     @Nullable
     private final List<String> outputNames;
     private final WriterProjection.OutputFormat outputFormat;
@@ -82,7 +81,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
     FileWriterCountCollector(Executor executor,
                              String uriStr,
                              @Nullable WriterProjection.CompressionType compressionType,
-                             @Nullable String protocolSetting,
+                             Map<String, Object> schemeSpecificWithClauseOptions,
                              @Nullable List<Input<?>> inputs,
                              Iterable<CollectExpression<Row, ?>> collectExpressions,
                              Map<ColumnIdent, Object> overwrites,
@@ -94,7 +93,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         this.inputs = inputs;
         this.overwrites = toNestedStringObjectMap(overwrites);
         this.compressionType = compressionType;
-        this.protocolSetting = protocolSetting;
+        this.schemeSpecificWithClauseOptions = schemeSpecificWithClauseOptions;
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
         try {
@@ -108,7 +107,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         if (fileOutputFactory == null) {
             throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", scheme));
         }
-        fileOutput = fileOutputFactory.create();
+        fileOutput = fileOutputFactory.create(schemeSpecificWithClauseOptions);
         this.rowWriter = initWriter();
     }
 
@@ -154,18 +153,19 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         try {
             if (!overwrites.isEmpty()) {
                 return new DocWriter(
-                    fileOutput.acquireOutputStream(executor, uri, compressionType, protocolSetting),
+                    fileOutput.acquireOutputStream(executor, uri, compressionType, schemeSpecificWithClauseOptions),
                     collectExpressions, overwrites);
             } else if (outputFormat.equals(WriterProjection.OutputFormat.JSON_ARRAY)) {
                 return new ColumnRowWriter(
-                    fileOutput.acquireOutputStream(executor, uri, compressionType, protocolSetting),
+                    fileOutput.acquireOutputStream(executor, uri, compressionType, schemeSpecificWithClauseOptions),
                     collectExpressions, inputs);
             } else if (outputNames != null && outputFormat.equals(WriterProjection.OutputFormat.JSON_OBJECT)) {
                 return new ColumnRowObjectWriter(
-                    fileOutput.acquireOutputStream(executor, uri, compressionType, protocolSetting),
+                    fileOutput.acquireOutputStream(executor, uri, compressionType, schemeSpecificWithClauseOptions),
                     collectExpressions, inputs, outputNames);
             } else {
-                return new RawRowWriter(fileOutput.acquireOutputStream(executor, uri, compressionType, protocolSetting));
+                return new RawRowWriter(fileOutput.acquireOutputStream(executor, uri, compressionType,
+                                                                       schemeSpecificWithClauseOptions));
             }
         } catch (IOException e) {
             throw new UnhandledServerException(String.format(Locale.ENGLISH, "Failed to open output: '%s'", e.getMessage()), e);

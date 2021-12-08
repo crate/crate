@@ -25,6 +25,7 @@ import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -42,8 +43,7 @@ public class BoundCopyTo {
     private final WriterProjection.CompressionType compressionType;
     @Nullable
     private final WriterProjection.OutputFormat outputFormat;
-    @Nullable
-    private final String protocolSetting;
+    private final Settings settings;
     @Nullable
     private final List<String> outputNames;
     /*
@@ -58,7 +58,7 @@ public class BoundCopyTo {
                        Symbol uri,
                        @Nullable WriterProjection.CompressionType compressionType,
                        @Nullable WriterProjection.OutputFormat outputFormat,
-                       @Nullable String protocolSetting,
+                       Settings settings,
                        @Nullable List<String> outputNames,
                        boolean columnsDefined,
                        @Nullable Map<ColumnIdent, Symbol> overwrites) {
@@ -69,7 +69,7 @@ public class BoundCopyTo {
         this.columnsDefined = columnsDefined;
         this.compressionType = compressionType;
         this.outputNames = outputNames;
-        this.protocolSetting = protocolSetting;
+        this.settings = settings;
         this.outputFormat = outputFormat;
         this.overwrites = Objects.requireNonNullElse(overwrites, Map.of());
     }
@@ -104,9 +104,8 @@ public class BoundCopyTo {
         return outputFormat;
     }
 
-    @Nullable
-    public String getProtocolSetting() {
-        return protocolSetting;
+    public Settings getSettings() {
+        return settings;
     }
 
     @Nullable

@@ -21,7 +21,24 @@
 
 package io.crate.execution.engine.export;
 
-public interface FileOutputFactory {
+import java.util.Map;
+import java.util.Set;
 
-    FileOutput create();
+public abstract class FileOutputFactory {
+
+    public final FileOutput create(Map<String, Object> withClauseOptions) {
+        FileOutput fileOutput = create();
+        validate(fileOutput.validWithClauseOptions(), withClauseOptions);
+        return fileOutput;
+    }
+
+    public abstract FileOutput create();
+
+    /**
+     * A method to validate with-clause parameters according to the scheme.
+     * @param validWithClauseOptions A set of valid with clause parameters.
+     * @param allWithClauseOptions A map of all available with clause parameters and its values.
+     */
+    public abstract void validate(Set<String> validWithClauseOptions,
+                                  Map<String, Object> allWithClauseOptions);
 }

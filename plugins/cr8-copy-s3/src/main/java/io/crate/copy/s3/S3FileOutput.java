@@ -32,7 +32,6 @@ import io.crate.concurrent.CompletableFutures;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.export.FileOutput;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -41,6 +40,8 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -53,14 +54,19 @@ public class S3FileOutput implements FileOutput {
     public OutputStream acquireOutputStream(Executor executor,
                                             URI uri,
                                             WriterProjection.CompressionType compressionType,
-                                            @Nullable String protocolSetting) throws IOException {
+                                            Map<String, Object> withClauseOptions) throws IOException {
         S3URI s3URI = new S3URI(uri);
-        AmazonS3 client = new S3ClientHelper().client(s3URI.uri, protocolSetting);
+        AmazonS3 client = new S3ClientHelper().client(s3URI.uri, withClauseOptions);
         OutputStream outputStream = new S3OutputStream(executor, s3URI.bucket, s3URI.key, client);
         if (compressionType != null) {
             outputStream = new GZIPOutputStream(outputStream);
         }
         return outputStream;
+    }
+
+    @Override
+    public Set<String> validWithClauseOptions() {
+        return Set.of("protocol");
     }
 
 

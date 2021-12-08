@@ -34,6 +34,8 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.engine.collect.files.FileInput;
+import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.expression.InputFactory;
@@ -70,8 +72,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.GZIPOutputStream;
 
+import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -215,31 +219,43 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             ctx.expressions(),
             compression,
             Map.of(
-                S3FileInputFactory.NAME, () -> new S3FileInput(new S3ClientHelper() {
+                S3FileInputFactory.NAME,
+                new FileInputFactory() {
                     @Override
-                    protected AmazonS3 initClient(String accessKey, String secretKey, String endPoint,
-                                                  String protocolSetting) throws IOException {
-                        AmazonS3 client = mock(AmazonS3Client.class);
-                        ObjectListing objectListing = mock(ObjectListing.class);
-                        S3ObjectSummary summary = mock(S3ObjectSummary.class);
-                        S3Object s3Object = mock(S3Object.class);
-                        when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
-                        when(objectListing.getObjectSummaries()).thenReturn(Collections.singletonList(summary));
-                        when(summary.getKey()).thenReturn("foo");
-                        when(client.getObject("fakebucket", "foo")).thenReturn(s3Object);
-                        when(s3Object.getObjectContent()).thenReturn(s3InputStream);
-                        when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
-                        when(objectListing.isTruncated()).thenReturn(false);
-                        return client;
+                    public FileInput create() {
+                        return new S3FileInput(new S3ClientHelper() {
+                            @Override
+                            protected AmazonS3 initClient(String accessKey, String secretKey, String endPoint,
+                                                          String protocolSetting) throws IOException {
+                                AmazonS3 client = mock(AmazonS3Client.class);
+                                ObjectListing objectListing = mock(ObjectListing.class);
+                                S3ObjectSummary summary = mock(S3ObjectSummary.class);
+                                S3Object s3Object = mock(S3Object.class);
+                                when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
+                                when(objectListing.getObjectSummaries()).thenReturn(Collections.singletonList(summary));
+                                when(summary.getKey()).thenReturn("foo");
+                                when(client.getObject("fakebucket", "foo")).thenReturn(s3Object);
+                                when(s3Object.getObjectContent()).thenReturn(s3InputStream);
+                                when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
+                                when(objectListing.isTruncated()).thenReturn(false);
+                                return client;
+                            }
+                        });
                     }
-                })
+
+                    @Override
+                    public void validate(Set<String> validWithClauseOptions,
+                                         Map<String, Object> allWithClauseOptions) {
+
+                    }
+                }
             ),
             false,
             1,
             0,
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
-            null);
+            Map.of(PROTOCOL_SETTING.getKey(), "https"));
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {

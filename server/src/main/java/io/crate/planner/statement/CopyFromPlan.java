@@ -306,7 +306,7 @@ public final class CopyFromPlan implements Plan {
             boundedCopyFrom.settings().getAsBoolean("shared", null),
             CopyFromParserProperties.of(boundedCopyFrom.settings()),
             boundedCopyFrom.inputFormat(),
-            boundedCopyFrom.settings().get(PROTOCOL_SETTING.getKey(), null)
+            Map.of(PROTOCOL_SETTING.getKey(), PROTOCOL_SETTING.get(boundedCopyFrom.settings()))
         );
 
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, -1, null);

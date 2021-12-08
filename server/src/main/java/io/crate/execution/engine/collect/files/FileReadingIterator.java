@@ -69,8 +69,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private final int numReaders;
     private final int readerNumber;
     private final boolean compressed;
-    @Nullable
-    private final String protocolSetting;
+    private final Map<String, Object> schemeSpecificWithClauseOptions;
     private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("^((s3://|file://|/)[^\\*]*/)[^\\*]*\\*.*");
     private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
 
@@ -101,7 +100,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                 int readerNumber,
                                 CopyFromParserProperties parserProperties,
                                 FileUriCollectPhase.InputFormat inputFormat,
-                                @Nullable String protocolSetting) {
+                                Map<String, Object> schemeSpecificWithClauseOptions) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
         this.fileInputFactories = fileInputFactories;
@@ -115,7 +114,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         this.fileInputsToUriWithGlobs = new ArrayList<>();
         initFileInputs();
         initCollectorState();
-        this.protocolSetting = protocolSetting;
+        this.schemeSpecificWithClauseOptions = schemeSpecificWithClauseOptions;
     }
 
     @Override
@@ -138,7 +137,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                                  int readerNumber,
                                                  CopyFromParserProperties parserProperties,
                                                  FileUriCollectPhase.InputFormat inputFormat,
-                                                 @Nullable String protocolSetting) {
+                                                 Map<String, Object> withClauseOptions) {
         return new FileReadingIterator(
             fileUris,
             inputs,
@@ -150,7 +149,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
             readerNumber,
             parserProperties,
             inputFormat,
-            protocolSetting);
+            withClauseOptions);
     }
 
     private void initFileInputs() {
@@ -225,7 +224,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
 
     private void initCurrentReader(FileInput fileInput, URI uri) throws IOException {
         lineProcessor.startWithUri(uri);
-        InputStream stream = fileInput.getStream(uri, protocolSetting);
+        InputStream stream = fileInput.getStream(uri, schemeSpecificWithClauseOptions);
         currentReader = createBufferedReader(stream);
         currentLineNumber = 0;
         lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
@@ -399,7 +398,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private List<URI> getUris(FileInput fileInput, URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate) throws IOException {
         List<URI> uris;
         if (preGlobUri != null) {
-            uris = fileInput.listUris(fileUri, preGlobUri, uriPredicate, protocolSetting);
+            uris = fileInput.listUris(fileUri, preGlobUri, uriPredicate, schemeSpecificWithClauseOptions);
         } else if (uriPredicate.test(fileUri)) {
             uris = List.of(fileUri);
         } else {

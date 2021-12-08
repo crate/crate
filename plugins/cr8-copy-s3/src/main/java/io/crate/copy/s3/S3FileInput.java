@@ -36,8 +36,12 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+
+import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 
 public class S3FileInput implements FileInput {
 
@@ -58,10 +62,10 @@ public class S3FileInput implements FileInput {
     public List<URI> listUris(@Nullable final URI fileUri,
                               final URI preGlobUri,
                               final Predicate<URI> uriPredicate,
-                              @Nullable String protocolSetting) throws IOException {
+                              Map<String, Object> withClauseOptions) throws IOException {
         S3URI preGlobS3Uri = new S3URI(preGlobUri);
         if (client == null) {
-            client = clientBuilder.client(preGlobS3Uri.uri, protocolSetting);
+            client = clientBuilder.client(preGlobS3Uri.uri, withClauseOptions);
         }
         List<URI> uris = new ArrayList<>();
         ObjectListing list = client.listObjects(preGlobS3Uri.bucket, preGlobS3Uri.key);
@@ -91,10 +95,10 @@ public class S3FileInput implements FileInput {
     }
 
     @Override
-    public InputStream getStream(URI uri, @Nullable String protocolSetting) throws IOException {
+    public InputStream getStream(URI uri, Map<String, Object> withClauseOptions) throws IOException {
         S3URI s3URI = new S3URI(uri);
         if (client == null) {
-            client = clientBuilder.client(s3URI.uri, protocolSetting);
+            client = clientBuilder.client(s3URI.uri, withClauseOptions);
         }
         S3Object object = client.getObject(s3URI.bucket, s3URI.key);
         if (object != null) {
@@ -111,5 +115,10 @@ public class S3FileInput implements FileInput {
     @Override
     public Function<String, URI> uriFormatter() {
         return fileUri -> S3URI.reformat(FileReadingIterator.toURI(fileUri));
+    }
+
+    @Override
+    public Set<String> validWithClauseOptions() {
+        return Set.of(PROTOCOL_SETTING.getKey());
     }
 }

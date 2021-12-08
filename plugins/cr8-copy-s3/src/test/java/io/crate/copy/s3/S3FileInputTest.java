@@ -31,8 +31,10 @@ import org.junit.Test;
 import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
+import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 import static io.crate.copy.s3.S3URI.reformat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -49,6 +51,7 @@ public class S3FileInputTest extends ESTestCase {
     private static S3ClientHelper clientBuilder = mock(S3ClientHelper.class);
     private static AmazonS3 amazonS3 = mock(AmazonS3.class);
     private static Predicate<URI> uriPredicate = mock(Predicate.class);
+    private static Map<String, Object> withClauseOptions = Map.of(PROTOCOL_SETTING.getKey(), "https");
 
     private static final String BUCKET_NAME = "fakeBucket";
     private static final String PREFIX = "prefix";
@@ -62,7 +65,7 @@ public class S3FileInputTest extends ESTestCase {
 
         when(uriPredicate.test(any(URI.class))).thenReturn(true);
         when(amazonS3.listObjects(BUCKET_NAME, PREFIX)).thenReturn(objectListing);
-        when(clientBuilder.client(preGlobUri, null)).thenReturn(amazonS3);
+        when(clientBuilder.client(preGlobUri, withClauseOptions)).thenReturn(amazonS3);
     }
 
     @Test
@@ -75,7 +78,7 @@ public class S3FileInputTest extends ESTestCase {
 
         when(objectListing.getObjectSummaries()).thenReturn(listObjectSummaries);
 
-        List<URI> uris = s3FileInput.listUris(null, preGlobUri, uriPredicate, null);
+        List<URI> uris = s3FileInput.listUris(null, preGlobUri, uriPredicate, withClauseOptions);
         assertThat(uris.size(), is(2));
         assertThat(uris.get(0).getPath(), is("/fakeBucket/prefix/test1.json.gz"));
         assertThat(uris.get(1).getPath(), is("/fakeBucket/prefix/test2.json.gz"));
@@ -84,7 +87,7 @@ public class S3FileInputTest extends ESTestCase {
     @Test
     public void testListListUrlsWithCorrectKeys() throws Exception {
         when(objectListing.getObjectSummaries()).thenReturn(objectSummaries());
-        List<URI> uris = s3FileInput.listUris(null, preGlobUri, uriPredicate, null);
+        List<URI> uris = s3FileInput.listUris(null, preGlobUri, uriPredicate, withClauseOptions);
         assertThat(uris.size(), is(2));
         assertThat(uris.get(0).getPath(), is("/fakeBucket/prefix/test1.json.gz"));
         assertThat(uris.get(1).getPath(), is("/fakeBucket/prefix/test2.json.gz"));

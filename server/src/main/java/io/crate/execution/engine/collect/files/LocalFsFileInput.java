@@ -22,7 +22,6 @@
 package io.crate.execution.engine.collect.files;
 
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -39,6 +38,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -48,7 +49,7 @@ public class LocalFsFileInput implements FileInput {
 
     @Override
     public List<URI> listUris(final URI fileUri, final URI preGlobUri, final Predicate<URI> uriPredicate,
-                              @Nullable String protocolSetting) throws IOException {
+                              Map<String, Object> withClauseOptions) throws IOException {
         assert fileUri != null : "fileUri must not be null";
         assert preGlobUri != null : "preGlobUri must not be null";
         assert uriPredicate != null : "uriPredicate must not be null";
@@ -97,7 +98,7 @@ public class LocalFsFileInput implements FileInput {
     }
 
     @Override
-    public InputStream getStream(URI uri, @Nullable String protocolSetting) throws IOException {
+    public InputStream getStream(URI uri, Map<String, Object> withClauseOptions) throws IOException {
         File file = new File(uri);
         return new FileInputStream(file);
     }
@@ -110,6 +111,11 @@ public class LocalFsFileInput implements FileInput {
     @Override
     public boolean sharedStorageDefault() {
         return false;
+    }
+
+    @Override
+    public Set<String> validWithClauseOptions() {
+        return Set.of();
     }
 
     private static int countOccurrences(String str, char c) throws IOException {

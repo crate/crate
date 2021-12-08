@@ -108,8 +108,7 @@ public class WriterProjection extends Projection {
         GZIP
     }
 
-    @Nullable
-    private final String protocolSetting;
+    Map<String, Object> schemeSpecificWithClauseOptions;
 
     public WriterProjection(List<Symbol> inputs,
                             Symbol uri,
@@ -117,14 +116,14 @@ public class WriterProjection extends Projection {
                             Map<ColumnIdent, Symbol> overwrites,
                             @Nullable List<String> outputNames,
                             OutputFormat outputFormat,
-                            @Nullable String protocolSetting) {
+                            Map<String, Object> schemeSpecificWithClauseOptions) {
         this.inputs = inputs;
         this.uri = uri;
         this.overwrites = overwrites;
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
         this.compressionType = compressionType;
-        this.protocolSetting = protocolSetting;
+        this.schemeSpecificWithClauseOptions = schemeSpecificWithClauseOptions;
     }
 
     public WriterProjection(StreamInput in) throws IOException {
@@ -148,10 +147,9 @@ public class WriterProjection extends Projection {
         compressionType = compressionTypeOrdinal >= 0 ? CompressionType.values()[compressionTypeOrdinal] : null;
         outputFormat = OutputFormat.values()[in.readInt()];
         if (in.getVersion().onOrAfter(Version.V_4_7_0)) {
-            var temp = in.readString();
-            protocolSetting = temp.equals("") ? null : temp;
+            schemeSpecificWithClauseOptions = in.readMap();
         } else {
-            protocolSetting = null;
+            schemeSpecificWithClauseOptions = Map.of();
         }
     }
 
@@ -194,9 +192,8 @@ public class WriterProjection extends Projection {
         return compressionType;
     }
 
-    @Nullable
-    public String getProtocolSetting() {
-        return protocolSetting;
+    public Map<String, Object> schemeSpecificWithClauseOptions() {
+        return schemeSpecificWithClauseOptions;
     }
 
     @Override
@@ -226,7 +223,7 @@ public class WriterProjection extends Projection {
         out.writeInt(compressionType != null ? compressionType.ordinal() : -1);
         out.writeInt(outputFormat.ordinal());
         if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
-            out.writeString(protocolSetting != null ? protocolSetting : "");
+            out.writeMap((Map) schemeSpecificWithClauseOptions);
         }
     }
 
@@ -244,7 +241,7 @@ public class WriterProjection extends Projection {
         if (!Objects.equals(compressionType, that.compressionType))
             return false;
         if (!outputFormat.equals(that.outputFormat)) return false;
-        return Objects.equals(protocolSetting, that.protocolSetting);
+        return Objects.equals(schemeSpecificWithClauseOptions, that.schemeSpecificWithClauseOptions);
     }
 
     @Override
@@ -255,7 +252,7 @@ public class WriterProjection extends Projection {
         result = 31 * result + overwrites.hashCode();
         result = 31 * result + (compressionType != null ? compressionType.hashCode() : 0);
         result = 31 * result + outputFormat.hashCode();
-        result = 31 * result + (protocolSetting != null ? protocolSetting.hashCode() : 0);
+        result = 31 * result + schemeSpecificWithClauseOptions.hashCode();
         return result;
     }
 
@@ -279,7 +276,7 @@ public class WriterProjection extends Projection {
                 overwrites,
                 outputNames,
                 outputFormat,
-                protocolSetting
+                schemeSpecificWithClauseOptions
             );
         }
         return this;

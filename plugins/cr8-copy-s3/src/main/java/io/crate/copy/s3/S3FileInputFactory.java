@@ -24,12 +24,21 @@ package io.crate.copy.s3;
 import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 
-public class S3FileInputFactory implements FileInputFactory {
+import java.util.Map;
+import java.util.Set;
+
+public class S3FileInputFactory extends FileInputFactory {
 
     public static final String NAME = "s3";
 
     @Override
     public FileInput create() {
         return new S3FileInput();
+    }
+
+    @Override
+    public void validate(Set<String> validWithClauseOptions,
+                         Map<String, Object> allWithClauseOptions) {
+
     }
 }

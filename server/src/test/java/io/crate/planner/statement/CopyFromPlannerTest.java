@@ -39,6 +39,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 
+import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
@@ -99,7 +100,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.compression(), is("gzip"));
         assertThat(collectPhase.sharedStorage(), is(true));
         assertThat(indexWriterProjection.failFast(), is(true));
-        assertThat(collectPhase.getProtocolSetting(), is("http"));
+        assertThat(collectPhase.schemeSpecificWithClauseOptions().get(PROTOCOL_SETTING.getKey()), is("http"));
 
         // verify defaults:
         collect = plan("copy users from '/path/to/file.ext'");
@@ -108,7 +109,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.compression(), is(nullValue()));
         assertThat(collectPhase.sharedStorage(), is(nullValue()));
         assertThat(indexWriterProjection.failFast(), is(false));
-        assertThat(collectPhase.getProtocolSetting(), is (nullValue()));
+        assertThat(collectPhase.schemeSpecificWithClauseOptions().get(PROTOCOL_SETTING.getKey()), is ("https"));
     }
 
     @Test

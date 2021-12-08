@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.pipeline;
 
+import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.is;
@@ -199,7 +200,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             Collections.emptyMap(),
             Collections.emptyList(),
             WriterProjection.OutputFormat.JSON_OBJECT,
-            "dummyHTTP");
+            Map.of(PROTOCOL_SETTING.getKey(), "dummyHTTP"));
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         RowConsumer rowConsumer = ProjectingRowConsumer.create(

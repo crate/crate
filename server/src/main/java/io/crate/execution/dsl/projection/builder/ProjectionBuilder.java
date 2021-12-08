@@ -202,8 +202,8 @@ public class ProjectionBuilder {
                                                     Map<ColumnIdent, Symbol> overwrites,
                                                     @Nullable List<String> outputNames,
                                                     WriterProjection.OutputFormat outputFormat,
-                                                    @Nullable String protocolSetting) {
+                                                    Map<String, Object> schemeSpecificWithClauseOptions) {
         return new WriterProjection(
-            InputColumn.mapToInputColumns(inputs), uri, compressionType, overwrites, outputNames, outputFormat, protocolSetting);
+            InputColumn.mapToInputColumns(inputs), uri, compressionType, overwrites, outputNames, outputFormat, schemeSpecificWithClauseOptions);
     }
 }

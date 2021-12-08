@@ -24,12 +24,21 @@ package io.crate.execution.engine.collect;
 import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 
-public class S3FileInputFactoryToBeRemoved implements FileInputFactory {
+import java.util.Map;
+import java.util.Set;
+
+public class S3FileInputFactoryToBeRemoved extends FileInputFactory {
 
     public static final String NAME = "s3";
 
     @Override
     public FileInput create() {
         return new S3FileInputToBeRemoved();
+    }
+
+    @Override
+    public void validate(Set<String> validWithClauseOptions,
+                         Map<String, Object> allWithClauseOptions) {
+
     }
 }

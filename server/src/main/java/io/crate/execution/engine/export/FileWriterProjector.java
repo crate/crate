@@ -45,23 +45,22 @@ public class FileWriterProjector implements Projector {
     private final List<String> outputNames;
     private final WriterProjection.OutputFormat outputFormat;
     private final WriterProjection.CompressionType compressionType;
-    @Nullable
-    private final String protocolSetting;
+    private final Map<String, Object> schemeSpecificWithClauseOptions;
     private final Executor executor;
     private final Map<String, FileOutputFactory> fileOutputFactoryMap;
 
     /**
+     * @param schemeSpecificWithClauseOptions
      * @param inputs a list of {@link Input}.
      *               If null the row that is exposed in the BatchIterator
      *               is expected to contain the raw source in its first column.
      *               That raw source is then written to the output
      *               <p/>
-     *               If inputs is not null the inputs are consumed to write a JSON array to the output.
      */
     public FileWriterProjector(Executor executor,
                                String uri,
                                @Nullable WriterProjection.CompressionType compressionType,
-                               @Nullable String protocolSetting,
+                               Map<String, Object> schemeSpecificWithClauseOptions,
                                @Nullable List<Input<?>> inputs,
                                Iterable<CollectExpression<Row, ?>> collectExpressions,
                                Map<ColumnIdent, Object> overwrites,
@@ -75,7 +74,7 @@ public class FileWriterProjector implements Projector {
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
         this.compressionType = compressionType;
-        this.protocolSetting = protocolSetting;
+        this.schemeSpecificWithClauseOptions = schemeSpecificWithClauseOptions;
         this.uri = uri;
         this.fileOutputFactoryMap = fileOutputFactoryMap;
     }
@@ -88,7 +87,7 @@ public class FileWriterProjector implements Projector {
                 executor,
                 uri,
                 compressionType,
-                protocolSetting,
+                schemeSpecificWithClauseOptions,
                 inputs,
                 collectExpressions,
                 overwrites,

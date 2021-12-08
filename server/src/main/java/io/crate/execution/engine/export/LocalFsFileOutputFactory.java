@@ -21,11 +21,21 @@
 
 package io.crate.execution.engine.export;
 
-public class LocalFsFileOutputFactory implements FileOutputFactory {
+import java.util.Map;
+import java.util.Set;
+
+public class LocalFsFileOutputFactory extends FileOutputFactory {
+
     public static final String NAME = "file";
 
     @Override
     public FileOutput create() {
         return new LocalFsFileOutput();
+    }
+
+    @Override
+    public void validate(Set<String> validWithClauseOptions,
+                         Map<String, Object> allWithClauseOptions) {
+
     }
 }

@@ -149,7 +149,7 @@ public final class CopyToPlan implements Plan {
             boundedCopyTo.overwrites(),
             boundedCopyTo.outputNames(),
             outputFormat,
-            boundedCopyTo.getProtocolSetting());
+            Map.of(PROTOCOL_SETTING.getKey(), PROTOCOL_SETTING.get(boundedCopyTo.getSettings())));
 
         LogicalPlan collect = Collect.create(
             new DocTableRelation(boundedCopyTo.table()),
@@ -243,7 +243,6 @@ public final class CopyToPlan implements Plan {
             settingAsEnum(WriterProjection.CompressionType.class, COMPRESSION_SETTING.get(settings));
         WriterProjection.OutputFormat outputFormat =
             settingAsEnum(WriterProjection.OutputFormat.class, OUTPUT_FORMAT_SETTING.get(settings));
-        String protocolSetting = settings.get(PROTOCOL_SETTING.getKey(), null);
 
         if (!columnsDefined && outputFormat == WriterProjection.OutputFormat.JSON_ARRAY) {
             throw new UnsupportedFeatureException("Output format not supported without specifying columns.");
@@ -257,7 +256,7 @@ public final class CopyToPlan implements Plan {
             Literal.of(DataTypes.STRING.sanitizeValue(eval.apply(copyTo.uri()))),
             compressionType,
             outputFormat,
-            protocolSetting,
+            settings,
             outputNames.isEmpty() ? null : outputNames,
             columnsDefined,
             overwrites);

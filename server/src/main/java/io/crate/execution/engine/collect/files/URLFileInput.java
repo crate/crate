@@ -21,13 +21,14 @@
 
 package io.crate.execution.engine.collect.files;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -41,14 +42,14 @@ class URLFileInput implements FileInput {
 
     @Override
     public List<URI> listUris(URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate,
-                              @Nullable String protocolSetting) throws IOException {
+                              Map<String, Object> withClauseOptions) throws IOException {
         // If the full fileUri contains a wildcard the fileUri passed as argument here is the fileUri up to the wildcard
         // for URLs listing directory contents is not supported so always return the full fileUri for now
         return Collections.singletonList(this.fileUri);
     }
 
     @Override
-    public InputStream getStream(URI uri, @Nullable String protocolSetting) throws IOException {
+    public InputStream getStream(URI uri, Map<String, Object> withClauseOptions) throws IOException {
         URL url = uri.toURL();
         return url.openStream();
     }
@@ -61,5 +62,10 @@ class URLFileInput implements FileInput {
     @Override
     public boolean sharedStorageDefault() {
         return true;
+    }
+
+    @Override
+    public Set<String> validWithClauseOptions() {
+        return Set.of();
     }
 }

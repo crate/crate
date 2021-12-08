@@ -21,11 +21,20 @@
 
 package io.crate.execution.engine.collect.files;
 
-public class LocalFsFileInputFactory implements FileInputFactory {
+import java.util.Map;
+import java.util.Set;
+
+public class LocalFsFileInputFactory extends FileInputFactory {
     public static final String NAME = "file";
 
     @Override
     public FileInput create() {
         return new LocalFsFileInput();
+    }
+
+    @Override
+    public void validate(Set<String> validWithClauseOptions,
+                         Map<String, Object> allWithClauseOptions) {
+
     }
 }

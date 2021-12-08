@@ -44,9 +44,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -139,12 +139,12 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = plan("copy users to directory '/path/to' with (protocol = 'http')");
         Collect collect = (Collect) merge.subPlan();
         WriterProjection writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
-        assertThat(writerProjection.getProtocolSetting(), is("http"));
+        assertThat(writerProjection.schemeSpecificWithClauseOptions().get(PROTOCOL_SETTING.getKey()), is("http"));
 
         // verify defaults:
         merge = plan("copy users to directory '/path/to/'");
         collect = (Collect) merge.subPlan();
         writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
-        assertThat(writerProjection.getProtocolSetting(), is (nullValue()));
+        assertThat(writerProjection.schemeSpecificWithClauseOptions().get(PROTOCOL_SETTING.getKey()), is ("https"));
     }
 }

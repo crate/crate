@@ -21,11 +21,12 @@
 
 package io.crate.execution.engine.collect.files;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -38,21 +39,27 @@ public interface FileInput {
      *                     (and may optionally contain a "file hint" - which is the part after the last slash.)
      *                     a concrete implementation may ignore the file hint.
      * @param uriPredicate predicate that a concrete implementation of FileInput must use to pre-filter the returned uris
-     * @param protocolSetting
+     * @param withClauseOptions
      * @return a list of Uris
      * @throws IOException
      */
-    List<URI> listUris(URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate, @Nullable String protocolSetting) throws IOException;
+    List<URI> listUris(URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate, Map<String, Object> withClauseOptions) throws IOException;
 
-    InputStream getStream(URI uri, @Nullable String protocolSetting) throws IOException;
+    InputStream getStream(URI uri, Map<String, Object> withClauseOptions) throws IOException;
 
     /**
      * An optional re-formatter that will reformat URIs passed to
-     * {@link FileInput#listUris(URI, URI, Predicate, String)}, and {@link FileInput#getStream(URI, String)}.
+     * {@link FileInput#listUris(URI, URI, Predicate, Map)}, and {@link FileInput#getStream(URI, Map)}.
      * It is needed only if the getters of the URIs do not return the expected substrings.
      * @return a re-formatting function
      */
     Function<String, URI> uriFormatter();
 
     boolean sharedStorageDefault();
+
+    /**
+     * This method returns a set of valid with-clause parameters that are valid for the scheme.
+     * @return A set of Strings.
+     */
+    Set<String> validWithClauseOptions();
 }

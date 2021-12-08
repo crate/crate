@@ -24,12 +24,24 @@ package io.crate.copy.s3;
 import io.crate.execution.engine.export.FileOutput;
 import io.crate.execution.engine.export.FileOutputFactory;
 
-class S3FileOutputFactory implements FileOutputFactory {
+import java.util.Map;
+import java.util.Set;
+
+public class S3FileOutputFactory extends FileOutputFactory {
 
     public static final String NAME = "s3";
 
     @Override
     public FileOutput create() {
         return new S3FileOutput();
+    }
+
+    @Override
+    public void validate(Set<String> validWithClauseOptions,
+                         Map<String, Object> allWithClauseOptions) {
+        //for example
+        if (allWithClauseOptions.keySet().equals(validWithClauseOptions) == false) {
+            throw new IllegalArgumentException("invalid with options for the given URI scheme");
+        }
     }
 }
