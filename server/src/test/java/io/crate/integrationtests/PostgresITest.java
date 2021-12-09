@@ -70,6 +70,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.exceptions.SQLParseException;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -991,6 +992,21 @@ public class PostgresITest extends SQLIntegrationTestCase {
                     Matchers.notNullValue(String.class)
                 );
             }
+        }
+    }
+
+    @Test
+    public void test_parse_failures_in_simple_protocol_mode_are_propagated_to_client() throws Exception {
+        // regression test; used to get stuck
+        Properties properties = new Properties();
+        properties.setProperty("user", "crate");
+        properties.setProperty(PGProperty.PREFER_QUERY_MODE.getName(), PreferQueryMode.SIMPLE.value());
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            Statement statement = conn.createStatement();
+            assertThrows(PSQLException.class, () -> statement.execute("create index invalid_statement"));
+            ResultSet result = statement.executeQuery("select 1");
+            assertThat(result.next(), is(true));
+            assertThat(result.getInt(1), is(1));
         }
     }
 
