@@ -524,14 +524,14 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHandleMultipleSimpleQueries() {
-        submitQueriesThroughSimpleQueryMode("first statement; second statement;", null);
+        submitQueriesThroughSimpleQueryMode("select 'first'; select 'second';", null);
         readReadyForQueryMessage(channel);
         assertThat(channel.outboundMessages().size() , is(0));
     }
 
     @Test
     public void testHandleMultipleSimpleQueriesWithQueryFailure() {
-        submitQueriesThroughSimpleQueryMode("first statement; second statement;", new RuntimeException("fail"));
+        submitQueriesThroughSimpleQueryMode("select 'first'; select 'second';", new RuntimeException("fail"));
         readErrorResponse(channel, (byte) 110);
         readReadyForQueryMessage(channel);
         assertThat(channel.outboundMessages().size() , is(0));
@@ -539,7 +539,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testKillExceptionSendsReadyForQuery() {
-        submitQueriesThroughSimpleQueryMode("some statement;", JobKilledException.of("with fire"));
+        submitQueriesThroughSimpleQueryMode("select 1;", JobKilledException.of("with fire"));
         readErrorResponse(channel, (byte) 75);
         readReadyForQueryMessage(channel);
     }

@@ -84,6 +84,7 @@ public class SSLTrustedZoneITest extends SQLIntegrationTestCase {
 
 
     @Test
+    @AwaitsFix(bugUrl = "https://github.com/crate/crate/issues/11954")
     public void test_switch_to_plaintext_enabled_downgrades_to_plaintext() throws Exception {
         execute("select count(*) from sys.nodes");
         assertThat(response.rows()[0][0], is(2L));

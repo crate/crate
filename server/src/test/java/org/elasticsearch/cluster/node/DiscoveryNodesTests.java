@@ -85,7 +85,7 @@ public class DiscoveryNodesTests extends ESTestCase {
         final String[] nonMasterNodes =
                 StreamSupport.stream(discoveryNodes.getNodes().values().spliterator(), false)
                         .map(n -> n.value)
-                        .filter(n -> n.isMasterNode() == false)
+                        .filter(n -> n.isMasterEligibleNode() == false)
                         .map(DiscoveryNode::getId)
                         .toArray(String[]::new);
         assertThat(discoveryNodes.resolveNodes("_all", "master:false"), arrayContainingInAnyOrder(nonMasterNodes));
@@ -99,14 +99,14 @@ public class DiscoveryNodesTests extends ESTestCase {
         final String[] coordinatorOnlyNodes =
                 StreamSupport.stream(discoveryNodes.getNodes().values().spliterator(), false)
                     .map(n -> n.value)
-                    .filter(n -> n.isDataNode() == false && n.isMasterNode() == false)
+                    .filter(n -> n.isDataNode() == false && n.isMasterEligibleNode() == false)
                     .map(DiscoveryNode::getId)
                     .toArray(String[]::new);
 
         final String[] nonCoordinatorOnlyNodes =
                 StreamSupport.stream(discoveryNodes.getNodes().values().spliterator(), false)
                     .map(n -> n.value)
-                    .filter(n -> n.isMasterNode() || n.isDataNode())
+                    .filter(n -> n.isMasterEligibleNode() || n.isDataNode())
                     .map(DiscoveryNode::getId)
                     .toArray(String[]::new);
 
@@ -158,7 +158,7 @@ public class DiscoveryNodesTests extends ESTestCase {
         assertEquals(returnedNodes.size(), inputNodes.size());
         assertEquals(new HashSet<>(returnedNodes), new HashSet<>(inputNodes));
         final List<DiscoveryNode> sortedNodes = new ArrayList<>(returnedNodes);
-        Collections.sort(sortedNodes, Comparator.comparing(n -> n.isMasterNode() == false));
+        Collections.sort(sortedNodes, Comparator.comparing(n -> n.isMasterEligibleNode() == false));
         assertEquals(sortedNodes, returnedNodes);
     }
 

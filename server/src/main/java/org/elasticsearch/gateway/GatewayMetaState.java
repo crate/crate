@@ -95,7 +95,7 @@ public class GatewayMetaState implements Closeable {
                       MetadataUpgrader metadataUpgrader, PersistedClusterStateService persistedClusterStateService) {
         assert persistedState.get() == null : "should only start once, but already have " + persistedState.get();
 
-        if (DiscoveryNode.isMasterNode(settings) || DiscoveryNode.isDataNode(settings)) {
+        if (DiscoveryNode.isMasterEligibleNode(settings) || DiscoveryNode.isDataNode(settings)) {
             try {
                 final PersistedClusterStateService.OnDiskState onDiskState = persistedClusterStateService.loadBestOnDiskState();
 
@@ -120,7 +120,7 @@ public class GatewayMetaState implements Closeable {
                                                                                      .version(lastAcceptedVersion)
                                                                                      .metadata(upgradeMetadataForNode(metadata, metadataIndexUpgradeService, metadataUpgrader))
                                                                                      .build());
-                    if (DiscoveryNode.isMasterNode(settings)) {
+                    if (DiscoveryNode.isMasterEligibleNode(settings)) {
                         persistedState = new LucenePersistedState(persistedClusterStateService, currentTerm, clusterState);
                     } else {
                         persistedState = new AsyncLucenePersistedState(settings, transportService.getThreadPool(),

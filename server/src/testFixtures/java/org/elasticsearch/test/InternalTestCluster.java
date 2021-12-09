@@ -168,11 +168,11 @@ public final class InternalTestCluster extends TestCluster {
         nodeAndClient -> DiscoveryNode.isDataNode(nodeAndClient.node.settings());
 
     private static final Predicate<NodeAndClient> NO_DATA_NO_MASTER_PREDICATE = nodeAndClient ->
-        DiscoveryNode.isMasterNode(nodeAndClient.node.settings()) == false
+        DiscoveryNode.isMasterEligibleNode(nodeAndClient.node.settings()) == false
             && DiscoveryNode.isDataNode(nodeAndClient.node.settings()) == false;
 
     private static final Predicate<NodeAndClient> MASTER_NODE_PREDICATE =
-        nodeAndClient -> DiscoveryNode.isMasterNode(nodeAndClient.node.settings());
+        nodeAndClient -> DiscoveryNode.isMasterEligibleNode(nodeAndClient.node.settings());
 
     public static final int DEFAULT_LOW_NUM_MASTER_NODES = 1;
     public static final int DEFAULT_HIGH_NUM_MASTER_NODES = 3;
@@ -1503,7 +1503,7 @@ public final class InternalTestCluster extends TestCluster {
                 List<String> discoveryFileContents = unicastHosts.map(
                     nac -> nac.node.injector().getInstance(TransportService.class)
                 ).filter(Objects::nonNull)
-                    .map(TransportService::getLocalNode).filter(Objects::nonNull).filter(DiscoveryNode::isMasterNode)
+                    .map(TransportService::getLocalNode).filter(Objects::nonNull).filter(DiscoveryNode::isMasterEligibleNode)
                     .map(n -> n.getAddress().toString())
                     .distinct().collect(Collectors.toList());
                 Set<Path> configPaths = Stream.concat(currentNodes.stream(), newNodes.stream())

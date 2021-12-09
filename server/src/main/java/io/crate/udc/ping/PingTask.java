@@ -21,16 +21,16 @@
 
 package io.crate.udc.ping;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.monitor.ExtendedNodeInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -77,7 +77,7 @@ public class PingTask extends TimerTask {
     }
 
     private Boolean isMasterNode() {
-        return clusterService.localNode().isMasterNode();
+        return clusterService.state().nodes().isLocalNodeElectedMaster();
     }
 
     private Map<String, Object> getCounters() {

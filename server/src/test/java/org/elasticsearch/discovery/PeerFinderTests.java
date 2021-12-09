@@ -126,7 +126,7 @@ public class PeerFinderTests extends ESTestCase {
                     for (final Map.Entry<TransportAddress, DiscoveryNode> addressAndNode : reachableNodes.entrySet()) {
                         if (addressAndNode.getKey().equals(transportAddress)) {
                             final DiscoveryNode discoveryNode = addressAndNode.getValue();
-                            if (discoveryNode.isMasterNode()) {
+                            if (discoveryNode.isMasterEligibleNode()) {
                                 disconnectedNodes.remove(discoveryNode);
                                 connectedNodes.add(discoveryNode);
                                 assertTrue(inFlightConnectionAttempts.remove(transportAddress));
