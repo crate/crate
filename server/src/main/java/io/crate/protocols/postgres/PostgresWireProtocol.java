@@ -733,7 +733,14 @@ public class PostgresWireProtocol {
             return;
         }
 
-        List<Statement> statements = SqlParser.createStatements(queryString);
+        List<Statement> statements;
+        try {
+            statements = SqlParser.createStatements(queryString);
+        } catch (Exception ex) {
+            Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionContext()), ex);
+            Messages.sendReadyForQuery(channel, TransactionState.IDLE);
+            return;
+        }
         CompletableFuture<?> composedFuture = CompletableFuture.completedFuture(null);
         for (var statement : statements) {
             composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(statement, channel));
