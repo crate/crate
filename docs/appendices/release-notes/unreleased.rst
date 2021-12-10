@@ -64,6 +64,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Updated ``log4j`` to 2.15.0 to fix a security vulnerability. See `Log4Shell
+  <https://www.lunasec.io/docs/blog/log4j-zero-day/>`_ for details.
+
 - Fixed an issue that could result in an error if a client sent multiple
   statements in a single string using the PostgreSQL simple protocol mode.
 
