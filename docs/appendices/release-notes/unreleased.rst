@@ -64,19 +64,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Updated ``log4j`` to 2.15.0 to fix a security vulnerability. See `Log4Shell
-  <https://www.lunasec.io/docs/blog/log4j-zero-day/>`_ for details.
-
-- Fixed an issue that could result in an error if a client sent multiple
-  statements in a single string using the PostgreSQL simple protocol mode.
-
-- Improved the detection of the cgroup version to support kernels where the
-  `cpu.stat` and `memory.stat` files weren't available at the cgroup root
-  level.
-
-- Fixed an issue that could cause a deadlock, leading to an unavailable cluster
-  if using blob tables and uploading multiple files in parallel.
-
-- Fixed an issue that was triggered by adding a column to a table with existing
-  generated columns with `ALTER TABLE`. It caused the `generated columns` to
-  become non-generated such that it could no longer generate the values.
+None
