@@ -212,6 +212,7 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.ShardReplicationService;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
 import io.crate.user.UserLookupService;
@@ -1047,6 +1048,8 @@ public class Node implements Closeable {
 
         toClose.add(() -> stopWatch.stop().start("logical_replication_service"));
         toClose.add(injector.getInstance(LogicalReplicationService.class));
+        toClose.add(() -> stopWatch.stop().start("logical_replication_shard_service"));
+        toClose.add(injector.getInstance(ShardReplicationService.class));
 
         toClose.add(() -> stopWatch.stop().start("snapshot_service"));
         toClose.add(injector.getInstance(SnapshotsService.class));
