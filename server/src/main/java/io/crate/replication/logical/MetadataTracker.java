@@ -21,9 +21,11 @@
 
 package io.crate.replication.logical;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.CountdownFutureCallback;
+import io.crate.exceptions.Exceptions;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
@@ -55,6 +57,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -90,7 +93,7 @@ public final class MetadataTracker implements Closeable {
 
     private void start() {
         assert isActive == false : "MetadataTracker is already started";
-        assert clusterService.state().getNodes().getLocalNode().isMasterEligibleNode() : "MetadataTracker must only be run on the master node";
+        assert clusterService.state().getNodes().isLocalNodeElectedMaster() : "MetadataTracker must only be run on the master node";
         var runnable = new RetryRunnable(
             threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
             threadPool.scheduler(),
@@ -149,41 +152,47 @@ public final class MetadataTracker implements Closeable {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Start tracking metadata for subscription {}", subscriptionName);
             }
-            getRemoteClusterState(subscriptionName, remoteClusterState -> {
-                clusterService.submitStateUpdateTask("track-metadata", new AckedClusterStateUpdateTask<>(
-                    new AckMetadataUpdateRequest(),
-                    countDownActionListener(subscriptionName, countDown)
-                ) {
-
-                    @Override
-                    public ClusterState execute(ClusterState localClusterState) throws Exception {
-                        return updateIndexMetadata(subscriptionName, localClusterState, remoteClusterState, indexScopedSettings);
-                    }
-
-                    @Override
-                    protected AcknowledgedResponse newResponse(boolean acknowledged) {
-                        return new AcknowledgedResponse(acknowledged);
-                    }
-                });
-            });
-        }
-        countDown.thenRun(() -> {
-            if (isActive) {
-                schedule();
-            }
-        });
-    }
-
-    private static ActionListener<AcknowledgedResponse> countDownActionListener(String subscriptionName,
-                                                                                CountdownFutureCallback countDown) {
-        return ActionListener.wrap(r -> {
-            if (r.isAcknowledged()) {
+            Consumer<Exception> onError = t -> {
+                LOGGER.error("Tracking metadata failed for subscription " + subscriptionName, t);
+                // Don't stop tracking of all subscription if one is failing
                 countDown.onSuccess();
+            };
+
+            ActionListener<AcknowledgedResponse> listener = ActionListener.wrap(r -> countDown.onSuccess(), onError);
+            getRemoteClusterState(subscriptionName).whenComplete(
+                (remoteClusterState, err) -> {
+                    if (err == null) {
+                        clusterService.submitStateUpdateTask("track-metadata", new AckedClusterStateUpdateTask<>(
+                            new AckMetadataUpdateRequest(),
+                            listener
+                        ) {
+
+                            @Override
+                            public ClusterState execute(ClusterState localClusterState) throws Exception {
+                                return updateIndexMetadata(subscriptionName,
+                                                           localClusterState,
+                                                           remoteClusterState,
+                                                           indexScopedSettings);
+                            }
+
+                            @Override
+                            protected AcknowledgedResponse newResponse(boolean acknowledged) {
+                                return new AcknowledgedResponse(acknowledged);
+                            }
+                        });
+                    } else {
+                        onError.accept(Exceptions.toRuntimeException(err));
+                    }
+                }
+            );
+        }
+        countDown.thenRun(
+            () -> {
+                if (isActive) {
+                    schedule();
+                }
             }
-        }, t -> {
-            LOGGER.error("Tracking metadata failed for subscription {} {}", subscriptionName, t);
-            countDown.onFailure(t);
-        });
+        );
     }
 
     private static class AckMetadataUpdateRequest extends AcknowledgedRequest<AckMetadataUpdateRequest> {
@@ -287,25 +296,21 @@ public final class MetadataTracker implements Closeable {
                !NON_REPLICATED_SETTINGS.contains(setting);
     }
 
-    private void getRemoteClusterState(String subscriptionName, Consumer<ClusterState> consumer) {
-        var client = remoteClient.apply(subscriptionName);
+    private CompletableFuture<ClusterState> getRemoteClusterState(String subscriptionName) {
+        Client client;
+        try {
+            client = remoteClient.apply(subscriptionName);
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
 
         var clusterStateRequest = client.admin().cluster().prepareState()
             .setWaitForTimeOut(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC))
             .request();
 
-        client.admin().cluster().execute(
-            ClusterStateAction.INSTANCE, clusterStateRequest, new ActionListener<>() {
-                @Override
-                public void onResponse(ClusterStateResponse clusterStateResponse) {
-                    consumer.accept(clusterStateResponse.getState());
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.error(e);
-                }
-            });
+        var future = new FutureActionListener<>(ClusterStateResponse::getState);
+        client.admin().cluster().execute(ClusterStateAction.INSTANCE, clusterStateRequest, future);
+        return future;
     }
 
     @Override
