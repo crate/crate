@@ -342,7 +342,6 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                 Strings.EMPTY_ARRAY
             );
 
-        var finalFuture = new CompletableFuture<RestoreService.RestoreCompletionResponse>();
         FutureActionListener<RestoreService.RestoreCompletionResponse, RestoreService.RestoreCompletionResponse> restoreFuture =
             FutureActionListener.newInstance();
         restoreFuture.whenComplete(
@@ -352,13 +351,13 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                         subscriptionName,
                         Subscription.State.RESTORING,
                         null
-                    ).thenAccept(ignored -> finalFuture.complete(response));
+                    ).whenComplete((ignored, ignoredErr) -> CompletableFuture.completedFuture(response));
                 } else {
                     updateSubscriptionState(
                         subscriptionName,
                         Subscription.State.FAILED,
                         "Failed restoring subscription, error=" + err.getMessage()
-                    ).whenComplete((ignored, ignoredErr) -> finalFuture.completeExceptionally(err));
+                    ).whenComplete((ignored, ignoredErr) -> CompletableFuture.failedFuture(err));
                 }
             }
         );
@@ -373,7 +372,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             }
         );
 
-        return finalFuture;
+        return restoreFuture;
     }
 
     private CompletableFuture<Boolean> afterReplicationStarted(String subscriptionName,
