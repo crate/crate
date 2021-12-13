@@ -1,0 +1,52 @@
+.. _version_4.6.6:
+
+=============
+Version 4.6.6
+=============
+
+Released on 2021-12-13.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 4.6.6.
+
+    We recommend that you upgrade to the latest 4.3 release before moving to
+    4.6.6.
+
+    A rolling upgrade from 4.5.x to 4.6.6 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.6.0` release notes for a full list of changes in the
+4.6 series.
+
+Fixes
+=====
+
+- Updated ``log4j`` to 2.15.0 to fix a security vulnerability. See `Log4Shell
+  <https://www.lunasec.io/docs/blog/log4j-zero-day/>`_ for details.
+
+- Fixed an issue that could result in an error if a client sent multiple
+  statements in a single string using the PostgreSQL simple protocol mode.
+
+- Improved the detection of the cgroup version to support kernels where the
+  `cpu.stat` and `memory.stat` files weren't available at the cgroup root
+  level.
+
+- Fixed an issue that could cause a deadlock, leading to an unavailable cluster
+  if using blob tables and uploading multiple files in parallel.
+
+- Fixed an issue that was triggered by adding a column to a table with existing
+  generated columns with `ALTER TABLE`. It caused the `generated columns` to
+  become non-generated such that it could no longer generate the values.
