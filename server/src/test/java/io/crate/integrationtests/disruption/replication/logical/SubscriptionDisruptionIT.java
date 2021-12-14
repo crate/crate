@@ -21,19 +21,30 @@
 
 package io.crate.integrationtests.disruption.replication.logical;
 
-import io.crate.integrationtests.LogicalReplicationITestCase;
-import io.crate.replication.logical.action.PublicationsStateAction;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.is;
+
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
+import io.crate.integrationtests.LogicalReplicationITestCase;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.MetadataTracker;
+import io.crate.replication.logical.action.PublicationsStateAction;
 
 @LogicalReplicationITestCase.PublisherClusterScope(numberOfNodes = 1, supportsDedicatedMasters = false)
 @LogicalReplicationITestCase.SubscriberClusterScope(numberOfNodes = 1, supportsDedicatedMasters = false)
@@ -42,6 +53,9 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
     @Test
     public void test_subscription_state_on_restore_failure() throws Exception {
         String subscriptionName = "sub1";
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas=0)");
+        createPublication("pub1", false, List.of("doc.t1"));
+
         var requestCnt = new AtomicInteger(0);
         List<MockTransportService> transportServices = new ArrayList<>();
         for (TransportService transportService : publisherCluster.getDataOrMasterNodeInstances(TransportService.class)) {
@@ -58,12 +72,9 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
             });
         }
 
+        executeOnSubscriber("CREATE SUBSCRIPTION " + subscriptionName +
+                            " CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
         try {
-            executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas=0)");
-            createPublication("pub1", false, List.of("doc.t1"));
-            executeOnSubscriber("CREATE SUBSCRIPTION " + subscriptionName +
-                                " CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
-
             assertBusy(
                 () -> {
                     var res = executeOnSubscriber(
@@ -78,5 +89,134 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
         } finally {
             transportServices.forEach(MockTransportService::clearAllRules);
         }
+    }
+
+    @Test
+    public void test_subscription_metadata_tracker_retries_on_publisher_disconnect() throws Exception {
+        String subscriptionName = "sub1";
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() +")");
+        createPublication("pub1", false, List.of("doc.t1"));
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        executeOnSubscriber("CREATE SUBSCRIPTION " + subscriptionName +
+                            " CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
+
+        // Ensure tracker started
+        assertBusy(() -> assertThat(isMetadataTrackerActive(), is(true)));
+
+        var expectedLogMessage = "Tracking of metadata failed for subscription 'sub1', will retry";
+        var mockAppender = appendLogger(expectedLogMessage, MetadataTracker.class, Level.WARN);
+
+        startDisrupting(MockTransportService::addFailToSendNoConnectRule);
+        try {
+            assertBusy(mockAppender::assertAllExpectationsMatched);
+        } finally {
+            stopAndRemoveLogger(MetadataTracker.class, mockAppender);
+            stopDisrupting();
+        }
+
+        // Ensure tracker is still running
+        assertBusy(() -> assertThat(isMetadataTrackerActive(), is(true)));
+
+        // Ensure new metadata keeps replicating
+        executeOnPublisher("ALTER TABLE doc.t1 ADD COLUMN value string");
+        assertBusy(() -> {
+            var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
+                                        " WHERE table_name = 't1'" +
+                                        " ORDER BY ordinal_position");
+            assertThat(printedTable(r.rows()), is("id\n" +
+                                                  "value\n"));
+        });
+    }
+
+    @Test
+    public void test_subscription_metadata_tracker_stops_on_unresolvable_error() throws Exception {
+        String subscriptionName = "sub1";
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() +")");
+        createPublication("pub1", false, List.of("doc.t1"));
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        executeOnSubscriber("CREATE SUBSCRIPTION " + subscriptionName +
+                            " CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
+
+        // Ensure tracker started
+        assertBusy(() -> assertThat(isMetadataTrackerActive(), is(true)));
+
+        var expectedLogMessage = "Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking";
+        var mockAppender = appendLogger(expectedLogMessage, MetadataTracker.class, Level.ERROR);
+
+        startDisrupting((subscriberTransport, publisherTransport) -> {
+            subscriberTransport.addSendBehavior(publisherTransport, (connection, requestId, action, request, options) -> {
+                if (action.equals(ClusterStateAction.NAME)) {
+                    throw new ElasticsearchException("rejected");
+                }
+                connection.sendRequest(requestId, action, request, options);
+            });
+        });
+        try {
+            assertBusy(mockAppender::assertAllExpectationsMatched);
+        } finally {
+            stopAndRemoveLogger(MetadataTracker.class, mockAppender);
+            stopDisrupting();
+        }
+
+        // Ensure tracker stopped
+        assertBusy(() -> assertThat(isMetadataTrackerActive(), is(false)));
+
+        // Ensure failure state is set correctly
+        var res = executeOnSubscriber(
+            "SELECT s.subname, s.subpublications, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
+            " FROM pg_subscription s" +
+            " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+            " ORDER BY s.subname");
+        assertThat(printedTable(res.rows()),
+                   is("sub1| [pub1]| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking\n"));
+    }
+
+    private boolean isMetadataTrackerActive() throws Exception {
+        var replicationService = subscriberCluster.getInstance(LogicalReplicationService.class);
+        Field m = replicationService.getClass().getDeclaredField("metadataTracker");
+        m.setAccessible(true);
+        MetadataTracker metadataTracker = (MetadataTracker) m.get(replicationService);
+
+        // Ensure tracker started
+        Field f1 = metadataTracker.getClass().getDeclaredField("isActive");
+        f1.setAccessible(true);
+        return (boolean) f1.get(metadataTracker);
+    }
+
+    private MockLogAppender appendLogger(String expectedLogMessage, Class<?> clazz, Level level) throws Exception {
+        MockLogAppender mockAppender = new MockLogAppender();
+        mockAppender.start();
+        mockAppender.addExpectation(new MockLogAppender.SeenEventExpectation(
+            expectedLogMessage,
+            clazz.getCanonicalName(),
+            level,
+            expectedLogMessage));
+        Logger classLogger = LogManager.getLogger(clazz);
+        Loggers.addAppender(classLogger, mockAppender);
+        return mockAppender;
+    }
+
+    private void stopAndRemoveLogger(Class<?> clazz, MockLogAppender mockAppender) {
+        Logger classLogger = LogManager.getLogger(clazz);
+        Loggers.removeAppender(classLogger, mockAppender);
+        mockAppender.stop();
+    }
+
+    private void startDisrupting(BiConsumer<MockTransportService, MockTransportService> failureBehaviour) {
+        logger.info("--> start disrupting subscriber<->publisher cluster");
+        String subscriberNode = subscriberCluster.getMasterName();
+        String publisherNode = publisherCluster.getMasterName();
+        MockTransportService subscriberTransport = (MockTransportService) subscriberCluster.getInstance(TransportService.class, subscriberNode);
+        MockTransportService publisherTransport = (MockTransportService) publisherCluster.getInstance(TransportService.class, publisherNode);
+        failureBehaviour.accept(subscriberTransport, publisherTransport);
+    }
+
+    private void stopDisrupting() {
+        logger.info("--> stop disrupting subscriber<->publisher cluster");
+        String subscriberNode = subscriberCluster.getMasterName();
+        String publisherNode = publisherCluster.getMasterName();
+        MockTransportService subscriberTransport = (MockTransportService) subscriberCluster.getInstance(TransportService.class, subscriberNode);
+        MockTransportService publisherTransport = (MockTransportService) publisherCluster.getInstance(TransportService.class, publisherNode);
+        subscriberTransport.clearOutboundRules(publisherTransport);
     }
 }
