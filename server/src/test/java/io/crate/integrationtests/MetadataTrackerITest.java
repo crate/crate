@@ -46,12 +46,9 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
     }
 
     @Test
-    @TestLogging("_root:INFO,io.crate.replication.logical:DEBUG")
     public void test_subscribed_tables_are_followed_when_schema_changed() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
-                           " number_of_replicas=0," +
-                           " \"translog.flush_threshold_size\"='64b'" +
-                           ")");
+                           defaultTableSettings() +")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
 
         createPublication("pub1", false, List.of("doc.t1"));
@@ -78,12 +75,9 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
 
     @Test
-    @TestLogging("_root:INFO,io.crate.replication.logical:DEBUG")
     public void test_subscribed_tables_are_followed_when_schema_changed_and_new_data_is_synced() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
-                           " number_of_replicas=0," +
-                           " \"translog.flush_threshold_size\"='64b'" +
-                           ")");
+                           defaultTableSettings() +")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
 
         createPublication("pub1", false, List.of("doc.t1"));
@@ -116,7 +110,6 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
     }
 
     @Test
-    @TestLogging("_root:INFO,io.crate.replication.logical:DEBUG")
     public void test_add_multiple_tables() throws Exception {
         int numberOfTables = randomIntBetween(1,10);
         var tableNames = new ArrayList<String>();
@@ -126,9 +119,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
         for (String tableName : tableNames) {
             executeOnPublisher("CREATE TABLE " + tableName + " (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
-                               " number_of_replicas=0," +
-                               " \"translog.flush_threshold_size\"='64b'" +
-                               ")");
+                               defaultTableSettings() +")");
             executeOnPublisher("INSERT INTO " + tableName + " (id) VALUES (1), (2)");
         }
 

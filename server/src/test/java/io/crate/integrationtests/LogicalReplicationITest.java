@@ -36,7 +36,6 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.Asserts.assertThrowsMatches;
@@ -46,16 +45,6 @@ import static org.hamcrest.Matchers.contains;
 
 
 public class LogicalReplicationITest extends LogicalReplicationITestCase {
-
-    private String defaultTableSettings() {
-        var joiner = new StringJoiner(",");
-        // disable replicas to avoid waiting on global checkpoint synchronization on the remote cluster
-        // which slows down test speed a lot
-        joiner.add("number_of_replicas=0");
-        // flush documents to lucene immediately so they can be seen by the changes tracker
-        joiner.add("\"translog.flush_threshold_size\"='64b'");
-        return joiner.toString();
-    }
 
     @Test
     public void test_create_publication_checks_owner_was_not_deleted_before_creation() {
