@@ -102,6 +102,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             indexScopedSettings,
             settings,
             threadPool,
+            this,
             remoteClusters::getClient,
             clusterService
         );
@@ -438,10 +439,9 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         return future;
     }
 
-    private CompletableFuture<Boolean> updateSubscriptionState(
-        final String subscriptionName,
-        final Subscription.State newState,
-        @Nullable final String failureReason) {
+    public CompletableFuture<Boolean> updateSubscriptionState(final String subscriptionName,
+                                                              final Subscription.State newState,
+                                                              @Nullable final String failureReason) {
         var oldSubscription = subscriptions().get(subscriptionName);
         if (oldSubscription == null) {
             return CompletableFuture.completedFuture(false);
