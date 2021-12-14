@@ -10,6 +10,21 @@
       <option name="RIGHT_MARGIN" value="120"/>
       <option name="CONTINUATION_INDENT_SIZE" value="4"/>
       <option name="FORMATTER_TAGS_ENABLED" value="true" />
+      <option name="IMPORT_LAYOUT_TABLE">
+        <value>
+          <package name="" withSubpackages="true" static="true" />
+          <emptyLine />
+          <package name="java" withSubpackages="true" static="false" />
+          <emptyLine />
+          <package name="javax" withSubpackages="true" static="false" />
+          <emptyLine />
+          <package name="org" withSubpackages="true" static="false" />
+          <emptyLine />
+          <package name="com" withSubpackages="true" static="false" />
+          <emptyLine />
+          <package name="" withSubpackages="true" static="false" />
+        </value>
+      </option>
       <codeStyleSettings language="JAVA">
         <option name="KEEP_LINE_BREAKS" value="true"/>
         <option name="ALIGN_MULTILINE_PARAMETERS_IN_CALLS" value="true" />
