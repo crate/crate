@@ -1039,6 +1039,10 @@ public class Node implements Closeable {
         toClose.add(nodeService);
         toClose.add(() -> stopWatch.stop().start("http"));
         toClose.add(injector.getInstance(HttpServerTransport.class));
+
+        toClose.add(() -> stopWatch.stop().start("logical_replication_service"));
+        toClose.add(injector.getInstance(LogicalReplicationService.class));
+
         toClose.add(() -> stopWatch.stop().start("snapshot_service"));
         toClose.add(injector.getInstance(SnapshotsService.class));
         toClose.add(injector.getInstance(SnapshotShardsService.class));
@@ -1051,6 +1055,10 @@ public class Node implements Closeable {
         // close filter/fielddata caches after indices
         toClose.add(injector.getInstance(IndicesStore.class));
         toClose.add(injector.getInstance(PeerRecoverySourceService.class));
+
+        toClose.add(() -> stopWatch.stop().start("remote_clusters"));
+        toClose.add(injector.getInstance(RemoteClusters.class));
+
         toClose.add(() -> stopWatch.stop().start("routing"));
         toClose.add(() -> stopWatch.stop().start("cluster"));
         toClose.add(injector.getInstance(ClusterService.class));
@@ -1064,11 +1072,6 @@ public class Node implements Closeable {
         toClose.add(injector.getInstance(GatewayService.class));
         toClose.add(() -> stopWatch.stop().start("transport"));
         toClose.add(injector.getInstance(TransportService.class));
-
-        toClose.add(() -> stopWatch.stop().start("remote_clusters"));
-        toClose.add(injector.getInstance(RemoteClusters.class));
-        toClose.add(() -> stopWatch.stop().start("logical_replication_service"));
-        toClose.add(injector.getInstance(LogicalReplicationService.class));
 
         toClose.add(() -> stopWatch.stop().start("gateway_meta_state"));
         toClose.add(injector.getInstance(GatewayMetaState.class));
