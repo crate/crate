@@ -21,17 +21,22 @@
 
 package io.crate.replication.logical;
 
-import io.crate.action.FutureActionListener;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.unit.TimeValue;
-import io.crate.concurrent.CountdownFutureCallback;
-import io.crate.exceptions.Exceptions;
-import io.crate.execution.support.RetryRunnable;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.replication.logical.metadata.Subscription;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -50,25 +55,26 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.ConnectTransportException;
+import org.elasticsearch.transport.NoSuchRemoteClusterException;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC;
+import io.crate.action.FutureActionListener;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.CountdownFutureCallback;
+import io.crate.exceptions.Exceptions;
+import io.crate.execution.support.RetryRunnable;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 
 public final class MetadataTracker implements Closeable {
 
     private static final Logger LOGGER = Loggers.getLogger(MetadataTracker.class);
 
     private final ThreadPool threadPool;
+    private final LogicalReplicationService replicationService;
     private final Function<String, Client> remoteClient;
     private final ClusterService clusterService;
     private final TimeValue pollDelay;
@@ -82,9 +88,11 @@ public final class MetadataTracker implements Closeable {
     public MetadataTracker(IndexScopedSettings indexScopedSettings,
                            Settings settings,
                            ThreadPool threadPool,
+                           LogicalReplicationService replicationService,
                            Function<String, Client> remoteClient,
                            ClusterService clusterService) {
         this.threadPool = threadPool;
+        this.replicationService = replicationService;
         this.remoteClient = remoteClient;
         this.clusterService = clusterService;
         this.pollDelay = LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION.get(settings);
@@ -112,6 +120,10 @@ public final class MetadataTracker implements Closeable {
     }
 
     private void schedule() {
+        if (!isActive) {
+            return;
+        }
+
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("Reschedule tracking metadata");
         }
@@ -147,15 +159,32 @@ public final class MetadataTracker implements Closeable {
     }
 
     private void run() {
-        var countDown = new CountdownFutureCallback(subscriptionsToTrack.size());
-        for (String subscriptionName : subscriptionsToTrack) {
+        var currentSubscriptionsToTrack = new HashSet<>(subscriptionsToTrack);
+
+        var countDown = new CountdownFutureCallback(currentSubscriptionsToTrack.size());
+        countDown.thenRun(this::schedule);
+
+        for (String subscriptionName : currentSubscriptionsToTrack) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Start tracking metadata for subscription {}", subscriptionName);
             }
-            Consumer<Exception> onError = t -> {
-                LOGGER.error("Tracking metadata failed for subscription " + subscriptionName, t);
-                // Don't stop tracking of all subscription if one is failing
-                countDown.onSuccess();
+            Consumer<Exception> onError = e -> {
+                if (shouldRetry(e) == false) {
+                    var msg = "Tracking of metadata failed for subscription '" + subscriptionName + "'" +
+                              " with unrecoverable error, stop tracking";
+                    LOGGER.error(msg, e);
+                    replicationService.updateSubscriptionState(
+                        subscriptionName,
+                        Subscription.State.FAILED,
+                        msg
+                    ).whenComplete((ignored, ignoredErr) -> {
+                        stopTracking(subscriptionName);
+                        countDown.onSuccess();
+                    });
+                } else {
+                    LOGGER.warn("Tracking of metadata failed for subscription '" + subscriptionName + "', will retry", e);
+                    countDown.onSuccess();
+                }
             };
 
             ActionListener<AcknowledgedResponse> listener = ActionListener.wrap(r -> countDown.onSuccess(), onError);
@@ -186,13 +215,12 @@ public final class MetadataTracker implements Closeable {
                 }
             );
         }
-        countDown.thenRun(
-            () -> {
-                if (isActive) {
-                    schedule();
-                }
-            }
-        );
+    }
+
+    private static boolean shouldRetry(Exception e) {
+        return e instanceof ConnectTransportException ||
+               e instanceof ElasticsearchTimeoutException ||
+               e instanceof NoSuchRemoteClusterException;
     }
 
     private static class AckMetadataUpdateRequest extends AcknowledgedRequest<AckMetadataUpdateRequest> {

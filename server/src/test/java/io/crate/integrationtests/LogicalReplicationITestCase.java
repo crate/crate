@@ -21,12 +21,30 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.protocols.postgres.PostgresNetty;
-import io.crate.replication.logical.LogicalReplicationSettings;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.SQLTransportExecutor;
-import io.crate.user.User;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
+import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
+import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
+import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.net.InetSocketAddress;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.StringJoiner;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
@@ -44,27 +62,12 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.net.InetSocketAddress;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
-import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
-import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
-import static org.hamcrest.Matchers.is;
+import io.crate.action.sql.SQLOperations;
+import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.SQLTransportExecutor;
+import io.crate.user.User;
 
 public abstract class LogicalReplicationITestCase extends ESTestCase {
 
@@ -132,22 +135,34 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
 
     @After
     public void clearCluster() throws Exception {
-        try {
-            publisherCluster.beforeIndexDeletion();
-            publisherCluster.assertSeqNos();
-            publisherCluster.assertSameDocIdsOnShards();
-            publisherCluster.assertConsistentHistoryBetweenTranslogAndLuceneIndex();
+        stopCluster(subscriberCluster);
+        subscriberCluster = null;
+        stopCluster(publisherCluster);
+        publisherCluster = null;
+    }
 
-            subscriberCluster.beforeIndexDeletion();
-            subscriberCluster.assertSeqNos();
-            subscriberCluster.assertSameDocIdsOnShards();
-            subscriberCluster.assertConsistentHistoryBetweenTranslogAndLuceneIndex();
-        } finally {
-            publisherCluster.wipe(Collections.emptySet());
-            publisherCluster.close();
-            subscriberCluster.wipe(Collections.emptySet());
-            subscriberCluster.close();
+    protected void stopCluster(InternalTestCluster cluster) throws Exception {
+        if (cluster != null) {
+            try {
+                cluster.beforeIndexDeletion();
+                cluster.assertSeqNos();
+                cluster.assertSameDocIdsOnShards();
+                cluster.assertConsistentHistoryBetweenTranslogAndLuceneIndex();
+            } finally {
+                cluster.wipe(Collections.emptySet());
+                cluster.close();
+            }
         }
+    }
+
+    public String defaultTableSettings() {
+        var joiner = new StringJoiner(",");
+        // disable replicas to avoid waiting on global checkpoint synchronization on the remote cluster
+        // which slows down test speed a lot
+        joiner.add("number_of_replicas=0");
+        // flush documents to lucene immediately so they can be seen by the changes tracker
+        joiner.add("\"translog.flush_threshold_size\"='64b'");
+        return joiner.toString();
     }
 
     public SQLResponse executeOnPublisher(String sql) {
