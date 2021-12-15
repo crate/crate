@@ -27,6 +27,7 @@ import java.io.FileNotFoundException;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -996,6 +997,8 @@ public abstract class StreamInput extends InputStream {
                 case 18:
                     final boolean isExecutorShutdown = readBoolean();
                     return (T) readStackTrace(new EsRejectedExecutionException(readOptionalString(), isExecutorShutdown), this);
+                case 19:
+                    return (T) readStackTrace(new UncheckedIOException(readOptionalString(), readException()), this);
                 default:
                     throw new IOException("no such exception for id: " + key);
             }

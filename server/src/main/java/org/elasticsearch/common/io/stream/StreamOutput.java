@@ -24,6 +24,7 @@ import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -942,6 +943,13 @@ public abstract class StreamOutput extends OutputStream {
                 writeVInt(18);
                 writeBoolean(((EsRejectedExecutionException) throwable).isExecutorShutdown());
                 writeCause = false;
+            } else if (throwable instanceof UncheckedIOException) {
+                if (version.onOrAfter(Version.V_4_7_0)) {
+                    writeVInt(19);
+                } else {
+                    // Fallback to implicit IOException, it should have the same semantics
+                    writeVInt(17);
+                }
             } else {
                 final ElasticsearchException ex;
                 if (throwable instanceof ElasticsearchException && ElasticsearchException.isRegistered(throwable.getClass(), version)) {
