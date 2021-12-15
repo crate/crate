@@ -155,6 +155,8 @@ import io.crate.common.Booleans;
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.Exceptions;
+
 import java.util.HashSet;
 
 public class IndexShard extends AbstractIndexShardComponent implements IndicesClusterStateService.Shard {
@@ -1432,7 +1434,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     // mainly for MapperParsingException and Failure to detect xcontent
                     logger.info("ignoring recovery of a corrupt translog entry", e);
                 } else {
-                    throw ExceptionsHelper.convertToRuntime(e);
+                    throw Exceptions.toRuntimeException(e);
                 }
             }
         }
