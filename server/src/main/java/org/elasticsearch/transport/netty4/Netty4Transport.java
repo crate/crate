@@ -62,6 +62,7 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.TransportSettings;
@@ -279,7 +280,7 @@ public class Netty4Transport extends TcpTransport {
         @Override
         protected void initChannel(Channel ch) throws Exception {
             maybeInjectSSL(ch);
-            ch.pipeline().addLast("logging", loggingHandler);
+           // ch.pipeline().addLast("logging", loggingHandler);
             // using a dot as a prefix means this cannot come from any settings parsed
             ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, Netty4Transport.this));
         }
@@ -314,8 +315,10 @@ public class Netty4Transport extends TcpTransport {
             SSLMode sslMode = SslSettings.SSL_TRANSPORT_MODE.get(settings);
             if (sslMode == SSLMode.ON) {
                 SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
-                SslHandler sslHandler = sslContext.newHandler(ch.alloc());
-                ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME, sslHandler);
+                ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME,
+                    new LoggingSslHandler(sslContext.newEngine(ch.alloc()), "server-ssl-handler")
+                );
+
             }
 
             if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings) && sslMode != SSLMode.OFF && sslMode != SSLMode.LEGACY) {
@@ -325,7 +328,9 @@ public class Netty4Transport extends TcpTransport {
             Netty4TcpChannel nettyTcpChannel = new Netty4TcpChannel(ch, true, name, ch.newSucceededFuture());
             ch.attr(CHANNEL_KEY).set(nettyTcpChannel);
             serverAcceptedChannel(nettyTcpChannel);
-            ch.pipeline().addLast("logging", loggingHandler);
+            if (Node.NODE_NAME_SETTING.get(settings).equals("node_s0")) {
+                ch.pipeline().addLast("logging", loggingHandler);
+            }
             ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, Netty4Transport.this));
         }
 

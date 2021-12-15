@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.mockito.ArgumentMatchers.isNull;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,6 +30,7 @@ import javax.net.ssl.SSLContext;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.transport.Transport;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -84,9 +84,12 @@ public class SSLTrustedZoneITest extends SQLIntegrationTestCase {
 
 
     @Test
-    @AwaitsFix(bugUrl = "https://github.com/crate/crate/issues/11954")
+    //@AwaitsFix(bugUrl = "https://github.com/crate/crate/issues/11954")
+    //@TestLogging("org.elasticsearch.transport.netty4:TRACE")
+    // too much noise with trace - all relevant custom messages logged with INFO to differentiate from tons of existing messages
     public void test_switch_to_plaintext_enabled_downgrades_to_plaintext() throws Exception {
-        execute("select count(*) from sys.nodes");
+
+        /*execute("select count(*) from sys.nodes");
         assertThat(response.rows()[0][0], is(2L));
 
         SslContextProvider sslContextProvider = new SslContextProvider(sslSettings);
@@ -111,6 +114,6 @@ public class SSLTrustedZoneITest extends SQLIntegrationTestCase {
             var address = publishAddress.address();
             ProbeResult probeResult = ConnectionTest.probeAfterHandshake(sslContext, address);
             assertThat(probeResult, is(ProbeResult.SSL_AVAILABLE));
-        }
+        }*/
     }
 }

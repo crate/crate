@@ -23,6 +23,7 @@ package io.crate.protocols;
 
 import io.netty.channel.Channel;
 import io.netty.handler.ssl.SslHandler;
+import org.elasticsearch.transport.netty4.LoggingSslHandler;
 
 import javax.annotation.Nullable;
 import javax.naming.InvalidNameException;
@@ -47,7 +48,7 @@ public final class SSL {
 
     @Nullable
     public static SSLSession getSession(Channel channel) {
-        SslHandler sslHandler = channel.pipeline().get(SslHandler.class);
+        LoggingSslHandler sslHandler = channel.pipeline().get(LoggingSslHandler.class);
         if (sslHandler != null) {
             return sslHandler.engine().getSession();
         }

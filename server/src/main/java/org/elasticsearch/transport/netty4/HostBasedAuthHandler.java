@@ -84,21 +84,23 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
                 // This handler comes after SSLHandler, so handshake already happened
                 // and after that certificate was validated by authMethod.authenticate call above.
                 // switch_to_plaintext flag in combination with method cert indicates that it's safe to downgrade to plaintext.
-                SslHandler sslHandler = (SslHandler) ctx.pipeline().get(SERVER_SSL_HANDLER_NAME);
+                LoggingSslHandler sslHandler = (LoggingSslHandler) ctx.pipeline().get(SERVER_SSL_HANDLER_NAME);
                 if (sslHandler != null) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("SSL switch to plaintext enabled, node {} switching from SSL to plaintext",
+                        LOGGER.info("SSL switch to plaintext enabled, node {} switching from SSL to plaintext",
                             ((InetSocketAddress) channel.localAddress()).getHostName()
                         );
-                    }
                     ctx.pipeline().remove(sslHandler);
+
                 } else {
                     closeAndThrowException(ctx, msg, new IllegalStateException("Auth method cert and switch_to_plaintext set " +
                         "but SSL in not configured for transport protocol on node: " + ((InetSocketAddress) channel.localAddress()).getHostName()));
                 }
             }
 
-            super.channelRead(ctx, msg);
+                LOGGER.info("propagating order shuffle only for node1, node0 propagates by remove? ctx = {}", ctx);
+
+                super.channelRead(ctx, msg);
+
         } catch (Exception e) {
             closeAndThrowException(ctx, msg, e);
         }

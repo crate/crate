@@ -23,8 +23,11 @@ package org.elasticsearch.transport.netty4;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
 import io.netty.handler.ssl.OptionalSslHandler;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.util.AttributeKey;
+import org.apache.commons.math3.analysis.function.Log;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -62,12 +65,10 @@ public class AdaptiveSslHandler extends SslHandler {
             // Plaintext is coming from a remote peer (server)
             // as it downgraded SSL to plaintext (based on HBA config).
             // AdaptiveSslHandler is not needed anymore.
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("node {} got a plaintext response from {}",
+                LOGGER.info("node {} got a plaintext response from {}",
                     ((InetSocketAddress) ctx.channel().localAddress()).getHostName(),
                     ((InetSocketAddress) ctx.channel().remoteAddress()).getHostName()
                 );
-            }
             ctx.pipeline().remove(this);
         }
     }

@@ -25,6 +25,9 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import io.netty.handler.ssl.ApplicationProtocolNames;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -46,6 +49,7 @@ import java.util.Queue;
  */
 final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
 
+    private static final Logger LOGGER = LogManager.getLogger(Netty4MessageChannelHandler.class);
     private final Netty4Transport transport;
 
     private final Queue<WriteOperation> queuedWrites = new ArrayDeque<>();
@@ -70,6 +74,7 @@ final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        LOGGER.info("READ in the last dispatcher handler {}", ctx);
         assert Transports.assertTransportThread();
         assert msg instanceof ByteBuf : "Expected message type ByteBuf, found: " + msg.getClass();
 
@@ -96,6 +101,7 @@ final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+        LOGGER.info("WRITE in the last dispatcher handler {}", ctx);
         assert msg instanceof ByteBuf;
         final boolean queued = queuedWrites.offer(new WriteOperation((ByteBuf) msg, promise));
         assert queued;
