@@ -21,12 +21,13 @@ package org.elasticsearch.gateway;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.common.io.IOUtils;
+import io.crate.exceptions.Exceptions;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -497,14 +498,14 @@ public class GatewayMetaState implements Closeable {
                         throw new AlreadyClosedException("persisted state has been closed");
                     }
                 } catch (Exception e) {
-                    throw ExceptionsHelper.convertToRuntime(e);
+                    throw Exceptions.toRuntimeException(e);
                 }
             }
         }
 
         private void handleExceptionOnWrite(Exception e) {
             writeNextStateFully = true;
-            throw ExceptionsHelper.convertToRuntime(e);
+            throw Exceptions.toRuntimeException(e);
         }
 
         @Override

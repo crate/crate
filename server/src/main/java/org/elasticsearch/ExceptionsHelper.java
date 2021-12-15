@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.rest.RestStatus;
 
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -45,13 +46,6 @@ import java.util.stream.Collectors;
 public final class ExceptionsHelper {
 
     private static final Logger LOGGER = LogManager.getLogger(ExceptionsHelper.class);
-
-    public static RuntimeException convertToRuntime(Exception e) {
-        if (e instanceof RuntimeException) {
-            return (RuntimeException) e;
-        }
-        return new ElasticsearchException(e);
-    }
 
     public static ElasticsearchException convertToElastic(Exception e) {
         if (e instanceof ElasticsearchException) {
