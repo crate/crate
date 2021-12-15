@@ -2788,6 +2788,46 @@ function supports arrays of any of the :ref:`primitive types
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-array_position:
+
+``array_position(anycompatiblearray, anycompatible [, integer ] ) → integer``
+-----------------------------------------------------------------------------
+
+The ``array_position`` function returns the subscript of the first
+occurrence of the second argument in the ``array``, or ``NULL`` if it's not
+present. If the third argument is given, the search begins at that subscript.
+The third argument is ignored if it's null or invalid value out of ``array``
+range. It is also possible to search for ``NULL`` values.
+
+::
+
+    cr> SELECT array_position([1,3,7,4], 7) as position;
+    +----------+
+    | position |
+    +----------+
+    |        3 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+Begin the search from given subscript (optional).
+
+::
+
+    cr> SELECT array_position([1,3,7,4], 7, 2) as position;
+    +----------+
+    | position |
+    +----------+
+    |        3 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+.. TIP::
+    When searching for the existence of an ``array`` element, using the
+    :ref:`ANY <sql_any_array_comparison>` operator inside the ``WHERE``
+    clause is much more efficient as it can utilize the index whereas
+    ``array_position`` won't even when used inside the ``WHERE`` clause.
+
+
 .. _scalar-array_max:
 
 ``array_max(array)``

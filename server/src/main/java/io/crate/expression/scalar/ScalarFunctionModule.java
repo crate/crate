@@ -187,6 +187,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         ArraySumFunction.register(this);
         ArrayAvgFunction.register(this);
         ArraySliceFunction.register(this);
+        ArrayPositionFunction.register(this);
 
         CoalesceFunction.register(this);
         GreatestFunction.register(this);
