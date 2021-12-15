@@ -46,6 +46,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.env.Environment.PATH_DATA_SETTING;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
@@ -110,13 +111,13 @@ public class NodeSettingsTest extends ESTestCase {
      * The default cluster name is "crate" if not set differently in crate settings
      */
     @Test
-    public void testClusterName() {
+    public void testClusterName() throws Exception {
         try (Session session = sqlOperations.newSystemSession()) {
             SQLResponse response = SQLTransportExecutor.execute(
                 "select name from sys.cluster",
                 new Object[0],
                 session)
-                .actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+                .get(SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
             assertThat(response.rows()[0][0], is("crate"));
         }
     }
