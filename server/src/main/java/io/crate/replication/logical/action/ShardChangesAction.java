@@ -197,7 +197,6 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
                                 );
                                 listener.onResponse(response);
                             } else {
-                                LOGGER.error("Error occurred while waiting for advanced globalCheckpoint", e);
                                 listener.onFailure(e);
                             }
                         }
