@@ -56,6 +56,10 @@ None
 Changes
 =======
 
+- Added the :ref:`array_position <scalar-array_position>` function which 
+  returns the position of the first occurrence of the provided value in an 
+  array. A starting position can be optionally provided.
+
 - Optimized the casting from string to arrays by avoiding an unnecessary string
   to byte conversion.
 
