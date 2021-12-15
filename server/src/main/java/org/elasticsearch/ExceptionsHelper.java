@@ -60,26 +60,6 @@ public final class ExceptionsHelper {
         return RestStatus.INTERNAL_SERVER_ERROR;
     }
 
-    public static Throwable unwrapCause(Throwable t) {
-        int counter = 0;
-        Throwable result = t;
-        while (result instanceof ElasticsearchWrapperException) {
-            if (result.getCause() == null) {
-                return result;
-            }
-            if (result.getCause() == result) {
-                return result;
-            }
-            if (counter++ > 10) {
-                // dear god, if we got more than 10 levels down, WTF? just bail
-                LOGGER.warn("Exception cause unwrapping ran for 10 levels...", t);
-                return result;
-            }
-            result = result.getCause();
-        }
-        return result;
-    }
-
     public static String stackTrace(Throwable e) {
         StringWriter stackTraceStringWriter = new StringWriter();
         PrintWriter printWriter = new PrintWriter(stackTraceStringWriter);

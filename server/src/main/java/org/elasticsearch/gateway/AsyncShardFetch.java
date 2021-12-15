@@ -23,7 +23,6 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.nodes.BaseNodeResponse;
@@ -36,6 +35,8 @@ import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
+
+import io.crate.exceptions.SQLExceptions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -212,7 +213,7 @@ public abstract class AsyncShardFetch<T extends BaseNodeResponse> implements Rel
                             shardId, nodeEntry.getNodeId(), type, nodeEntry.getFetchingRound(), fetchingRound);
                     } else if (nodeEntry.isFailed() == false) {
                         // if the entry is there, for the right fetching round and not marked as failed already, process it
-                        Throwable unwrappedCause = ExceptionsHelper.unwrapCause(failure.getCause());
+                        Throwable unwrappedCause = SQLExceptions.unwrap(failure.getCause());
                         // if the request got rejected or timed out, we need to try it again next time...
                         if (unwrappedCause instanceof EsRejectedExecutionException ||
                             unwrappedCause instanceof ReceiveTimeoutTransportException ||

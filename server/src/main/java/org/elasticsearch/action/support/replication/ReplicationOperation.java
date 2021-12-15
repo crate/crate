@@ -40,6 +40,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.rest.RestStatus;
 
+import io.crate.exceptions.SQLExceptions;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -237,7 +239,7 @@ public class ReplicationOperation<
     }
 
     private void onNoLongerPrimary(Exception failure) {
-        final Throwable cause = ExceptionsHelper.unwrapCause(failure);
+        final Throwable cause = SQLExceptions.unwrap(failure);
         final boolean nodeIsClosing = cause instanceof NodeClosedException;
         final String message;
         if (nodeIsClosing) {

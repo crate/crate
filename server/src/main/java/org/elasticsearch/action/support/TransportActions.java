@@ -20,17 +20,18 @@
 package org.elasticsearch.action.support;
 
 import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.UnavailableShardsException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 
+import io.crate.exceptions.SQLExceptions;
+
 public class TransportActions {
 
     public static boolean isShardNotAvailableException(final Throwable e) {
-        final Throwable actual = ExceptionsHelper.unwrapCause(e);
+        final Throwable actual = SQLExceptions.unwrap(e);
         return (actual instanceof ShardNotFoundException ||
                 actual instanceof IndexNotFoundException ||
                 actual instanceof IllegalIndexShardStateException ||
