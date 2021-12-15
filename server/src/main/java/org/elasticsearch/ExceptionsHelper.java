@@ -24,7 +24,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexFormatTooNewException;
 import org.apache.lucene.index.IndexFormatTooOldException;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.rest.RestStatus;
 
@@ -153,20 +152,6 @@ public final class ExceptionsHelper {
             } while ((t = t.getCause()) != null);
         }
         return null;
-    }
-
-    /**
-     * Throws the specified exception. If null if specified then <code>true</code> is returned.
-     */
-    public static boolean reThrowIfNotNull(@Nullable Throwable e) {
-        if (e != null) {
-            if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
-        return true;
     }
 
     @SuppressWarnings("unchecked")

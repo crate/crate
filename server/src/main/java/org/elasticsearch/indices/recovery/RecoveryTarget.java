@@ -55,6 +55,8 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.index.translog.Translog;
 
+import io.crate.exceptions.Exceptions;
+
 /**
  * Represents a recovery where the current node is the target node of the recovery. To track recoveries in a central place, instances of
  * this class are created through {@link RecoveriesCollection}.
@@ -372,11 +374,12 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                 if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                     throw new MapperException("mapping updates are not allowed [" + operation + "]");
                 }
-                if (result.getFailure() != null) {
+                Exception failure = result.getFailure();
+                if (failure != null) {
                     if (Assertions.ENABLED && result.getFailure() instanceof MapperException == false) {
                         throw new AssertionError("unexpected failure while replicating translog entry", result.getFailure());
                     }
-                    ExceptionsHelper.reThrowIfNotNull(result.getFailure());
+                    Exceptions.rethrowRuntimeException(failure);
                 }
             }
             // update stats only after all operations completed (to ensure that mapping updates don't mess with stats)

@@ -18,10 +18,11 @@
  */
 package org.elasticsearch.test.disruption;
 
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.Exceptions;
+
 import org.elasticsearch.test.InternalTestCluster;
 
 import java.util.Random;
@@ -114,7 +115,7 @@ public class SlowClusterStateProcessing extends SingleNodeDisruption {
                     }
                     countDownLatch.countDown();
                 } catch (InterruptedException e) {
-                    ExceptionsHelper.reThrowIfNotNull(e);
+                    Exceptions.rethrowRuntimeException(e);
                 }
             }, (source, e) -> countDownLatch.countDown(),
             Priority.IMMEDIATE);

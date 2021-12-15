@@ -21,7 +21,8 @@ package org.elasticsearch.threadpool;
 
 import io.crate.common.SuppressForbidden;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.ExceptionsHelper;
+import io.crate.exceptions.Exceptions;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsAbortPolicy;
@@ -260,7 +261,10 @@ public interface Scheduler {
             if (t != null) return;
             // Scheduler only allows Runnable's so we expect no checked exceptions here. If anyone uses submit directly on `this`, we
             // accept the wrapped exception in the output.
-            ExceptionsHelper.reThrowIfNotNull(EsExecutors.rethrowErrors(r));
+            Throwable error = EsExecutors.rethrowErrors(r);
+            if (error != null) {
+                Exceptions.rethrowRuntimeException(error);
+            }
         }
     }
 }
