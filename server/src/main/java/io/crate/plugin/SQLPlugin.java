@@ -30,8 +30,6 @@ import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 
-
-import io.crate.license.License;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -44,7 +42,6 @@ import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.IndexModule;
@@ -56,8 +53,6 @@ import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.auth.AuthSettings;
 import io.crate.auth.AuthenticationModule;
 import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
 import io.crate.cluster.gracefulstop.DecommissioningService;
@@ -72,6 +67,7 @@ import io.crate.expression.predicate.PredicateModule;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.license.License;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
@@ -80,8 +76,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetadataBlobModule;
 import io.crate.metadata.information.MetadataInformationModule;
 import io.crate.metadata.pgcatalog.PgCatalogModule;
-import io.crate.metadata.settings.AnalyzerSettings;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetadataSysModule;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetadataIndexUpgrader;
@@ -89,7 +83,6 @@ import io.crate.metadata.view.ViewsMetadata;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
-import io.crate.protocols.ssl.SslSettings;
 import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.user.UserManagementModule;
 import io.crate.user.metadata.UsersMetadata;
@@ -104,37 +97,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     public SQLPlugin(Settings settings) {
         this.settings = settings;
         this.indexEventListenerProxy = new IndexEventListenerProxy();
-    }
-
-    @Override
-    public List<Setting<?>> getSettings() {
-        List<Setting<?>> settings = new ArrayList<>();
-        settings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTING_GROUP);
-        settings.add(SQLOperations.NODE_READ_ONLY_SETTING);
-
-        // Postgres settings are node settings
-        settings.add(PostgresNetty.PSQL_ENABLED_SETTING);
-        settings.add(PostgresNetty.PSQL_PORT_SETTING);
-
-        // Authentication settings are node settings
-        settings.add(AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING);
-        settings.add(AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING);
-        settings.add(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER);
-
-        // Settings for SSL
-        settings.add(SslSettings.SSL_TRANSPORT_MODE);
-        settings.add(SslSettings.SSL_HTTP_ENABLED);
-        settings.add(SslSettings.SSL_PSQL_ENABLED);
-        settings.add(SslSettings.SSL_TRUSTSTORE_FILEPATH);
-        settings.add(SslSettings.SSL_TRUSTSTORE_PASSWORD);
-        settings.add(SslSettings.SSL_KEYSTORE_FILEPATH);
-        settings.add(SslSettings.SSL_KEYSTORE_PASSWORD);
-        settings.add(SslSettings.SSL_KEYSTORE_KEY_PASSWORD);
-        settings.add(SslSettings.SSL_RESOURCE_POLL_INTERVAL);
-
-        settings.addAll(CrateSettings.CRATE_CLUSTER_SETTINGS);
-
-        return settings;
     }
 
     @Override

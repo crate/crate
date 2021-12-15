@@ -103,7 +103,7 @@ public class SysClusterTableInfo {
         //
         //
         // To make it easier to build the objects
-        var rootNode = toTree(CrateSettings.BUILT_IN_SETTINGS);
+        var rootNode = toTree(CrateSettings.EXPOSED_SETTINGS);
 
         for (var child : rootNode.children) {
             addSetting(crateSettings, settingsBuilder, child);
