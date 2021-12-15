@@ -21,32 +21,35 @@
 
 package io.crate.integrationtests;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.UUID;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
+
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.exceptions.JobKilledException;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.exceptions.TaskMissing;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.plugin.CrateTestingPlugin;
-import org.elasticsearch.action.ActionFuture;
+
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import javax.annotation.Nullable;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.UUID;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.TimeUnit;
-
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.TaskMissing;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.plugin.CrateTestingPlugin;
 
 public class KillIntegrationTest extends SQLIntegrationTestCase {
 
@@ -81,7 +84,7 @@ public class KillIntegrationTest extends SQLIntegrationTestCase {
 
     private void assertGotCancelled(final String statement, @Nullable final Object[] params, boolean killAll) throws Exception {
         try {
-            ActionFuture<SQLResponse> future = sqlExecutor.execute(statement, params);
+            CompletableFuture<SQLResponse> future = sqlExecutor.execute(statement, params);
             String jobId = waitForJobEntry(statement);
             if (jobId == null) {
                 // query finished too fast

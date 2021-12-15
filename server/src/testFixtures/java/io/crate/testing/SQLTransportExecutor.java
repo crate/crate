@@ -44,7 +44,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -56,17 +59,15 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.support.AdapterActionFuture;
 import org.elasticsearch.action.support.PlainActionFuture;
-import org.elasticsearch.action.support.PlainListenableActionFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -77,6 +78,7 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.util.PGobject;
 
+import io.crate.action.FutureActionListener;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
@@ -91,8 +93,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.protocols.postgres.parser.PgArrayParser;
-import io.crate.protocols.postgres.types.BitType;
 import io.crate.protocols.postgres.types.PGArray;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -186,13 +186,10 @@ public class SQLTransportExecutor {
                 sessionList);
         }
         try {
-            if (!sessionList.isEmpty()) {
-                try (Session session = newSession()) {
-                    sessionList.forEach((setting) -> exec(setting, session));
-                    return execute(stmt, args, session).actionGet(timeout);
-                }
+            try (Session session = newSession()) {
+                sessionList.forEach((setting) -> exec(setting, session));
+                return FutureUtils.get(execute(stmt, args, session), timeout.millis(), TimeUnit.MILLISECONDS);
             }
-            return execute(stmt, args).actionGet(timeout);
         } catch (RuntimeException e) {
             var cause = e.getCause();
             // ActionListener.onFailure takes `Exception` as argument instead of `Throwable`.
@@ -211,21 +208,10 @@ public class SQLTransportExecutor {
         return clientProvider.pgUrl();
     }
 
-    public ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args) {
+    public CompletableFuture<SQLResponse> execute(String stmt, @Nullable Object[] args) {
         Session session = newSession();
-        ListenableActionFuture<SQLResponse> execute = execute(stmt, args, session);
-        execute.addListener(new ActionListener<>() {
-            @Override
-            public void onResponse(SQLResponse sqlResponse) {
-                session.close();
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                session.close();
-            }
-        });
-        return execute;
+        CompletableFuture<SQLResponse> result = execute(stmt, args, session);
+        return result.whenComplete((res, err) -> session.close());
     }
 
     public Session newSession() {
@@ -235,19 +221,22 @@ public class SQLTransportExecutor {
         );
     }
 
-    public SQLResponse exec(String statement, Session session) {
-        return execute(statement, null, session).actionGet(REQUEST_TIMEOUT);
+    public SQLResponse exec(String statement, @Nullable Object[] args, Session session) {
+        return FutureUtils.get(execute(statement, args, session), REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
     }
 
-    public static ListenableActionFuture<SQLResponse> execute(String stmt,
-                                                              @Nullable Object[] args,
-                                                              Session session) {
-        PlainListenableActionFuture<SQLResponse> actionFuture = PlainListenableActionFuture.newListenableFuture();
-        var listener = ActionListener.delegateResponse(actionFuture, (delegate, failure) -> {
-            delegate.onFailure(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, failure));
+    public SQLResponse exec(String statement, Session session) {
+        return exec(statement, null, session);
+    }
+
+    public static CompletableFuture<SQLResponse> execute(String stmt,
+                                                         @Nullable Object[] args,
+                                                         Session session) {
+        FutureActionListener<SQLResponse, SQLResponse> future = FutureActionListener.newInstance();
+        execute(stmt, args, future, session);
+        return future.exceptionally(err -> {
+            throw SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, err);
         });
-        execute(stmt, args, listener, session);
-        return actionFuture;
     }
 
     private static void execute(String stmt,
