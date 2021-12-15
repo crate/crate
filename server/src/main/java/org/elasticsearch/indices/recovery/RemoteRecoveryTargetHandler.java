@@ -20,11 +20,12 @@
 package org.elasticsearch.indices.recovery;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.RateLimiter;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.RetryableAction;
@@ -267,7 +268,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
 
     private static boolean retryableException(Exception e) {
         if (e instanceof RemoteTransportException) {
-            final Throwable cause = ExceptionsHelper.unwrapCause(e);
+            final Throwable cause = SQLExceptions.unwrap(e);
             return cause instanceof CircuitBreakingException ||
                 cause instanceof EsRejectedExecutionException;
         }

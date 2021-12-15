@@ -27,6 +27,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchWrapperException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -58,6 +59,7 @@ public class SQLExceptions {
         throwable instanceof UncheckedExecutionException ||
         throwable instanceof CompletionException ||
         throwable instanceof UncategorizedExecutionException ||
+        throwable instanceof ElasticsearchWrapperException ||
         throwable instanceof ExecutionException;
 
     public static Throwable unwrap(@Nonnull Throwable t, @Nullable Predicate<Throwable> additionalUnwrapCondition) {

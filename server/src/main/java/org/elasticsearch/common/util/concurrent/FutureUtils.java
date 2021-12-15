@@ -19,15 +19,18 @@
 
 package org.elasticsearch.common.util.concurrent;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchTimeoutException;
-import javax.annotation.Nullable;
-import io.crate.common.SuppressForbidden;
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.ElasticsearchTimeoutException;
+
+import io.crate.common.SuppressForbidden;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 
 public class FutureUtils {
 
@@ -86,21 +89,6 @@ public class FutureUtils {
     }
 
     public static RuntimeException rethrowExecutionException(ExecutionException e) {
-        if (e.getCause() instanceof ElasticsearchException) {
-            ElasticsearchException esEx = (ElasticsearchException) e.getCause();
-            return unwrapEsException(esEx);
-        } else if (e.getCause() instanceof RuntimeException) {
-            return (RuntimeException) e.getCause();
-        } else {
-            return new UncategorizedExecutionException("Failed execution", e);
-        }
-    }
-
-    public static RuntimeException unwrapEsException(ElasticsearchException esEx) {
-        Throwable root = esEx.unwrapCause();
-        if (root instanceof ElasticsearchException || root instanceof RuntimeException) {
-            return (RuntimeException) root;
-        }
-        return new UncategorizedExecutionException("Failed execution", root);
+        return Exceptions.toRuntimeException(SQLExceptions.unwrap(e));
     }
 }

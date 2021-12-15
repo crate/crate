@@ -19,7 +19,6 @@
 
 package org.elasticsearch.cluster.action.index;
 
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
@@ -29,12 +28,13 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.Mapping;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * Called by shards in the cluster when their mapping was dynamically updated and it needs to be updated
@@ -80,12 +80,8 @@ public class MappingUpdatedAction {
 
                 @Override
                 public void onFailure(Exception e) {
-                    listener.onFailure(unwrapException(e));
+                    listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(e)));
                 }
             });
-    }
-
-    private static Exception unwrapException(Exception cause) {
-        return cause instanceof ElasticsearchException ? FutureUtils.unwrapEsException((ElasticsearchException) cause) : cause;
     }
 }

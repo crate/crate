@@ -20,6 +20,8 @@
 package org.elasticsearch.indices.recovery;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -27,7 +29,6 @@ import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.RateLimiter;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ChannelActionListener;
 import org.elasticsearch.cluster.ClusterState;
@@ -227,7 +228,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                     "[{}][{}] Got exception on recovery", request.shardId().getIndex().getName(),
                     request.shardId().id()), e);
             }
-            Throwable cause = ExceptionsHelper.unwrapCause(e);
+            Throwable cause = SQLExceptions.unwrap(e);
             if (cause instanceof CancellableThreads.ExecutionCancelledException) {
                 // this can also come from the source wrapped in a RemoteTransportException
                 onGoingRecoveries.failRecovery(recoveryId, new RecoveryFailedException(request,
@@ -240,7 +241,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                 cause = cause.getCause();
             }
             // do it twice, in case we have double transport exception
-            cause = ExceptionsHelper.unwrapCause(cause);
+            cause = SQLExceptions.unwrap(cause);
             if (cause instanceof RecoveryEngineException) {
                 // unwrap an exception that was thrown as part of the recovery
                 cause = cause.getCause();

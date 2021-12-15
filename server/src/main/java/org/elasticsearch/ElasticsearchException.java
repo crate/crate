@@ -20,6 +20,8 @@
 package org.elasticsearch;
 
 import io.crate.common.CheckedFunction;
+import io.crate.exceptions.SQLExceptions;
+
 import org.elasticsearch.action.admin.indices.alias.AliasesNotFoundException;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -227,7 +229,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
      * @see ExceptionsHelper#unwrapCause(Throwable)
      */
     public Throwable unwrapCause() {
-        return ExceptionsHelper.unwrapCause(this);
+        return SQLExceptions.unwrap(this);
     }
 
     /**
@@ -299,7 +301,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        Throwable ex = ExceptionsHelper.unwrapCause(this);
+        Throwable ex = SQLExceptions.unwrap(this);
         if (ex != this) {
             generateThrowableXContent(builder, params, this);
         } else {
@@ -509,7 +511,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
      * be parsed back using the {@link #fromXContent(XContentParser)} method.
      */
     public static void generateThrowableXContent(XContentBuilder builder, Params params, Throwable t) throws IOException {
-        t = ExceptionsHelper.unwrapCause(t);
+        t = SQLExceptions.unwrap(t);
 
         if (t instanceof ElasticsearchException) {
             ((ElasticsearchException) t).toXContent(builder, params);
@@ -602,7 +604,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
      * is returned.
      */
     public static ElasticsearchException[] guessRootCauses(Throwable t) {
-        Throwable ex = ExceptionsHelper.unwrapCause(t);
+        Throwable ex = SQLExceptions.unwrap(t);
         if (ex instanceof ElasticsearchException) {
             // ElasticsearchException knows how to guess its own root cause
             return ((ElasticsearchException) ex).guessRootCauses();
