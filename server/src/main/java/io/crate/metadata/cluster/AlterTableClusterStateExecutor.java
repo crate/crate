@@ -26,6 +26,7 @@ import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_
 import static org.elasticsearch.index.IndexSettings.same;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,7 +39,6 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingClusterStateUpdateRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsClusterStateUpdateRequest;
@@ -460,7 +460,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 indicesService.verifyIndexMetadata(updatedMetadata, updatedMetadata);
             }
         } catch (IOException ex) {
-            throw ExceptionsHelper.convertToElastic(ex);
+            throw new UncheckedIOException(ex);
         }
         return updatedState;
     }

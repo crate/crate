@@ -21,7 +21,6 @@ package org.elasticsearch.cluster.metadata;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsClusterStateUpdateRequest;
@@ -48,6 +47,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.ShardLimitValidator;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
@@ -245,7 +245,7 @@ public class MetadataUpdateSettingsService {
                                 indicesService.verifyIndexMetadata(updatedMetadata, updatedMetadata);
                             }
                         } catch (IOException ex) {
-                            throw ExceptionsHelper.convertToElastic(ex);
+                            throw new UncheckedIOException(ex);
                         }
                         return updatedState;
                     }

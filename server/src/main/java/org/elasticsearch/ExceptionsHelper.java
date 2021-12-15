@@ -47,13 +47,6 @@ public final class ExceptionsHelper {
 
     private static final Logger LOGGER = LogManager.getLogger(ExceptionsHelper.class);
 
-    public static ElasticsearchException convertToElastic(Exception e) {
-        if (e instanceof ElasticsearchException) {
-            return (ElasticsearchException) e;
-        }
-        return new ElasticsearchException(e);
-    }
-
     public static RestStatus status(Throwable t) {
         if (t != null) {
             if (t instanceof ElasticsearchException) {

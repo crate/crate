@@ -25,6 +25,7 @@ import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnl
 import static io.crate.execution.dml.upsert.InsertSourceGen.SOURCE_WRITERS;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,7 +36,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -324,7 +324,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source, SOURCE_WRITERS));
             }
         } catch (IOException e) {
-            throw ExceptionsHelper.convertToElastic(e);
+            throw new UncheckedIOException(e);
         }
         item.source(rawSource);
 
