@@ -21,8 +21,11 @@
 
 package io.crate.blob.v2;
 
-import io.crate.plugin.IndexEventListenerProxy;
-import org.elasticsearch.test.ESTestCase;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.concurrent.TimeUnit;
+
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
@@ -32,17 +35,13 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ClusterServiceUtils;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.concurrent.TimeUnit;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class BlobIndicesServiceTest extends ESTestCase {
 
@@ -54,11 +53,7 @@ public class BlobIndicesServiceTest extends ESTestCase {
     public void init() throws Exception {
         threadPool = new TestThreadPool("dummy");
         clusterService = ClusterServiceUtils.createClusterService(threadPool);
-        blobIndicesService = new BlobIndicesService(
-            Settings.EMPTY,
-            clusterService,
-            new IndexEventListenerProxy()
-        );
+        blobIndicesService = new BlobIndicesService(Settings.EMPTY, clusterService);
     }
 
     @After

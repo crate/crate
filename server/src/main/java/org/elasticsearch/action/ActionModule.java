@@ -101,6 +101,13 @@ import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
+import io.crate.blob.DeleteBlobAction;
+import io.crate.blob.PutChunkAction;
+import io.crate.blob.StartBlobAction;
+import io.crate.blob.TransportDeleteBlobAction;
+import io.crate.blob.TransportPutChunkAction;
+import io.crate.blob.TransportStartBlobAction;
+
 /**
  * Builds and binds the generic action map, all {@link TransportAction}s
  */
@@ -177,6 +184,11 @@ public class ActionModule extends AbstractModule {
         actions.register(TransportNodesListShardStoreMetadata.TYPE, TransportNodesListShardStoreMetadata.class);
         actions.register(TransportShardFlushAction.TYPE, TransportShardFlushAction.class);
         actions.register(TransportShardRefreshAction.TYPE, TransportShardRefreshAction.class);
+
+        // internal blob actions
+        actions.register(PutChunkAction.INSTANCE, TransportPutChunkAction.class);
+        actions.register(StartBlobAction.INSTANCE, TransportStartBlobAction.class);
+        actions.register(DeleteBlobAction.INSTANCE, TransportDeleteBlobAction.class);
 
         return unmodifiableMap(actions.getRegistry());
     }

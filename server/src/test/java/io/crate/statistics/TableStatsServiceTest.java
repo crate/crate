@@ -21,15 +21,9 @@
 
 package io.crate.statistics;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import io.crate.plugin.SQLPlugin;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Assert;
@@ -38,14 +32,12 @@ import org.mockito.Answers;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
-import java.util.Collection;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
+import io.crate.common.unit.TimeValue;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
-
-    @Override
-    protected Collection<Setting<?>> additionalClusterSettings() {
-        return new SQLPlugin(Settings.EMPTY).getSettings();
-    }
 
     @Test
     public void testSettingsChanges() {

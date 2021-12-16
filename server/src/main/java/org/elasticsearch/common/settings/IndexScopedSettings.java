@@ -19,6 +19,10 @@
 
 package org.elasticsearch.common.settings;
 
+import java.util.Collections;
+import java.util.Set;
+import java.util.function.Predicate;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
@@ -35,9 +39,7 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.store.FsDirectoryFactory;
 import org.elasticsearch.index.store.Store;
 
-import java.util.Collections;
-import java.util.Set;
-import java.util.function.Predicate;
+import io.crate.blob.v2.BlobIndicesService;
 
 /**
  * Encapsulates all valid index level settings.
@@ -114,7 +116,10 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         EngineConfig.INDEX_CODEC_SETTING,
         IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
         IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING,
-        Setting.groupSetting("index.analysis.", Property.IndexScope));
+        Setting.groupSetting("index.analysis.", Property.IndexScope),
+        BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED,
+        BlobIndicesService.SETTING_INDEX_BLOBS_PATH
+    );
 
     public static final IndexScopedSettings DEFAULT_SCOPED_SETTINGS = new IndexScopedSettings(Settings.EMPTY, BUILT_IN_INDEX_SETTINGS);
 

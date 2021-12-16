@@ -21,19 +21,32 @@
 
 package io.crate.module;
 
-import io.crate.plugin.IndexEventListenerProxy;
 import org.elasticsearch.common.inject.AbstractModule;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.memory.MemoryManagerFactory;
+import io.crate.metadata.DanglingArtifactsService;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.planner.Planner;
+import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.rest.action.RestSQLAction;
+import io.crate.statistics.TableStats;
+import io.crate.statistics.TableStatsService;
 
 public class CrateCommonModule extends AbstractModule {
 
-    private final IndexEventListenerProxy indexEventListenerProxy;
-
-    public CrateCommonModule(IndexEventListenerProxy indexEventListenerProxy) {
-        this.indexEventListenerProxy = indexEventListenerProxy;
-    }
-
     @Override
     protected void configure() {
-        bind(IndexEventListenerProxy.class).toInstance(indexEventListenerProxy);
+        bind(FulltextAnalyzerResolver.class).asEagerSingleton();
+        bind(PostgresNetty.class).asEagerSingleton();
+        bind(SQLOperations.class).asEagerSingleton();
+        bind(Planner.class).asEagerSingleton();
+        bind(TableStats.class).asEagerSingleton();
+        bind(TableStatsService.class).asEagerSingleton();
+        bind(MemoryManagerFactory.class).asEagerSingleton();
+        bind(UserDefinedFunctionService.class).asEagerSingleton();
+        bind(RestSQLAction.class).asEagerSingleton();
+        bind(DanglingArtifactsService.class).asEagerSingleton();
     }
 }

@@ -21,10 +21,48 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import static io.crate.execution.support.ThreadPools.numIdleThreads;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.IntSupplier;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.IndexEventListener;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
+
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.concurrent.CompletableFutures;
@@ -65,43 +103,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.planner.consumer.OrderByPositionVisitor;
-import io.crate.plugin.IndexEventListenerProxy;
 import io.crate.types.DataType;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
-import org.elasticsearch.index.shard.IndexEventListener;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.function.IntSupplier;
-import java.util.function.Supplier;
-
-import static io.crate.execution.support.ThreadPools.numIdleThreads;
 
 /**
  * Used to create BatchIterators to gather documents stored within shards or to gather information about shards themselves.
@@ -136,7 +138,7 @@ import static io.crate.execution.support.ThreadPools.numIdleThreads;
  * In other cases multiple shards are simply processed sequentially by concatenating the BatchIterators
  */
 @Singleton
-public class ShardCollectSource implements CollectSource {
+public class ShardCollectSource implements CollectSource, IndexEventListener {
 
     private static final Logger LOGGER = LogManager.getLogger(ShardCollectSource.class);
 
@@ -163,7 +165,6 @@ public class ShardCollectSource implements CollectSource {
                               TransportActionProvider transportActionProvider,
                               RemoteCollectorFactory remoteCollectorFactory,
                               SystemCollectSource systemCollectSource,
-                              IndexEventListenerProxy indexEventListenerProxy,
                               CircuitBreakerService circuitBreakerService,
                               ShardCollectorProviderFactory shardCollectorProviderFactory) {
         this.unassignedShardReferenceResolver = new StaticTableReferenceResolver<>(
@@ -196,8 +197,6 @@ public class ShardCollectSource implements CollectSource {
             systemCollectSource::getRowUpdater,
             systemCollectSource::tableDefinition
         );
-
-        indexEventListenerProxy.addLast(new LifecycleListener());
     }
 
     public ProjectorFactory getProjectorFactory(ShardId shardId) {
@@ -205,38 +204,34 @@ public class ShardCollectSource implements CollectSource {
         return collectorProvider.getProjectorFactory();
     }
 
-    private class LifecycleListener implements IndexEventListener {
+    @Override
+    public void afterIndexShardCreated(IndexShard indexShard) {
+        LOGGER.debug("creating shard in {} {} {}", ShardCollectSource.this, indexShard.shardId(), shards.size());
+        assert !shards.containsKey(indexShard.shardId()) : "shard entry already exists upon add";
 
-        @Override
-        public void afterIndexShardCreated(IndexShard indexShard) {
-            LOGGER.debug("creating shard in {} {} {}", ShardCollectSource.this, indexShard.shardId(), shards.size());
-            assert !shards.containsKey(indexShard.shardId()) : "shard entry already exists upon add";
-
-            /* The creation of a ShardCollectorProvider accesses the clusterState, which leads to an
-             * assertionError if accessed within a ClusterState-Update thread.
-             *
-             * So we wrap the creation in a supplier to create the providers lazy
-             */
-            Supplier<ShardCollectorProvider> providerSupplier = Suppliers.memoize(() -> shardCollectorProviderFactory.create(indexShard));
-            shards.put(indexShard.shardId(), providerSupplier);
-        }
-
-        @Override
-        public void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, Settings indexSettings) {
-            LOGGER.debug("removing shard upon close in {} shard={} numShards={}", ShardCollectSource.this, shardId, shards.size());
-            shards.remove(shardId);
-        }
-
-        @Override
-        public void beforeIndexShardDeleted(ShardId shardId, Settings indexSettings) {
-            if (shards.remove(shardId) != null) {
-                LOGGER.debug("removed shard upon delete in {} shard={} remainingShards={}", ShardCollectSource.this, shardId, shards.size());
-            } else {
-                LOGGER.debug("shard not found upon delete in {} shard={} remainingShards={}", ShardCollectSource.this, shardId, shards.size());
-            }
-        }
+        /* The creation of a ShardCollectorProvider accesses the clusterState, which leads to an
+         * assertionError if accessed within a ClusterState-Update thread.
+         *
+         * So we wrap the creation in a supplier to create the providers lazy
+         */
+        Supplier<ShardCollectorProvider> providerSupplier = Suppliers.memoize(() -> shardCollectorProviderFactory.create(indexShard));
+        shards.put(indexShard.shardId(), providerSupplier);
     }
 
+    @Override
+    public void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, Settings indexSettings) {
+        LOGGER.debug("removing shard upon close in {} shard={} numShards={}", ShardCollectSource.this, shardId, shards.size());
+        shards.remove(shardId);
+    }
+
+    @Override
+    public void beforeIndexShardDeleted(ShardId shardId, Settings indexSettings) {
+        if (shards.remove(shardId) != null) {
+            LOGGER.debug("removed shard upon delete in {} shard={} remainingShards={}", ShardCollectSource.this, shardId, shards.size());
+        } else {
+            LOGGER.debug("shard not found upon delete in {} shard={} remainingShards={}", ShardCollectSource.this, shardId, shards.size());
+        }
+    }
 
     @Override
     public CompletableFuture<BatchIterator<Row>> getIterator(TransactionContext txnCtx,

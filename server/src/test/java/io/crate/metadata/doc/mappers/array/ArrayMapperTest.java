@@ -21,12 +21,23 @@
 
 package io.crate.metadata.doc.mappers.array;
 
-import io.crate.Constants;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.IndexableFieldType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -40,12 +51,10 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.mapper.ArrayMapper;
-import org.elasticsearch.index.mapper.ArrayTypeParser;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.DocumentMapperParser;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
@@ -55,26 +64,11 @@ import org.elasticsearch.index.mapper.ParseContext.Document;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.indices.IndicesModule;
-import org.elasticsearch.plugins.MapperPlugin;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
+import io.crate.Constants;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
 
@@ -85,12 +79,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
      * create index with type and mapping and validate DocumentMapper serialization
      */
     private DocumentMapper mapper(String indexName, String mapping) throws IOException {
-        IndicesModule indicesModule = new IndicesModule(Collections.singletonList(new MapperPlugin() {
-            @Override
-            public Map<String, Mapper.TypeParser> getMappers() {
-                return Collections.singletonMap(ArrayMapper.CONTENT_TYPE, new ArrayTypeParser());
-            }
-        }));
+        IndicesModule indicesModule = new IndicesModule(List.of());
         MapperService mapperService = MapperTestUtils.newMapperService(
             NamedXContentRegistry.EMPTY,
             createTempDir(),

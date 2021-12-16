@@ -21,12 +21,21 @@
 
 package io.crate.blob.v2;
 
-import io.crate.plugin.IndexEventListenerProxy;
+import static io.crate.blob.v2.BlobIndex.isBlobIndex;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.PathUtils;
@@ -42,15 +51,6 @@ import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 
 /**
  * Manages the creation and deletion of BlobIndex and BlobShard instances.
@@ -74,10 +74,9 @@ public class BlobIndicesService implements IndexEventListener {
     private final Path globalBlobPath;
 
     @Inject
-    public BlobIndicesService(Settings settings, ClusterService clusterService, IndexEventListenerProxy indexEventListenerProxy) {
+    public BlobIndicesService(Settings settings, ClusterService clusterService) {
         this.clusterService = clusterService;
         globalBlobPath = getGlobalBlobPath(settings);
-        indexEventListenerProxy.addFirst(this);
     }
 
     @Nullable

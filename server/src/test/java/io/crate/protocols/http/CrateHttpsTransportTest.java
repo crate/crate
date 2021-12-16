@@ -22,7 +22,7 @@
 package io.crate.protocols.http;
 
 import io.crate.netty.NettyBootstrap;
-import io.crate.plugin.PipelineRegistry;
+import io.crate.netty.channel.PipelineRegistry;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 import io.netty.channel.embedded.EmbeddedChannel;
