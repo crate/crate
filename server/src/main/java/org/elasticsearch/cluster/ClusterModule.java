@@ -79,6 +79,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.plugins.ClusterPlugin;
 
+import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
 import io.crate.types.DataTypes;
 
 /**
@@ -201,6 +202,7 @@ public class ClusterModule extends AbstractModule {
         addAllocationDecider(deciders, new ThrottlingAllocationDecider(settings, clusterSettings));
         addAllocationDecider(deciders, new ShardsLimitAllocationDecider(settings, clusterSettings));
         addAllocationDecider(deciders, new AwarenessAllocationDecider(settings, clusterSettings));
+        addAllocationDecider(deciders, new DecommissionAllocationDecider(settings, clusterSettings));
 
         clusterPlugins.stream()
             .flatMap(p -> p.createAllocationDeciders(settings, clusterSettings).stream())

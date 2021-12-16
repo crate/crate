@@ -30,7 +30,7 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import io.crate.action.sql.SQLOperations;
 import io.crate.user.UserLookup;
 import io.crate.user.UserManager;
-import io.crate.plugin.PipelineRegistry;
+import io.crate.netty.channel.PipelineRegistry;
 import io.crate.protocols.ssl.SslContextProvider;
 
 @Singleton

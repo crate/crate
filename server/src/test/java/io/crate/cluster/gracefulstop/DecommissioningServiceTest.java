@@ -21,33 +21,31 @@
 
 package io.crate.cluster.gracefulstop;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.plugin.SQLPlugin;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
-import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.set.Sets;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Answers;
-import org.mockito.Mockito;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
-import javax.annotation.Nullable;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import javax.annotation.Nullable;
+
+import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
+import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Answers;
+import org.mockito.Mockito;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -56,12 +54,6 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
     private ScheduledExecutorService executorService;
     private SQLOperations sqlOperations;
     private AtomicBoolean exited = new AtomicBoolean(false);
-
-    @Override
-    protected Set<Setting<?>> additionalClusterSettings() {
-        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
-        return Sets.newHashSet(sqlPlugin.getSettings());
-    }
 
     @Before
     public void init() throws Exception {

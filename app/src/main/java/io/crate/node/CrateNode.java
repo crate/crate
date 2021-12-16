@@ -32,16 +32,12 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
-import io.crate.plugin.BlobPlugin;
-import io.crate.plugin.SQLPlugin;
 import io.crate.plugin.SrvPlugin;
 import io.crate.udc.plugin.UDCPlugin;
 
 public class CrateNode extends Node {
 
     private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = List.of(
-        SQLPlugin.class,
-        BlobPlugin.class,
         SrvPlugin.class,
         UDCPlugin.class,
         URLRepositoryPlugin.class,

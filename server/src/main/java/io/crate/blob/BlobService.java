@@ -21,13 +21,9 @@
 
 package io.crate.blob;
 
-import io.crate.blob.exceptions.MissingHTTPEndpointException;
-import io.crate.blob.recovery.BlobRecoveryHandler;
-import io.crate.blob.transfer.BlobHeadRequestHandler;
-import io.crate.blob.v2.BlobIndex;
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.plugin.PipelineRegistry;
-import io.crate.protocols.http.HttpBlobHandler;
+import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING;
+import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_CONCURRENT_OPERATIONS_SETTING;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -42,8 +38,13 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.recovery.PeerRecoverySourceService;
 import org.elasticsearch.transport.TransportService;
 
-import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING;
-import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_CONCURRENT_OPERATIONS_SETTING;
+import io.crate.blob.exceptions.MissingHTTPEndpointException;
+import io.crate.blob.recovery.BlobRecoveryHandler;
+import io.crate.blob.transfer.BlobHeadRequestHandler;
+import io.crate.blob.v2.BlobIndex;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.netty.channel.PipelineRegistry;
+import io.crate.protocols.http.HttpBlobHandler;
 
 public class BlobService extends AbstractLifecycleComponent {
 

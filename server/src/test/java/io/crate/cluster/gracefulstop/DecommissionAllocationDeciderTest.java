@@ -21,8 +21,12 @@
 
 package io.crate.cluster.gracefulstop;
 
-import io.crate.plugin.SQLPlugin;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.RoutingNode;
@@ -31,22 +35,14 @@ import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.util.Set;
-
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceUnitTest {
 
@@ -55,12 +51,6 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
     private ShardRouting replicaShard;
     private RoutingNode n1;
     private RoutingNode n2;
-
-    @Override
-    protected Set<Setting<?>> additionalClusterSettings() {
-        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
-        return Sets.newHashSet(sqlPlugin.getSettings());
-    }
 
     @Before
     public void init() throws Exception {

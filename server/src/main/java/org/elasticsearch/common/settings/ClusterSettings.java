@@ -99,6 +99,7 @@ import org.elasticsearch.transport.TransportSettings;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AuthSettings;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
@@ -465,6 +466,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         SslSettings.SSL_KEYSTORE_FILEPATH,
         SslSettings.SSL_KEYSTORE_PASSWORD,
         SslSettings.SSL_KEYSTORE_KEY_PASSWORD,
-        SslSettings.SSL_RESOURCE_POLL_INTERVAL
+        SslSettings.SSL_RESOURCE_POLL_INTERVAL,
+        BlobIndicesService.SETTING_BLOBS_PATH
     );
 }

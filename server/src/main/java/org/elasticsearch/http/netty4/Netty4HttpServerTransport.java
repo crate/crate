@@ -100,7 +100,7 @@ import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import io.crate.netty.NettyBootstrap;
-import io.crate.plugin.PipelineRegistry;
+import io.crate.netty.channel.PipelineRegistry;
 import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;

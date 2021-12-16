@@ -20,7 +20,7 @@
 package org.elasticsearch.transport;
 
 import io.crate.netty.NettyBootstrap;
-import io.crate.plugin.PipelineRegistry;
+import io.crate.netty.channel.PipelineRegistry;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.service.ClusterService;

@@ -53,7 +53,6 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
-import io.crate.plugin.SQLPlugin;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 
@@ -79,7 +78,6 @@ public class PreExecutionBenchmark {
         node = new Node(
             environment,
             List.of(
-                SQLPlugin.class,
                 Netty4Plugin.class
             ),
             true

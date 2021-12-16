@@ -21,6 +21,75 @@
 
 package io.crate.operation.aggregation;
 
+import static io.crate.metadata.RelationName.fromIndexName;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.elasticsearch.index.mapper.MapperService.MergeReason.MAPPING_RECOVERY;
+import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
+import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
+import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
+import org.elasticsearch.cluster.routing.RecoverySource;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.ShardRoutingHelper;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.routing.TestShardRouting;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.MapperTestUtils;
+import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.cache.IndexCache;
+import org.elasticsearch.index.cache.query.DisabledQueryCache;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.engine.InternalEngineFactory;
+import org.elasticsearch.index.mapper.SourceToParse;
+import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
+import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardPath;
+import org.elasticsearch.index.store.Store;
+import org.elasticsearch.indices.IndicesModule;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
+import org.elasticsearch.indices.recovery.RecoveryState;
+import org.elasticsearch.test.DummyShardLock;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.Constants;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
@@ -50,95 +119,23 @@ import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Reference.IndexType;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.Reference.IndexType;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.StringType;
-import org.elasticsearch.cluster.node.DiscoveryNodeRole;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.support.PlainActionFuture;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
-import org.elasticsearch.cluster.routing.RecoverySource;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.routing.ShardRoutingHelper;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.cluster.routing.TestShardRouting;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.MapperTestUtils;
-import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.cache.IndexCache;
-import org.elasticsearch.index.cache.query.DisabledQueryCache;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.engine.InternalEngineFactory;
-import org.elasticsearch.index.mapper.ArrayMapper;
-import org.elasticsearch.index.mapper.ArrayTypeParser;
-import org.elasticsearch.index.mapper.Mapper;
-import org.elasticsearch.index.mapper.SourceToParse;
-import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardPath;
-import org.elasticsearch.index.store.Store;
-import org.elasticsearch.indices.IndicesModule;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
-import org.elasticsearch.indices.recovery.RecoveryState;
-import org.elasticsearch.plugins.MapperPlugin;
-import org.elasticsearch.test.DummyShardLock;
-import org.elasticsearch.threadpool.TestThreadPool;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-
-import static io.crate.metadata.RelationName.fromIndexName;
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.elasticsearch.index.mapper.MapperService.MergeReason.MAPPING_RECOVERY;
-import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
-import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.crate.types.StringType;
 
 public abstract class AggregationTestCase extends ESTestCase {
 
@@ -158,12 +155,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         nodeCtx = createNodeContext();
         threadPool = new TestThreadPool(getClass().getName(), Settings.EMPTY);
         memoryManager = new OnHeapMemoryManager(RAM_ACCOUNTING::addBytes);
-        indicesModule = new IndicesModule(List.of(new MapperPlugin() {
-            @Override
-            public Map<String, Mapper.TypeParser> getMappers() {
-                return Map.of(ArrayMapper.CONTENT_TYPE, new ArrayTypeParser());
-            }
-        }));
+        indicesModule = new IndicesModule(List.of());
         indexServices = mock(IndicesService.class);
         indexService = mock(IndexService.class);
     }
