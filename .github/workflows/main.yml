@@ -33,7 +33,9 @@ jobs:
           WACKLIG_TOKEN: ${{ secrets.WACKLIG_TOKEN }}
         shell: bash
         run: |
-          curl -s https://raw.githubusercontent.com/pipifein/wacklig-uploader/master/wacklig.py | python - --token $WACKLIG_TOKEN || echo "Upload to wacklig failed"
+          curl -s https://raw.githubusercontent.com/pipifein/wacklig-uploader/master/wacklig.py | python - --token $WACKLIG_TOKEN \
+            && echo "Upload to wacklig succeeded" \
+            || errcode=$?; echo "Upload to wacklig failed"; exit $errcode
 
 
   forbiddenApis:
