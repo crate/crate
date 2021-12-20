@@ -163,16 +163,6 @@ public class SqlParser {
         }
 
         @Override
-        public void exitColonIdentifier(SqlBaseParser.ColonIdentifierContext context) {
-            Token token = context.COLON_IDENT().getSymbol();
-            throw new ParsingException(
-                "identifiers must not contain ':'",
-                null,
-                token.getLine(),
-                token.getCharPositionInLine());
-        }
-
-        @Override
         public void exitNonReserved(SqlBaseParser.NonReservedContext context) {
             // replace nonReserved words with IDENT tokens
             context.getParent().removeLastChild();

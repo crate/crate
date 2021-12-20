@@ -175,6 +175,7 @@ import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.SimpleCaseExpression;
 import io.crate.sql.tree.SingleColumn;
+import io.crate.sql.tree.ArraySliceExpression;
 import io.crate.sql.tree.SortItem;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
@@ -1704,6 +1705,13 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitSubqueryExpression(SqlBaseParser.SubqueryExpressionContext context) {
         return new SubqueryExpression((Query) visit(context.query()));
+    }
+
+    @Override
+    public Node visitArraySlice(SqlBaseParser.ArraySliceContext ctx) {
+        return new ArraySliceExpression((Expression) visit(ctx.base),
+                                        visitIfPresent(ctx.from, Expression.class),
+                                        visitIfPresent(ctx.to, Expression.class));
     }
 
     @Override

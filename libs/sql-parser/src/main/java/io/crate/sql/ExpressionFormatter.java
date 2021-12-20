@@ -26,6 +26,7 @@ import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.ArraySliceExpression;
 import io.crate.sql.tree.ArraySubQueryExpression;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BetweenPredicate;
@@ -216,6 +217,14 @@ public final class ExpressionFormatter {
         @Override
         protected String visitSubscriptExpression(SubscriptExpression node, @Nullable List<Expression> parameters) {
             return node.base() + "[" + node.index() + "]";
+        }
+
+        @Override
+        protected String visitArraySliceExpression(ArraySliceExpression node,
+                                                   List<Expression> context) {
+            return node.getBase() +
+                   "[" + node.getFrom().map(Expression::toString).orElse("") + ":" +
+                   node.getTo().map(Expression::toString).orElse("") + "]";
         }
 
         @Override
