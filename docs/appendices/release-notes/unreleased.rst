@@ -64,18 +64,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-<<<<<<< HEAD
-- Updated ``log4j`` to 2.16.0 because of `CVE-2021-45046
-  <https://www.cve.org/CVERecord?id=CVE-2021-45046>`_. CrateDB isn't affected
-  by default. The log4j configuration shipped with CrateDB doesn't include any
-  of the problematic layout patterns. This is a pre-caution in case users
-  changed the default configuration.
-=======
-
 - Updated ``log4j`` to 2.17.0 because of `CVE-2021-45046
   <https://www.cve.org/CVERecord?id=CVE-2021-45046>`_ and `CVE-2021-45105
   <https://nvd.nist.gov/vuln/detail/CVE-2021-45105?s=09>`_. CrateDB isn't
   affected by default. The log4j configuration shipped with CrateDB doesn't
   include any of the problematic layout patterns. This is a pre-caution in case
   users changed the default configuration.
->>>>>>> 77479d66bf (Update log4j to 2.17.0)
