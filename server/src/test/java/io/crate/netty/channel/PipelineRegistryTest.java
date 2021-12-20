@@ -19,15 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.plugin;
-
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
+package io.crate.netty.channel;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Test;
+
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 
 public class PipelineRegistryTest {
 

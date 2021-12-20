@@ -21,12 +21,103 @@
 
 package io.crate.metadata;
 
-import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.table.SchemaInfo;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.elasticsearch.cluster.NamedDiff;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.license.License;
+import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.view.ViewsMetadata;
+import io.crate.user.metadata.UsersMetadata;
+import io.crate.user.metadata.UsersPrivilegesMetadata;
 
 public class MetadataModule extends AbstractModule {
+
+    public static List<NamedWriteableRegistry.Entry> getNamedWriteables() {
+        List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            UserDefinedFunctionsMetadata.TYPE,
+            UserDefinedFunctionsMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            ViewsMetadata.TYPE,
+            ViewsMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            UserDefinedFunctionsMetadata.TYPE,
+            in -> UserDefinedFunctionsMetadata.readDiffFrom(Metadata.Custom.class, UserDefinedFunctionsMetadata.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            ViewsMetadata.TYPE,
+            in -> ViewsMetadata.readDiffFrom(Metadata.Custom.class, ViewsMetadata.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            UsersMetadata.TYPE,
+            UsersMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            UsersMetadata.TYPE,
+            in -> UsersMetadata.readDiffFrom(Metadata.Custom.class, UsersMetadata.TYPE, in)
+        ));
+
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            UsersPrivilegesMetadata.TYPE,
+            UsersPrivilegesMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            UsersPrivilegesMetadata.TYPE,
+            in -> UsersPrivilegesMetadata.readDiffFrom(Metadata.Custom.class, UsersPrivilegesMetadata.TYPE, in)
+        ));
+
+        //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
+        entries.addAll(License.getNamedWriteables());
+        return entries;
+    }
+
+    public static List<NamedXContentRegistry.Entry> getNamedXContents() {
+        List<NamedXContentRegistry.Entry> entries = new ArrayList<>();
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(UserDefinedFunctionsMetadata.TYPE),
+            UserDefinedFunctionsMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(ViewsMetadata.TYPE),
+            ViewsMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(UsersMetadata.TYPE),
+            UsersMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(UsersPrivilegesMetadata.TYPE),
+            UsersPrivilegesMetadata::fromXContent
+        ));
+        //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
+        entries.addAll(License.getNamedXContent());
+        return entries;
+    }
+
 
     @Override
     protected void configure() {

@@ -21,11 +21,21 @@
 
 package io.crate.integrationtests;
 
-import io.crate.blob.v2.BlobIndex;
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.blob.v2.BlobShard;
-import io.crate.plugin.BlobPlugin;
-import io.crate.plugin.SQLPlugin;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ALLOW_ORIGIN;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ENABLED;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.core.Is.is;
+
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
@@ -34,21 +44,9 @@ import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.After;
 import org.junit.Before;
 
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
-
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ALLOW_ORIGIN;
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ENABLED;
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.core.Is.is;
+import io.crate.blob.v2.BlobIndex;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobShard;
 
 public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
 
@@ -80,7 +78,7 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(Netty4Plugin.class, SQLPlugin.class, BlobPlugin.class);
+        return List.of(Netty4Plugin.class);
     }
 
     @After

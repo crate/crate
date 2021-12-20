@@ -19,6 +19,11 @@
 
 package org.elasticsearch.common.settings;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
+
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusionsAction;
 import org.elasticsearch.action.support.DestructiveOperations;
@@ -92,12 +97,19 @@ import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportSettings;
 
+import io.crate.action.sql.SQLOperations;
+import io.crate.auth.AuthSettings;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.cluster.gracefulstop.DecommissioningService;
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.jobs.NodeLimits;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Predicate;
+import io.crate.memory.MemoryManagerFactory;
+import io.crate.metadata.settings.AnalyzerSettings;
+import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.protocols.ssl.SslSettings;
+import io.crate.statistics.TableStatsService;
+import io.crate.udc.service.UDCService;
 
 /**
  * Encapsulates all valid cluster level settings.
@@ -420,6 +432,41 @@ public final class ClusterSettings extends AbstractScopedSettings {
         NodeLimits.INITIAL_CONCURRENCY,
         NodeLimits.MIN_CONCURRENCY,
         NodeLimits.MAX_CONCURRENCY,
-        NodeLimits.QUEUE_SIZE
+        NodeLimits.QUEUE_SIZE,
+        JobsLogService.STATS_ENABLED_SETTING,
+        JobsLogService.STATS_JOBS_LOG_SIZE_SETTING,
+        JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING,
+        JobsLogService.STATS_JOBS_LOG_FILTER,
+        JobsLogService.STATS_JOBS_LOG_PERSIST_FILTER,
+        JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING,
+        JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING,
+        TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING,
+        ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING,
+        DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP,
+        DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING,
+        DecommissioningService.GRACEFUL_STOP_TIMEOUT_SETTING,
+        DecommissioningService.GRACEFUL_STOP_FORCE_SETTING,
+        UDCService.UDC_ENABLED_SETTING,
+        UDCService.UDC_URL_SETTING,
+        UDCService.UDC_INITIAL_DELAY_SETTING,
+        UDCService.UDC_INTERVAL_SETTING,
+        MemoryManagerFactory.MEMORY_ALLOCATION_TYPE,
+        AnalyzerSettings.CUSTOM_ANALYSIS_SETTING_GROUP,
+        SQLOperations.NODE_READ_ONLY_SETTING,
+        PostgresNetty.PSQL_ENABLED_SETTING,
+        PostgresNetty.PSQL_PORT_SETTING,
+        AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING,
+        AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING,
+        AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER,
+        SslSettings.SSL_TRANSPORT_MODE,
+        SslSettings.SSL_HTTP_ENABLED,
+        SslSettings.SSL_PSQL_ENABLED,
+        SslSettings.SSL_TRUSTSTORE_FILEPATH,
+        SslSettings.SSL_TRUSTSTORE_PASSWORD,
+        SslSettings.SSL_KEYSTORE_FILEPATH,
+        SslSettings.SSL_KEYSTORE_PASSWORD,
+        SslSettings.SSL_KEYSTORE_KEY_PASSWORD,
+        SslSettings.SSL_RESOURCE_POLL_INTERVAL,
+        BlobIndicesService.SETTING_BLOBS_PATH
     );
 }

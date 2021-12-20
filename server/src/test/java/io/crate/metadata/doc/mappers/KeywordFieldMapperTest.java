@@ -21,29 +21,27 @@
 
 package io.crate.metadata.doc.mappers;
 
-import io.crate.Constants;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.MapperTestUtils;
-import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.DocumentMapperParser;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.elasticsearch.indices.IndicesModule;
-import org.elasticsearch.plugins.MapperPlugin;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-
-import static org.hamcrest.Matchers.is;
+import io.crate.Constants;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
 
@@ -54,12 +52,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
             NamedXContentRegistry.EMPTY,
             createTempDir(),
             Settings.EMPTY,
-            new IndicesModule(Collections.singletonList(new MapperPlugin() {
-                @Override
-                public Map<String, Mapper.TypeParser> getMappers() {
-                    return Collections.singletonMap(ArrayMapper.CONTENT_TYPE, parser);
-                }
-            })),
+            new IndicesModule(List.of()),
             ""
         );
         return mapperService.documentMapperParser();

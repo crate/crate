@@ -25,7 +25,7 @@ package io.crate.testing;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -45,16 +45,13 @@ import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.IndexService.IndexCreationContext;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.InternalEngineFactory;
-import org.elasticsearch.index.mapper.ArrayMapper;
-import org.elasticsearch.index.mapper.ArrayTypeParser;
-import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
@@ -63,7 +60,6 @@ import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.indices.mapper.MapperRegistry;
-import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -97,12 +93,7 @@ public final class IndexEnv implements AutoCloseable {
         IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
         AnalysisRegistry analysisRegistry = new AnalysisModule(env, Collections.emptyList()).getAnalysisRegistry();
         IndexAnalyzers indexAnalyzers = analysisRegistry.build(idxSettings);
-        MapperRegistry mapperRegistry = new IndicesModule(Collections.singletonList(new MapperPlugin() {
-            @Override
-            public Map<String, Mapper.TypeParser> getMappers() {
-                return Collections.singletonMap(ArrayMapper.CONTENT_TYPE, new ArrayTypeParser());
-            }
-        })).getMapperRegistry();
+        MapperRegistry mapperRegistry = new IndicesModule(List.of()).getMapperRegistry();
 
         mapperService = new MapperService(
             idxSettings,

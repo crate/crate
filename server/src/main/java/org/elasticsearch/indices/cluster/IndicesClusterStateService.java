@@ -19,6 +19,27 @@
 
 package org.elasticsearch.indices.cluster;
 
+import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.CLOSED;
+import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.DELETED;
+import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.FAILURE;
+import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED;
+import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.REOPENED;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -41,11 +62,9 @@ import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.env.ShardLockObtainFailedException;
@@ -76,25 +95,9 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.snapshots.SnapshotShardsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
-import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.CLOSED;
-import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.DELETED;
-import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.FAILURE;
-import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED;
-import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.REOPENED;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.engine.collect.sources.ShardCollectSource;
 
 public class IndicesClusterStateService extends AbstractLifecycleComponent implements ClusterStateApplier {
 
@@ -137,7 +140,9 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                       SnapshotShardsService snapshotShardsService,
                                       PrimaryReplicaSyncer primaryReplicaSyncer,
                                       RetentionLeaseSyncer retentionLeaseSyncer,
-                                      NodeClient client) {
+                                      NodeClient client,
+                                      BlobIndicesService blobIndicesService,
+                                      ShardCollectSource shardCollectSource) {
         this(settings,
             (AllocatedIndices<? extends Shard, ? extends AllocatedIndex<? extends Shard>>) indicesService,
             clusterService,
@@ -151,7 +156,9 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             snapshotShardsService,
             primaryReplicaSyncer,
             retentionLeaseSyncer,
-            client
+            client,
+            blobIndicesService,
+            shardCollectSource
         );
     }
 
@@ -169,13 +176,17 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                SnapshotShardsService snapshotShardsService,
                                PrimaryReplicaSyncer primaryReplicaSyncer,
                                RetentionLeaseSyncer retentionLeaseSyncer,
-                               NodeClient client) {
-        this.buildInIndexListener =
-                Arrays.asList(
-                        peerRecoverySourceService,
-                        recoveryTargetService,
-                        syncedFlushService,
-                        snapshotShardsService);
+                               NodeClient client,
+                               BlobIndicesService blobIndicesService,
+                               ShardCollectSource shardCollectSource) {
+        this.buildInIndexListener = List.of(
+            peerRecoverySourceService,
+            recoveryTargetService,
+            syncedFlushService,
+            snapshotShardsService,
+            blobIndicesService,
+            shardCollectSource
+        );
         this.settings = settings;
         this.indicesService = indicesService;
         this.clusterService = clusterService;

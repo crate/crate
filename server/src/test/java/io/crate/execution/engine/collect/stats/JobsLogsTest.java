@@ -23,6 +23,7 @@ package io.crate.execution.engine.collect.stats;
 
 import static io.crate.planner.Plan.StatementType.SELECT;
 import static io.crate.planner.Plan.StatementType.UNDEFINED;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
@@ -30,7 +31,6 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CountDownLatch;
@@ -44,30 +44,25 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import io.crate.metadata.NodeContext;
 import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.user.User;
 import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.operators.StatementClassifier.Classification;
-import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
+import io.crate.user.User;
 
 public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -87,12 +82,6 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @After
     public void terminateScheduler() throws InterruptedException {
         terminate(scheduler);
-    }
-
-    @Override
-    protected Set<Setting<?>> additionalClusterSettings() {
-        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
-        return Sets.newHashSet(sqlPlugin.getSettings());
     }
 
     @Test

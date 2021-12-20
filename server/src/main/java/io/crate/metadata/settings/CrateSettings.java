@@ -21,14 +21,13 @@
 
 package io.crate.metadata.settings;
 
-import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.execution.jobs.NodeLimits;
-import io.crate.memory.MemoryManagerFactory;
-import io.crate.statistics.TableStatsService;
-import io.crate.types.DataTypes;
-import io.crate.udc.service.UDCService;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -52,46 +51,22 @@ import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import io.crate.cluster.gracefulstop.DecommissioningService;
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.execution.jobs.NodeLimits;
+import io.crate.memory.MemoryManagerFactory;
+import io.crate.statistics.TableStatsService;
+import io.crate.types.DataTypes;
+import io.crate.udc.service.UDCService;
 
 public final class CrateSettings implements ClusterStateListener {
 
-    public static final List<Setting<?>> CRATE_CLUSTER_SETTINGS = List.of(
-        // STATS
-        JobsLogService.STATS_ENABLED_SETTING,
-        JobsLogService.STATS_JOBS_LOG_SIZE_SETTING,
-        JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING,
-        JobsLogService.STATS_JOBS_LOG_FILTER,
-        JobsLogService.STATS_JOBS_LOG_PERSIST_FILTER,
-        JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING,
-        JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING,
-        TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING,
-
-        // BULK
-        ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING,
-
-        // GRACEFUL STOP
-        DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP,
-        DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING,
-        DecommissioningService.GRACEFUL_STOP_TIMEOUT_SETTING,
-        DecommissioningService.GRACEFUL_STOP_FORCE_SETTING,
-
-        // UDC
-        UDCService.UDC_ENABLED_SETTING,
-        UDCService.UDC_URL_SETTING,
-        UDCService.UDC_INITIAL_DELAY_SETTING,
-        UDCService.UDC_INTERVAL_SETTING,
-
-        MemoryManagerFactory.MEMORY_ALLOCATION_TYPE
-    );
-
-    private static final List<Setting<?>> EXPOSED_ES_SETTINGS = List.of(
+    /**
+     * List of cluster/node settings exposed via `sys.cluster.settings`,
+     * see also {@link io.crate.metadata.sys.SysClusterTableInfo}
+     */
+    public static final List<Setting<?>> EXPOSED_SETTINGS = List.of(
         // CLUSTER
         InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING,
         // CLUSTER ROUTING
@@ -172,25 +147,44 @@ public final class CrateSettings implements ClusterStateListener {
         HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_OVERHEAD_SETTING,
         HierarchyCircuitBreakerService.TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING,
         ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE,
-
+        // Overload protection
         NodeLimits.INITIAL_CONCURRENCY,
         NodeLimits.QUEUE_SIZE,
         NodeLimits.MIN_CONCURRENCY,
-        NodeLimits.MAX_CONCURRENCY
+        NodeLimits.MAX_CONCURRENCY,
+        // STATS
+        JobsLogService.STATS_ENABLED_SETTING,
+        JobsLogService.STATS_JOBS_LOG_SIZE_SETTING,
+        JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING,
+        JobsLogService.STATS_JOBS_LOG_FILTER,
+        JobsLogService.STATS_JOBS_LOG_PERSIST_FILTER,
+        JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING,
+        JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING,
+        TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING,
+        // BULK
+        ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING,
+        // GRACEFUL STOP
+        DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING,
+        DecommissioningService.GRACEFUL_STOP_TIMEOUT_SETTING,
+        DecommissioningService.GRACEFUL_STOP_FORCE_SETTING,
+        // UDC
+        UDCService.UDC_ENABLED_SETTING,
+        UDCService.UDC_URL_SETTING,
+        UDCService.UDC_INITIAL_DELAY_SETTING,
+        UDCService.UDC_INTERVAL_SETTING,
+        // Memory
+        MemoryManagerFactory.MEMORY_ALLOCATION_TYPE
     );
 
 
-    public static final List<Setting<?>> BUILT_IN_SETTINGS = Stream.concat(CRATE_CLUSTER_SETTINGS.stream(), EXPOSED_ES_SETTINGS.stream())
-        .filter(cs -> cs.getKey().startsWith("crate.internal.") == false)  // don't expose internal settings
-        .collect(Collectors.toList());
-    private static final List<String> BUILT_IN_SETTING_NAMES = BUILT_IN_SETTINGS.stream()
+    private static final List<String> EXPOSED_SETTING_NAMES = EXPOSED_SETTINGS.stream()
         .map(Setting::getKey)
         .collect(Collectors.toList());
 
     public static boolean isValidSetting(String name) {
         return isLoggingSetting(name) ||
-               BUILT_IN_SETTING_NAMES.contains(name) ||
-               BUILT_IN_SETTING_NAMES.stream().noneMatch(s -> s.startsWith(name + ".")) == false;
+               EXPOSED_SETTING_NAMES.contains(name) ||
+               EXPOSED_SETTING_NAMES.stream().noneMatch(s -> s.startsWith(name + ".")) == false;
     }
 
     public static List<String> settingNamesByPrefix(String prefix) {
@@ -198,7 +192,7 @@ public final class CrateSettings implements ClusterStateListener {
             return Collections.singletonList(prefix);
         }
         List<String> filteredList = new ArrayList<>();
-        for (String key : BUILT_IN_SETTING_NAMES) {
+        for (String key : EXPOSED_SETTING_NAMES) {
             if (key.startsWith(prefix)) {
                 filteredList.add(key);
             }
@@ -207,7 +201,7 @@ public final class CrateSettings implements ClusterStateListener {
     }
 
     public static void checkIfRuntimeSetting(String name) {
-        for (Setting<?> setting : BUILT_IN_SETTINGS) {
+        for (Setting<?> setting : EXPOSED_SETTINGS) {
             if (setting.getKey().equals(name) && setting.isDynamic() == false) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "Setting '%s' cannot be set/reset at runtime", name));
@@ -251,7 +245,7 @@ public final class CrateSettings implements ClusterStateListener {
     public CrateSettings(ClusterService clusterService, Settings settings) {
         logger = LogManager.getLogger(this.getClass());
         Settings.Builder defaultsBuilder = Settings.builder();
-        for (Setting<?> builtInSetting : BUILT_IN_SETTINGS) {
+        for (Setting<?> builtInSetting : EXPOSED_SETTINGS) {
             defaultsBuilder.put(builtInSetting.getKey(), builtInSetting.getDefaultRaw(settings));
         }
         initialSettings = defaultsBuilder.put(settings).build();

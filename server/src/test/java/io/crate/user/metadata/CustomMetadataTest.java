@@ -21,15 +21,15 @@
 
 package io.crate.user.metadata;
 
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
-import io.crate.expression.udf.UserDefinedFunctionsMetadataTest;
-import io.crate.metadata.view.ViewsMetadata;
-import io.crate.metadata.view.ViewsMetadataTest;
-import io.crate.plugin.SQLPlugin;
-import org.elasticsearch.cluster.ClusterModule;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -38,23 +38,13 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.expression.udf.UserDefinedFunctionsMetadataTest;
+import io.crate.metadata.MetadataModule;
+import io.crate.metadata.view.ViewsMetadata;
+import io.crate.metadata.view.ViewsMetadataTest;
 
 public class CustomMetadataTest {
-
-    private NamedXContentRegistry getNamedXContentRegistry() {
-        List<NamedXContentRegistry.Entry> registry = new ArrayList<>();
-        registry.addAll(new SQLPlugin(Settings.EMPTY).getNamedXContent());
-        registry.addAll(ClusterModule.getNamedXWriteables());
-        return new NamedXContentRegistry(registry);
-    }
 
     @Test
     public void testAllMetaDataXContentRoundtrip() throws IOException {
@@ -74,7 +64,7 @@ public class CustomMetadataTest {
         String xContent = xContentFromMetadata(metadata);
 
         XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            getNamedXContentRegistry(),
+            new NamedXContentRegistry(MetadataModule.getNamedXContents()),
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             xContent
         );

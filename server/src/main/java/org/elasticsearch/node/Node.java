@@ -50,8 +50,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.net.ssl.SNIHostName;
 
-import io.crate.execution.engine.collect.files.CopyModule;
-import io.crate.plugin.CopyPlugin;
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -65,6 +63,7 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.client.Client;
@@ -171,19 +170,52 @@ import org.elasticsearch.transport.netty4.Netty4Transport;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Authentication;
+import io.crate.auth.AuthenticationModule;
 import io.crate.auth.HostBasedAuthentication;
+import io.crate.blob.BlobModule;
+import io.crate.blob.BlobService;
+import io.crate.blob.v2.BlobIndicesModule;
+import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.TransportExecutorModule;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
+import io.crate.execution.engine.collect.CollectOperationModule;
+import io.crate.execution.engine.collect.files.CopyModule;
+import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.window.WindowFunctionModule;
+import io.crate.execution.jobs.JobModule;
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
+import io.crate.expression.operator.OperatorModule;
+import io.crate.expression.predicate.PredicateModule;
+import io.crate.expression.reference.sys.check.SysChecksModule;
+import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.tablefunctions.TableFunctionModule;
+import io.crate.lucene.ArrayMapperService;
+import io.crate.metadata.CustomMetadataUpgraderLoader;
+import io.crate.metadata.DanglingArtifactsService;
+import io.crate.metadata.MetadataModule;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.blob.MetadataBlobModule;
+import io.crate.metadata.information.MetadataInformationModule;
+import io.crate.metadata.pgcatalog.PgCatalogModule;
 import io.crate.metadata.settings.session.SessionSettingModule;
+import io.crate.metadata.sys.MetadataSysModule;
+import io.crate.metadata.upgrade.IndexTemplateUpgrader;
+import io.crate.metadata.upgrade.MetadataIndexUpgrader;
+import io.crate.module.CrateCommonModule;
+import io.crate.monitor.MonitorModule;
 import io.crate.netty.NettyBootstrap;
+import io.crate.plugin.CopyPlugin;
+import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
 import io.crate.user.UserLookupService;
+import io.crate.user.UserManagementModule;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used
@@ -359,11 +391,36 @@ public class Node implements Closeable {
             for (Module pluginModule : pluginsService.createGuiceModules()) {
                 modules.add(pluginModule);
             }
+
+            modules.add(new BlobModule());
+            if (Node.NODE_DATA_SETTING.get(settings)) {
+                // the actual blob indices module is only available on data nodes. the blobservice on non data nodes will
+                // handle the requests redirection to data nodes.
+                modules.add(new BlobIndicesModule());
+            }
+            modules.add(new CrateCommonModule());
+            modules.add(new TransportExecutorModule());
+            modules.add(new JobModule());
+            modules.add(new CollectOperationModule());
+            modules.add(new MetadataModule());
+            modules.add(new MetadataSysModule());
+            modules.add(new MetadataBlobModule());
+            modules.add(new PgCatalogModule());
+            modules.add(new MetadataInformationModule());
+            modules.add(new OperatorModule());
+            modules.add(new PredicateModule());
+            modules.add(new MonitorModule());
+            modules.add(new BulkModule());
+            modules.add(new SysChecksModule());
+            modules.add(new SysNodeChecksModule());
+            modules.add(new UserManagementModule());
+            modules.add(new AuthenticationModule());
             modules.add(new SessionSettingModule());
             modules.add(new AggregationImplModule());
             modules.add(new ScalarFunctionModule());
             modules.add(new TableFunctionModule());
             modules.add(new WindowFunctionModule());
+
             final MonitorService monitorService = new MonitorService(settings,
                                                                      nodeEnvironment,
                                                                      threadPool,
@@ -391,7 +448,8 @@ public class Node implements Closeable {
                 IndicesModule.getNamedWriteables().stream(),
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .flatMap(p -> p.getNamedWriteables().stream()),
-                ClusterModule.getNamedWriteables().stream())
+                ClusterModule.getNamedWriteables().stream(),
+                MetadataModule.getNamedWriteables().stream())
                 .flatMap(Function.identity()).collect(Collectors.toList());
             final NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(namedWriteables);
             NamedXContentRegistry xContentRegistry = new NamedXContentRegistry(Stream.of(
@@ -399,7 +457,8 @@ public class Node implements Closeable {
                 IndicesModule.getNamedXContents().stream(),
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .flatMap(p -> p.getNamedXContent().stream()),
-                ClusterModule.getNamedXWriteables().stream())
+                ClusterModule.getNamedXWriteables().stream(),
+                MetadataModule.getNamedXContents().stream())
                 .flatMap(Function.identity()).collect(toList()));
             final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, xContentRegistry);
             final PersistedClusterStateService persistedClusterStateService
@@ -488,16 +547,23 @@ public class Node implements Closeable {
                 authentication,
                 sslContextProvider,
                 client);
-            Collection<UnaryOperator<Map<String, Metadata.Custom>>> customMetadataUpgraders =
+
+            List<UnaryOperator<Map<String, Metadata.Custom>>> customMetadataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .map(Plugin::getCustomMetadataUpgrader)
                     .collect(Collectors.toList());
-            Collection<UnaryOperator<Map<String, IndexTemplateMetadata>>> indexTemplateMetadataUpgraders =
+            customMetadataUpgraders.add(new CustomMetadataUpgraderLoader(settings));
+
+            List<UnaryOperator<Map<String, IndexTemplateMetadata>>> indexTemplateMetadataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .map(Plugin::getIndexTemplateMetadataUpgrader)
                     .collect(Collectors.toList());
-            Collection<UnaryOperator<IndexMetadata>> indexMetadataUpgraders = pluginsService.filterPlugins(Plugin.class).stream()
+            indexTemplateMetadataUpgraders.add(new IndexTemplateUpgrader());
+
+            List<UnaryOperator<IndexMetadata>> indexMetadataUpgraders = pluginsService.filterPlugins(Plugin.class).stream()
                 .map(Plugin::getIndexMetadataUpgrader).collect(Collectors.toList());
+            indexMetadataUpgraders.add(new MetadataIndexUpgrader());
+
             final MetadataUpgrader metadataUpgrader = new MetadataUpgrader(customMetadataUpgraders,
                                                                            indexTemplateMetadataUpgraders);
             final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(settings,
@@ -751,6 +817,18 @@ public class Node implements Closeable {
         logger.info("starting ...");
         pluginLifecycleComponents.forEach(LifecycleComponent::start);
 
+        injector.getInstance(BlobService.class).start();
+
+        injector.getInstance(DecommissioningService.class).start();
+        injector.getInstance(NodeDisconnectJobMonitorService.class).start();
+        injector.getInstance(JobsLogService.class).start();
+        injector.getInstance(PostgresNetty.class).start();
+        injector.getInstance(TasksService.class).start();
+        injector.getInstance(Schemas.class).start();
+        injector.getInstance(ArrayMapperService.class).start();
+        injector.getInstance(DanglingArtifactsService.class).start();
+        injector.getInstance(SslContextProviderService.class).start();
+
         injector.getInstance(MappingUpdatedAction.class).setClient(client);
         injector.getInstance(IndicesService.class).start();
         injector.getInstance(IndicesClusterStateService.class).start();
@@ -902,6 +980,17 @@ public class Node implements Closeable {
         injector.getInstance(GatewayService.class).stop();
         injector.getInstance(TransportService.class).stop();
 
+        injector.getInstance(DecommissioningService.class).stop();
+        injector.getInstance(NodeDisconnectJobMonitorService.class).stop();
+        injector.getInstance(JobsLogService.class).stop();
+        injector.getInstance(PostgresNetty.class).stop();
+        injector.getInstance(TasksService.class).stop();
+        injector.getInstance(Schemas.class).stop();
+        injector.getInstance(ArrayMapperService.class).stop();
+        injector.getInstance(DanglingArtifactsService.class).stop();
+        injector.getInstance(SslContextProviderService.class).stop();
+        injector.getInstance(BlobService.class).stop();
+
         pluginLifecycleComponents.forEach(LifecycleComponent::stop);
         // we should stop this last since it waits for resources to get released
         // if we had scroll searchers etc or recovery going on we wait for to finish.
@@ -964,6 +1053,27 @@ public class Node implements Closeable {
 
         toClose.add(() -> stopWatch.stop().start("node_environment"));
         toClose.add(injector.getInstance(NodeEnvironment.class));
+
+        toClose.add(() -> stopWatch.stop().start("decommission_service"));
+        toClose.add(injector.getInstance(DecommissioningService.class));
+        toClose.add(() -> stopWatch.stop().start("node_disconnect_job_monitor_service"));
+        toClose.add(injector.getInstance(NodeDisconnectJobMonitorService.class));
+        toClose.add(() -> stopWatch.stop().start("jobs_log_service"));
+        toClose.add(injector.getInstance(JobsLogService.class));
+        toClose.add(() -> stopWatch.stop().start("postgres_netty"));
+        toClose.add(injector.getInstance(PostgresNetty.class));
+        toClose.add(() -> stopWatch.stop().start("tasks_service"));
+        toClose.add(injector.getInstance(TasksService.class));
+        toClose.add(() -> stopWatch.stop().start("schemas"));
+        toClose.add(injector.getInstance(Schemas.class));
+        toClose.add(() -> stopWatch.stop().start("array_mapper_service"));
+        toClose.add(injector.getInstance(ArrayMapperService.class));
+        toClose.add(() -> stopWatch.stop().start("dangling_artifacts_service"));
+        toClose.add(injector.getInstance(DanglingArtifactsService.class));
+        toClose.add(() -> stopWatch.stop().start("ssl_context_provider_service"));
+        toClose.add(injector.getInstance(SslContextProviderService.class));
+        toClose.add(() -> stopWatch.stop().start("blob_service"));
+        toClose.add(injector.getInstance(BlobService.class));
 
         for (LifecycleComponent plugin : pluginLifecycleComponents) {
             toClose.add(() -> stopWatch.stop().start("plugin(" + plugin.getClass().getName() + ")"));
