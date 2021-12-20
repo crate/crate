@@ -26,6 +26,7 @@ import io.crate.common.CheckedSupplier;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.metadata.ColumnIdent;
@@ -65,11 +66,13 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
 
     private final ConcurrentHashMap<TaskId, KillableCallable<?>> activeOperations = new ConcurrentHashMap<>();
     private final MappingUpdatePerformer mappingUpdate;
+    private final TasksService tasksService;
 
     protected TransportShardAction(String actionName,
                                    TransportService transportService,
                                    ClusterService clusterService,
                                    IndicesService indicesService,
+                                   TasksService tasksService,
                                    ThreadPool threadPool,
                                    ShardStateAction shardStateAction,
                                    Writeable.Reader<Request> reader,
@@ -90,6 +93,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             validateMapping(update.root().iterator(), false);
             schemaUpdateClient.blockingUpdateOnMaster(shardId.getIndex(), update);
         };
+        this.tasksService = tasksService;
     }
 
     @Override
@@ -101,6 +105,10 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     protected void shardOperationOnPrimary(Request request,
                                            IndexShard primary,
                                            ActionListener<PrimaryResult<Request, ShardResponse>> listener) {
+        if (tasksService.recentlyFailed(request.jobId())) {
+            listener.onFailure(JobKilledException.of(JobKilledException.MESSAGE));
+            return;
+        }
         ActionListener.completeWith(
             listener,
             () -> {

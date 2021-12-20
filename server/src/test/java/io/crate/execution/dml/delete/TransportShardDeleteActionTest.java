@@ -23,6 +23,7 @@ package io.crate.execution.dml.delete;
 
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -77,6 +78,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
                 Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings()),
             mock(ClusterService.class),
             indicesService,
+            mock(TasksService.class),
             mock(ThreadPool.class),
             mock(ShardStateAction.class),
             mock(SchemaUpdateClient.class)
