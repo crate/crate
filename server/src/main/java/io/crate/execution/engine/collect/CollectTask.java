@@ -28,6 +28,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
@@ -143,13 +144,14 @@ public class CollectTask implements Task {
     }
 
     @Override
-    public void kill(Throwable throwable) {
+    public void kill(@Nonnull Throwable throwable) {
         if (started.compareAndSet(false, true)) {
             consumer.accept(null, throwable);
         } else {
             batchIterator.whenComplete((it, err) -> {
                 if (err == null) {
                     it.kill(throwable);
+                    consumer.accept(null, throwable);
                 } // else: Consumer must have received a failure already
             });
         }
