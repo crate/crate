@@ -110,6 +110,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             transportService,
             clusterService,
             indicesService,
+            tasksService,
             threadPool,
             shardStateAction,
             ShardUpsertRequest::new,
