@@ -115,7 +115,7 @@ public class Netty4Transport extends TcpTransport {
 
     private BorrowedItem<EventLoopGroup> eventLoopGroup;
 
-    private final LoggingHandler loggingHandler = new LoggingHandler(LogLevel.TRACE);
+    private final LoggingHandler loggingHandler = new LoggingHandler(LogLevel.INFO);
 
 
 
@@ -315,11 +315,11 @@ public class Netty4Transport extends TcpTransport {
             SSLMode sslMode = SslSettings.SSL_TRANSPORT_MODE.get(settings);
             if (sslMode == SSLMode.ON) {
                 SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
-                SwitchableSslHandler sslHandler = new SwitchableSslHandler(sslContext.newEngine(ch.alloc()));
-                ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME, sslHandler);
-//                ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME,
-//                    new LoggingSslHandler(sslContext.newEngine(ch.alloc()), "server-ssl-handler")
-//                );
+              //  SwitchableSslHandler sslHandler = new SwitchableSslHandler(sslContext.newEngine(ch.alloc()));
+             //   ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME, sslHandler);
+                ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME,
+                    new LoggingSslHandler(sslContext.newEngine(ch.alloc()), "server-ssl-handler")
+                );
 
             }
 
@@ -330,9 +330,9 @@ public class Netty4Transport extends TcpTransport {
             Netty4TcpChannel nettyTcpChannel = new Netty4TcpChannel(ch, true, name, ch.newSucceededFuture());
             ch.attr(CHANNEL_KEY).set(nettyTcpChannel);
             serverAcceptedChannel(nettyTcpChannel);
-            if (Node.NODE_NAME_SETTING.get(settings).equals("node_s0")) {
-                ch.pipeline().addLast("logging", loggingHandler);
-            }
+//            if (Node.NODE_NAME_SETTING.get(settings).equals("node_s0")) {
+//                ch.pipeline().addLast("logging", loggingHandler);
+//            }
             ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, Netty4Transport.this));
         }
 

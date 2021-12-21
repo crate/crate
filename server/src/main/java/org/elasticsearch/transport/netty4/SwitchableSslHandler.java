@@ -28,9 +28,11 @@ public class SwitchableSslHandler extends SslHandler {
     @Override
     public void write(final ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         if (ctx.channel().attr(CAN_SWITCH_TO_PLAINTEXT).get() != null) { // if not null it's set to the true in the only place - HostBasedAuthhandler
+            LOGGER.info("removing server ssl on outgoing write");
             ctx.pipeline().remove(this);
             ctx.write(msg); //forward
         } else {
+            LOGGER.info(" server ssl handler keeps encrypting");
             super.write(ctx, msg, promise); // Keep encrypting outgoing messages
         }
     }

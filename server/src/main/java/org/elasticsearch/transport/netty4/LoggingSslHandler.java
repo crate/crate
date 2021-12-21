@@ -261,7 +261,7 @@ public class LoggingSslHandler extends LoggingByteToMessageDecoder implements Ch
     private final LoggingSslHandler.LazyChannelPromise sslClosePromise = new LoggingSslHandler.LazyChannelPromise();
 
     private int packetLength;
-    private short state;
+    public short state;
 
     private volatile long handshakeTimeoutMillis = 10000;
     private volatile long closeNotifyFlushTimeoutMillis = 3000;
@@ -635,7 +635,9 @@ public class LoggingSslHandler extends LoggingByteToMessageDecoder implements Ch
     }
 
     private void wrapAndFlush(ChannelHandlerContext ctx) throws SSLException {
+        LOGGER.info("wrapping outbound message");
         if (pendingUnencryptedWrites.isEmpty()) {
+            LOGGER.info("NO pendingUnencryptedWrites");
             // It's important to NOT use a voidPromise here as the user
             // may want to add a ChannelFutureListener to the ChannelPromise later.
             //
@@ -1217,6 +1219,7 @@ public class LoggingSslHandler extends LoggingByteToMessageDecoder implements Ch
 
     private void channelReadComplete0(ChannelHandlerContext ctx) {
         // Discard bytes of the cumulation buffer if needed.
+        LOGGER.info("fireChannelReadComplete ctx {}", ctx);
         discardSomeReadBytes();
 
         flushIfNeeded(ctx);
@@ -1253,6 +1256,7 @@ public class LoggingSslHandler extends LoggingByteToMessageDecoder implements Ch
      * Unwraps inbound SSL records.
      */
     private int unwrap(ChannelHandlerContext ctx, ByteBuf packet, int length) throws SSLException {
+        LOGGER.info("unwrap inbound ssl records, ctx {}", ctx);
         final int originalLength = length;
         boolean wrapLater = false;
         boolean notifyClosure = false;
@@ -1289,9 +1293,12 @@ public class LoggingSslHandler extends LoggingByteToMessageDecoder implements Ch
                 if (decodeOut.isReadable()) {
                     setState(STATE_FIRE_CHANNEL_READ);
                     if (isStateSet(STATE_UNWRAP_REENTRY)) {
+                        LOGGER.info("unwrap incoming ssl, ctx {}", ctx);
                         executedRead = true;
+                        LOGGER.info("call executeChannelRead from unwrap {}", ctx);
                         executeChannelRead(ctx, decodeOut);
                     } else {
+                        LOGGER.info("fire read from unwrap {}", ctx);
                         ctx.fireChannelRead(decodeOut);
                     }
                     decodeOut = null;
@@ -2171,7 +2178,7 @@ public class LoggingSslHandler extends LoggingByteToMessageDecoder implements Ch
         return engineType.allocateWrapBuffer(this, ctx.alloc(), pendingBytes, numComponents);
     }
 
-    private boolean isStateSet(int bit) {
+    public boolean isStateSet(int bit) {
         return (state & bit) == bit;
     }
 

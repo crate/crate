@@ -85,10 +85,11 @@ public class SSLTrustedZoneITest extends SQLIntegrationTestCase {
 
     @Test
     //@AwaitsFix(bugUrl = "https://github.com/crate/crate/issues/11954")
-    //@TestLogging("org.elasticsearch.transport.netty4:TRACE")
+    @TestLogging("org.elasticsearch.transport.netty4:TRACE")
     // too much noise with trace - all relevant custom messages logged with INFO to differentiate from tons of existing messages
     public void test_switch_to_plaintext_enabled_downgrades_to_plaintext() throws Exception {
 
+        // -Dtests.seed=609F887A9B59B7F6 -Dtests.nightly=true -Dtests.locale="kl-Latn-GL" -Dtests.timezone=Australia/Sydney
         /*execute("select count(*) from sys.nodes");
         assertThat(response.rows()[0][0], is(2L));
 

@@ -49,7 +49,7 @@ public final class SSL {
 
     @Nullable
     public static SSLSession getSession(Channel channel) {
-        SwitchableSslHandler sslHandler = channel.pipeline().get(SwitchableSslHandler.class);
+        LoggingSslHandler sslHandler = channel.pipeline().get(LoggingSslHandler.class);
         if (sslHandler != null) {
             return sslHandler.engine().getSession();
         }

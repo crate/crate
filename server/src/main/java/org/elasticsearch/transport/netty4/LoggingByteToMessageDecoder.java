@@ -251,7 +251,7 @@ public abstract class LoggingByteToMessageDecoder extends ChannelInboundHandlerA
             } finally {
                 try {
                     if (cumulation != null && !cumulation.isReadable()) {
-                        LOGGER.info("in channelRead finally, releasing cumulation");
+                       // LOGGER.info("in channelRead finally, releasing cumulation"); // too much noise, it enter only this branch in tests so no need to log
                         numReads = 0;
                         cumulation.release();
                         cumulation = null;
@@ -281,7 +281,7 @@ public abstract class LoggingByteToMessageDecoder extends ChannelInboundHandlerA
      */
     static void fireChannelRead(ChannelHandlerContext ctx, List<Object> msgs, int numElements) {
         if (msgs instanceof CodecOutputList) {
-            LOGGER.info("firing channel read in loop for codecoutoutist, numElem {}", numElements);
+
             fireChannelRead(ctx, (CodecOutputList) msgs, numElements);
         } else {
             for (int i = 0; i < numElements; i++) {
@@ -295,15 +295,14 @@ public abstract class LoggingByteToMessageDecoder extends ChannelInboundHandlerA
      * Get {@code numElements} out of the {@link CodecOutputList} and forward these through the pipeline.
      */
     static void fireChannelRead(ChannelHandlerContext ctx, CodecOutputList msgs, int numElements) {
-        LOGGER.info("ByteToMessageDecoder, firing channel read for CodecOutputList msgs, SIZE {}", numElements);
         for (int i = 0; i < numElements; i ++) {
+            LOGGER.info("ByteToMessageDecoder, firing channel read for CodecOutputList msgs, SIZE {}", numElements); // always zero iterations in tests
             ctx.fireChannelRead(msgs.getUnsafe(i));
         }
     }
 
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-        LOGGER.info("fireChannelReadComplete ctx {}", ctx);
         numReads = 0;
         discardSomeReadBytes();
         if (!firedChannelRead && !ctx.channel().config().isAutoRead()) {
@@ -483,7 +482,7 @@ public abstract class LoggingByteToMessageDecoder extends ChannelInboundHandlerA
         decodeState = STATE_CALLING_CHILD_DECODE;
 
         try {
-            LOGGER.info("in decodeRemovalReentryProtection, invoking decode of the subclass(sslhandler)");
+            //LOGGER.info("in decodeRemovalReentryProtection, invoking decode of the subclass(sslhandler)");
             decode(ctx, in, out);
         } finally {
             boolean removePending = decodeState == STATE_HANDLER_REMOVED_PENDING;

@@ -84,14 +84,19 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
                 // This handler comes after SSLHandler, so handshake already happened
                 // and after that certificate was validated by authMethod.authenticate call above.
                 // switch_to_plaintext flag in combination with method cert indicates that it's safe to downgrade to plaintext.
-                SwitchableSslHandler sslHandler = (SwitchableSslHandler) ctx.pipeline().get(SERVER_SSL_HANDLER_NAME);
+                LoggingSslHandler sslHandler = (LoggingSslHandler) ctx.pipeline().get(SERVER_SSL_HANDLER_NAME);
                 if (sslHandler != null) {
                         LOGGER.info("SSL switch to plaintext enabled, node {} switching from SSL to plaintext",
                             ((InetSocketAddress) channel.localAddress()).getHostName()
                         );
+                  //  sslHandler.closeOutbound()
+                    //LOGGER.info("sslhandler state before removal: {},  STATE_FIRE_CHANNEL_READ {}, " +
+                  //      "STATE_NEEDS_FLUSH {}", sslHandler.state,  sslHandler.isStateSet(1 << 8), sslHandler.isStateSet(1 << 4));
 
-                    ctx.channel().attr(sslHandler.CAN_SWITCH_TO_PLAINTEXT).set(true);
-                   // ctx.pipeline().remove(sslHandler);
+                    ctx.pipeline().remove(sslHandler);
+
+                    LOGGER.info("sslhandler state after removal: {},  STATE_FIRE_CHANNEL_READ {}" +
+                        " STATE_NEEDS_FLUSH {}", sslHandler.state,  sslHandler.isStateSet(1 << 8), sslHandler.isStateSet(1 << 4));
 
                 } else {
                     closeAndThrowException(ctx, msg, new IllegalStateException("Auth method cert and switch_to_plaintext set " +
@@ -99,11 +104,11 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
                 }
 
             }
-
-                LOGGER.info("propagating order shuffle only for node1, node0 propagates by remove? ctx = {}", ctx);
-
+          //  else {
+                LOGGER.info("propagating ctx = {}", ctx);
                 super.channelRead(ctx, msg);
 
+        //    }
         } catch (Exception e) {
             closeAndThrowException(ctx, msg, e);
         }
