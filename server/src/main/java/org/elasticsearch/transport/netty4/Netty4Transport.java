@@ -62,7 +62,6 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.TransportSettings;
@@ -295,9 +294,7 @@ public class Netty4Transport extends TcpTransport {
             SSLMode sslMode = SslSettings.SSL_TRANSPORT_MODE.get(settings);
             if (sslMode == SSLMode.ON) {
                 SslContext sslContext = sslContextProvider.clientContext();
-                AdaptiveSslHandler sslHandler = new AdaptiveSslHandler(sslContext.newEngine(ch.alloc()));
-                sslHandler.engine().setUseClientMode(true);
-                ch.pipeline().addLast(sslHandler);
+                ch.pipeline().addLast(ClientStartTLSHandler.CLIENT_STARTTLS_HANDLER, new ClientStartTLSHandler(sslContext));
             }
         }
     }
@@ -313,19 +310,26 @@ public class Netty4Transport extends TcpTransport {
         @Override
         protected void initChannel(Channel ch) throws Exception {
             SSLMode sslMode = SslSettings.SSL_TRANSPORT_MODE.get(settings);
-            if (sslMode == SSLMode.ON) {
-                SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
-              //  SwitchableSslHandler sslHandler = new SwitchableSslHandler(sslContext.newEngine(ch.alloc()));
-             //   ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME, sslHandler);
-                ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME,
-                    new LoggingSslHandler(sslContext.newEngine(ch.alloc()), "server-ssl-handler")
-                );
 
-            }
-
+            // HBA handler should go first in order to understand plaintext request.
+            // It gets deleted in any case after first round and SslHandler will become first as it must be.
             if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings) && sslMode != SSLMode.OFF && sslMode != SSLMode.LEGACY) {
                 ch.pipeline().addLast("hba", new HostBasedAuthHandler(authentication));
             }
+
+            if (sslMode == SSLMode.ON) {
+                SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
+                // startTls allows
+                SslHandler sslHandler = new SslHandler(sslContext.newEngine(ch.alloc()), true);
+                ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME, sslHandler);
+              //  SwitchableSslHandler sslHandler = new SwitchableSslHandler(sslContext.newEngine(ch.alloc()));
+             //   ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME, sslHandler);
+//                ch.pipeline().addLast(SERVER_SSL_HANDLER_NAME,
+//                    new LoggingSslHandler(sslContext.newEngine(ch.alloc()), "server-ssl-handler")
+//                );
+
+            }
+
             addClosedExceptionLogger(ch);
             Netty4TcpChannel nettyTcpChannel = new Netty4TcpChannel(ch, true, name, ch.newSucceededFuture());
             ch.attr(CHANNEL_KEY).set(nettyTcpChannel);

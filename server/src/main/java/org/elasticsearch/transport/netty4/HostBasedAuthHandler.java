@@ -23,10 +23,16 @@ package org.elasticsearch.transport.netty4;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.security.sasl.AuthenticationException;
 
+import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.ClientCertAuth;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,6 +49,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 
+import static org.elasticsearch.transport.netty4.ClientStartTLSHandler.STARTTLS_MSG_LENGTH;
 import static org.elasticsearch.transport.netty4.Netty4Transport.SERVER_SSL_HANDLER_NAME;
 
 public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
@@ -81,41 +88,37 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
             if (authMethod.name().equals(ClientCertAuth.NAME) && ((ClientCertAuth) authMethod).isSwitchToPlaintext()) {
                 // Presence of this handler implies that transport.mode != OFF and != LEGACY (and thus equal to the only other valid mode: ON)
                 // which in turn implies that SSlHandler was added to the pipeline.
-                // This handler comes after SSLHandler, so handshake already happened
-                // and after that certificate was validated by authMethod.authenticate call above.
+                // This handler comes after SSLHandler, so handshake already happened.
+                // This handler is configured with startTls true so first message (STARTTLS response) goes unecrypted and client can react accordingly
                 // switch_to_plaintext flag in combination with method cert indicates that it's safe to downgrade to plaintext.
-                LoggingSslHandler sslHandler = (LoggingSslHandler) ctx.pipeline().get(SERVER_SSL_HANDLER_NAME);
+                SslHandler sslHandler = (SslHandler) ctx.pipeline().get(SERVER_SSL_HANDLER_NAME);
                 if (sslHandler != null) {
                         LOGGER.info("SSL switch to plaintext enabled, node {} switching from SSL to plaintext",
                             ((InetSocketAddress) channel.localAddress()).getHostName()
                         );
-                  //  sslHandler.closeOutbound()
-                    //LOGGER.info("sslhandler state before removal: {},  STATE_FIRE_CHANNEL_READ {}, " +
-                  //      "STATE_NEEDS_FLUSH {}", sslHandler.state,  sslHandler.isStateSet(1 << 8), sslHandler.isStateSet(1 << 4));
 
-                    ctx.pipeline().remove(sslHandler);
+                        ByteBuf buf = Unpooled.buffer(STARTTLS_MSG_LENGTH);
+                        buf.writeCharSequence("NOSTART!", StandardCharsets.UTF_8);
+                        ctx.writeAndFlush(buf);
 
-                    LOGGER.info("sslhandler state after removal: {},  STATE_FIRE_CHANNEL_READ {}" +
-                        " STATE_NEEDS_FLUSH {}", sslHandler.state,  sslHandler.isStateSet(1 << 8), sslHandler.isStateSet(1 << 4));
 
                 } else {
                     closeAndThrowException(ctx, msg, new IllegalStateException("Auth method cert and switch_to_plaintext set " +
                         "but SSL in not configured for transport protocol on node: " + ((InetSocketAddress) channel.localAddress()).getHostName()));
                 }
-
+            } else {
+                ByteBuf buf = Unpooled.buffer(STARTTLS_MSG_LENGTH);
+                buf.writeCharSequence("NOSTART!", StandardCharsets.UTF_8);
+                ctx.writeAndFlush(buf);
             }
-          //  else {
-                LOGGER.info("propagating ctx = {}", ctx);
-                super.channelRead(ctx, msg);
-
-        //    }
         } catch (Exception e) {
             closeAndThrowException(ctx, msg, e);
+        } finally {
+            ReferenceCountUtil.release(msg);
         }
     }
 
     private void closeAndThrowException(ChannelHandlerContext ctx, Object msg, Exception e) throws Exception {
-        ReferenceCountUtil.release(msg);
         authError = e;
         Netty4TcpChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
         CloseableChannel.closeChannel(tcpChannel, true);
