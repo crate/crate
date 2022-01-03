@@ -42,6 +42,8 @@ import io.crate.sql.tree.CheckConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -55,7 +57,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -598,7 +599,7 @@ public class AnalyzedTableElements<T> {
             sb.append("_").append(columnName);
         }
         sb.append("_check_");
-        String uuid = UUID.randomUUID().toString();
+        String uuid = UUIDs.dirtyUUID().toString();
         int idx = uuid.lastIndexOf("-");
         sb.append(idx > 0 ? uuid.substring(idx + 1) : uuid);
         return sb.toString();

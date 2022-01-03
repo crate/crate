@@ -20,11 +20,28 @@
 package org.elasticsearch.common;
 
 import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class UUIDs {
 
     private static final RandomBasedUUIDGenerator RANDOM_UUID_GENERATOR = new RandomBasedUUIDGenerator();
     private static final UUIDGenerator TIME_UUID_GENERATOR = new TimeBasedUUIDGenerator();
+
+    /**
+     * Similar to {@link UUID#randomUUID()} but:
+     *
+     * <ul>
+     *  <li>Uses ThreadLocalRandom instead of SecureRandom</li>
+     *  <li>Doesn't return a UUID4, in fact it doesn't follow the UUID structure at all.
+     *      It's just two random longs.
+     *  </li>
+     * </ul>
+     **/
+    public static UUID dirtyUUID() {
+        var random = ThreadLocalRandom.current();
+        return new UUID(random.nextLong(), random.nextLong());
+    }
 
     /** Generates a time-based UUID (similar to Flake IDs), which is preferred when generating an ID to be indexed into a Lucene index as
      *  primary key.  The id is opaque and the implementation is free to change at any time! */

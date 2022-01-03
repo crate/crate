@@ -29,6 +29,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.UUIDs;
 import org.apache.logging.log4j.LogManager;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -120,7 +121,7 @@ public class RetryOnFailureResultReceiver implements ResultReceiver {
     }
 
     private void retry() {
-        UUID newJobId = UUID.randomUUID();
+        UUID newJobId = UUIDs.dirtyUUID();
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Retrying statement due to a shard failure, attempt={}, jobId={}->{}", attempt, jobId, newJobId);
         }

@@ -27,11 +27,10 @@ import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
-import java.util.Locale;
 import java.util.Queue;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RamAccountingQueue<T> extends ForwardingQueue<T> {
@@ -57,7 +56,7 @@ public class RamAccountingQueue<T> extends ForwardingQueue<T> {
     }
 
     private static String contextId() {
-        return String.format(Locale.ENGLISH, "RamAccountingQueue[%s]", UUID.randomUUID().toString());
+        return "RamAccountingQueue[" + UUIDs.dirtyUUID() + ']';
     }
 
     @Override
