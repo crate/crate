@@ -30,10 +30,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
+
+import org.elasticsearch.common.UUIDs;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
@@ -183,7 +184,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
                 source.outputs().indexOf(windowDefinition.partitions().iterator().next()))
             );
             MergePhase distWindowAgg = new MergePhase(
-                UUID.randomUUID(),
+                UUIDs.dirtyUUID(),
                 plannerContext.nextExecutionPhaseId(),
                 "distWindowAgg",
                 resultDescription.nodeIds().size(),

@@ -34,12 +34,13 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
+
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 class CreateSnapshotAnalyzer {
 
@@ -63,7 +64,7 @@ class CreateSnapshotAnalyzer {
                 "Snapshot must be specified by \"<repository_name>\".\"<snapshot_name>\""));
 
         String snapshotName = createSnapshot.name().getSuffix();
-        Snapshot snapshot = new Snapshot(repositoryName, new SnapshotId(snapshotName, UUID.randomUUID().toString()));
+        Snapshot snapshot = new Snapshot(repositoryName, new SnapshotId(snapshotName, UUIDs.dirtyUUID().toString()));
 
         var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
