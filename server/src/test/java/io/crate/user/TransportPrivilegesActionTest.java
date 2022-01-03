@@ -72,7 +72,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
 
     @Test
     public void testValidateUserNamesEmptyUsers() throws Exception {
-        List<String> userNames = Lists.newArrayList("ford", "arthur");
+        List<String> userNames = List.of("ford", "arthur");
         List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(Metadata.EMPTY_METADATA, userNames);
         assertThat(unknownUserNames, is(userNames));
     }
@@ -82,7 +82,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
         Metadata metadata = Metadata.builder()
             .putCustom(UsersMetadata.TYPE, new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY))
             .build();
-        List<String> userNames = Lists.newArrayList("Ford", "Arthur");
+        List<String> userNames = List.of("Ford", "Arthur");
         List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, userNames);
         assertThat(unknownUserNames, contains("Ford"));
     }

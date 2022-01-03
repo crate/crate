@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import com.google.common.collect.Lists;
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -46,6 +45,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.util.CollectionUtils;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
@@ -83,7 +83,7 @@ public class NodeStatsCollectSource implements CollectSource {
             return completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
         }
         Collection<DiscoveryNode> nodes = filterNodes(
-            Lists.newArrayList(clusterService.state().getNodes().iterator()),
+            CollectionUtils.iterableAsArrayList(clusterService.state().getNodes()),
             collectPhase.where(),
             nodeCtx);
         if (nodes.isEmpty()) {

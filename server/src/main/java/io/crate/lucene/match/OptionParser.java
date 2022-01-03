@@ -21,7 +21,6 @@
 
 package io.crate.lucene.match;
 
-import com.google.common.base.Joiner;
 import io.crate.types.BooleanType;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.FuzzyQuery;
@@ -69,12 +68,12 @@ public class OptionParser {
     );
 
     public static ParsedOptions parse(MultiMatchQueryType matchType,
-                                      @Nullable Map options) throws IllegalArgumentException {
+                                      @Nullable Map<?, ?> options) throws IllegalArgumentException {
         if (options == null) {
             options = Collections.emptyMap();
         } else {
             // need a copy. Otherwise manipulations on a shared option will lead to strange race conditions.
-            options = new HashMap(options);
+            options = new HashMap<>(options);
         }
         ParsedOptions parsedOptions = new ParsedOptions(
             floatValue(options, OPTIONS.BOOST, null),
@@ -138,7 +137,7 @@ public class OptionParser {
             "value for operator must be either \"or\" or \"and\" not \"%s\"", op));
     }
 
-    private static Float floatValue(Map options, String optionName, Float defaultValue) {
+    private static Float floatValue(Map<?, ?> options, String optionName, Float defaultValue) {
         Object o = options.remove(optionName);
         if (o == null) {
             return defaultValue;
@@ -150,7 +149,7 @@ public class OptionParser {
         throw new IllegalArgumentException(String.format(Locale.ENGLISH, "value for %s must be a number", optionName));
     }
 
-    private static Integer intValue(Map options, String optionName, Integer defaultValue) {
+    private static Integer intValue(Map<?, ?> options, String optionName, Integer defaultValue) {
         Object o = options.remove(optionName);
         if (o == null) {
             return defaultValue;
@@ -198,7 +197,7 @@ public class OptionParser {
         throw new IllegalArgumentException("value for analyzer must be a string");
     }
 
-    private static void raiseIllegalOptions(MultiMatchQueryType matchType, Map options) {
+    private static void raiseIllegalOptions(MultiMatchQueryType matchType, Map<?, ?> options) {
         List<String> unknownOptions = new ArrayList<>();
         List<String> invalidOptions = new ArrayList<>();
         for (Object o : options.keySet()) {
@@ -212,11 +211,11 @@ public class OptionParser {
         if (!unknownOptions.isEmpty()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "match predicate doesn't support any of the given options: %s",
-                Joiner.on(", ").join(unknownOptions)));
+                String.join(", ", unknownOptions)));
         } else {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "match predicate option(s) \"%s\" cannot be used with matchType \"%s\"",
-                Joiner.on(", ").join(invalidOptions),
+                String.join(", ", invalidOptions),
                 matchType.name().toLowerCase(Locale.ENGLISH)
             ));
         }

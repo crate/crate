@@ -72,7 +72,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Objects.requireNonNull;
 
 public final class DeletePlanner {
@@ -105,7 +104,7 @@ public final class DeletePlanner {
             return new DeleteById(tableRel.tableInfo(), detailedQuery.docKeys().get());
         }
         Symbol query = detailedQuery.query();
-        if (table.isPartitioned() && query instanceof Input && DataTypes.BOOLEAN.sanitizeValue(((Input) query).value())) {
+        if (table.isPartitioned() && query instanceof Input<?> input && DataTypes.BOOLEAN.sanitizeValue(input.value())) {
             return new DeleteAllPartitions(Lists2.map(table.partitions(), IndexParts::toIndexName));
         }
 
@@ -191,7 +190,7 @@ public final class DeletePlanner {
             "collect",
             routing,
             tableInfo.rowGranularity(),
-            newArrayList(idReference),
+            List.of(idReference),
             List.of(deleteProjection),
             Optimizer.optimizeCasts(where.queryOrFallback(), context),
             DistributionInfo.DEFAULT_BROADCAST

@@ -69,6 +69,22 @@ public final class StringUtils {
         return true;
     }
 
+    public static String camelToSnakeCase(String camelCase) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < camelCase.length(); i++) {
+            char c = camelCase.charAt(i);
+            if (Character.isUpperCase(c)) {
+                if (i > 0) {
+                    sb.append('_');
+                }
+                sb.append(Character.toLowerCase(c));
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
     public static String capitalize(String string) {
         return string.substring(0,1).toUpperCase(Locale.ENGLISH) + string.substring(1).toLowerCase(Locale.ENGLISH);
     }
