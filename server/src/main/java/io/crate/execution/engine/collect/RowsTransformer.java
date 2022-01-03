@@ -28,7 +28,7 @@ import java.util.Spliterator;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
-import com.google.common.collect.Lists;
+import org.elasticsearch.common.util.CollectionUtils;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
@@ -97,7 +97,7 @@ public final class RowsTransformer {
     }
 
     public static Iterable<Row> sortRows(Iterable<Object[]> rows, RoutedCollectPhase collectPhase) {
-        ArrayList<Object[]> objects = Lists.newArrayList(rows);
+        ArrayList<Object[]> objects = CollectionUtils.iterableAsArrayList(rows);
         Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(collectPhase);
         objects.sort(ordering);
         return Lists2.mapLazy(objects, Buckets.arrayToSharedRow());

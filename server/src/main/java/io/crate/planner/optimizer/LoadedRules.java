@@ -24,10 +24,9 @@ package io.crate.planner.optimizer;
 import java.util.List;
 import java.util.Locale;
 
-import com.google.common.base.CaseFormat;
-
 import org.elasticsearch.common.inject.Singleton;
 
+import io.crate.common.StringUtils;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.settings.session.SessionSetting;
@@ -98,7 +97,7 @@ public class LoadedRules implements SessionSettingProvider {
     @VisibleForTesting
     SessionSetting<?> buildRuleSessionSetting(Class<? extends Rule<?>> rule) {
         var simpleName = rule.getSimpleName();
-        var optimizerRuleName = OPTIMIZER_SETTING_PREFIX + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, simpleName);
+        var optimizerRuleName = OPTIMIZER_SETTING_PREFIX + StringUtils.camelToSnakeCase(simpleName);
         return new SessionSetting<>(
             optimizerRuleName,
             objects -> {},

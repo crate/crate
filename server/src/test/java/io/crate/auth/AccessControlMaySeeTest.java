@@ -29,8 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
-
+import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matcher;
 import org.junit.Before;
@@ -58,7 +57,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
 
             @Override
             public boolean hasAnyPrivilege(Privilege.Clazz clazz, String ident) {
-                validationCallArguments.add(Lists.newArrayList(clazz, ident, user.name()));
+                validationCallArguments.add(CollectionUtils.arrayAsArrayList(clazz, ident, user.name()));
                 return true;
             }
         };
@@ -85,7 +84,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
 
     @Test
     public void testTableScopeException() throws Exception {
-        accessControl.ensureMaySee(new RelationValidationException(Lists.newArrayList(
+        accessControl.ensureMaySee(new RelationValidationException(List.of(
             RelationName.fromIndexName("users"),
             RelationName.fromIndexName("my_schema.foo")
         ), "bla"));

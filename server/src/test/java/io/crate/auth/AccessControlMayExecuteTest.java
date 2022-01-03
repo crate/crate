@@ -21,7 +21,6 @@
 
 package io.crate.auth;
 
-import com.google.common.collect.Lists;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.user.Privilege;
@@ -41,6 +40,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -87,14 +87,14 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         user = new User("normal", Set.of(), Set.of(), null) {
             @Override
             public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
-                validationCallArguments.add(Lists.newArrayList(type, clazz, ident, user.name()));
+                validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, user.name()));
                 return true;
             }
         };
         superUser = new User("crate", EnumSet.of(User.Role.SUPERUSER), Set.of(), null) {
             @Override
             public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident, String defaultSchema) {
-                validationCallArguments.add(Lists.newArrayList(type, clazz, ident, superUser.name()));
+                validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, superUser.name()));
                 return true;
             }
         };
@@ -495,7 +495,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         var customUser = new User("normal", Set.of(), Set.of(), null) {
             @Override
             public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
-                validationCallArguments.add(Lists.newArrayList(type, clazz, ident, user.name()));
+                validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, user.name()));
                 if (Privilege.Type.DDL == type) {
                     return true;
                 } else {
