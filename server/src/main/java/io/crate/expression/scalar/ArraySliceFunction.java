@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.analyze.ArraySliceValidator.raiseInvalidIndexValue;
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
@@ -82,8 +81,8 @@ public class ArraySliceFunction extends Scalar<List<Object>, Object> {
         int from = 1;
         if (args.length >= 2) {
             from = intValueOrDefault(args[1], 1);
+            ensureGtZero(from);
         }
-        validateIndex(from);
 
         int to = listInput.size();
         if (args.length == 3) {
@@ -92,29 +91,28 @@ public class ArraySliceFunction extends Scalar<List<Object>, Object> {
                 intValueOrDefault(args[2], listInput.size())
             );
         }
-        validateIndex(to);
+        ensureGtZero(to);
 
         return to >= from ? new ArrayList<>(listInput.subList(from - 1, to)) : List.of();
     }
 
     private static int intValueOrDefault(Input<Object> arg, int defaultValue) {
+        Object value = arg.value();
         try {
-            Object value = arg.value();
             if (value != null) {
                 return ((Number) value).intValue();
             } else {
                 return defaultValue;
             }
         } catch (IllegalArgumentException e) {
-            raiseInvalidIndexValue();
-            return 0;
+            throw new IllegalArgumentException(
+                "Array index must be in range 1 to " + Integer.MAX_VALUE, e);
         }
     }
 
-    private static void validateIndex(int value) {
+    private static void ensureGtZero(int value) {
         if (value < 1) {
-            raiseInvalidIndexValue();
+            throw new IllegalArgumentException("Array index must be in range 1 to " + Integer.MAX_VALUE);
         }
     }
-
 }

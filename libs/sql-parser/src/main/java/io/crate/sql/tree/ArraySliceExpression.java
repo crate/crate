@@ -41,9 +41,9 @@ import java.util.Optional;
  */
 public class ArraySliceExpression extends Expression {
 
-    private Expression base;
-    private Optional<Expression> from;
-    private Optional<Expression> to;
+    private final Expression base;
+    private final Optional<Expression> from;
+    private final Optional<Expression> to;
 
     public ArraySliceExpression(Expression base, Optional<Expression> from, Optional<Expression> to) {
         this.base = base;
@@ -69,18 +69,22 @@ public class ArraySliceExpression extends Expression {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof ArraySliceExpression that)) {
-            return false;
-        }
-        return Objects.equals(from, that.from) && Objects.equals(to, that.to);
+    public int hashCode() {
+        return Objects.hash(base, from, to);
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(from, to);
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        ArraySliceExpression other = (ArraySliceExpression) obj;
+        return Objects.equals(base, other.base) && Objects.equals(from, other.from) && Objects.equals(to, other.to);
     }
 }
