@@ -73,7 +73,7 @@ public final class BinaryScalar<T> extends Scalar<T, T> {
         try {
             return func.apply(arg0Value, arg1Value);
         } catch (ArithmeticException ae) {
-            throw new IllegalArgumentException(ae.getMessage());
+            throw new IllegalArgumentException(ae.getMessage(), ae);
         }
     }
 }

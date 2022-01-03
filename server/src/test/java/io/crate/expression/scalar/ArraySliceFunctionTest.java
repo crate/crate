@@ -121,77 +121,76 @@ public class ArraySliceFunctionTest extends ScalarTestCase {
     @Test
     public void testBaseIsNotAnArray() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("An expression of type StringLiteral cannot have " +
-                                        "an array slice ([<from>:<to>])");
+        expectedException.expectMessage("Unknown function: array_slice('not an array', 1, 3), no overload found for matching argument types");
         assertEvaluate("'not an array'[1:3]", null);
     }
 
     @Test
     public void testFromIsNegative() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Array index must be in range 1 to 2147483647");
         assertEvaluate("[1,2,3,4,5][-1:]", null);
     }
 
     @Test
     public void testToIsNegative() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Array index must be in range 1 to 2147483647");
         assertEvaluate("[1,2,3,4,5][:-1]", null);
     }
 
     @Test
     public void testFromIsBig() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Array index must be in range 1 to 2147483647");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
         assertEvaluate("[1,2,3,4,5][2147483648:]", List.of());
     }
 
     @Test
     public void testToIsBig() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Array index must be in range 1 to 2147483647");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
         assertEvaluate("[1,2,3,4,5][:2147483648]", List.of(1, 2, 3, 4, 5));
     }
 
     @Test
     public void testFromIsBigExpression() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Array index must be in range 1 to 2147483647");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("integer overflow");
         assertEvaluate("[1,2,3,4,5][2147483647+20:]", List.of());
     }
 
     @Test
     public void testToIsBigExpression() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Array index must be in range 1 to 2147483647");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("integer overflow");
         assertEvaluate("[1,2,3,4,5][:2147483647+20]", List.of(1, 2, 3, 4, 5));
     }
 
     @Test
     public void testFromIsZero() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Array index must be in range 1 to 2147483647");
         assertEvaluate("[1,2,3,4,5][0:]", List.of());
     }
 
     @Test
     public void testToIsZero() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Array index must be in range 1 to 2147483647");
         assertEvaluate("[1,2,3,4,5][:0]", List.of());
     }
 
     @Test
     public void testFromIsZeroExpression() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Array index must be in range 1 to 2147483647");
         assertEvaluate("[1,2,3,4,5][10-10:]", List.of());
     }
 
     @Test
     public void testToIsZeroExpression() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Array index must be in range 1 to 2147483647");
         assertEvaluate("[1,2,3,4,5][:10-10]", List.of());
     }
