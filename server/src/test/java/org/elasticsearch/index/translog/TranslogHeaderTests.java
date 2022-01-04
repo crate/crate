@@ -19,19 +19,20 @@
 
 package org.elasticsearch.index.translog;
 
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class TranslogHeaderTests extends ESTestCase {
 
@@ -64,6 +65,12 @@ public class TranslogHeaderTests extends ESTestCase {
         final TranslogCorruptedException corruption = expectThrows(TranslogCorruptedException.class, () -> {
             try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.READ)) {
                 TranslogHeader.read(randomBoolean() ? outHeader.getTranslogUUID() : UUIDs.randomBase64UUID(), translogFile, channel);
+                final TranslogHeader translogHeader = TranslogHeader.read(outHeader.getTranslogUUID(), translogFile, channel);
+                // succeeds if the corruption corrupted the version byte making this look like a v2 translog, because we don't check the
+                // checksum on this version
+                assertThat("version " + TranslogHeader.VERSION_CHECKPOINTS + " translog",
+                           translogHeader.getPrimaryTerm(), equalTo(SequenceNumbers.UNASSIGNED_PRIMARY_TERM));
+                throw new TranslogCorruptedException(translogFile.toString(), "adjusted translog version");
             } catch (IllegalStateException e) {
                 // corruption corrupted the version byte making this look like a v2, v1 or v0 translog
                 assertThat("version " + TranslogHeader.VERSION_CHECKPOINTS + "-or-earlier translog",
