@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.UUIDs;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
@@ -47,7 +48,7 @@ public class PlannerContext {
         return new PlannerContext(
             context.clusterState,
             context.routingProvider,
-            UUID.randomUUID(),
+            UUIDs.dirtyUUID(),
             context.coordinatorTxnCtx,
             context.nodeCtx,
             fetchSize,

@@ -21,6 +21,13 @@
 
 package io.crate.analyze.relations;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Nonnull;
+
+import org.elasticsearch.common.UUIDs;
+
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -29,11 +36,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
-import org.elasticsearch.common.UUIDs;
-
-import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.List;
 
 public class UnionSelect implements AnalyzedRelation {
 
@@ -47,7 +49,7 @@ public class UnionSelect implements AnalyzedRelation {
             : "Both the left side and the right side of UNION must have the same number of outputs";
         this.left = left;
         this.right = right;
-        this.name = new RelationName(null, UUIDs.randomBase64UUID());
+        this.name = new RelationName(null, UUIDs.dirtyUUID().toString());
         // SQL semantics dictate that UNION uses the column names from the first relation (top or left side)
         List<Symbol> fieldsFromLeft = left.outputs();
         ArrayList<ScopedSymbol> outputs = new ArrayList<>(fieldsFromLeft.size());

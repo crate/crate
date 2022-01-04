@@ -39,6 +39,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.UUIDs;
 
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
@@ -182,7 +183,7 @@ public class Session implements AutoCloseable {
         Statement parsedStmt = parse.apply(statement);
         AnalyzedStatement analyzedStatement = analyzer.analyze(parsedStmt, sessionContext, ParamTypeHints.EMPTY);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
-        UUID jobId = UUID.randomUUID();
+        UUID jobId = UUIDs.dirtyUUID();
         ClusterState clusterState = planner.currentClusterState();
         PlannerContext plannerContext = new PlannerContext(
             clusterState,
@@ -272,7 +273,7 @@ public class Session implements AutoCloseable {
             if ("".equals(query)) {
                 statement = EMPTY_STMT;
             } else {
-                jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, SQLExceptions.messageOf(t), sessionContext.sessionUser());
+                jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), query, SQLExceptions.messageOf(t), sessionContext.sessionUser());
                 throw t;
             }
         }
@@ -296,7 +297,7 @@ public class Session implements AutoCloseable {
             );
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(
-                UUID.randomUUID(),
+                UUIDs.dirtyUUID(),
                 query == null ? statementName : query,
                 SQLExceptions.messageOf(t),
                 sessionContext.sessionUser());
@@ -318,7 +319,7 @@ public class Session implements AutoCloseable {
         try {
             preparedStmt = getSafeStmt(statementName);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(UUID.randomUUID(), null, SQLExceptions.messageOf(t), sessionContext.sessionUser());
+            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), null, SQLExceptions.messageOf(t), sessionContext.sessionUser());
             throw t;
         }
 
@@ -531,7 +532,7 @@ public class Session implements AutoCloseable {
 
     private CompletableFuture<?> bulkExec(Statement statement, List<DeferredExecution> toExec) {
         assert toExec.size() >= 1 : "Must have at least 1 deferred execution for bulk exec";
-        var jobId = UUID.randomUUID();
+        var jobId = UUIDs.dirtyUUID();
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         var clusterState = executor.clusterService().state();
         var txnCtx = new CoordinatorTxnCtx(sessionContext);
@@ -612,7 +613,7 @@ public class Session implements AutoCloseable {
             return resultReceiver.completionFuture();
         }
 
-        var jobId = UUID.randomUUID();
+        var jobId = UUIDs.dirtyUUID();
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         var clusterState = executor.clusterService().state();
         var txnCtx = new CoordinatorTxnCtx(sessionContext);

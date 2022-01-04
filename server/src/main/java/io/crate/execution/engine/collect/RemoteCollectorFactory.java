@@ -41,6 +41,7 @@ import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionInfo;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.shard.ShardId;
@@ -132,7 +133,7 @@ public class RemoteCollectorFactory {
             }
             it.whenComplete(consumer);
         } else {
-            UUID childJobId = UUID.randomUUID();
+            UUID childJobId = UUIDs.dirtyUUID();
             RemoteCollector remoteCollector = new RemoteCollector(
                 childJobId,
                 collectTask.txnCtx().sessionSettings(),
