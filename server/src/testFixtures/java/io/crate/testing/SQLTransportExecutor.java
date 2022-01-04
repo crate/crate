@@ -473,7 +473,7 @@ public class SQLTransportExecutor {
                 }
                 ArrayList<Object> jsonObjects = new ArrayList<>();
                 for (Object item : (Object[]) array.getArray()) {
-                    jsonObjects.add(jsonToObject(((PGobject) item).getValue()));
+                    jsonObjects.add(jsonToObject((String) item));
                 }
                 value = jsonObjects;
                 break;
