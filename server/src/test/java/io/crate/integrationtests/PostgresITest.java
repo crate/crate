@@ -464,9 +464,10 @@ public class PostgresITest extends SQLIntegrationTestCase {
                 (Object[]) rs.getArray(1).getArray(),
                 arrayContaining(new PGpoint(1.1, 2.2), new PGpoint(3.3, 4.4)));
 
-            var shape = new PGobject();
-            shape.setType("json");
-            shape.setValue("{\"coordinates\":[[0.0,0.0],[1.0,1.0]],\"type\":\"LineString\"}");
+            var shapeObject = new PGobject();
+            shapeObject.setType("json");
+            String shape = "{\"coordinates\":[[0.0,0.0],[1.0,1.0]],\"type\":\"LineString\"}";
+            shapeObject.setValue(shape);
             assertThat((Object[]) rs.getArray(2).getArray(), arrayContaining(shape));
         } catch (BatchUpdateException e) {
             throw e.getNextException();
