@@ -32,9 +32,6 @@ import java.util.concurrent.TimeUnit;
  */
 public class EsThreadPoolExecutor extends ThreadPoolExecutor {
 
-    private volatile ShutdownListener listener;
-
-    private final Object monitor = new Object();
     /**
      * Name used in error reporting.
      */
@@ -68,36 +65,18 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
     }
 
     @Override
-    protected synchronized void terminated() {
-        super.terminated();
-        synchronized (monitor) {
-            if (listener != null) {
-                try {
-                    listener.onTerminated();
-                } finally {
-                    listener = null;
-                }
-            }
-        }
-    }
-
-    public interface ShutdownListener {
-        void onTerminated();
-    }
-
-    @Override
     public void execute(Runnable command) {
         command = wrapRunnable(command);
         try {
             super.execute(command);
         } catch (EsRejectedExecutionException ex) {
-            if (command instanceof AbstractRunnable) {
+            if (command instanceof AbstractRunnable runnable) {
                 // If we are an abstract runnable we can handle the rejection
                 // directly and don't need to rethrow it.
                 try {
-                    ((AbstractRunnable) command).onRejection(ex);
+                    runnable.onRejection(ex);
                 } finally {
-                    ((AbstractRunnable) command).onAfter();
+                    runnable.onAfter();
 
                 }
             } else {
