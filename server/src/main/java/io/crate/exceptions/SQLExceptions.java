@@ -21,10 +21,16 @@
 
 package io.crate.exceptions;
 
+import java.util.Locale;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.crate.auth.AccessControl;
-import io.crate.metadata.PartitionName;
-import io.crate.sql.parser.ParsingException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchWrapperException;
@@ -41,21 +47,18 @@ import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.snapshots.InvalidSnapshotNameException;
 import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
-import org.elasticsearch.transport.TransportException;
+import org.elasticsearch.transport.RemoteTransportException;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Locale;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Predicate;
+import io.crate.auth.AccessControl;
+import io.crate.metadata.PartitionName;
+import io.crate.sql.parser.ParsingException;
 
 public class SQLExceptions {
 
     private static final Logger LOGGER = LogManager.getLogger(SQLExceptions.class);
 
     private static final Predicate<Throwable> EXCEPTIONS_TO_UNWRAP = throwable ->
-        throwable instanceof TransportException ||
+        throwable instanceof RemoteTransportException ||
         throwable instanceof UncheckedExecutionException ||
         throwable instanceof CompletionException ||
         throwable instanceof UncategorizedExecutionException ||
