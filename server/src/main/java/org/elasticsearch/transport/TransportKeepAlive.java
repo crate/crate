@@ -30,7 +30,6 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.util.concurrent.AbstractLifecycleRunnable;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
@@ -189,15 +188,7 @@ final class TransportKeepAlive implements Closeable {
 
         @Override
         protected void onAfterInLifecycle() {
-            try {
-                threadPool.schedule(this, pingInterval, ThreadPool.Names.GENERIC);
-            } catch (EsRejectedExecutionException ex) {
-                if (ex.isExecutorShutdown()) {
-                    logger.debug("couldn't schedule new ping execution, executor is shutting down", ex);
-                } else {
-                    throw ex;
-                }
-            }
+            threadPool.scheduleUnlessShuttingDown(pingInterval, ThreadPool.Names.GENERIC, this);
         }
 
         @Override
