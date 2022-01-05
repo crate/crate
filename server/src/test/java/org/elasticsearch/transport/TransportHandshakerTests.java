@@ -154,8 +154,8 @@ public class TransportHandshakerTests extends ESTestCase {
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), versionFuture);
 
         assertTrue(versionFuture.isDone());
-        RuntimeException cte = expectThrows(RuntimeException.class, versionFuture::actionGet);
-        assertThat(cte.getMessage(), containsString("boom"));
+        ConnectTransportException cte = expectThrows(ConnectTransportException.class, versionFuture::actionGet);
+        assertThat(cte.getMessage(), containsString("failure to send internal:tcp/handshake"));
         assertNull(handshaker.removeHandlerForHandshake(reqId));
     }
 
