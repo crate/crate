@@ -22,6 +22,7 @@ package org.elasticsearch.indices.recovery;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 
 import java.io.IOException;
@@ -231,7 +232,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         // copy with truncated translog
         shard = newStartedShard(false);
         SeqNoStats seqNoStats = populateRandomData(shard);
-        globalCheckpoint =  randomFrom(UNASSIGNED_SEQ_NO, seqNoStats.getMaxSeqNo() - 1);
+        globalCheckpoint =  randomFrom(UNASSIGNED_SEQ_NO, seqNoStats.getMaxSeqNo());
         replica = reinitShard(shard, ShardRoutingHelper.initWithSameId(shard.routingEntry(),
             RecoverySource.PeerRecoverySource.INSTANCE));
         String translogUUID = Translog.createEmptyTranslog(replica.shardPath().resolveTranslog(), globalCheckpoint,
@@ -247,6 +248,34 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
             assertThat(replica.recoverLocallyUpToGlobalCheckpoint(), equalTo(UNASSIGNED_SEQ_NO));
             assertThat(replica.recoveryState().getTranslog().totalLocal(), equalTo(RecoveryState.Translog.UNKNOWN));
         }
+        assertThat(replica.recoveryState().getTranslog().recoveredOperations(), equalTo(0));
+        assertThat(replica.getLastKnownGlobalCheckpoint(), equalTo(UNASSIGNED_SEQ_NO));
+        assertThat(replica.recoveryState().getStage(), equalTo(RecoveryState.Stage.TRANSLOG));
+        closeShards(replica);
+    }
+
+    @Test
+    public void test_prepare_old_index_for_peer_recovery_without_safe_commit() throws Exception {
+        DiscoveryNode localNode = new DiscoveryNode("foo", buildNewFakeTransportAddress(),
+                                                    Collections.emptyMap(), Collections.emptySet(), Version.CURRENT);
+
+        var shard = newStartedShard(
+            false,
+            Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_3_0_1).build()
+        );
+        SeqNoStats seqNoStats = populateRandomData(shard);
+        var globalCheckpoint = UNASSIGNED_SEQ_NO;
+        var replica = reinitShard(shard, ShardRoutingHelper.initWithSameId(shard.routingEntry(),
+                                                                       RecoverySource.PeerRecoverySource.INSTANCE));
+        String translogUUID = Translog.createEmptyTranslog(replica.shardPath().resolveTranslog(), globalCheckpoint,
+                                                           replica.shardId(), replica.getPendingPrimaryTerm());
+        replica.store().associateIndexWithNewTranslog(translogUUID);
+        var safeCommit = replica.store().findSafeIndexCommit(globalCheckpoint);
+        replica.markAsRecovering("for testing", new RecoveryState(replica.routingEntry(), localNode, localNode));
+        replica.prepareForIndexRecovery();
+        assertThat(safeCommit.isPresent(), is(false));
+        assertThat(replica.recoverLocallyUpToGlobalCheckpoint(), equalTo(UNASSIGNED_SEQ_NO));
+        assertThat(replica.recoveryState().getTranslog().totalLocal(), equalTo(RecoveryState.Translog.UNKNOWN));
         assertThat(replica.recoveryState().getTranslog().recoveredOperations(), equalTo(0));
         assertThat(replica.getLastKnownGlobalCheckpoint(), equalTo(UNASSIGNED_SEQ_NO));
         assertThat(replica.recoveryState().getStage(), equalTo(RecoveryState.Stage.TRANSLOG));
