@@ -26,13 +26,7 @@ import java.util.Set;
 
 public abstract class FileOutputFactory {
 
-    public final FileOutput create(Map<String, Object> withClauseOptions) {
-        FileOutput fileOutput = create();
-        validate(fileOutput.validWithClauseOptions(), withClauseOptions);
-        return fileOutput;
-    }
-
-    public abstract FileOutput create();
+    public abstract FileOutput create(Map<String, Object> withClauseOptions);
 
     /**
      * A method to validate with-clause parameters according to the scheme.

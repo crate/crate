@@ -40,7 +40,7 @@ public class LocalFsFileOutputTest extends ESTestCase {
         LocalFsFileOutput localFsFileOutput = new LocalFsFileOutput();
         try (OutputStream os = localFsFileOutput.acquireOutputStream(mock(Executor.class),
                                                                      file.toUri(),
-                                                                     null, null)) {
+                                                                     null)) {
             assertThat(os, instanceOf(BufferedOutputStream.class));
         }
     }

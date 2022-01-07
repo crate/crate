@@ -27,13 +27,7 @@ import java.util.Set;
 
 public abstract class FileInputFactory {
 
-    public final FileInput create(Map<String, Object> withClauseOptions) {
-        FileInput fileOutput = create();
-        validate(fileOutput.validWithClauseOptions(), withClauseOptions);
-        return fileOutput;
-    }
-
-    public abstract FileInput create();
+    public abstract FileInput create(Map<String, Object> withClauseOptions);
 
     /**
      * A method to validate with-clause parameters according to the scheme.

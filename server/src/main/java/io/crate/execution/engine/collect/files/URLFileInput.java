@@ -27,7 +27,6 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -41,15 +40,14 @@ class URLFileInput implements FileInput {
     }
 
     @Override
-    public List<URI> listUris(URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate,
-                              Map<String, Object> withClauseOptions) throws IOException {
+    public List<URI> listUris(URI fileUri, Predicate<URI> uriPredicate) throws IOException {
         // If the full fileUri contains a wildcard the fileUri passed as argument here is the fileUri up to the wildcard
         // for URLs listing directory contents is not supported so always return the full fileUri for now
         return Collections.singletonList(this.fileUri);
     }
 
     @Override
-    public InputStream getStream(URI uri, Map<String, Object> withClauseOptions) throws IOException {
+    public InputStream getStream(URI uri) throws IOException {
         URL url = uri.toURL();
         return url.openStream();
     }

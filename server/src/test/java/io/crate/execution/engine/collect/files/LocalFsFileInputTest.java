@@ -23,7 +23,6 @@
 package io.crate.execution.engine.collect.files;
 
 import io.crate.common.collections.Lists2;
-import io.crate.execution.engine.collect.files.FileReadingIterator.GlobPredicate;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -43,8 +42,8 @@ public class LocalFsFileInputTest extends ESTestCase {
         String preGlob = originalUri.substring(0, originalUri.indexOf('*'));
         URI preGlobeUri = new URI(preGlob);
         URI uri = URI.create(originalUri);
-        Predicate<URI> uriPredicate = new GlobPredicate(uri);
-        return Lists2.map(new LocalFsFileInput().listUris(uri, preGlobeUri, uriPredicate, Map.of()), URI::toString);
+        Predicate<URI> uriPredicate = new UriWithGlob.GlobPredicate(uri);
+        return Lists2.map(new LocalFsFileInput().listUris(uri, uriPredicate), URI::toString);
     }
 
     @Test

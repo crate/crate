@@ -38,7 +38,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -48,12 +47,14 @@ import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 public class LocalFsFileInput implements FileInput {
 
     @Override
-    public List<URI> listUris(final URI fileUri, final URI preGlobUri, final Predicate<URI> uriPredicate,
-                              Map<String, Object> withClauseOptions) throws IOException {
+    public List<URI> listUris(final URI fileUri, final Predicate<URI> uriPredicate) throws IOException {
         assert fileUri != null : "fileUri must not be null";
-        assert preGlobUri != null : "preGlobUri must not be null";
+        var uriWithGlob = UriWithGlob.toUriWithGlob(fileUri, uriFormatter());
+        assert uriWithGlob != null : "uriWithGlob must not be null";
+        assert uriWithGlob.getPreGlobUri() != null : "preGlobUri must not be null";
         assert uriPredicate != null : "uriPredicate must not be null";
 
+        var preGlobUri = uriWithGlob.getPreGlobUri();
         Path preGlobPath = Paths.get(preGlobUri);
         if (!Files.isDirectory(preGlobPath)) {
             preGlobPath = preGlobPath.getParent();
@@ -98,7 +99,7 @@ public class LocalFsFileInput implements FileInput {
     }
 
     @Override
-    public InputStream getStream(URI uri, Map<String, Object> withClauseOptions) throws IOException {
+    public InputStream getStream(URI uri) throws IOException {
         File file = new File(uri);
         return new FileInputStream(file);
     }

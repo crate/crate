@@ -153,19 +153,19 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         try {
             if (!overwrites.isEmpty()) {
                 return new DocWriter(
-                    fileOutput.acquireOutputStream(executor, uri, compressionType, schemeSpecificWithClauseOptions),
+                    fileOutput.acquireOutputStream(executor, uri, compressionType),
                     collectExpressions, overwrites);
             } else if (outputFormat.equals(WriterProjection.OutputFormat.JSON_ARRAY)) {
                 return new ColumnRowWriter(
-                    fileOutput.acquireOutputStream(executor, uri, compressionType, schemeSpecificWithClauseOptions),
+                    fileOutput.acquireOutputStream(executor, uri, compressionType),
                     collectExpressions, inputs);
             } else if (outputNames != null && outputFormat.equals(WriterProjection.OutputFormat.JSON_OBJECT)) {
                 return new ColumnRowObjectWriter(
-                    fileOutput.acquireOutputStream(executor, uri, compressionType, schemeSpecificWithClauseOptions),
+                    fileOutput.acquireOutputStream(executor, uri, compressionType),
                     collectExpressions, inputs, outputNames);
             } else {
-                return new RawRowWriter(fileOutput.acquireOutputStream(executor, uri, compressionType,
-                                                                       schemeSpecificWithClauseOptions));
+                return new RawRowWriter(fileOutput.acquireOutputStream(executor, uri, compressionType
+                ));
             }
         } catch (IOException e) {
             throw new UnhandledServerException(String.format(Locale.ENGLISH, "Failed to open output: '%s'", e.getMessage()), e);

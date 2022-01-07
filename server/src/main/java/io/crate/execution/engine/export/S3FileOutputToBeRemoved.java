@@ -51,11 +51,16 @@ import java.util.zip.GZIPOutputStream;
 @NotThreadSafe
 public class S3FileOutputToBeRemoved implements FileOutput {
 
+    private final Map<String, Object> withClauseOptions;
+
+    public S3FileOutputToBeRemoved(Map<String, Object> withClauseOptions) {
+        this.withClauseOptions = withClauseOptions;
+    }
+
     @Override
     public OutputStream acquireOutputStream(Executor executor,
                                             URI uri,
-                                            WriterProjection.CompressionType compressionType,
-                                            Map<String, Object> withClauseOptions) throws IOException {
+                                            WriterProjection.CompressionType compressionType) throws IOException {
         S3URIToBeRemoved s3URI = new S3URIToBeRemoved(uri);
         AmazonS3 client = new S3ClientHelperToBeRemoved().client(s3URI.uri, withClauseOptions);
         OutputStream outputStream = new S3OutputStream(executor, s3URI.bucket, s3URI.key, client);

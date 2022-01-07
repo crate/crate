@@ -29,8 +29,8 @@ public class S3FileOutputFactoryToBeRemoved extends FileOutputFactory {
     public static final String NAME = "s3";
 
     @Override
-    public FileOutput create() {
-        return new S3FileOutputToBeRemoved();
+    public FileOutput create(Map<String, Object> withClauseOptions) {
+        return new S3FileOutputToBeRemoved(withClauseOptions);
     }
 
     @Override

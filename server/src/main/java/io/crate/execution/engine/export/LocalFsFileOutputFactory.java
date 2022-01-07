@@ -29,7 +29,7 @@ public class LocalFsFileOutputFactory extends FileOutputFactory {
     public static final String NAME = "file";
 
     @Override
-    public FileOutput create() {
+    public FileOutput create(Map<String, Object> withClauseOptions) {
         return new LocalFsFileOutput();
     }
 

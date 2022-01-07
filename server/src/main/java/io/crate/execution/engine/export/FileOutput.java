@@ -26,7 +26,6 @@ import io.crate.execution.dsl.projection.WriterProjection;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
@@ -39,8 +38,7 @@ public interface FileOutput {
      */
     OutputStream acquireOutputStream(Executor executor,
                                      URI uri,
-                                     WriterProjection.CompressionType compressionType,
-                                     Map<String, Object> withClauseOptions) throws IOException;
+                                     WriterProjection.CompressionType compressionType) throws IOException;
 
     /**
      * This method returns a set of valid with-clause parameters that are valid for the scheme.

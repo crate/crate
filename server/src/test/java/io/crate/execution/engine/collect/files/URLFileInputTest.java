@@ -44,6 +44,6 @@ public class URLFileInputTest extends ESTestCase {
 
         expectedException.expect(FileNotFoundException.class);
         expectedException.expectMessage(expectedMessage);
-        input.getStream(file.toURI(), null);
+        input.getStream(file.toURI());
     }
 }

@@ -32,8 +32,8 @@ public class S3FileOutputFactory extends FileOutputFactory {
     public static final String NAME = "s3";
 
     @Override
-    public FileOutput create() {
-        return new S3FileOutput();
+    public FileOutput create(Map<String, Object> withClauseOptions) {
+        return new S3FileOutput(withClauseOptions);
     }
 
     @Override

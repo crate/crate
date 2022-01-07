@@ -165,7 +165,7 @@ public class FileReadingIteratorTest extends ESTestCase {
     @Test
     public void test_GetUrisWithGlob() throws Exception {
         String path = Paths.get(getClass().getResource("/essetup/data/").toURI()).toUri().toString();
-        List<Tuple<FileInput, FileReadingIterator.UriWithGlob>> fileInputsToUriWithGlobs = ((FileReadingIterator) createBatchIterator(
+        List<Tuple<FileInput, UriWithGlob>> fileInputsToUriWithGlobs = ((FileReadingIterator) createBatchIterator(
             List.of(
                 path + "nested_dir/*.json",
                 path + "nested_dir/*_1.json",
@@ -182,7 +182,7 @@ public class FileReadingIteratorTest extends ESTestCase {
         )).fileInputsToUriWithGlobs;
         List<String> preGlobURIs = fileInputsToUriWithGlobs.stream()
             .map(Tuple::v2)
-            .map(e -> e.preGlobUri.toString()).toList();
+            .map(e -> e.getPreGlobUri().toString()).toList();
         assertThat(preGlobURIs, is(List.of(
             path + "nested_dir/",
             path + "nested_dir/",

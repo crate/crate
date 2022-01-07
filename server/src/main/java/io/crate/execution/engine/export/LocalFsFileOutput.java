@@ -29,7 +29,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.zip.GZIPOutputStream;
@@ -39,8 +38,7 @@ public class LocalFsFileOutput implements FileOutput {
     @Override
     public OutputStream acquireOutputStream(Executor executor,
                                             URI uri,
-                                            WriterProjection.CompressionType compressionType,
-                                            Map<String, Object> withClauseOptions) throws IOException {
+                                            WriterProjection.CompressionType compressionType) throws IOException {
         if (uri.getHost() != null) {
             throw new IllegalArgumentException("the URI host must be defined");
         }

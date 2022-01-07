@@ -42,7 +42,6 @@ import java.io.InputStreamReader;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,10 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
@@ -70,7 +66,6 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private final int readerNumber;
     private final boolean compressed;
     private final Map<String, Object> schemeSpecificWithClauseOptions;
-    private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("^((s3://|file://|/)[^\\*]*/)[^\\*]*\\*.*");
     private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
 
     private final Collection<URI> uris;
@@ -156,7 +151,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         for (URI uri : uris) {
             FileInput fileInput = getFileInput(uri);
             if (fileInput != null) {
-                fileInputsToUriWithGlobs.add(new Tuple<>(fileInput, toUriWithGlob(uri, fileInput.uriFormatter())));
+                fileInputsToUriWithGlobs.add(new Tuple<>(fileInput, UriWithGlob.toUriWithGlob(uri, fileInput.uriFormatter())));
             }
         }
     }
@@ -211,20 +206,20 @@ public class FileReadingIterator implements BatchIterator<Row> {
         FileInput fileInput = currentInput.v1();
         UriWithGlob fileUri = currentInput.v2();
         Predicate<URI> uriPredicate = generateUriPredicate(fileInput, fileUri.globPredicate);
-        List<URI> uris = getUris(fileInput, fileUri.uri, fileUri.preGlobUri, uriPredicate);
+        List<URI> uris = getUris(fileInput, fileUri.getUri(), fileUri.getPreGlobUri(), uriPredicate);
 
         if (uris.size() > 0) {
             currentInputIterator = uris.iterator();
             advanceToNextUri(fileInput);
-        } else if (fileUri.preGlobUri != null) {
-            lineProcessor.startWithUri(fileUri.uri);
-            throw new IOException("Cannot find any URI matching: " + fileUri.uri.toString());
+        } else if (fileUri.getPreGlobUri() != null) {
+            lineProcessor.startWithUri(fileUri.getUri());
+            throw new IOException("Cannot find any URI matching: " + fileUri.getUri().toString());
         }
     }
 
     private void initCurrentReader(FileInput fileInput, URI uri) throws IOException {
         lineProcessor.startWithUri(uri);
-        InputStream stream = fileInput.getStream(uri, schemeSpecificWithClauseOptions);
+        InputStream stream = fileInput.getStream(uri);
         currentReader = createBufferedReader(stream);
         currentLineNumber = 0;
         lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
@@ -256,7 +251,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
             }
         } catch (SocketTimeoutException e) {
             if (retry > MAX_SOCKET_TIMEOUT_RETRIES) {
-                URI uri = currentInput.v2().uri;
+                URI uri = currentInput.v2().getUri();
                 LOGGER.info("Timeout during COPY FROM '{}' after {} retries", e, uri.toString(), retry);
                 throw e;
             } else {
@@ -266,7 +261,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
                 return getLine(currentReader, startLine, retry + 1);
             }
         } catch (Exception e) {
-            URI uri = currentInput.v2().uri;
+            URI uri = currentInput.v2().getUri();
             // it's nice to know which exact file/uri threw an error
             // when COPY FROM returns less rows than expected
             LOGGER.info("Error during COPY FROM '{}'", e, uri.toString());
@@ -305,60 +300,6 @@ public class FileReadingIterator implements BatchIterator<Row> {
     }
 
     @VisibleForTesting
-    static class UriWithGlob {
-        final URI uri;
-        final URI preGlobUri;
-        @Nullable
-        final Predicate<URI> globPredicate;
-
-        UriWithGlob(URI uri, URI preGlobUri, Predicate<URI> globPredicate) {
-            this.uri = uri;
-            this.preGlobUri = preGlobUri;
-            this.globPredicate = globPredicate;
-        }
-    }
-
-    @Nullable
-    private static UriWithGlob toUriWithGlob(URI fileUri, @Nullable Function<String, URI> uriFormatter) {
-        if (uriFormatter != null) {
-            fileUri = uriFormatter.apply(fileUri.toString());
-        } else {
-            uriFormatter = FileReadingIterator::toURI;
-        }
-        String formattedUriStr = fileUri.toString();
-        URI preGlobUri = null;
-        Predicate<URI> globPredicate = null;
-        Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(formattedUriStr);
-        /*
-         * hasGlobMatcher.group(1) returns part of the path before the wildcards with a trailing backslash,
-         * ex)
-         *      'file:///bucket/prefix/*.json'                           -> 'file:///bucket/prefix/'
-         *      's3://bucket/year=2020/month=12/day=*0/hour=12/*.json'   -> 's3://bucket/year=2020/month=12/'
-         */
-        if (hasGlobMatcher.matches()) {
-            if (formattedUriStr.startsWith("/") || formattedUriStr.startsWith("file://")) {
-                Path oldPath = Paths.get(uriFormatter.apply(hasGlobMatcher.group(1)));
-                String oldPathAsString;
-                String newPathAsString;
-                try {
-                    oldPathAsString = oldPath.toUri().toString();
-                    newPathAsString = oldPath.toRealPath().toUri().toString();
-                } catch (IOException e) {
-                    return null;
-                }
-                //resolve any links
-                String resolvedFileUrl = formattedUriStr.replace(oldPathAsString, newPathAsString);
-                fileUri = uriFormatter.apply(resolvedFileUrl);
-                preGlobUri = uriFormatter.apply(newPathAsString);
-            } else {
-                preGlobUri = URI.create(hasGlobMatcher.group(1));
-            }
-            globPredicate = new GlobPredicate(fileUri);
-        }
-        return new UriWithGlob(fileUri, preGlobUri, globPredicate);
-    }
-
-    @VisibleForTesting
     public static URI toURI(String fileUri) {
         if (fileUri.startsWith("/")) {
             // using Paths.get().toUri instead of new URI(...) as it also encodes umlauts and other special characters
@@ -379,7 +320,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private FileInput getFileInput(URI fileUri) {
         FileInputFactory fileInputFactory = fileInputFactories.get(fileUri.getScheme());
         if (fileInputFactory != null) {
-            return fileInputFactory.create();
+            return fileInputFactory.create(schemeSpecificWithClauseOptions);
         }
         return new URLFileInput(fileUri);
     }
@@ -398,7 +339,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private List<URI> getUris(FileInput fileInput, URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate) throws IOException {
         List<URI> uris;
         if (preGlobUri != null) {
-            uris = fileInput.listUris(fileUri, preGlobUri, uriPredicate, schemeSpecificWithClauseOptions);
+            uris = fileInput.listUris(fileUri, uriPredicate);
         } else if (uriPredicate.test(fileUri)) {
             uris = List.of(fileUri);
         } else {
@@ -434,20 +375,6 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private void raiseIfKilled() {
         if (killed != null) {
             Exceptions.rethrowUnchecked(killed);
-        }
-    }
-
-    @VisibleForTesting
-    static class GlobPredicate implements Predicate<URI> {
-        private final Pattern globPattern;
-
-        GlobPredicate(URI fileUri) {
-            this.globPattern = Pattern.compile(Globs.toUnixRegexPattern(fileUri.toString()));
-        }
-
-        @Override
-        public boolean test(@Nullable URI input) {
-            return input != null && globPattern.matcher(input.toString()).matches();
         }
     }
 }

@@ -32,8 +32,8 @@ public class S3FileInputFactoryToBeRemoved extends FileInputFactory {
     public static final String NAME = "s3";
 
     @Override
-    public FileInput create() {
-        return new S3FileInputToBeRemoved();
+    public FileInput create(Map<String, Object> withClauseOptions) {
+        return new S3FileInputToBeRemoved(withClauseOptions);
     }
 
     @Override

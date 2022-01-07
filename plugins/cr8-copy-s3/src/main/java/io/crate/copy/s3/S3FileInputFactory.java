@@ -32,8 +32,8 @@ public class S3FileInputFactory extends FileInputFactory {
     public static final String NAME = "s3";
 
     @Override
-    public FileInput create() {
-        return new S3FileInput();
+    public FileInput create(Map<String, Object> withClauseOptions) {
+        return new S3FileInput(withClauseOptions);
     }
 
     @Override

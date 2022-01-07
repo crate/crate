@@ -28,7 +28,7 @@ public class LocalFsFileInputFactory extends FileInputFactory {
     public static final String NAME = "file";
 
     @Override
-    public FileInput create() {
+    public FileInput create(Map<String, Object> withClauseOptions) {
         return new LocalFsFileInput();
     }
 
