@@ -21,7 +21,6 @@
 
 package io.crate.execution.dml;
 
-import com.google.common.base.Throwables;
 import io.crate.common.CheckedSupplier;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.JobKilledException;
@@ -142,13 +141,18 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         WrapperResponse response;
         try {
             response = callable.call();
-        } catch (Throwable e) {
-            throw Throwables.propagate(e);
+        } catch (Throwable t) {
+            if (t instanceof RuntimeException r) {
+                throw r;
+            } else if (t instanceof Error err) {
+                throw err;
+            } else {
+                throw new RuntimeException(t);
+            }
         } finally {
             activeOperations.remove(id, callable);
         }
         return response;
-
     }
 
     @Override
