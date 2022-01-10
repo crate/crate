@@ -42,7 +42,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
-None
+- Removed support for HDFS snapshot repositories. We suspect nobody uses it
+  anymore. If you require HDFS support please reach out to us, if there is
+  enough interest we may be able to provide a plugin with the functionality.
 
 
 Deprecations
