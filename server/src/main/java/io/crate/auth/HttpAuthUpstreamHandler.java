@@ -21,7 +21,7 @@
 
 package io.crate.auth;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.protocols.SSL;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
