@@ -21,7 +21,6 @@
 
 package io.crate.user.metadata;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.user.SecureHash;
 import org.elasticsearch.common.settings.SecureString;
 
@@ -35,7 +34,7 @@ public final class UserDefinitions {
 
     public static final Map<String, SecureHash> SINGLE_USER_ONLY = Collections.singletonMap("Arthur", null);
 
-    public static final Map<String, SecureHash> DUMMY_USERS = ImmutableMap.of(
+    public static final Map<String, SecureHash> DUMMY_USERS = Map.of(
         "Ford",
         getSecureHash("fords-password"),
         "Arthur",

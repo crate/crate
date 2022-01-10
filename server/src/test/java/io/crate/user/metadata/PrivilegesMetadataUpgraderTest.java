@@ -22,7 +22,6 @@
 
 package io.crate.user.metadata;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.user.Privilege;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -49,7 +48,7 @@ public class PrivilegesMetadataUpgraderTest extends ESTestCase {
     @Test
     public void testNoUsersNothingChanged() throws Exception {
         Map<String, Metadata.Custom> customMap = new HashMap<>(1);
-        customMap.put(UsersMetadata.TYPE, new UsersMetadata(ImmutableMap.of()));
+        customMap.put(UsersMetadata.TYPE, new UsersMetadata(Map.of()));
         Map<String, Metadata.Custom> oldCustomMap = new HashMap<>(customMap);
         Map<String, Metadata.Custom> newCustomMap = UPGRADER.apply(Settings.EMPTY, customMap);
         assertThat(newCustomMap, is(oldCustomMap));
