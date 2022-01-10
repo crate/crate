@@ -21,7 +21,6 @@
 
 package io.crate.user;
 
-import com.google.common.collect.Lists;
 import io.crate.user.metadata.UserDefinitions;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
