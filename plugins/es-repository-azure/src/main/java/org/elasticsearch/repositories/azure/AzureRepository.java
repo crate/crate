@@ -27,10 +27,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.RetryPolicy;
 
+import io.crate.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;

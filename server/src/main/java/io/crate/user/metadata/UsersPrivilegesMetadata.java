@@ -21,7 +21,7 @@
 
 package io.crate.user.metadata;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.user.Privilege;
 import io.crate.user.Privilege.State;
 import io.crate.metadata.RelationName;
