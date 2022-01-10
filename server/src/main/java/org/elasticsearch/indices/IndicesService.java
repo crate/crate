@@ -586,12 +586,12 @@ public class IndicesService extends AbstractLifecycleComponent
     @Override
     public void deleteUnassignedIndex(String reason, IndexMetadata metadata, ClusterState clusterState) {
         if (nodeEnv.hasNodeFile()) {
-            String indexName = metadata.getIndex().getName();
+            Index index = metadata.getIndex();
             try {
-                if (clusterState.metadata().hasIndex(indexName)) {
-                    final IndexMetadata index = clusterState.metadata().index(indexName);
-                    throw new IllegalStateException("Can't delete unassigned index store for [" + indexName + "] - it's still part of " +
-                                                    "the cluster state [" + index.getIndexUUID() + "] [" + metadata.getIndexUUID() + "]");
+                if (clusterState.metadata().hasIndex(index)) {
+                    final IndexMetadata indexMetadata = clusterState.metadata().index(index);
+                    throw new IllegalStateException("Can't delete unassigned index store for [" + indexMetadata.getIndex().getName() + "] - it's still part of " +
+                                                    "the cluster state [" + indexMetadata.getIndexUUID() + "] [" + metadata.getIndexUUID() + "]");
                 }
                 deleteIndexStore(reason, metadata);
             } catch (Exception e) {
