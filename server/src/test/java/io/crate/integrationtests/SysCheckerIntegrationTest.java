@@ -21,18 +21,21 @@
 
 package io.crate.integrationtests;
 
-import io.crate.expression.reference.sys.check.SysCheck.Severity;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import io.crate.expression.reference.sys.check.SysCheck.Severity;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.TestingHelpers;
 
 @ESIntegTestCase.ClusterScope(
     numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
@@ -62,17 +65,17 @@ public class SysCheckerIntegrationTest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void testSelectingConcurrentlyFromSysCheckPassesWithoutExceptions() {
+    public void testSelectingConcurrentlyFromSysCheckPassesWithoutExceptions() throws Exception {
         internalCluster().startNode();
         internalCluster().startNode();
         internalCluster().ensureAtLeastNumDataNodes(2);
 
-        ArrayList<ActionFuture<SQLResponse>> responses = new ArrayList<>();
+        List<CompletableFuture<SQLResponse>> responses = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
             responses.add(sqlExecutor.execute("select * from sys.checks", null));
         }
-        for (ActionFuture<SQLResponse> response : responses) {
-            response.actionGet(5, TimeUnit.SECONDS);
+        for (var response : responses) {
+            response.get(5, TimeUnit.SECONDS);
         }
     }
 }

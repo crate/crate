@@ -57,6 +57,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -347,7 +348,7 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
 
         ensureYellow();
 
-        ActionFuture<SQLResponse> createSnapshot = null;
+        CompletableFuture<SQLResponse> createSnapshot = null;
         // Insert data with dynamic column creation so we trigger a dynamic mapping update for each of them
         for (var i = 0; i < documents; i++) {
             execute("INSERT INTO test (id, field_" + i + ") VALUES (?, ?)", new Object[][]{{i, "value_" + i},});
@@ -359,7 +360,7 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
         }
 
         if (createSnapshot != null) {
-            createSnapshot.actionGet();
+            createSnapshot.get();
         }
 
         execute("DROP table test");
