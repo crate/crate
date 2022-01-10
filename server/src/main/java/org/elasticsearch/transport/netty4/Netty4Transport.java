@@ -294,8 +294,18 @@ public class Netty4Transport extends TcpTransport {
             SSLMode sslMode = SslSettings.SSL_TRANSPORT_MODE.get(settings);
             if (sslMode == SSLMode.ON) {
                 SslContext sslContext = sslContextProvider.clientContext();
-                AdaptiveSslHandler sslHandler = new AdaptiveSslHandler(sslContext.newEngine(ch.alloc()));
+                SslHandler sslHandler = sslContext.newHandler(ch.alloc());
                 sslHandler.engine().setUseClientMode(true);
+                sslHandler.sslCloseFuture().addListener(future -> {
+                    if (future.isSuccess()) {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Remote node {} switched to plaintext",
+                                ((InetSocketAddress) ch.remoteAddress()).getHostName()
+                            );
+                        }
+                        ch.pipeline().remove(sslHandler);
+                    }
+                });
                 ch.pipeline().addLast(sslHandler);
             }
         }

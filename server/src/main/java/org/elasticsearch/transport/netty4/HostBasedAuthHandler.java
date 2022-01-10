@@ -91,7 +91,14 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
                             ((InetSocketAddress) channel.localAddress()).getHostName()
                         );
                     }
-                    ctx.pipeline().remove(sslHandler);
+                    sslHandler.closeOutbound().addListener(future -> {
+                        if (future.isSuccess()) {
+                            ctx.pipeline().remove(sslHandler);
+                        } else {
+                            closeAndThrowException(ctx, msg, new IllegalStateException("Auth method cert and switch_to_plaintext set " +
+                                "but couldn't switch to plaintext on node: " + ((InetSocketAddress) channel.localAddress()).getHostName()));
+                        }
+                    });
                 } else {
                     closeAndThrowException(ctx, msg, new IllegalStateException("Auth method cert and switch_to_plaintext set " +
                         "but SSL in not configured for transport protocol on node: " + ((InetSocketAddress) channel.localAddress()).getHostName()));
