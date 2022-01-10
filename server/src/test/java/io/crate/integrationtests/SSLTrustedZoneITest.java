@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.mockito.ArgumentMatchers.isNull;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,7 +39,7 @@ import io.crate.test.utils.ConnectionTest.ProbeResult;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, supportsDedicatedMasters = false, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 0, supportsDedicatedMasters = false, numClientNodes = 0)
 public class SSLTrustedZoneITest extends SQLIntegrationTestCase {
 
     private static Path keyStoreFile;
@@ -70,28 +69,23 @@ public class SSLTrustedZoneITest extends SQLIntegrationTestCase {
             .put("auth.host_based.config.d.protocol", "pg")
             .put(sslSettings);
 
-        switch (nodeOrdinal) {
-            case 0:
-                // This node can switch to plaintext
-                commonSettings.put("auth.host_based.config.a.switch_to_plaintext", "true");
-                break;
-
-            // Node 1 has default value "false" for switch_to_plaintext
+        if (nodeOrdinal == 0) {
+            commonSettings.put("auth.host_based.config.a.switch_to_plaintext", "true");
         }
+        // Node 1 has default value "false" for switch_to_plaintext
         return commonSettings.build();
     }
 
 
-
     @Test
-    @AwaitsFix(bugUrl = "https://github.com/crate/crate/issues/11954")
     public void test_switch_to_plaintext_enabled_downgrades_to_plaintext() throws Exception {
+        internalCluster().startNodes(2);
+
         execute("select count(*) from sys.nodes");
         assertThat(response.rows()[0][0], is(2L));
 
         SslContextProvider sslContextProvider = new SslContextProvider(sslSettings);
         SSLContext sslContext = sslContextProvider.jdkSSLContext();
-
 
 
         String[] nodeNames = internalCluster().getNodeNames();
