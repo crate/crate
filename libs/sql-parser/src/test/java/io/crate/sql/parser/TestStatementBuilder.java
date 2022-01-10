@@ -1189,13 +1189,13 @@ public class TestStatementBuilder {
 
     @Test
     public void testRepositoryStmtBuilder() {
-        printStatement("create repository my_repo type hdfs");
+        printStatement("create repository my_repo type s3");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\"");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
-        Statement statement = SqlParser.createStatement("CREATE REPOSITORY my_repo type hdfs with (location='/mount/backups/my_backup')");
+        Statement statement = SqlParser.createStatement("CREATE REPOSITORY my_repo type s3 with (location='/mount/backups/my_backup')");
         assertThat(statement.toString(), is("CreateRepository{" +
                                             "repository=my_repo, " +
-                                            "type=hdfs, " +
+                                            "type=s3, " +
                                             "properties={location='/mount/backups/my_backup'}}"));
 
         printStatement("DROP REPOSITORY my_repo");

@@ -24,7 +24,6 @@ def crateDist = file("$projectDir/tmp/crate/")
 apply plugin: 'base'
 
 evaluationDependsOn(':app')
-evaluationDependsOn(':plugins:es-repository-hdfs')
 
 task bootstrap(type: Exec) {
     inputs.file "$projectDir/bootstrap.sh"
@@ -64,10 +63,6 @@ task buildDocs(type: Exec, dependsOn: bootstrap) {
 
 task developDocs(type: Exec, dependsOn: bootstrap) {
     commandLine "$projectDir/bin/sphinx", "dev"
-}
-
-task hdfsTest(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar', project(':plugins:es-repository-hdfs').blackBoxTestJar]) {
-    commandLine "$projectDir/bin/test-hdfs"
 }
 
 task s3Test(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar']) {

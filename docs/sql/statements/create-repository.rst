@@ -206,81 +206,6 @@ Parameters
   no unit is specified, the unit defaults to bytes.
 
 
-.. _sql-create-repo-hdfs:
-
-``hdfs``
---------
-
-An ``hdfs`` repository stores snapshots on a `Hadoop Distributed File System`_
-(HDFS).
-
-
-.. _sql-create-repo-hdfs-params:
-
-Parameters
-''''''''''
-
-.. _sql-create-repo-hdfs-uri:
-
-**uri**
-  | *Type:*    ``text``
-  | *Default:* The default URI for the given HDFS configuration
-
-  HDFS URIs take the form of::
-
-      hdfs://<host>:<port>/
-
-.. _sql-create-repo-hdfs-security-principal:
-
-**security.principal**
-  | *Type:*    ``text``
-
-  A qualified Kerberos principal used to authenticate against HDFS.
-
-.. _sql-create-repo-hdfs-path:
-
-**path**
-  | *Type:*    ``text``
-
-  The HDFS file system path to use for snapshots.
-
-.. _sql-create-repo-hdfs-load_defaults:
-
-**load_defaults**
-  | *Type:*    ``boolean``
-  | *Default:* ``true``
-
-  Whether to load the default Hadoop configuration.
-
-.. _sql-create-repo-hdfs-conf-key:
-
-**conf.<key>**
-  | *Type:*    various
-
-  Dynamic configuration values to be added to the Hadoop configuration.
-
-.. _sql-create-repo-hdfs-compress:
-
-**compress**
-  | *Type:*    ``boolean``
-  | *Default:* ``true``
-
-  Whether CrateDB should compress the metadata part of the snapshot or not.
-
-  CrateDB does not compress the actual table data.
-
-.. _sql-create-repo-hdfs-chunk_size:
-
-**chunk_size**
-  | *Type:*    ``bigint`` or ``text``
-  | *Default:* ``null``
-
-  Defines the maximum size of any single file that comprises the snapshot. If
-  set to ``null``, CrateDB will not split big files into smaller chunks.  You
-  can specify the chunk size with units (e.g., ``1g``, ``5m``, or ``9k``). If
-  no unit is specified, the unit defaults to bytes.
-
-
 .. _sql-create-repo-s3:
 
 ``s3``
@@ -654,7 +579,6 @@ Parameters
 .. _Azure service region: https://azure.microsoft.com/en-us/global-infrastructure/geographies/
 .. _Canned ACL: https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl
 .. _endpoint suffix: https://docs.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string#create-a-connection-string-with-an-endpoint-suffix
-.. _Hadoop Distributed File System: https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-hdfs/HdfsDesign.html
 .. _IAM roles: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html
 .. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst
 .. _regional endpoint: https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints
