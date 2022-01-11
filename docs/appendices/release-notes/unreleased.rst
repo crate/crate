@@ -64,6 +64,9 @@ Deprecations
 Changes
 =======
 
+- Added the scalar function :ref:`array_append
+  <scalar-array_append>` which adds a value at the end of an array
+
 - Added support for the :ref:`END <ref-end>` statement for improved PostgreSQL
   compatibility.
 
@@ -157,6 +160,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could cause inserts into partitioned tables to fail with
+  a ``IndexNotFoundException`` if concurrently deleting partitions.
 
 - Fixed a BWC translog issue for indices created with CrateDB < 3.2.
 

@@ -174,6 +174,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
 
         MapFunction.register(this);
         ArrayFunction.register(this);
+        ArrayAppendFunction.register(this);
         ArrayCatFunction.register(this);
         ArrayDifferenceFunction.register(this);
         ArrayUniqueFunction.register(this);

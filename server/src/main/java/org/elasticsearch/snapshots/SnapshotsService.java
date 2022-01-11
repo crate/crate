@@ -1014,7 +1014,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         Set<String> closed = new HashSet<>();
         for (ObjectObjectCursor<ShardId, SnapshotsInProgress.ShardSnapshotStatus> entry : shards) {
             if (entry.value.state() == ShardState.MISSING) {
-                if (metadata.hasIndex(entry.key.getIndex().getName()) &&
+                if (metadata.hasIndex(entry.key.getIndex()) &&
                     metadata.getIndexSafe(entry.key.getIndex()).getState() == IndexMetadata.State.CLOSE) {
                     closed.add(entry.key.getIndex().getName());
                 } else {
