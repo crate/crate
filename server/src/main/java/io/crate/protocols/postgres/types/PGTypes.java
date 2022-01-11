@@ -23,6 +23,7 @@ package io.crate.protocols.postgres.types;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
+import com.google.common.collect.ImmutableMap;
 import io.crate.common.collections.Lists2;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
@@ -38,59 +39,57 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import static java.util.Map.entry;
-
-
 public class PGTypes {
 
-    private static final Map<DataType<?>, PGType> CRATE_TO_PG_TYPES = Map.ofEntries(
-        entry(DataTypes.BYTE, CharType.INSTANCE),
-        entry(DataTypes.STRING, VarCharType.INSTANCE),
-        entry(DataTypes.BOOLEAN, BooleanType.INSTANCE),
-        entry(DataTypes.UNTYPED_OBJECT, JsonType.INSTANCE),
-        entry(RowType.EMPTY, RecordType.EMPTY_RECORD),
-        entry(DataTypes.SHORT, SmallIntType.INSTANCE),
-        entry(DataTypes.INTEGER, IntegerType.INSTANCE),
-        entry(DataTypes.LONG, BigIntType.INSTANCE),
-        entry(DataTypes.FLOAT, RealType.INSTANCE),
-        entry(DataTypes.DOUBLE, DoubleType.INSTANCE),
-        entry(DataTypes.NUMERIC, NumericType.INSTANCE),
-        entry(DataTypes.TIMETZ, TimeTZType.INSTANCE),
-        entry(DataTypes.TIMESTAMPZ, TimestampZType.INSTANCE),
-        entry(DataTypes.TIMESTAMP, TimestampType.INSTANCE),
-        entry(DataTypes.DATE, DateType.INSTANCE),
-        entry(DataTypes.IP, VarCharType.INSTANCE), // postgres has no IP type, so map it to varchar - it matches the client representation
-        entry(DataTypes.UNDEFINED, VarCharType.INSTANCE),
-        entry(DataTypes.GEO_SHAPE, JsonType.INSTANCE),
-        entry(io.crate.types.JsonType.INSTANCE, JsonType.INSTANCE),
-        entry(DataTypes.GEO_POINT, PointType.INSTANCE),
-        entry(DataTypes.INTERVAL, IntervalType.INSTANCE),
-        entry(DataTypes.REGPROC, RegprocType.INSTANCE),
-        entry(DataTypes.REGCLASS, RegclassType.INSTANCE),
-        entry(BitStringType.INSTANCE_ONE, BitType.INSTANCE),
-        entry(new ArrayType<>(DataTypes.BYTE), PGArray.CHAR_ARRAY),
-        entry(new ArrayType<>(DataTypes.SHORT), PGArray.INT2_ARRAY),
-        entry(new ArrayType<>(DataTypes.INTEGER), PGArray.INT4_ARRAY),
-        entry(new ArrayType<>(DataTypes.LONG), PGArray.INT8_ARRAY),
-        entry(new ArrayType<>(DataTypes.FLOAT), PGArray.FLOAT4_ARRAY),
-        entry(new ArrayType<>(DataTypes.DOUBLE), PGArray.FLOAT8_ARRAY),
-        entry(new ArrayType<>(DataTypes.NUMERIC), PGArray.NUMERIC_ARRAY),
-        entry(new ArrayType<>(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY),
-        entry(new ArrayType<>(DataTypes.TIMESTAMPZ), PGArray.TIMESTAMPZ_ARRAY),
-        entry(new ArrayType<>(DataTypes.TIMESTAMP), PGArray.TIMESTAMP_ARRAY),
-        entry(new ArrayType<>(DataTypes.DATE), PGArray.DATE_ARRAY),
-        entry(new ArrayType<>(DataTypes.TIMETZ), PGArray.TIMETZ_ARRAY),
-        entry(new ArrayType<>(DataTypes.STRING), PGArray.VARCHAR_ARRAY),
-        entry(new ArrayType<>(DataTypes.IP), PGArray.VARCHAR_ARRAY),
-        entry(new ArrayType<>(DataTypes.UNTYPED_OBJECT), PGArray.JSON_ARRAY),
-        entry(new ArrayType<>(DataTypes.GEO_POINT), PGArray.POINT_ARRAY),
-        entry(new ArrayType<>(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY),
-        entry(new ArrayType<>(DataTypes.INTERVAL), PGArray.INTERVAL_ARRAY),
-        entry(new ArrayType<>(RowType.EMPTY), PGArray.EMPTY_RECORD_ARRAY),
-        entry(new ArrayType<>(DataTypes.REGPROC), PGArray.REGPROC_ARRAY),
-        entry(new ArrayType<>(DataTypes.REGCLASS), PGArray.REGCLASS_ARRAY),
-        entry(new ArrayType<>(BitStringType.INSTANCE_ONE), PGArray.BIT_ARRAY),
-        entry(DataTypes.OIDVECTOR, PgOidVectorType.INSTANCE));
+    private static final Map<DataType<?>, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType<?>, PGType>builder()
+        .put(DataTypes.BYTE, CharType.INSTANCE)
+        .put(DataTypes.STRING, VarCharType.INSTANCE)
+        .put(DataTypes.BOOLEAN, BooleanType.INSTANCE)
+        .put(DataTypes.UNTYPED_OBJECT, JsonType.INSTANCE)
+        .put(RowType.EMPTY, RecordType.EMPTY_RECORD)
+        .put(DataTypes.SHORT, SmallIntType.INSTANCE)
+        .put(DataTypes.INTEGER, IntegerType.INSTANCE)
+        .put(DataTypes.LONG, BigIntType.INSTANCE)
+        .put(DataTypes.FLOAT, RealType.INSTANCE)
+        .put(DataTypes.DOUBLE, DoubleType.INSTANCE)
+        .put(DataTypes.NUMERIC, NumericType.INSTANCE)
+        .put(DataTypes.TIMETZ, TimeTZType.INSTANCE)
+        .put(DataTypes.TIMESTAMPZ, TimestampZType.INSTANCE)
+        .put(DataTypes.TIMESTAMP, TimestampType.INSTANCE)
+        .put(DataTypes.DATE, DateType.INSTANCE)
+        .put(DataTypes.IP, VarCharType.INSTANCE) // postgres has no IP type, so map it to varchar - it matches the client representation
+        .put(DataTypes.UNDEFINED, VarCharType.INSTANCE)
+        .put(DataTypes.GEO_SHAPE, JsonType.INSTANCE)
+        .put(io.crate.types.JsonType.INSTANCE, JsonType.INSTANCE)
+        .put(DataTypes.GEO_POINT, PointType.INSTANCE)
+        .put(DataTypes.INTERVAL, IntervalType.INSTANCE)
+        .put(DataTypes.REGPROC, RegprocType.INSTANCE)
+        .put(DataTypes.REGCLASS, RegclassType.INSTANCE)
+        .put(BitStringType.INSTANCE_ONE, BitType.INSTANCE)
+        .put(new ArrayType<>(DataTypes.BYTE), PGArray.CHAR_ARRAY)
+        .put(new ArrayType<>(DataTypes.SHORT), PGArray.INT2_ARRAY)
+        .put(new ArrayType<>(DataTypes.INTEGER), PGArray.INT4_ARRAY)
+        .put(new ArrayType<>(DataTypes.LONG), PGArray.INT8_ARRAY)
+        .put(new ArrayType<>(DataTypes.FLOAT), PGArray.FLOAT4_ARRAY)
+        .put(new ArrayType<>(DataTypes.DOUBLE), PGArray.FLOAT8_ARRAY)
+        .put(new ArrayType<>(DataTypes.NUMERIC), PGArray.NUMERIC_ARRAY)
+        .put(new ArrayType<>(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY)
+        .put(new ArrayType<>(DataTypes.TIMESTAMPZ), PGArray.TIMESTAMPZ_ARRAY)
+        .put(new ArrayType<>(DataTypes.TIMESTAMP), PGArray.TIMESTAMP_ARRAY)
+        .put(new ArrayType<>(DataTypes.DATE), PGArray.DATE_ARRAY)
+        .put(new ArrayType<>(DataTypes.TIMETZ), PGArray.TIMETZ_ARRAY)
+        .put(new ArrayType<>(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
+        .put(new ArrayType<>(DataTypes.IP), PGArray.VARCHAR_ARRAY)
+        .put(new ArrayType<>(DataTypes.UNTYPED_OBJECT), PGArray.JSON_ARRAY)
+        .put(new ArrayType<>(DataTypes.GEO_POINT), PGArray.POINT_ARRAY)
+        .put(new ArrayType<>(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY)
+        .put(new ArrayType<>(DataTypes.INTERVAL), PGArray.INTERVAL_ARRAY)
+        .put(new ArrayType<>(RowType.EMPTY), PGArray.EMPTY_RECORD_ARRAY)
+        .put(new ArrayType<>(DataTypes.REGPROC), PGArray.REGPROC_ARRAY)
+        .put(new ArrayType<>(DataTypes.REGCLASS), PGArray.REGCLASS_ARRAY)
+        .put(new ArrayType<>(BitStringType.INSTANCE_ONE), PGArray.BIT_ARRAY)
+        .put(DataTypes.OIDVECTOR, PgOidVectorType.INSTANCE)
+        .build();
 
     private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
     private static final Set<PGType> TYPES;
