@@ -475,6 +475,7 @@ public class PostgresITest extends SQLIntegrationTestCase {
     }
 
     @Test
+    @TestLogging("logger.io.crate.protocols.postgres:TRACE,logger.io.crate.action.sql:TRACE")
     public void testFetchSize() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.createStatement().executeUpdate("create table t (x int) with (number_of_replicas = 0)");
@@ -571,6 +572,7 @@ public class PostgresITest extends SQLIntegrationTestCase {
     }
 
     @Test
+    @TestLogging("io.crate.protocols.postgres:TRACE,io.crate.action.sql:TRACE")
     public void testExecuteBatch() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.setAutoCommit(true);

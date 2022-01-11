@@ -463,6 +463,12 @@ public class Session implements AutoCloseable {
                     }
                 }
             );
+            if (activeExecution == null) {
+                activeExecution = resultReceiver.completionFuture();
+            } else {
+                activeExecution = activeExecution.thenCompose(ignored -> resultReceiver.completionFuture());
+            }
+            return activeExecution;
         } else {
             if (!deferredExecutionsByStmt.isEmpty()) {
                 throw new UnsupportedOperationException(
@@ -497,6 +503,10 @@ public class Session implements AutoCloseable {
         if (activeExecution == null) {
             return triggerDeferredExecutions();
         } else {
+            if (!deferredExecutionsByStmt.isEmpty()) {
+                activeExecution = null;
+                return triggerDeferredExecutions();
+            }
             var result = activeExecution;
             activeExecution = null;
             return result;
