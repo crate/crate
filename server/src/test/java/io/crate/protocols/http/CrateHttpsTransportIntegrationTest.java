@@ -36,7 +36,6 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 
-import static com.google.common.base.Strings.repeat;
 import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -95,10 +94,13 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
     public void testBlobLayer() throws IOException {
+        var blob = new StringBuilder();
+        for (int i = 0; i < 1024 * 600; i++) {
+            blob.append("abcdefghijklmnopqrstuvwxyz");
+        }
         try {
             execute("create blob table test");
-            final String blob = repeat("abcdefghijklmnopqrstuvwxyz", 1024 * 600);
-            String blobUrl = upload("test", blob);
+            String blobUrl = upload("test", blob.toString());
             assertThat(blobUrl, not(isEmptyOrNullString()));
             HttpGet httpGet = new HttpGet(blobUrl);
             CloseableHttpResponse response = httpClient.execute(httpGet);
