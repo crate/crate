@@ -25,6 +25,8 @@ import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.common.collections.MapBuilder;
+
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
@@ -657,9 +659,9 @@ public class UpdateIntegrationTest extends SQLIntegrationTestCase {
     }
 
     @Test
+    @TestLogging("io.crate.action.sql:TRACE,io.crate.protocols.postgres:TRACE")
     public void testUpdateVersionInOperator() throws Exception {
         execute("create table test (id int primary key, c int) with (number_of_replicas=0, refresh_interval=0)");
-        ensureGreen();
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
 

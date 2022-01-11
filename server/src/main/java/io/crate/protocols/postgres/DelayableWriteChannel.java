@@ -25,6 +25,9 @@ import java.net.SocketAddress;
 import java.util.ArrayDeque;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
@@ -44,11 +47,16 @@ import io.netty.util.ReferenceCountUtil;
  **/
 public class DelayableWriteChannel implements Channel {
 
+    private final static Logger LOGGER = LogManager.getLogger(DelayableWriteChannel.class);
+
     private final Channel delegate;
     private volatile DelayedWrites delay;
 
     public DelayableWriteChannel(Channel channel) {
         this.delegate = channel;
+        this.delegate.closeFuture().addListener(f -> {
+            discardDelayedWrites();
+        });
     }
 
     @Override
@@ -83,12 +91,7 @@ public class DelayableWriteChannel implements Channel {
 
     @Override
     public ChannelFuture close() {
-        ChannelFuture close = delegate.close();
-        DelayedWrites localDelay = delay;  // 1 volatile read
-        if (localDelay != null) {
-            localDelay.releaseAll();
-        }
-        return close;
+        return delegate.close();
     }
 
     @Override
@@ -304,6 +307,22 @@ public class DelayableWriteChannel implements Channel {
         });
     }
 
+    public void sendPendingWrites() {
+        DelayedWrites delayedWrites = this.delay;
+        if (delayedWrites != null) {
+            delayedWrites.runDelayed();
+            this.delay = null;
+        }
+    }
+
+    private void discardDelayedWrites() {
+        DelayedWrites delayedWrites = this.delay;
+        if (delayedWrites != null) {
+            delayedWrites.discard();
+            this.delay = null;
+        }
+    }
+
     static class DelayedMsg {
         final Runnable runnable;
         final Object msg;
@@ -321,7 +340,7 @@ public class DelayableWriteChannel implements Channel {
         public DelayedWrites() {
         }
 
-        public void releaseAll() {
+        public void discard() {
             DelayedMsg delayedMsg;
             synchronized (delayed) {
                 while ((delayedMsg = delayed.poll()) != null) {
@@ -340,9 +359,14 @@ public class DelayableWriteChannel implements Channel {
             DelayedMsg delayedMsg;
             synchronized (delayed) {
                 while ((delayedMsg = delayed.poll()) != null) {
-                    delayedMsg.runnable.run();
+                    try {
+                        delayedMsg.runnable.run();
+                    } catch (Throwable t) {
+                        LOGGER.error("Error while running delayed write", t);
+                    }
                 }
             }
         }
     }
+
 }

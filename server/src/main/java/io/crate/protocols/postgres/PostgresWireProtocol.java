@@ -687,7 +687,7 @@ public class PostgresWireProtocol {
         }
     }
 
-    private void handleSync(final Channel channel) {
+    private void handleSync(final DelayableWriteChannel channel) {
         if (ignoreTillSync) {
             ignoreTillSync = false;
             // If an error happens all sub-sequent messages can be ignored until the client sends a sync message
@@ -699,7 +699,9 @@ public class PostgresWireProtocol {
             //  3) `sync`     -> sendReadyForQuery (this if branch)
             //  4) p, b, e    -> We've a new query deferred.
             //  5) `sync`     -> We must execute the query from 4, but not 1)
+            LOGGER.trace("Error happened, discarding remaining deferred executions");
             session.resetDeferredExecutions();
+            channel.sendPendingWrites();
             Messages.sendReadyForQuery(channel, TransactionState.FAILED_TRANSACTION);
             return;
         }

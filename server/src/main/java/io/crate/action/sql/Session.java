@@ -464,6 +464,7 @@ public class Session implements AutoCloseable {
                     }
                 }
             );
+            return resultReceiver.completionFuture();
         } else {
             if (!deferredExecutionsByStmt.isEmpty()) {
                 throw new UnsupportedOperationException(
