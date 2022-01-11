@@ -662,10 +662,10 @@ public class PostgresITest extends SQLIntegrationTestCase {
 
             Statement statement = conn.createStatement();
             statement.addBatch("insert into t (x) values (1)");
-            statement.addBatch("insert into t (x) values (2)");
+            statement.addBatch("insert into t (x) values (2), (3)");
 
             int[] results = statement.executeBatch();
-            assertThat(results, is(new int[]{1, 1}));
+            assertThat(results, is(new int[]{1, 2}));
 
             statement.executeUpdate("refresh table t");
             ResultSet resultSet = statement.executeQuery("select * from t order by x");
