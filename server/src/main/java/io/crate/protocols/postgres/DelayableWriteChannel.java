@@ -294,12 +294,7 @@ public class DelayableWriteChannel implements Channel {
     }
 
     public void delayWritesUntil(CompletableFuture<?> future) {
-        DelayedWrites delayedWrites;
-        if (delay == null) {
-            delayedWrites = new DelayedWrites(future);
-        } else {
-            delayedWrites = new DelayedWrites(delay.future.thenCompose(ignored -> future));
-        }
+        DelayedWrites delayedWrites = new DelayedWrites();
         this.delay = delayedWrites;
         future.whenComplete((res, err) -> {
             delayedWrites.runDelayed();
@@ -322,10 +317,8 @@ public class DelayableWriteChannel implements Channel {
     static class DelayedWrites {
 
         private final ArrayDeque<DelayedMsg> delayed = new ArrayDeque<>();
-        private final CompletableFuture<?> future;
 
-        public DelayedWrites(CompletableFuture<?> future) {
-            this.future = future;
+        public DelayedWrites() {
         }
 
         public void releaseAll() {
