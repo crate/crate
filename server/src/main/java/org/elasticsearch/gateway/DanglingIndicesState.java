@@ -153,7 +153,7 @@ public class DanglingIndicesState implements ClusterStateListener {
             Map<Index, IndexMetadata> newIndices = new HashMap<>(indexMetadataList.size());
             final IndexGraveyard graveyard = metadata.indexGraveyard();
             for (IndexMetadata indexMetadata : indexMetadataList) {
-                if (metadata.hasIndex(indexMetadata.getIndex().getName())) {
+                if (metadata.hasIndex(indexMetadata.getIndex())) {
                     LOGGER.warn("[{}] can not be imported as a dangling index, as index with same name already exists in cluster metadata",
                         indexMetadata.getIndex());
                 } else if (graveyard.containsIndex(indexMetadata.getIndex())) {
