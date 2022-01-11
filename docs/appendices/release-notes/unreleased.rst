@@ -160,6 +160,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could cause clients using the PostgreSQL wire protocol to
+  receive row counts in incorrect orders when using APIs that allow to execute
+  multiple statements in a batch.
+
 - Fixed an issue that could cause inserts into partitioned tables to fail with
   a ``IndexNotFoundException`` if concurrently deleting partitions.
 

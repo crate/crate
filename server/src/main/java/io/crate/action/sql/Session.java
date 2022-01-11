@@ -24,6 +24,7 @@ package io.crate.action.sql;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -130,7 +131,7 @@ public class Session implements AutoCloseable {
     final Map<String, Portal> portals = new HashMap<>();
 
     @VisibleForTesting
-    final Map<Statement, List<DeferredExecution>> deferredExecutionsByStmt = new HashMap<>();
+    final Map<Statement, List<DeferredExecution>> deferredExecutionsByStmt = new LinkedHashMap<>();
 
     @VisibleForTesting
     @Nullable
@@ -514,9 +515,22 @@ public class Session implements AutoCloseable {
                 return exec(entry.getKey(), entry.getValue());
             }
             default: {
-                var futures = Lists2.map(deferredExecutionsByStmt.entrySet(), x -> exec(x.getKey(), x.getValue()));
+                // sequentiallize execution to ensure client receives row counts in correct order
+                CompletableFuture<?> allCompleted = null;
+                for (var entry : deferredExecutionsByStmt.entrySet()) {
+                    var statement = entry.getKey();
+                    var deferredExecutions = entry.getValue();
+                    if (allCompleted == null) {
+                        allCompleted = exec(statement, deferredExecutions);
+                    } else {
+                        allCompleted = allCompleted
+                            // individual rowReceiver will receive failure; must not break execution chain due to failures.
+                            .exceptionally(swallowException -> null)
+                            .thenCompose(ignored -> exec(statement, deferredExecutions));
+                    }
+                }
                 deferredExecutionsByStmt.clear();
-                return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+                return allCompleted;
             }
         }
     }
