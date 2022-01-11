@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.aggregation;
 
-import com.google.common.collect.Iterables;
 import io.crate.breaker.MultiSizeEstimator;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -35,13 +34,13 @@ import io.crate.memory.MemoryManager;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Iterator;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -270,20 +269,22 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     }
 
     private Iterable<Row> mapToRows(Map<K, Object[]> statesByKey) {
-        return Iterables.transform(statesByKey.entrySet(), new com.google.common.base.Function<>() {
+        var states = statesByKey.entrySet().iterator();
+        RowN row = new RowN(numKeyColumns + aggregations.length);
+        Object[] cells = new Object[row.numColumns()];
+        row.cells(cells);
 
-            RowN row = new RowN(numKeyColumns + aggregations.length);
-            Object[] cells = new Object[row.numColumns()];
+        return () -> new Iterator<Row>() {
 
-            {
-                row.cells(cells);
+            @Override
+            public boolean hasNext() {
+                return states.hasNext();
             }
 
-            @Nullable
             @Override
-            public Row apply(@Nullable Map.Entry<K, Object[]> input) {
+            public Row next() {
+                var input = states.next();
                 assert input != null : "input must not be null";
-
                 applyKeyToCells.accept(input.getKey(), cells);
                 int c = numKeyColumns;
                 Object[] states = input.getValue();
@@ -293,6 +294,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                 }
                 return row;
             }
-        });
+        };
     }
 }
