@@ -594,7 +594,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
     public SQLResponse execute(String stmt, Object[] args, String node, TimeValue timeout) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
         try (Session session = sqlOperations.createSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER)) {
-            SQLResponse response = sqlExecutor.exec(stmt, args, session);
+            SQLResponse response = sqlExecutor.exec(stmt, args, session, timeout);
             this.response = response;
             return response;
         }

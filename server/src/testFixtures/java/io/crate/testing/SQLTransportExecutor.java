@@ -221,8 +221,12 @@ public class SQLTransportExecutor {
         );
     }
 
+    public SQLResponse exec(String statement, @Nullable Object[] args, Session session, TimeValue timeout) {
+        return FutureUtils.get(execute(statement, args, session), timeout.millis(), TimeUnit.MILLISECONDS);
+    }
+
     public SQLResponse exec(String statement, @Nullable Object[] args, Session session) {
-        return FutureUtils.get(execute(statement, args, session), REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
+        return exec(statement, args, session, REQUEST_TIMEOUT);
     }
 
     public SQLResponse exec(String statement, Session session) {
