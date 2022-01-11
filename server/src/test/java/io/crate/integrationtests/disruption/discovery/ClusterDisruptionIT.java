@@ -204,7 +204,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                     semaphore.release(docsPerIndexer);
                 }
                 logger.info("waiting for indexing requests to complete");
-                assertTrue(countDownLatchRef.get().await(20, TimeUnit.SECONDS));
+                assertThat("indexing requests must complete", countDownLatchRef.get().await(20, TimeUnit.SECONDS), is(true));
 
                 logger.info("stopping disruption");
                 disruptionScheme.stopDisrupting();
