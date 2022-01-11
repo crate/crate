@@ -25,9 +25,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.RandomAccess;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -189,5 +191,17 @@ public final class Maps {
                 map.put(key, addition);
             }
         }
+    }
+
+    public static <K, V> Map<K, V> uniqueIndex(Iterable<V> values, Function<? super V, K> keyFunction) {
+        var result = new HashMap<K, V>();
+        for (V value : values) {
+            var key = keyFunction.apply(value);
+            var previous = result.put(key, value);
+            if (previous != null) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Duplicated value %s for key %s", previous, key));
+            }
+        }
+        return Collections.unmodifiableMap(result);
     }
 }

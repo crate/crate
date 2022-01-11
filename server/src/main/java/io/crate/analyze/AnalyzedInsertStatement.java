@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.Maps;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.common.collections.Maps;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
