@@ -38,6 +38,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
@@ -150,10 +151,10 @@ public class InsertFromValues implements LogicalPlan {
         // CLUSTERED BY (dep_id)
         // PARTITIONED BY (country_id)
         //
-        // The insert from values statement bellow would have the column
+        // The insert from values statement below would have the column
         // index writer projection of its plan that contains the column
         // idents and symbols required to create corresponding inputs.
-        // The diagram bellow shows the projection's column symbols used
+        // The diagram below shows the projection's column symbols used
         // in the plan and relation between symbols sub-/sets.
         //
         //                        +------------------------+
@@ -642,11 +643,42 @@ public class InsertFromValues implements LogicalPlan {
         AtomicInteger numRequests = new AtomicInteger(shardUpsertRequests.size());
         AtomicReference<Throwable> lastFailure = new AtomicReference<>(null);
 
+        Consumer<ShardUpsertRequest> countdown = request -> {
+            if (numRequests.decrementAndGet() == 0) {
+                Throwable throwable = lastFailure.get();
+                if (throwable == null) {
+                    result.complete(compressedResult);
+                } else {
+                    throwable = SQLExceptions.unwrap(throwable, t -> t instanceof RuntimeException);
+                    // we want to report duplicate key exceptions
+                    if (!SQLExceptions.isDocumentAlreadyExistsException(throwable) &&
+                            (partitionWasDeleted(throwable, request.index())
+                                    || partitionClosed(throwable, request.index())
+                                    || mixedArgumentTypesFailure(throwable))) {
+                        result.complete(compressedResult);
+                    } else {
+                        result.completeExceptionally(throwable);
+                    }
+                }
+            }
+        };
         for (ShardUpsertRequest request : shardUpsertRequests) {
-            String nodeId = state.routingTable()
-                .shardRoutingTable(request.shardId())
-                .primaryShard()
-                .currentNodeId();
+            String nodeId;
+            try {
+                nodeId = state.routingTable()
+                    .shardRoutingTable(request.shardId())
+                    .primaryShard()
+                    .currentNodeId();
+            } catch (IndexNotFoundException e) {
+                lastFailure.set(e);
+                if (!IndexParts.isPartitioned(request.index())) {
+                    synchronized (compressedResult) {
+                        compressedResult.markAsFailed(request.items());
+                    }
+                }
+                countdown.accept(request);
+                continue;
+            }
             final ConcurrencyLimit nodeLimit = nodeLimits.get(nodeId);
             final long startTime = nodeLimit.startSample();
 
@@ -663,39 +695,20 @@ public class InsertFromValues implements LogicalPlan {
                         nodeLimit.onSample(startTime, true);
                         lastFailure.set(throwable);
                     }
-                    countdown();
+                    countdown.accept(request);
                 }
 
                 @Override
                 public void onFailure(Exception e) {
                     nodeLimit.onSample(startTime, true);
-                    if (!partitionWasDeleted(e, request.index())) {
+                    Throwable t = SQLExceptions.unwrap(e);
+                    if (!partitionWasDeleted(t, request.index())) {
                         synchronized (compressedResult) {
                             compressedResult.markAsFailed(request.items());
                         }
                     }
-                    lastFailure.set(e);
-                    countdown();
-                }
-
-                private void countdown() {
-                    if (numRequests.decrementAndGet() == 0) {
-                        Throwable throwable = lastFailure.get();
-                        if (throwable == null) {
-                            result.complete(compressedResult);
-                        } else {
-                            throwable = SQLExceptions.unwrap(throwable, t -> t instanceof RuntimeException);
-                            // we want to report duplicate key exceptions
-                            if (!SQLExceptions.isDocumentAlreadyExistsException(throwable) &&
-                                (partitionWasDeleted(throwable, request.index())
-                                 || partitionClosed(throwable, request.index())
-                                 || mixedArgumentTypesFailure(throwable))) {
-                                result.complete(compressedResult);
-                            } else {
-                                result.completeExceptionally(throwable);
-                            }
-                        }
-                    }
+                    lastFailure.set(t);
+                    countdown.accept(request);
                 }
             };
 

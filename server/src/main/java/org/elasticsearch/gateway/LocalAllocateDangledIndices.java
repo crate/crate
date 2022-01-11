@@ -127,7 +127,7 @@ public class LocalAllocateDangledIndices {
                                 minIndexCompatibilityVersion);
                             continue;
                         }
-                        if (currentState.metadata().hasIndex(indexMetadata.getIndex().getName())) {
+                        if (currentState.metadata().hasIndex(indexMetadata.getIndex())) {
                             continue;
                         }
                         if (currentState.metadata().hasAlias(indexMetadata.getIndex().getName())) {
