@@ -22,9 +22,8 @@
 package io.crate.execution.engine.collect.files;
 
 import com.google.common.base.Splitter;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.primitives.Ints;
+import io.crate.common.Suppliers;
 import io.crate.types.DataTypes;
 import org.locationtech.spatial4j.shape.Point;
 
@@ -38,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public class SummitsIterable implements Iterable<SummitsContext> {
 
