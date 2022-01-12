@@ -21,7 +21,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;

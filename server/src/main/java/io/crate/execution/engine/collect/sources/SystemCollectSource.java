@@ -22,7 +22,6 @@
 package io.crate.execution.engine.collect.sources;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
-import com.google.common.collect.Iterables;
 
 import io.crate.user.User;
 import io.crate.user.UserLookup;

@@ -21,7 +21,6 @@
 
 package io.crate.analyze.where;
 
-import com.google.common.collect.Iterables;
 import io.crate.analyze.ScalarsAndRefsToTrue;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
