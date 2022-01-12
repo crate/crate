@@ -136,7 +136,7 @@ public class WhereClauseAnalyzer {
         }
 
         if (queryPartitionMap.size() == 1) {
-            Map.Entry<Symbol, List<Literal>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
+            Map.Entry<Symbol, List<Literal>> entry = queryPartitionMap.entrySet().iterator().next();
             return new PartitionResult(
                 entry.getKey(), Lists2.map(entry.getValue(), literal -> nullOrString(literal.value())));
         } else if (queryPartitionMap.size() > 0) {

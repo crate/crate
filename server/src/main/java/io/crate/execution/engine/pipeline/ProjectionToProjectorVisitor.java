@@ -593,7 +593,7 @@ public class ProjectionToProjectorVisitor
     private CollectExpression<Row, ?> resolveUidCollectExpression(TransactionContext txnCtx, Symbol uidSymbol) {
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
         ctx.add(uidSymbol);
-        return Iterables.getOnlyElement(ctx.expressions());
+        return Lists2.getOnlyElement(ctx.expressions());
     }
 
     @Override

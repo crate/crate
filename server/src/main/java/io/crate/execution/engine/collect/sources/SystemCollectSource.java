@@ -131,7 +131,7 @@ public class SystemCollectSource implements CollectSource {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
 
         Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
-        String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
+        String table = locations.get(clusterService.localNode().getId()).keySet().iterator().next();
         RelationName relationName = RelationName.fromIndexName(table);
         StaticTableDefinition<?> tableDefinition = tableDefinition(relationName);
         User user = requireNonNull(userLookup.findUser(txnCtx.sessionSettings().userName()), "User who invoked a statement must exist");
