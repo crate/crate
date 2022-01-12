@@ -269,21 +269,26 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     }
 
     private Iterable<Row> mapToRows(Map<K, Object[]> statesByKey) {
-        var states = statesByKey.entrySet().iterator();
+        var iterator = statesByKey.entrySet().iterator();
         return () -> new Iterator<>() {
+
+            RowN row = new RowN(numKeyColumns + aggregations.length);
+            Object[] cells = new Object[row.numColumns()];
+
+            {
+                row.cells(cells);
+            }
 
             @Override
             public boolean hasNext() {
-                return states.hasNext();
+                return iterator.hasNext();
             }
 
             @Override
             public Row next() {
-                var input = states.next();
+                var input = iterator.next();
                 assert input != null : "input must not be null";
-                RowN row = new RowN(numKeyColumns + aggregations.length);
-                Object[] cells = new Object[row.numColumns()];
-                row.cells(cells);
+
                 applyKeyToCells.accept(input.getKey(), cells);
                 int c = numKeyColumns;
                 Object[] states = input.getValue();
