@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect.files;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,8 +29,8 @@ public class LocalFsFileInputFactory extends FileInputFactory {
     public static final String NAME = "file";
 
     @Override
-    public FileInput create(Map<String, Object> withClauseOptions) {
-        return new LocalFsFileInput();
+    public FileInput create(URI uri, Map<String, Object> withClauseOptions) {
+        return new LocalFsFileInput(uri);
     }
 
     @Override

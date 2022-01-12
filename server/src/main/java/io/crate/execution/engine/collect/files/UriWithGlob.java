@@ -28,10 +28,15 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static io.crate.execution.engine.collect.files.FileReadingIterator.toURI;
 
 public class UriWithGlob {
     private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("^((s3://|file://|/)[^\\*]*/)[^\\*]*\\*.*");
@@ -48,16 +53,13 @@ public class UriWithGlob {
     }
 
     @Nullable
-    public static UriWithGlob toUriWithGlob(URI fileUri, @Nullable Function<String, URI> uriFormatter) {
-        if (uriFormatter != null) {
-            fileUri = uriFormatter.apply(fileUri.toString());
-        } else {
-            uriFormatter = FileReadingIterator::toURI;
-        }
-        String formattedUriStr = fileUri.toString();
+    @VisibleForTesting
+    public static UriWithGlob toUrisWithGlob(String fileUri) {
+        URI uri = toURI(fileUri);
+
         URI preGlobUri = null;
         Predicate<URI> globPredicate = null;
-        Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(formattedUriStr);
+        Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(uri.toString());
         /*
          * hasGlobMatcher.group(1) returns part of the path before the wildcards with a trailing backslash,
          * ex)
@@ -65,8 +67,8 @@ public class UriWithGlob {
          *      's3://bucket/year=2020/month=12/day=*0/hour=12/*.json'   -> 's3://bucket/year=2020/month=12/'
          */
         if (hasGlobMatcher.matches()) {
-            if (formattedUriStr.startsWith("/") || formattedUriStr.startsWith("file://")) {
-                Path oldPath = Paths.get(uriFormatter.apply(hasGlobMatcher.group(1)));
+            if (fileUri.startsWith("/") || fileUri.startsWith("file://")) {
+                Path oldPath = Paths.get(toURI(hasGlobMatcher.group(1)));
                 String oldPathAsString;
                 String newPathAsString;
                 try {
@@ -76,15 +78,17 @@ public class UriWithGlob {
                     return null;
                 }
                 //resolve any links
-                String resolvedFileUrl = formattedUriStr.replace(oldPathAsString, newPathAsString);
-                fileUri = uriFormatter.apply(resolvedFileUrl);
-                preGlobUri = uriFormatter.apply(newPathAsString);
+                assert newPathAsString != null;
+                String resolvedFileUrl = uri.toString().replace(oldPathAsString, newPathAsString);
+                uri = toURI(resolvedFileUrl);
+                preGlobUri = toURI(newPathAsString);
             } else {
                 preGlobUri = URI.create(hasGlobMatcher.group(1));
             }
-            globPredicate = new GlobPredicate(fileUri);
+            globPredicate = new GlobPredicate(uri);
+            return new UriWithGlob(uri, preGlobUri, globPredicate);
         }
-        return new UriWithGlob(fileUri, preGlobUri, globPredicate);
+        return null;
     }
 
     public URI getUri() {

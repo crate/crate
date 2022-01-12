@@ -43,6 +43,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -51,7 +52,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
@@ -165,24 +168,22 @@ public class FileReadingIteratorTest extends ESTestCase {
     @Test
     public void test_GetUrisWithGlob() throws Exception {
         String path = Paths.get(getClass().getResource("/essetup/data/").toURI()).toUri().toString();
-        List<Tuple<FileInput, UriWithGlob>> fileInputsToUriWithGlobs = ((FileReadingIterator) createBatchIterator(
-            List.of(
-                path + "nested_dir/*.json",
-                path + "nested_dir/*_1.json",
-                path + "nested_dir/*/2_*",
-                path + "nested_dir/nested_dir_2/*/sub.json",
-                path + "nested_dir/nested_dir_*/*/sub.json",
-                "s3:///fakeBucket3/prefix*/*.json",
-                "s3://play.min.io:443/fakeBucket3/*/*.json",
-                "s3://i:p@play.min.io:443/fakeBucket3/*/prefix2/prefix3/a.json",
-                "s3://a:b@/fakeBucket3/*/prefix2/*/*.json",
-                "s3://a:b@fakeBucket3/prefix/p*x/*/*.json"
-            ),
-            JSON
-        )).fileInputsToUriWithGlobs;
-        List<String> preGlobURIs = fileInputsToUriWithGlobs.stream()
-            .map(Tuple::v2)
-            .map(e -> e.getPreGlobUri().toString()).toList();
+        List<String> preGlobURIs = Stream.of(
+            path + "nested_dir/*.json",
+            path + "nested_dir/*_1.json",
+            path + "nested_dir/*/2_*",
+            path + "nested_dir/nested_dir_2/*/sub.json",
+            path + "nested_dir/nested_dir_*/*/sub.json",
+            "s3:///fakeBucket3/prefix*/*.json",
+            "s3://play.min.io:443/fakeBucket3/*/*.json",
+            "s3://i:p@play.min.io:443/fakeBucket3/*/prefix2/prefix3/a.json",
+            "s3://a:b@/fakeBucket3/*/prefix2/*/*.json",
+            "s3://a:b@fakeBucket3/prefix/p*x/*/*.json")
+            .map(UriWithGlob::toUrisWithGlob)
+            .filter(Objects::nonNull)
+            .map(UriWithGlob::getPreGlobUri)
+            .map(URI::toString).toList();
+
         assertThat(preGlobURIs, is(List.of(
             path + "nested_dir/",
             path + "nested_dir/",

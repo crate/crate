@@ -64,13 +64,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.SocketTimeoutException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -223,7 +223,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
                 S3FileInputFactory.NAME,
                 new FileInputFactory() {
                     @Override
-                    public FileInput create(Map<String, Object> withClauseOptions) {
+                    public FileInput create(URI uri, Map<String, Object> withClauseOptions) {
                         return new S3FileInput(new S3ClientHelper() {
                             @Override
                             protected AmazonS3 initClient(String accessKey, String secretKey, String endPoint,
@@ -241,7 +241,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
                                 when(objectListing.isTruncated()).thenReturn(false);
                                 return client;
                             }
-                        }, withClauseOptions);
+                        }, uri, withClauseOptions);
                     }
 
                     @Override

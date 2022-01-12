@@ -69,12 +69,6 @@ public class S3FileOutput implements FileOutput {
         return outputStream;
     }
 
-    @Override
-    public Set<String> validWithClauseOptions() {
-        return Set.of("protocol");
-    }
-
-
     private static class S3OutputStream extends OutputStream {
 
         private static final int PART_SIZE = 5 * 1024 * 1024;

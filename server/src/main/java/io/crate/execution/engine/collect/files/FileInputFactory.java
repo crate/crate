@@ -22,12 +22,13 @@
 package io.crate.execution.engine.collect.files;
 
 
+import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 
 public abstract class FileInputFactory {
 
-    public abstract FileInput create(Map<String, Object> withClauseOptions);
+    public abstract FileInput create(URI uri, Map<String, Object> withClauseOptions);
 
     /**
      * A method to validate with-clause parameters according to the scheme.

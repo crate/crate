@@ -25,41 +25,24 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 public interface FileInput {
 
     /**
      * this method returns all files that are found within fileUri
      *
-     * @param fileUri      uri that points to a directory
-     *                     (and may optionally contain a "file hint" - which is the part after the last slash.)
-     *                     a concrete implementation may ignore the file hint.
-     * @param uriPredicate predicate that a concrete implementation of FileInput must use to pre-filter the returned uris
      * @return a list of Uris
      * @throws IOException
      */
 
-    // TODO: uriPredicate should be provided by the server to prevent reading all fileUris but cannot think of a better way.
-    List<URI> listUris(URI fileUri, Predicate<URI> uriPredicate) throws IOException;
+    // TODO: since uriPredicate is not passed to plugins anymore, the list of URIs are larger.
+    List<URI> listUris() throws IOException;
 
     InputStream getStream(URI uri) throws IOException;
 
-    /**
-     * An optional re-formatter that will reformat URIs passed to
-     * {@link FileInput#listUris(URI, Predicate)}, and {@link FileInput#getStream(URI)}.
-     * It is needed only if the getters of the URIs do not return the expected substrings.
-     * @return a re-formatting function
-     */
-    Function<String, URI> uriFormatter();
-
     boolean sharedStorageDefault();
 
-    /**
-     * This method returns a set of valid with-clause parameters that are valid for the scheme.
-     * @return A set of Strings.
-     */
-    Set<String> validWithClauseOptions();
+    URI originalUri();
+
+    boolean isGlobbed();
 }

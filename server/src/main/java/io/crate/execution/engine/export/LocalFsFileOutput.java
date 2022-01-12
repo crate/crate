@@ -55,9 +55,4 @@ public class LocalFsFileOutput implements FileOutput {
         }
         return new BufferedOutputStream(os);
     }
-
-    @Override
-    public Set<String> validWithClauseOptions() {
-        return Set.of();
-    }
 }

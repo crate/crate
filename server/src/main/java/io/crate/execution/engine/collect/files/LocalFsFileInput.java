@@ -22,6 +22,7 @@
 package io.crate.execution.engine.collect.files;
 
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -38,23 +39,30 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 
 public class LocalFsFileInput implements FileInput {
 
+    private final URI uri;
+    @Nullable
+    private final UriWithGlob uriWithGlob;
+
+    public LocalFsFileInput(URI uri) {
+        this.uri = uri;
+        this.uriWithGlob = UriWithGlob.toUrisWithGlob(uri.toString());
+    }
+
     @Override
-    public List<URI> listUris(final URI fileUri, final Predicate<URI> uriPredicate) throws IOException {
-        assert fileUri != null : "fileUri must not be null";
-        var uriWithGlob = UriWithGlob.toUriWithGlob(fileUri, uriFormatter());
-        assert uriWithGlob != null : "uriWithGlob must not be null";
-        assert uriWithGlob.getPreGlobUri() != null : "preGlobUri must not be null";
+    public List<URI> listUris() throws IOException {
+        if (uriWithGlob == null) {
+            return List.of(uri);
+        }
+        var preGlobUri = uriWithGlob.getPreGlobUri();
+        var uriPredicate = uriWithGlob.getGlobPredicate();
+        assert preGlobUri != null : "preGlobUri must not be null";
         assert uriPredicate != null : "uriPredicate must not be null";
 
-        var preGlobUri = uriWithGlob.getPreGlobUri();
         Path preGlobPath = Paths.get(preGlobUri);
         if (!Files.isDirectory(preGlobPath)) {
             preGlobPath = preGlobPath.getParent();
@@ -65,7 +73,7 @@ public class LocalFsFileInput implements FileInput {
         if (Files.notExists(preGlobPath)) {
             return List.of();
         }
-        final int fileURIDepth = countOccurrences(fileUri.toString(), '/');
+        final int fileURIDepth = countOccurrences(uri.toString(), '/');
         final int maxDepth = fileURIDepth - countOccurrences(preGlobUri.toString(), '/') + 1;
         final List<URI> uris = new ArrayList<>();
 
@@ -105,18 +113,18 @@ public class LocalFsFileInput implements FileInput {
     }
 
     @Override
-    public Function<String, URI> uriFormatter() {
-        return null;
-    }
-
-    @Override
     public boolean sharedStorageDefault() {
         return false;
     }
 
     @Override
-    public Set<String> validWithClauseOptions() {
-        return Set.of();
+    public URI originalUri() {
+        return uri;
+    }
+
+    @Override
+    public boolean isGlobbed() {
+        return uriWithGlob != null;
     }
 
     private static int countOccurrences(String str, char c) throws IOException {

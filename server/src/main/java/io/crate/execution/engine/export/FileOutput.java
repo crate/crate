@@ -39,10 +39,4 @@ public interface FileOutput {
     OutputStream acquireOutputStream(Executor executor,
                                      URI uri,
                                      WriterProjection.CompressionType compressionType) throws IOException;
-
-    /**
-     * This method returns a set of valid with-clause parameters that are valid for the scheme.
-     * @return A set of Strings.
-     */
-    Set<String> validWithClauseOptions();
 }

@@ -27,9 +27,6 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 class URLFileInput implements FileInput {
 
@@ -40,7 +37,7 @@ class URLFileInput implements FileInput {
     }
 
     @Override
-    public List<URI> listUris(URI fileUri, Predicate<URI> uriPredicate) throws IOException {
+    public List<URI> listUris() throws IOException {
         // If the full fileUri contains a wildcard the fileUri passed as argument here is the fileUri up to the wildcard
         // for URLs listing directory contents is not supported so always return the full fileUri for now
         return Collections.singletonList(this.fileUri);
@@ -53,17 +50,17 @@ class URLFileInput implements FileInput {
     }
 
     @Override
-    public Function<String, URI> uriFormatter() {
-        return null;
-    }
-
-    @Override
     public boolean sharedStorageDefault() {
         return true;
     }
 
     @Override
-    public Set<String> validWithClauseOptions() {
-        return Set.of();
+    public URI originalUri() {
+        return fileUri;
+    }
+
+    @Override
+    public boolean isGlobbed() {
+        return false;
     }
 }

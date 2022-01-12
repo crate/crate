@@ -26,53 +26,50 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import io.crate.execution.engine.collect.files.FileInput;
-import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.UriWithGlob;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
-
-import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
 
 public class S3FileInput implements FileInput {
     private static final Logger LOGGER = LogManager.getLogger(S3FileInput.class);
     private AmazonS3 client; // to prevent early GC during getObjectContent() in getStream()
+    private final URI originalUri;
+    private final UriWithGlob uriWithGlob;
     private final Map<String, Object> withClauseOptions;
     final S3ClientHelper clientBuilder;
 
-    public S3FileInput(Map<String, Object> withClauseOptions) {
-        clientBuilder = new S3ClientHelper();
-        this.withClauseOptions = withClauseOptions;
+    public S3FileInput(URI uri, Map<String, Object> withClauseOptions) {
+        this(new S3ClientHelper(), uri, withClauseOptions);
     }
 
     public S3FileInput(S3ClientHelper clientBuilder,
+                       URI uri,
                        Map<String, Object> withClauseOptions) {
         this.clientBuilder = clientBuilder;
+        this.originalUri = uri;
         this.withClauseOptions = withClauseOptions;
+        this.uriWithGlob = UriWithGlob.toUrisWithGlob(uri.toString());
     }
 
     @Override
-    public List<URI> listUris(@Nullable final URI fileUri,
-                              final Predicate<URI> uriPredicate) throws IOException {
+    public List<URI> listUris() throws IOException {
         // TODO: why could fileUri be a null??? add an assert for now
-        if (fileUri == null) {
+        if (originalUri == null) {
             return List.of();
         }
-        var uriWithGlob = UriWithGlob.toUriWithGlob(fileUri, uriFormatter());
         if (uriWithGlob == null) {
-            return List.of(fileUri);
+            return List.of(originalUri);
         }
         var preGlobUri = uriWithGlob.getPreGlobUri();
+        var uriPredicate = uriWithGlob.getGlobPredicate();
         S3URI preGlobS3Uri = new S3URI(preGlobUri);
         if (client == null) {
             client = clientBuilder.client(preGlobS3Uri.uri, withClauseOptions);
@@ -123,12 +120,12 @@ public class S3FileInput implements FileInput {
     }
 
     @Override
-    public Function<String, URI> uriFormatter() {
-        return fileUri -> S3URI.reformat(FileReadingIterator.toURI(fileUri));
+    public URI originalUri() {
+        return originalUri;
     }
 
     @Override
-    public Set<String> validWithClauseOptions() {
-        return Set.of(PROTOCOL_SETTING.getKey());
+    public boolean isGlobbed() {
+        return uriWithGlob != null;
     }
 }

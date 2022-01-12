@@ -23,7 +23,6 @@ package io.crate.execution.engine.collect.files;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Tuple;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -34,7 +33,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,7 +49,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import static io.crate.exceptions.Exceptions.rethrowUnchecked;
@@ -65,20 +62,17 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private final int numReaders;
     private final int readerNumber;
     private final boolean compressed;
-    private final Map<String, Object> schemeSpecificWithClauseOptions;
     private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
 
-    private final Collection<URI> uris;
-    @VisibleForTesting
-    final List<Tuple<FileInput, UriWithGlob>> fileInputsToUriWithGlobs;
+    final List<FileInput> fileInputs;
     private final Iterable<LineCollectorExpression<?>> collectorExpressions;
 
     private volatile Throwable killed;
     private final CopyFromParserProperties parserProperties;
     private final FileUriCollectPhase.InputFormat inputFormat;
-    private Iterator<Tuple<FileInput, UriWithGlob>> fileInputsIterator = null;
-    private Tuple<FileInput, UriWithGlob> currentInput = null;
-    private Iterator<URI> currentInputIterator = null;
+    private Iterator<FileInput> fileInputsIterator = null;
+    private FileInput currentFileInput;
+    private Iterator<URI> currentUriIterator = null;
     private URI currentUri;
     private BufferedReader currentReader = null;
     private long currentLineNumber;
@@ -95,21 +89,18 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                 int readerNumber,
                                 CopyFromParserProperties parserProperties,
                                 FileUriCollectPhase.InputFormat inputFormat,
-                                Map<String, Object> schemeSpecificWithClauseOptions) {
+                                Map<String, Object> withClauseOptions) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
         this.fileInputFactories = fileInputFactories;
         this.shared = shared;
         this.numReaders = numReaders;
         this.readerNumber = readerNumber;
-        this.uris = fileUris.stream().map(FileReadingIterator::toURI).collect(Collectors.toList());
         this.collectorExpressions = collectorExpressions;
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
-        this.fileInputsToUriWithGlobs = new ArrayList<>();
-        initFileInputs();
+        this.fileInputs = toFileInputs(fileUris, withClauseOptions);
         initCollectorState();
-        this.schemeSpecificWithClauseOptions = schemeSpecificWithClauseOptions;
     }
 
     @Override
@@ -147,19 +138,45 @@ public class FileReadingIterator implements BatchIterator<Row> {
             withClauseOptions);
     }
 
-    private void initFileInputs() {
-        for (URI uri : uris) {
-            FileInput fileInput = getFileInput(uri);
-            if (fileInput != null) {
-                fileInputsToUriWithGlobs.add(new Tuple<>(fileInput, UriWithGlob.toUriWithGlob(uri, fileInput.uriFormatter())));
+    private List<FileInput> toFileInputs(Collection<String> fileUris, Map<String, Object> withClauseOptions) {
+        List<FileInput> fileInputs = new ArrayList<>();
+        for (String fileUri : fileUris) {
+            URI uri = toURI(fileUri);
+            FileInput fileInput = null;
+            for (var e : fileInputFactories.entrySet()) {
+                if (Objects.equals(uri.getScheme(), e.getKey())) {
+                    fileInput = e.getValue().create(uri, withClauseOptions);
+                    break;
+                }
             }
+            if (fileInput == null) {
+                fileInput = new URLFileInput(uri);
+            }
+            fileInputs.add(fileInput);
+        }
+        return fileInputs;
+    }
+
+    public static URI toURI(String fileUri) {
+        if (fileUri.startsWith("/")) {
+            // using Paths.get().toUri instead of new URI(...) as it also encodes umlauts and other special characters
+            return Paths.get(fileUri).toUri();
+        } else {
+            URI uri = URI.create(fileUri);
+            if (uri.getScheme() == null) {
+                throw new IllegalArgumentException("relative fileURIs are not allowed");
+            }
+            if (uri.getScheme().equals("file") && !uri.getSchemeSpecificPart().startsWith("///")) {
+                throw new IllegalArgumentException("Invalid fileURI");
+            }
+            return uri;
         }
     }
 
     private void initCollectorState() {
         lineProcessor = new LineProcessor(parserProperties);
         lineProcessor.startCollect(collectorExpressions);
-        fileInputsIterator = fileInputsToUriWithGlobs.iterator();
+        fileInputsIterator = fileInputs.iterator();
     }
 
     @Override
@@ -180,8 +197,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                 }
                 lineProcessor.process(line);
                 return true;
-            } else if (currentInputIterator != null && currentInputIterator.hasNext()) {
-                advanceToNextUri(currentInput.v1());
+            } else if (currentUriIterator != null && currentUriIterator.hasNext()) {
+                advanceToNextUri(currentFileInput);
                 return moveNext();
             } else if (fileInputsIterator != null && fileInputsIterator.hasNext()) {
                 advanceToNextFileInput();
@@ -197,23 +214,28 @@ public class FileReadingIterator implements BatchIterator<Row> {
     }
 
     private void advanceToNextUri(FileInput fileInput) throws IOException {
-        currentUri = currentInputIterator.next();
+        currentUri = currentUriIterator.next();
         initCurrentReader(fileInput, currentUri);
     }
 
     private void advanceToNextFileInput() throws IOException {
-        currentInput = fileInputsIterator.next();
-        FileInput fileInput = currentInput.v1();
-        UriWithGlob fileUri = currentInput.v2();
-        Predicate<URI> uriPredicate = generateUriPredicate(fileInput, fileUri.globPredicate);
-        List<URI> uris = getUris(fileInput, fileUri.getUri(), fileUri.getPreGlobUri(), uriPredicate);
-
+        currentFileInput = fileInputsIterator.next();
+        List<URI> uris = currentFileInput.listUris().stream()
+            .filter(uri -> {
+                boolean sharedStorage = Objects.requireNonNullElse(shared, currentFileInput.sharedStorageDefault());
+                if (sharedStorage) {
+                    return moduloPredicateImpl(uri, readerNumber, numReaders);
+                } else {
+                    return MATCH_ALL_PREDICATE.test(uri);
+                }
+            })
+            .toList();
         if (uris.size() > 0) {
-            currentInputIterator = uris.iterator();
-            advanceToNextUri(fileInput);
-        } else if (fileUri.getPreGlobUri() != null) {
-            lineProcessor.startWithUri(fileUri.getUri());
-            throw new IOException("Cannot find any URI matching: " + fileUri.getUri().toString());
+            currentUriIterator = uris.iterator();
+            advanceToNextUri(currentFileInput);
+        } else if (currentFileInput.isGlobbed()) {
+            lineProcessor.startWithUri(currentFileInput.originalUri());
+            throw new IOException("Cannot find any URI matching: " + currentFileInput.originalUri());
         }
     }
 
@@ -251,20 +273,20 @@ public class FileReadingIterator implements BatchIterator<Row> {
             }
         } catch (SocketTimeoutException e) {
             if (retry > MAX_SOCKET_TIMEOUT_RETRIES) {
-                URI uri = currentInput.v2().getUri();
-                LOGGER.info("Timeout during COPY FROM '{}' after {} retries", e, uri.toString(), retry);
+                String fileUri = currentFileInput.originalUri().toString();
+                LOGGER.info("Timeout during COPY FROM '{}' after {} retries", e, fileUri, retry);
                 throw e;
             } else {
                 long startLine = currentLineNumber + 1;
                 closeCurrentReader();
-                initCurrentReader(currentInput.v1(), currentUri);
+                initCurrentReader(currentFileInput, currentUri);
                 return getLine(currentReader, startLine, retry + 1);
             }
         } catch (Exception e) {
-            URI uri = currentInput.v2().getUri();
+            String fileUri = currentFileInput.originalUri().toString();
             // it's nice to know which exact file/uri threw an error
             // when COPY FROM returns less rows than expected
-            LOGGER.info("Error during COPY FROM '{}'", e, uri.toString());
+            LOGGER.info("Error during COPY FROM '{}'", e, fileUri);
             rethrowUnchecked(e);
         }
         return line;
@@ -279,8 +301,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
 
     private void releaseBatchIteratorState() {
         fileInputsIterator = null;
-        currentInputIterator = null;
-        currentInput = null;
+        currentUriIterator = null;
+        currentFileInput = null;
         currentUri = null;
     }
 
@@ -299,68 +321,15 @@ public class FileReadingIterator implements BatchIterator<Row> {
         return true;
     }
 
-    @VisibleForTesting
-    public static URI toURI(String fileUri) {
-        if (fileUri.startsWith("/")) {
-            // using Paths.get().toUri instead of new URI(...) as it also encodes umlauts and other special characters
-            return Paths.get(fileUri).toUri();
-        } else {
-            URI uri = URI.create(fileUri);
-            if (uri.getScheme() == null) {
-                throw new IllegalArgumentException("relative fileURIs are not allowed");
-            }
-            if (uri.getScheme().equals("file") && !uri.getSchemeSpecificPart().startsWith("///")) {
-                throw new IllegalArgumentException("Invalid fileURI");
-            }
-            return uri;
-        }
-    }
-
-    @Nullable
-    private FileInput getFileInput(URI fileUri) {
-        FileInputFactory fileInputFactory = fileInputFactories.get(fileUri.getScheme());
-        if (fileInputFactory != null) {
-            return fileInputFactory.create(schemeSpecificWithClauseOptions);
-        }
-        return new URLFileInput(fileUri);
-    }
-
     private BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
         BufferedReader reader;
         if (compressed) {
             reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(inputStream),
-                StandardCharsets.UTF_8));
+                                                              StandardCharsets.UTF_8));
         } else {
             reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
         }
         return reader;
-    }
-
-    private List<URI> getUris(FileInput fileInput, URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate) throws IOException {
-        List<URI> uris;
-        if (preGlobUri != null) {
-            uris = fileInput.listUris(fileUri, uriPredicate);
-        } else if (uriPredicate.test(fileUri)) {
-            uris = List.of(fileUri);
-        } else {
-            uris = List.of();
-        }
-        return uris;
-    }
-
-    private Predicate<URI> generateUriPredicate(FileInput fileInput, @Nullable Predicate<URI> globPredicate) {
-        Predicate<URI> moduloPredicate;
-        boolean sharedStorage = Objects.requireNonNullElse(shared, fileInput.sharedStorageDefault());
-        if (sharedStorage) {
-            moduloPredicate = input -> moduloPredicateImpl(input, this.readerNumber, this.numReaders);
-        } else {
-            moduloPredicate = MATCH_ALL_PREDICATE;
-        }
-
-        if (globPredicate != null) {
-            return moduloPredicate.and(globPredicate);
-        }
-        return moduloPredicate;
     }
 
     @VisibleForTesting

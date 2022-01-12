@@ -24,6 +24,7 @@ package io.crate.copy.s3;
 import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,8 +33,8 @@ public class S3FileInputFactory extends FileInputFactory {
     public static final String NAME = "s3";
 
     @Override
-    public FileInput create(Map<String, Object> withClauseOptions) {
-        return new S3FileInput(withClauseOptions);
+    public FileInput create(URI uri, Map<String, Object> withClauseOptions) {
+        return new S3FileInput(uri, withClauseOptions);
     }
 
     @Override
