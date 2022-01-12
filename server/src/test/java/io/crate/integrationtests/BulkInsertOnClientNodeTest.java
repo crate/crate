@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 
-import com.google.common.primitives.Longs;
 import io.crate.action.sql.SQLOperations;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
