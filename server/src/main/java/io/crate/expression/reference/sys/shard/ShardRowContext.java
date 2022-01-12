@@ -21,8 +21,8 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import com.google.common.base.Suppliers;
 import io.crate.blob.v2.BlobShard;
+import io.crate.common.Suppliers;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -63,7 +63,7 @@ public class ShardRowContext {
     private final String templateName;
 
     public ShardRowContext(IndexShard indexShard, ClusterService clusterService) {
-        this(indexShard, null, clusterService, Suppliers.memoizeWithExpiration(() -> {
+        this(indexShard, null, clusterService, new Suppliers.ExpiringMemoizingSupplier<>(() -> {
             try {
                 StoreStats storeStats = indexShard.storeStats();
                 return storeStats.getSizeInBytes();

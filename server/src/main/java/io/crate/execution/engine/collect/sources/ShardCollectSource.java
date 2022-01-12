@@ -36,6 +36,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import io.crate.common.Suppliers;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -60,7 +61,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
 
 import io.crate.analyze.OrderBy;
@@ -214,7 +214,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
          *
          * So we wrap the creation in a supplier to create the providers lazy
          */
-        Supplier<ShardCollectorProvider> providerSupplier = Suppliers.memoize(() -> shardCollectorProviderFactory.create(indexShard));
+        Supplier<ShardCollectorProvider> providerSupplier = new Suppliers.MemoizingSupplier<>(() -> shardCollectorProviderFactory.create(indexShard));
         shards.put(indexShard.shardId(), providerSupplier);
     }
 

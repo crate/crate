@@ -21,7 +21,7 @@
 
 package io.crate.beans;
 
-import com.google.common.base.Suppliers;
+import io.crate.common.Suppliers;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.Plan.StatementType;
@@ -81,7 +81,7 @@ public class QueryStats implements QueryStatsMBean {
     private final Supplier<Map<StatementType, Metric>> metricByStmtType;
 
     public QueryStats(JobsLogs jobsLogs) {
-        metricByStmtType = Suppliers.memoizeWithExpiration(
+        metricByStmtType = new Suppliers.ExpiringMemoizingSupplier<>(
             () -> createMetricsMap(jobsLogs.metrics()),
             1,
             TimeUnit.SECONDS
