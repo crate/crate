@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import com.google.common.collect.ForwardingQueue;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
@@ -30,10 +29,12 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class RamAccountingQueue<T> extends ForwardingQueue<T> {
+public final class RamAccountingQueue<T> implements Queue<T> {
 
     private static final Logger LOGGER = LogManager.getLogger(RamAccountingQueue.class);
 
@@ -60,6 +61,71 @@ public class RamAccountingQueue<T> extends ForwardingQueue<T> {
     }
 
     @Override
+    public int size() {
+        return delegate.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return delegate.isEmpty();
+    }
+
+    @Override
+    public boolean contains(Object o) {
+        return delegate.contains(o);
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return delegate.iterator();
+    }
+
+    @Override
+    public Object[] toArray() {
+        return delegate.toArray();
+    }
+
+    @Override
+    public <T1> T1[] toArray(T1[] a) {
+        return delegate.toArray(a);
+    }
+
+    @Override
+    public boolean add(T t) {
+        return delegate.add(t);
+    }
+
+    @Override
+    public boolean remove(Object o) {
+        return delegate.remove(o);
+    }
+
+    @Override
+    public boolean containsAll(Collection<?> c) {
+        return delegate.containsAll(c);
+    }
+
+    @Override
+    public boolean addAll(Collection<? extends T> c) {
+        return delegate.addAll(c);
+    }
+
+    @Override
+    public boolean removeAll(Collection<?> c) {
+        return delegate.removeAll(c);
+    }
+
+    @Override
+    public boolean retainAll(Collection<?> c) {
+        return delegate.removeAll(c);
+    }
+
+    @Override
+    public void clear() {
+        delegate.clear();
+    }
+
+    @Override
     public boolean offer(T o) {
         ramAccounting.addBytes(sizeEstimator.estimateSize(o));
         if (exceededBreaker() && exceeded.compareAndSet(false, true)) {
@@ -74,8 +140,23 @@ public class RamAccountingQueue<T> extends ForwardingQueue<T> {
     }
 
     @Override
-    protected Queue<T> delegate() {
-        return delegate;
+    public T remove() {
+        return delegate.remove();
+    }
+
+    @Override
+    public T poll() {
+        return delegate.poll();
+    }
+
+    @Override
+    public T element() {
+        return delegate.element();
+    }
+
+    @Override
+    public T peek() {
+        return delegate.peek();
     }
 
     public void release() {
