@@ -21,7 +21,7 @@
 
 package io.crate.execution.dsl.phases;
 
-import com.google.common.collect.Iterables;
+import io.crate.common.collections.Lists2;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -66,7 +66,7 @@ public abstract class JoinPhase extends AbstractProjectionsPhase implements Upst
               JoinType joinType,
               @Nullable Symbol joinCondition) {
         super(jobId, executionNodeId, name, projections);
-        Projection lastProjection = Iterables.getLast(projections, null);
+        Projection lastProjection = Lists2.getLastElement(projections, null);
         assert lastProjection != null : "lastProjection must not be null";
         assert joinCondition == null || !SymbolVisitors.any(Symbols.IS_COLUMN, joinCondition)
             : "joinCondition must not contain columns: " + joinCondition;

@@ -132,6 +132,14 @@ public final class Lists2 {
         }
     }
 
+    public static <T> T getLastElement(List<T> items, T defaultValue) {
+        if (items.isEmpty()) {
+            return defaultValue;
+        } else {
+            return items.get(items.size() - 1);
+        }
+    }
+
     public static <O, I> List<O> mapTail(O head, List<I> tail, Function<I, O> mapper) {
         ArrayList<O> list = new ArrayList<>(tail.size() + 1);
         list.add(head);
