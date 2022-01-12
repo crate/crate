@@ -21,8 +21,8 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import com.google.common.base.Suppliers;
 import io.crate.blob.v2.BlobShard;
+import io.crate.common.Suppliers;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
