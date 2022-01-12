@@ -21,9 +21,6 @@
 
 package io.crate.execution.jobs;
 
-import com.google.common.collect.ForwardingIterator;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.ArrayBucket;
@@ -34,6 +31,8 @@ import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
+import org.elasticsearch.common.collect.Iterators;
+import org.elasticsearch.common.util.iterable.Iterables;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
@@ -284,7 +283,7 @@ public class DistResultRXTaskTest extends ESTestCase {
         }
     }
 
-    private static class FailOnMergePagingIterator<TKey, TRow> extends ForwardingIterator<TRow> implements PagingIterator<TKey, TRow> {
+    private static class FailOnMergePagingIterator<TKey, TRow> implements PagingIterator<TKey, TRow> {
 
         private Iterator<TRow> iterator = Collections.emptyIterator();
         private final List<KeyIterable<TKey, TRow>> iterables = new ArrayList<>();
@@ -296,8 +295,13 @@ public class DistResultRXTaskTest extends ESTestCase {
         }
 
         @Override
-        protected Iterator<TRow> delegate() {
-            return iterator;
+        public boolean hasNext() {
+            return iterator.hasNext();
+        }
+
+        @Override
+        public TRow next() {
+            return iterator.next();
         }
 
         @Override
@@ -305,7 +309,7 @@ public class DistResultRXTaskTest extends ESTestCase {
             if (++mergesCallCount == mergesCallCountUntilError) {
                 throw new RuntimeException("raised on merge");
             }
-            Iterable<TRow> concat = Iterables.concat(iterables);
+            Iterable<TRow> concat = Iterables.flatten(iterables);
 
             if (iterator.hasNext()) {
                 iterator = Iterators.concat(iterator, concat.iterator());
