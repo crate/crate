@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 
-import com.google.common.primitives.Longs;
 import io.crate.action.sql.SQLOperations;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
@@ -30,8 +29,10 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -78,14 +79,14 @@ public class BulkInsertOnClientNodeTest extends SQLIntegrationTestCase {
     public void testInsertBulkDifferentTypesResultsInStreamingFailure() throws Exception {
         execute("create table test (id integer primary key) " +
                 "clustered into 2 shards with (column_policy='dynamic', number_of_replicas=0)");
-        List<Long> rowCounts = Longs.asList(
+        List<Long> rowCounts = Arrays.stream(
             execute("insert into test (id, value) values (?, ?)",
-                    new Object[][]{
-                        new Object[]{1, 1},                                 // use id 1 to ensure shard 0
-                        new Object[]{3, new HashMap<String, Object>() {{    // use id 3 to ensure shard 1
-                            put("foo", 127);
-                        }}},
-            }));
+                new Object[][]{
+                    new Object[]{1, 1},                                 // use id 1 to ensure shard 0
+                    new Object[]{3, new HashMap<String, Object>() {{    // use id 3 to ensure shard 1
+                        put("foo", 127);
+                    }}},
+                })).boxed().collect(Collectors.toList());
         assertThat(rowCounts.size(), is(2));
         assertThat(rowCounts, Matchers.anyOf(
             contains(1L, -2L),
