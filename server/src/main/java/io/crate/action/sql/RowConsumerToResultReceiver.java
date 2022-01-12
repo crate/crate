@@ -116,6 +116,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     }
 
     public void replaceResultReceiver(ResultReceiver resultReceiver, int maxRows) {
+        this.resultReceiver.allFinished(true);
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
     }
