@@ -23,7 +23,6 @@ package org.elasticsearch.action.admin.indices.create;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import com.google.common.collect.Iterables;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.PartitionName;
 import org.apache.lucene.util.CollectionUtil;
@@ -409,6 +408,6 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
 
     @Override
     protected ClusterBlockException checkBlock(CreatePartitionsRequest request, ClusterState state) {
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, Iterables.toArray(request.indices(), String.class));
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, request.indices().toArray(new String[0]));
     }
 }
