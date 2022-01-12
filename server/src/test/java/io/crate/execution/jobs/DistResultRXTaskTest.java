@@ -21,7 +21,6 @@
 
 package io.crate.execution.jobs;
 
-import com.google.common.collect.ForwardingIterator;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import io.crate.Streamer;
@@ -284,7 +283,7 @@ public class DistResultRXTaskTest extends ESTestCase {
         }
     }
 
-    private static class FailOnMergePagingIterator<TKey, TRow> extends ForwardingIterator<TRow> implements PagingIterator<TKey, TRow> {
+    private static class FailOnMergePagingIterator<TKey, TRow> implements PagingIterator<TKey, TRow> {
 
         private Iterator<TRow> iterator = Collections.emptyIterator();
         private final List<KeyIterable<TKey, TRow>> iterables = new ArrayList<>();
@@ -296,8 +295,13 @@ public class DistResultRXTaskTest extends ESTestCase {
         }
 
         @Override
-        protected Iterator<TRow> delegate() {
-            return iterator;
+        public boolean hasNext() {
+            return iterator.hasNext();
+        }
+
+        @Override
+        public TRow next() {
+            return iterator.next();
         }
 
         @Override
