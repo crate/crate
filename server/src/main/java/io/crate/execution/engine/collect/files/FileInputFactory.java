@@ -24,17 +24,15 @@ package io.crate.execution.engine.collect.files;
 
 import java.net.URI;
 import java.util.Map;
-import java.util.Set;
 
 public abstract class FileInputFactory {
 
-    public abstract FileInput create(URI uri, Map<String, Object> withClauseOptions);
+    public final FileInput create(URI uri, Map<String, Object> allWithClauseOptions) {
+        return doCreate(uri, validate(allWithClauseOptions));
+    }
 
-    /**
-     * A method to validate with-clause parameters according to the scheme.
-     * @param validWithClauseOptions A set of valid with clause parameters.
-     * @param allWithClauseOptions A map of all available with clause parameters and its values.
-     */
-    public abstract void validate(Set<String> validWithClauseOptions,
-                                  Map<String, Object> allWithClauseOptions);
+    public abstract FileInput doCreate(URI uri, Map<String, Object> validatedWithOptions);
+
+    // allWithClauseOptions contain all provided options from the original statement as well as the ones with default values.
+    public abstract Map<String, Object> validate(Map<String, Object> allWithClauseOptions) throws IllegalArgumentException;
 }

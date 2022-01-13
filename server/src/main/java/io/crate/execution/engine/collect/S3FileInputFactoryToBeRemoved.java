@@ -26,20 +26,18 @@ import io.crate.execution.engine.collect.files.FileInputFactory;
 
 import java.net.URI;
 import java.util.Map;
-import java.util.Set;
 
 public class S3FileInputFactoryToBeRemoved extends FileInputFactory {
 
     public static final String NAME = "s3";
 
     @Override
-    public FileInput create(URI uri, Map<String, Object> withClauseOptions) {
-        return new S3FileInputToBeRemoved(uri, withClauseOptions);
+    public FileInput doCreate(URI uri, Map<String, Object> validatedWithClauseOptions) {
+        return new S3FileInputToBeRemoved(uri, validatedWithClauseOptions);
     }
 
     @Override
-    public void validate(Set<String> validWithClauseOptions,
-                         Map<String, Object> allWithClauseOptions) {
-
+    public Map<String, Object> validate(Map<String, Object> allWithClauseOptions) throws IllegalArgumentException{
+        return Map.of();
     }
 }

@@ -73,7 +73,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.zip.GZIPOutputStream;
 
 import static io.crate.analyze.CopyStatementSettings.PROTOCOL_SETTING;
@@ -223,7 +222,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
                 S3FileInputFactory.NAME,
                 new FileInputFactory() {
                     @Override
-                    public FileInput create(URI uri, Map<String, Object> withClauseOptions) {
+                    public FileInput doCreate(URI uri, Map<String, Object> validatedWithClauseOptions) {
                         return new S3FileInput(new S3ClientHelper() {
                             @Override
                             protected AmazonS3 initClient(String accessKey, String secretKey, String endPoint,
@@ -245,9 +244,8 @@ public class S3FileReadingCollectorTest extends ESTestCase {
                     }
 
                     @Override
-                    public void validate(Set<String> validWithClauseOptions,
-                                         Map<String, Object> allWithClauseOptions) {
-
+                    public Map<String, Object> validate(Map<String, Object> allWithClauseOptions) throws IllegalArgumentException{
+                        return Map.of();
                     }
                 }
             ),

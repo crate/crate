@@ -23,19 +23,17 @@ package io.crate.execution.engine.collect.files;
 
 import java.net.URI;
 import java.util.Map;
-import java.util.Set;
 
 public class LocalFsFileInputFactory extends FileInputFactory {
     public static final String NAME = "file";
 
     @Override
-    public FileInput create(URI uri, Map<String, Object> withClauseOptions) {
+    public FileInput doCreate(URI uri, Map<String, Object> validatedWithOptions) {
         return new LocalFsFileInput(uri);
     }
 
     @Override
-    public void validate(Set<String> validWithClauseOptions,
-                         Map<String, Object> allWithClauseOptions) {
-
+    public Map<String, Object> validate(Map<String, Object> allWithClauseOptions) throws IllegalArgumentException{
+        return Map.of();
     }
 }

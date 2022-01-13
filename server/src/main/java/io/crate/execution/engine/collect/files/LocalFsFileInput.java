@@ -55,6 +55,7 @@ public class LocalFsFileInput implements FileInput {
 
     @Override
     public List<URI> listUris() throws IOException {
+        // TODO: should be able to accept directory uri???? test case missing
         if (uriWithGlob == null) {
             return List.of(uri);
         }

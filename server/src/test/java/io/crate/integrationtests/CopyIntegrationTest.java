@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
-import io.crate.execution.engine.collect.files.UriWithGlob;
 import io.crate.execution.engine.collect.sources.FileCollectSource;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;

@@ -22,7 +22,6 @@
 package io.crate.copy.s3;
 
 import io.crate.execution.engine.collect.files.FileReadingIterator;
-import io.crate.execution.engine.collect.files.UriWithGlob;
 
 import java.net.URI;
 

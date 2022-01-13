@@ -32,13 +32,4 @@ public class S3FileOutputFactoryToBeRemoved extends FileOutputFactory {
     public FileOutput create(Map<String, Object> withClauseOptions) {
         return new S3FileOutputToBeRemoved(withClauseOptions);
     }
-
-    @Override
-    public void validate(Set<String> validWithClauseOptions,
-                         Map<String, Object> allWithClauseOptions) {
-        //for example
-        if (allWithClauseOptions.keySet().equals(validWithClauseOptions) == false) {
-            throw new IllegalArgumentException("invalid with options for the given URI scheme");
-        }
-    }
 }

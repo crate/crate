@@ -22,7 +22,6 @@
 package io.crate.execution.engine.export;
 
 import java.util.Map;
-import java.util.Set;
 
 public class LocalFsFileOutputFactory extends FileOutputFactory {
 
@@ -31,11 +30,5 @@ public class LocalFsFileOutputFactory extends FileOutputFactory {
     @Override
     public FileOutput create(Map<String, Object> withClauseOptions) {
         return new LocalFsFileOutput();
-    }
-
-    @Override
-    public void validate(Set<String> validWithClauseOptions,
-                         Map<String, Object> allWithClauseOptions) {
-
     }
 }

@@ -25,21 +25,32 @@ import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class S3FileInputFactory extends FileInputFactory {
 
     public static final String NAME = "s3";
+    public static Map<String, Set<Object>> requiredWithOptions = Map.of("protocol", Set.of("http", "https"));
 
     @Override
-    public FileInput create(URI uri, Map<String, Object> withClauseOptions) {
-        return new S3FileInput(uri, withClauseOptions);
+    public FileInput doCreate(URI uri, Map<String, Object> validatedWithOptions) {
+        return new S3FileInput(uri, validatedWithOptions);
     }
 
     @Override
-    public void validate(Set<String> validWithClauseOptions,
-                         Map<String, Object> allWithClauseOptions) {
-
+    public Map<String, Object> validate(Map<String, Object> allWithClauseOptions) throws IllegalArgumentException{
+        Map<String, Object> validated = new HashMap<>();
+        for (var e : requiredWithOptions.entrySet()) {
+            var givenOption = allWithClauseOptions.get(e.getKey());
+            if (givenOption != null) {
+                if (e.getValue().contains(givenOption)) {
+                    validated.put(e.getKey(), givenOption);
+                }
+            }
+        }
+        return Collections.unmodifiableMap(validated);
     }
 }

@@ -35,13 +35,4 @@ public class S3FileOutputFactory extends FileOutputFactory {
     public FileOutput create(Map<String, Object> withClauseOptions) {
         return new S3FileOutput(withClauseOptions);
     }
-
-    @Override
-    public void validate(Set<String> validWithClauseOptions,
-                         Map<String, Object> allWithClauseOptions) {
-        //for example
-        if (allWithClauseOptions.keySet().equals(validWithClauseOptions) == false) {
-            throw new IllegalArgumentException("invalid with options for the given URI scheme");
-        }
-    }
 }

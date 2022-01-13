@@ -66,11 +66,15 @@ public class S3FileInputToBeRemoved implements FileInput {
         if (originalUri == null) {
             return List.of();
         }
+        URI preGlobUri;
+        Predicate<URI> uriPredicate;
         if (uriWithGlob == null) {
-            return List.of(originalUri);
+            preGlobUri = originalUri; // path to a directory
+            uriPredicate = u -> true;
+        } else {
+            preGlobUri = uriWithGlob.getPreGlobUri();
+            uriPredicate = uriWithGlob.getGlobPredicate();
         }
-        var preGlobUri = uriWithGlob.getPreGlobUri();
-        var uriPredicate = uriWithGlob.getGlobPredicate();
         S3URIToBeRemoved preGlobS3Uri = new S3URIToBeRemoved(preGlobUri);
         if (client == null) {
             client = clientBuilder.client(preGlobS3Uri.uri, withClauseOptions);

@@ -26,7 +26,6 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.URI;
@@ -70,8 +69,6 @@ public class S3FileInputTest extends ESTestCase {
         when(clientBuilder.client(preGlobUri, withClauseOptions)).thenReturn(amazonS3);
     }
 
-    //TODO
-    @Ignore
     @Test
     public void testListListUrlsWhenEmptyKeysIsListed() throws Exception {
         S3ObjectSummary path = new S3ObjectSummary();
@@ -88,8 +85,6 @@ public class S3FileInputTest extends ESTestCase {
         assertThat(uris.get(1).getPath(), is("/fakeBucket/prefix/test2.json.gz"));
     }
 
-    //TODO
-    @Ignore
     @Test
     public void testListListUrlsWithCorrectKeys() throws Exception {
         when(objectListing.getObjectSummaries()).thenReturn(objectSummaries());
