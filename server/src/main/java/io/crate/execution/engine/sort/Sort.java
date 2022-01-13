@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.sort;
 
-import com.google.common.collect.Iterables;
+import io.crate.common.collections.Iterables;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;

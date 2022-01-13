@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.window;
 
-import com.google.common.collect.Iterables;
+import io.crate.common.collections.Iterables;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;

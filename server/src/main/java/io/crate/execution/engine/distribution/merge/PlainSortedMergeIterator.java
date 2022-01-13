@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.UnmodifiableIterator;
+
+import io.crate.common.collections.PeekingIterator;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -30,7 +30,8 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import static org.elasticsearch.common.collect.Iterators.peekingIterator;
+import static io.crate.common.collections.Iterators.peekingIterator;
+
 
 /**
  * MergingIterator like it is used in guava Iterators.mergedSort
@@ -38,7 +39,7 @@ import static org.elasticsearch.common.collect.Iterators.peekingIterator;
  * <p>
  * And it also has a merge function with which additional backing iterators can be added to enable paging
  */
-class PlainSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow> implements SortedMergeIterator<TKey, TRow> {
+class PlainSortedMergeIterator<TKey, TRow> implements SortedMergeIterator<TKey, TRow> {
 
     private final Queue<NumberedPeekingIterator<TKey, TRow>> queue;
     private NumberedPeekingIterator<TKey, TRow> lastUsedIter = null;

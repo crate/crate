@@ -22,10 +22,9 @@
 package io.crate.execution.engine.distribution.merge;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.UnmodifiableIterator;
+import io.crate.common.collections.AbstractIterator;
+import io.crate.common.collections.Iterables;
+import io.crate.common.collections.PeekingIterator;
 
 import org.elasticsearch.common.util.CollectionUtils;
 
@@ -37,12 +36,13 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import static org.elasticsearch.common.collect.Iterators.peekingIterator;
+import static io.crate.common.collections.Iterators.peekingIterator;
+
 
 /**
  * records sort order in order to repeat it later without having to sort everything again
  */
-class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow> implements SortedMergeIterator<TKey, TRow> {
+class RecordingSortedMergeIterator<TKey, TRow> implements SortedMergeIterator<TKey, TRow> {
 
     private final Queue<Indexed<TKey, PeekingIterator<TRow>>> queue;
     private Indexed<TKey, PeekingIterator<TRow>> lastUsedIter = null;
@@ -85,6 +85,11 @@ class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow
         lastUsedIter = queue.remove();
         sortRecording.add(lastUsedIter.i); // record sorting for repeat
         return lastUsedIter.val.next();
+    }
+
+    @Override
+    public final void remove() {
+        throw new UnsupportedOperationException();
     }
 
     private void addIterators(Iterable<? extends KeyIterable<TKey, TRow>> iterables) {

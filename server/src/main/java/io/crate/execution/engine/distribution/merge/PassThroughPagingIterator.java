@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import com.google.common.collect.Iterables;
-import org.elasticsearch.common.collect.Iterators;
+import io.crate.common.collections.Iterables;
+import io.crate.common.collections.Iterators;
 
 import java.util.ArrayList;
 import java.util.Collections;
