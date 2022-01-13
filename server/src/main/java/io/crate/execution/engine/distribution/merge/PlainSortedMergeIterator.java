@@ -30,7 +30,7 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import static com.google.common.collect.Iterators.peekingIterator;
+import static org.elasticsearch.common.collect.Iterators.peekingIterator;
 
 /**
  * MergingIterator like it is used in guava Iterators.mergedSort

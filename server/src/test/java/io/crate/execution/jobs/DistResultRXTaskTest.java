@@ -22,7 +22,6 @@
 package io.crate.execution.jobs;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.ArrayBucket;
@@ -33,6 +32,7 @@ import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
+import org.elasticsearch.common.collect.Iterators;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;

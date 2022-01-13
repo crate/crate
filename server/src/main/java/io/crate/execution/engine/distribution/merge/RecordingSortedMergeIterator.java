@@ -37,7 +37,7 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import static com.google.common.collect.Iterators.peekingIterator;
+import static org.elasticsearch.common.collect.Iterators.peekingIterator;
 
 /**
  * records sort order in order to repeat it later without having to sort everything again
