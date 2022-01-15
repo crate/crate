@@ -161,39 +161,6 @@ public class FileReadingIteratorTest extends ESTestCase {
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
-    @Test
-    public void test_GetUrisWithGlob() throws Exception {
-        String path = Paths.get(getClass().getResource("/essetup/data/").toURI()).toUri().toString();
-        List<FileReadingIterator.UriWithGlob> uriWithGlobs = ((FileReadingIterator) createBatchIterator(
-            List.of(
-                path + "nested_dir/*.json",
-                path + "nested_dir/*_1.json",
-                path + "nested_dir/*/2_*",
-                path + "nested_dir/nested_dir_2/*/sub.json",
-                path + "nested_dir/nested_dir_*/*/sub.json",
-                "s3://fakeBucket3/prefix*/*.json",
-                "s3://fakeBucket3/*/*.json",
-                "s3://fakeBucket3/*/prefix2/prefix3/a.json",
-                "s3://fakeBucket3/*/prefix2/*/*.json",
-                "s3://fakeBucket3/prefix/p*x/*/*.json"
-            ),
-            JSON
-        )).urisWithGlob;
-        List<String> preGlobURIs = uriWithGlobs.stream().map(e -> e.preGlobUri.toString()).toList();
-        assertThat(preGlobURIs, is(List.of(
-            path + "nested_dir/",
-            path + "nested_dir/",
-            path + "nested_dir/",
-            path + "nested_dir/nested_dir_2/",
-            path + "nested_dir/",
-            "s3://fakeBucket3/",
-            "s3://fakeBucket3/",
-            "s3://fakeBucket3/",
-            "s3://fakeBucket3/",
-            "s3://fakeBucket3/prefix/"
-        )));
-    }
-
     private BatchIterator<Row> createBatchIterator(Collection<String> fileUris,
                                                    FileUriCollectPhase.InputFormat format) {
         Reference raw = createReference("_raw", DataTypes.STRING);

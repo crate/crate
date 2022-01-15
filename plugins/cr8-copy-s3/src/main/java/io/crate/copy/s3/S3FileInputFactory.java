@@ -24,12 +24,14 @@ package io.crate.copy.s3;
 import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 
+import java.net.URI;
+
 public class S3FileInputFactory implements FileInputFactory {
 
     public static final String NAME = "s3";
 
     @Override
-    public FileInput create() {
-        return new S3FileInput();
+    public FileInput create(URI uri) {
+        return new S3FileInput(uri);
     }
 }
