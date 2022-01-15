@@ -22,7 +22,10 @@
 package io.crate.execution.engine.collect.files;
 
 
+import java.io.IOException;
+import java.net.URI;
+
 public interface FileInputFactory {
 
-    FileInput create();
+    FileInput create(URI uri) throws IOException;
 }

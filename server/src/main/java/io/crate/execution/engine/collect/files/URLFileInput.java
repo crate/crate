@@ -27,19 +27,28 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Predicate;
 
 class URLFileInput implements FileInput {
 
     private final URI fileUri;
 
     public URLFileInput(URI fileUri) {
+        // If the full fileUri contains a wildcard the fileUri passed as argument here is the fileUri up to the wildcard
         this.fileUri = fileUri;
     }
 
     @Override
-    public List<URI> listUris(URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate) throws IOException {
-        // If the full fileUri contains a wildcard the fileUri passed as argument here is the fileUri up to the wildcard
+    public boolean isGlobbed() {
+        return false;
+    }
+
+    @Override
+    public URI uri() {
+        return fileUri;
+    }
+
+    @Override
+    public List<URI> expandUri() throws IOException {
         // for URLs listing directory contents is not supported so always return the full fileUri for now
         return Collections.singletonList(this.fileUri);
     }
