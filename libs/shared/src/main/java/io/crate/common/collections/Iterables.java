@@ -36,7 +36,7 @@ public final class Iterables {
     }
 
     public static <T> T getOnlyElement(Iterable<T> iterable) {
-        return null;
+        return Iterators.getOnlyElement(iterable.iterator());
     }
 
     public static <T> T getFirst(Iterable<? extends T> iterable, @Nullable T defaultValue) {
@@ -106,15 +106,6 @@ public final class Iterables {
         return (T[]) Array.newInstance(type, length);
     }
 
-    /**
-     * Copies an iterable's elements into an array.
-     *
-     * @param iterable the iterable to copy
-     * @return a newly-allocated array into which all the elements of the iterable have been copied
-     */
-    static Object[] toArray(Iterable<?> iterable) {
-        return castOrCopyToCollection(iterable).toArray();
-    }
 
     /**
      * Converts an iterable into a collection. If the iterable is already a collection, it is
@@ -176,7 +167,6 @@ public final class Iterables {
             }
         };
     }
-
 
     public static <T> Iterable<T> mergeSorted(final Iterable<? extends Iterable<? extends T>> iterables, final Comparator<? super T> comparator) {
         Objects.requireNonNull(iterables, "iterables");

@@ -111,45 +111,6 @@ public abstract class FluentIterable<E> implements Iterable<E> {
         return concatNoDefensiveCopy(a, b);
     }
 
-    /**
-     * Returns a fluent iterable that combines three iterables. The returned iterable has an iterator
-     * that traverses the elements in {@code a}, followed by the elements in {@code b}, followed by
-     * the elements in {@code c}. The source iterators are not polled until necessary.
-     *
-     * <p>The returned iterable's iterator supports {@code remove()} when the corresponding input
-     * iterator supports it.
-     *
-     * <p><b>{@code Stream} equivalent:</b> use nested calls to {@link Stream#concat}, or see the
-     * advice in {@link #concat(Iterable...)}.
-     *
-     * @since 20.0
-     */
-    public static <T> FluentIterable<T> concat(
-        Iterable<? extends T> a, Iterable<? extends T> b, Iterable<? extends T> c) {
-        return concatNoDefensiveCopy(a, b, c);
-    }
-
-    /**
-     * Returns a fluent iterable that combines four iterables. The returned iterable has an iterator
-     * that traverses the elements in {@code a}, followed by the elements in {@code b}, followed by
-     * the elements in {@code c}, followed by the elements in {@code d}. The source iterators are not
-     * polled until necessary.
-     *
-     * <p>The returned iterable's iterator supports {@code remove()} when the corresponding input
-     * iterator supports it.
-     *
-     * <p><b>{@code Stream} equivalent:</b> use nested calls to {@link Stream#concat}, or see the
-     * advice in {@link #concat(Iterable...)}.
-     *
-     * @since 20.0
-     */
-    public static <T> FluentIterable<T> concat(
-        Iterable<? extends T> a,
-        Iterable<? extends T> b,
-        Iterable<? extends T> c,
-        Iterable<? extends T> d) {
-        return concatNoDefensiveCopy(a, b, c, d);
-    }
 
     /**
      * Returns a fluent iterable that combines several iterables. The returned iterable has an
