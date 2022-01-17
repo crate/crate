@@ -20,6 +20,7 @@
 package org.elasticsearch.transport;
 
 import io.crate.common.collections.Tuple;
+import io.crate.common.io.Streams;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -29,7 +30,6 @@ import org.elasticsearch.common.breaker.TestCircuitBreaker;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.ReleasableBytesReference;
-import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.util.PageCacheRecycler;
