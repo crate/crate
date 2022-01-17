@@ -72,6 +72,7 @@ class ResultSetReceiver extends BaseResultReceiver {
     public void batchFinished() {
         Messages.sendPortalSuspended(channel);
         Messages.sendReadyForQuery(channel, transactionState);
+        super.allFinished(true);
     }
 
     @Override

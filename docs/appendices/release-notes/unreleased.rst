@@ -163,6 +163,11 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could lead to errors like ``Received resultset tuples,
+  but no field structure for them`` when fetching a subset of rows from one
+  query, and then intermediately triggering a different query before finishing
+  the first query.
+
 - Fixed an issue that could cause clients using the PostgreSQL wire protocol to
   receive row counts in incorrect orders when using APIs that allow to execute
   multiple statements in a batch.
