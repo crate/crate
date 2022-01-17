@@ -49,6 +49,9 @@ public class DelayableWriteChannel implements Channel {
 
     public DelayableWriteChannel(Channel channel) {
         this.delegate = channel;
+        channel.closeFuture().addListener(f -> {
+            discardDelayedWrites();
+        });
     }
 
     @Override
@@ -83,12 +86,7 @@ public class DelayableWriteChannel implements Channel {
 
     @Override
     public ChannelFuture close() {
-        ChannelFuture close = delegate.close();
-        DelayedWrites localDelay = delay;  // 1 volatile read
-        if (localDelay != null) {
-            localDelay.releaseAll();
-        }
-        return close;
+        return delegate.close();
     }
 
     @Override
@@ -293,6 +291,14 @@ public class DelayableWriteChannel implements Channel {
         return delegate;
     }
 
+    private void discardDelayedWrites() {
+        DelayedWrites localDelay = delay;  // 1 volatile read
+        if (localDelay != null) {
+            localDelay.discard();
+            delay = null;
+        }
+    }
+
     public void delayWritesUntil(CompletableFuture<?> future) {
         DelayedWrites delayedWrites = new DelayedWrites();
         this.delay = delayedWrites;
@@ -321,7 +327,7 @@ public class DelayableWriteChannel implements Channel {
         public DelayedWrites() {
         }
 
-        public void releaseAll() {
+        public void discard() {
             DelayedMsg delayedMsg;
             synchronized (delayed) {
                 while ((delayedMsg = delayed.poll()) != null) {
