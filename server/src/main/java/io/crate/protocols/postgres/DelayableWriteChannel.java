@@ -24,6 +24,7 @@ package io.crate.protocols.postgres;
 import java.net.SocketAddress;
 import java.util.ArrayDeque;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
@@ -45,7 +46,7 @@ import io.netty.util.ReferenceCountUtil;
 public class DelayableWriteChannel implements Channel {
 
     private final Channel delegate;
-    private volatile DelayedWrites delay;
+    private final AtomicReference<DelayedWrites> delay = new AtomicReference<>(null);
 
     public DelayableWriteChannel(Channel channel) {
         this.delegate = channel;
@@ -126,18 +127,14 @@ public class DelayableWriteChannel implements Channel {
 
     @Override
     public ChannelFuture write(Object msg) {
-        if (delay != null) {
-            ChannelPromise newPromise = newPromise();
-            delay.add(msg, () -> delegate.write(msg, newPromise));
-            return newPromise;
-        }
-        return delegate.write(msg);
+        return this.write(msg, newPromise());
     }
 
     @Override
     public ChannelFuture write(Object msg, ChannelPromise promise) {
-        if (delay != null) {
-            delay.add(msg, () -> delegate.write(msg, promise));
+        DelayedWrites currentDelay = delay.get();
+        if (currentDelay != null) {
+            currentDelay.add(msg, () -> delegate.write(msg, promise));
             return promise;
         }
         return delegate.write(msg, promise);
@@ -145,8 +142,9 @@ public class DelayableWriteChannel implements Channel {
 
     @Override
     public ChannelFuture writeAndFlush(Object msg, ChannelPromise promise) {
-        if (delay != null) {
-            delay.add(msg, () -> delegate.writeAndFlush(msg, promise));
+        DelayedWrites currentDelay = delay.get();
+        if (currentDelay != null) {
+            currentDelay.add(msg, () -> delegate.writeAndFlush(msg, promise));
             return promise;
         }
         return delegate.writeAndFlush(msg, promise);
@@ -154,12 +152,7 @@ public class DelayableWriteChannel implements Channel {
 
     @Override
     public ChannelFuture writeAndFlush(Object msg) {
-        if (delay != null) {
-            ChannelPromise promise = newPromise();
-            delay.add(msg, () -> delegate.writeAndFlush(msg, promise));
-            return promise;
-        }
-        return delegate.writeAndFlush(msg);
+        return this.writeAndFlush(msg, newPromise());
     }
 
     @Override
@@ -292,21 +285,17 @@ public class DelayableWriteChannel implements Channel {
     }
 
     private void discardDelayedWrites() {
-        DelayedWrites localDelay = delay;  // 1 volatile read
-        if (localDelay != null) {
-            localDelay.discard();
-            delay = null;
+        DelayedWrites currentDelay = delay.getAndSet(null);
+        if (currentDelay != null) {
+            currentDelay.discard();
         }
     }
 
     public void delayWritesUntil(CompletableFuture<?> future) {
-        DelayedWrites delayedWrites = new DelayedWrites();
-        this.delay = delayedWrites;
+        DelayedWrites currentDelay = delay.updateAndGet(prev -> new DelayedWrites());
         future.whenComplete((res, err) -> {
-            delayedWrites.runDelayed();
-            if (delay == delayedWrites) {
-                delay = null;
-            }
+            currentDelay.runDelayed();
+            delay.compareAndSet(currentDelay, null);
         });
     }
 
