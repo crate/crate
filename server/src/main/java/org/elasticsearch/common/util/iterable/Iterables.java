@@ -78,6 +78,4 @@ public class Iterables {
                     .flatMap(s -> StreamSupport.stream(s.spliterator(), false)).iterator();
         }
     }
-
-
 }

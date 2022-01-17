@@ -22,10 +22,14 @@
 package io.crate.common.collections;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * Extracted from
+ */
 public final class Iterables {
 
     private Iterables() {
@@ -45,8 +49,8 @@ public final class Iterables {
             Collection<? extends T> c = (Collection<? extends T>) iterable;
             if (c.isEmpty()) {
                 return defaultValue;
-            } else if (iterable instanceof List l) {
-                return getLastInNonemptyList((List<T>)iterable);
+            } else if (iterable instanceof List) {
+                return getLastInNonemptyList((List<? extends T>)iterable);
             }
         }
         return Iterators.getLast(iterable.iterator(), defaultValue);
@@ -69,19 +73,62 @@ public final class Iterables {
     }
 
     public static <T> Iterable<T> concat(Iterable<? extends Iterable<? extends T>> inputs) {
-        return null;
+        return FluentIterable.concat(inputs);
     }
 
     public static <T> Iterable<T> concat(Iterable<? extends T>... inputs) {
-        return null;
+        return FluentIterable.concat(inputs);
     }
+
 
     public static <T> Iterable<T> concat(Iterable<? extends T> a, Iterable<? extends T> b) {
-        return null;
+        return FluentIterable.concat(a, b);
     }
 
+
+    /**
+     * Copies an iterable's elements into an array.
+     *
+     * @param iterable the iterable to copy
+     * @param type the type of the elements
+     * @return a newly-allocated array into which all the elements of the iterable have been copied
+     */
     public static <T> T[] toArray(Iterable<? extends T> iterable, Class<T> type) {
-        return null;
+        return toArray(iterable, newArray(type, 0));
+    }
+
+    static <T> T[] toArray(Iterable<? extends T> iterable, T[] array) {
+        Collection<? extends T> collection = castOrCopyToCollection(iterable);
+        return collection.toArray(array);
+    }
+
+    static <T> T[] newArray(Class<T> type, int length) {
+        return (T[]) Array.newInstance(type, length);
+    }
+
+    /**
+     * Copies an iterable's elements into an array.
+     *
+     * @param iterable the iterable to copy
+     * @return a newly-allocated array into which all the elements of the iterable have been copied
+     */
+    static Object[] toArray(Iterable<?> iterable) {
+        return castOrCopyToCollection(iterable).toArray();
+    }
+
+    /**
+     * Converts an iterable into a collection. If the iterable is already a collection, it is
+     * returned. Otherwise, an {@link java.util.ArrayList} is created with the contents of the
+     * iterable in the same iteration order.
+     */
+    private static <E> Collection<E> castOrCopyToCollection(Iterable<E> iterable) {
+        if (iterable instanceof Collection) {
+            return (Collection<E>) iterable;
+        } else {
+            ArrayList<E> list = new ArrayList<>();
+            Iterators.addAll(list, iterable.iterator());
+            return list;
+        }
     }
 
     /**
@@ -125,50 +172,11 @@ public final class Iterables {
 
             @Override
             public Spliterator<T> spliterator() {
-                return Spliterators.map(fromIterable.spliterator(), function);
+                return Iterators.map(fromIterable.spliterator(), function);
             }
         };
     }
 
-    private static class Spliterators {
-
-        private static <InElementT, OutElementT> Spliterator<OutElementT> map(
-            Spliterator<InElementT> fromSpliterator,
-            Function<? super InElementT, ? extends OutElementT> function) {
-            Objects.requireNonNull(fromSpliterator);
-            Objects.requireNonNull(function);
-            return new Spliterator<OutElementT>() {
-
-                @Override
-                public boolean tryAdvance(Consumer<? super OutElementT> action) {
-                    return fromSpliterator.tryAdvance(
-                        fromElement -> action.accept(function.apply(fromElement)));
-                }
-
-                @Override
-                public void forEachRemaining(Consumer<? super OutElementT> action) {
-                    fromSpliterator.forEachRemaining(fromElement -> action.accept(function.apply(fromElement)));
-                }
-
-                @Override
-                public Spliterator<OutElementT> trySplit() {
-                    Spliterator<InElementT> fromSplit = fromSpliterator.trySplit();
-                    return (fromSplit != null) ? map(fromSplit, function) : null;
-                }
-
-                @Override
-                public long estimateSize() {
-                    return fromSpliterator.estimateSize();
-                }
-
-                @Override
-                public int characteristics() {
-                    return fromSpliterator.characteristics()
-                        & ~(Spliterator.DISTINCT | Spliterator.NONNULL | Spliterator.SORTED);
-                }
-            };
-        }
-    }
 
     public static <T> Iterable<T> mergeSorted(final Iterable<? extends Iterable<? extends T>> iterables, final Comparator<? super T> comparator) {
         Objects.requireNonNull(iterables, "iterables");

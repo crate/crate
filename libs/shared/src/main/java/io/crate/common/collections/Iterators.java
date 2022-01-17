@@ -2,11 +2,115 @@ package io.crate.common.collections;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
+
+/**
+ * Extracted from
+ */
 public class Iterators {
 
     private Iterators() {
+    }
+
+
+    /**
+     * Combines multiple iterators into a single iterator. The returned iterator iterates across the
+     * elements of each iterator in {@code inputs}. The input iterators are not polled until
+     * necessary.
+     *
+     * <p>The returned iterator supports {@code remove()} when the corresponding input iterator
+     * supports it. The methods of the returned iterator may throw {@code NullPointerException} if any
+     * of the input iterators is null.
+     */
+    public static <T> Iterator<T> concat(Iterator<? extends Iterator<? extends T>> inputs) {
+        return new ConcatenatedIterator<T>(inputs);
+    }
+
+    private static class ConcatenatedIterator<T> implements Iterator<T> {
+        /* The last iterator to return an element.  Calls to remove() go to this iterator. */
+        private @Nullable Iterator<? extends T> toRemove;
+
+        /* The iterator currently returning elements. */
+        private Iterator<? extends T> iterator;
+
+        /*
+         * We track the "meta iterators," the iterators-of-iterators, below.  Usually, topMetaIterator
+         * is the only one in use, but if we encounter nested concatenations, we start a deque of
+         * meta-iterators rather than letting the nesting get arbitrarily deep.  This keeps each
+         * operation O(1).
+         */
+
+        private Iterator<? extends Iterator<? extends T>> topMetaIterator;
+
+        // Only becomes nonnull if we encounter nested concatenations.
+        private @Nullable Deque<Iterator<? extends Iterator<? extends T>>> metaIterators;
+
+        ConcatenatedIterator(Iterator<? extends Iterator<? extends T>> metaIterator) {
+            iterator = Collections.emptyIterator();
+            topMetaIterator = Objects.requireNonNull(metaIterator);
+        }
+
+        // Returns a nonempty meta-iterator or, if all meta-iterators are empty, null.
+        private @Nullable Iterator<? extends Iterator<? extends T>> getTopMetaIterator() {
+            while (topMetaIterator == null || !topMetaIterator.hasNext()) {
+                if (metaIterators != null && !metaIterators.isEmpty()) {
+                    topMetaIterator = metaIterators.removeFirst();
+                } else {
+                    return null;
+                }
+            }
+            return topMetaIterator;
+        }
+
+        @Override
+        public boolean hasNext() {
+            while (!Objects.requireNonNull(iterator).hasNext()) {
+                // this weird checkNotNull positioning appears required by our tests, which expect
+                // both hasNext and next to throw NPE if an input iterator is null.
+
+                topMetaIterator = getTopMetaIterator();
+                if (topMetaIterator == null) {
+                    return false;
+                }
+
+                iterator = topMetaIterator.next();
+
+                if (iterator instanceof ConcatenatedIterator) {
+                    // Instead of taking linear time in the number of nested concatenations, unpack
+                    // them into the queue
+                    @SuppressWarnings("unchecked")
+                    ConcatenatedIterator<T> topConcat = (ConcatenatedIterator<T>) iterator;
+                    iterator = topConcat.iterator;
+
+                    // topConcat.topMetaIterator, then topConcat.metaIterators, then this.topMetaIterator,
+                    // then this.metaIterators
+
+                    if (this.metaIterators == null) {
+                        this.metaIterators = new ArrayDeque<>();
+                    }
+                    this.metaIterators.addFirst(this.topMetaIterator);
+                    if (topConcat.metaIterators != null) {
+                        while (!topConcat.metaIterators.isEmpty()) {
+                            this.metaIterators.addFirst(topConcat.metaIterators.removeLast());
+                        }
+                    }
+                    this.topMetaIterator = topConcat.topMetaIterator;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public T next() {
+            if (hasNext()) {
+                toRemove = iterator;
+                return iterator.next();
+            } else {
+                throw new NoSuchElementException();
+            }
+        }
     }
 
     public static <T> Iterator<T> concat(Iterator<? extends T>... iterators) {
@@ -14,14 +118,14 @@ public class Iterators {
             throw new NullPointerException("iterators");
         }
         // explicit generic type argument needed for type inference
-        return new ConcatenatedIterator<T>(iterators);
+        return new ConcatenatedIterator1<T>(iterators);
     }
 
-    static class ConcatenatedIterator<T> implements Iterator<T> {
+    static class ConcatenatedIterator1<T> implements Iterator<T> {
         private final Iterator<? extends T>[] iterators;
         private int index = 0;
 
-        ConcatenatedIterator(Iterator<? extends T>... iterators) {
+        ConcatenatedIterator1(Iterator<? extends T>... iterators) {
             if (iterators == null) {
                 throw new NullPointerException("iterators");
             }
@@ -268,6 +372,41 @@ public class Iterators {
         }
     }
 
+    static <A, B> Spliterator<B> map(Spliterator<A> fromSpliterator, Function<? super A, ? extends B> function) {
+        Objects.requireNonNull(fromSpliterator);
+        Objects.requireNonNull(function);
+        return new Spliterator<B>() {
+
+            @Override
+            public boolean tryAdvance(Consumer<? super B> action) {
+                return fromSpliterator.tryAdvance(
+                    fromElement -> action.accept(function.apply(fromElement)));
+            }
+
+            @Override
+            public void forEachRemaining(Consumer<? super B> action) {
+                fromSpliterator.forEachRemaining(fromElement -> action.accept(function.apply(fromElement)));
+            }
+
+            @Override
+            public Spliterator<B> trySplit() {
+                Spliterator<A> fromSplit = fromSpliterator.trySplit();
+                return (fromSplit != null) ? map(fromSplit, function) : null;
+            }
+
+            @Override
+            public long estimateSize() {
+                return fromSpliterator.estimateSize();
+            }
+
+            @Override
+            public int characteristics() {
+                return fromSpliterator.characteristics()
+                    & ~(Spliterator.DISTINCT | Spliterator.NONNULL | Spliterator.SORTED);
+            }
+        };
+    }
+
     /**
      * Adds all elements in {@code iterator} to {@code collection}. The iterator will be left
      * exhausted: its {@code hasNext()} method will return {@code false}.
@@ -284,4 +423,89 @@ public class Iterators {
         return wasModified;
     }
 
+    static abstract class AbstractIndexedListIterator<E> implements ListIterator<E> {
+        private final int size;
+        private int position;
+
+        /** Returns the element with the specified index. This method is called by {@link #next()}. */
+        protected abstract E get(int index);
+
+        /**
+         * Constructs an iterator across a sequence of the given size whose initial position is 0. That
+         * is, the first call to {@link #next()} will return the first element (or throw {@link
+         * NoSuchElementException} if {@code size} is zero).
+         *
+         * @throws IllegalArgumentException if {@code size} is negative
+         */
+        protected AbstractIndexedListIterator(int size) {
+            this(size, 0);
+        }
+
+        /**
+         * Constructs an iterator across a sequence of the given size with the given initial position.
+         * That is, the first call to {@link #nextIndex()} will return {@code position}, and the first
+         * call to {@link #next()} will return the element at that index, if available. Calls to {@link
+         * #previous()} can retrieve the preceding {@code position} elements.
+         *
+         * @throws IndexOutOfBoundsException if {@code position} is negative or is greater than {@code
+         *     size}
+         * @throws IllegalArgumentException if {@code size} is negative
+         */
+        protected AbstractIndexedListIterator(int size, int position) {
+            Objects.checkIndex(position, size);
+            this.size = size;
+            this.position = position;
+        }
+
+        @Override
+        public final boolean hasNext() {
+            return position < size;
+        }
+
+        @Override
+        public final E next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return get(position++);
+        }
+
+        @Override
+        public final int nextIndex() {
+            return position;
+        }
+
+        @Override
+        public final boolean hasPrevious() {
+            return position > 0;
+        }
+
+        @Override
+        public final E previous() {
+            if (!hasPrevious()) {
+                throw new NoSuchElementException();
+            }
+            return get(--position);
+        }
+
+        @Override
+        public final int previousIndex() {
+            return position - 1;
+        }
+
+        @Override
+        public final void remove() {
+            throw new UnsupportedOperationException("remove");
+        }
+
+        @Override
+        public final void set(E e) {
+            throw new UnsupportedOperationException("set");
+        }
+
+        @Override
+        public final void add(E e) {
+            throw new UnsupportedOperationException("add");
+        }
+    }
 }
