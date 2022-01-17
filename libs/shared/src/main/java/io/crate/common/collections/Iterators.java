@@ -7,7 +7,7 @@ import java.util.function.Function;
 
 
 /**
- * Extracted from
+ * Extracted from https://github.com/google/guava/blob/master/guava/src/com/google/common/collect/Iterators.java
  */
 public class Iterators {
 

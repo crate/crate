@@ -28,7 +28,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * Extracted from
+ * Extracted from https://github.com/google/guava/blob/master/guava/src/com/google/common/collect/Iterables.java
  */
 public final class Iterables {
 
@@ -186,5 +186,70 @@ public final class Iterables {
         }
         return Iterators.addAll(addTo, Objects.requireNonNull(elementsToAdd).iterator());
     }
+
+    static abstract class FluentIterable<E> implements Iterable<E> {
+        // We store 'iterable' and use it instead of 'this' to allow Iterables to perform instanceof
+        // checks on the _original_ iterable when FluentIterable.from is used.
+        // To avoid a self retain cycle under j2objc, we store Optional.absent() instead of
+        // Optional.of(this). To access the iterator delegate, call #getDelegate(), which converts to
+        // absent() back to 'this'.
+        private final Optional<Iterable<E>> iterableDelegate;
+
+        /** Constructor for use by subclasses. */
+        protected FluentIterable() {
+            this.iterableDelegate = Optional.empty();
+        }
+
+        FluentIterable(Iterable<E> iterable) {
+            Objects.requireNonNull(iterable);
+            this.iterableDelegate = Optional.ofNullable(this != iterable ? iterable : null);
+        }
+
+        public static <T> .FluentIterable<T> concat(Iterable<? extends T> a, Iterable<? extends T> b) {
+            return concatNoDefensiveCopy(a, b);
+        }
+
+        public static <T> FluentIterable<T> concat(Iterable<? extends T>... inputs) {
+            return concatNoDefensiveCopy(Arrays.copyOf(inputs, inputs.length));
+        }
+
+        public static <T> FluentIterable<T> concat(
+            final Iterable<? extends Iterable<? extends T>> inputs) {
+            Objects.requireNonNull(inputs);
+            return new FluentIterable<T>() {
+                @Override
+                public Iterator<T> iterator() {
+                    return Iterators.concat(Iterators.transform(inputs.iterator(), Iterable::iterator));
+                }
+            };
+        }
+
+        private static <T> FluentIterable<T> concatNoDefensiveCopy(
+            final Iterable<? extends T>... inputs) {
+            for (Iterable<? extends T> input : inputs) {
+                Objects.requireNonNull(input);
+            }
+            return new FluentIterable<T>() {
+                @Override
+                public Iterator<T> iterator() {
+                    return Iterators.concat(
+                        /* lazily generate the iterators on each input only as needed */
+                        new Iterators.AbstractIndexedListIterator<Iterator<? extends T>>(inputs.length) {
+                            @Override
+                            public Iterator<? extends T> get(int i) {
+                                return inputs[i].iterator();
+                            }
+                        });
+                }
+            };
+        }
+
+        @Override
+        public String toString() {
+            return iterableDelegate.toString();
+        }
+
+    }
+
 
 }
