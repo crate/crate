@@ -25,7 +25,6 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.UnmodifiableIterator;
 
 import org.elasticsearch.common.util.CollectionUtils;
 
@@ -42,7 +41,7 @@ import static com.google.common.collect.Iterators.peekingIterator;
 /**
  * records sort order in order to repeat it later without having to sort everything again
  */
-class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow> implements SortedMergeIterator<TKey, TRow> {
+final class RecordingSortedMergeIterator<TKey, TRow> implements SortedMergeIterator<TKey, TRow> {
 
     private final Queue<Indexed<TKey, PeekingIterator<TRow>>> queue;
     private Indexed<TKey, PeekingIterator<TRow>> lastUsedIter = null;
