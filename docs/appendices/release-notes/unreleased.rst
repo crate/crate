@@ -64,7 +64,13 @@ Deprecations
 Changes
 =======
 
+- Added the scalar function :ref:`array_append
+  <scalar-array_append>` which adds a value at the end of an array
+
 - Added support for the :ref:`END <ref-end>` statement for improved PostgreSQL
+  compatibility.
+
+- Added an empty ``pg_catalog.pg_locks`` table for improved PostgreSQL
   compatibility.
 
 - Registered the scalar function :ref:`array_to_string
@@ -73,6 +79,9 @@ Changes
 - Added the scalar function :ref:`pg_encoding_to_char
   <scalar-pg_encoding_to_char>` which converts an PostgreSQL encoding's internal
   identifier to a human-readable name.
+
+- Added the scalar function :ref:`age <scalar-pg-age>` which returns
+  :ref:`interval <type-interval>` between 2 timestamps.
 
 - Added a :ref:`sys node check for max shards per node
   <sys-node_checks_max_shards_per_node>` to verify that the amount of shards on the
@@ -154,6 +163,19 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could lead to errors like ``Received resultset tuples,
+  but no field structure for them`` when fetching a subset of rows from one
+  query, and then intermediately triggering a different query before finishing
+  the first query.
+
+- Fixed an issue that could cause clients using the PostgreSQL wire protocol to
+  receive row counts in incorrect orders when using APIs that allow to execute
+  multiple statements in a batch.
+
+- Fixed an issue that could cause inserts into partitioned tables to fail with
+  a ``IndexNotFoundException`` if concurrently deleting partitions.
+
+- Fixed a BWC translog issue for indices created with CrateDB < 3.2.
 
 - Updated ``log4j`` to 2.17.1 because of `CVE-2021-45046
   <https://www.cve.org/CVERecord?id=CVE-2021-45046>`_ and `CVE-2021-45105

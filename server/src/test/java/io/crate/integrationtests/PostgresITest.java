@@ -504,6 +504,38 @@ public class PostgresITest extends SQLIntegrationTestCase {
     }
 
     @Test
+    public void test_query_inbetween_suspended_fetch_operation() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().executeUpdate("create table t (x int) with (number_of_replicas = 0)");
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x) values (?)");
+            for (int i = 0; i < 6; i++) {
+                preparedStatement.setInt(1, i);
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+
+            conn.createStatement().executeUpdate("refresh table t");
+            conn.setAutoCommit(false);
+            try (Statement st = conn.createStatement()) {
+                st.setFetchSize(2);
+                try (ResultSet xResults = st.executeQuery("select x from t")) {
+                    List<Integer> result = new ArrayList<>();
+                    while (xResults.next()) {
+                        if (result.size() == 3) {
+                            var select30Result = conn.createStatement().executeQuery("select 30");
+                            assertThat(select30Result.next(), is(true));
+                            assertThat(select30Result.getInt(1), is(30));
+                        }
+                        result.add(xResults.getInt(1));
+                    }
+                    Collections.sort(result);
+                    assertThat(result, Matchers.contains(0, 1, 2, 3, 4, 5));
+                }
+            }
+        }
+    }
+
+    @Test
     public void testCloseConnectionWithUnfinishedResultSetDoesNotLeaveAnyPendingOperations() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.setAutoCommit(false);
@@ -663,10 +695,10 @@ public class PostgresITest extends SQLIntegrationTestCase {
 
             Statement statement = conn.createStatement();
             statement.addBatch("insert into t (x) values (1)");
-            statement.addBatch("insert into t (x) values (2)");
+            statement.addBatch("insert into t (x) values (2), (3)");
 
             int[] results = statement.executeBatch();
-            assertThat(results, is(new int[]{1, 1}));
+            assertThat(results, is(new int[]{1, 2}));
 
             statement.executeUpdate("refresh table t");
             ResultSet resultSet = statement.executeQuery("select * from t order by x");

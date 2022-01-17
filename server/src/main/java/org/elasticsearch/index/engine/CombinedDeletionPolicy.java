@@ -19,7 +19,14 @@
 
 package org.elasticsearch.index.engine;
 
-import com.carrotsearch.hppc.ObjectIntHashMap;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.LongSupplier;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.IndexDeletionPolicy;
@@ -29,13 +36,7 @@ import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogDeletionPolicy;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.function.LongSupplier;
+import com.carrotsearch.hppc.ObjectIntHashMap;
 
 /**
  * An {@link IndexDeletionPolicy} that coordinates between Lucene's commits and the retention of translog generation files,
@@ -180,7 +181,7 @@ public class CombinedDeletionPolicy extends IndexDeletionPolicy {
      */
     public static IndexCommit findSafeCommitPoint(List<IndexCommit> commits, long globalCheckpoint) throws IOException {
         if (commits.isEmpty()) {
-            throw new IllegalArgumentException("Commit list must not empty");
+            throw new IllegalArgumentException("Commit list must not be empty");
         }
         final int keptPosition = indexOfKeptCommits(commits, globalCheckpoint);
         return commits.get(keptPosition);

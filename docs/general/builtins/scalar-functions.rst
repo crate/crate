@@ -1461,6 +1461,34 @@ specified interval added to the timestamp of ``0000/01/01 00:00:00``::
     +---------------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-pg-age:
+
+``age([timestamp,] timestamp)``
+---------------------------------------------------
+
+Returns: :ref:`interval <type-interval>` between 2 timestamps. Second argument
+is subtracted from the first one. If at least one argument is ``NULL``, the
+return value is ``NULL``. If only one timestamp is given, the return value is
+interval between current_date (at midnight) and the given timestamp.
+
+Example::
+
+    cr> select pg_catalog.age('2021-10-21'::timestamp, '2021-10-20'::timestamp)
+    ... as age;
+    +----------------+
+    | age            |
+    +----------------+
+    | 1 day 00:00:00 |
+    +----------------+
+    SELECT 1 row in set (... sec)
+
+    cr> select pg_catalog.age(date_trunc('day', CURRENT_DATE)) as age;
+    +----------+
+    | age      |
+    +----------+
+    | 00:00:00 |
+    +----------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-geo:
 
@@ -2358,13 +2386,25 @@ Examples
 Array functions
 ===============
 
-.. NOTE::
+.. _scalar-array_append:
 
-    Please be aware of that all array scalar functions are not operating
-    atomically when used inside update statements. We use :ref:`sql_occ`
-    control to ensure that the update operation used the latest state of the
-    row. But only 3 retry attempts are made by fetching the newest version
-    again and if they all fail, the query fails.
+``array_append(anyarray, value)``
+----------------------------------------
+
+The ``array_append`` function adds the value at the end of the array
+
+Returns: ``array``
+
+::
+
+    cr> select
+    ...     array_append([1,2,3], 4) AS array_append;
+    +--------------+
+    | array_append |
+    +--------------+
+    | [1, 2, 3, 4] |
+    +--------------+
+    SELECT 1 row in set (... sec)
 
 
 .. _scalar-array_cat:

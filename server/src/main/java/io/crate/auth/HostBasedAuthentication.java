@@ -21,8 +21,8 @@
 
 package io.crate.auth;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSortedMap;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.user.UserLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.apache.http.conn.DnsResolver;

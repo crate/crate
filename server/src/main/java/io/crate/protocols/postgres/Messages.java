@@ -36,8 +36,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
-import io.netty.util.ReferenceCountUtil;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -130,7 +128,7 @@ public class Messages {
      * block; or 'E' if in a failed transaction block (queries will be
      * rejected until block is ended).
      */
-    static void sendReadyForQuery(Channel channel, TransactionState transactionState) {
+    static ChannelFuture sendReadyForQuery(Channel channel, TransactionState transactionState) {
         ByteBuf buffer = channel.alloc().buffer(6);
         buffer.writeByte('Z');
         buffer.writeInt(5);
@@ -139,6 +137,7 @@ public class Messages {
         if (LOGGER.isTraceEnabled()) {
             channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentReadyForQuery"));
         }
+        return channelFuture;
     }
 
     /**
@@ -472,14 +471,9 @@ public class Messages {
         buffer.writeByte(msgType);
         buffer.writeInt(4);
 
-        try {
-            ChannelFuture channelFuture = channel.write(buffer);
-            if (LOGGER.isTraceEnabled()) {
-                channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace(traceLogMsg));
-            }
-        } catch (Exception ex) {
-            LOGGER.warn("Error during channel.write msg={} err={}", traceLogMsg, ex);
-            ReferenceCountUtil.safeRelease(buffer);
+        ChannelFuture channelFuture = channel.write(buffer);
+        if (LOGGER.isTraceEnabled()) {
+            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace(traceLogMsg));
         }
     }
 

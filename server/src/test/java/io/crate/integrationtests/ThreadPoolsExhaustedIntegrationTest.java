@@ -26,10 +26,10 @@ import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -70,13 +70,13 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLIntegrationTestCase 
     }
 
     private void assertRejectedExecutionFailure(String stmt, Object[] parameters) {
-        List<ActionFuture<SQLResponse>> futures = new ArrayList<>();
+        List<CompletableFuture<SQLResponse>> futures = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
-            ActionFuture<SQLResponse> future = sqlExecutor.execute(stmt, parameters);
+            CompletableFuture<SQLResponse> future = sqlExecutor.execute(stmt, parameters);
             futures.add(future);
         }
 
-        for (ActionFuture<SQLResponse> future : futures) {
+        for (CompletableFuture<SQLResponse> future : futures) {
             try {
                 future.get(SQLTransportExecutor.REQUEST_TIMEOUT.getMillis(), TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {

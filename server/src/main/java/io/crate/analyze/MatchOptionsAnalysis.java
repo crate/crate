@@ -21,11 +21,9 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Predicates;
-
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import static java.util.Map.entry;
@@ -36,6 +34,7 @@ public class MatchOptionsAnalysis {
     private static final Predicate<Object> IS_STRING = x -> x instanceof String;
     private static final Predicate<Object> IS_NUMBER = x -> x instanceof Number;
     private static final Predicate<Object> NUMBER_OR_STRING = IS_NUMBER.or(IS_STRING);
+    private static final Predicate<Object> IS_OPERATOR = Set.of("or", "and", "OR", "AND")::contains;
 
     private static final Map<String, Predicate<Object>> ALLOWED_SETTINGS = Map.ofEntries(
         entry("analyzer", IS_STRING),
@@ -45,9 +44,7 @@ public class MatchOptionsAnalysis {
         entry("fuzzy_rewrite", IS_STRING),
         entry("max_expansions", POSITIVE_NUMBER),
         entry("minimum_should_match", NUMBER_OR_STRING),
-        entry(
-            "operator",
-            Predicates.in(List.of("or", "and", "OR", "AND"))),
+        entry("operator", IS_OPERATOR),
         entry("prefix_length", POSITIVE_NUMBER),
         entry("rewrite", IS_STRING),
         entry("slop", POSITIVE_NUMBER),

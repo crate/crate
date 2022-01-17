@@ -21,7 +21,7 @@
 
 package io.crate.user;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
 import org.elasticsearch.action.ActionListener;

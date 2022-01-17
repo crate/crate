@@ -21,7 +21,6 @@
 
 package io.crate.user;
 
-import com.google.common.collect.Lists;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;

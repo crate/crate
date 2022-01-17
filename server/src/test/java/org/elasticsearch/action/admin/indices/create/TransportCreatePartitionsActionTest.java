@@ -21,6 +21,7 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
+import io.crate.exceptions.SQLExceptions;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -34,7 +35,6 @@ import org.elasticsearch.indices.InvalidIndexNameException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
-import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.List;
@@ -50,7 +50,6 @@ public class TransportCreatePartitionsActionTest extends SQLIntegrationTestCase 
 
     @Before
     public void prepare() {
-        MockitoAnnotations.initMocks(this);
         action = internalCluster().getInstance(TransportCreatePartitionsAction.class, internalCluster().getMasterName());
     }
 
@@ -59,7 +58,7 @@ public class TransportCreatePartitionsActionTest extends SQLIntegrationTestCase 
         List<String> indices = Arrays.asList("index1", "index2", "index3", "index4");
         AcknowledgedResponse response = action.execute(
             new CreatePartitionsRequest(indices, UUID.randomUUID())
-        ).actionGet();
+        ).get();
         assertThat(response.isAcknowledged(), is(true));
 
         Metadata indexMetadata = internalCluster().clusterService().state().metadata();
@@ -107,7 +106,7 @@ public class TransportCreatePartitionsActionTest extends SQLIntegrationTestCase 
         List<String> indices = Arrays.asList("index1", "index2", "index3", "index1");
         AcknowledgedResponse response = action.execute(
             new CreatePartitionsRequest(indices, UUID.randomUUID())
-        ).actionGet();
+        ).get();
         assertThat(response.isAcknowledged(), is(true));
         Metadata indexMetadata = internalCluster().clusterService().state().metadata();
         for (String index : indices) {
@@ -115,24 +114,30 @@ public class TransportCreatePartitionsActionTest extends SQLIntegrationTestCase 
         }
         AcknowledgedResponse response2 = action.execute(
             new CreatePartitionsRequest(indices, UUID.randomUUID())
-        ).actionGet();
+        ).get();
         assertThat(response2.isAcknowledged(), is(true));
     }
 
     @Test
     public void testEmpty() throws Exception {
         AcknowledgedResponse response = action.execute(
-            new CreatePartitionsRequest(List.of(), UUID.randomUUID())).actionGet();
+            new CreatePartitionsRequest(List.of(), UUID.randomUUID())).get();
         assertThat(response.isAcknowledged(), is(true));
     }
 
     @Test
     public void testCreateInvalidName() throws Exception {
         CreatePartitionsRequest createPartitionsRequest = new CreatePartitionsRequest(Arrays.asList("valid", "invalid/#haha"), UUID.randomUUID());
-        Assertions.assertThrows(InvalidIndexNameException.class,
-                                () -> action.execute(createPartitionsRequest).actionGet(),
-                                "Invalid index name [invalid/#haha], must not contain the following characters [ , \", *, \\, <, |, ,, >, /, ?]"
-        );
+        Assertions.assertThrows(
+            InvalidIndexNameException.class,
+            () -> {
+                try {
+                    action.execute(createPartitionsRequest).get();
+                } catch (Exception e) {
+                    throw SQLExceptions.unwrap(e);
+                }
+            },
+            "Invalid index name [invalid/#haha], must not contain the following characters [ , \", *, \\, <, |, ,, >, /, ?]");
         // if one name is invalid no index is created
         assertThat(internalCluster().clusterService().state().metadata().hasIndex("valid"), is(false));
     }

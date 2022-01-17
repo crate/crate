@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import com.google.common.collect.ForwardingIterator;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
@@ -30,7 +29,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-public class PassThroughPagingIterator<TKey, TRow> extends ForwardingIterator<TRow> implements PagingIterator<TKey, TRow> {
+public class PassThroughPagingIterator<TKey, TRow> implements PagingIterator<TKey, TRow> {
 
     private Iterator<TRow> iterator = Collections.emptyIterator();
     private final ArrayList<KeyIterable<TKey, TRow>> iterables = new ArrayList<>();
@@ -57,8 +56,13 @@ public class PassThroughPagingIterator<TKey, TRow> extends ForwardingIterator<TR
     }
 
     @Override
-    protected Iterator<TRow> delegate() {
-        return iterator;
+    public boolean hasNext() {
+        return iterator.hasNext();
+    }
+
+    @Override
+    public TRow next() {
+        return iterator.next();
     }
 
     @Override

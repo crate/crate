@@ -25,7 +25,6 @@ import io.crate.Constants;
 import io.crate.analyze.BoundCreateTable;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.Transports;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
@@ -70,7 +69,7 @@ public class TableCreator {
                     .order(100)
                     .alias(new Alias(relationName.indexNameOrAlias()))
         );
-        return Transports.execute(transportCreateTableAction, createTableRequest, resp -> {
+        return transportCreateTableAction.execute(createTableRequest, resp -> {
             if (!resp.isAllShardsAcked() && LOGGER.isWarnEnabled()) {
                 LOGGER.warn("CREATE TABLE `{}` was not acknowledged. This could lead to inconsistent state.", relationName.fqn());
             }

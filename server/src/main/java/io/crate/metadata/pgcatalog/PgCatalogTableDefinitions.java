@@ -151,6 +151,11 @@ public class PgCatalogTableDefinitions {
             PgIndexesTable.create().expressions(),
             false
         ));
+        tableDefinitions.put(PgLocksTable.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgLocksTable.create().expressions(),
+            false
+        ));
     }
 
     public StaticTableDefinition<?> get(RelationName relationName) {
