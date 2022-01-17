@@ -22,6 +22,10 @@
 package io.crate.execution.engine.collect.files;
 
 
+import io.crate.common.annotations.VisibleForTesting;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -39,16 +43,62 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import static io.crate.execution.engine.collect.files.FileReadingIterator.toURI;
 import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 
 public class LocalFsFileInput implements FileInput {
 
+    private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("^((file://|/)[^\\*]*/)[^\\*]*\\*.*");
+
+    @Nonnull
+    private final URI uri;
+    @Nullable
+    @VisibleForTesting
+    final URI preGlobUri;
+    @Nonnull
+    private final Predicate<URI> uriPredicate;
+
+    public LocalFsFileInput(URI uri) throws IOException {
+        Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(uri.toString());
+        /*
+         * hasGlobMatcher.group(1) returns part of the path before the wildcards with a trailing backslash,
+         * ex)
+         *      'file:///bucket/prefix/*.json'                           -> 'file:///bucket/prefix/'
+         *      's3://bucket/year=2020/month=12/day=*0/hour=12/*.json'   -> 's3://bucket/year=2020/month=12/'
+         */
+        if (hasGlobMatcher.matches()) {
+            Path oldPath = Paths.get(toURI(hasGlobMatcher.group(1)));
+            String oldPathAsString = oldPath.toUri().toString();
+            String newPathAsString = oldPath.toRealPath().toUri().toString();
+            String resolvedFileUrl = uri.toString().replace(oldPathAsString, newPathAsString);
+            this.uri = toURI(resolvedFileUrl);
+            this.preGlobUri = toURI(newPathAsString);
+        } else {
+            this.uri = uri;
+            this.preGlobUri = null;
+        }
+        this.uriPredicate = new GlobPredicate(this.uri);
+    }
+
     @Override
-    public List<URI> listUris(final URI fileUri, final URI preGlobUri, final Predicate<URI> uriPredicate) throws IOException {
-        assert fileUri != null : "fileUri must not be null";
-        assert preGlobUri != null : "preGlobUri must not be null";
-        assert uriPredicate != null : "uriPredicate must not be null";
+    public boolean isGlobbed() {
+        return preGlobUri != null;
+    }
+
+    @Override
+    public URI uri() {
+        // returns a realPath if it was a symbolic link
+        return uri;
+    }
+
+    @Override
+    public List<URI> expandUri() throws IOException {
+        if (preGlobUri == null) {
+            return List.of(uri);
+        }
 
         Path preGlobPath = Paths.get(preGlobUri);
         if (!Files.isDirectory(preGlobPath)) {
@@ -60,7 +110,7 @@ public class LocalFsFileInput implements FileInput {
         if (Files.notExists(preGlobPath)) {
             return List.of();
         }
-        final int fileURIDepth = countOccurrences(fileUri.toString(), '/');
+        final int fileURIDepth = countOccurrences(uri.toString(), '/');
         final int maxDepth = fileURIDepth - countOccurrences(preGlobUri.toString(), '/') + 1;
         final List<URI> uris = new ArrayList<>();
 
@@ -109,6 +159,19 @@ public class LocalFsFileInput implements FileInput {
             return Math.toIntExact(str.chars().filter(ch -> ch == c).count());
         } catch (ArithmeticException e) {
             throw new IOException("Provided URI is too long");
+        }
+    }
+
+    private static class GlobPredicate implements Predicate<URI> {
+        private final Pattern globPattern;
+
+        GlobPredicate(URI fileUri) {
+            this.globPattern = Pattern.compile(Globs.toUnixRegexPattern(fileUri.toString()));
+        }
+
+        @Override
+        public boolean test(@Nullable URI input) {
+            return input != null && globPattern.matcher(input.toString()).matches();
         }
     }
 }
