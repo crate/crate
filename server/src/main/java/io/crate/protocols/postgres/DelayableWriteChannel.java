@@ -26,6 +26,8 @@ import java.util.ArrayDeque;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nullable;
+
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
@@ -284,17 +286,34 @@ public class DelayableWriteChannel implements Channel {
         return delegate;
     }
 
-    private void discardDelayedWrites() {
+    public void discardDelayedWrites() {
         DelayedWrites currentDelay = delay.getAndSet(null);
         if (currentDelay != null) {
+            var parent = currentDelay.parent;
+            while (parent != null) {
+                parent.discard();
+                parent = parent.parent;
+            }
             currentDelay.discard();
         }
     }
 
+    public void writePendingMessages() {
+        DelayedWrites currentDelay = delay.getAndSet(null);
+        if (currentDelay != null) {
+            var parent = currentDelay.parent;
+            while (parent != null) {
+                parent.writeDelayed();
+                parent = parent.parent;
+            }
+            currentDelay.writeDelayed();
+        }
+    }
+
     public void delayWritesUntil(CompletableFuture<?> future) {
-        DelayedWrites currentDelay = delay.updateAndGet(prev -> new DelayedWrites());
+        DelayedWrites currentDelay = delay.updateAndGet(DelayedWrites::new);
         future.whenComplete((res, err) -> {
-            currentDelay.runDelayed();
+            currentDelay.writeDelayed();
             delay.compareAndSet(currentDelay, null);
         });
     }
@@ -312,8 +331,10 @@ public class DelayableWriteChannel implements Channel {
     static class DelayedWrites {
 
         private final ArrayDeque<DelayedMsg> delayed = new ArrayDeque<>();
+        private final DelayedWrites parent;
 
-        public DelayedWrites() {
+        public DelayedWrites(@Nullable DelayedWrites parent) {
+            this.parent = parent;
         }
 
         public void discard() {
@@ -331,7 +352,7 @@ public class DelayableWriteChannel implements Channel {
             }
         }
 
-        private void runDelayed() {
+        private void writeDelayed() {
             DelayedMsg delayedMsg;
             synchronized (delayed) {
                 while ((delayedMsg = delayed.poll()) != null) {
