@@ -21,16 +21,16 @@
 
 package io.crate.sql.tree;
 
-
+import java.util.List;
 import java.util.Objects;
 
 public class DropTable<T> extends Statement {
 
-    private final Table<T> table;
+    private final List<Table<T>> tables;
     private final boolean dropIfExists;
 
-    public DropTable(Table<T> table, boolean dropIfExists) {
-        this.table = table;
+    public DropTable(List<Table<T>> tables, boolean dropIfExists) {
+        this.tables = tables;
         this.dropIfExists = dropIfExists;
     }
 
@@ -38,8 +38,8 @@ public class DropTable<T> extends Statement {
         return dropIfExists;
     }
 
-    public Table<T> table() {
-        return table;
+    public List<Table<T>> tables() {
+        return tables;
     }
 
     @Override
@@ -57,19 +57,19 @@ public class DropTable<T> extends Statement {
         }
         DropTable<?> dropTable = (DropTable<?>) o;
         return dropIfExists == dropTable.dropIfExists &&
-               Objects.equals(table, dropTable.table);
+               Objects.equals(tables, dropTable.tables);
     }
 
     @Override
     public String toString() {
         return "DropTable{" +
-               "table=" + table +
+               "tables=" + tables +
                ", dropIfExists=" + dropIfExists +
                '}';
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(table, dropIfExists);
+        return Objects.hash(tables, dropIfExists);
     }
 }

@@ -199,6 +199,7 @@ import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import javax.annotation.Nullable;
@@ -576,7 +577,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitDropTable(SqlBaseParser.DropTableContext context) {
-        return new DropTable((Table) visit(context.table()), context.EXISTS() != null);
+        var dropTable = new DropTable(Lists2.map(context.table(), x -> (Table) visit((ParseTree) x)), context.EXISTS() != null);
+        return dropTable;
     }
 
     @Override
