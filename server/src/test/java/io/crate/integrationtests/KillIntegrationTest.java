@@ -37,8 +37,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import com.google.common.util.concurrent.SettableFuture;
-
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Rule;
@@ -118,7 +116,7 @@ public class KillIntegrationTest extends SQLIntegrationTestCase {
      */
     @Nullable
     private String waitForJobEntry(final String statement) throws Exception {
-        final SettableFuture<String> jobIdFuture = SettableFuture.create();
+        final CompletableFuture<String> jobIdFuture = new CompletableFuture<>();
         assertBusy(() -> {
             SQLResponse logResponse = execute("select * from sys.jobs where stmt = ?", $(statement));
             if (logResponse.rowCount() == 0) {
@@ -126,13 +124,13 @@ public class KillIntegrationTest extends SQLIntegrationTestCase {
                 if (logResponse.rowCount() > 0L) {
                     // query finished before jobId could be retrieved
                     // finishing without killing - test will pass which is okay because it is not deterministic by design
-                    jobIdFuture.set(null);
+                    jobIdFuture.complete(null);
                     return;
                 }
             }
             assertThat(logResponse.rowCount(), greaterThan(0L));
             String jobId = logResponse.rows()[0][0].toString();
-            jobIdFuture.set(jobId);
+            jobIdFuture.complete(jobId);
         });
         return jobIdFuture.get(10, TimeUnit.SECONDS);
     }
