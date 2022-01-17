@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import com.google.common.collect.PeekingIterator;
+import io.crate.common.collections.PeekingIterator;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -29,7 +29,8 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import static com.google.common.collect.Iterators.peekingIterator;
+import static io.crate.common.collections.Iterators.peekingIterator;
+
 
 /**
  * MergingIterator like it is used in guava Iterators.mergedSort

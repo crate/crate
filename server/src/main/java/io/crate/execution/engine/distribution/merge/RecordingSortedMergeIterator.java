@@ -22,10 +22,10 @@
 package io.crate.execution.engine.distribution.merge;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.PeekingIterator;
 
+import io.crate.common.collections.AbstractIterator;
+import io.crate.common.collections.Iterables;
+import io.crate.common.collections.PeekingIterator;
 import org.elasticsearch.common.util.CollectionUtils;
 
 import java.util.ArrayList;
@@ -36,7 +36,8 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import static com.google.common.collect.Iterators.peekingIterator;
+import static io.crate.common.collections.Iterators.peekingIterator;
+
 
 /**
  * records sort order in order to repeat it later without having to sort everything again

@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.pipeline;
 
-import com.google.common.collect.Iterables;
+import io.crate.common.collections.Iterables;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.RamAccounting;

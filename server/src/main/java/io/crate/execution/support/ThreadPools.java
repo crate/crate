@@ -21,7 +21,7 @@
 
 package io.crate.execution.support;
 
-import com.google.common.collect.Iterables;
+import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists2;
 import io.crate.concurrent.CompletableFutures;
 

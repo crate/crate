@@ -22,7 +22,7 @@
 package io.crate.execution.engine.collect.sources;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
-import com.google.common.collect.Iterables;
+import io.crate.common.collections.Iterables;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
