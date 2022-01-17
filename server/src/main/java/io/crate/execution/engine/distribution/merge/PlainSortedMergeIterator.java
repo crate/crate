@@ -22,7 +22,6 @@
 package io.crate.execution.engine.distribution.merge;
 
 import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.UnmodifiableIterator;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -38,7 +37,7 @@ import static com.google.common.collect.Iterators.peekingIterator;
  * <p>
  * And it also has a merge function with which additional backing iterators can be added to enable paging
  */
-class PlainSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow> implements SortedMergeIterator<TKey, TRow> {
+final class PlainSortedMergeIterator<TKey, TRow> implements SortedMergeIterator<TKey, TRow> {
 
     private final Queue<NumberedPeekingIterator<TKey, TRow>> queue;
     private NumberedPeekingIterator<TKey, TRow> lastUsedIter = null;
