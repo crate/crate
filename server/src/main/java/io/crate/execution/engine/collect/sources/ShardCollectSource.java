@@ -61,7 +61,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.google.common.collect.Iterables;
+import io.crate.common.collections.Iterables;
 
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RowAccountingWithEstimators;

@@ -21,10 +21,10 @@
 
 package io.crate.execution.jobs;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.collections.Iterables;
+import io.crate.common.collections.Iterators;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;

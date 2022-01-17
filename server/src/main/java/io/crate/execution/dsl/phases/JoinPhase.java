@@ -21,7 +21,7 @@
 
 package io.crate.execution.dsl.phases;
 
-import com.google.common.collect.Iterables;
+import io.crate.common.collections.Iterables;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
