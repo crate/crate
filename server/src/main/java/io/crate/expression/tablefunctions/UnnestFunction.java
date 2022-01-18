@@ -21,6 +21,7 @@
 
 package io.crate.expression.tablefunctions;
 
+import io.crate.common.collections.Iterators;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -38,7 +39,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import org.elasticsearch.common.collect.Iterators;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
