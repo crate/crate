@@ -163,6 +163,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused the ``npgsql`` PostgreSQL client to fail with an
+  ``System.Exception: Received unexpected backend message ParseComplete`` error
+  if using the ``EntityFramework.Core`` framework to insert records.
+
 - Fixed an issue that could lead to errors like ``Received resultset tuples,
   but no field structure for them`` when fetching a subset of rows from one
   query, and then intermediately triggering a different query before finishing

@@ -23,28 +23,27 @@
 package io.crate.execution.engine.collect.files;
 
 import io.crate.common.collections.Lists2;
-import io.crate.execution.engine.collect.files.FileReadingIterator.GlobPredicate;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import static org.hamcrest.Matchers.is;
 
 public class LocalFsFileInputTest extends ESTestCase {
 
     private List<String> helper_ListUris(String originalUri) throws Exception {
-        String preGlob = originalUri.substring(0, originalUri.indexOf('*'));
-        URI preGlobeUri = new URI(preGlob);
         URI uri = URI.create(originalUri);
-        Predicate<URI> uriPredicate = new GlobPredicate(uri);
-        return Lists2.map(new LocalFsFileInput().listUris(uri, preGlobeUri, uriPredicate), URI::toString);
+        return Lists2.map(new LocalFsFileInput(uri).expandUri(), URI::toString);
     }
 
     @Test
@@ -90,5 +89,37 @@ public class LocalFsFileInputTest extends ESTestCase {
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
             assertEquals(expected, actual);
         }
+    }
+
+    @Test
+    public void test_toPreGlobUri() throws Exception {
+        String path = Paths.get(getClass().getResource("/essetup/data/").toURI()).toUri().toString();
+        List<String> uris =
+            List.of(
+                path + "nested_dir/*.json",
+                path + "nested_dir/*_1.json",
+                path + "nested_dir/*/2_*",
+                path + "nested_dir/nested_dir_2/*/sub.json",
+                path + "nested_dir/nested_dir_*/*/sub.json"
+            );
+            List<String> preGlobURIs = uris.stream()
+                .map(URI::create)
+                .map(uri -> {
+                    try {
+                        return new LocalFsFileInput(uri);
+                    } catch (IOException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .map(fi -> fi.preGlobUri.toString())
+                .toList();
+        assertThat(preGlobURIs, is(List.of(
+            path + "nested_dir/",
+            path + "nested_dir/",
+            path + "nested_dir/",
+            path + "nested_dir/nested_dir_2/",
+            path + "nested_dir/"
+        )));
     }
 }

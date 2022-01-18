@@ -25,11 +25,14 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.engine.collect.files.FileInput;
+import io.crate.execution.engine.collect.files.Globs;
 import io.crate.external.S3ClientHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,48 +40,73 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class S3FileInput implements FileInput {
+
+    private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("^((s3://)[^\\*]*/)[^\\*]*\\*.*");
 
     private AmazonS3 client; // to prevent early GC during getObjectContent() in getStream()
     private static final Logger LOGGER = LogManager.getLogger(S3FileInput.class);
 
-    final S3ClientHelper clientBuilder;
+    private final S3ClientHelper clientBuilder;
 
-    public S3FileInput() {
-        clientBuilder = new S3ClientHelper();
+    @Nonnull
+    private final URI uri;
+    @Nullable
+    private final URI preGlobUri;
+    @Nonnull
+    private final Predicate<URI> uriPredicate;
+
+    public S3FileInput(URI uri) {
+        this(new S3ClientHelper(), uri);
     }
 
-    public S3FileInput(S3ClientHelper clientBuilder) {
+    public S3FileInput(S3ClientHelper clientBuilder, URI uri) {
         this.clientBuilder = clientBuilder;
+        this.uri = uri;
+        this.preGlobUri = toPreGlobUri(uri);
+        this.uriPredicate = new GlobPredicate(uri);
     }
 
     @Override
-    public List<URI> listUris(@Nullable final URI fileUri,
-                              final URI preGlobUri,
-                              final Predicate<URI> uriPredicate) throws IOException {
-        String bucketName = preGlobUri.getHost();
+    public boolean isGlobbed() {
+        return preGlobUri != null;
+    }
+
+    @Override
+    public URI uri() {
+        return uri;
+    }
+
+    @Override
+    public List<URI> expandUri() throws IOException {
+        if (isGlobbed() == false) {
+            return List.of(uri);
+        }
         if (client == null) {
             client = clientBuilder.client(preGlobUri);
         }
+        String bucketName = preGlobUri.getHost();
         String prefix = preGlobUri.getPath().length() > 1 ? preGlobUri.getPath().substring(1) : "";
         List<URI> uris = new ArrayList<>();
         ObjectListing list = client.listObjects(bucketName, prefix);
-        addKeyUris(uris, list, preGlobUri, uriPredicate);
+        addKeyUris(uris, list);
         while (list.isTruncated()) {
             list = client.listNextBatchOfObjects(list);
-            addKeyUris(uris, list, preGlobUri, uriPredicate);
+            addKeyUris(uris, list);
         }
-
         return uris;
     }
 
-    private void addKeyUris(List<URI> uris, ObjectListing list, URI uri, Predicate<URI> uriPredicate) {
+    private void addKeyUris(List<URI> uris, ObjectListing list) {
+        assert preGlobUri != null;
         List<S3ObjectSummary> summaries = list.getObjectSummaries();
         for (S3ObjectSummary summary : summaries) {
             String key = summary.getKey();
             if (!key.endsWith("/")) {
-                URI keyUri = uri.resolve("/" + key);
+                URI keyUri = preGlobUri.resolve("/" + key);
                 if (uriPredicate.test(keyUri)) {
                     uris.add(keyUri);
                     if (LOGGER.isDebugEnabled()) {
@@ -105,5 +133,29 @@ public class S3FileInput implements FileInput {
     @Override
     public boolean sharedStorageDefault() {
         return true;
+    }
+
+    @VisibleForTesting
+    @Nullable
+    static URI toPreGlobUri(URI fileUri) {
+        Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(fileUri.toString());
+        URI preGlobUri = null;
+        if (hasGlobMatcher.matches()) {
+            preGlobUri = URI.create(hasGlobMatcher.group(1));
+        }
+        return preGlobUri;
+    }
+
+    private static class GlobPredicate implements Predicate<URI> {
+        private final Pattern globPattern;
+
+        GlobPredicate(URI fileUri) {
+            this.globPattern = Pattern.compile(Globs.toUnixRegexPattern(fileUri.toString()));
+        }
+
+        @Override
+        public boolean test(@Nullable URI input) {
+            return input != null && globPattern.matcher(input.toString()).matches();
+        }
     }
 }

@@ -21,11 +21,14 @@
 
 package io.crate.execution.engine.collect.files;
 
+import java.io.IOException;
+import java.net.URI;
+
 public class LocalFsFileInputFactory implements FileInputFactory {
     public static final String NAME = "file";
 
     @Override
-    public FileInput create() {
-        return new LocalFsFileInput();
+    public FileInput create(URI uri) throws IOException {
+        return new LocalFsFileInput(uri);
     }
 }
