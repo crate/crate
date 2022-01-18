@@ -21,7 +21,7 @@
 
 package io.crate.testing;
 
-import com.google.common.collect.Ordering;
+import io.crate.common.collections.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;

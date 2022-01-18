@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.sort;
 
-import com.google.common.collect.Ordering;
+import io.crate.common.collections.Ordering;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;

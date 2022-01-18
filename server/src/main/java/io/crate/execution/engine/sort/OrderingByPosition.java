@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.sort;
 
-import com.google.common.collect.Ordering;
+import io.crate.common.collections.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -44,11 +44,11 @@ public final class OrderingByPosition {
         );
     }
 
-    public static Ordering<Row> rowOrdering(PositionalOrderBy orderBy) {
+    public static Comparator<Row> rowOrdering(PositionalOrderBy orderBy) {
         return rowOrdering(orderBy.indices(), orderBy.reverseFlags(), orderBy.nullsFirst());
     }
 
-    public static Ordering<Row> rowOrdering(int[] positions, boolean[] reverseFlags, boolean[] nullsFirst) {
+    public static Comparator<Row> rowOrdering(int[] positions, boolean[] reverseFlags, boolean[] nullsFirst) {
         List<Comparator<Row>> comparators = new ArrayList<>(positions.length);
         for (int i = 0; i < positions.length; i++) {
             Comparator<Row> rowOrdering = rowOrdering(positions[i], reverseFlags[i], nullsFirst[i]);
