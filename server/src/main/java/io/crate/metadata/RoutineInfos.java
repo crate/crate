@@ -21,10 +21,10 @@
 
 package io.crate.metadata;
 
+import io.crate.common.collections.Iterators;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.collect.Iterators;
 import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
