@@ -48,6 +48,8 @@ None
 Deprecations
 ============
 
+- Deprecated support for HDFS snapshot repositories.
+
 - The :ref:`gateway.expected_nodes <gateway.expected_nodes>` cluster setting
   has been marked as deprecated and will be removed in CrateDB 5.0.
   The :ref:`gateway.expected_data_nodes <gateway.expected_data_nodes>` must be
