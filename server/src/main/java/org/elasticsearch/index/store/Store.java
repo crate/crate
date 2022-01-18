@@ -67,7 +67,7 @@ import org.elasticsearch.common.settings.Setting.Property;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRefCounted;
 import org.elasticsearch.common.util.concurrent.RefCounted;
-import org.elasticsearch.common.util.iterable.Iterables;
+import io.crate.common.collections.Iterables;
 import io.crate.common.io.IOUtils;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;

@@ -76,7 +76,7 @@ import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
-import org.elasticsearch.common.util.iterable.Iterables;
+import io.crate.common.collections.Iterables;
 import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -193,7 +193,7 @@ public class IndicesService extends AbstractLifecycleComponent
             settings,
             threadPool,
             // ensure we pull an iter with new shards - flatten makes a copy
-            () -> Iterables.flatten(this).iterator()
+            () -> Iterables.concat(this).iterator()
         );
         this.indexScopedSettings = indexScopedSettings;
         this.circuitBreakerService = circuitBreakerService;

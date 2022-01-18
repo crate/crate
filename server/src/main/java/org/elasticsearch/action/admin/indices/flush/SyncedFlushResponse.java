@@ -22,7 +22,7 @@ package org.elasticsearch.action.admin.indices.flush;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.util.iterable.Iterables;
+import io.crate.common.collections.Iterables;
 import org.elasticsearch.indices.flush.ShardsSyncedFlushResult;
 import org.elasticsearch.transport.TransportResponse;
 
@@ -48,7 +48,7 @@ public class SyncedFlushResponse extends TransportResponse {
         // constructor so this is safe even though shardsResultPerIndex is a
         // ConcurrentHashMap
         this.shardsResultPerIndex = unmodifiableMap(shardsResultPerIndex);
-        this.shardCounts = calculateShardCounts(Iterables.flatten(shardsResultPerIndex.values()));
+        this.shardCounts = calculateShardCounts(Iterables.concat(shardsResultPerIndex.values()));
     }
 
     /**
