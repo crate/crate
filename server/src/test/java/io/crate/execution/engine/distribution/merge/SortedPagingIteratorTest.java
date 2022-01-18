@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import com.google.common.collect.Ordering;
 import io.crate.common.collections.Lists2;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
@@ -32,6 +31,7 @@ import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -39,7 +39,7 @@ import static org.hamcrest.core.Is.is;
 
 public class SortedPagingIteratorTest extends ESTestCase {
 
-    public static final Ordering<Row> ORDERING =
+    public static final Comparator<Row> ORDERING =
         OrderingByPosition.rowOrdering(new int[]{0}, new boolean[]{false}, new boolean[]{false});
 
     @Test

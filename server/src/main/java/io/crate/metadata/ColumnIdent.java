@@ -22,7 +22,7 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Ordering;
+import io.crate.common.collections.Ordering;
 import io.crate.common.StringUtils;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.InvalidColumnNameException;
@@ -33,6 +33,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +46,7 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
     private static final Pattern UNDERSCORE_PATTERN = Pattern.compile("^_([a-z][_a-z]*)*[a-z]$");
     private static final Pattern SUBSCRIPT_PATTERN = Pattern.compile("^\\w+(\\[[^\\]]+\\])+");
 
-    private static final Ordering<Iterable<String>> ORDERING = Ordering.<String>natural().lexicographical();
+    private static final Comparator<Iterable<String>> ORDERING = Ordering.<String>natural().lexicographical();
 
     private final String name;
     private final List<String> path;
