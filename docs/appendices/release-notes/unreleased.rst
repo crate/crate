@@ -66,14 +66,40 @@ Deprecations
 Changes
 =======
 
-- Added the scalar function :ref:`array_append
-  <scalar-array_append>` which adds a value at the end of an array
+
+SQL Statements and Compatibility
+--------------------------------
 
 - Added support for the :ref:`END <ref-end>` statement for improved PostgreSQL
   compatibility.
 
-- Added an empty ``pg_catalog.pg_locks`` table for improved PostgreSQL
-  compatibility.
+- Added support to use an aggregation in an order-by clause without having
+  them in the select list like ``select x from tbl group by x order by count(y)``
+
+- Changed the type precedence rules for ``INSERT FROM VALUES`` statements. The
+  target column types now take higher precedence to avoid errors in statements
+  like ``INSERT INTO tbl (text_column) VALUES ('a'), (3)``. Here ``3``
+  (``INTEGER``) used to take precedence, leading to a cast error because ``a``
+  cannot be converted to an ``INTEGER``.
+
+  This doesn't change the behavior of standalone ``VALUES`` statements.
+  ``VALUES ('a'), (3)`` as a standalone statement will still fail.
+
+- Introduced ``RESPECT NULLS`` and ``IGNORE NULLS`` flags to window function
+  calls. The following window functions can now utilize the flags: ``LEAD``,
+  ``LAG``, ``NTH_VALUE``, ``FIRST_VALUE``, and ``LAST_VALUE``.
+
+- Added ``FAIL_FAST`` option to ``COPY FROM`` statement that when it is set to
+  true, any errors observed while processing the statement will trigger an
+  exception and the on-going executions will terminate in best effort.
+
+
+
+Scalar and Aggregation Functions
+--------------------------------
+
+- Added the scalar function :ref:`array_append
+  <scalar-array_append>` which adds a value at the end of an array
 
 - Registered the scalar function :ref:`array_to_string
   <scalar-array_to_string>` under the `pg_catalog` schema.
@@ -85,54 +111,50 @@ Changes
 - Added the scalar function :ref:`age <scalar-pg-age>` which returns
   :ref:`interval <type-interval>` between 2 timestamps.
 
+- Added the :ref:`date_bin <date-bin>` scalar function that truncates timestamp
+  into specified interval aligned with specified origin.
+
+- Added the :ref:`scalar-array_slice` scalar function.
+
+- Added support for the array slice access expression ``anyarray[from:to]``.
+
+- Added support of ``numeric`` type to the ``avg`` aggregation function.
+
+- Added the :ref:`scalar-area` scalar function that calculates the area for a
+  ``GEO_SHAPE``.
+
+- Enabled the setting of most prototype methods for JavaScript Objects (e.g.
+  Array.prototype, Object.prototype) in :ref:`user-defined functions <user-defined-functions>`
+
+
+New Tables and Schema Extensions
+--------------------------------
+
+- Added an empty ``pg_catalog.pg_locks`` table for improved PostgreSQL
+  compatibility.
+
+- Added an empty ``pg_catalog.pg_indexes`` table for compatibility with
+  PostgreSQL.
+
+- Added a new ``table_partitions`` column to the :ref:`sys.snapshots
+  <sys-snapshots>` table.
+
+- Added the `column_details` column to the `information_schema.columns` table
+  including the top level column name and path information of object elements.
+
+
+Administration and Operations
+-----------------------------
+
 - Added a :ref:`sys node check for max shards per node
   <sys-node_checks_max_shards_per_node>` to verify that the amount of shards on the
   current node is less than 90 % of  :ref:`cluster.max_shards_per_node
   <cluster.max_shards_per_node>`. The check is exposed via :ref:`sys.node_checks
   <sys-node-checks>`.
 
-- Added support to use an aggregation in an order-by clause without having
-  them in the select list like ``select x from tbl group by x order by count(y)``
-
-- Added an empty ``pg_catalog.pg_indexes`` table for compatibility with
-  PostgreSQL.
-
-- Changed the type precedence rules for ``INSERT FROM VALUES`` statements. The
-  target column types now take higher precedence to avoid errors in statements
-  like ``INSERT INTO tbl (text_column) VALUES ('a'), (3)``. Here ``3``
-  (``INTEGER``) used to take precedence, leading to a cast error because ``a``
-  cannot be converted to an ``INTEGER``.
-
-  This doesn't change the behavior of standalone ``VALUES`` statements.
-  ``VALUES ('a'), (3)`` as a standalone statement will still fail.
-
-- Added a new ``table_partitions`` column to the :ref:`sys.snapshots
-  <sys-snapshots>` table.
-
 - Added ``error_on_unknown_object_key`` session setting. This will either allow
   or suppress an error when unknown object keys are queried from dynamic
   objects.
-
-- Added ``float4`` type as alias to ``real`` and ``float8`` type as alias to
-  ``double precision``
-
-- Added the :ref:`JSON type <data-type-json>`.
-
-- Added the :ref:`date_bin <date-bin>` scalar function that truncates timestamp
-  into specified interval aligned with specified origin.
-
-- Introduced ``RESPECT NULLS`` and ``IGNORE NULLS`` flags to window function
-  calls. The following window functions can now utilize the flags: ``LEAD``,
-  ``LAG``, ``NTH_VALUE``, ``FIRST_VALUE``, and ``LAST_VALUE``.
-
-- Added the :ref:`scalar-area` scalar function that calculates the area for a
-  ``GEO_SHAPE``.
-
-- Added ``FAIL_FAST`` option to ``COPY FROM`` statement that when it is set to
-  true, any errors observed while processing the statement will trigger an
-  exception and the on-going executions will terminate in best effort.
-
-- Added support of ``numeric`` type to the ``avg`` aggregation function.
 
 - Enabled HTTP connections to preserve :ref:`session settings <conf-session>`
   across the requests as long as the connection is re-used.
@@ -148,15 +170,15 @@ Changes
 - Added ``switch_to_plaintext`` :ref:`Host-Based Authentication <admin_hba>`
   config for enabling plaintext connection for intra-zone communications.
 
-- Added the `column_details` column to the `information_schema.columns` table
-  including the top level column name and path information of object elements.
 
-- Enabled the setting of most prototype methods for JavaScript Objects (e.g.
-  Array.prototype, Object.prototype) in :ref:`user-defined functions <user-defined-functions>`
+New Types
+---------
 
-- Added support for the array slice access expression ``anyarray[from:to]``.
+- Added ``float4`` type as alias to ``real`` and ``float8`` type as alias to
+  ``double precision``
 
-- Added the :ref:`scalar-array_slice` scalar function.
+- Added the :ref:`JSON type <data-type-json>`.
+
 
 Fixes
 =====
