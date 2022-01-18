@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.sort;
 
-import com.google.common.collect.Ordering;
+import io.crate.common.collections.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;

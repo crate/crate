@@ -194,6 +194,10 @@ public final class Iterables {
         return collection.toArray(array);
     }
 
+    static Object[] toArray(Iterable<?> iterable) {
+        return castOrCopyToCollection(iterable).toArray();
+    }
+
     static <T> T[] newArray(Class<T> type, int length) {
         return (T[]) Array.newInstance(type, length);
     }
