@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ComparisonChain;
 import io.crate.common.collections.Ordering;
 import io.crate.common.StringUtils;
 import io.crate.common.collections.Lists2;
@@ -384,10 +383,9 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
 
     @Override
     public int compareTo(ColumnIdent o) {
-        return ComparisonChain.start()
-            .compare(name, o.name)
-            .compare(path, o.path, ORDERING)
-            .result();
+        return Comparator.comparing(ColumnIdent::name)
+            .thenComparing(ColumnIdent::path, ORDERING)
+            .compare(this, o);
     }
 
     public void writeTo(StreamOutput out) throws IOException {

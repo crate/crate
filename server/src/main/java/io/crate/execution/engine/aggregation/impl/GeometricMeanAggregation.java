@@ -22,12 +22,11 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
-
-import com.google.common.collect.ComparisonChain;
 
 import org.apache.commons.math3.util.FastMath;
 import org.apache.lucene.util.NumericUtils;
@@ -136,10 +135,9 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
 
         @Override
         public int compareTo(GeometricMeanState o) {
-            return ComparisonChain.start()
-                .compare(value, o.value)
-                .compare(n, o.n)
-                .result();
+            return Comparator.comparing(GeometricMeanState::value)
+                .thenComparing(x -> x.n)
+                .compare(this, o);
         }
 
         @Override
