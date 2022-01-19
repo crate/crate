@@ -22,7 +22,6 @@
 package io.crate.execution.engine.collect.files;
 
 import com.google.common.base.Splitter;
-import com.google.common.primitives.Ints;
 import io.crate.common.Suppliers;
 import io.crate.types.DataTypes;
 import org.locationtech.spatial4j.shape.Point;
@@ -56,14 +55,14 @@ public class SummitsIterable implements Iterable<SummitsContext> {
                     List<String> parts = TAB_SPLITTER.splitToList(line);
                     summits.add(new SummitsContext(
                         parts.get(0),
-                        Ints.tryParse(parts.get(1)),
-                        Ints.tryParse(parts.get(2)),
+                        tryParse(parts.get(1)),
+                        tryParse(parts.get(2)),
                         safeParseCoordinates(parts.get(3)),
                         parts.get(4),
                         parts.get(5),
                         parts.get(6),
                         parts.get(7),
-                        Ints.tryParse(parts.get(8)))
+                        tryParse(parts.get(8)))
                     );
                 }
             }
@@ -71,6 +70,20 @@ public class SummitsIterable implements Iterable<SummitsContext> {
             throw new RuntimeException("Cannot populate the sys.summits table", e);
         }
         return summits;
+    }
+
+    private static Integer tryParse(String string) {
+        Long result = null;
+        try {
+            result = Long.parseLong(string, 10);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        if (result != result.intValue()) {
+            return null;
+        } else {
+            return result.intValue();
+        }
     }
 
     @Nullable
