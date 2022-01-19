@@ -29,7 +29,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,7 +58,6 @@ public class SQLExceptions {
 
     private static final Predicate<Throwable> EXCEPTIONS_TO_UNWRAP = throwable ->
         throwable instanceof RemoteTransportException ||
-        throwable instanceof UncheckedExecutionException ||
         throwable instanceof CompletionException ||
         throwable instanceof UncategorizedExecutionException ||
         throwable instanceof ElasticsearchWrapperException ||
