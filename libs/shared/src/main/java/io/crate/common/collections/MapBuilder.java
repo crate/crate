@@ -23,6 +23,7 @@ package io.crate.common.collections;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -34,6 +35,10 @@ public final class MapBuilder<K, V> {
 
     public static <K, V> MapBuilder<K, V> newMapBuilder(Map<K, V> map) {
         return new MapBuilder<>(new HashMap<>(map));
+    }
+
+    public static <K, V> MapBuilder<K, V> newLinkedHashMapBuilder() {
+        return new MapBuilder<K, V>(new LinkedHashMap<K, V>());
     }
 
     public static <K extends Comparable<?>, V> MapBuilder<K, V> treeMapBuilder() {

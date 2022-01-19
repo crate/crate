@@ -21,7 +21,6 @@
 
 package io.crate.auth;
 
-import com.google.common.collect.ImmutableSortedMap;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.user.UserLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -37,11 +36,13 @@ import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
+import java.util.TreeMap;
 
 
 public class HostBasedAuthentication implements Authentication {
@@ -105,7 +106,7 @@ public class HostBasedAuthentication implements Authentication {
     @VisibleForTesting
     SortedMap<String, Map<String, String>> convertHbaSettingsToHbaConf(Settings settings) {
         Settings hbaSettings = AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.get(settings);
-        ImmutableSortedMap.Builder<String, Map<String, String>> hostBasedConf = ImmutableSortedMap.naturalOrder();
+        SortedMap<String, Map<String, String>> hostBasedConf = new TreeMap<>();
         for (Map.Entry<String, Settings> entry : hbaSettings.getAsGroups().entrySet()) {
             Settings hbaEntry = entry.getValue();
             HashMap<String, String> map = new HashMap<>(hbaEntry.size());
@@ -114,7 +115,7 @@ public class HostBasedAuthentication implements Authentication {
             }
             hostBasedConf.put(entry.getKey(), map);
         }
-        return hostBasedConf.build();
+        return Collections.unmodifiableSortedMap(hostBasedConf);
     }
 
     @Nullable
