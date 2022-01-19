@@ -21,7 +21,9 @@
 
 package io.crate.execution.engine.export;
 
+import org.elasticsearch.common.settings.Settings;
+
 public interface FileOutputFactory {
 
-    FileOutput create();
+    FileOutput create(Settings withClauseOptions);
 }

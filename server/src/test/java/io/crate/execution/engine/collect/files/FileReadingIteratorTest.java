@@ -35,6 +35,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,7 +45,6 @@ import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -55,7 +55,6 @@ import java.util.function.Supplier;
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.is;
 
 public class FileReadingIteratorTest extends ESTestCase {
 
@@ -178,6 +177,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             1,
             0,
             CopyFromParserProperties.DEFAULT,
-            format);
+            format,
+            Settings.EMPTY);
     }
 }

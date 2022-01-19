@@ -29,6 +29,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.metadata.ColumnIdent;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -47,6 +48,7 @@ public class FileWriterProjector implements Projector {
     private final WriterProjection.CompressionType compressionType;
     private final Executor executor;
     private final Map<String, FileOutputFactory> fileOutputFactoryMap;
+    private final Settings withClauseOptions;
 
     /**
      * @param inputs a list of {@link Input}.
@@ -64,7 +66,8 @@ public class FileWriterProjector implements Projector {
                                Map<ColumnIdent, Object> overwrites,
                                @Nullable List<String> outputNames,
                                WriterProjection.OutputFormat outputFormat,
-                               Map<String, FileOutputFactory> fileOutputFactoryMap) {
+                               Map<String, FileOutputFactory> fileOutputFactoryMap,
+                               Settings withClauseOptions) {
         this.collectExpressions = collectExpressions;
         this.executor = executor;
         this.inputs = inputs;
@@ -74,6 +77,7 @@ public class FileWriterProjector implements Projector {
         this.compressionType = compressionType;
         this.uri = uri;
         this.fileOutputFactoryMap = fileOutputFactoryMap;
+        this.withClauseOptions = withClauseOptions;
     }
 
     @Override
@@ -89,7 +93,8 @@ public class FileWriterProjector implements Projector {
                 overwrites,
                 outputNames,
                 outputFormat,
-                fileOutputFactoryMap
+                fileOutputFactoryMap,
+                withClauseOptions
             )
         );
     }

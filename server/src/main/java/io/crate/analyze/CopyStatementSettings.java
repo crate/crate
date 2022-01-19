@@ -28,7 +28,6 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Setting;
 
 import java.util.Locale;
-import java.util.Map;
 
 public final class CopyStatementSettings {
 
@@ -70,11 +69,6 @@ public final class CopyStatementSettings {
         },
         DataTypes.STRING,
         Setting.Property.Dynamic
-    );
-
-    public static final Map<String, Setting<?>> OUTPUT_SETTINGS = Map.of(
-        COMPRESSION_SETTING.getKey(), COMPRESSION_SETTING,
-        OUTPUT_FORMAT_SETTING.getKey(), OUTPUT_FORMAT_SETTING
     );
 
     public static <E extends Enum<E>> E settingAsEnum(Class<E> settingsEnum, String settingValue) {

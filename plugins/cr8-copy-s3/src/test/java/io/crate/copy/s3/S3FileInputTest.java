@@ -24,7 +24,8 @@ package io.crate.copy.s3;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import io.crate.external.S3ClientHelper;
+import io.crate.copy.s3.common.S3ClientHelper;
+import io.crate.copy.s3.common.S3URI;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -49,17 +50,18 @@ public class S3FileInputTest extends ESTestCase {
 
     private static final String BUCKET_NAME = "fakeBucket";
     private static final String PREFIX = "prefix/";
-    private static URI preGlobUri;
+    private static S3URI preGlobUri;
+    private static String protocolSetting = "http";
 
 
     @BeforeClass
     public static void setUpClass() throws Exception {
         var globbedUri = new URI("s3://fakeBucket/prefix/*");
-        preGlobUri = new URI("s3://fakeBucket/prefix/");
-        s3FileInput = new S3FileInput(clientBuilder, globbedUri);
+        preGlobUri = S3URI.toS3URI((new URI("s3://fakeBucket/prefix/")));
+        s3FileInput = new S3FileInput(clientBuilder, globbedUri, protocolSetting);
 
         when(amazonS3.listObjects(BUCKET_NAME, PREFIX)).thenReturn(objectListing);
-        when(clientBuilder.client(preGlobUri)).thenReturn(amazonS3);
+        when(clientBuilder.client(preGlobUri, protocolSetting)).thenReturn(amazonS3);
     }
 
     @Test
@@ -74,8 +76,8 @@ public class S3FileInputTest extends ESTestCase {
 
         List<URI> uris = s3FileInput.expandUri();
         assertThat(uris.size(), is(2));
-        assertThat(uris.get(0).toString(), is("s3://fakeBucket/prefix/test1.json.gz"));
-        assertThat(uris.get(1).toString(), is("s3://fakeBucket/prefix/test2.json.gz"));
+        assertThat(uris.get(0).toString(), is("s3:///fakeBucket/prefix/test1.json.gz"));
+        assertThat(uris.get(1).toString(), is("s3:///fakeBucket/prefix/test2.json.gz"));
     }
 
     @Test
@@ -84,8 +86,8 @@ public class S3FileInputTest extends ESTestCase {
 
         List<URI> uris = s3FileInput.expandUri();
         assertThat(uris.size(), is(2));
-        assertThat(uris.get(0).toString(), is("s3://fakeBucket/prefix/test1.json.gz"));
-        assertThat(uris.get(1).toString(), is("s3://fakeBucket/prefix/test2.json.gz"));
+        assertThat(uris.get(0).toString(), is("s3:///fakeBucket/prefix/test1.json.gz"));
+        assertThat(uris.get(1).toString(), is("s3:///fakeBucket/prefix/test2.json.gz"));
     }
 
     private List<S3ObjectSummary> objectSummaries() {
@@ -106,19 +108,26 @@ public class S3FileInputTest extends ESTestCase {
     public void test_toPreGlobUri() {
         var uris =
             List.of(
-                "s3://fakeBucket3/prefix*/*.json",
-                "s3://fakeBucket3/*/*.json",
+                "s3:///fakeBucket3/prefix*/*.json",
                 "s3://fakeBucket3/*/prefix2/prefix3/a.json",
-                "s3://fakeBucket3/*/prefix2/*/*.json",
-                "s3://fakeBucket3/prefix/p*x/*/*.json"
+                "s3://fakeBucket3/prefix/p*x/*/*.json",
+                "s3://fake.Bucket/prefix/key*",
+                "s3://minio:minio@play.min.io:9000/myBucket/myKey/*",
+                "s3://play.min.io:9000/myBucket/myKey/*",
+                "s3://minio:minio@myBucket/myKey/*"
             );
-        var preGlobURIs = uris.stream().map(URI::create).map(u -> S3FileInput.toPreGlobUri(u).toString()).toList();
+        var preGlobURIs = uris.stream()
+            .map(URI::create)
+            .map(u -> S3FileInput.toPreGlobUri(S3URI.toS3URI(u)).toString())
+            .toList();
         assertThat(preGlobURIs, is(List.of(
-            "s3://fakeBucket3/",
-            "s3://fakeBucket3/",
-            "s3://fakeBucket3/",
-            "s3://fakeBucket3/",
-            "s3://fakeBucket3/prefix/"
+            "s3:///fakeBucket3/",
+            "s3:///fakeBucket3/",
+            "s3:///fakeBucket3/prefix/",
+            "s3:///fake.Bucket/prefix/",
+            "s3://minio:minio@play.min.io:9000/myBucket/myKey/",
+            "s3://play.min.io:9000/myBucket/myKey/",
+            "s3://minio:minio@/myBucket/myKey/"
         )));
     }
 }

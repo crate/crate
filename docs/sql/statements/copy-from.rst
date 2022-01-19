@@ -240,10 +240,19 @@ For example:
 
 .. code-block:: text
 
-    s3://[<accesskey>:<secretkey>@]<bucketname>/<path>
+    s3://[<accesskey>:<secretkey>@][<host>:<port>/]<bucketname>/<path>
 
-If no credentials are set the s3 client will operate in anonymous mode, see
-`AWS Java Documentation`_.
+S3 compatible storage providers can be specified by the optional pair of host
+and port, which defaults to Amazon S3 if not provided.
+
+Here is a more concrete example:
+
+.. code-block:: text
+
+    COPY t FROM 's3://accessKey:secretKey@s3.amazonaws.com:443/myBucket/key/a.json' with (protocol = 'https')
+
+If no credentials are set the s3 client will operate in anonymous mode.
+See `AWS Java Documentation`_.
 
 Using the ``s3://`` scheme automatically sets the `shared`_ to true.
 
@@ -449,6 +458,15 @@ the files.
 '''''''''''''''
 
 The default value is ``null``, set to ``gzip`` to read gzipped files.
+
+
+.. _sql-copy-from-protocol:
+
+``protocol``
+'''''''''''''''
+
+Used for :ref:`s3 <sql-copy-from-s3>` scheme only. It is set to HTTPS by
+default.
 
 
 .. _sql-copy-from-overwrite_duplicates:

@@ -26,9 +26,10 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.copy.s3.common.S3ClientHelper;
+import io.crate.copy.s3.common.S3URI;
 import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.Globs;
-import io.crate.external.S3ClientHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -53,21 +54,29 @@ public class S3FileInput implements FileInput {
     private final S3ClientHelper clientBuilder;
 
     @Nonnull
-    private final URI uri;
+    private final S3URI normalizedS3URI;
     @Nullable
-    private final URI preGlobUri;
+    private final S3URI preGlobUri;
     @Nonnull
-    private final Predicate<URI> uriPredicate;
+    private final Predicate<S3URI> uriPredicate;
+    @Nullable
+    private final String protocolSetting;
 
-    public S3FileInput(URI uri) {
-        this(new S3ClientHelper(), uri);
+    public S3FileInput(URI uri, String protocol) {
+        this.clientBuilder = new S3ClientHelper();
+        this.normalizedS3URI = S3URI.toS3URI(uri);
+        this.preGlobUri = toPreGlobUri(this.normalizedS3URI);
+        this.uriPredicate = new GlobPredicate(this.normalizedS3URI);
+        this.protocolSetting = protocol;
     }
 
-    public S3FileInput(S3ClientHelper clientBuilder, URI uri) {
+    @VisibleForTesting
+    S3FileInput(S3ClientHelper clientBuilder, URI uri, String protocol) {
         this.clientBuilder = clientBuilder;
-        this.uri = uri;
-        this.preGlobUri = toPreGlobUri(uri);
-        this.uriPredicate = new GlobPredicate(uri);
+        this.normalizedS3URI = S3URI.toS3URI(uri);
+        this.preGlobUri = toPreGlobUri(this.normalizedS3URI);
+        this.uriPredicate = new GlobPredicate(this.normalizedS3URI);
+        this.protocolSetting = protocol;
     }
 
     @Override
@@ -77,21 +86,19 @@ public class S3FileInput implements FileInput {
 
     @Override
     public URI uri() {
-        return uri;
+        return normalizedS3URI.uri();
     }
 
     @Override
     public List<URI> expandUri() throws IOException {
         if (isGlobbed() == false) {
-            return List.of(uri);
+            return List.of(normalizedS3URI.uri());
         }
         if (client == null) {
-            client = clientBuilder.client(preGlobUri);
+            client = clientBuilder.client(preGlobUri, protocolSetting);
         }
-        String bucketName = preGlobUri.getHost();
-        String prefix = preGlobUri.getPath().length() > 1 ? preGlobUri.getPath().substring(1) : "";
         List<URI> uris = new ArrayList<>();
-        ObjectListing list = client.listObjects(bucketName, prefix);
+        ObjectListing list = client.listObjects(preGlobUri.bucket(), preGlobUri.key());
         addKeyUris(uris, list);
         while (list.isTruncated()) {
             list = client.listNextBatchOfObjects(list);
@@ -106,9 +113,9 @@ public class S3FileInput implements FileInput {
         for (S3ObjectSummary summary : summaries) {
             String key = summary.getKey();
             if (!key.endsWith("/")) {
-                URI keyUri = preGlobUri.resolve("/" + key);
+                S3URI keyUri = preGlobUri.replacePath(summary.getBucketName(), key);
                 if (uriPredicate.test(keyUri)) {
-                    uris.add(keyUri);
+                    uris.add(keyUri.uri());
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug("{}", keyUri);
                     }
@@ -119,11 +126,11 @@ public class S3FileInput implements FileInput {
 
     @Override
     public InputStream getStream(URI uri) throws IOException {
+        S3URI s3URI = S3URI.toS3URI(uri);
         if (client == null) {
-            client = clientBuilder.client(uri);
+            client = clientBuilder.client(s3URI, protocolSetting);
         }
-        String key = uri.getPath().length() > 1 ? uri.getPath().substring(1) : "";
-        S3Object object = client.getObject(uri.getHost(), key);
+        S3Object object = client.getObject(s3URI.bucket(), s3URI.key());
         if (object != null) {
             return object.getObjectContent();
         }
@@ -137,24 +144,24 @@ public class S3FileInput implements FileInput {
 
     @VisibleForTesting
     @Nullable
-    static URI toPreGlobUri(URI fileUri) {
-        Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(fileUri.toString());
-        URI preGlobUri = null;
+    static S3URI toPreGlobUri(S3URI uri) {
+        Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(uri.toString());
+        S3URI preGlobUri = null;
         if (hasGlobMatcher.matches()) {
-            preGlobUri = URI.create(hasGlobMatcher.group(1));
+            preGlobUri = S3URI.toS3URI(URI.create(hasGlobMatcher.group(1)));
         }
         return preGlobUri;
     }
 
-    private static class GlobPredicate implements Predicate<URI> {
+    private static class GlobPredicate implements Predicate<S3URI> {
         private final Pattern globPattern;
 
-        GlobPredicate(URI fileUri) {
-            this.globPattern = Pattern.compile(Globs.toUnixRegexPattern(fileUri.toString()));
+        GlobPredicate(S3URI uri) {
+            this.globPattern = Pattern.compile(Globs.toUnixRegexPattern(uri.toString()));
         }
 
         @Override
-        public boolean test(@Nullable URI input) {
+        public boolean test(@Nullable S3URI input) {
             return input != null && globPattern.matcher(input.toString()).matches();
         }
     }

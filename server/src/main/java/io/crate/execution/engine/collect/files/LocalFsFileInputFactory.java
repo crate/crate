@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.collect.files;
 
+import org.elasticsearch.common.settings.Settings;
+
 import java.io.IOException;
 import java.net.URI;
 
@@ -28,7 +30,7 @@ public class LocalFsFileInputFactory implements FileInputFactory {
     public static final String NAME = "file";
 
     @Override
-    public FileInput create(URI uri) throws IOException {
+    public FileInput create(URI uri, Settings withClauseOptions) throws IOException, IllegalArgumentException {
         return new LocalFsFileInput(uri);
     }
 }

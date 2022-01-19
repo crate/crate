@@ -19,21 +19,42 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.s3;
+package io.crate.copy.s3.common;
 
-import io.crate.copy.s3.common.S3Protocol;
-import io.crate.execution.engine.collect.files.FileInput;
-import io.crate.execution.engine.collect.files.FileInputFactory;
+import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-import java.net.URI;
+import java.util.Locale;
 
-public class S3FileInputFactory implements FileInputFactory {
+public enum S3Protocol {
+    HTTPS,
+    HTTP;
 
-    public static final String NAME = "s3";
+    private static final String NAME = "protocol";
+
+    private static final Setting<S3Protocol> PROTOCOL = new Setting<>(
+        NAME,
+        HTTPS.toString(),
+        p -> {
+            for (S3Protocol s3Protocol : S3Protocol.values()) {
+                if (s3Protocol.toString().equals(p)) {
+                    return s3Protocol;
+                }
+            }
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                             "invalid protocol `%s`. Expected HTTP or HTTPS", p));
+        },
+        DataTypes.STRING,
+        Setting.Property.Final
+    );
+
+    public static String get(Settings settings) {
+        return PROTOCOL.get(settings).toString();
+    }
 
     @Override
-    public FileInput create(URI uri, Settings withClauseOptions) {
-        return new S3FileInput(uri, S3Protocol.get(withClauseOptions));
+    public String toString() {
+        return super.toString().toLowerCase(Locale.ENGLISH);
     }
 }
