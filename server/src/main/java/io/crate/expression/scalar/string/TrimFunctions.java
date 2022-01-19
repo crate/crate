@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar.string;
 
-import com.google.common.primitives.Chars;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Literal;
@@ -284,8 +283,10 @@ public final class TrimFunctions {
     }
 
     private static String trimChars(String target, String charsToTrimArg, TrimMode mode) {
-        HashSet<Character> charsToTrim =
-            new HashSet<>(Chars.asList(charsToTrimArg.toCharArray()));
+        HashSet<Character> charsToTrim = new HashSet<>();
+        for (char c : charsToTrimArg.toCharArray()) {
+            charsToTrim.add(c);
+        }
 
         int start = mode.getStartIdx(target, charsToTrim);
         int len = mode.getTrimmedLength(target, charsToTrim);
