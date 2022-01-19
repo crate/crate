@@ -116,7 +116,10 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     }
 
     public void replaceResultReceiver(ResultReceiver resultReceiver, int maxRows) {
-        assert this.resultReceiver.completionFuture().isDone() : "Previous resultReceiver must be finished";
+        if (!this.resultReceiver.completionFuture().isDone()) {
+            // interrupt previous resultReceiver before replacing it, to ensure future triggers
+            this.resultReceiver.allFinished(true);
+        }
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
     }
