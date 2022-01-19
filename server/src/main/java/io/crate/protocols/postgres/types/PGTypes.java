@@ -23,8 +23,8 @@ package io.crate.protocols.postgres.types;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
-import com.google.common.collect.ImmutableMap;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.MapBuilder;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
@@ -41,7 +41,7 @@ import java.util.Set;
 
 public class PGTypes {
 
-    private static final Map<DataType<?>, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType<?>, PGType>builder()
+    private static final Map<DataType<?>, PGType> CRATE_TO_PG_TYPES = MapBuilder.<DataType<?>, PGType>newLinkedHashMapBuilder()
         .put(DataTypes.BYTE, CharType.INSTANCE)
         .put(DataTypes.STRING, VarCharType.INSTANCE)
         .put(DataTypes.BOOLEAN, BooleanType.INSTANCE)
@@ -89,7 +89,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.REGCLASS), PGArray.REGCLASS_ARRAY)
         .put(new ArrayType<>(BitStringType.INSTANCE_ONE), PGArray.BIT_ARRAY)
         .put(DataTypes.OIDVECTOR, PgOidVectorType.INSTANCE)
-        .build();
+        .immutableMap();
 
     private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
     private static final Set<PGType> TYPES;
