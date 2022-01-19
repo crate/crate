@@ -21,7 +21,6 @@
 
 package io.crate.exceptions;
 
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutionException;
@@ -35,7 +34,7 @@ public class SQLExceptionsTest {
     @Test
     public void testUnwrap() {
         String msg = "cannot cast";
-        Throwable t = new UncheckedExecutionException(new ExecutionException(new ClassCastException(msg)));
+        Throwable t = new ExecutionException(new ClassCastException(msg));
         Throwable unwrapped = SQLExceptions.unwrap(t);
         assertThat(unwrapped, instanceOf(ClassCastException.class));
         assertThat(unwrapped.getMessage(), is(msg));
