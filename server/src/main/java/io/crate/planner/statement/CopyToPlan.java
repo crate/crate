@@ -75,7 +75,6 @@ import java.util.function.Function;
 
 import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.OUTPUT_FORMAT_SETTING;
-import static io.crate.analyze.CopyStatementSettings.OUTPUT_SETTINGS;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
@@ -147,7 +146,8 @@ public final class CopyToPlan implements Plan {
             boundedCopyTo.compressionType(),
             boundedCopyTo.overwrites(),
             boundedCopyTo.outputNames(),
-            outputFormat);
+            outputFormat,
+            boundedCopyTo.withClauseOptions());
 
         LogicalPlan collect = Collect.create(
             new DocTableRelation(boundedCopyTo.table()),
@@ -233,9 +233,7 @@ public final class CopyToPlan implements Plan {
             outputs = List.of(sourceRef);
         }
 
-        Settings settings = genericPropertiesToSettings(
-            copyTo.properties().map(eval),
-            OUTPUT_SETTINGS);
+        Settings settings = genericPropertiesToSettings(copyTo.properties().map(eval));
 
         WriterProjection.CompressionType compressionType =
             settingAsEnum(WriterProjection.CompressionType.class, COMPRESSION_SETTING.get(settings));
@@ -256,7 +254,8 @@ public final class CopyToPlan implements Plan {
             outputFormat,
             outputNames.isEmpty() ? null : outputNames,
             columnsDefined,
-            overwrites);
+            overwrites,
+            settings);
     }
 
     private static List<String> resolvePartitions(List<Assignment<Object>> partitionProperties,

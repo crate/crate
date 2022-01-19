@@ -27,6 +27,7 @@ import tempfile
 import threading
 import unittest
 import socket
+import json
 from pathlib import Path
 from crate.client import connect
 from cr8.run_crate import CrateNode, wait_until
@@ -66,7 +67,7 @@ class MinioServer:
     }
 
     MINIO_ACCESS_KEY = 'minio'
-    MINIO_SECRET_KEY = 'miniostorage'
+    MINIO_SECRET_KEY = 'miniostorage/'
 
     CACHE_ROOT = Path(os.environ.get('XDG_CACHE_HOME', os.path.join(os.path.expanduser('~'), '.cache')))
     CACHE_DIR = CACHE_ROOT / 'crate-tests'
@@ -145,7 +146,7 @@ class S3SnapshotIntegrationTest(unittest.TestCase):
                 c.execute('REFRESH TABLE t1')
                 c.execute("""
                     CREATE REPOSITORY r1 TYPE S3
-                    WITH (access_key = 'minio', secret_key = 'miniostorage', bucket='backups', endpoint = '127.0.0.1:9000', protocol = 'http')
+                    WITH (access_key = 'minio', secret_key = 'miniostorage/', bucket='backups', endpoint = '127.0.0.1:9000', protocol = 'http')
                 """)
 
                 # Make sure access_key and secret_key are masked in sys.repositories
@@ -166,3 +167,129 @@ class S3SnapshotIntegrationTest(unittest.TestCase):
                 self.assertEqual(rowcount, 0)
 
                 [self.assertEqual(n.object_name.endswith('.dat'), False) for n in client.list_objects('backups')]
+
+
+class S3CopyIntegrationTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        crate_node.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        crate_node.stop()
+
+    def test_basic_copy_to_and_copy_from(self):
+        client = Minio('127.0.0.1:9000',
+                       access_key = MinioServer.MINIO_ACCESS_KEY,
+                       secret_key = MinioServer.MINIO_SECRET_KEY,
+                       region = "myRegion",
+                       secure = False)
+
+        with MinioServer() as minio:
+            t = threading.Thread(target=minio.run)
+            t.daemon = True
+            t.start()
+            wait_until(lambda: _is_up('127.0.0.1', 9000))
+
+            client.make_bucket("my-bucket")
+
+            with connect(crate_node.http_url) as conn:
+                c = conn.cursor()
+                c.execute('CREATE TABLE t1 (x int)')
+                c.execute('INSERT INTO t1 (x) VALUES (1), (2), (3)')
+                c.execute('REFRESH TABLE t1')
+
+                c.execute("""
+                    COPY t1 TO DIRECTORY 's3://minio:miniostorage%2F@127.0.0.1:9000/my-bucket/key' WITH (protocol = 'http')
+                """)
+                c.execute('CREATE TABLE r1 (x int)')
+                c.execute("""
+                    COPY r1 FROM 's3://minio:miniostorage%2F@127.0.0.1:9000/my-bucket/k*y/*' WITH (protocol = 'http')
+                """)
+                c.execute('REFRESH TABLE r1')
+
+                c.execute('SELECT x FROM r1 order by x')
+                result = c.fetchall()
+                self.assertEqual(result, [[1],[2],[3]])
+
+                c.execute("""
+                    COPY r1 FROM ['s3://minio:miniostorage%2F@127.0.0.1:9000/my-bucket/key/t1_0_.json',
+                    's3://minio:miniostorage%2F@127.0.0.1:9000/my-bucket/key/t1_1_.json',
+                    's3://minio:miniostorage%2F@127.0.0.1:9000/my-bucket/key/t1_2_.json',
+                    's3://minio:miniostorage%2F@127.0.0.1:9000/my-bucket/key/t1_3_.json'] WITH (protocol = 'http')
+                """)
+                c.execute('REFRESH TABLE r1')
+
+                c.execute('SELECT x FROM r1 order by x')
+                result = c.fetchall()
+                self.assertEqual(result, [[1],[1],[2],[2],[3],[3]])
+
+                c.execute('DROP TABLE t1')
+                c.execute('DROP TABLE r1')
+
+    def test_anonymous_read_write(self):
+        client = Minio('127.0.0.1:9000',
+                       access_key = MinioServer.MINIO_ACCESS_KEY,
+                       secret_key = MinioServer.MINIO_SECRET_KEY,
+                       region = "myRegion",
+                       secure = False)
+
+        with MinioServer() as minio:
+            t = threading.Thread(target=minio.run)
+            t.daemon = True
+            t.start()
+            wait_until(lambda: _is_up('127.0.0.1', 9000))
+
+            client.make_bucket("my.bucket")
+
+            # https://docs.min.io/docs/python-client-api-reference.html#set_bucket_policy
+            # Example anonymous read-write bucket policy.
+            policy = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"AWS": "*"},
+                        "Action": [
+                            "s3:GetBucketLocation",
+                            "s3:ListBucket",
+                            "s3:ListBucketMultipartUploads",
+                        ],
+                        "Resource": "arn:aws:s3:::my.bucket",
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"AWS": "*"},
+                        "Action": [
+                            "s3:GetObject",
+                            "s3:PutObject",
+                            "s3:DeleteObject",
+                            "s3:ListMultipartUploadParts",
+                            "s3:AbortMultipartUpload",
+                        ],
+                        "Resource": "arn:aws:s3:::my.bucket/*",
+                    },
+                ],
+            }
+            client.set_bucket_policy("my.bucket", json.dumps(policy))
+
+            with connect(crate_node.http_url) as conn:
+                c = conn.cursor()
+                c.execute('CREATE TABLE t1 (x int)')
+                c.execute('INSERT INTO t1 (x) VALUES (1), (2), (3)')
+                c.execute('REFRESH TABLE t1')
+
+                c.execute("""
+                    COPY t1 TO DIRECTORY 's3://127.0.0.1:9000/my.bucket/' WITH (protocol = 'http')
+                """)
+                c.execute("""
+                    COPY t1 FROM 's3://127.0.0.1:9000/my.bucket/*' WITH (protocol = 'http')
+                """)
+                c.execute('REFRESH TABLE t1')
+
+                c.execute('SELECT x FROM t1 order by x')
+                result = c.fetchall()
+                self.assertEqual(result, [[1],[1],[2],[2],[3],[3]]) # two sets because copied to/from the same table
+
+                c.execute('DROP TABLE t1')

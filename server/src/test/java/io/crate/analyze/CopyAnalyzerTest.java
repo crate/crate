@@ -41,6 +41,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -224,13 +225,6 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(analysis.uri(), isLiteral("/blah"));
         assertThat(analysis.compressionType(), is(WriterProjection.CompressionType.GZIP));
-    }
-
-    @Test
-    public void testCopyToFileWithUnknownParams() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("setting 'foo' not supported");
-        analyze("COPY users TO DIRECTORY '/blah' WITH (foo='gzip')");
     }
 
     @Test

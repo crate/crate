@@ -29,6 +29,7 @@ import io.crate.execution.dsl.projection.Projection;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -48,6 +49,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
     private final Boolean sharedStorage;
     private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
     private final InputFormat inputFormat;
+    private final Settings withClauseOptions;
 
     public FileUriCollectPhase(UUID jobId,
                                int phaseId,
@@ -59,7 +61,8 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
                                String compression,
                                Boolean sharedStorage,
                                CopyFromParserProperties parserProperties,
-                               InputFormat inputFormat) {
+                               InputFormat inputFormat,
+                               Settings withClauseOptions) {
         super(jobId, phaseId, name, projections);
         this.executionNodes = executionNodes;
         this.targetUri = targetUri;
@@ -69,6 +72,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
         outputTypes = extractOutputTypes(toCollect, projections);
+        this.withClauseOptions = withClauseOptions;
     }
 
     public enum InputFormat {
@@ -131,6 +135,11 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         } else {
             parserProperties = CopyFromParserProperties.DEFAULT;
         }
+        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
+            withClauseOptions = Settings.readSettingsFromStream(in);
+        } else {
+            withClauseOptions = Settings.EMPTY;
+        }
     }
 
     @Override
@@ -148,6 +157,9 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         if (out.getVersion().onOrAfter(Version.V_4_4_0)) {
             parserProperties.writeTo(out);
         }
+        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
+            Settings.writeSettingsToStream(withClauseOptions, out);
+        }
     }
 
     @Nullable
@@ -163,6 +175,10 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
     @Override
     public void distributionInfo(DistributionInfo distributionInfo) {
         this.distributionInfo = distributionInfo;
+    }
+
+    public Settings withClauseOptions() {
+        return withClauseOptions;
     }
 
     @Override
@@ -184,7 +200,8 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
                Objects.equals(compression, that.compression) &&
                Objects.equals(sharedStorage, that.sharedStorage) &&
                Objects.equals(distributionInfo, that.distributionInfo) &&
-               inputFormat == that.inputFormat;
+               inputFormat == that.inputFormat &&
+               Objects.equals(withClauseOptions, that.withClauseOptions);
     }
 
     @Override
@@ -198,7 +215,8 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
             compression,
             sharedStorage,
             distributionInfo,
-            inputFormat);
+            inputFormat,
+            withClauseOptions);
     }
 
     @Override
@@ -212,6 +230,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
                ", sharedStorage=" + sharedStorage +
                ", distributionInfo=" + distributionInfo +
                ", inputFormat=" + inputFormat +
+               ", withClauseOptions{" + withClauseOptions.toString() +
                '}';
     }
 }

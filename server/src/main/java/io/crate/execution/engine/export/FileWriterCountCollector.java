@@ -32,6 +32,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.metadata.ColumnIdent;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -85,7 +86,8 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
                              Map<ColumnIdent, Object> overwrites,
                              @Nullable List<String> outputNames,
                              WriterProjection.OutputFormat outputFormat,
-                             Map<String, FileOutputFactory> fileOutputFactories) {
+                             Map<String, FileOutputFactory> fileOutputFactories,
+                             Settings withClauseOptions) {
         this.executor = executor;
         this.collectExpressions = collectExpressions;
         this.inputs = inputs;
@@ -104,7 +106,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         if (fileOutputFactory == null) {
             throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", scheme));
         }
-        fileOutput = fileOutputFactory.create();
+        fileOutput = fileOutputFactory.create(withClauseOptions);
         this.rowWriter = initWriter();
     }
 

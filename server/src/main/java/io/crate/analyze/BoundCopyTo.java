@@ -25,6 +25,7 @@ import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -50,6 +51,8 @@ public class BoundCopyTo {
      */
     private final Map<ColumnIdent, Symbol> overwrites;
 
+    private final Settings withClauseOptions;
+
     public BoundCopyTo(List<Symbol> outputs,
                        DocTableInfo table,
                        WhereClause whereClause,
@@ -58,7 +61,8 @@ public class BoundCopyTo {
                        @Nullable WriterProjection.OutputFormat outputFormat,
                        @Nullable List<String> outputNames,
                        boolean columnsDefined,
-                       @Nullable Map<ColumnIdent, Symbol> overwrites) {
+                       @Nullable Map<ColumnIdent, Symbol> overwrites,
+                       Settings withClauseOptions) {
         this.outputs = outputs;
         this.table = table;
         this.whereClause = whereClause;
@@ -68,6 +72,7 @@ public class BoundCopyTo {
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
         this.overwrites = Objects.requireNonNullElse(overwrites, Map.of());
+        this.withClauseOptions = withClauseOptions;
     }
 
     public List<Symbol> outputs() {
@@ -107,5 +112,9 @@ public class BoundCopyTo {
 
     public Map<ColumnIdent, Symbol> overwrites() {
         return overwrites;
+    }
+
+    public Settings withClauseOptions() {
+        return withClauseOptions;
     }
 }

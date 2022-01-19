@@ -383,7 +383,8 @@ public class ProjectionToProjectorVisitor
             overwrites,
             projection.outputNames(),
             projection.outputFormat(),
-            fileOutputFactoryMap
+            fileOutputFactoryMap,
+            projection.withClauseOptions()
         );
     }
 

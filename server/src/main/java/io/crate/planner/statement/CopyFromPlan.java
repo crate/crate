@@ -304,7 +304,8 @@ public final class CopyFromPlan implements Plan {
             boundedCopyFrom.settings().get("compression", null),
             boundedCopyFrom.settings().getAsBoolean("shared", null),
             CopyFromParserProperties.of(boundedCopyFrom.settings()),
-            boundedCopyFrom.inputFormat()
+            boundedCopyFrom.inputFormat(),
+            boundedCopyFrom.settings()
         );
 
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, -1, null);

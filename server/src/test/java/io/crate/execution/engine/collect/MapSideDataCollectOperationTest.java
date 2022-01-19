@@ -33,6 +33,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -83,7 +84,8 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             null,
             false,
             CopyFromParserProperties.DEFAULT,
-            FileUriCollectPhase.InputFormat.JSON
+            FileUriCollectPhase.InputFormat.JSON,
+            Settings.EMPTY
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         CollectTask collectTask = mock(CollectTask.class);

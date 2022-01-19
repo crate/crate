@@ -33,11 +33,13 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.Matchers.instanceOf;
@@ -89,7 +91,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyFromPlanWithParameters() {
         Collect collect = plan("copy users " +
-                               "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true, fail_fast = true)");
+                               "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true, fail_fast = true, protocol = 'http')");
         assertThat(collect.collectPhase(), instanceOf(FileUriCollectPhase.class));
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) collect.collectPhase();
@@ -98,6 +100,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.compression(), is("gzip"));
         assertThat(collectPhase.sharedStorage(), is(true));
         assertThat(indexWriterProjection.failFast(), is(true));
+        assertThat(collectPhase.withClauseOptions().get("protocol"), is("http"));
 
         // verify defaults:
         collect = plan("copy users from '/path/to/file.ext'");
@@ -106,6 +109,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.compression(), is(nullValue()));
         assertThat(collectPhase.sharedStorage(), is(nullValue()));
         assertThat(indexWriterProjection.failFast(), is(false));
+        assertThat(collectPhase.withClauseOptions(), is(Settings.EMPTY));
     }
 
     @Test

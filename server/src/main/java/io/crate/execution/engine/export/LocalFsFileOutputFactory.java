@@ -21,11 +21,14 @@
 
 package io.crate.execution.engine.export;
 
+import org.elasticsearch.common.settings.Settings;
+
 public class LocalFsFileOutputFactory implements FileOutputFactory {
     public static final String NAME = "file";
 
     @Override
-    public FileOutput create() {
+    public FileOutput create(Settings withClauseOptions) {
         return new LocalFsFileOutput();
     }
+
 }
