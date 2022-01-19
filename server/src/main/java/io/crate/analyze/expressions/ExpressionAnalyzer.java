@@ -41,8 +41,7 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.collect.Lists;
-
+import io.crate.common.collections.Lists2;
 import io.crate.expression.scalar.ArraySliceFunction;
 import io.crate.sql.tree.ArraySliceExpression;
 import org.joda.time.Period;
@@ -850,7 +849,7 @@ public class ExpressionAnalyzer {
                 base = subscript.base();
                 reversedPath.add(subscript.field());
             }
-            List<String> path = Lists.reverse(reversedPath);
+            List<String> path = Lists2.reverse(reversedPath);
             if (base instanceof QualifiedNameReference) {
                 QualifiedName name = ((QualifiedNameReference) base).getName();
                 try {

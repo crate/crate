@@ -25,8 +25,11 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.StringJoiner;
 import java.util.function.Function;
@@ -316,6 +319,205 @@ public final class Lists2 {
         @Override
         public int size() {
             return list.size();
+        }
+    }
+
+    public static <T> List<T> reverse(List<T> list) {
+        if (list instanceof Lists2.ReverseList) {
+            return ((Lists2.ReverseList<T>) list).getForwardList();
+        } else if (list instanceof RandomAccess) {
+            return new Lists2.RandomAccessReverseList<>(list);
+        } else {
+            return new Lists2.ReverseList<>(list);
+        }
+    }
+
+    /**
+     * Based on https://github.com/google/guava/blob/master/guava/src/com/google/common/collect/Lists.java#L824
+     */
+    private static class ReverseList<T> extends AbstractList<T> {
+        private final List<T> forwardList;
+
+        ReverseList(List<T> forwardList) {
+            this.forwardList = Objects.requireNonNull(forwardList);
+        }
+
+        List<T> getForwardList() {
+            return forwardList;
+        }
+
+        private int reverseIndex(int index) {
+            int size = size();
+            Objects.checkIndex(index, size);
+            return (size - 1) - index;
+        }
+
+        private int reversePosition(int index) {
+            int size = size();
+            Objects.checkIndex(index, size);
+            return size - index;
+        }
+
+        @Override
+        public void add(int index, @Nullable T element) {
+            forwardList.add(reversePosition(index), element);
+        }
+
+        @Override
+        public void clear() {
+            forwardList.clear();
+        }
+
+        @Override
+        public T remove(int index) {
+            return forwardList.remove(reverseIndex(index));
+        }
+
+        @Override
+        protected void removeRange(int fromIndex, int toIndex) {
+            subList(fromIndex, toIndex).clear();
+        }
+
+        @Override
+        public T set(int index, @Nullable T element) {
+            return forwardList.set(reverseIndex(index), element);
+        }
+
+        @Override
+        public T get(int index) {
+            return forwardList.get(reverseIndex(index));
+        }
+
+        @Override
+        public int size() {
+            return forwardList.size();
+        }
+
+        @Override
+        public List<T> subList(int fromIndex, int toIndex) {
+            Objects.checkFromToIndex(fromIndex, toIndex, size());
+            return reverse(forwardList.subList(reversePosition(toIndex), reversePosition(fromIndex)));
+        }
+
+        @Override
+        public Iterator<T> iterator() {
+            return listIterator();
+        }
+
+        @Override
+        public ListIterator<T> listIterator(int index) {
+            int start = reversePosition(index);
+            final ListIterator<T> forwardIterator = forwardList.listIterator(start);
+            return new ListIterator<T>() {
+
+                boolean canRemoveOrSet;
+
+                @Override
+                public void add(T e) {
+                    forwardIterator.add(e);
+                    forwardIterator.previous();
+                    canRemoveOrSet = false;
+                }
+
+                @Override
+                public boolean hasNext() {
+                    return forwardIterator.hasPrevious();
+                }
+
+                @Override
+                public boolean hasPrevious() {
+                    return forwardIterator.hasNext();
+                }
+
+                @Override
+                public T next() {
+                    if (!hasNext()) {
+                        throw new NoSuchElementException();
+                    }
+                    canRemoveOrSet = true;
+                    return forwardIterator.previous();
+                }
+
+                @Override
+                public int nextIndex() {
+                    return reversePosition(forwardIterator.nextIndex());
+                }
+
+                @Override
+                public T previous() {
+                    if (!hasPrevious()) {
+                        throw new NoSuchElementException();
+                    }
+                    canRemoveOrSet = true;
+                    return forwardIterator.next();
+                }
+
+                @Override
+                public int previousIndex() {
+                    return nextIndex() - 1;
+                }
+
+                @Override
+                public void remove() {
+                    assert (canRemoveOrSet);
+                    forwardIterator.remove();
+                    canRemoveOrSet = false;
+                }
+
+                @Override
+                public void set(T e) {
+                    assert (canRemoveOrSet);
+                    forwardIterator.set(e);
+                }
+            };
+        }
+    }
+
+    private static class RandomAccessReverseList<T> extends Lists2.ReverseList<T> implements RandomAccess {
+        RandomAccessReverseList(List<T> forwardList) {
+            super(forwardList);
+        }
+    }
+
+    public static <T> List<List<T>> partition(List<T> list, int size) {
+        Objects.requireNonNull(list);
+        Objects.checkIndex(0, size);
+        return (list instanceof RandomAccess)
+            ? new Lists2.RandomAccessPartition<>(list, size)
+            : new Lists2.Partition<>(list, size);
+    }
+
+    private static class Partition<T> extends AbstractList<List<T>> {
+        final List<T> list;
+        final int size;
+
+        Partition(List<T> list, int size) {
+            this.list = list;
+            this.size = size;
+        }
+
+        @Override
+        public List<T> get(int index) {
+            Objects.checkIndex(index, size());
+            int start = index * size;
+            int end = Math.min(start + size, list.size());
+            return list.subList(start, end);
+        }
+
+        @Override
+        public int size() {
+            return (int) Math.ceil((double) list.size() / (double) size);
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return list.isEmpty();
+        }
+    }
+
+    private static class RandomAccessPartition<T> extends Lists2.Partition<T> implements RandomAccess {
+        RandomAccessPartition(List<T> list, int size) {
+            super(list, size);
         }
     }
 }

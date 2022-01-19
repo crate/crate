@@ -22,7 +22,7 @@
 package io.crate.execution.engine.sort;
 
 import io.crate.common.collections.Iterables;
-import com.google.common.collect.Lists;
+import io.crate.common.collections.Lists2;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -46,7 +46,7 @@ public final class Sort {
             list.sort(comparator);
             return completedFuture(list);
         }
-        List<List<T>> partitions = Lists.partition(list, itemsPerThread);
+        List<List<T>> partitions = Lists2.partition(list, itemsPerThread);
         ArrayList<CompletableFuture<List<T>>> futures = new ArrayList<>(partitions.size());
         for (List<T> partition : partitions) {
             futures.add(supplyAsync(() -> {
