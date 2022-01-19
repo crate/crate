@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar.timestamp;
 
-import com.google.common.math.LongMath;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
@@ -30,7 +29,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
@@ -97,7 +95,7 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
             default:
                 throw new IllegalArgumentException("Precision must be between 0 and 3");
         }
-        return LongMath.divide(millis, factor, RoundingMode.DOWN) * factor;
+        return Math.floorDiv(millis, factor) * factor;
     }
 
     @Override
