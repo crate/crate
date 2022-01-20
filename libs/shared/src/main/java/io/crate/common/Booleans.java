@@ -21,6 +21,9 @@
 
 package io.crate.common;
 
+import java.util.List;
+import java.util.Objects;
+
 public final class Booleans {
 
     private Booleans() {
@@ -121,5 +124,23 @@ public final class Booleans {
      */
     public static boolean isTrue(String value) {
         return "true".equals(value);
+    }
+
+    /**
+     * Converts a list of {@code Boolean} instances into a new array of primitive {@code boolean}
+     * values.
+     *
+     * @param input a list of {@code Boolean} objects
+     * @return an array containing the same values as {@code input}, in the same order, converted
+     *     to primitives
+     * @throws NullPointerException if {@code input} or any of its elements is null
+     */
+    public static boolean[] toArray(List<Boolean> input) {
+        int len = input.size();
+        boolean[] array = new boolean[len];
+        for (int i = 0; i < len; i++) {
+            array[i] = (Boolean) Objects.requireNonNull(input.get(i));
+        }
+        return array;
     }
 }

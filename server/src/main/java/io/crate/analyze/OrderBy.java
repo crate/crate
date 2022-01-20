@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import com.google.common.primitives.Booleans;
+import io.crate.common.Booleans;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
