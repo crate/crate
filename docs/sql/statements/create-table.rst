@@ -231,7 +231,7 @@ anything if the table exists already.
 =============
 
 The optional ``CLUSTERED`` clause specifies how a table should be distributed
-accross a cluster.
+across a cluster.
 
 ::
 

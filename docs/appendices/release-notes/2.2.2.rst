@@ -38,7 +38,7 @@ Fixes
 - Removed horizontal scroll from the console editor in the Admin UI.
 
 - Fixed an issue that cause the status bar of the Admin UI to show an error if
-  the user has an adblocker enabled.
+  the user has an Ad blocker enabled.
 
 - Fixed an issue that caused extra spaces to be added to the formatted console
   results in the Admin UI.

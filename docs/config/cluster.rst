@@ -155,7 +155,7 @@ Collecting stats
 
   .. NOTE::
 
-    If both setttings :ref:`stats.operations_log_size
+    If both settings :ref:`stats.operations_log_size
     <stats.operations_log_size>` and :ref:`stats.operations_log_expiration
     <stats.operations_log_expiration>` are disabled, no job information will be
     collected.
@@ -655,7 +655,7 @@ Routing allocation
    This allocation setting has no effect on the :ref:`recovery
    <gloss-shard-recovery>` of primary shards! Even when
    ``cluster.routing.allocation.enable`` is set to ``none``, nodes will recover
-   their unassigned local primary shards immediatelly after restart.
+   their unassigned local primary shards immediately after restart.
 
 .. _cluster.routing.rebalance.enable:
 
@@ -827,7 +827,7 @@ attribute awareness*.
   nodes with ``node.attr.zone`` set to ``zone1``. Then, create a table with
   five shards and one replica. The table will be created, but only five shards
   will be allocated (with no replicas). The replicas will only be allocated
-  when when we start one or more nodes with ``node.attr.zone`` set to
+  when we start one or more nodes with ``node.attr.zone`` set to
   ``zone2``.
 
 
@@ -1088,9 +1088,9 @@ keeps working.
   | *Runtime:*   ``yes``
 
   Specifies the limit for the query breaker. Provided values can either be
-  absolute values (interpreted as a number of bytes), byte sizes (eg. 1mb) or
-  percentage of the heap size (eg. 12%). A value of ``-1`` disables breaking
-  the circuit while still accounting memory usage.
+  absolute values (interpreted as a number of bytes), byte sizes (Like ``1mb``)
+  or percentage of the heap size (Like ``12%``). A value of ``-1`` disables
+  breaking the circuit while still accounting memory usage.
 
 .. _indices.breaker.query.overhead:
 

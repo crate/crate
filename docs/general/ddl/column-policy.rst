@@ -97,7 +97,7 @@ retrieve them, sort by them and use them in where clauses.
 
 .. WARNING::
 
-   The mapping update is processed asynchrously on multiple nodes. If a new
+   The mapping update is processed asynchronously on multiple nodes. If a new
    field gets added to the local mapping of two shards, these shards are
    sending their mapping to the master. If this mapping update gets delivered
    later than the next query on the previously added column, it will result in

@@ -52,7 +52,7 @@ Fixes
 -----
 
 - Fixed an issue that will prevent CrateDB from bootstrapping when running on
-  Java 8 and a javaagent is specificed using ``JAVA_OPTS`` or
+  Java 8 and a Java agent is specified using ``JAVA_OPTS`` or
   ``CRATE_JAVA_OPTS``.
 
 - Fixed an issue that prevented parameter placeholders from being resolved when
@@ -65,7 +65,7 @@ Fixes
   <gloss-operator>`, so that a statement like ``x::double / y::double`` applies
   both casts before the division.
 
-- Fixed an issue with the disk watermark sys checks which would incorrectly
+- Fixed an issue with the disk watermark ``sys`` checks which would incorrectly
   report all of them as failed if
   :ref:`cluster.routing.allocation.disk.threshold_enabled
   <cluster.routing.allocation.disk.threshold_enabled>` was set to false.

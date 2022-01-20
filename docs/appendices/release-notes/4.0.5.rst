@@ -50,7 +50,7 @@ See the :ref:`version_4.0.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Improved the help section of the admin-ui including the spanish translations.
+- Improved the help section of the admin-ui including the Spanish translations.
 
 - Fixed an issue in the admin-ui to no longer display all columns as being
   generated columns in the table/column view section.

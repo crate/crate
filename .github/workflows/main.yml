@@ -80,3 +80,17 @@ jobs:
       - name: Run linkcheck
         run: |
           sphinx-build -n -W --keep-going -q -c docs/ -b linkcheck -E docs/ docs/out/html
+
+
+  vale:
+    name: Vale
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run vale
+        uses: errata-ai/vale-action@3160f4797e8eed7775c76cb2563bdee5455b6d21
+        with:
+          files: docs/
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

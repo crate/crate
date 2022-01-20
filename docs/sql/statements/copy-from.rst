@@ -98,7 +98,7 @@ the source file. Furthermore CrateDB will only check for primary key duplicates
 but not for other :ref:`column_constraints` like ``NOT NULL``.
 
 For example a `WKT`_ string cannot be imported into a column of ``geo_shape``
-or ``geo_point`` type, since there is no implict cast to the `GeoJSON`_ format.
+or ``geo_point`` type, since there is no implicit cast to the `GeoJSON`_ format.
 
 .. NOTE::
 
@@ -122,7 +122,7 @@ Parameters
 .. _sql-copy-from-uri:
 
 ``uri``
-  An expression or or array of expressions. Each :ref:`expression
+  An expression or array of expressions. Each :ref:`expression
   <gloss-expression>` must :ref:`evaluate <gloss-evaluation>` to a string
   literal that is a `well-formed URI`_.
 
@@ -468,8 +468,8 @@ primary key already exists. Set to true to overwrite duplicate rows.
 ''''''''''''''''''''''''
 
 If set to ``true`` the ``empty_string_as_null`` option enables conversion of
-un-/quoted empty strings into ``NULL``. The default value is ``false`` meaning
-that no action will be taken on empty strings during the COPY FROM execution.
+empty strings into ``NULL``. The default value is ``false`` meaning that no
+action will be taken on empty strings during the COPY FROM execution.
 
 The option is only supported when using the ``CSV`` format, otherwise, it will
 be ignored.

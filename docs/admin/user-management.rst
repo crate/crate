@@ -4,7 +4,7 @@
 User management
 ===============
 
-User account information is stored in the cluster metatdata of CrateDB and
+User account information is stored in the cluster metadata of CrateDB and
 supports the following statements to create, alter and drop users:
 
     * `CREATE USER`_

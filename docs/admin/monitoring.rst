@@ -350,7 +350,7 @@ CircuitBreakers MXBean
 ----------------------
 
 The ``CircuitBreaker`` MXBean exposes statistical information about all
-availabe circuit breakers of a ``CrateDB`` node.
+available circuit breakers of a ``CrateDB`` node.
 
 It can be accessed using the ``io.crate.monitoring:type=CircuitBreakers`` object
 name and has following attributes:
@@ -359,12 +359,12 @@ name and has following attributes:
 | Name                 | Description                                              |
 +======================+==========================================================+
 | ``Parent``           | Statistics of the ``parent`` circuit breaker             |
-|                      | containing summarized counters accross all circuit       |
+|                      | containing summarized counters across all circuit        |
 |                      | breakers.                                                |
 +----------------------+----------------------------------------------------------+
 | ``Query``            | Statistics of the ``query`` circuit breaker used to      |
 |                      | account memory usage of SQL execution including          |
-|                      | intermediate states e.g. on aggreation and resulting     |
+|                      | intermediate states e.g. on aggregation and resulting    |
 |                      | rows.                                                    |
 +----------------------+----------------------------------------------------------+
 | ``JobsLog``          | Statistics of the ``jobs_log`` circuit breaker used to   |
@@ -383,7 +383,7 @@ name and has following attributes:
 |                      | on transport or HTTP level.                              |
 +----------------------+----------------------------------------------------------+
 | ``Request``          | Statistics of the ``request`` circuit breaker used to    |
-|                      | account memory usage of per-request data strucutre.      |
+|                      | account memory usage of per-request data structure.      |
 +----------------------+----------------------------------------------------------+
 
 Each of them returns a `CompositeData`_ object containing detailed statistics
@@ -400,7 +400,7 @@ of each circuit breaker with the following attributes:
 +------------------+------------------------------------------------------+
 | ``overhead``     | The configured overhead used to account estimations. |
 +------------------+------------------------------------------------------+
-| ``trippedCount`` | The total number of occured trips.                   |
+| ``trippedCount`` | The total number of occurred trips.                  |
 +------------------+------------------------------------------------------+
 
 Exposing JMX via HTTP

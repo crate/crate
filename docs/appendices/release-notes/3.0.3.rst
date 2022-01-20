@@ -55,7 +55,7 @@ Changes
 
 - Added settings ``s3.client.default.access_key`` and
   ``s3.client.default.secret_key`` which can be used to set default credentials
-  for s3 repositories, if they are not passed as parameters to the ``CREATE
+  for S3 repositories, if they are not passed as parameters to the ``CREATE
   REPOSITORY`` SQL statement.
 
 - Implemented a thread-utilization down-scaling logic which dynamically adapts
@@ -87,8 +87,8 @@ Fixes
   ``sys.operations_log`` tables when the related settings are changed while
   entries are written.
 
-- Fixed a dependecy issue with the bundled ``crash`` that caused the app to be
-  unable to connect to the server.
+- Fixed a dependency issue with the bundled ``crash`` that caused the
+  application to be unable to connect to the server.
 
 - Fixed an issue that could prevent PostgreSQL clients from receiving an error
   and therefore getting stuck.

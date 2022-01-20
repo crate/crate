@@ -239,7 +239,7 @@ P
     - If a table is partitioned by one column, a new partition is created for
       every unique value in that partition column
 
-    - If a table is partitoned by multiple columns, a new partition is created
+    - If a table is partitioned by multiple columns, a new partition is created
       for every unique combination of row values in those partition columns
 
     .. SEEALSO::

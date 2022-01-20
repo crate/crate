@@ -236,21 +236,21 @@ rows and has columns.
 .. _sql-select-sub-select:
 
 Subselect
-''''''''''
+'''''''''
 
 A ``subselect`` is another ``SELECT`` statement surrounded by parentheses with
 an alias:
 
 ::
 
-    ( select_stmt ) [ AS ] alias
+    ( select_statement ) [ AS ] alias
 
 The :ref:`subselect <gloss-subquery>` behaves like a temporary table that is
 :ref:`evaluated <gloss-evaluation>` at runtime. The clauses of the surrounding
 ``SELECT`` statements are applied on the result of the inner ``SELECT``
 statement.
 
-:select_stmt:
+:select_statement:
   A ``SELECT`` statement.
 
 :alias:
@@ -444,9 +444,9 @@ before the :ref:`window function <window-functions>` is applied.
 The optional ``LIMIT`` clause allows to limit the number of returned result
 rows::
 
-    LIMIT num_results
+    LIMIT number_of_results
 
-:num_results:
+:number_of_results:
   Specifies the maximum number of result rows to return.
 
 .. NOTE::

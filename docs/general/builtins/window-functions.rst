@@ -128,8 +128,8 @@ requires that there is exactly one ``ORDER BY`` column in the window
 definition. The frame contains those rows whose ordering column value is no
 more than ``offset`` minus (for ``PRECEDING``) or plus (for ``FOLLOWING``) the
 current row's ordering column value. Because the value of ``offset`` is
-substracted/added to the values of the ordering column, only type combinations
-that support addition/substraction operations are allowed. For instance, when
+subtracted/added to the values of the ordering column, only type combinations
+that support addition/subtraction operations are allowed. For instance, when
 the ordering column is of type :ref:`timestamp <type-timestamp>`, the
 ``offset`` expression can be an :ref:`interval <type-interval>`.
 

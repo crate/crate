@@ -32,7 +32,7 @@ Here's an example that uses all of the available arithmetic operators::
 Arithmetic operators always return the data type of the argument with the
 higher precision.
 
-In the case of devision, if both arguments are integers, the result will also
+In the case of division, if both arguments are integers, the result will also
 be an integer with the fractional part truncated::
 
     cr> select 5 / 2 AS a,  5 / 2.0 AS b;

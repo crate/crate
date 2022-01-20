@@ -42,5 +42,5 @@ Changes
 Fixes
 -----
 
-- Removed unnecessary invokation of non-existent syscall that caused CrateDB to
-  crash on startup with certain Ubuntu kernel versions.
+- Removed unnecessary invocation of non-existent ``syscall`` that caused
+  CrateDB to crash on startup with certain Ubuntu kernel versions.

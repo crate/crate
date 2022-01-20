@@ -38,6 +38,6 @@ Fixes
 - Fixed an issue that allowed users to create a self-referencing view which
   broke any further operations accessing table meta data.
 
-- Prevent dropping of a UDF if it is still used inside inside any
+- Prevent dropping of a UDF if it is still used inside any
   :ref:`generated column expressions <ddl-generated-columns-expressions>`,
   throw an error instead.

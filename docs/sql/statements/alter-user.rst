@@ -25,7 +25,7 @@ Description
 ===========
 
 ``ALTER USER`` applies a change to existing database users. Only existing
-superusers or the user itself have the priviledge to alter an existing database
+superusers or the user itself have the privilege to alter an existing database
 user.
 
 

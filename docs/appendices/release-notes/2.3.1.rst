@@ -55,10 +55,10 @@ Fixes
     but is now resolved to
       SELECT to_float(round(float_col)) + 1.1
 
-- Ensured natural order of config keys for Host Based Authentication.
+- Ensured natural order of configuration keys for Host Based Authentication.
 
 - Fixed encoding/decoding of ``Timestamp`` type for PostgreSQL wire protocol to
-  support Golang psql drivers.
+  support Golang ``psql`` drivers.
 
 - Fixed an Admin UI issue that caused the ``Cluster`` tab to not be loaded
   correctly.

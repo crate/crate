@@ -1,0 +1,17 @@
+extends: substitution
+message: Prefer '%s' over '%s'
+ignorecase: false
+level: warning
+swap:
+  sql: SQL
+  postgres: PostgreSQL
+  Postgres: PostgreSQL
+  hdfs: HDFS
+  uri: URI
+  acl: ACL
+  subfields: subcolumns
+  https: HTTPS
+  jdbc: JDBC
+  Github: GitHub
+  Hotspot: HotSpot
+  hotspot: HotSpot

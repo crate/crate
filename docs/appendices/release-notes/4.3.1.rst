@@ -52,7 +52,7 @@ Fixes
 - Fixed an issue that could lead to a ``IndexShardClosedException`` when
   querying the ``sys.shards`` table.
 
-- Fixed an issue that led to a spike in the snapshot threadpool queue when
+- Fixed an issue that led to a spike in the snapshot thread pool queue when
   taking snapshots.
 
 - Fixed an issue that caused an error when a client using the PostgreSQL

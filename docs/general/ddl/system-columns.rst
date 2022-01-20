@@ -11,7 +11,7 @@ and might contain underscores in between.
 
 .. _sql_administration_system_column_version:
 
-_version
+``_version``
   CrateDB uses an internal versioning for every row, the version number is
   increased on every write.
 
@@ -25,7 +25,7 @@ _version
 
 .. _sql_administration_system_columns_seq_no:
 
-_seq_no
+``_seq_no``
   The CrateDB primary shards will increment a sequence number for every insert,
   update and delete operation executed against a row. The current sequence
   number of a row is exposed under this column. This column can be used in
@@ -35,7 +35,7 @@ _seq_no
 
 .. _sql_administration_system_columns_primary_term:
 
-_primary_term
+``_primary_term``
   The sequence numbers give us an order of operations that happen at a primary
   shard, but they don't help us distinguish between old and new primaries. For
   example, if a primary is isolated in a minority partition, a possible up to
@@ -54,7 +54,7 @@ _primary_term
 
 .. _sql_administration_system_column_score:
 
-_score
+``_score``
   This internal system column is available on all documents retrieved by a
   ``SELECT`` query. It is representing the scoring ratio of the document
   related to the used query filter and makes most sense on fulltext searches.
@@ -67,7 +67,7 @@ _score
 
 .. _sql_administration_system_column_id:
 
-_id
+``_id``
   ``_id`` is an internal system column that is available on each indexed
   document and can be retrieved by a ``SELECT`` query from doc schema tables.
 
@@ -80,7 +80,7 @@ _id
 .. _Optimistic Concurrency Control: https://en.wikipedia.org/wiki/Optimistic_concurrency_control
 
 
-_docid
+``_docid``
   ``_docid`` exposes the internal id a document has within a Lucene segment.
   Although the id is unique within a segment, it is not unique across segments
   or shards and can change the value in case segments are merged.

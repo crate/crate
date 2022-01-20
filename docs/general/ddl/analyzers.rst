@@ -62,7 +62,7 @@ Built-in analyzers
 ``type='standard'``
 
 An analyzer of type standard is built using the :ref:`standard-tokenizer`
-Tokenizer with the :ref:`standard-tokenfilter` Token Filter,
+tokenizer with the :ref:`standard-tokenfilter` Token Filter,
 :ref:`lowercase-tokenfilter` Token Filter, and :ref:`stop-tokenfilter` Token
 Filter.
 
@@ -146,8 +146,8 @@ stopwords
     Defaults to the english stop words.
 
 stopwords_path
-    A path (either relative to config location, or absolute) to a stopwords
-    file configuration.
+    A path (either relative to configuration location, or absolute) to a
+    stopwords file configuration.
 
 .. _keyword-analyzer:
 
@@ -184,7 +184,7 @@ flags
    The regular expression should match the token separators, not the tokens
    themselves.
 
-Flags should be pipe-separated, eg ``CASE_INSENSITIVE|COMMENTS``. Check `Java
+Flags should be pipe-separated, e.g. ``CASE_INSENSITIVE|COMMENTS``. Check `Java
 Pattern API`_ for more details about flags options.
 
 .. _language-analyzer:
@@ -210,8 +210,8 @@ stopwords
     english stop words.
 
 stopwords_path
-    A path (either relative to config location, or absolute) to a stopwords
-    file configuration.
+    A path (either relative to configuration location, or absolute) to a
+    stopwords file configuration.
 
 stem_exclusion
     The stem_exclusion parameter allows you to specify an array of lowercase words
@@ -253,7 +253,7 @@ language
 
 The fingerprint analyzer implements a fingerprinting algorithm which is used by
 the OpenRefine project to assist in clustering. Input text is lowercased,
-normalized to remove extended characters, sorted, deduplicated and concatenated
+normalized to remove extended characters, sorted, de-duplicated and concatenated
 into a single token. If a stopword list is configured, stop words will also be
 removed. It uses the :ref:`standard-tokenizer` tokenizer and the following
 filters: :ref:`lowercase-tokenfilter`, :ref:`asciifolding-tokenfilter`,
@@ -334,7 +334,7 @@ Letter tokenizer
 
 ``type='letter'``
 
-The ``letter`` tokenzier splits text at non-letters.
+The ``letter`` tokenizer splits text at non-letters.
 
 .. _lowercase-tokenizer:
 
@@ -370,7 +370,7 @@ UAX URL email tokenizer
 ``type='uax_url_email'``
 
 The ``uax_url_email`` tokenizer behaves like the :ref:`standard-tokenizer`, but
-tokenizes emails and urls as single tokens.
+tokenizes emails and URLs as single tokens.
 
 .. rubric:: Parameters
 
@@ -463,7 +463,7 @@ group
    The regular expression should match the token separators, not the tokens
    themselves.
 
-Flags should be pipe-separated, eg ``CASE_INSENSITIVE|COMMENTS``. Check `Java
+Flags should be pipe-separated, e.g. ``CASE_INSENSITIVE|COMMENTS``. Check `Java
 Pattern API`_ for more details about flags options.
 
 .. _simple_pattern-tokenizer:
@@ -625,7 +625,7 @@ Normalizes token text to lower case.
 .. rubric:: Parameters
 
 language
-    For options, see :ref:`language-analyzer` Analyzer.
+    For options, see :ref:`language-analyzer` analyzer.
 
 .. _ngram-tokenfilter:
 
@@ -723,9 +723,9 @@ stopwords
     A list of stop words to use. Defaults to english stop words.
 
 stopwords_path
-    A path (either relative to config location, or absolute) to a stopwords
-    file configuration. Each stop word should be in its own "line" (separated
-    by a line break). The file must be UTF-8 encoded.
+    A path (either relative to configuration location, or absolute) to a
+    stopwords file configuration. Each stop word should be in its own "line"
+    (separated by a line break). The file must be UTF-8 encoded.
 
 ignore_case
     Set to true to lower case all words first. Defaults to false.
@@ -755,8 +755,8 @@ generate_number_parts
     Defaults to true.
 
 catenate_words
-    If true causes maximum runs of word parts to be catenated: "wi-fi" ⇒
-    "wifi". Defaults to false.
+    If true causes maximum runs of word parts to be catenated: ``wi-fi`` ⇒
+    ``wifi``. Defaults to false.
 
 catenate_numbers
     If true causes maximum runs of number parts to be catenated: "500-42" ⇒
@@ -775,7 +775,7 @@ preserve_original
     "42". Defaults to false.
 
 split_on_numerics
-    If true causes "j2se" to be three tokens; "j" "2" "se". Defaults to true.
+    If true causes ``j2se`` to be three tokens; ``j`` ``2`` ``se``. Defaults to true.
 
 stem_english_possessive
     If true causes trailing "'s" to be removed for each subword: "O'Neil's" ⇒
@@ -804,6 +804,8 @@ more options).
 
 .. rubric:: Parameters
 
+.. vale off
+
 language/name
     arabic, armenian, basque, brazilian, bulgarian, catalan, czech, danish,
     dutch, english, finnish, french, german, german2, greek, hungarian,
@@ -813,6 +815,8 @@ language/name
     light_german, minimal_german, hindi, light_hungarian, indonesian,
     light_italian, light_portuguese, minimal_portuguese, portuguese,
     light_russian, light_spanish, light_swedish.
+
+.. vale on
 
 .. _keywordmarker-tokenfilter:
 
@@ -830,8 +834,8 @@ keywords
     A list of words to use.
 
 keywords_path
-    A path (either relative to config location, or absolute) to a list of
-    words.
+    A path (either relative to configuration location, or absolute) to a list
+    of words.
 
 ignore_case
     Set to true to lower case all words first. Defaults to false.
@@ -859,11 +863,15 @@ A filter that stems words using a Snowball-generated stemmer.
 
 .. rubric:: Parameters
 
+.. vale off
+
 language
     Possible values: Armenian, Basque, Catalan, Danish, Dutch, English,
     Finnish, French, German, German2, Hungarian, Italian, Kp, Lovins,
     Norwegian, Porter, Portuguese, Romanian, Russian, Spanish, Swedish,
     Turkish.
+
+.. vale on
 
 .. _synonym-tokenfilter:
 
@@ -878,7 +886,8 @@ configured using a file in the Solr/WordNet synonym format.
 .. rubric:: Parameters
 
 synonyms_path
-    Path to synonyms configuration file, relative to the config directory.
+    Path to synonyms configuration file, relative to the configuration
+    directory.
 
 ignore_case
     Defaults to ``false``
@@ -901,8 +910,8 @@ word_list
     A list of words to use.
 
 word_list_path
-    A path (either relative to config location, or absolute) to a list of
-    words.
+    A path (either relative to configuration location, or absolute) to a list
+    of words.
 
 min_word_size
     Minimum word size(Integer). Defaults to 5.
@@ -1046,6 +1055,8 @@ expected to have its own directory named after its associated locale
 
 .. rubric:: Parameters
 
+.. vale off
+
 ignore_case
     If true, dictionary matching will be case insensitive (defaults to false)
 
@@ -1069,6 +1080,8 @@ recursion_level
     languages (for example czech) give better results when set to 1 or 0, so
     you should test it out.
 
+.. vale on
+
 .. _commongrams-tokenfilter:
 
 ``common_grams``
@@ -1076,7 +1089,7 @@ recursion_level
 
 ``type='common_grams'``
 
-Generates bigrams for frequently occuring terms. Single terms are still
+Generates bigrams for frequently occurring terms. Single terms are still
 indexed. It can be used as an alternative to the :ref:`stop-tokenfilter` Token
 filter when we don't want to completely ignore common terms.
 
@@ -1086,8 +1099,8 @@ common_words
     A list of common words to use.
 
 common_words_path
-    A path (either relative to config location, or absolute) to a list of
-    common words. Each word should be in its own "line" (separated by a line
+    A path (either relative to configuration location, or absolute) to a list
+    of common words. Each word should be in its own "line" (separated by a line
     break). The file must be UTF-8 encoded.
 
 ignore_case
@@ -1113,6 +1126,8 @@ Normalizes special characters of several languages.
 
 Available languages:
 
+.. vale off
+
 * arabic
 * bengali
 * german
@@ -1123,6 +1138,8 @@ Available languages:
 * serbian
 * sorani
 
+.. vale on
+
 .. _scandinavian-folding-tokenfilter:
 
 ``scandinavian_folding``
@@ -1130,10 +1147,10 @@ Available languages:
 
 ``type='scandinavian_folding'``
 
-*Folds* scandinavian characters like ``ø`` to ``o`` or ``å`` to ``a``.
+*Folds* Scandinavian characters like ``ø`` to ``o`` or ``å`` to ``a``.
 
 Though this might result in different words, it is easier to match different
-scandinavian languages using this folding algorithm.
+Scandinavian languages using this folding algorithm.
 
 .. _delimited_payload-tokenfilter:
 
@@ -1175,8 +1192,8 @@ keep_words
     A list of words to keep and index as tokens.
 
 keep_words_path
-    A path (either relative to config location, or absolute) to a list of words
-    to keep and index.
+    A path (either relative to configuration location, or absolute) to a list
+    of words to keep and index.
 
     Each word should be in its own "line" (separated by a line break). The file
     must be UTF-8 encoded.
@@ -1267,7 +1284,7 @@ A token filter that drops identical tokens at the same position.
 --------------
 
 A token filter which converts tokens to their phonetic representation using
-Soundex, Metaphone, and a variety of other algorithms.
+``Soundex``, ``Metaphone``, and a variety of other algorithms.
 
 .. rubric:: Parameters
 
@@ -1302,8 +1319,8 @@ If the ``double_metaphone`` encoder is used, then this additional parameter is s
 
 .. rubric:: Parameters
 
-max_code_len
-    The maximum length of the emitted metaphone token. Defaults to ``4``.
+``max_code_len``
+    The maximum length of the emitted ``metaphone`` token. Defaults to ``4``.
 
 ``beider_morse``
 ~~~~~~~~~~~~~~~~
@@ -1312,13 +1329,13 @@ If the ``beider_morse`` encoder is used, then these additional parameters are su
 
 .. rubric:: Parameters
 
-rule_type
+``rule_type``
     Whether matching should be ``exact`` or ``approx`` (default).
 
-name_type
+``name_type``
     Whether names are ``ashkenazi``, ``sephardic``, or ``generic`` (default).
 
-languageset
+``languageset``
     An array of languages to check. If not specified, then the language will be
     guessed. Accepts: ``any``, ``common``, ``cyrillic``, ``english``,
     ``french``, ``german``, ``hebrew``, ``hungarian``, ``polish``, ``romanian``,
@@ -1403,10 +1420,10 @@ hash_count
     The number of hashes to hash the token stream with. Defaults to ``1``.
 
 bucket_count
-    The number of buckets to divide the minhashes into. Defaults to ``512``.
+    The number of buckets to divide the min hashes into. Defaults to ``512``.
 
 hash_set_size
-    The number of minhashes to keep per bucket. Defaults to ``1``.
+    The number of min hashes to keep per bucket. Defaults to ``1``.
 
 with_rotation
     Whether or not to fill empty buckets with the value of the first non-empty
@@ -1423,7 +1440,7 @@ with_rotation
 
  Emits a single token which is useful for fingerprinting a body of text, and/or
  providing a token that can be clustered on. It does this by sorting the
- tokens, deduplicating and then concatenating them back into a single token.
+ tokens, de-duplicating and then concatenating them back into a single token.
 
 .. rubric:: Parameters
 

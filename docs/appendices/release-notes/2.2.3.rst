@@ -35,7 +35,7 @@ Changelog
 Fixes
 -----
 
-- The download url, in the notifications section of the admin UI, now links to
+- The download URL, in the notifications section of the admin UI, now links to
   the stable CrateDB version.
 
 - Replica shards in the ``UNASSIGNED`` row of the *Shards* view of the Admin UI

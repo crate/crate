@@ -10,8 +10,10 @@ and :ref:`RESET <ref-set>` statement. See the :ref:`Cluster Settings
 settings.
 
 If :ref:`SET <ref-set>` is used with ``PERSISTENT`` the change will survive a
-cluster restart, if used with ``TRANSIENT`` the value will be restored to
-default or config file value on a restart::
+cluster restart, if used with ``TRANSIENT`` the value will reset to
+the default value or to the value in the configuration file on a restart.
+
+::
 
     cr> SET GLOBAL PERSISTENT stats.enabled = false;
     SET OK, 1 row affected (... sec)

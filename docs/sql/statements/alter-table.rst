@@ -147,7 +147,7 @@ will reset the parameter to its default value.
 The supported parameters are listed in the :ref:`CREATE TABLE WITH CLAUSE
 <sql-create-table-with>` documentation. In addition to those, for dynamically
 changing the number of :ref:`allocated shards <gloss-shard-allocation>`, the
-parameter ``number_of_shards`` can be used. For more more info on that, see
+parameter ``number_of_shards`` can be used. For more info on that, see
 :ref:`alter-shard-number`.
 
 
@@ -203,7 +203,7 @@ The ``REROUTE`` command provides various options to manually control the
 of explicit allocations, cancellations and the moving of shards between nodes
 in a cluster. See :ref:`ddl_reroute_shards` to get the convenient use-cases.
 
-The rowcount defines if the reroute or allocation process of a shard was
+The row count defines if the reroute or allocation process of a shard was
 acknowledged or rejected.
 
 .. NOTE::

@@ -24,7 +24,8 @@ geographical features.
 
 :ref:`Geographic shapes <data-types-geo-shape>` are stored using special
 indices. :ref:`Geographic points <data-types-geo-point>` are represented by
-their coordinates. They are represented as columns of the respective datatypes.
+their coordinates. They are represented as columns of the respective data
+types.
 
 Geographic indices for :ref:`geo_shape <data-types-geo-shape>` columns are used
 in order to speed up geographic searches even on complex shapes. This indexing
@@ -94,9 +95,9 @@ Let's insert Austria::
 .. NOTE::
 
    When using a polygon shape that resembles a rectangle, and that rectangle is
-   wider than 180 degrees, the CrateDB geoshape validator will convert it into
-   a multipolygon consisting of 2 rectangular shapes covering the narrower area
-   between the 4 original points split by the dateline (+/- 180deg).
+   wider than 180 degrees, CrateDB will convert it into a multipolygon
+   consisting of 2 rectangular shapes covering the narrower area between the 4
+   original points split by the dateline (+/- 180deg).
 
    This is due to CrateDB operating in the geospatial context of the earth.
 

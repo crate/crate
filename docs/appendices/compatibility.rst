@@ -34,6 +34,8 @@ Data types
 CrateDB supports a set of primitive data types. The following table defines
 how data types of `standard SQL`_ map to CrateDB :ref:`data-types`.
 
+.. vale off
+
 +-----------------------------------+-----------------------------+
 | Standard SQL                      | CrateDB                     |
 +===================================+=============================+
@@ -60,6 +62,7 @@ how data types of `standard SQL`_ map to CrateDB :ref:`data-types`.
 | double precision                  | double, double precision    |
 +-----------------------------------+-----------------------------+
 
+.. vale on
 
 .. _appendix-compat-create-table:
 
@@ -176,7 +179,7 @@ supported:
 CrateDB also supports the `PostgreSQL wire protocol`_.
 
 If you have use cases for any missing features, :ref:`functions
-<gloss-function>`, or dialect improvements, let us know on `Github`_! We are
+<gloss-function>`, or dialect improvements, let us know on `GitHub`_! We are
 always improving and extending CrateDB and would love to hear your feedback.
 
 

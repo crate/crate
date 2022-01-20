@@ -15,7 +15,7 @@ authentication.
     If you do not want to use authentication, set ``auth.host_based.enabled``
     to ``false``. If authentication is disabled, :ref:`user management
     <administration_user_management>` remains active and you must specify the
-    user ``crate`` (with an empty password) when connecting via the Postgres
+    user ``crate`` (with an empty password) when connecting via the PostgreSQL
     protocol. HTTP clients do not have to specify a user because they use the
     :ref:`auth.trust.http_default_user <auth_trust_http_default_user>` if no
     user is provided.
@@ -109,7 +109,7 @@ For example, a host based configuration can look like this:
 In the example above:
 
 ``{user: mike, address: 32.0.0.0/8, method: trust, protocol: pg}`` means that
-the user ``mike`` can authenticate to CrateDB over the Postgres Wire Protocol
+the user ``mike`` can authenticate to CrateDB over the PostgreSQL Wire Protocol
 from any IP address ranging from ``32.0.0.0`` to ``32.255.255.255``, using the
 ``trust`` authentication method.
 
@@ -119,13 +119,13 @@ authentication is supported from any IP address in the range of ``32.0.0.0`` to
 ``32.255.255.255``,  using the ``trust`` authentication method.
 
 ``{user: barb, address: 172.16.0.0, protocol: pg, ssl: on}`` means that the
-user ``barb`` can authenticate to CrateDB over the Postgres Wire Protocol from
-the ``172.16.0.0`` IP Address only if the connection is done over SSL/TLS.
+user ``barb`` can authenticate to CrateDB over the PostgreSQL Wire Protocol
+from the ``172.16.0.0`` IP Address only if the connection is done over SSL/TLS.
 Since no authentication method is specified, the ``trust`` method will be used
 by default.
 
 The entry: ``{user: eleven, protocol: pg}`` means that the user ``eleven`` can
-authenticate to CrateDB over the Postgres Wire Protocol from any IP address,
+authenticate to CrateDB over the PostgreSQL Wire Protocol from any IP address,
 using the ``trust`` method.
 
 ``{user: dustin, address: 172.16.0.0, protocol: http, method: trust}`` means
@@ -156,7 +156,7 @@ When CrateDB is started, the cluster contains one predefined superuser. This
 user is called ``crate``.
 
 To enable trust authentication for the superuser, ``crate`` must be specified in
-the the ``auth.host_based`` setting, like this:
+the ``auth.host_based`` setting, like this:
 
 .. code-block:: yaml
 

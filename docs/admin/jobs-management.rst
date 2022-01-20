@@ -5,7 +5,7 @@
 Jobs management
 ===============
 
-Each executed sql statement results in a corresponding job. Jobs that are
+Each executed SQL statement results in a corresponding job. Jobs that are
 currently executing are logged in the system table ``sys.jobs`` (see
 :ref:`jobs_operations_logs`).
 

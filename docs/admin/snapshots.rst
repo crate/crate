@@ -266,10 +266,14 @@ in the cluster state, so it's not accessible any more.
 Requirements for using HDFS repositories
 ----------------------------------------
 
+.. vale off
+
 CrateDB supports repositories of type :ref:`sql-create-repo-hdfs` by
 default, but required `Hadoop`_ java client libraries are not included in any
 CrateDB distribution and need to be added to CrateDB's hdfs plugin folder. By
 default this is ``$CRATE_HOME/plugins/es-repository-hdfs``
+
+.. vale on
 
 Because some libraries `Hadoop`_ depends on are also required (and so deployed)
 by CrateDB, only the `Hadoop`_ libraries listed below must be copied into the
@@ -320,7 +324,7 @@ ignored::
    documentation, the latest stable `Hadoop (YARN)`_ version is **2.8.1**.
    Required libraries may differ for other versions.
 
-   Crate's packaged es-repository-hdfs plugin depends on a different version of
+   Crate's packaged ``es-repository-hdfs`` plugin depends on a different version of
    commons-collections, htrace, and xml-apis than Hadoop depends, and the presence
    of both versions will result in Jar Hell. The es-repository-hdfs plugin's
    dependencies should take precedence when encountered, but the above list
@@ -348,17 +352,18 @@ this includes any HA config, authentication method, etc.
    (it is by default) as this will load the values as described here.
 ..
 
-Next, if ``kerberos`` is the authentication method, the hdfs plugin will need a keytab to
-authenticate with. This needs to be placed in a separate config directory for the plugin,
+Next, if ``kerberos`` is the authentication method, the HDFS plugin will need a
+key table (``keytab``) to authenticate with. This needs to be placed in a
+separate ``config`` directory for the plugin,
 ``$CRATE_HOME/config/repository-hdfs``, and must be named ``krb5.keytab``.
 
 Lastly, the ``security.principal`` parameter passed in the ``CREATE REPOSITORY`` statement
-must be a fully-qualified kerberos identity: a service principal name (SPN)
+must be a fully-qualified Kerberos identity: a service principal name (SPN)
 or a user principal name (UPN) will work.
 
 .. NOTE::
 
-   Only one kerberos identity is supported per Crate cluster.
+   Only one Kerberos identity is supported per Crate cluster.
 
 ..
 
