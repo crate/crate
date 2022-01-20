@@ -22,7 +22,6 @@
 package io.crate.analyze.relations;
 
 import io.crate.common.collections.Iterables;
-import com.google.common.collect.Multimap;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
@@ -103,6 +102,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Singleton
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -560,13 +560,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
 
     @Nullable
-    private static Symbol getOneOrAmbiguous(Multimap<String, Symbol> selectList, String key) throws AmbiguousColumnAliasException {
+    private static Symbol getOneOrAmbiguous(Map<String, Set<Symbol>> selectList, String key) throws AmbiguousColumnAliasException {
         Collection<Symbol> symbols = selectList.get(key);
+        if (symbols == null) {
+            return null;
+        }
         if (symbols.size() > 1) {
             throw new AmbiguousColumnAliasException(key, symbols);
-        }
-        if (symbols.isEmpty()) {
-            return null;
         }
         return symbols.iterator().next();
     }

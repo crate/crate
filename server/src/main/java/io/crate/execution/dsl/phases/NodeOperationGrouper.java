@@ -21,9 +21,9 @@
 
 package io.crate.execution.dsl.phases;
 
-import com.google.common.collect.ArrayListMultimap;
-
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 public final class NodeOperationGrouper {
@@ -32,12 +32,17 @@ public final class NodeOperationGrouper {
     }
 
     public static Map<String, Collection<NodeOperation>> groupByServer(Iterable<NodeOperation> nodeOperations) {
-        ArrayListMultimap<String, NodeOperation> byServer = ArrayListMultimap.create();
+        Map<String, Collection<NodeOperation>> byServer = new HashMap<>();
         for (NodeOperation nodeOperation : nodeOperations) {
             for (String server : nodeOperation.executionPhase().nodeIds()) {
-                byServer.put(server, nodeOperation);
+                var values = byServer.get(server);
+                if (values == null) {
+                    values = new ArrayList<>();
+                }
+                values.add(nodeOperation);
+                byServer.put(server, values);
             }
         }
-        return byServer.asMap();
+        return byServer;
     }
 }
