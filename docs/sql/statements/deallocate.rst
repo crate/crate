@@ -22,7 +22,7 @@ Synopsis
 Description
 ===========
 
-DEALLOCATE is used to deallocate a previously prepared SQL statement and free
+``DEALLOCATE`` is used to deallocate a previously prepared SQL statement and free
 the reserved resources. It is not meant to be explicitly issued by a user but
 it's used by some clients (e.g. `libpq`_) over :ref:`Postgres Wire Protocol
 <interface-postgresql>` as an alternative way of deallocating a prepared

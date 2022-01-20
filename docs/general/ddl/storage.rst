@@ -14,8 +14,8 @@ Column store
 Beside of storing the row data as-is (and indexing each value by default), each
 value term is stored into a `Column Store`_ by default. The usage of a `Column
 Store`_ is greatly improving global aggregations and groupings and enables
-ordering possiblity as the data for one column is packed at one place. Using the
-`Column Store`_ limits the values of :ref:`type-text` columns to a maximal
+ordering possibility as the data for one column is packed at one place. Using
+the `Column Store`_ limits the values of :ref:`type-text` columns to a maximal
 length of 32766 bytes.
 
 Turning off the `Column Store`_ in conjunction of :ref:`turning off indexing

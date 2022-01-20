@@ -179,8 +179,8 @@ operation to complete much faster.
 Hash join
 ---------
 
-The Hash Join algorithm is used to execute certains types of joins in a more
-perfomant way than :ref:`Nested Loop <join-algos-nested-loop>`.
+The Hash Join algorithm is used to execute certain types of joins in a more
+efficient way than :ref:`Nested Loop <join-algos-nested-loop>`.
 
 
 .. _join-algos-hash-basic:

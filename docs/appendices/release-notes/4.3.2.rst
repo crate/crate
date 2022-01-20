@@ -51,7 +51,7 @@ Fixes
   ``regexp_matches()`` wrapped inside a :ref:`subscript expression
   <sql-subscripts>` from being used as a ``GROUP BY`` expression.
 
-  This fixed the broken AdminUI->Montoring tab as it uses such a statement.
+  This fixed the broken AdminUI -> Monitoring tab as it uses such a statement.
 
 - Fixed validation of ``GROUP BY`` :ref:`expressions <gloss-expression>` if an
   alias is used. The validation was by passed and resulted in an execution

@@ -35,10 +35,11 @@ Changelog
 Fixes
 -----
 
-- Removed unnecessary invokation of non-existent syscall that caused CrateDB to
-  crash on startup with certain Ubuntu kernel versions.
+- Removed unnecessary invocation of non-existent ``syscall`` that caused
+  CrateDB to crash on startup with certain Ubuntu kernel versions.
 
-- Ensured natural order of config keys for the Host Based Authentication.
+- Ensured natural order of configuration keys for the Host Based
+  Authentication.
 
 - Fixed encoding/decoding of ``Timestamp`` type for PostgreSQL wire protocol
   to support Golang PostgreSQL drivers.

@@ -25,8 +25,8 @@ The primary configuration file is named ``crate.yml``. The default version of
 this file has a commented out listing of every available setting. (Some
 features, such as :ref:`logging <conf-logging>`, use feature-specific files.)
 
-Settings can be configured via the config file or via the ``-C`` option at
-startup. So, for example, you can set the cluster name at startup, like so:
+Settings can be configured via the configuration file or via the ``-C`` option
+at startup. So, for example, you can set the cluster name at startup, like so:
 
 .. code-block:: sh
 

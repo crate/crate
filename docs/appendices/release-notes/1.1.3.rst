@@ -46,7 +46,7 @@ Fixes
    generated column as both the primary key and a :ref:`partition column
    <gloss-partition-column>`.
 
- - Fixed a ``NullPointerException`` which occured when selecting
+ - Fixed a ``NullPointerException`` which occurred when selecting
    ``routing_hash_function`` or ``version`` columns from ``sys.shards`` for
    blob tables.
 

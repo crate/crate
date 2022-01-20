@@ -106,7 +106,7 @@ Partitioned tables have the following disadvantages:
     :ref:`shard allocation <gloss-shard-allocation>`.
 
     Well tuned shard allocation is vital. Read the `sharding guide`_ to make
-    sure you're getting the best performance out ot CrateDB.
+    sure you're getting the best performance out of CrateDB.
 
 
 .. _partitioned-creation:

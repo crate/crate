@@ -102,6 +102,8 @@ granting this on a schema or table level will have no effect.
 
 Hierarchical inheritance of privileges
 ======================================
+
+.. vale off
 .. hide:
 
     cr> CREATE user riley;
@@ -125,6 +127,8 @@ Hierarchical inheritance of privileges
     cr> REFRESH table doc.accounting
     REFRESH OK, 1 row affected (... sec)
 
+.. vale on
+
 Privileges can be managed on three different levels, namely: ``CLUSTER``,
 ``SCHEMA``, and ``TABLE``/``VIEW``.
 
@@ -140,14 +144,14 @@ those from a higher level:
      /  \
   table view
 
-This statement will grant ``DQL`` privilege to user riley on all the tables
+This statement will grant ``DQL`` privilege to user ``riley` on all the tables
 and :ref:`functions <gloss-function>` of the ``doc`` schema::
 
     cr> GRANT DQL ON SCHEMA doc TO riley;
     GRANT OK, 1 row affected (... sec)
 
-This statement will deny ``DQL`` privilege to user riley on the ``doc`` schema
-table ``doc.accounting``. However, user riley, will still have ``DQL``
+This statement will deny ``DQL`` privilege to user ``riley`` on the ``doc``
+schema table ``doc.accounting``. However, ``riley` will still have ``DQL``
 privilege on all the other tables of the ``doc`` schema::
 
     cr> DENY DQL ON TABLE doc.accounting TO riley;
@@ -228,14 +232,14 @@ we use the :ref:`ref-grant` SQL statement, for example::
     cr> GRANT DML TO wolfgang;
     GRANT OK, 1 row affected (... sec)
 
-``DQL`` privilege can be granted on the sys schema to user wolfgang,
+``DQL`` privilege can be granted on the ``sys`` schema to user ``wolfgang``,
 like this::
 
     cr> GRANT DQL ON SCHEMA sys TO wolfgang;
     GRANT OK, 1 row affected (... sec)
 
 The following statement will grant all privileges on table doc.books to user
-wolfgang::
+``wolfgang``::
 
     cr> GRANT ALL PRIVILEGES ON TABLE doc.books TO wolfgang;
     GRANT OK, 4 rows affected (... sec)
@@ -277,14 +281,14 @@ To deny a privilege to an existing user on the whole cluster, use the
     cr> DENY DDL TO will;
     DENY OK, 1 row affected (... sec)
 
-``DQL`` privilege can be denied on the sys schema to user wolfgang,
-like this::
+``DQL`` privilege can be denied on the ``sys`` schema to user ``wolfgang`` like
+this::
 
     cr> DENY DQL ON SCHEMA sys TO wolfgang;
     DENY OK, 1 row affected (... sec)
 
 The following statement will deny ``DQL`` privilege on table doc.books to user
-wolfgang::
+``wolfgang``::
 
     cr> DENY DQL ON TABLE doc.books TO wolfgang;
     DENY OK, 1 row affected (... sec)
@@ -300,13 +304,13 @@ on the cluster it can be used like this::
 
 To revoke a privilege that was previously granted or denied to a user use the
 :ref:`ref-revoke` SQL statement, for example the ``DQL`` privilege that was
-previously denied to user wolfgang on the *sys* schema, can be revoked like
+previously denied to user ``wolfgang`` on the ``sys`` schema, can be revoked like
 this::
 
     cr> REVOKE DQL ON SCHEMA sys FROM wolfgang;
     REVOKE OK, 1 row affected (... sec)
 
-The privileges that were granted and denied to user wolfgang on doc.books
+The privileges that were granted and denied to user ``wolfgang`` on doc.books
 can be revoked like this::
 
     cr> REVOKE ALL ON TABLE doc.books FROM wolfgang;

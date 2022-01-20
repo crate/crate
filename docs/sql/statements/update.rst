@@ -49,9 +49,9 @@ Parameters
     ``UPDATE`` statement must refer to this table as ``f`` not ``foo``.
 
 :column_ident:
-    The name of a column in the table identified by ``table_ident``. Subfields
-    can also be defined by using the subscript notation with square
-    brackets.
+    The name of a column in the table identified by ``table_ident``. It is also
+    possible to use :ref:`object subscript <sql-object-subscript>` to address
+    the inner fields of an object column.
 
 :expression:
     An :ref:`expression <gloss-expression>` to assign to the column.

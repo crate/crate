@@ -191,7 +191,7 @@ are likely to be larger due to additional metadata.
     * - ``DATE``
       - 8 bytes
       - 292275054BC to 292278993AD
-      - Date in UTC. Internally stored as BIGINT.
+      - Date in UTC. Internally stored as ``BIGINT``.
     * - ``TIME WITH TIME ZONE``
       - 12 bytes
       - 292275054BC to 292278993AD
@@ -204,7 +204,7 @@ are likely to be larger due to additional metadata.
       - A string representation of a bit sequence.
     * - ``IP``
       - 8 bytes
-      - IP addresses are stored as BIGINT values.
+      - IP addresses are stored as ``BIGINT`` values.
       - A string representation of an IP address (IPv4 or IPv6).
     * - ``OBJECT``
       - variable
@@ -1159,7 +1159,7 @@ Using the :ref:`date_format() <scalar-date_format>` function, for readability::
     SELECT 1 row in set (... sec)
 
 If you cast a :ref:`REAL <type-real>` or a :ref:`DOUBLE PRECISION
-<type-double-precision>` to a ``TIMESTAMP``, the numeric value wil be
+<type-double-precision>` to a ``TIMESTAMP``, the numeric value will be
 interpreted as the number of seconds since the Unix epoch, with fractional
 values approximated to the nearest millisecond::
 
@@ -1648,7 +1648,7 @@ are limited to eight bytes.
 If you cast a :ref:`BIGINT <type-bigint>` to a ``DATE``, the integer value will
 be interpreted as the number of milliseconds since the Unix epoch. If you cast
 a :ref:`REAL <type-real>` or a :ref:`DOUBLE PRECISION <type-double-precision>`
-to a ``DATE``, the numeric value wil be interpreted as the number of seconds
+to a ``DATE``, the numeric value will be interpreted as the number of seconds
 since the Unix epoch.
 
 If you cast a literal to a ``DATE``, years outside the range 0000 to 9999
@@ -2450,7 +2450,7 @@ Reflecting the types of the columns::
     mitigated by combining a filter using the ``AND`` clause with other
     predicates on indexed columns.
 
-    Futhermore, values for dynamically added sub-columns of an ``IGNORED``
+    Furthermore, values for dynamically added sub-columns of an ``IGNORED``
     objects aren't stored in a column store, which means that ordering on these
     columns or using them with aggregates is also slower than using the same
     operations on regular columns. For some operations it may also be necessary
@@ -2948,7 +2948,7 @@ Both of these index types accept the following parameters:
   :ref:`type-geo_shape-index`).
 
   This can be used to control the precision of the used index. Since
-  this parameter requires a certain level of understanting of the
+  this parameter requires a certain level of understanding of the
   underlying implementation, users may use the ``precision`` parameter
   instead. CrateDB uses the ``tree_levels`` parameter internally and
   this is what is returned via the ``SHOW CREATE TABLE`` statement even

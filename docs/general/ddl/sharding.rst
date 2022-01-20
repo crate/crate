@@ -65,7 +65,7 @@ is applied.
 .. CAUTION::
 
    Well tuned :ref:`shard allocation <ddl_shard_allocation>` is vital. Read the
-   `Sharding Guide`_ to make sure you're getting the best performance out ot
+   `Sharding Guide`_ to make sure you're getting the best performance out of
    CrateDB.
 
 

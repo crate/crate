@@ -40,7 +40,7 @@ Configuration file
 You can configure Log4j with the ``log4j2.properties`` file in the CrateDB
 :ref:`configuration directory <config>`.
 
-The ``log4j2.properties`` file is formated using `YAML`_ and simplifies Log4j
+The ``log4j2.properties`` file is formatted using `YAML`_ and simplifies Log4j
 configuration by allowing you to use the `PropertyConfigurator`_ but without
 having to tediously repeat the ``log4j`` prefix.
 

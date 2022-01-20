@@ -50,16 +50,16 @@ Synopsis
 Description
 ===========
 
-CREATE ANALYZER speifies a whole analyzer chain for use in fulltext searches.
-It is possible to extend an existing analyzer or define a new analyzer chain
-from scratch. For examples and detailed explanation see
+``CREATE ANALYZER`` specifies a whole analyzer chain for use in fulltext
+searches. It is possible to extend an existing analyzer or define a new
+analyzer chain from scratch. For examples and detailed explanation see
 :ref:`create_custom_analyzer`.
 
 Parameters
 ==========
 
 :analyzer_name:
-  The globally unique name of the analzyer being created.
+  The globally unique name of the analyzer being created.
 
 :parent_analyzer_name:
   The name of the analyzer to inherit defaults from.
@@ -87,6 +87,6 @@ Parameters
   A name of a parameter for a given char filter.
 
 :custom_name:
-  A custom unqiue name needed when defining custom
+  A custom unique name needed when defining custom
   tokenizers/token_filter/char_filter.
 

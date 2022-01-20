@@ -279,7 +279,7 @@ The table schema is as follows:
 +--------------+-----------------------------------------------------+-------------+
 | Column Name  | Description                                         | Return Type |
 +==============+=====================================================+=============+
-| ``rest_url`` | Full http(s) address where the REST API of the node | ``TEXT``    |
+| ``rest_url`` | Full HTTP(s) address where the REST API of the node | ``TEXT``    |
 |              | is exposed, including schema, hostname (or IP)      |             |
 |              | and port.                                           |             |
 +--------------+-----------------------------------------------------+-------------+
@@ -372,7 +372,7 @@ The table schema is as follows:
 +----------------------------------------------------+---------------------------------------------------+-------------+
 | ``version['number']``                              | Version string in format ``"major.minor.hotfix"`` | ``TEXT``    |
 +----------------------------------------------------+---------------------------------------------------+-------------+
-| ``version['build_hash']``                          | SHA hash of the Github commit which               | ``TEXT``    |
+| ``version['build_hash']``                          | SHA hash of the GitHub commit which               | ``TEXT``    |
 |                                                    | this build was built from.                        |             |
 +----------------------------------------------------+---------------------------------------------------+-------------+
 | ``version['build_snapshot']``                      | Indicates whether this build is a snapshot build. | ``BOOLEAN`` |
@@ -455,9 +455,9 @@ The table schema is as follows:
 |                               | pool.                                          |             |
 +-------------------------------+------------------------------------------------+-------------+
 | ``thread_pools['largest']``   | Largest number of threads that have ever       | ``INTEGER`` |
-|                               | simultaniously been in the pool.               |             |
+|                               | simultaneously been in the pool.               |             |
 +-------------------------------+------------------------------------------------+-------------+
-| ``thread_pools['completed']`` | Total number of completed thread in teh thread | ``BIGINT``  |
+| ``thread_pools['completed']`` | Total number of completed thread in the thread | ``BIGINT``  |
 |                               | pool.                                          |             |
 +-------------------------------+------------------------------------------------+-------------+
 | ``thread_pools['threads']``   | Size of the thread pool.                       | ``INTEGER`` |
@@ -487,18 +487,18 @@ The table schema is as follows:
 | ``os['probe_timestamp']``                       | Unix timestamp at the time of collection             | ``BIGINT``   |
 |                                                 | of the OS probe.                                     |              |
 +-------------------------------------------------+------------------------------------------------------+--------------+
-| ``os['cgroup']``                                | Information about Cgroups **(Linux only)**           | ``OBJECT``   |
+| ``os['cgroup']``                                | Information about cgroups **(Linux only)**           | ``OBJECT``   |
 +-------------------------------------------------+------------------------------------------------------+--------------+
 | ``os['cgroup']['cpuacct']``                     | Information about CPU accounting                     | ``OBJECT``   |
 +-------------------------------------------------+------------------------------------------------------+--------------+
-| ``os['cgroup']['cpuacct']['control_group']``    | The path to the cpu accounting cgroup                | ``TEXT``     |
+| ``os['cgroup']['cpuacct']['control_group']``    | The path to the CPU accounting cgroup                | ``TEXT``     |
 +-------------------------------------------------+------------------------------------------------------+--------------+
 | ``os['cgroup']['cpuacct']['usage_nanos']``      | The total CPU time (in nanoseconds) consumed by      | ``BIGINT``   |
 |                                                 | all tasks in this cgroup.                            |              |
 +-------------------------------------------------+------------------------------------------------------+--------------+
 | ``os['cgroup']['cpu']``                         | Information about the CPU subsystem                  | ``OBJECT``   |
 +-------------------------------------------------+------------------------------------------------------+--------------+
-| ``os['cgroup']['cpu']['control_group']``        | The path to the cpu cgroup                           | ``TEXT``     |
+| ``os['cgroup']['cpu']['control_group']``        | The path to the CPU cgroup                           | ``TEXT``     |
 +-------------------------------------------------+------------------------------------------------------+--------------+
 | ``os['cgroup']['cpu']['cfs_period_micros']``    | The period of time (in microseconds) the cgroup      | ``BIGINT``   |
 |                                                 | access to the CPU gets reallocated.                  |              |
@@ -527,19 +527,19 @@ The table schema is as follows:
 | ``os['cgroup']['mem']['limit_bytes']``          | The max. amount of user memory in the cgroup.        | ``TEXT``     |
 +-------------------------------------------------+------------------------------------------------------+--------------+
 
-The cpu information values are cached for 1s. They might differ from the actual
+The CPU information values are cached for 1s. They might differ from the actual
 values at query time. Use the probe timestamp to get the time of collection.
-When analyzing the cpu usage over time, always use ``os['probe_timestamp']`` to
+When analyzing the CPU usage over time, always use ``os['probe_timestamp']`` to
 calculate the time difference between 2 probes.
 
 .. _os_cgroup_limitations:
 
-Cgroup limitations
+cgroup limitations
 ..................
 
 .. NOTE::
 
-    Cgroup metrics only work if the stats are available from
+    cgroup metrics only work if the stats are available from
     ``/sys/fs/cgroup/cpu`` and ``/sys/fs/cgroup/cpuacct``.
 
 .. _os_uptime_limitations:
@@ -580,8 +580,8 @@ Uptime limitations
 +-------------------------------------+----------------------------------------------+-------------+
 | ``os_info['jvm']['version']``       | The JVM version                              | ``TEXT``    |
 +-------------------------------------+----------------------------------------------+-------------+
-| ``os_info['jvm']['vm_name']``       | The name of the JVM (eg. OpenJDK,            | ``TEXT``    |
-|                                     | Java Hotspot(TM) )                           |             |
+| ``os_info['jvm']['vm_name']``       | The name of the JVM (e.g. OpenJDK,           | ``TEXT``    |
+|                                     | Java HotSpot(TM) )                           |             |
 +-------------------------------------+----------------------------------------------+-------------+
 | ``os_info['jvm']['vm_vendor']``     | The vendor name of the JVM                   | ``TEXT``    |
 +-------------------------------------+----------------------------------------------+-------------+
@@ -634,58 +634,66 @@ in subsequent versions. All ``BIGINT`` columns always return ``0``.
 ``connections``
 ---------------
 
-+-------------------------------------+-------------------+-------------------+
-| Column Name                         | Description       | Return Type       |
-+=====================================+===================+===================+
-| ``http``                            | Number of         | ``OBJECT``        |
-|                                     | connections       |                   |
-|                                     | established via   |                   |
-|                                     | HTTP              |                   |
-+-------------------------------------+-------------------+-------------------+
-| ``http['open']``                    | The currently     | ``BIGINT``        |
-|                                     | open connections  |                   |
-|                                     | established via   |                   |
-|                                     | HTTP              |                   |
-+-------------------------------------+-------------------+-------------------+
-| ``http['total']``                   | The total number  | ``BIGINT``        |
-|                                     | of connections    |                   |
-|                                     | that have been    |                   |
-|                                     | established via   |                   |
-|                                     | HTTP over the     |                   |
-|                                     | life time of a    |                   |
-|                                     | CrateDB node      |                   |
-+-------------------------------------+-------------------+-------------------+
-| ``psql``                            | Number of         | ``OBJECT``        |
-|                                     | connections       |                   |
-|                                     | established via   |                   |
-|                                     | Postgres protocol |                   |
-+-------------------------------------+-------------------+-------------------+
-| ``psql['open']``                    | The currently     | ``BIGINT``        |
-|                                     | open connections  |                   |
-|                                     | established via   |                   |
-|                                     | Postgres protocol |                   |
-+-------------------------------------+-------------------+-------------------+
-| ``psql['total']``                   | The total number  | ``BIGINT``        |
-|                                     | of connections    |                   |
-|                                     | that have been    |                   |
-|                                     | established via   |                   |
-|                                     | Postgres protocol |                   |
-|                                     | over the life     |                   |
-|                                     | time of a CrateDB |                   |
-|                                     | node              |                   |
-+-------------------------------------+-------------------+-------------------+
-| ``transport``                       | Number of         | ``OBJECT``        |
-|                                     | connections       |                   |
-|                                     | established via   |                   |
-|                                     | Transport         |                   |
-|                                     | protocol          |                   |
-+-------------------------------------+-------------------+-------------------+
-| ``transport['open']``               | The currently     | ``BIGINT``        |
-|                                     | open connections  |                   |
-|                                     | established via   |                   |
-|                                     | Transport         |                   |
-|                                     | protocol          |                   |
-+-------------------------------------+-------------------+-------------------+
++----------------------------------+-----------------+-----------------+
+| Column Name                      | Description     | Return Type     |
++==================================+=================+=================+
+| ``http``                         | Number of       | ``OBJECT``      |
+|                                  | connections     |                 |
+|                                  | established via |                 |
+|                                  | HTTP            |                 |
++----------------------------------+-----------------+-----------------+
+| ``http['open']``                 | The currently   | ``BIGINT``      |
+|                                  | open            |                 |
+|                                  | connections     |                 |
+|                                  | established via |                 |
+|                                  | HTTP            |                 |
++----------------------------------+-----------------+-----------------+
+| ``http['total']``                | The total       | ``BIGINT``      |
+|                                  | number of       |                 |
+|                                  | connections     |                 |
+|                                  | that have been  |                 |
+|                                  | established via |                 |
+|                                  | HTTP over the   |                 |
+|                                  | life time of a  |                 |
+|                                  | CrateDB node    |                 |
++----------------------------------+-----------------+-----------------+
+| ``psql``                         | Number of       | ``OBJECT``      |
+|                                  | connections     |                 |
+|                                  | established via |                 |
+|                                  | PostgreSQL      |                 |
+|                                  | protocol        |                 |
++----------------------------------+-----------------+-----------------+
+| ``psql['open']``                 | The currently   | ``BIGINT``      |
+|                                  | open            |                 |
+|                                  | connections     |                 |
+|                                  | established via |                 |
+|                                  | PostgreSQL      |                 |
+|                                  | protocol        |                 |
++----------------------------------+-----------------+-----------------+
+| ``psql['total']``                | The total       | ``BIGINT``      |
+|                                  | number of       |                 |
+|                                  | connections     |                 |
+|                                  | that have been  |                 |
+|                                  | established via |                 |
+|                                  | PostgreSQL      |                 |
+|                                  | protocol over   |                 |
+|                                  | the life time   |                 |
+|                                  | of a CrateDB    |                 |
+|                                  | node            |                 |
++----------------------------------+-----------------+-----------------+
+| ``transport``                    | Number of       | ``OBJECT``      |
+|                                  | connections     |                 |
+|                                  | established via |                 |
+|                                  | Transport       |                 |
+|                                  | protocol        |                 |
++----------------------------------+-----------------+-----------------+
+| ``transport['open']``            | The currently   | ``BIGINT``      |
+|                                  | open            |                 |
+|                                  | connections     |                 |
+|                                  | established via |                 |
+|                                  | Transport       |                 |
+|                                  | protocol        |                 |
++----------------------------------+-----------------+-----------------+
 
 
 ``process``
@@ -712,9 +720,9 @@ in subsequent versions. All ``BIGINT`` columns always return ``0``.
 |                                          | in percent.                                    |              |
 +------------------------------------------+------------------------------------------------+--------------+
 
-The cpu information values are cached for 1s. They might differ from the actual
+The CPU information values are cached for 1s. They might differ from the actual
 values at query time. Use the probe timestamp to get the time of the collect.
-When analyzing the cpu usage over time, always use
+When analyzing the CPU usage over time, always use
 ``process['probe_timestamp']`` to calculate the time difference between 2
 probes.
 
@@ -1151,10 +1159,10 @@ of shards.
       - Generation number of the segment, increments for each segment written.
       - ``LONG``
     * - ``num_docs``
-      - Number of non-deleted lucene documents in this segment.
+      - Number of non-deleted Lucene documents in this segment.
       - ``INTEGER``
     * - ``deleted_docs``
-      - Number of deleted lucene documents in this segment.
+      - Number of deleted Lucene documents in this segment.
       - ``INTEGER``
     * - ``size``
       - Disk space used by the segment in bytes.
@@ -1256,7 +1264,7 @@ Table schema
 +==================+==================================================+==============================+
 | ``id``           | The job UUID.                                    | ``TEXT``                     |
 |                  |                                                  |                              |
-|                  | This job ID is generated by the sytem.           |                              |
+|                  | This job ID is generated by the system.          |                              |
 +------------------+--------------------------------------------------+------------------------------+
 | ``node``         | Information about the node that created the job. | ``OBJECT``                   |
 +------------------+--------------------------------------------------+------------------------------+
@@ -1406,7 +1414,7 @@ Table schema
 +==================+===================================================+==============================+
 | ``id``           | The operation UUID.                               | ``TEXT``                     |
 |                  |                                                   |                              |
-|                  | This operation ID is generated by the sytem.      |                              |
+|                  | This operation ID is generated by the system.     |                              |
 +------------------+---------------------------------------------------+------------------------------+
 | ``job_id``       | The job id this operation belongs to.             | ``TEXT``                     |
 +------------------+---------------------------------------------------+------------------------------+
@@ -2103,8 +2111,8 @@ The ``sys.users`` table contains all existing database users in the cluster.
 +===============+==============================================+=============+
 | ``name``      | The name of the database user.               | ``TEXT``    |
 +---------------+----------------------------------------------+-------------+
-| ``superuser`` | BOOLEAN flag to indicate whether the user    | ``BOOLEAN`` |
-|               | is a superuser.                              |             |
+| ``superuser`` | Flag to indicate whether the user is a       | ``BOOLEAN`` |
+|               | superuser.                                   |             |
 +---------------+----------------------------------------------+-------------+
 
 .. _sys-allocations:
@@ -2206,8 +2214,8 @@ but no privilege at all on ``doc.locations``, when ``john`` issues a
 
 .. _jobs_table_permissions:
 
-Sys jobs tables permissions
-===========================
+``sys`` jobs tables permissions
+===============================
 
 Accessing :ref:`sys.jobs <sys-jobs>` and :ref:`sys.jobs_log <sys-logs>` tables
 is subjected to the same privileges constraints as other tables. To query
@@ -2237,8 +2245,11 @@ Alternatively the statistics can also be updated using the :ref:`ANALYZE
 The table contains 1 entry per column for each table in the cluster which has
 been analyzed.
 
+.. vale off
+
 .. list-table:: pg_stats schema
     :header-rows: 1
+
 
     * - Name
       - Type
@@ -2290,6 +2301,8 @@ been analyzed.
     * - elem_count_histogram
       - real[]
       - Always null. Exists for PostgreSQL compatibility.
+
+.. vale on
 
 
 .. note::

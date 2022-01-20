@@ -58,10 +58,10 @@ Fixes
 - Fixed a race condition that could allow the creation of partitions with a
   different schema than other partitions within the same partitioned table.
 
-- Changed the ``user`` hdfs repository parameter to ``security.principal``, as
-  that is the parameter used by the underlying repository-hdfs plugin.
+- Changed the ``user`` HDFS repository parameter to ``security.principal``, as
+  that is the parameter used by the underlying ``repository-hdfs`` plugin.
 
-- Removed the ``conf_location`` hdfs repository parameter as it is no longer
+- Removed the ``conf_location`` HDFS repository parameter as it is no longer
   used.
 
 - Fixed an issue that caused zombie entries in ``sys.jobs`` if the

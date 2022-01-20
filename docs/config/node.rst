@@ -1,4 +1,5 @@
 .. highlight:: sh
+.. vale off
 
 .. _conf-node-settings:
 
@@ -796,6 +797,8 @@ You can create any attribute you want under this namespace, like
 distinguish them from core node attribute like ``node.name``.
 
 Custom attributes are not validated by CrateDB, unlike core node attributes.
+
+.. vale on
 
 
 .. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst

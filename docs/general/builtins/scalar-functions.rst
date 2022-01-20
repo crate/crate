@@ -589,7 +589,7 @@ Examples::
 -------------------------------------
 
 Fill up ``string1`` to length ``len`` by prepending the characters ``string2``
-(a space by default). If string1 is already longer than len then it is
+(a space by default). If ``string1`` is already longer than ``len`` then it is
 truncated (on the right).
 
 Synopsis::
@@ -613,7 +613,7 @@ Example::
 -------------------------------------
 
 Fill up ``string1`` to length ``len`` by appending the characters ``string2``
-(a space by default). If string1 is already longer than len then it is
+(a space by default). If string1 is already longer than ``len`` then it is
 truncated.
 
 Synopsis::
@@ -865,7 +865,7 @@ Examples:
 
 .. TIP::
 
-    0 can be used as a shortcut for unix zero as the origin::
+    0 can be used as a shortcut for Unix zero as the origin::
 
         cr> select date_bin('2 hours' :: INTERVAL,
         ... '2021-01-01T08:30:10Z' :: timestamp without time ZONE, 0) as bin;
@@ -896,7 +896,7 @@ Examples:
 ------------------------------
 
 ``extract`` is a special :ref:`expression <gloss-expression>` that translates
-to a function which retrieves subfields such as day, hour or minute from a
+to a function which retrieves subcolumns such as day, hour or minute from a
 timestamp.
 
 The return type depends on the used ``field``.
@@ -1144,26 +1144,26 @@ below:
    ``%M``, "Month name (January..December)"
    ``%m``, "Month in year, numeric, padded to 2 digits (00..12)"
    ``%p``, "AM or PM"
-   ``%r``, "Time, 12-hour (hh:mm:ss followed by AM or PM)"
+   ``%r``, "Time, 12-hour (``hh:mm:ss`` followed by AM or PM)"
    ``%S``, "Seconds, padded to 2 digits (00..59)"
    ``%s``, "Seconds, padded to 2 digits (00..59)"
-   ``%T``, "Time, 24-hour (hh:mm:ss)"
-   ``%U``, "Week number, sunday as first day of the week, first week of the
+   ``%T``, "Time, 24-hour (``hh:mm:ss``)"
+   ``%U``, "Week number, Sunday as first day of the week, first week of the
    year (01) is the one starting in this year, week 00 starts in last year
    (00..53)"
-   ``%u``, "Week number, monday as first day of the week, first week of the
+   ``%u``, "Week number, Monday as first day of the week, first week of the
    year (01) is the one with at least 4 days in this year (00..53)"
-   ``%V``, "Week number, sunday as first day of the week, first week of the
+   ``%V``, "Week number, Sunday as first day of the week, first week of the
    year (01) is the one starting in this year, uses the week number of the last
    year, if the week started in last year (01..53)"
-   ``%v``, "Week number, monday as first day of the week, first week of the
+   ``%v``, "Week number, Monday as first day of the week, first week of the
    year (01) is the one with at least 4 days in this year, uses the week number
    of the last year, if the week started in last year (01..53)"
    ``%W``, "Weekday name (Sunday..Saturday)"
    ``%w``, "Day of the week (0=Sunday..6=Saturday)"
-   ``%X``, "weekyear, sunday as first day of the week, numeric, four digits;
+   ``%X``, "Week year, Sunday as first day of the week, numeric, four digits;
    used with %V"
-   ``%x``, "weekyear, monday as first day of the week, numeric, four digits;
+   ``%x``, "Week year, Monday as first day of the week, numeric, four digits;
    used with %v"
    ``%Y``, "Year, numeric, four digits"
    ``%y``, "Year, numeric, two digits"
@@ -1382,7 +1382,7 @@ The syntax for the ``format_string`` differs based the type of the
 | / ``month``           | padded to 9 characters                              |
 +-----------------------+-----------------------------------------------------+
 | ``MON`` / ``Mon`` /   | Short month name (uppercase, capitalized,           |
-| ``mon``               | lowercase)padded to 9 characters                    |
+| ``mon``               | lowercase) padded to 9 characters                   |
 +-----------------------+-----------------------------------------------------+
 | ``MM``                | Month number (01-12)                                |
 +-----------------------+-----------------------------------------------------+
@@ -2020,9 +2020,9 @@ See below for an example::
 
 Returns ``number`` truncated to the specified ``precision`` (decimal places).
 
-When `precision` is not specified, the result's type is an ``integer``, or
+When ``precision`` is not specified, the result's type is an ``integer``, or
 ``bigint``. When it is specified, the result's type is ``double precision``.
-Notice that `trunc(number)` and `trunc(number, 0)` return different result
+Notice that ``trunc(number)`` and ``trunc(number, 0)`` return different result
 types.
 
 See below for examples::
@@ -2278,7 +2278,7 @@ Returns: ``text``
 `Java Regular Expressions`_.
 
 The ``replacement`` string may contain expressions like ``$N`` where ``N`` is a
-digit between 0 and 9. It references the *N*\ th matched group of ``pattern``
+digit between 0 and 9. It references the nth matched group of ``pattern``
 and the matching subsequence of that group will be inserted in the returned
 string. The expression ``$0`` will insert the whole matching ``source``.
 
@@ -3266,7 +3266,7 @@ Example::
     provide it as it's part of the SQL standard.
 
     Additionally, the `CURRENT_USER`_, `SESSION_USER`_ and `USER`_ functions
-    have a a special SQL syntax, meaning that they must be called without
+    have a special SQL syntax, meaning that they must be called without
     trailing parenthesis (``()``).
 
 

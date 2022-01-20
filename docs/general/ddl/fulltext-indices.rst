@@ -185,7 +185,7 @@ Tokenizers split the possibly filtered stream of characters into tokens.
 Token-filters can add tokens, delete tokens or transform them to finally
 produce the desired stream of tokens.
 
-With these elements in place, analyzers provide finegrained control over
+With these elements in place, analyzers provide fine grained control over
 building a token stream used for fulltext search. For example you can use
 language specific analyzers, tokenizers and token-filters to get proper search
 results for data provided in a certain language.
@@ -284,8 +284,8 @@ If you extend :ref:`builtin-analyzer`, tokenizer, char-filter or token-filter
 cannot be defined.  In this case use the parameters available for the extended
 :ref:`builtin-analyzer`.
 
-If you extend custom-analyzers, every part of the analyzer that is ommitted
-will be taken from the extended one.  Example::
+If you extend custom-analyzers, every part of the analyzer that is omitted will
+be taken from the extended one. Example::
 
     cr> create ANALYZER e2 EXTENDS myanalyzer (
     ...     TOKENIZER mypattern WITH (

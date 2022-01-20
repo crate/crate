@@ -102,7 +102,7 @@ Breaking Changes
  - The plugin interface has changed, injecting classes on ``shard`` or
    ``index`` levels is no longer supported.
 
- - It's no longer possible to run CrateDB as the unix ``root`` user.
+ - It's no longer possible to run CrateDB as the Unix ``root`` user.
 
  - Some translog related table settings have been removed or replaced:
 
@@ -110,8 +110,8 @@ Breaking Changes
      ``translog.flush_threshold_period`` table settings have been removed.
 
    - The ``index.translog.sync_interval`` table setting doesn't accept a value
-     less than ``100ms`` which prevents fsyncing too often if async durability
-     is enabled. The special value ``0`` is no longer supported.
+     less than ``100ms`` which prevents fsyncing too often if ``async``
+     durability is enabled. The special value ``0`` is no longer supported.
 
    - The ``index.translog.flush_threshold_ops`` table setting is not supported
      anymore. In order to control flushes based on the transaction log growth
@@ -339,7 +339,7 @@ the cluster name is not part of the path anymore. In previous versions it was
 structure, which will be removed in future versions of CrateDB.  It will be
 required that the data directory is either moved to the new location or the
 ``path.data`` setting gets changed to point to the old location by appending
-the clustername to it (e.g ``/data/`` becomes
+the cluster name to it (e.g ``/data/`` becomes
 ``/data/yourclustername``). Therefore it's not possible anymore for multiple
 clusters to share the exact same ``path.data`` directory.
 

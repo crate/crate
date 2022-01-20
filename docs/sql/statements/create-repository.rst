@@ -6,6 +6,7 @@
 ``CREATE REPOSITORY``
 =====================
 
+
 You can use the ``CREATE REPOSITORY`` :ref:`statement <gloss-statement>` to
 register a new repository that you can use to create, manage, and restore
 :ref:`snapshots <snapshot-restore>`.
@@ -53,6 +54,7 @@ additional parameters.
 
     :ref:`System information: Repositories <sys-repositories>`
 
+.. vale off
 
 .. _sql-create-repo-params:
 
@@ -639,6 +641,8 @@ Parameters
       The URL must match one of the URLs configured by the
       :ref:`repositories.url.allowed_urls <repositories.url.allowed_urls>`
       setting.
+
+.. vale on
 
 
 .. _Amazon Simple Storage Service: https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html

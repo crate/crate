@@ -13,7 +13,7 @@ Amazon EC2 discovery
 ====================
 
 CrateDB has native discovery support when running a cluster with *Amazon Web
-Services* (AWS). The discovery mechanism uses the `Amazon EC2`_ API to to
+Services* (AWS). The discovery mechanism uses the `Amazon EC2`_ API to
 generate the list of hosts for the unicast host discovery (see
 :ref:`conf_host_discovery`).
 

@@ -71,7 +71,7 @@ Breaking Changes
 
 - The gateway recovery table setting ``recovery.initial_shards`` has been
   removed. Nodes will recover their unassigned local primary shards
-  immediatelly after restart.
+  immediately after restart.
 
 - The discovery setting ``discovery.type`` has been removed. To enable EC2
   discovery, the ``discovery.zen.hosts_provider`` setting must be set to
@@ -220,7 +220,7 @@ Changes
 - Implemented a ``NodeInfo`` JMX MBean to expose useful information (id, name)
   about the node.
 
-- Fixed path of logfile name in rotation pattern in ``log4j2.properties``. It
+- Fixed path of log file name in rotation pattern in ``log4j2.properties``. It
   now writes into the correct logging directory instead of the parent
   directory.
 

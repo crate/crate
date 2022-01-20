@@ -37,7 +37,7 @@ Breaking Changes
    substituting possible aliases in the case that the columns do not exist.
 
    This will cause statements that used alias values that shadowed multiple
-   columns with the same name to fail (eg. alias ``name`` in a join statement
+   columns with the same name to fail (e.g. alias ``name`` in a join statement
    where multiple tables have the real column ``name``).
 
    Statements with aliases that shadowed a real column and also retrieve that

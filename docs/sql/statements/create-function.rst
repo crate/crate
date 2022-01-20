@@ -20,7 +20,7 @@ Synopsis
 ::
 
     CREATE [OR REPLACE] FUNCTION function_name
-        ( [ [arg_name] arg_type ] [, ...] ] )
+        ( [ [argument_name] argument_type ] [, ...] ] )
     RETURNS return_type
     LANGUAGE language_name
     AS 'definition'
@@ -48,11 +48,11 @@ Parameters
 :function_name:
   The name of the function to create.
 
-:arg_name:
+:argument_name:
   The optional name given to an argument. Function arguments do not retain
   names, but you can name them in your query for documentation purposes.
 
-:arg_type:
+:argument_type:
   The :ref:`data type <data-types>` of a given argument.
 
 :return_type:

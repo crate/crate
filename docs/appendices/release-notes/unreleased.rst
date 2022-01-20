@@ -168,7 +168,7 @@ Administration and Operations
   "Monitoring" page and move its contents to the "Overview" page.
 
 - Added ``switch_to_plaintext`` :ref:`Host-Based Authentication <admin_hba>`
-  config for enabling plaintext connection for intra-zone communications.
+  option for enabling plain text connection for intra-zone communications.
 
 
 New Types
