@@ -21,8 +21,6 @@
 
 package io.crate.analyze.relations.select;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -32,8 +30,11 @@ import io.crate.metadata.RelationName;
 import io.crate.sql.tree.Expression;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class SelectAnalysis {
 
@@ -41,7 +42,7 @@ public class SelectAnalysis {
     private final ExpressionAnalyzer expressionAnalyzer;
     private final ExpressionAnalysisContext expressionAnalysisContext;
     private final List<Symbol> outputSymbols;
-    private final Multimap<String, Symbol> outputMultiMap;
+    private final Map<String, Set<Symbol>> outputMap;
 
     public SelectAnalysis(int expectedItems,
                           Map<RelationName, AnalyzedRelation> sources,
@@ -50,7 +51,7 @@ public class SelectAnalysis {
         this.sources = sources;
         this.expressionAnalyzer = expressionAnalyzer;
         this.expressionAnalysisContext = expressionAnalysisContext;
-        outputMultiMap = HashMultimap.create(expectedItems, 1);
+        outputMap = new HashMap<>();
         outputSymbols = new ArrayList<>(expectedItems);
     }
 
@@ -71,12 +72,17 @@ public class SelectAnalysis {
      * Can be used to resolve expressions in ORDER BY or GROUP BY where it is important to know
      * if a outputName is unique
      */
-    public Multimap<String, Symbol> outputMultiMap() {
-        return outputMultiMap;
+    public Map<String, Set<Symbol>> outputMultiMap() {
+        return outputMap;
     }
 
     public void add(ColumnIdent path, Symbol symbol) {
         outputSymbols.add(symbol);
-        outputMultiMap.put(path.sqlFqn(), symbol);
+        var symbols = outputMap.get(path.sqlFqn());
+        if (symbols == null) {
+            symbols = new HashSet<>();
+        }
+        symbols.add(symbol);
+        outputMap.put(path.sqlFqn(), symbols);
     }
 }
