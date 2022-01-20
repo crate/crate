@@ -21,19 +21,31 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.Collections2;
 import io.crate.metadata.RowGranularity;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 public class Projections {
 
     public static Collection<? extends Projection> shardProjections(Collection<? extends Projection> projections) {
-        return Collections2.filter(projections, Projection.IS_SHARD_PROJECTION::test);
+        var result = new ArrayList<Projection>(projections.size());
+        for (Projection projection : projections) {
+            if (Projection.IS_SHARD_PROJECTION.test(projection)) {
+                result.add(projection);
+            }
+        }
+        return result;
     }
 
     public static Collection<? extends Projection> nodeProjections(Collection<? extends Projection> projections) {
-        return Collections2.filter(projections, Projection.IS_NODE_PROJECTION::test);
+        var result = new ArrayList<Projection>(projections.size());
+        for (Projection projection : projections) {
+            if (Projection.IS_NODE_PROJECTION.test(projection)) {
+                result.add(projection);
+            }
+        }
+        return result;
     }
 
     public static boolean hasAnyShardProjections(Iterable<? extends Projection> projections) {
