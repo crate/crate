@@ -23,10 +23,25 @@ package io.crate.expression.scalar.timestamp;
 
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.SystemClock;
 import io.crate.types.DataTypes;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TimezoneFunctionTest extends ScalarTestCase {
+
+    private static final long NOW_MILLIS = 1422294644581L;
+
+    @Before
+    public void prepare() {
+        SystemClock.setCurrentMillisFixedUTC(NOW_MILLIS);
+    }
+
+    @After
+    public void cleanUp() {
+        SystemClock.setCurrentMillisSystemUTC();
+    }
 
     @Test
     public void testEvaluateInvalidZoneIsNull() {
@@ -126,5 +141,11 @@ public class TimezoneFunctionTest extends ScalarTestCase {
             )
         );
         assertEvaluate("timezone('Europe/Madrid', x)", 257484600000L, Literal.of(257488200000L));
+    }
+
+    @Test
+    public void test_timezone_doesnt_truncate_millis() {
+        assertEvaluate("timezone('UTC', current_timestamp)", NOW_MILLIS);
+        assertEvaluate("timezone('GMT+1', current_timestamp)", NOW_MILLIS  + 3600 * 1000);
     }
 }
