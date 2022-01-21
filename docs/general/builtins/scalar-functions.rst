@@ -1027,8 +1027,8 @@ Synopsis::
 ---------------------
 
 The ``CURRENT_TIMESTAMP`` expression returns the timestamp in milliseconds
-since epoch at the time the SQL statement was handled. Therefore, the same
-timestamp value is returned for every invocation of a single statement.
+since midnight UTC at the time the SQL statement was handled. Therefore, the
+same timestamp value is returned for every invocation of a single statement.
 
 Synopsis::
 
@@ -1054,9 +1054,6 @@ Synopsis::
     :ref:`ddl-generated-columns` it behaves slightly different in ``UPDATE``
     operations. In such a case the actual timestamp of each row update is
     returned.
-
-    The return value of expressions ``CURRENT_TIMESTAMP`` and ``CURRENT_TIME``
-    depends on the system clock and the JVM implementation.
 
 
 .. _scalar-curdate:
@@ -1094,7 +1091,7 @@ Synopsis::
 ``now()``
 ---------
 
-Returns the current date and time.
+Returns the current date and time in UTC.
 
 This is the same as ``current_timestamp``
 
