@@ -144,14 +144,14 @@ those from a higher level:
      /  \
   table view
 
-This statement will grant ``DQL`` privilege to user ``riley` on all the tables
+This statement will grant ``DQL`` privilege to user ``riley`` on all the tables
 and :ref:`functions <gloss-function>` of the ``doc`` schema::
 
     cr> GRANT DQL ON SCHEMA doc TO riley;
     GRANT OK, 1 row affected (... sec)
 
 This statement will deny ``DQL`` privilege to user ``riley`` on the ``doc``
-schema table ``doc.accounting``. However, ``riley` will still have ``DQL``
+schema table ``doc.accounting``. However, ``riley`` will still have ``DQL``
 privilege on all the other tables of the ``doc`` schema::
 
     cr> DENY DQL ON TABLE doc.accounting TO riley;
