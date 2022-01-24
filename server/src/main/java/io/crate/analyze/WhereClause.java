@@ -44,18 +44,23 @@ public class WhereClause {
     public static final WhereClause NO_MATCH = new WhereClause(Literal.BOOLEAN_FALSE);
 
     public static boolean canMatch(Symbol query) {
-        if (query instanceof Input) {
-            Object value = ((Input<?>) query).value();
-            if (value == null) {
-                return false;
-            }
-            if (value instanceof Boolean) {
-                return (Boolean) value;
-            } else {
-                throw new IllegalArgumentException("Expected query value to be of type `Boolean`, but got: " + value);
-            }
+        if (query instanceof Input<?> input) {
+            return canMatch(input);
         }
         return true;
+    }
+
+    public static boolean canMatch(Input<?> input) {
+        Object value = input.value();
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof Boolean bool) {
+            return bool;
+        } else {
+            throw new IllegalArgumentException(
+                "Expected query value to be of type `Boolean`, but got: " + value);
+        }
     }
 
     @Nullable

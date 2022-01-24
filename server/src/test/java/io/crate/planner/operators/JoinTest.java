@@ -21,6 +21,30 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.testing.SymbolMatchers.isInputColumn;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.elasticsearch.common.Randomness;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
@@ -42,29 +66,6 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import org.elasticsearch.common.Randomness;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static io.crate.testing.SymbolMatchers.isInputColumn;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 
 public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
@@ -516,5 +517,56 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "    │  └ Collect[doc.users | [name, address['postcode']] | true]\n" +
             "    └ Collect[doc.t1 | [a] | true]";
         assertThat(logicalPlan, is(isPlan(expectedPlan)));
+    }
+
+    @Test
+    public void test_filter_on_aliased_symbol_is_moved_below_nl_if_left_join_can_be_rewritten_to_inner_join() throws Exception {
+        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+            .addTable("""
+                CREATE TABLE doc."metric_mini" (
+                    "ts" TIMESTAMP WITH TIME ZONE,
+                    "ts_production" TIMESTAMP WITH TIME ZONE
+                )
+            """
+            )
+            .addView(
+                new RelationName("doc", "v1"),
+                """
+                    SELECT "b".ts_production AS "start"
+                    FROM (
+                        SELECT MAX(ts) AS max_ts FROM doc.metric_mini
+                    ) last_record
+                    LEFT JOIN metric_mini b ON "b".ts_production = "last_record"."max_ts"
+                """
+            )
+            .build();
+
+        LogicalPlan plan = executor.logicalPlan(
+            "SELECT * FROM v1 WHERE start >= '2021-12-01' and start <= '2021-12-01 00:59:59'");
+        String expectedPlan =
+            "Rename[start] AS doc.v1\n" +
+            "  └ Eval[ts_production AS start]\n" +
+            "    └ NestedLoopJoin[INNER | (ts_production = max_ts)]\n" +
+            "      ├ Rename[max_ts] AS last_record\n" +
+            "      │  └ Eval[max(ts) AS max_ts]\n" +
+            "      │    └ HashAggregate[max(ts)]\n" +
+            "      │      └ Collect[doc.metric_mini | [ts] | true]\n" +
+            "      └ Rename[ts_production] AS b\n" +
+            "        └ Collect[doc.metric_mini | [ts_production] | ((ts_production AS start >= 1638316800000::bigint) AND (ts_production AS start <= 1638320399000::bigint))]";
+        assertThat(plan, is(isPlan(expectedPlan)));
+
+        plan = executor.logicalPlan(
+            "SELECT * FROM v1 WHERE start >= ? and start <= ?");
+        expectedPlan =
+            "Rename[start] AS doc.v1\n" +
+            "  └ Eval[ts_production AS start]\n" +
+            "    └ NestedLoopJoin[INNER | (ts_production = max_ts)]\n" +
+            "      ├ Rename[max_ts] AS last_record\n" +
+            "      │  └ Eval[max(ts) AS max_ts]\n" +
+            "      │    └ HashAggregate[max(ts)]\n" +
+            "      │      └ Collect[doc.metric_mini | [ts] | true]\n" +
+            "      └ Rename[ts_production] AS b\n" +
+            "        └ Collect[doc.metric_mini | [ts_production] | ((ts_production AS start >= $1) AND (ts_production AS start <= $2))]";
+        assertThat(plan, is(isPlan(expectedPlan)));
     }
 }

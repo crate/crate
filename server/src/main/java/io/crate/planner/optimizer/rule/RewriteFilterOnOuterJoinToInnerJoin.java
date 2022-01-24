@@ -21,9 +21,11 @@
 
 package io.crate.planner.optimizer.rule;
 
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
-import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Literal;
@@ -36,6 +38,7 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -122,7 +125,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx) {
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
+        var symbolEvaluator = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         NestedLoopJoin nl = captures.get(nlCapture);
         Symbol query = filter.query();
         Map<Set<RelationName>, Symbol> splitQueries = QuerySplitter.split(query);
@@ -157,7 +160,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                 if (rightQuery == null) {
                     newRhs = rhs;
                     newJoinIsInnerJoin = false;
-                } else if (couldMatchOnNull(rightQuery, normalizer, txnCtx)) {
+                } else if (couldMatchOnNull(rightQuery, symbolEvaluator)) {
                     newRhs = rhs;
                     newJoinIsInnerJoin = false;
                     splitQueries.put(rightName, rightQuery);
@@ -181,7 +184,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                 if (leftQuery == null) {
                     newLhs = lhs;
                     newJoinIsInnerJoin = false;
-                } else if (couldMatchOnNull(leftQuery, normalizer, txnCtx)) {
+                } else if (couldMatchOnNull(leftQuery, symbolEvaluator)) {
                     newLhs = lhs;
                     newJoinIsInnerJoin = false;
                     splitQueries.put(leftName, leftQuery);
@@ -204,7 +207,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                  * +------+------+
                  */
 
-                if (couldMatchOnNull(leftQuery, normalizer, txnCtx)) {
+                if (couldMatchOnNull(leftQuery, symbolEvaluator)) {
                     newLhs = lhs;
                 } else {
                     newLhs = getNewSource(leftQuery, lhs);
@@ -212,7 +215,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                         splitQueries.put(leftName, leftQuery);
                     }
                 }
-                if (couldMatchOnNull(rightQuery, normalizer, txnCtx)) {
+                if (couldMatchOnNull(rightQuery, symbolEvaluator)) {
                     newRhs = rhs;
                 } else {
                     newRhs = getNewSource(rightQuery, rhs);
@@ -264,18 +267,29 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
     }
 
     private static boolean couldMatchOnNull(@Nullable Symbol query,
-                                            EvaluatingNormalizer normalizer,
-                                            TransactionContext txnCtx) {
+                                            SymbolEvaluator evaluator) {
         if (query == null) {
             return false;
         }
-        return WhereClause.canMatch(
-            normalizer.normalize(
-                RefReplacer.replaceRefs(
-                    FieldReplacer.replaceFields(query, ignored -> Literal.NULL),
-                    ignored -> Literal.NULL
-                ),
-                txnCtx)
+        Symbol queryWithNulls = RefReplacer.replaceRefs(
+            FieldReplacer.replaceFields(query, ignored -> Literal.NULL),
+            ignored -> Literal.NULL
         );
+
+        Input<?> input = queryWithNulls.accept(evaluator, ALL_NULL_ROW);
+        return WhereClause.canMatch(input);
     }
+
+    private static Row ALL_NULL_ROW = new Row() {
+
+        @Override
+        public int numColumns() {
+            return Integer.MAX_VALUE;
+        }
+
+        @Override
+        public Object get(int index) {
+            return null;
+        }
+    };
 }
