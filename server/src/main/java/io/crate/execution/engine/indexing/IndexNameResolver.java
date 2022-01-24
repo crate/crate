@@ -21,9 +21,6 @@
 
 package io.crate.execution.engine.indexing;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.metadata.IndexParts;
@@ -36,6 +33,10 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import static io.crate.common.StringUtils.nullOrString;
+
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 
 public class IndexNameResolver {
 
@@ -64,7 +65,8 @@ public class IndexNameResolver {
 
     private static Supplier<String> forPartition(final RelationName relationName, final List<Input<?>> partitionedByInputs) {
         assert partitionedByInputs.size() > 0 : "must have at least 1 partitionedByInput";
-        final LoadingCache<List<String>, String> cache = CacheBuilder.newBuilder()
+        final LoadingCache<List<String>, String> cache = Caffeine.newBuilder()
+            .executor(Runnable::run)
             .initialCapacity(10)
             .maximumSize(20)
             .build(new CacheLoader<List<String>, String>() {
@@ -76,7 +78,7 @@ public class IndexNameResolver {
         return () -> {
             // copy because the values of the inputs are mutable
             List<String> partitions = Lists2.map(partitionedByInputs, input -> nullOrString(input.value()));
-            return cache.getUnchecked(partitions);
+            return cache.get(partitions);
         };
     }
 }
