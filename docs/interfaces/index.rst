@@ -14,7 +14,7 @@ CrateDB has two primary client interfaces:
 
 .. SEEALSO::
 
-   `Connecting to CrateDB`_ — Includes an introduction to the web admin UI, the
+   `Connecting to CrateDB`_ — Includes an introduction to the web Admin UI, the
    CrateDB shell, and the CrateDB HTTP endpoint
 
    `Client Libraries`_ — Officially supported clients and community supported

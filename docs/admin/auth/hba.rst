@@ -178,7 +178,7 @@ Authenticating to Admin UI
     cr> CREATE USER admin;
     CREATE OK, 1 row affected (... sec)
 
-When trying to access the CrateDB admin UI, authentication with the user
+When trying to access the CrateDB Admin UI, authentication with the user
 defined with the :ref:`auth.trust.http_default_user
 <auth_trust_http_default_user>` setting (defaults to ``crate``) will be
 attempted initially. If this authentication attempt fails, the browser will
@@ -186,7 +186,7 @@ open the standard popup window where the user is asked to fill in credentials.
 Depending on the HBA configuration, it may be necessary to a username and
 password, or, alternatively, a username only.
 
-Users that log in to the admin UI must be granted `DQL`` privileges at the
+Users that log in to the Admin UI must be granted `DQL`` privileges at the
 ``CLUSTER`` level in order to be able to access the various monitoring
 sections. For example::
 

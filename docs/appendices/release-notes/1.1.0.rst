@@ -45,7 +45,7 @@ Breaking Changes
 Changes
 -------
 
- - Serve admin UI from ``/``. Previously used URIs will direct to ``/``.
+ - Serve Admin UI from ``/``. Previously used URIs will direct to ``/``.
 
  - Added the subscript function support for object literals.
 
@@ -97,7 +97,7 @@ Changes
 
  - Upgraded the parser from ANTLR3 to ANTLR4.
 
- - Added monitoring plugin for the Enterprise edition in the admin UI.
+ - Added monitoring plugin for the Enterprise edition in the Admin UI.
 
  - Added Lazy loading of the stylesheet and plugins depending on the Enterprise
    settings.
@@ -150,7 +150,7 @@ Fixes
  - Fixed a console results issue that caused the results table not to be
    displayed after horizontal scrolling.
 
- - Fixed an issue that caused the admin UI to load only one plugin.
+ - Fixed an issue that caused the Admin UI to load only one plugin.
 
  - Display warning in the console view when the query result contains an unsafe
    integer.

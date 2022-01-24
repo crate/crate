@@ -62,7 +62,7 @@ Screenshots
 CrateDB provides an `Admin UI`_:
 
 .. image:: crate-admin.gif
-    :alt: Screenshots of the CrateDB admin UI
+    :alt: Screenshots of the CrateDB Admin UI
 
 
 Try CrateDB
@@ -84,7 +84,7 @@ Visit the `installation documentation`_ to see all the available download and
 install options.
 
 Once you're up and running, head over to the `introductory docs`_. To interact
-with CrateDB, you can use the Admin UI `web console`_ or the `CrateDB shell`_
+with CrateDB, you can use the Admin UI `sql console`_ or the `CrateDB shell`_
 CLI tool. Alternatively, review the list of recommended `clients and tools`_
 that work with CrateDB.
 
@@ -151,4 +151,4 @@ Looking for more help?
 .. _standard SQL: https://crate.io/docs/crate/reference/en/latest/sql/index.html
 .. _support channels: https://crate.io/support/
 .. _time-series data: https://crate.io/docs/crate/tutorials/en/latest/normalize-intervals.html
-.. _web console: https://crate.io/docs/crate/admin-ui/en/latest/console.html#sql-console
+.. _sql console: https://crate.io/docs/crate/admin-ui/en/latest/console.html#sql-console

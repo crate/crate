@@ -52,7 +52,7 @@ Fixes
 -----
 
 - Fixed an issue that caused the CrateDB process CPU calculation in the
-  Admin-UI to be false.
+  Admin UI to be false.
 
 - Fixed the default log file name to ``crate.log`` if no cluster name was
   explicitly specified in the settings.

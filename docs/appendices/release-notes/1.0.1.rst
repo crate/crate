@@ -49,7 +49,7 @@ Changes
    - Lowered opacity of placeholder query in the console.
 
    - Fix intercom support that disappeared during the implementation of the new
-     admin-ui layout.
+     Admin UI layout.
 
    - Fix Radio button position in load overview.
 

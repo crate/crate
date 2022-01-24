@@ -3,6 +3,10 @@ message: Prefer '%s' over '%s'
 ignorecase: false
 level: warning
 swap:
+  AdminUI: Admin UI
+  admin UI: Admin UI
+  admin-ui: Admin UI
+  Admin-UI: Admin UI
   sql: SQL
   postgres: PostgreSQL
   Postgres: PostgreSQL

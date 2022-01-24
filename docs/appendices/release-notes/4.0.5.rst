@@ -50,9 +50,9 @@ See the :ref:`version_4.0.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Improved the help section of the admin-ui including the Spanish translations.
+- Improved the help section of the Admin UI including the Spanish translations.
 
-- Fixed an issue in the admin-ui to no longer display all columns as being
+- Fixed an issue in the Admin UI to no longer display all columns as being
   generated columns in the table/column view section.
 
 - Fixed an issue introduced in CrateDB 4.0 resulting in dysfunctional

@@ -59,7 +59,7 @@ Fixes
 
 - Fixed an issue with the version payload returned by HTTP, which resulted in
   falsely displaying CrateDB's version as a ``-SNAPSHOT`` version at the
-  AdminUI.
+  Admin UI.
 
 - Fixed parsing of timestamps with a time zone offset of ``+0000``.
 

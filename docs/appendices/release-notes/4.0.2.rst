@@ -44,7 +44,7 @@ See the :ref:`version_4.0.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue in the admin UI that prevented partitions from showing up in
+- Fixed an issue in the Admin UI that prevented partitions from showing up in
   the table detail view.
 
 - Fixed an issue in the version handling that would prevent rolling upgrades to

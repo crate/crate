@@ -190,7 +190,7 @@ Changes
  - Implemented hash sum :ref:`scalar functions <scalar-functions>` (MD5, SHA1).
    Please see :ref:`sha1 <scalar-sha1>`.
 
- - Various admin UI improvements.
+ - Various Admin UI improvements.
 
  - Added support for ``GROUP BY`` on joins.
 

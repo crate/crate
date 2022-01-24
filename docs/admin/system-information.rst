@@ -789,7 +789,7 @@ Acknowledge failed checks
 -------------------------
 
 It is possible to acknowledge every check by updating the ``acknowledged``
-column. By doing this, specially CrateDB's built-in Admin-UI won't complain
+column. By doing this, specially CrateDB's built-in Admin UI won't complain
 anymore about failing checks.
 
 Imagine we've added a new node to our cluster, but as the
@@ -799,7 +799,7 @@ setting will not pass on the already running nodes until the config-file or
 command-line argument on these nodes is updated and the nodes are restarted
 (which is not what we want on a healthy well running cluster).
 
-In order to make the Admin-UI accept a failing check (so the checks label goes
+In order to make the Admin UI accept a failing check (so the checks label goes
 green again), we must acknowledge this check by updating it's ``acknowledged``
 flag::
 
