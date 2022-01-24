@@ -34,7 +34,7 @@ Changelog
 Changes
 -------
 
- - Querying the admin UI from ``/_plugin/crate-admin/`` will now redirect to
+ - Querying the Admin UI from ``/_plugin/crate-admin/`` will now redirect to
    ``/``.
 
  - Added possible data type conversion to a timestamp array. e.g.
@@ -52,7 +52,7 @@ Changes
 
  - Display notification warning only when a new CrateDB version is released.
 
- - Added ``lineWrapping`` option to console editor in the admin UI.
+ - Added ``lineWrapping`` option to console editor in the Admin UI.
 
 
 Fixes

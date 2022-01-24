@@ -283,7 +283,7 @@ Altered Settings
   data.
 
   Data paths that are incompatible with 3.0.0 will be indicated visually in the
-  `admin UI`_ if you are running the latest 2.2.x or 2.3.x release.
+  `Admin UI`_ if you are running the latest 2.2.x or 2.3.x release.
 
 
 Other Changes
@@ -312,7 +312,7 @@ Other Changes
   ``sys.nodes`` table.
 
 
-.. _admin UI: https://crate.io/docs/clients/admin-ui/en/latest/
+.. _Admin UI: https://crate.io/docs/clients/admin-ui/en/latest/
 .. _backup: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _full cluster restart: https://crate.io/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
 .. _HTTP Authorization header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization

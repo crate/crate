@@ -114,7 +114,7 @@ Changes
 
   - Fixed an issue that caused incorrect URL paths if the project gets built.
 
-    Implemented new layout for the admin-ui.
+    Implemented new layout for the Admin UI.
 
   - Local development: do not store ``base_uri`` permanently in localStorage
     but keep it in URL.
