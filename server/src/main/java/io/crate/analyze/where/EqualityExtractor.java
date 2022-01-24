@@ -21,7 +21,7 @@
 
 package io.crate.analyze.where;
 
-import com.google.common.collect.Sets;
+import io.crate.common.collections.CartesianList;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
@@ -51,12 +51,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class EqualityExtractor {
 
@@ -122,8 +120,8 @@ public class EqualityExtractor {
             return null;
         }
 
-        List<Set<EqProxy>> comparisons = context.comparisonSet();
-        Set<List<EqProxy>> cp = Sets.cartesianProduct(comparisons);
+        List<List<EqProxy>> comparisons = context.comparisonValues();
+        List<List<EqProxy>> cp = CartesianList.of(comparisons);
 
         List<List<Symbol>> result = new ArrayList<>();
         for (List<EqProxy> proxies : cp) {
@@ -374,11 +372,10 @@ public class EqualityExtractor {
                 }
             }
 
-            private List<Set<EqProxy>> comparisonSet() {
-                List<Set<EqProxy>> comps = new ArrayList<>(comparisons.size());
+            private List<List<EqProxy>> comparisonValues() {
+                List<List<EqProxy>> comps = new ArrayList<>(comparisons.size());
                 for (Comparison comparison : comparisons.values()) {
-                    // TODO: probably create a view instead of a separate set
-                    comps.add(new HashSet<>(comparison.proxies.values()));
+                    comps.add(List.copyOf(comparison.proxies.values()));
                 }
                 return comps;
             }
