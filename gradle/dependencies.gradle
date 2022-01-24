@@ -38,7 +38,6 @@ allprojects {
             force "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
             //force "com.spatial4j:spatial4j:${versions.spatial4j}"
 
-            force "com.google.guava:guava:${versions.guava}"
             force "commons-codec:commons-codec:${versions.commonscodec}"
             force "com.carrotsearch.randomizedtesting:junit4-ant:${versions.randomizedrunner}"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"

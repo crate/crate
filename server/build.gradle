@@ -92,9 +92,9 @@ dependencies {
         exclude group: 'com.google.errorprone', module: 'error_prone_annotations'
     }
 
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
 
     implementation "joda-time:joda-time:${versions.jodatime}"
-    implementation "com.google.guava:guava:${versions.guava}"
     implementation "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
     implementation "org.apache.commons:commons-math3:${versions.commonsmath}"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-csv:${versions.jackson}"
@@ -127,7 +127,6 @@ dependencies {
     testFixturesImplementation "joda-time:joda-time:${versions.jodatime}"
     testFixturesImplementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
     testFixturesImplementation "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
-    testFixturesImplementation "com.google.guava:guava:${versions.guava}"
     testFixturesImplementation "org.apache.lucene:lucene-analyzers-common:${versions.lucene}"
     testFixturesImplementation project(':libs:pgwire')
 }

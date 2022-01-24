@@ -34,7 +34,6 @@ dependencies {
 
     implementation "joda-time:joda-time:${versions.jodatime}"
     implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
-    implementation "com.google.guava:guava:${versions.guava}"
 
     implementation "org.openjdk.jmh:jmh-core:${versions.jmh}"
     annotationProcessor "org.openjdk.jmh:jmh-generator-annprocess:${versions.jmh}"

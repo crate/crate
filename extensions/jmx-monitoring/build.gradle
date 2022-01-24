@@ -29,7 +29,6 @@ dependencies {
     implementation project(':libs:dex')
     implementation project(':server')
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
-    implementation "com.google.guava:guava:${versions.guava}"
 
     testImplementation(testFixtures(project(':server')))
     testImplementation "junit:junit:${versions.junit}"
