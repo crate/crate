@@ -24,7 +24,7 @@ Description
 ``SHOW SCHEMAS`` can be used to retrieve defined schema names of the database
 in alphabetical order.
 
-The same list can be fetched by querying the the schema names from the
+The same list can be fetched by querying the schema names from the
 ``information_schema.schemata`` table.
 
 Clauses

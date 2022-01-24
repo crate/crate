@@ -44,9 +44,9 @@ limit is reached it leaves the shard unallocated.
 This command allows the enforcement to retry the allocation of shards which
 failed to allocate. See :ref:`ddl_reroute_shards` to get convenient use-cases.
 
-The rowcount defines the number of shards that will be allocated.
-A rowcount of ``-1`` reflects an error or indicates that the statement did not
-get acknowledged.
+The row count defines the number of shards that will be allocated. A row count
+of ``-1`` reflects an error or indicates that the statement did not get
+acknowledged.
 
 .. NOTE::
 

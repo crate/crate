@@ -20,7 +20,7 @@ Synopsis
 ::
 
     DROP FUNCTION [ IF EXISTS ] function_name
-        ( [ [ arg_name ] arg_type [, ...] ] )
+        ( [ [ argument_name ] argument_type [, ...] ] )
 
 
 Description
@@ -40,7 +40,7 @@ Parameters
 :function_name:
   The name of the function to drop.
 
-:arg_name:
+:argument_name:
   The name given to an argument.
 
   Function arguments do not retain names, but you can name them in your query
@@ -48,5 +48,5 @@ Parameters
   names, since only the argument data types are needed to identify the
   function.
 
-:arg_type:
+:argument_type:
   The :ref:`data type <data-types>` of an argument, if any.

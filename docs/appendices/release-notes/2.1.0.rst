@@ -58,12 +58,12 @@ Breaking Changes
 
 - Duplicate definition of settings is neither allowed in the ``crate.yml`` file
   nor as command line options. However, settings provided via command line
-  arguments can still override the settings defined in th ``crate.yml`` file.
+  arguments can still override the settings defined in the ``crate.yml`` file.
 
 - The syntax for creating columns on ``Create Table`` and ``Alter Table`` has
   become more strict.
 
-- The sigar jar and object files have been moved from ``plugins/sigar`` to
+- The ``sigar`` jar and object files have been moved from ``plugins/sigar`` to
   ``lib/sigar``.
 
 
@@ -95,7 +95,7 @@ Changes
 - Added SSL/TLS support for PostgreSQL Wire Protocol.
 
 - Added new HBA setting ``ssl`` which allows to control whether
-  users have to connect with ssl enabled or disabled.
+  users have to connect with SSL enabled or disabled.
 
 - Added support for client certificate authentication via HBA.
 

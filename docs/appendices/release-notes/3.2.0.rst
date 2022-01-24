@@ -113,7 +113,7 @@ SQL Improvements
 ~~~~~~~~~~~~~~~~
 
 - Added the :ref:`REPLACE <scalar-replace>` :ref:`scalar function
-  <scalar-functions>` replacing substrings in a string with another string.
+  <scalar-functions>` replacing a substring in a string with another string.
 
 - Added the :ref:`GENERATE_SERIES(start, stop [, step ])
   <table-functions-generate-series>` :ref:`table function <table-functions>`
@@ -216,8 +216,8 @@ Admin UI Upgrade to 1.11.3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Changed the license information (ident) to be taken from the
-  `sys.cluster.licence` attribute instead of the `license.ident` setting, which
-  is ``@deprecated``.
+  ``sys.cluster.licence`` attribute instead of the ``license.ident`` setting,
+  which is ``@deprecated``.
 
 - Addition of French language files and menu options.
 
@@ -251,7 +251,7 @@ Other
   :ref:`delimited_payload <delimited_payload-tokenfilter>`. The old name can
   still be used, but is deprecated.
 
-For further information on CrateDB 3.2.0 see our `announcement blogpost
+For further information on CrateDB 3.2.0 see our `announcement Blog post
 <blogpost_>`__.
 
 

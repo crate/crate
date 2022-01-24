@@ -42,9 +42,9 @@ A simple ``SELECT`` statement can be submitted like this::
 
 .. NOTE::
 
-    We're using a simple command line invokation of ``curl`` here so you can
+    We're using a simple command line invocation of ``curl`` here so you can
     see how to run this by hand in the terminal. For the rest of the examples
-    in this document, we use `here documents`_ (i.e. ``EOF``) for multiline
+    in this document, we use `here documents`_ (i.e. ``EOF``) for multi line
     readability.
 
 .. rubric:: Table of contents
@@ -309,7 +309,7 @@ Instead of the ``args`` (:ref:`http-param-substitution`) key, use the key
 records which shall be processed. The inner lists need to match the specified
 columns.
 
-The bulk response contains a ``results`` array, with a rowcount for each bulk
+The bulk response contains a ``results`` array, with a row count for each bulk
 operation. Those results are in the same order as the issued operations of the
 bulk operation.
 
@@ -391,7 +391,7 @@ To get more insight into what exactly went wrong an additional ``error_trace``
 
     This parameter is intended for CrateDB developers or for users requesting
     support for CrateDB. Client libraries shouldn't make use of this option and
-    not include the stacktrace.
+    not include the stack trace.
 
 Currently the defined error codes are:
 
@@ -483,7 +483,7 @@ Code   Error
 Bulk errors
 -----------
 
-If a bulk operation fails, the resulting rowcount will be ``-2`` and the
+If a bulk operation fails, the resulting row count will be ``-2`` and the
 resulting object may contain an ``error_message`` depending on the resulting
 error::
 

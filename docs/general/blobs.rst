@@ -36,7 +36,7 @@ can be completely different than the normal data path. Best use case for this
 is storing normal data on a fast SSD and blob data on a large cheap spinning
 disk.
 
-The custom blob data path can be set either globally by config or while
+The custom blob data path can be set either globally by configuration or while
 creating a blob table. The path can be either absolute or relative and must be
 creatable/writable by the user CrateDB is running as. A relative path value is
 relative to :ref:`CRATE_HOME <conf-env-crate-home>`.
@@ -45,11 +45,11 @@ Blob data will be stored under this path with the following layout::
 
   /<blobs.path>/nodes/<NODE_NO>/indices/<INDEX_UUID>/<SHARD_ID>/blobs
 
-Global by config
-----------------
+Global by configuration
+-----------------------
 
-Just uncomment or add following entry at the CrateDB config in order to define a
-custom path globally for all blob tables::
+Just uncomment or add following entry at the CrateDB configuration in order to
+define a custom path globally for all blob tables::
 
   blobs.path: /path/to/blob/data
 
@@ -59,8 +59,8 @@ Per blob table setting
 ----------------------
 
 It is also possible to define a custom blob data path per table instead of
-global by config. Also per table setting take precedence over the config
-setting.
+global by configuration. Also per table setting take precedence over the
+configuration setting.
 
 See :ref:`sql-create-blob-table` for details.
 
@@ -137,9 +137,9 @@ section describes how binaries can be stored, fetched and deleted.
 Uploading
 ---------
 
-To upload a blob the sha1 hash of the blob has to be known upfront since this
+To upload a blob the SHA1 hash of the blob has to be known upfront since this
 has to be used as the ID of the new blob. For this example we use a fancy
-Python one-liner to compute the shasum::
+Python one-liner to compute the SHA hash::
 
     sh$ python3 -c 'import hashlib;print(hashlib.sha1("contents".encode("utf-8")).hexdigest())'
     4a756ca07e9487f482465a99e8286abc86ba4dc7

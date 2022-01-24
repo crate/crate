@@ -91,7 +91,7 @@ correct data type, CrateDB will attempt automatic :ref:`type conversion
 The optional ``RETURNING`` clause causes the ``INSERT`` statement to compute
 and return values from each row inserted (or updated, in the case of ``ON
 CONFLICT DO UPDATE``). You can take advantage of this behavior to obtain values
-that CrateDB supplied from defaults, such as as :ref:`_id
+that CrateDB supplied from defaults, such as :ref:`_id
 <sql_administration_system_column_id>`.
 
 

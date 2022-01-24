@@ -369,12 +369,12 @@ The result rows have three columns:
 
     * - Column name
       - Description
-    * - word
+    * - ``word``
       - The SQL keyword
-    * - catcode
+    * - ``catcode``
       - Code for the category (`R` for reserved keywords, `U` for unreserved
         keywords)
-    * - catdesc
+    * - ``catdesc``
       - The description of the category
 
 ::

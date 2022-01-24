@@ -42,7 +42,7 @@ Changes
 Performance Improvements
 ------------------------
 
-- Improved the performance of the :ref`hyperloglog_distinct
+- Improved the performance of the :ref:`hyperloglog_distinct
   <aggregation-hyperloglog-distinct>` aggregation function.
 
 - Improved the performance of ``SELECT`` statements with ``WHERE`` conditions
@@ -123,15 +123,15 @@ Administration Console
 
 - Removed all analytics (UDC, Segment)
 
-- Removed the "Notifications" section in the statusbar
+- Removed the "Notifications" section in the status bar
 
 - Removed min-width for columns in console to reduce scrolling
 
 - Changed syntax highlighting in console. Keywords in double quotes are now longer
   highlighted. Types are highlighted with a different color.
 
-- Activated codemirror code hints for keywords.
+- Activated ``codemirror`` code hints for keywords.
 
-- Changed the look of the Scrollbar to appear more modern.
+- Changed the look of the scroll bar to appear more modern.
 
 - Added length limit for ``varchar(n)`` and ``bit(n)`` types in table view.

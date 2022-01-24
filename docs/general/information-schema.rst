@@ -176,7 +176,7 @@ The table also contains additional information such as the specified
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``table_type``                   | The type of the table (``BASE TABLE`` for tables, ``VIEW`` for views)              | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``version``                      | A collection of version numbers relevent to the table                              | ``OBJECT``  |
+| ``version``                      | A collection of version numbers relevant to the table                              | ``OBJECT``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 
 ``settings``
@@ -535,7 +535,7 @@ tables:
 +-------------------------+-------------------------------------------------------------------------+-------------+
 | ``column_name``         | Name of the column that contains the constraint                         | ``TEXT``    |
 +-------------------------+-------------------------------------------------------------------------+-------------+
-| ``ordinal_position``    | Position of the column within the contraint (starts with 1)             | ``INTEGER`` |
+| ``ordinal_position``    | Position of the column within the constraint (starts with 1)            | ``INTEGER`` |
 +-------------------------+-------------------------------------------------------------------------+-------------+
 
 .. _is_table_partitions:
@@ -715,7 +715,7 @@ Or get an overview of how many routines and routine types are available::
 ``schemata``
 ------------
 
-The schemata table lists all existing schemas. Thes ``blob``,
+The schemata table lists all existing schemas. The ``blob``,
 ``information_schema``, and ``sys`` schemas are always available. The ``doc``
 schema is available after the first user table is created.
 
@@ -777,10 +777,10 @@ CrateDB based to the current SQL standard (see :ref:`sql_supported_features`)::
 :feature_name:
     Descriptive name of the feature by the Standard
 :sub_feature_id:
-    Identifier of the subfeature;
+    Identifier of the sub feature;
     If it has zero-length, this is a feature
 :sub_feature_name:
-    Descriptive name of the subfeature by the Standard;
+    Descriptive name of the sub feature by the Standard;
     If it has zero-length, this is a feature
 :is_supported:
     ``YES`` if the feature is fully supported by the current version of

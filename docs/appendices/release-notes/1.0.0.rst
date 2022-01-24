@@ -127,7 +127,7 @@ Changes
   - The first table in the table list is selected by default.
 
   - Developer news from Crate.io website are now loaded correctly into
-    newsfeed.
+    ``newsfeed``.
 
 - Updated Crash to 0.20.0 which includes the following change:
 

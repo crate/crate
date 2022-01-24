@@ -32,7 +32,7 @@ Breaking Changes
 
  - The ``ordinal`` column at the ``information_schema.columns`` will return
    ``NULL`` now for all sub-columns (all non top-level columns) as the order of
-   object columns is not guarateed.
+   object columns is not guaranteed.
 
  - The ``TableFunctionImplementation`` interface was streamlined with other
    function implementation semantics. This requires function implementation
@@ -60,7 +60,7 @@ Changes
    version of the storage engine.
 
  - Added new column ``min_lucene_version`` to ``sys.shards`` table, which shows
-   the oldest lucene segment version used in the shard.
+   the oldest Lucene segment version used in the shard.
 
  - Remove restriction to run ``OPTIMIZE`` on blob tables.
 

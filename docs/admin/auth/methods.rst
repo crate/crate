@@ -21,11 +21,11 @@ username provided by the client as is without further validation. This is
 useful for any setup where access is controlled by other means, like network
 restrictions as implemented by :ref:`admin_hba`.
 
-Trust authentication over Postgres protocol
--------------------------------------------
+Trust authentication over PostgreSQL protocol
+---------------------------------------------
 
-The Postgres Protocol requires a user for every connection which is sent by all
-client implementations.
+The PostgreSQL Protocol requires a user for every connection which is sent by
+all client implementations.
 
 Trust authentication over HTTP
 ------------------------------
@@ -103,7 +103,7 @@ the ``common name`` of the certificate. Otherwise the authentication will fail.
 See :ref:`auth_trust` on how to provide a username via HTTP.
 
 The rule that the ``common name`` must match the provided username always
-applies to the postgres wire protocol, as there the username isn't optional.
+applies to the PostgreSQL wire protocol, as there the username isn't optional.
 
 Please consult the relevant client documentations for instructions on how to
 connect using SSL with client certificate.

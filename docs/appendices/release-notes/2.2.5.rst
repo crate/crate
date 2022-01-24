@@ -55,7 +55,7 @@ Fixes
 - Refresh the cluster information after query execution in the console view of
   the Admin UI, to ensure that the cluster info is always up-to-date.
 
-- Fixed an issue that caused incorrect results for collapsable :ref:`subselects
+- Fixed an issue that caused incorrect results for collapsible :ref:`subselects
   <gloss-subquery>` which contained a ``WHERE`` clause that resulted in no
   match. E.g.::
 

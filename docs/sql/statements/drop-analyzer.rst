@@ -4,7 +4,7 @@
 ``DROP ANALYZER``
 =================
 
-Remove a custom analzer.
+Remove a custom analyzer.
 
 .. rubric:: Table of contents
 
@@ -21,7 +21,7 @@ Synopsis
 Description
 ===========
 
-DROP ANALYZER removes a custom created analyzer from the cluster.
+``DROP ANALYZER`` removes a custom created analyzer from the cluster.
 
 
 Parameters

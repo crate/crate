@@ -6,8 +6,8 @@ PostgreSQL wire protocol
 
 CrateDB supports the `PostgreSQL wire protocol v3`_.
 
-If a node is started with postgres support enabled it will bind to port
-``5432`` by default. To use a custom port, set the corresponding
+If a node is started with PostgreSQL wire protocol support enabled it will bind
+to port ``5432`` by default. To use a custom port, set the corresponding
 :ref:`conf_ports` in the :ref:`Configuration <config>`.
 
 However, even though connecting PostgreSQL tools and client libraries is
@@ -17,7 +17,7 @@ which is why clients should generally enable ``autocommit``.
 
 .. NOTE::
 
-    In order to use ``setFetchSize`` in JDBC it is possible to set autocommit
+    In order to use ``setFetchSize`` in JDBC it is possible to set auto commit
     to false.
 
     The client will utilize the fetchSize on SELECT statements and only load up
@@ -25,7 +25,7 @@ which is why clients should generally enable ``autocommit``.
 
     See the `PostgreSQL JDBC Query docs`_ for more information.
 
-    Write operations will still behave as if autocommit was enabled and commit
+    Write operations will still behave as if auto commit was enabled and commit
     or rollback calls are ignored.
 
 .. rubric:: Table of contents
@@ -260,7 +260,7 @@ OID types
 *Object Identifiers* (OIDs) are used internally by PostgreSQL as primary keys
 for various system tables.
 
-CrateDB supports the the :ref:`oid <type-oid>` type and the following aliases:
+CrateDB supports the :ref:`oid <type-oid>` type and the following aliases:
 
 +-------------------+----------------------+-------------+-------------+
 | Name              | Reference            | Description | Example     |
@@ -529,7 +529,7 @@ Text search functions and operators
 
 The :ref:`functions <gloss-function>` and :ref:`operators <gloss-operator>`
 provided by PostgreSQL for :ref:`full-text search <sql_dql_fulltext_search>`
-(see `PostgreSQL Fulltext Search`_) are not compatible with those provided by
+(see `PostgreSQL fulltext Search`_) are not compatible with those provided by
 CrateDB.
 
 If you are missing features, functions or dialect improvements and have a great

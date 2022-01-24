@@ -30,7 +30,8 @@ You can enable SSL on a per-protocol basis:
    encryption for nodes communicating between zones. Please note, that SSL has
    to be ``on`` in all nodes as communication is point-2-point. By default
    intra-zone communication will also be encrypted but it's possible to switch
-   it to plaintext by enabling ``switch_to_plaintext`` config for trusted zone.
+   it to plain text by enabling the ``switch_to_plaintext`` option for the
+   trusted zone.
 
 
 .. rubric:: Table of contents
@@ -138,7 +139,7 @@ Connect to a CrateDB node using the Admin UI
 
 Crate's HTTP endpoint remains unchanged. When you have turned on secure
 communication, it will use HTTPS instead of plain HTTP. Simply point your
-browser to the same URL you used before but changing the protocol to https:
+browser to the same URL you used before but changing the protocol to HTTPS:
 
 For example, ``https://localhost:4200`` becomes ``https://localhost:4200``.
 If you have not configured the CrateDB node's keystore with a signed
@@ -193,23 +194,23 @@ Last but not least, the connection parameter ``ssl=true`` must be added to the
 connection URL so that the JDBC driver will try and establish an SSL
 connection.
 
-For further information, visit `jdbc ssl documentation`_.
+For further information, visit `JDBC SSL documentation`_.
 
 Connect to a CrateDB node using ``psql``
 ........................................
 
-By default, ``psql`` attempts to use ssl if available on the node. For further
+By default, ``psql`` attempts to use SSL if available on the node. For further
 information including the different SSL modes please visit the
-`psql documentation`_.
+`PSQL documentation`_.
 
-.. _jdbc ssl documentation: https://jdbc.postgresql.org/documentation/head/ssl-client.html
-.. _psql documentation: https://www.postgresql.org/docs/current/static/app-psql.html
+.. _JDBC SSL documentation: https://jdbc.postgresql.org/documentation/head/ssl-client.html
+.. _PSQL documentation: https://www.postgresql.org/docs/current/static/app-psql.html
 
 
 Setting up a Keystore/Truststore with a certificate chain
 =========================================================
 
-In case you need to setup a Keystore or a Trustore, here are the commands
+In case you need to setup a Keystore or a Truststore, here are the commands
 to get you started. All the commands use a validity of 36500 days
 (about 100 years). You might want to use less.
 
@@ -491,5 +492,5 @@ Output::
 Configuring CrateDB
 -------------------
 
-Finally, you want to supply the Keystore/Truststore configuration in the
-CrateDB config, see :ref:`ssl_config`.
+Finally, you want to supply the Keystore/Truststore in the CrateDB
+configuration, see :ref:`ssl_config`.

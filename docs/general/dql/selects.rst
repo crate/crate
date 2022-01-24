@@ -223,7 +223,7 @@ expression matching on Lucene terms.
 
 `Lucene Regular Expressions`_ are basically `POSIX Extended Regular
 Expressions`_ without the character classes and with some extensions, like a
-metacharacter ``#`` for the empty string or ``~`` for negation and others. By
+meta character ``#`` for the empty string or ``~`` for negation and others. By
 default all Lucene extensions are enabled. See the Lucene documentation for
 more details.
 
@@ -368,16 +368,20 @@ null        null
 ``IS NULL``
 -----------
 
-Returns ``TRUE`` if ``expr`` :ref:`evaluates <gloss-evaluation>` to
+Returns ``TRUE`` if the expression :ref:`evaluates <gloss-evaluation>` to
 ``NULL``. Given a column reference, it returns ``TRUE`` if the field contains
 ``NULL`` or is missing.
 
 Use this predicate to check for ``NULL`` values as SQL's three-valued logic
 does always return ``NULL`` when comparing ``NULL``.
 
+.. vale off
+
 :expr:
   :ref:`Expression <gloss-expression>` of one of the supported
   :ref:`data types <data-types>` supported by CrateDB.
+
+.. vale on
 
 ::
 
@@ -421,9 +425,13 @@ column does not exist.
 Use this predicate to check for non-``NULL`` values as SQL's three-valued logic
 does always return ``NULL`` when comparing ``NULL``.
 
+.. vale off
+
 :expr:
   :ref:`Expression <gloss-expression>` of one of the supported
   :ref:`data types <data-types>` supported by CrateDB.
+
+.. vale on
 
 ::
 

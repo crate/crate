@@ -43,6 +43,8 @@ Special attributes
 
 Following special attributes are supported:
 
+.. vale off
+
 :_name:
    Match nodes by node name.
 
@@ -57,3 +59,5 @@ Following special attributes are supported:
 
 :_host:
    Match nodes by hostname.
+
+.. vale on

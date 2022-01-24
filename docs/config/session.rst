@@ -23,7 +23,7 @@ example:
   SET search_path TO myschema, doc;
 
 To retrieve the current value of a session setting, use :ref:`SHOW <ref-show>`
-eg:
+e.g:
 
 .. code-block:: sql
 

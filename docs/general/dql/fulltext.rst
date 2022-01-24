@@ -77,7 +77,7 @@ on columns with a higher boost result in a higher :ref:`_score
 <sql_administration_system_column_score>` value for that document.
 
 The ``match_type`` argument determines how a single ``query_term`` is applied
-and and how the resulting :ref:`_score
+and how the resulting :ref:`_score
 <sql_administration_system_column_score>` is computed. For more information see
 :ref:`predicates_match_types`.
 
@@ -86,6 +86,8 @@ by default, but can be overridden by adding an ``ORDER BY`` clause.
 
 Arguments
 .........
+
+.. vale off
 
 :column_or_idx_ident:
   A reference to a column or an index.
@@ -138,6 +140,8 @@ Arguments
    But this is not::
 
        FROM t1, t2 WHERE match(t1.txt, 'foo') OR match(t2.txt, 'bar');
+
+.. vale on
 
 .. _predicates_match_types:
 
