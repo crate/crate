@@ -21,7 +21,7 @@
 
 package io.crate.analyze.repositories;
 
-import com.google.common.collect.Sets;
+import io.crate.common.collections.Sets;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -58,7 +58,7 @@ public class RepositoryParamValidator {
 
         // validate all settings
         Set<String> names = settings.keySet();
-        Sets.SetView<String> missingRequiredSettings = Sets.difference(typeSettings.required().keySet(), names);
+        Set<String> missingRequiredSettings = Sets.difference(typeSettings.required().keySet(), names);
         if (!missingRequiredSettings.isEmpty()) {
             throw new IllegalArgumentException(
                 String.format(
