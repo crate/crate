@@ -53,9 +53,8 @@ public class HostBasedAuthentication implements Authentication {
     private static final String KEY_ADDRESS = "address";
     private static final String KEY_METHOD = "method";
     private static final String KEY_PROTOCOL = "protocol";
-    private static final String KEY_SWITCH_TO_PLAINTEXT = "switch_to_plaintext";
 
-    public enum SSL {
+    enum SSL {
         REQUIRED("on"),
         NEVER("off"),
         OPTIONAL("optional");
@@ -119,12 +118,12 @@ public class HostBasedAuthentication implements Authentication {
     }
 
     @Nullable
-    private AuthenticationMethod methodForName(String method, boolean switchToPlaintext) {
+    private AuthenticationMethod methodForName(String method) {
         switch (method) {
             case (TrustAuthenticationMethod.NAME):
                 return new TrustAuthenticationMethod(userLookup);
             case (ClientCertAuth.NAME):
-                return new ClientCertAuth(userLookup, switchToPlaintext);
+                return new ClientCertAuth(userLookup);
             case (PasswordAuthenticationMethod.NAME):
                 return new PasswordAuthenticationMethod(userLookup);
             default:
@@ -141,7 +140,7 @@ public class HostBasedAuthentication implements Authentication {
             String methodName = entry.get()
                 .getValue()
                 .getOrDefault(KEY_METHOD, DEFAULT_AUTH_METHOD);
-            return methodForName(methodName, Boolean.parseBoolean(entry.get().getValue().getOrDefault(KEY_SWITCH_TO_PLAINTEXT, "false")));
+            return methodForName(methodName);
         }
         return null;
     }
