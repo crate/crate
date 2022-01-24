@@ -175,6 +175,14 @@ New Types
 - Added the :ref:`JSON type <data-type-json>`.
 
 
+Performance
+-----------
+
+- Improved optimizer rewrite rules for outer join to inner joins rewrites.
+  Previously using aliases could prevent the rewrite from working.
+
+
+
 Fixes
 =====
 
