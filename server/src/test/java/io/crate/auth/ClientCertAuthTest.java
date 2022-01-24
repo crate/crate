@@ -70,7 +70,7 @@ public class ClientCertAuthTest extends ESTestCase {
 
     @Test
     public void testLookupValidUserWithCert() throws Exception {
-        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> exampleUser, false);
+        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> exampleUser);
 
         User user = clientCertAuth.authenticate("example.com", null, sslConnWithCert);
         assertThat(user, is(exampleUser));
@@ -78,7 +78,7 @@ public class ClientCertAuthTest extends ESTestCase {
 
     @Test
     public void testLookupValidUserWithCertWithDifferentCN() throws Exception {
-        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> User.of("arthur"), false);
+        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> User.of("arthur"));
 
         expectedException.expectMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur\"");
         clientCertAuth.authenticate("arthur", null, sslConnWithCert);
@@ -86,7 +86,7 @@ public class ClientCertAuthTest extends ESTestCase {
 
     @Test
     public void testLookupUserWithMatchingCertThatDoesNotExist() throws Exception {
-        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> null, false);
+        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> null);
 
         expectedException.expectMessage("Client certificate authentication failed for user \"example.com\"");
         clientCertAuth.authenticate("example.com", null, sslConnWithCert);
@@ -98,7 +98,7 @@ public class ClientCertAuthTest extends ESTestCase {
         when(sslSession.getPeerCertificates()).thenReturn(new Certificate[0]);
         ConnectionProperties connectionProperties = new ConnectionProperties(
             InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, sslSession);
-        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> exampleUser, false);
+        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> exampleUser);
 
         expectedException.expectMessage("Client certificate authentication failed for user \"example.com\"");
         clientCertAuth.authenticate("example.com", null, connectionProperties);
@@ -106,7 +106,7 @@ public class ClientCertAuthTest extends ESTestCase {
 
     @Test
     public void testHttpClientCertAuthFailsOnUserMissMatchWithCN() throws Exception {
-        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> exampleUser, false);
+        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> exampleUser);
         ConnectionProperties conn = new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.HTTP, sslSession);
 
         expectedException.expectMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur_is_wrong\"");
