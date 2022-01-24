@@ -1088,8 +1088,8 @@ keeps working.
   | *Runtime:*   ``yes``
 
   Specifies the limit for the query breaker. Provided values can either be
-  absolute values (interpreted as a number of bytes), byte sizes (Like ``1mb``)
-  or percentage of the heap size (Like ``12%``). A value of ``-1`` disables
+  absolute values (interpreted as a number of bytes), byte sizes (like ``1mb``)
+  or percentage of the heap size (like ``12%``). A value of ``-1`` disables
   breaking the circuit while still accounting memory usage.
 
 .. _indices.breaker.query.overhead:
