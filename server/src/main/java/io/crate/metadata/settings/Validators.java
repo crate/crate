@@ -23,8 +23,6 @@ package io.crate.metadata.settings;
 
 import io.crate.common.Booleans;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.util.set.Sets;
-
 import java.util.Map;
 import java.util.Set;
 
@@ -37,7 +35,7 @@ public class Validators {
         if (allowedValues.length == 0) {
             return new StrictStringValidator(key);
         }
-        return new StringValidatorAllowedValuesOnly(key, Sets.newHashSet(allowedValues));
+        return new StringValidatorAllowedValuesOnly(key, Set.of(allowedValues));
     }
 
     /**

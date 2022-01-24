@@ -30,8 +30,6 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.join.JoinType;
-import org.elasticsearch.common.util.set.Sets;
-
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
@@ -220,7 +218,7 @@ public class JoinPlanBuilder {
         // query parts can affect a single relation without being pushed down in the outer-join case
         Symbol left = queryParts.remove(Collections.singleton(lhsName));
         Symbol right = queryParts.remove(Collections.singleton(rhsName));
-        Symbol both = queryParts.remove(Sets.newHashSet(lhsName, rhsName));
+        Symbol both = queryParts.remove(Set.of(lhsName, rhsName));
         return AndOperator.join(
             Stream.of(left, right, both).filter(Objects::nonNull).iterator()
         );
@@ -229,7 +227,7 @@ public class JoinPlanBuilder {
     @Nullable
     private static <V> V removeMatch(Map<Set<RelationName>, V> valuesByNames, Set<RelationName> names, RelationName nextName) {
         for (RelationName name : names) {
-            V v = valuesByNames.remove(Sets.newHashSet(name, nextName));
+            V v = valuesByNames.remove(Set.of(name, nextName));
             if (v != null) {
                 return v;
             }

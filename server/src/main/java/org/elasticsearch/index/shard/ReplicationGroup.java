@@ -21,7 +21,7 @@ package org.elasticsearch.index.shard;
 
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.util.set.Sets;
+import io.crate.common.collections.Sets;
 
 import java.util.ArrayList;
 import java.util.List;

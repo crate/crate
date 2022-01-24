@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.set.Sets;
+import io.crate.common.collections.Sets;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.transport.TransportException;
@@ -156,7 +156,7 @@ public class PublicationTests extends ESTestCase {
     DiscoveryNode n1 = CoordinationStateTests.createNode("node1");
     DiscoveryNode n2 = CoordinationStateTests.createNode("node2");
     DiscoveryNode n3 = CoordinationStateTests.createNode("node3");
-    Set<DiscoveryNode> discoNodes = Sets.newHashSet(n1, n2, n3);
+    Set<DiscoveryNode> discoNodes = Set.of(n1, n2, n3);
 
     MockNode node1 = new MockNode(Settings.EMPTY, n1);
     MockNode node2 = new MockNode(Settings.EMPTY, n2);
@@ -175,7 +175,7 @@ public class PublicationTests extends ESTestCase {
     }
 
     public void testSimpleClusterStatePublishing() throws InterruptedException {
-        VotingConfiguration singleNodeConfig = new VotingConfiguration(Sets.newHashSet(n1.getId()));
+        VotingConfiguration singleNodeConfig = new VotingConfiguration(Set.of(n1.getId()));
         initializeCluster(singleNodeConfig);
 
         AssertingAckListener ackListener = new AssertingAckListener(nodes.size());
@@ -215,7 +215,7 @@ public class PublicationTests extends ESTestCase {
         });
 
         if (delayProcessingNode2PublishResponse) {
-            assertThat(publication.pendingCommits.keySet(), equalTo(Sets.newHashSet(n1, n3)));
+            assertThat(publication.pendingCommits.keySet(), equalTo(Set.of(n1, n3)));
         } else {
             assertThat(publication.pendingCommits.keySet(), equalTo(discoNodes));
         }
@@ -251,7 +251,7 @@ public class PublicationTests extends ESTestCase {
     }
 
     public void testClusterStatePublishingWithFaultyNodeBeforeCommit() throws InterruptedException {
-        VotingConfiguration singleNodeConfig = new VotingConfiguration(Sets.newHashSet(n1.getId()));
+        VotingConfiguration singleNodeConfig = new VotingConfiguration(Set.of(n1.getId()));
         initializeCluster(singleNodeConfig);
 
         AssertingAckListener ackListener = new AssertingAckListener(nodes.size());
@@ -294,7 +294,7 @@ public class PublicationTests extends ESTestCase {
     }
 
     public void testClusterStatePublishingWithFaultyNodeAfterCommit() throws InterruptedException {
-        VotingConfiguration singleNodeConfig = new VotingConfiguration(Sets.newHashSet(n1.getId()));
+        VotingConfiguration singleNodeConfig = new VotingConfiguration(Set.of(n1.getId()));
         initializeCluster(singleNodeConfig);
 
         AssertingAckListener ackListener = new AssertingAckListener(nodes.size());
@@ -347,7 +347,7 @@ public class PublicationTests extends ESTestCase {
     }
 
     public void testClusterStatePublishingFailsOrTimesOutBeforeCommit() throws InterruptedException {
-        VotingConfiguration config = new VotingConfiguration(Sets.newHashSet(n1.getId(), n2.getId()));
+        VotingConfiguration config = new VotingConfiguration(Set.of(n1.getId(), n2.getId()));
         initializeCluster(config);
 
         AssertingAckListener ackListener = new AssertingAckListener(nodes.size());
@@ -386,7 +386,7 @@ public class PublicationTests extends ESTestCase {
     }
 
     public void testPublishingToMastersFirst() {
-        VotingConfiguration singleNodeConfig = new VotingConfiguration(Sets.newHashSet(n1.getId()));
+        VotingConfiguration singleNodeConfig = new VotingConfiguration(Set.of(n1.getId()));
         initializeCluster(singleNodeConfig);
 
         DiscoveryNodes.Builder discoNodesBuilder = DiscoveryNodes.builder();
@@ -403,7 +403,7 @@ public class PublicationTests extends ESTestCase {
 
     public void testClusterStatePublishingTimesOutAfterCommit() throws InterruptedException {
         VotingConfiguration config = new VotingConfiguration(randomBoolean() ?
-            Sets.newHashSet(n1.getId(), n2.getId()) : Sets.newHashSet(n1.getId(), n2.getId(), n3.getId()));
+            Set.of(n1.getId(), n2.getId()) : Set.of(n1.getId(), n2.getId(), n3.getId()));
         initializeCluster(config);
 
         AssertingAckListener ackListener = new AssertingAckListener(nodes.size());

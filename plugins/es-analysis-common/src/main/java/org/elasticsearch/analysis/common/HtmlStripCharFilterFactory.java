@@ -29,9 +29,6 @@ import java.io.Reader;
 import java.util.List;
 import java.util.Set;
 
-import static java.util.Collections.unmodifiableSet;
-import static org.elasticsearch.common.util.set.Sets.newHashSet;
-
 public class HtmlStripCharFilterFactory extends AbstractCharFilterFactory {
     private final Set<String> escapedTags;
 
@@ -39,7 +36,7 @@ public class HtmlStripCharFilterFactory extends AbstractCharFilterFactory {
         super(indexSettings, name);
         List<String> escapedTags = settings.getAsList("escaped_tags");
         if (escapedTags.size() > 0) {
-            this.escapedTags = unmodifiableSet(newHashSet(escapedTags));
+            this.escapedTags = Set.copyOf(escapedTags);
         } else {
             this.escapedTags = null;
         }

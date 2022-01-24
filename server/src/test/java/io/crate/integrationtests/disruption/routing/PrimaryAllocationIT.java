@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests.disruption.routing;
 
+import io.crate.common.collections.Sets;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.IndexParts;
 import org.elasticsearch.cluster.ClusterState;
@@ -28,7 +29,6 @@ import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.index.engine.EngineTestCase;
 import org.elasticsearch.index.shard.IndexShard;
@@ -98,7 +98,7 @@ public class PrimaryAllocationIT extends SQLIntegrationTestCase {
         }
 
         NetworkDisruption partition = new NetworkDisruption(
-            new TwoPartitions(Sets.newHashSet(master, replicaNode), Collections.singleton(primaryNode)),
+            new TwoPartitions(Set.of(master, replicaNode), Collections.singleton(primaryNode)),
             new NetworkDisconnect());
         internalCluster().setDisruptionScheme(partition);
         logger.info("--> partitioning node with primary shard from rest of cluster");
@@ -284,7 +284,7 @@ public class PrimaryAllocationIT extends SQLIntegrationTestCase {
         for (int i = 0; i < moreDocs; i++) {
             execute("insert into t values ('" + (numDocs + i) + "')");
         }
-        final Set<String> replicasSide1 = Sets.newHashSet(randomSubsetOf(between(1, numberOfReplicas - 1), replicaNodes));
+        final Set<String> replicasSide1 = Set.copyOf(randomSubsetOf(between(1, numberOfReplicas - 1), replicaNodes));
         final Set<String> replicasSide2 = Sets.difference(replicaNodes, replicasSide1);
         NetworkDisruption partition = new NetworkDisruption(new TwoPartitions(replicasSide1, replicasSide2), new NetworkDisconnect());
         internalCluster().setDisruptionScheme(partition);

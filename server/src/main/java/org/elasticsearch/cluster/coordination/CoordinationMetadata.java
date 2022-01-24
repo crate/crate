@@ -24,7 +24,6 @@ import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -342,7 +341,7 @@ public class CoordinationMetadata implements Writeable, ToXContentFragment {
         }
 
         public VotingConfiguration(StreamInput in) throws IOException {
-            nodeIds = Collections.unmodifiableSet(Sets.newHashSet(in.readStringArray()));
+            nodeIds = Collections.unmodifiableSet(Set.of(in.readStringArray()));
         }
 
         @Override

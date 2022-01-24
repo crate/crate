@@ -51,7 +51,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.util.set.Sets;
+import io.crate.common.collections.Sets;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

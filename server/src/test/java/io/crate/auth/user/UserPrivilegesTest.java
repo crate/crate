@@ -25,25 +25,25 @@ import io.crate.user.Privilege;
 import io.crate.user.UserPrivileges;
 
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.util.set.Sets;
 import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
 
 public class UserPrivilegesTest extends ESTestCase {
 
-    private static final Collection<Privilege> PRIVILEGES_CLUSTER_DQL = Sets.newHashSet(
+    private static final Collection<Privilege> PRIVILEGES_CLUSTER_DQL = Set.of(
         new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate")
     );
 
-    private static final Collection<Privilege> PRIVILEGES_SCHEMA_DQL = Sets.newHashSet(
+    private static final Collection<Privilege> PRIVILEGES_SCHEMA_DQL = Set.of(
         new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc", "crate")
     );
 
-    private static final Collection<Privilege> PRIVILEGES_TABLE_DQL = Sets.newHashSet(
+    private static final Collection<Privilege> PRIVILEGES_TABLE_DQL = Set.of(
         new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1", "crate")
     );
 
@@ -99,7 +99,7 @@ public class UserPrivilegesTest extends ESTestCase {
 
     @Test
     public void testMatchPrivilegeDenyResultsInNoMatch() throws Exception {
-        Collection<Privilege> privileges = Sets.newHashSet(
+        Collection<Privilege> privileges = Set.of(
             new Privilege(Privilege.State.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate")
         );
         UserPrivileges userPrivileges = new UserPrivileges(privileges);
@@ -113,7 +113,7 @@ public class UserPrivilegesTest extends ESTestCase {
 
     @Test
     public void testMatchPrivilegeComplexSetIncludingDeny() throws Exception {
-        Collection<Privilege> privileges = Sets.newHashSet(
+        Collection<Privilege> privileges = Set.of(
             new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
             new Privilege(Privilege.State.DENY, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc", "crate"),
             new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1", "crate")

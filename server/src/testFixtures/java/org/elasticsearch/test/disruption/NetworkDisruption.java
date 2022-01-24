@@ -26,7 +26,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.service.ClusterService;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.set.Sets;
+import io.crate.common.collections.Sets;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -235,7 +235,7 @@ public class NetworkDisruption implements ServiceDisruptionScheme {
         }
 
         public static TwoPartitions random(Random random, String... nodes) {
-            return random(random, Sets.newHashSet(nodes));
+            return random(random, Set.of(nodes));
         }
 
         public static TwoPartitions random(Random random, Set<String> nodes) {
@@ -318,7 +318,7 @@ public class NetworkDisruption implements ServiceDisruptionScheme {
         }
 
         public static Bridge random(Random random, String... nodes) {
-            return random(random, Sets.newHashSet(nodes));
+            return random(random, Set.of(nodes));
         }
 
         public static Bridge random(Random random, Set<String> nodes) {

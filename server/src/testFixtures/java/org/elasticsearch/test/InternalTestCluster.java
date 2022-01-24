@@ -116,7 +116,7 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.common.util.set.Sets;
+
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLockObtainFailedException;
@@ -2090,7 +2090,7 @@ public final class InternalTestCluster extends TestCluster {
      * Returns a predicate that only accepts settings of nodes with one of the given names.
      */
     public static Predicate<Settings> nameFilter(String... nodeNames) {
-        final Set<String> nodes = Sets.newHashSet(nodeNames);
+        final Set<String> nodes = Set.of(nodeNames);
         return settings -> nodes.contains(settings.get("node.name"));
     }
 

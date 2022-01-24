@@ -52,7 +52,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.NodeVersionAllocatio
 import org.elasticsearch.cluster.routing.allocation.decider.ReplicaAfterPrimaryActiveAllocationDecider;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
@@ -64,6 +63,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.shuffle;
@@ -318,9 +318,9 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         AllocationId allocationId2R = AllocationId.newInitializing();
         Metadata metadata = Metadata.builder()
             .put(IndexMetadata.builder(shard1.getIndexName()).settings(settings(Version.CURRENT).put(Settings.EMPTY)).numberOfShards(1)
-                     .numberOfReplicas(1).putInSyncAllocationIds(0, Sets.newHashSet(allocationId1P.getId(), allocationId1R.getId())))
+                     .numberOfReplicas(1).putInSyncAllocationIds(0, Set.of(allocationId1P.getId(), allocationId1R.getId())))
             .put(IndexMetadata.builder(shard2.getIndexName()).settings(settings(Version.CURRENT).put(Settings.EMPTY)).numberOfShards(1)
-                     .numberOfReplicas(1).putInSyncAllocationIds(0, Sets.newHashSet(allocationId2P.getId(), allocationId2R.getId())))
+                     .numberOfReplicas(1).putInSyncAllocationIds(0, Set.of(allocationId2P.getId(), allocationId2R.getId())))
             .build();
         RoutingTable routingTable = RoutingTable.builder()
             .add(IndexRoutingTable.builder(shard1.getIndex())
@@ -558,7 +558,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
                                    .put(INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey(), 0))
                      .numberOfShards(1)
                      .numberOfReplicas(1)
-                     .putInSyncAllocationIds(0, Sets.newHashSet(allocationId1P.getId(), allocationId1R.getId())))
+                     .putInSyncAllocationIds(0, Set.of(allocationId1P.getId(), allocationId1R.getId())))
             .build();
         RoutingTable routingTable = RoutingTable.builder()
             .add(IndexRoutingTable.builder(shard1.getIndex())

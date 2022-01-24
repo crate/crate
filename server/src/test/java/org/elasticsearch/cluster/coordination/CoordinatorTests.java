@@ -74,7 +74,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.gateway.GatewayService;
@@ -766,7 +765,7 @@ public class CoordinatorTests extends AbstractCoordinatorTestCase {
         try (Cluster cluster = new Cluster(randomIntBetween(1, 5))) {
             final Coordinator coordinator = cluster.getAnyNode().coordinator;
             final VotingConfiguration unknownNodeConfiguration = new VotingConfiguration(
-                Sets.newHashSet(coordinator.getLocalNode().getId(), "unknown-node"));
+                Set.of(coordinator.getLocalNode().getId(), "unknown-node"));
             final String exceptionMessage = expectThrows(CoordinationStateRejectedException.class,
                 () -> coordinator.setInitialConfiguration(unknownNodeConfiguration)).getMessage();
             assertThat(exceptionMessage,
@@ -784,7 +783,7 @@ public class CoordinatorTests extends AbstractCoordinatorTestCase {
     public void testCannotSetInitialConfigurationWithoutLocalNode() {
         try (Cluster cluster = new Cluster(randomIntBetween(1, 5))) {
             final Coordinator coordinator = cluster.getAnyNode().coordinator;
-            final VotingConfiguration unknownNodeConfiguration = new VotingConfiguration(Sets.newHashSet("unknown-node"));
+            final VotingConfiguration unknownNodeConfiguration = new VotingConfiguration(Set.of("unknown-node"));
             final String exceptionMessage = expectThrows(CoordinationStateRejectedException.class,
                 () -> coordinator.setInitialConfiguration(unknownNodeConfiguration)).getMessage();
             assertThat(exceptionMessage,

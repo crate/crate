@@ -36,7 +36,7 @@ import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.common.util.set.Sets;
+import io.crate.common.collections.Sets;
 import org.elasticsearch.index.shard.IndexShardNotStartedException;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ReplicationGroup;
@@ -85,7 +85,7 @@ public class ReplicationOperationTests extends ESTestCase {
             primaryShard = primaryShard.getTargetRelocatingShard();
         }
         // add a few in-sync allocation ids that don't have corresponding routing entries
-        final Set<String> staleAllocationIds = Sets.newHashSet(generateRandomStringArray(4, 10, false));
+        final Set<String> staleAllocationIds = Set.of(generateRandomStringArray(4, 10, false));
 
         final Set<String> inSyncAllocationIds = Sets.union(indexMetadata.inSyncAllocationIds(0), staleAllocationIds);
 
@@ -185,7 +185,7 @@ public class ReplicationOperationTests extends ESTestCase {
             primaryShard = primaryShard.getTargetRelocatingShard();
         }
         // add an in-sync allocation id that doesn't have a corresponding routing entry
-        final Set<String> staleAllocationIds = Sets.newHashSet(randomAlphaOfLength(10));
+        final Set<String> staleAllocationIds = Set.of(randomAlphaOfLength(10));
         final Set<String> inSyncAllocationIds = Sets.union(indexMetadata.inSyncAllocationIds(0), staleAllocationIds);
         final Set<String> trackedShards = new HashSet<>();
         addTrackingInfo(indexShardRoutingTable, primaryShard, trackedShards, new HashSet<>());
