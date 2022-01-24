@@ -35,8 +35,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,6 +44,9 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import io.crate.user.User;
 import io.crate.common.annotations.VisibleForTesting;
@@ -67,7 +68,8 @@ public class TasksService extends AbstractLifecycleComponent {
     private final List<KillAllListener> killAllListeners = new CopyOnWriteArrayList<>();
 
     private final Object failedSentinel = new Object();
-    private final Cache<UUID, Object> recentlyFailed = CacheBuilder.newBuilder()
+    private final Cache<UUID, Object> recentlyFailed = Caffeine.newBuilder()
+        .executor(Runnable::run)
         .maximumSize(200L)
         .expireAfterWrite(30, TimeUnit.SECONDS)
         .build();

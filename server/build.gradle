@@ -87,6 +87,12 @@ dependencies {
     implementation "org.hdrhistogram:HdrHistogram:2.1.9"
     implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
 
+    implementation ("com.github.ben-manes.caffeine:caffeine:3.0.5") {
+        exclude group: 'org.checkerframework', module: 'checker-qual'
+        exclude group: 'com.google.errorprone', module: 'error_prone_annotations'
+    }
+
+
     implementation "joda-time:joda-time:${versions.jodatime}"
     implementation "com.google.guava:guava:${versions.guava}"
     implementation "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
