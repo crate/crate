@@ -22,7 +22,6 @@ import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigE
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -41,46 +40,46 @@ import static org.hamcrest.Matchers.equalTo;
 public class CoordinationMetadataTests extends ESTestCase {
 
     public void testVotingConfiguration() {
-        VotingConfiguration config0 = new VotingConfiguration(Sets.newHashSet());
+        VotingConfiguration config0 = new VotingConfiguration(Set.of());
         assertThat(config0, equalTo(VotingConfiguration.EMPTY_CONFIG));
-        assertThat(config0.getNodeIds(), equalTo(Sets.newHashSet()));
+        assertThat(config0.getNodeIds(), equalTo(Set.of()));
         assertThat(config0.isEmpty(), equalTo(true));
-        assertThat(config0.hasQuorum(Sets.newHashSet()), equalTo(false));
-        assertThat(config0.hasQuorum(Sets.newHashSet("id1")), equalTo(false));
+        assertThat(config0.hasQuorum(Set.of()), equalTo(false));
+        assertThat(config0.hasQuorum(Set.of("id1")), equalTo(false));
 
-        VotingConfiguration config1 = new VotingConfiguration(Sets.newHashSet("id1"));
-        assertThat(config1.getNodeIds(), equalTo(Sets.newHashSet("id1")));
+        VotingConfiguration config1 = new VotingConfiguration(Set.of("id1"));
+        assertThat(config1.getNodeIds(), equalTo(Set.of("id1")));
         assertThat(config1.isEmpty(), equalTo(false));
-        assertThat(config1.hasQuorum(Sets.newHashSet("id1")), equalTo(true));
-        assertThat(config1.hasQuorum(Sets.newHashSet("id1", "id2")), equalTo(true));
-        assertThat(config1.hasQuorum(Sets.newHashSet("id2")), equalTo(false));
-        assertThat(config1.hasQuorum(Sets.newHashSet()), equalTo(false));
+        assertThat(config1.hasQuorum(Set.of("id1")), equalTo(true));
+        assertThat(config1.hasQuorum(Set.of("id1", "id2")), equalTo(true));
+        assertThat(config1.hasQuorum(Set.of("id2")), equalTo(false));
+        assertThat(config1.hasQuorum(Set.of()), equalTo(false));
 
-        VotingConfiguration config2 = new VotingConfiguration(Sets.newHashSet("id1", "id2"));
-        assertThat(config2.getNodeIds(), equalTo(Sets.newHashSet("id1", "id2")));
+        VotingConfiguration config2 = new VotingConfiguration(Set.of("id1", "id2"));
+        assertThat(config2.getNodeIds(), equalTo(Set.of("id1", "id2")));
         assertThat(config2.isEmpty(), equalTo(false));
-        assertThat(config2.hasQuorum(Sets.newHashSet("id1", "id2")), equalTo(true));
-        assertThat(config2.hasQuorum(Sets.newHashSet("id1", "id2", "id3")), equalTo(true));
-        assertThat(config2.hasQuorum(Sets.newHashSet("id1")), equalTo(false));
-        assertThat(config2.hasQuorum(Sets.newHashSet("id2")), equalTo(false));
-        assertThat(config2.hasQuorum(Sets.newHashSet("id3")), equalTo(false));
-        assertThat(config2.hasQuorum(Sets.newHashSet("id1", "id3")), equalTo(false));
-        assertThat(config2.hasQuorum(Sets.newHashSet()), equalTo(false));
+        assertThat(config2.hasQuorum(Set.of("id1", "id2")), equalTo(true));
+        assertThat(config2.hasQuorum(Set.of("id1", "id2", "id3")), equalTo(true));
+        assertThat(config2.hasQuorum(Set.of("id1")), equalTo(false));
+        assertThat(config2.hasQuorum(Set.of("id2")), equalTo(false));
+        assertThat(config2.hasQuorum(Set.of("id3")), equalTo(false));
+        assertThat(config2.hasQuorum(Set.of("id1", "id3")), equalTo(false));
+        assertThat(config2.hasQuorum(Set.of()), equalTo(false));
 
-        VotingConfiguration config3 = new VotingConfiguration(Sets.newHashSet("id1", "id2", "id3"));
-        assertThat(config3.getNodeIds(), equalTo(Sets.newHashSet("id1", "id2", "id3")));
+        VotingConfiguration config3 = new VotingConfiguration(Set.of("id1", "id2", "id3"));
+        assertThat(config3.getNodeIds(), equalTo(Set.of("id1", "id2", "id3")));
         assertThat(config3.isEmpty(), equalTo(false));
-        assertThat(config3.hasQuorum(Sets.newHashSet("id1", "id2")), equalTo(true));
-        assertThat(config3.hasQuorum(Sets.newHashSet("id2", "id3")), equalTo(true));
-        assertThat(config3.hasQuorum(Sets.newHashSet("id1", "id3")), equalTo(true));
-        assertThat(config3.hasQuorum(Sets.newHashSet("id1", "id2", "id3")), equalTo(true));
-        assertThat(config3.hasQuorum(Sets.newHashSet("id1", "id2", "id4")), equalTo(true));
-        assertThat(config3.hasQuorum(Sets.newHashSet("id1")), equalTo(false));
-        assertThat(config3.hasQuorum(Sets.newHashSet("id2")), equalTo(false));
-        assertThat(config3.hasQuorum(Sets.newHashSet("id3")), equalTo(false));
-        assertThat(config3.hasQuorum(Sets.newHashSet("id1", "id4")), equalTo(false));
-        assertThat(config3.hasQuorum(Sets.newHashSet("id1", "id4", "id5")), equalTo(false));
-        assertThat(config3.hasQuorum(Sets.newHashSet()), equalTo(false));
+        assertThat(config3.hasQuorum(Set.of("id1", "id2")), equalTo(true));
+        assertThat(config3.hasQuorum(Set.of("id2", "id3")), equalTo(true));
+        assertThat(config3.hasQuorum(Set.of("id1", "id3")), equalTo(true));
+        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id3")), equalTo(true));
+        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id4")), equalTo(true));
+        assertThat(config3.hasQuorum(Set.of("id1")), equalTo(false));
+        assertThat(config3.hasQuorum(Set.of("id2")), equalTo(false));
+        assertThat(config3.hasQuorum(Set.of("id3")), equalTo(false));
+        assertThat(config3.hasQuorum(Set.of("id1", "id4")), equalTo(false));
+        assertThat(config3.hasQuorum(Set.of("id1", "id4", "id5")), equalTo(false));
+        assertThat(config3.hasQuorum(Set.of()), equalTo(false));
     }
 
     public void testVotingConfigurationSerializationEqualsHashCode() {
@@ -93,7 +92,7 @@ public class CoordinationMetadataTests extends ESTestCase {
     }
 
     private static VotingConfiguration randomVotingConfig() {
-        return new VotingConfiguration(Sets.newHashSet(generateRandomStringArray(randomInt(10), 20, false)));
+        return new VotingConfiguration(Set.of(generateRandomStringArray(randomInt(10), 20, false)));
     }
 
     public void testVotingTombstoneSerializationEqualsHashCode() {

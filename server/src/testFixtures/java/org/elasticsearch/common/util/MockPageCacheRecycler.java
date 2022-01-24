@@ -22,7 +22,7 @@ package org.elasticsearch.common.util;
 import org.apache.lucene.util.LuceneTestCase;
 import org.elasticsearch.common.recycler.Recycler.V;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
+import io.crate.common.collections.Sets;
 import org.elasticsearch.test.ESTestCase;
 
 import java.lang.reflect.Array;

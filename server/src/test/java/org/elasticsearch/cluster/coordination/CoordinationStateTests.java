@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.EqualsHashCodeTestUtils;
@@ -751,9 +750,9 @@ public class CoordinationStateTests extends ESTestCase {
         assertTrue(voteCollection.containsVoteFor(node1));
         assertTrue(voteCollection.containsVoteFor(node2));
         assertFalse(voteCollection.containsVoteFor(node3));
-        assertTrue(voteCollection.isQuorum(new VotingConfiguration(Sets.newHashSet(node1.getId(), node2.getId()))));
-        assertTrue(voteCollection.isQuorum(new VotingConfiguration(Sets.newHashSet(node1.getId()))));
-        assertFalse(voteCollection.isQuorum(new VotingConfiguration(Sets.newHashSet(node3.getId()))));
+        assertTrue(voteCollection.isQuorum(new VotingConfiguration(Set.of(node1.getId(), node2.getId()))));
+        assertTrue(voteCollection.isQuorum(new VotingConfiguration(Set.of(node1.getId()))));
+        assertFalse(voteCollection.isQuorum(new VotingConfiguration(Set.of(node3.getId()))));
 
         EqualsHashCodeTestUtils.CopyFunction<CoordinationState.VoteCollection> copyFunction =
             vc -> {

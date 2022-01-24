@@ -44,7 +44,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationDecider;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLease;
@@ -444,7 +443,7 @@ public class ReplicaShardAllocatorTests extends ESAllocationTestCase {
         IndexMetadata.Builder indexMetadata = IndexMetadata.builder(shardId.getIndexName())
             .settings(settings(Version.CURRENT).put(settings))
             .numberOfShards(1).numberOfReplicas(1)
-            .putInSyncAllocationIds(0, Sets.newHashSet(primaryShard.allocationId().getId()));
+            .putInSyncAllocationIds(0, Set.of(primaryShard.allocationId().getId()));
         Metadata metaData = Metadata.builder().put(indexMetadata).build();
         // mark shard as delayed if reason is NODE_LEFT
         boolean delayed = reason == UnassignedInfo.Reason.NODE_LEFT &&
@@ -474,7 +473,7 @@ public class ReplicaShardAllocatorTests extends ESAllocationTestCase {
         Metadata metaData = Metadata.builder()
                 .put(IndexMetadata.builder(shardId.getIndexName()).settings(settings(Version.CURRENT))
                     .numberOfShards(1).numberOfReplicas(1)
-                    .putInSyncAllocationIds(0, Sets.newHashSet(primaryShard.allocationId().getId())))
+                    .putInSyncAllocationIds(0, Set.of(primaryShard.allocationId().getId())))
                 .build();
         RoutingTable routingTable = RoutingTable.builder()
                 .add(IndexRoutingTable.builder(shardId.getIndex())

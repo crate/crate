@@ -21,12 +21,12 @@ package org.elasticsearch.cluster.coordination;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.EqualsHashCodeTestUtils;
 import org.elasticsearch.test.EqualsHashCodeTestUtils.CopyFunction;
 
 import java.util.Optional;
+import java.util.Set;
 
 public class MessagesTests extends ESTestCase {
 
@@ -202,8 +202,8 @@ public class MessagesTests extends ESTestCase {
 
     public ClusterState randomClusterState() {
         return CoordinationStateTests.clusterState(randomNonNegativeLong(), randomNonNegativeLong(), createNode(randomAlphaOfLength(10)),
-            new CoordinationMetadata.VotingConfiguration(Sets.newHashSet(generateRandomStringArray(10, 10, false))),
-            new CoordinationMetadata.VotingConfiguration(Sets.newHashSet(generateRandomStringArray(10, 10, false))),
+            new CoordinationMetadata.VotingConfiguration(Set.of(generateRandomStringArray(10, 10, false))),
+            new CoordinationMetadata.VotingConfiguration(Set.of(generateRandomStringArray(10, 10, false))),
             randomLong());
     }
 

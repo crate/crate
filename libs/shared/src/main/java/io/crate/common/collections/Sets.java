@@ -22,13 +22,54 @@
 package io.crate.common.collections;
 
 import java.util.AbstractSet;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
 public class Sets {
+
+    private Sets() {
+
+    }
+
+    public static <T> Set<T> newConcurrentHashSet() {
+        return Collections.newSetFromMap(new ConcurrentHashMap<>());
+    }
+
+    public static <T> boolean haveEmptyIntersection(Set<T> left, Set<T> right) {
+        Objects.requireNonNull(left);
+        Objects.requireNonNull(right);
+        return left.stream().noneMatch(right::contains);
+    }
+
+    public static <T> Set<T> union(Set<T> left, Set<T> right) {
+        Objects.requireNonNull(left);
+        Objects.requireNonNull(right);
+        Set<T> union = new HashSet<>(left);
+        union.addAll(right);
+        return union;
+    }
+
+    public static <T> Set<T> intersection(Set<T> set1, Set<T> set2) {
+        Objects.requireNonNull(set1);
+        Objects.requireNonNull(set2);
+        final Set<T> left;
+        final Set<T> right;
+        if (set1.size() < set2.size()) {
+            left = set1;
+            right = set2;
+        } else {
+            left = set2;
+            right = set1;
+        }
+        return left.stream().filter(right::contains).collect(Collectors.toSet());
+    }
 
     public static <E> Set<E> difference(final Set<E> set1, final Set<?> set2) {
         Objects.requireNonNull(set1, "set1");

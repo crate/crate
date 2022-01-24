@@ -32,7 +32,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
+import io.crate.common.collections.Sets;
 import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.gateway.MetadataStateFormat;
 

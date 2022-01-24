@@ -22,7 +22,6 @@ package org.elasticsearch.common.geo.builders;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.geo.GeoShapeType;
 import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
@@ -42,6 +41,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.lucene.geo.GeoUtils.orient;
@@ -158,8 +158,8 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
      * Validates only 1 vertex is tangential (shared) between the interior and exterior of a polygon
      */
     protected void validateHole(LineStringBuilder shell, LineStringBuilder hole) {
-        HashSet<Coordinate> exterior = Sets.newHashSet(shell.coordinates);
-        HashSet<Coordinate> interior = Sets.newHashSet(hole.coordinates);
+        Set<Coordinate> exterior = new HashSet<>(shell.coordinates);
+        Set<Coordinate> interior = new HashSet<>(hole.coordinates);
         exterior.retainAll(interior);
         if (exterior.size() >= 2) {
             throw new InvalidShapeException("Invalid polygon, interior cannot share more than one point with the exterior");

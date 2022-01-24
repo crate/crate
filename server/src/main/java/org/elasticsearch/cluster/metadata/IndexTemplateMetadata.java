@@ -33,7 +33,6 @@ import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -229,7 +228,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
     public static class Builder {
 
-        private static final Set<String> VALID_FIELDS = Sets.newHashSet(
+        private static final Set<String> VALID_FIELDS = Set.of(
             "template", "order", "mappings", "settings", "index_patterns", "aliases", "version");
 
         private String name;

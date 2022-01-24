@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.join;
 
-import com.google.common.collect.Sets;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -40,6 +39,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -108,7 +108,7 @@ public final class JoinOperations {
             if (joinPair.condition() == null) {
                 continue;
             }
-            JoinPair prevPair = joinPairsMap.put(Sets.newHashSet(joinPair.left(), joinPair.right()), joinPair);
+            JoinPair prevPair = joinPairsMap.put(new HashSet<>(List.of(joinPair.left(), joinPair.right())), joinPair);
             if (prevPair != null) {
                 throw new IllegalStateException("joinPairs contains duplicate: " + joinPair + " matches " + prevPair);
             }

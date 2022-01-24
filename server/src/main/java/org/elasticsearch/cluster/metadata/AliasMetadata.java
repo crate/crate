@@ -29,7 +29,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -65,7 +64,7 @@ public class AliasMetadata extends AbstractDiffable<AliasMetadata> implements To
         this.indexRouting = indexRouting;
         this.searchRouting = searchRouting;
         if (searchRouting != null) {
-            searchRoutingValues = Collections.unmodifiableSet(Sets.newHashSet(Strings.splitStringByCommaToArray(searchRouting)));
+            searchRoutingValues = Collections.unmodifiableSet(Set.of(Strings.splitStringByCommaToArray(searchRouting)));
         } else {
             searchRoutingValues = emptySet();
         }
@@ -186,7 +185,7 @@ public class AliasMetadata extends AbstractDiffable<AliasMetadata> implements To
         }
         if (in.readBoolean()) {
             searchRouting = in.readString();
-            searchRoutingValues = Collections.unmodifiableSet(Sets.newHashSet(Strings.splitStringByCommaToArray(searchRouting)));
+            searchRoutingValues = Collections.unmodifiableSet(Set.of(Strings.splitStringByCommaToArray(searchRouting)));
         } else {
             searchRouting = null;
             searchRoutingValues = emptySet();

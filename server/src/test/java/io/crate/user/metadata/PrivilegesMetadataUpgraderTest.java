@@ -27,7 +27,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.cluster.metadata.Metadata;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -77,7 +76,7 @@ public class PrivilegesMetadataUpgraderTest extends ESTestCase {
         customMap.put(UsersMetadata.TYPE, new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY));
         customMap.put(UsersPrivilegesMetadata.TYPE, new UsersPrivilegesMetadata(
             MapBuilder.<String, Set<Privilege>>newMapBuilder()
-                .put("Arthur", Sets.newHashSet(
+                .put("Arthur", Set.of(
                     new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate")))
                 .map()));
         Map<String, Metadata.Custom> oldCustomMap = new HashMap<>(customMap);

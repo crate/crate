@@ -39,7 +39,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.TestEnvironment;
@@ -55,6 +54,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -74,7 +74,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
     public void setUp() throws Exception {
         nodeEnvironment = newNodeEnvironment();
         localNode = new DiscoveryNode("node1", buildNewFakeTransportAddress(), Collections.emptyMap(),
-                Sets.newHashSet(DiscoveryNodeRole.MASTER_ROLE), Version.CURRENT);
+                                      Set.of(DiscoveryNodeRole.MASTER_ROLE), Version.CURRENT);
         clusterName = new ClusterName(randomAlphaOfLength(10));
         settings = Settings.builder().put(ClusterName.CLUSTER_NAME_SETTING.getKey(), clusterName.value()).build();
         super.setUp();
@@ -148,10 +148,10 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         builder.term(term);
         builder.lastAcceptedConfiguration(
                 new CoordinationMetadata.VotingConfiguration(
-                        Sets.newHashSet(generateRandomStringArray(10, 10, false))));
+                        Set.of(generateRandomStringArray(10, 10, false))));
         builder.lastCommittedConfiguration(
                 new CoordinationMetadata.VotingConfiguration(
-                        Sets.newHashSet(generateRandomStringArray(10, 10, false))));
+                        Set.of(generateRandomStringArray(10, 10, false))));
         for (int i = 0; i < randomIntBetween(0, 5); i++) {
             builder.addVotingConfigExclusion(new VotingConfigExclusion(randomAlphaOfLength(10), randomAlphaOfLength(10)));
         }
@@ -330,7 +330,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
 
     public void testDataOnlyNodePersistence() throws Exception {
         DiscoveryNode localNode = new DiscoveryNode("node1", buildNewFakeTransportAddress(), Collections.emptyMap(),
-                                                    Sets.newHashSet(DiscoveryNodeRole.DATA_ROLE), Version.CURRENT);
+                                                    Set.of(DiscoveryNodeRole.DATA_ROLE), Version.CURRENT);
         Settings settings = Settings.builder().put(ClusterName.CLUSTER_NAME_SETTING.getKey(), clusterName.value()).put(
             Node.NODE_MASTER_SETTING.getKey(), false).put(Node.NODE_NAME_SETTING.getKey(), "test").build();
         final MockGatewayMetaState gateway = new MockGatewayMetaState(localNode);

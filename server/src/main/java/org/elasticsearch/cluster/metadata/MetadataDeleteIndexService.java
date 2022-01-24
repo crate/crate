@@ -35,7 +35,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotInProgressException;
@@ -83,7 +82,7 @@ public class MetadataDeleteIndexService {
 
                 @Override
                 public ClusterState execute(final ClusterState currentState) {
-                    return deleteIndices(currentState, Sets.newHashSet(request.indices()));
+                    return deleteIndices(currentState, Set.of(request.indices()));
                 }
             }
         );
