@@ -19,18 +19,19 @@
 
 package org.elasticsearch.common.network;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.PlainActionFuture;
 
 import io.crate.common.io.IOUtils;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 public interface CloseableChannel extends Closeable {
 
@@ -85,7 +86,7 @@ public interface CloseableChannel extends Closeable {
      * @param channels to close
      * @param blocking indicates if we should block on channel close
      */
-    static <C extends CloseableChannel> void closeChannels(List<C> channels, boolean blocking) {
+    static <C extends CloseableChannel> void closeChannels(Collection<C> channels, boolean blocking) {
         try {
             IOUtils.close(channels);
         } catch (IOException e) {
