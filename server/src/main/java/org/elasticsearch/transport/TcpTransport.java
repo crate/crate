@@ -79,8 +79,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -564,43 +562,30 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
     @Override
     protected final void doStop() {
-        final CountDownLatch latch = new CountDownLatch(1);
-        // make sure we run it on another thread than a possible IO handler thread
-        assert threadPool.generic().isShutdown() == false : "Must stop transport before terminating underlying threadpool";
-        threadPool.generic().execute(() -> {
-            closeLock.writeLock().lock();
-            try {
-                keepAlive.close();
-
-                // first stop to accept any incoming connections so nobody can connect to this transport
-                for (Map.Entry<String, List<TcpServerChannel>> entry : serverChannels.entrySet()) {
-                    String profile = entry.getKey();
-                    List<TcpServerChannel> channels = entry.getValue();
-                    ActionListener<Void> closeFailLogger = ActionListener.wrap(
-                        c -> {},
-                        e -> logger.warn(() -> new ParameterizedMessage("Error closing serverChannel for profile [{}]", profile), e)
-                    );
-                    channels.forEach(c -> c.addCloseListener(closeFailLogger));
-                    CloseableChannel.closeChannels(channels, true);
-                }
-                serverChannels.clear();
-
-                // close all of the incoming channels. The closeChannels method takes a list so we must convert the set.
-                CloseableChannel.closeChannels(new ArrayList<>(acceptedChannels), true);
-                acceptedChannels.clear();
-
-                stopInternal();
-            } finally {
-                closeLock.writeLock().unlock();
-                latch.countDown();
-            }
-        });
-
+        closeLock.writeLock().lock();
         try {
-            latch.await(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            // ignore
+            keepAlive.close();
+
+            // first stop to accept any incoming connections so nobody can connect to this transport
+            for (Map.Entry<String, List<TcpServerChannel>> entry : serverChannels.entrySet()) {
+                String profile = entry.getKey();
+                List<TcpServerChannel> channels = entry.getValue();
+                ActionListener<Void> closeFailLogger = ActionListener.wrap(
+                    c -> {},
+                    e -> logger.warn(() -> new ParameterizedMessage("Error closing serverChannel for profile [{}]", profile), e)
+                );
+                channels.forEach(c -> c.addCloseListener(closeFailLogger));
+                CloseableChannel.closeChannels(channels, true);
+            }
+            serverChannels.clear();
+
+            // close all of the incoming channels.
+            CloseableChannel.closeChannels(acceptedChannels, true);
+            acceptedChannels.clear();
+
+            stopInternal();
+        } finally {
+            closeLock.writeLock().unlock();
         }
     }
 
