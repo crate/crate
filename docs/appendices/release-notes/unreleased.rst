@@ -60,8 +60,6 @@ Deprecations
   The :ref:`gateway.recover_after_data_nodes <gateway.recover_after_data_nodes>`
   must be used instead.
 
-- The :ref:`ssl.transport.mode <ssl.transport.mode>` LEGACY mode has been
-  deprecated for removal in CrateDB 5.0.
 
 Changes
 =======
@@ -167,9 +165,6 @@ Administration and Operations
 - Improved the visual layout of the administration console: Remove dedicated
   "Monitoring" page and move its contents to the "Overview" page.
 
-- Added ``switch_to_plaintext`` :ref:`Host-Based Authentication <admin_hba>`
-  option for enabling plain text connection for intra-zone communications.
-
 
 New Types
 ---------
@@ -186,5 +181,8 @@ Fixes
 .. If you add an entry here, the fix needs to be backported to the latest
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
+
+- Fixed an issue that caused truncation of milliseconds in ``timezone`` scalar
+  function.
 
 None
