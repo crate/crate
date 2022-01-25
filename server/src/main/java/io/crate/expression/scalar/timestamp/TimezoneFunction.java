@@ -27,6 +27,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.time.DateTimeException;
@@ -39,6 +40,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "timezone";
     private static final ZoneId UTC = ZoneId.of("UTC");
+    private final DataType returnType;
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -76,6 +78,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
     private TimezoneFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
+        this.returnType = boundSignature.getReturnType().createType();
     }
 
     @Override
@@ -111,10 +114,10 @@ public class TimezoneFunction extends Scalar<Long, Object> {
         }
 
         Instant instant = Instant.ofEpochMilli(utcTimestamp.longValue());
-        boolean paramHadTimezone = boundSignature.getReturnType().createType() == DataTypes.TIMESTAMP;
+        boolean paramHadTimezone = returnType == DataTypes.TIMESTAMP;
         ZoneId srcZoneId = paramHadTimezone ? zoneId : UTC;
         ZoneId dstZoneId = paramHadTimezone ? UTC : zoneId;
         ZonedDateTime zonedDateTime = instant.atZone(srcZoneId).withZoneSameLocal(dstZoneId);
-        return zonedDateTime.toEpochSecond() * 1000;
+        return zonedDateTime.toInstant().toEpochMilli();
     }
 }

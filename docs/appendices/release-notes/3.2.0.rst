@@ -251,7 +251,7 @@ Other
   :ref:`delimited_payload <delimited_payload-tokenfilter>`. The old name can
   still be used, but is deprecated.
 
-For further information on CrateDB 3.2.0 see our `announcement Blog post
+For further information on CrateDB 3.2.0 see our `announcement blog post
 <blogpost_>`__.
 
 
