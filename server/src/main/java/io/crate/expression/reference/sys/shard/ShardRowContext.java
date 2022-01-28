@@ -21,11 +21,13 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.blob.v2.BlobShard;
-import io.crate.common.Suppliers;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -37,12 +39,11 @@ import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
 
-import javax.annotation.Nullable;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
+import io.crate.blob.v2.BlobShard;
+import io.crate.common.Suppliers;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class ShardRowContext {
 

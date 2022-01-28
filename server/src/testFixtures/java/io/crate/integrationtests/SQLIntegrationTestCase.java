@@ -222,6 +222,36 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             }));
     }
 
+    public static SQLTransportExecutor executor(String nodeName) {
+        return executor(nodeName, false);
+    }
+
+    public static SQLTransportExecutor executor(String nodeName, boolean useSSL) {
+        return new SQLTransportExecutor(
+            new SQLTransportExecutor.ClientProvider() {
+                @Override
+                public Client client() {
+                    return ESIntegTestCase.client(nodeName);
+                }
+
+                @Override
+                public String pgUrl() {
+                    PostgresNetty postgresNetty = internalCluster().getInstance(PostgresNetty.class, nodeName);
+                    BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
+                    if (boundTransportAddress != null) {
+                        InetSocketAddress address = boundTransportAddress.publishAddress().address();
+                        return String.format(Locale.ENGLISH, "jdbc:postgresql://%s:%d/?ssl=%s&sslmode=%s",
+                                             address.getHostName(), address.getPort(), useSSL, useSSL ? "require" : "disable");
+                    }
+                    return null;
+                }
+
+                @Override
+                public SQLOperations sqlOperations() {
+                    return internalCluster().getInstance(SQLOperations.class);
+                }
+            });
+    }
 
     public String getFqn(String schema, String tableName) {
         if (schema.equals(Schemas.DOC_SCHEMA_NAME)) {
