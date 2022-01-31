@@ -30,6 +30,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
+import org.joda.time.DateTimeZone;
 import org.joda.time.Interval;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
@@ -112,16 +113,23 @@ public class AgeFunction extends Scalar<Period, Object> {
      */
     private static Period getPeriod(long timestamp1, long timestamp2) {
         /*
-         Normalize is important as it affects the internal representation of the Period object.
+         PeriodType is important as it affects the internal representation of the Period object.
          PeriodType.yearMonthDayTime() is needed to return 8 days but not 1 week 1 day.
          Streamer of the IntervalType will simply put 0 in 'out.writeVInt(p.getWeeks())' as getWeeks() returns zero for unused fields.
          */
+
         if (timestamp1 < timestamp2) {
-            // In Postgres second argument is subtracted from the first.
-            // Interval's first argument must be smaller than second and thus we swap params and negate.
-            return new Interval(timestamp1, timestamp2).toPeriod(PeriodType.yearMonthDayTime()).negated();
+            /*
+            In Postgres second argument is subtracted from the first.
+            Interval's first argument must be smaller than second and thus we swap params and negate.
+
+            We need to pass UTC timezone to be sure that Interval doesn't end up using system default time zone.
+            Currently timestamps are in UTC (see https://github.com/crate/crate/issues/10037 and https://github.com/crate/crate/issues/12064)
+            but if https://github.com/crate/crate/issues/7196 ever gets implemented, we need to pass here not UTC but time zone set by SET TIMEZONE.
+            */
+            return new Interval(timestamp1, timestamp2, DateTimeZone.UTC).toPeriod(PeriodType.yearMonthDayTime()).negated();
         } else {
-            return new Interval(timestamp2, timestamp1).toPeriod(PeriodType.yearMonthDayTime());
+            return new Interval(timestamp2, timestamp1, DateTimeZone.UTC).toPeriod(PeriodType.yearMonthDayTime());
         }
     }
 }
