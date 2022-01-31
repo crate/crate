@@ -138,7 +138,7 @@ public class TransportDropSubscriptionAction extends TransportMasterNodeAction<D
     private CompletableFuture<Void> submitCloseSubscriptionsTablesTask(DropSubscriptionRequest request,
                                                                        List<OpenCloseTable> openCloseTables) {
         FutureActionListener<AcknowledgedResponse, Void> future = new FutureActionListener<>(r -> null);
-        transportCloseTable.closeTables(future, openCloseTables, request.ackTimeout());
+        clusterService.submitStateUpdateTask("add-block-close-table", transportCloseTable. new AddCloseBlocksTask(future, openCloseTables, request.ackTimeout()));
         return future;
     }
 

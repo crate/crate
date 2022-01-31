@@ -144,7 +144,8 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
         assert state.nodes().getMinNodeVersion().onOrAfter(Version.V_4_3_0)
             : "All nodes must be on 4.3 to use the new dedicated close action";
-        closeTables(listener, List.of(new OpenCloseTable(request.table(), request.partition())), request.ackTimeout());
+        clusterService.submitStateUpdateTask("add-block-close-table",
+            new AddCloseBlocksTask(listener, List.of(new OpenCloseTable(request.table(), request.partition())), request.ackTimeout()));
 
     }
 
@@ -352,14 +353,14 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             .build();
     }
 
-    private final class AddCloseBlocksTask extends ClusterStateUpdateTask {
+    public final class AddCloseBlocksTask extends ClusterStateUpdateTask {
 
         private final ActionListener<AcknowledgedResponse> listener;
         private final List<OpenCloseTable> tablesToClose;
         private final TimeValue requestAckTimeout;
         private final Map<Index, ClusterBlock> blockedIndices = new HashMap<>();
 
-        private AddCloseBlocksTask(ActionListener<AcknowledgedResponse> listener,
+        public AddCloseBlocksTask(ActionListener<AcknowledgedResponse> listener,
                                    List<OpenCloseTable> tablesToClose,
                                    TimeValue requestAckTimeout) {
             this.listener = listener;
