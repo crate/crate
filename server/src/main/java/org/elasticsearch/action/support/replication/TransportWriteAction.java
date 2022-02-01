@@ -73,7 +73,7 @@ public abstract class TransportWriteAction<
             reader,
             replicaReader,
             executor,
-            false,
+            true,
             forceExecutionOnPrimary);
     }
 
