@@ -29,10 +29,12 @@ import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
 import io.crate.concurrent.CompletableFutures;
+import io.crate.copy.s3.common.S3ClientHelper;
+import io.crate.copy.s3.common.S3URI;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.export.FileOutput;
-import io.crate.external.S3ClientHelper;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -49,9 +51,16 @@ import java.util.zip.GZIPOutputStream;
 @NotThreadSafe
 public class S3FileOutput implements FileOutput {
 
+    @Nullable
+    private final String protocolSetting;
+
+    public S3FileOutput(String protocol) {
+        protocolSetting = protocol;
+    }
+
     @Override
     public OutputStream acquireOutputStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException {
-        OutputStream outputStream = new S3OutputStream(executor, uri, new S3ClientHelper());
+        OutputStream outputStream = new S3OutputStream(executor, S3URI.toS3URI(uri), new S3ClientHelper(), protocolSetting);
         if (compressionType != null) {
             outputStream = new GZIPOutputStream(outputStream);
         }
@@ -74,12 +83,15 @@ public class S3FileOutput implements FileOutput {
         long currentPartBytes = 0;
         int partNumber = 1;
 
-        private S3OutputStream(Executor executor, URI uri, S3ClientHelper s3ClientHelper) throws IOException {
+        private S3OutputStream(Executor executor,
+                               S3URI s3URI,
+                               S3ClientHelper s3ClientHelper,
+                               String protocolSetting) throws IOException {
             this.executor = executor;
-            bucketName = uri.getHost();
-            key = uri.getPath().substring(1);
+            bucketName = s3URI.bucket();
+            key = s3URI.key();
             outputStream = new ByteArrayOutputStream();
-            client = s3ClientHelper.client(uri);
+            client = s3ClientHelper.client(s3URI, protocolSetting);
             multipartUpload = client.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucketName, key));
         }
 

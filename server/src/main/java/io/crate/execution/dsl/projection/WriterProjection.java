@@ -37,8 +37,10 @@ import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.StringType;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -94,6 +96,8 @@ public class WriterProjection extends Projection {
      */
     private final Map<ColumnIdent, Symbol> overwrites;
 
+    private final Settings withClauseOptions;
+
     private final OutputFormat outputFormat;
 
     public enum OutputFormat {
@@ -112,13 +116,15 @@ public class WriterProjection extends Projection {
                             @Nullable CompressionType compressionType,
                             Map<ColumnIdent, Symbol> overwrites,
                             @Nullable List<String> outputNames,
-                            OutputFormat outputFormat) {
+                            OutputFormat outputFormat,
+                            Settings withClauseOptions) {
         this.inputs = inputs;
         this.uri = uri;
         this.overwrites = overwrites;
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
         this.compressionType = compressionType;
+        this.withClauseOptions = withClauseOptions;
     }
 
     public WriterProjection(StreamInput in) throws IOException {
@@ -141,6 +147,11 @@ public class WriterProjection extends Projection {
         int compressionTypeOrdinal = in.readInt();
         compressionType = compressionTypeOrdinal >= 0 ? CompressionType.values()[compressionTypeOrdinal] : null;
         outputFormat = OutputFormat.values()[in.readInt()];
+        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
+            withClauseOptions = Settings.readSettingsFromStream(in);
+        } else {
+            withClauseOptions = Settings.EMPTY;
+        }
     }
 
     @Override
@@ -187,6 +198,9 @@ public class WriterProjection extends Projection {
         return visitor.visitWriterProjection(this, context);
     }
 
+    public Settings withClauseOptions() {
+        return withClauseOptions;
+    }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
@@ -208,6 +222,9 @@ public class WriterProjection extends Projection {
         }
         out.writeInt(compressionType != null ? compressionType.ordinal() : -1);
         out.writeInt(outputFormat.ordinal());
+        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
+            Settings.writeSettingsToStream(withClauseOptions, out);
+        }
     }
 
     @Override
@@ -224,8 +241,7 @@ public class WriterProjection extends Projection {
         if (!Objects.equals(compressionType, that.compressionType))
             return false;
         if (!outputFormat.equals(that.outputFormat)) return false;
-
-        return true;
+        return Objects.equals(withClauseOptions, that.withClauseOptions);
     }
 
     @Override
@@ -236,6 +252,7 @@ public class WriterProjection extends Projection {
         result = 31 * result + overwrites.hashCode();
         result = 31 * result + (compressionType != null ? compressionType.hashCode() : 0);
         result = 31 * result + outputFormat.hashCode();
+        result = 31 * result + withClauseOptions.hashCode();
         return result;
     }
 
@@ -246,6 +263,7 @@ public class WriterProjection extends Projection {
                ", outputNames=" + outputNames +
                ", compressionType=" + compressionType +
                ", outputFormat=" + outputFormat +
+               ", withClauseOptions{" + withClauseOptions.toString() +
                '}';
     }
 
@@ -258,7 +276,8 @@ public class WriterProjection extends Projection {
                 compressionType,
                 overwrites,
                 outputNames,
-                outputFormat
+                outputFormat,
+                withClauseOptions
             );
         }
         return this;

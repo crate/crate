@@ -22,10 +22,12 @@
 package io.crate.execution.engine.collect.files;
 
 
+import org.elasticsearch.common.settings.Settings;
+
 import java.io.IOException;
 import java.net.URI;
 
 public interface FileInputFactory {
 
-    FileInput create(URI uri) throws IOException;
+    FileInput create(URI uri, Settings withClauseOptions) throws IOException;
 }

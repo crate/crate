@@ -21,15 +21,17 @@
 
 package io.crate.copy.s3;
 
+import io.crate.copy.s3.common.S3Protocol;
 import io.crate.execution.engine.export.FileOutput;
 import io.crate.execution.engine.export.FileOutputFactory;
+import org.elasticsearch.common.settings.Settings;
 
 public class S3FileOutputFactory implements FileOutputFactory {
 
     public static final String NAME = "s3";
 
     @Override
-    public FileOutput create() {
-        return new S3FileOutput();
+    public FileOutput create(Settings withClauseOptions) {
+        return new S3FileOutput(S3Protocol.get(withClauseOptions));
     }
 }

@@ -25,6 +25,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.dsl.projection.WriterProjection;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingHelpers;
@@ -66,7 +67,7 @@ public class FileWriterProjectorTest extends ESTestCase {
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, file.toUri().toString(),
             null, null, Set.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT,
-            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()));
+            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
 
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
 
@@ -88,7 +89,7 @@ public class FileWriterProjectorTest extends ESTestCase {
             executorService, directory.toUri().toString(),
             null, null, Set.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT,
-            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()));
+            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
     }
 
@@ -102,7 +103,7 @@ public class FileWriterProjectorTest extends ESTestCase {
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, uri,
             null, null, Set.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT,
-            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()));
+            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
 
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
     }

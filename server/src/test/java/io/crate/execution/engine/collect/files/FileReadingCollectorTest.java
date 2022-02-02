@@ -37,6 +37,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
@@ -244,7 +245,8 @@ public class FileReadingCollectorTest extends ESTestCase {
             1,
             0,
             CopyFromParserProperties.DEFAULT,
-            FileUriCollectPhase.InputFormat.JSON);
+            FileUriCollectPhase.InputFormat.JSON,
+            Settings.EMPTY);
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {

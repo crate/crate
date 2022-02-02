@@ -28,19 +28,21 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import io.crate.analyze.CopyFromParserProperties;
+import io.crate.copy.s3.common.S3ClientHelper;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.engine.collect.files.FileInput;
+import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.reference.file.SourceLineExpression;
 import io.crate.expression.reference.file.SourceUriFailureExpression;
-import io.crate.external.S3ClientHelper;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
@@ -49,6 +51,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -217,29 +220,35 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             ctx.expressions(),
             compression,
             Map.of(
-                S3FileInputFactory.NAME, (URI uri) -> new S3FileInput(new S3ClientHelper() {
+                S3FileInputFactory.NAME,
+                new FileInputFactory() {
                     @Override
-                    protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
-                        AmazonS3 client = mock(AmazonS3Client.class);
-                        ObjectListing objectListing = mock(ObjectListing.class);
-                        S3ObjectSummary summary = mock(S3ObjectSummary.class);
-                        S3Object s3Object = mock(S3Object.class);
-                        when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
-                        when(objectListing.getObjectSummaries()).thenReturn(Collections.singletonList(summary));
-                        when(summary.getKey()).thenReturn("foo");
-                        when(client.getObject("fakebucket", "foo")).thenReturn(s3Object);
-                        when(s3Object.getObjectContent()).thenReturn(s3InputStream);
-                        when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
-                        when(objectListing.isTruncated()).thenReturn(false);
-                        return client;
+                    public FileInput create(URI uri, Settings withClauseOptions) throws IOException {
+                        return new S3FileInput(new S3ClientHelper() {
+                            @Override
+                            protected AmazonS3 initClient(String accessKey, String secretKey, String endpoint, String protocol) throws IOException {
+                                AmazonS3 client = mock(AmazonS3Client.class);
+                                ObjectListing objectListing = mock(ObjectListing.class);
+                                S3ObjectSummary summary = mock(S3ObjectSummary.class);
+                                S3Object s3Object = mock(S3Object.class);
+                                when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
+                                when(objectListing.getObjectSummaries()).thenReturn(Collections.singletonList(summary));
+                                when(summary.getKey()).thenReturn("foo");
+                                when(client.getObject("fakebucket", "foo")).thenReturn(s3Object);
+                                when(s3Object.getObjectContent()).thenReturn(s3InputStream);
+                                when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
+                                when(objectListing.isTruncated()).thenReturn(false);
+                                return client;
+                            }
+                        }, uri, "https");
                     }
-                }, uri)
-            ),
+                }),
             false,
             1,
             0,
             CopyFromParserProperties.DEFAULT,
-            FileUriCollectPhase.InputFormat.JSON);
+            FileUriCollectPhase.InputFormat.JSON,
+            Settings.EMPTY);
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {

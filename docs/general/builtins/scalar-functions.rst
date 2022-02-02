@@ -1687,8 +1687,8 @@ Returns: ``double precision``
 The ``area`` function calculates the  area of the input shape in
 square-degrees. The calculation will use geospatial awareness (AKA `geodetic`_)
 instead of `Euclidean geometry`_. The input has to be a column of type
-:ref:`geo_shape_data_type`, a valid `WKT`_ string or `GeoJSON`_.
-See :ref:`geo_shape_data_type` for more information.
+:ref:`data-types-geo-shape`, a valid `WKT`_ string or `GeoJSON`_.
+See :ref:`data-types-geo-shape` for more information.
 
 Below you can find an example.
 

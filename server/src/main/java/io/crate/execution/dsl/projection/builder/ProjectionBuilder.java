@@ -44,6 +44,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.types.DataType;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -201,8 +202,9 @@ public class ProjectionBuilder {
                                                     @Nullable WriterProjection.CompressionType compressionType,
                                                     Map<ColumnIdent, Symbol> overwrites,
                                                     @Nullable List<String> outputNames,
-                                                    WriterProjection.OutputFormat outputFormat) {
+                                                    WriterProjection.OutputFormat outputFormat,
+                                                    Settings withClauseOptions) {
         return new WriterProjection(
-            InputColumn.mapToInputColumns(inputs), uri, compressionType, overwrites, outputNames, outputFormat);
+            InputColumn.mapToInputColumns(inputs), uri, compressionType, overwrites, outputNames, outputFormat, withClauseOptions);
     }
 }

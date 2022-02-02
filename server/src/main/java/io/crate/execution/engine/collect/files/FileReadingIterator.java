@@ -31,6 +31,7 @@ import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputRow;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -88,14 +89,15 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                 int numReaders,
                                 int readerNumber,
                                 CopyFromParserProperties parserProperties,
-                                FileUriCollectPhase.InputFormat inputFormat) {
+                                FileUriCollectPhase.InputFormat inputFormat,
+                                Settings withClauseOptions) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
         this.fileInputFactories = fileInputFactories;
         this.shared = shared;
         this.numReaders = numReaders;
         this.readerNumber = readerNumber;
-        this.fileInputs = fileUris.stream().map(this::toFileInput).toList();
+        this.fileInputs = fileUris.stream().map(uri -> toFileInput(uri, withClauseOptions)).toList();
         this.collectorExpressions = collectorExpressions;
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
@@ -121,7 +123,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                                  int numReaders,
                                                  int readerNumber,
                                                  CopyFromParserProperties parserProperties,
-                                                 FileUriCollectPhase.InputFormat inputFormat) {
+                                                 FileUriCollectPhase.InputFormat inputFormat,
+                                                 Settings withClauseOptions) {
         return new FileReadingIterator(
             fileUris,
             inputs,
@@ -132,7 +135,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
             numReaders,
             readerNumber,
             parserProperties,
-            inputFormat);
+            inputFormat,
+            withClauseOptions);
     }
 
     private void initCollectorState() {
@@ -182,22 +186,22 @@ public class FileReadingIterator implements BatchIterator<Row> {
 
     private void advanceToNextFileInput() throws IOException {
         currentInput = fileInputsIterator.next();
-        List<URI> uris = currentInput.expandUri().stream().filter(
-            uri -> {
-                boolean sharedStorage = Objects.requireNonNullElse(shared, currentInput.sharedStorageDefault());
-                if (sharedStorage) {
-                    return moduloPredicateImpl(uri, this.readerNumber, this.numReaders);
-                } else {
-                    return MATCH_ALL_PREDICATE.test(uri);
-                }
-            }
-        ).toList();
+        List<URI> uris = currentInput.expandUri().stream().filter(this::shouldBeReadByCurrentNode).toList();
         if (uris.size() > 0) {
             currentInputUriIterator = uris.iterator();
             advanceToNextUri(currentInput);
         } else if (currentInput.isGlobbed()) {
             lineProcessor.startWithUri(currentInput.uri());
             throw new IOException("Cannot find any URI matching: " + currentInput.uri().toString());
+        }
+    }
+
+    private boolean shouldBeReadByCurrentNode(URI uri) {
+        boolean sharedStorage = Objects.requireNonNullElse(shared, currentInput.sharedStorageDefault());
+        if (sharedStorage) {
+            return moduloPredicateImpl(uri, this.readerNumber, this.numReaders);
+        } else {
+            return MATCH_ALL_PREDICATE.test(uri);
         }
     }
 
@@ -301,12 +305,12 @@ public class FileReadingIterator implements BatchIterator<Row> {
     }
 
     @Nullable
-    private FileInput toFileInput(String fileUri) {
+    private FileInput toFileInput(String fileUri, Settings withClauseOptions) {
         URI uri = toURI(fileUri);
         FileInputFactory fileInputFactory = fileInputFactories.get(uri.getScheme());
         if (fileInputFactory != null) {
             try {
-                return fileInputFactory.create(uri);
+                return fileInputFactory.create(uri, withClauseOptions);
             } catch (IOException e) {
                 return null;
             }
