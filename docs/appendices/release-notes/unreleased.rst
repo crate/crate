@@ -64,4 +64,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Updated the bundled JDK to 17.0.2+8
