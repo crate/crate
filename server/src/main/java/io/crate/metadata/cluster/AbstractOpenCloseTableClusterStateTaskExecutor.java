@@ -35,14 +35,12 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDLClusterStateTaskExecutor<OpenCloseTableOrPartitionRequest> {
 
-     public static class Context {
+    protected static class Context {
 
         private final Set<IndexMetadata> indicesMetadata;
         @Nullable
@@ -92,15 +90,9 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
         this.ddlClusterStateService = ddlClusterStateService;
     }
 
-    /**
-     * Returns Context for the case when relevant indices are known and no need to specify partition.
-     * Such behavior is the case in DROP SUBSCRIPTION when we close/open tables as intermediate steps.
-     */
-    protected Context prepare(List<IndexMetadata> indexMetadata) {
-        return new Context(new HashSet<>(indexMetadata), null, null);
-    }
-
-    protected Context prepare(ClusterState currentState, RelationName relationName, String partitionIndexName) {
+    protected Context prepare(ClusterState currentState, OpenCloseTableOrPartitionRequest request) {
+        RelationName relationName = request.tableIdent();
+        String partitionIndexName = request.partitionIndexName();
         Metadata metadata = currentState.metadata();
         String indexToResolve = partitionIndexName != null ? partitionIndexName : relationName.indexNameOrAlias();
         PartitionName partitionName = partitionIndexName != null ? PartitionName.fromIndexOrTemplate(partitionIndexName) : null;
