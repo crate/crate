@@ -21,27 +21,27 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-
-import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
 
-public class PgNamespaceTable {
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_namespace");
+public final class PgEventTriggerTable {
 
-    public static SystemTable<SchemaInfo> create() {
-        return SystemTable.<SchemaInfo>builder(IDENT)
-            .add("oid", INTEGER, s -> schemaOid(s.name()))
-            .add("nspname", STRING, SchemaInfo::name)
-            .add("nspowner", INTEGER, c -> 0)
-            .add("nspacl", new ArrayType<>(DataTypes.UNTYPED_OBJECT), c -> null)
-            .add("xmin", INTEGER, c -> 0)
+    public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_event_trigger");
+
+    public static SystemTable<Void> create() {
+        return SystemTable.<Void>builder(NAME)
+            .add("oid", INTEGER, c -> null)
+            .add("evtname", STRING, c -> null)
+            .add("evtevent", STRING, c -> null)
+            .add("evtowner", INTEGER, c -> null)
+            .add("evtfoid", INTEGER, c -> null)
+            .add("evtenabled", STRING, c -> null)
+            .add("evttags", STRING_ARRAY, c -> null)
+            .add("xmin", INTEGER, c -> null)
             .build();
     }
 }

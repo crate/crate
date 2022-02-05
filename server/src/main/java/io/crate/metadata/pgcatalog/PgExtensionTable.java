@@ -21,27 +21,30 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.INTEGER_ARRAY;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
 
-import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.STRING;
+public final class PgExtensionTable {
 
-public class PgNamespaceTable {
+    public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_extension");
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_namespace");
-
-    public static SystemTable<SchemaInfo> create() {
-        return SystemTable.<SchemaInfo>builder(IDENT)
-            .add("oid", INTEGER, s -> schemaOid(s.name()))
-            .add("nspname", STRING, SchemaInfo::name)
-            .add("nspowner", INTEGER, c -> 0)
-            .add("nspacl", new ArrayType<>(DataTypes.UNTYPED_OBJECT), c -> null)
-            .add("xmin", INTEGER, c -> 0)
+    public static SystemTable<Void> create() {
+        return SystemTable.<Void>builder(NAME)
+            .add("oid", INTEGER, c -> null)
+            .add("extname", STRING, c -> null)
+            .add("extowner", INTEGER, c -> null)
+            .add("extnamespace", INTEGER , c -> null)
+            .add("extrelocatable", BOOLEAN , c -> null)
+            .add("extversion", STRING , c -> null)
+            .add("extconfig", INTEGER_ARRAY , c -> null)
+            .add("extcondition", STRING_ARRAY, c -> null)
+            .add("xmin", INTEGER, c -> null)
             .build();
     }
 }

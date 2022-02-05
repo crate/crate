@@ -21,27 +21,25 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.REGPROC;
+import static io.crate.types.DataTypes.SHORT;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
 
-import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.STRING;
+public final class PgAmprocTable {
 
-public class PgNamespaceTable {
+    public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_amproc");
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_namespace");
-
-    public static SystemTable<SchemaInfo> create() {
-        return SystemTable.<SchemaInfo>builder(IDENT)
-            .add("oid", INTEGER, s -> schemaOid(s.name()))
-            .add("nspname", STRING, SchemaInfo::name)
-            .add("nspowner", INTEGER, c -> 0)
-            .add("nspacl", new ArrayType<>(DataTypes.UNTYPED_OBJECT), c -> null)
-            .add("xmin", INTEGER, c -> 0)
+    public static SystemTable<Void> create() {
+        return SystemTable.<Void>builder(NAME)
+            .add("oid", INTEGER, c -> null)
+            .add("amprocfamily", INTEGER, c -> null)
+            .add("amproclefttype", INTEGER, c -> null)
+            .add("amprocrighttype", INTEGER, c -> null)
+            .add("amprocnum", SHORT, c -> null)
+            .add("amproc", REGPROC, c -> null)
             .build();
     }
 }

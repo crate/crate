@@ -21,27 +21,30 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-
-import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
+import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+import static io.crate.types.DataTypes.UNTYPED_OBJECT;
 
-public class PgNamespaceTable {
+import io.crate.types.ArrayType;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_namespace");
+public final class PgForeignDataWrapperTable {
 
-    public static SystemTable<SchemaInfo> create() {
-        return SystemTable.<SchemaInfo>builder(IDENT)
-            .add("oid", INTEGER, s -> schemaOid(s.name()))
-            .add("nspname", STRING, SchemaInfo::name)
-            .add("nspowner", INTEGER, c -> 0)
-            .add("nspacl", new ArrayType<>(DataTypes.UNTYPED_OBJECT), c -> null)
-            .add("xmin", INTEGER, c -> 0)
+    public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_foreign_data_wrapper");
+
+    public static SystemTable<Void> create() {
+        return SystemTable.<Void>builder(NAME)
+            .add("oid", INTEGER, c -> null)
+            .add("fdwname", STRING, c -> null)
+            .add("fdwowner", INTEGER, c -> null)
+            .add("fdwhandler", INTEGER , c -> null)
+            .add("fdwvalidator", INTEGER , c -> null)
+            .add("fdwacl", new ArrayType<>(UNTYPED_OBJECT) , c -> null)
+            .add("fdwoptions", STRING_ARRAY , c -> null)
+            .add("xmin", INTEGER , c -> null)
             .build();
     }
 }

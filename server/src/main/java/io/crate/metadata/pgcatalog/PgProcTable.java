@@ -102,7 +102,8 @@ public class PgProcTable {
                 }
             })
             .add("proargnames", STRING_ARRAY, x -> null)
-            .startObjectArray("proargdefaults", x -> null).endObjectArray()
+            .add("proargnames", STRING_ARRAY, x -> null)
+            .add("proargdefaults", STRING, x -> null)
             .add("protrftypes", INTEGER_ARRAY, x -> null)
             .add("prosrc", STRING, x -> x.functionName.name())
             .add("probin", STRING, x -> null)

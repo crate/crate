@@ -21,27 +21,32 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
 
-import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
+import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.UNTYPED_OBJECT;
 
-public class PgNamespaceTable {
+import io.crate.types.ArrayType;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_namespace");
+public final class PgLanguageTable {
 
-    public static SystemTable<SchemaInfo> create() {
-        return SystemTable.<SchemaInfo>builder(IDENT)
-            .add("oid", INTEGER, s -> schemaOid(s.name()))
-            .add("nspname", STRING, SchemaInfo::name)
-            .add("nspowner", INTEGER, c -> 0)
-            .add("nspacl", new ArrayType<>(DataTypes.UNTYPED_OBJECT), c -> null)
-            .add("xmin", INTEGER, c -> 0)
+    public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_language");
+
+    public static SystemTable<Void> create() {
+        return SystemTable.<Void>builder(NAME)
+            .add("oid", INTEGER, c -> null)
+            .add("lanname", STRING, c -> null)
+            .add("lanowner", INTEGER, c -> null)
+            .add("lanispl", BOOLEAN , c -> null)
+            .add("lanpltrusted", BOOLEAN , c -> null)
+            .add("lanplcallfoid", INTEGER , c -> null)
+            .add("laninline", INTEGER , c -> null)
+            .add("lanvalidator", INTEGER, c -> null)
+            .add("lanacl", new ArrayType<>(UNTYPED_OBJECT), c -> null)
+            .add("xmin", INTEGER, c -> null)
             .build();
     }
 }

@@ -21,21 +21,36 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.REGPROC;
+import static io.crate.types.DataTypes.STRING;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.types.DataTypes;
 
-public final class PgAmTable {
+public final class PgOperatorTable {
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_am");
+    public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_operator");
 
     public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("oid", DataTypes.INTEGER, ignored -> null)
-            .add("amname", DataTypes.STRING, ignored -> null)
-            .add("amhandler", DataTypes.REGPROC, ignored -> null)
-            .add("amtype", DataTypes.BYTE, ignored -> null)
-            .add("xmin", DataTypes.INTEGER, ignored -> null)
+        return SystemTable.<Void>builder(NAME)
+            .add("oid", INTEGER, c -> null)
+            .add("oprname", STRING, c -> null)
+            .add("oprnamespace", INTEGER, c -> null)
+            .add("oprowner", INTEGER, c -> null)
+            .add("oprkind", STRING, c -> null)
+            .add("oprcanmerge", BOOLEAN, c -> null)
+            .add("oprcanhash", BOOLEAN, c -> null)
+            .add("oprleft", INTEGER, c -> null)
+            .add("oprright", INTEGER, c -> null)
+            .add("oprresult", INTEGER, c -> null)
+            .add("oprcom", INTEGER, c -> null)
+            .add("oprnegate", INTEGER, c -> null)
+            .add("oprcode", REGPROC, c -> null)
+            .add("oprrest", REGPROC, c -> null)
+            .add("oprjoin", REGPROC, c -> null)
+            .add("xmin", INTEGER, c -> null)
             .build();
     }
 }

@@ -65,6 +65,7 @@ public class PgTypeTable {
             .add("typoutput", REGPROC, PGType::typOutput)
             .add("typreceive", REGPROC, PGType::typReceive)
             .add("typnotnull", BOOLEAN, c -> false)
+            .add("xmin", INTEGER, x -> null)
             .build();
     }
 }

@@ -111,6 +111,136 @@ public class PgCatalogTableDefinitions {
             PgDescriptionTable.create().expressions(),
             false)
         );
+        tableDefinitions.put(PgAmopTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgAmopTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgAmprocTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgAmprocTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgShdescriptionTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgShdescriptionTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgAggregateTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgAggregateTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgAuthMembersTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgAuthMembersTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgAvailableExtensionsTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgAvailableExtensionsTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgEventTriggerTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgEventTriggerTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgExtensionTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgExtensionTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgConversionTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgConversionTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgCollationTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgCollationTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgForeignDataWrapperTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgForeignDataWrapperTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgForeignServerTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgForeignServerTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgLanguageTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgLanguageTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgTriggerTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgTriggerTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgTimezoneNamesTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgTimezoneNamesTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgTimezoneAbbrevsTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgTimezoneAbbrevsTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgRewriteTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgRewriteTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgForeignTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgForeignTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgOpclassTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgOpclassTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgOpfamilyTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgOpfamilyTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgOperatorTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgOperatorTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgPoliciesTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgPoliciesTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgSequenceTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgSequenceTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgUserMappingTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgUserMappingTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgDependTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgDependTable.create().expressions(),
+            false)
+        );
+        tableDefinitions.put(PgInheritsTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgInheritsTable.create().expressions(),
+            false)
+        );
         tableDefinitions.put(PgRangeTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(emptyList()),
             PgRangeTable.create().expressions(),

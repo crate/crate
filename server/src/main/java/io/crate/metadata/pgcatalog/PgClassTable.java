@@ -75,8 +75,8 @@ public class PgClassTable {
             .startObjectArray("relacl", x -> null)
             .endObjectArray()
             .add("reloptions", STRING_ARRAY, x -> null)
-            .startObjectArray("relpartbound", x -> null)
-            .endObjectArray()
+            .add("relpartbound", STRING, x -> null)
+            .add("xmin", INTEGER, x -> null)
             .build();
     }
 

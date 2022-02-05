@@ -23,34 +23,41 @@ package io.crate.metadata.pgcatalog;
 
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.SHORT_ARRAY;
 import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.STRING_ARRAY;
 
-import io.crate.Constants;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 
-public class PgDatabaseTable {
+public final class PgTriggerTable {
 
-    public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_database");
+    public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_trigger");
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(NAME)
-            .add("oid", INTEGER, c -> 0)
-            .add("datname", STRING, c -> "doc")
-            .add("datdba", INTEGER, c -> 1)
-            .add("encoding", INTEGER, c -> 6)
-            .add("datcollate", STRING, c -> "en_US.UTF-8")
-            .add("datctype", STRING, c -> "en_US.UTF-8")
-            .add("datistemplate", BOOLEAN,c -> false)
-            .add("datallowconn", BOOLEAN, c -> true)
-            .add("datconnlimit", INTEGER,c -> -1) // no limit
-            // We don't have any good values for these
-            .add("datlastsysoid", INTEGER, c -> null)
-            .add("datfrozenxid", INTEGER, c -> null)
-            .add("datminmxid", INTEGER, c -> null)
-            .add("dattablespace", INTEGER, c -> null)
-            .add("datacl", STRING_ARRAY, c -> null)
+            .add("oid", INTEGER, c -> null)
+            .add("tgrelid", INTEGER, c -> null)
+            .add("tgparentid", INTEGER, c -> null)
+            .add("tgname", STRING , c -> null)
+            .add("tgfoid", BOOLEAN , c -> null)
+            .add("tgtype", SHORT , c -> null)
+            .add("tgenabled", STRING , c -> null)
+            .add("tgisinternal", BOOLEAN, c -> null)
+            .add("tgconstrrelid", INTEGER, c -> null)
+            .add("tgconstrindid", INTEGER, c -> null)
+            .add("tgconstraint", INTEGER, c -> null)
+            .add("tgdeferrable", BOOLEAN, c -> null)
+            .add("tginitdeferred", BOOLEAN, c -> null)
+            .add("tgnargs", SHORT, c -> null)
+            // int2vector is not supported by CrateDB
+            .add("tgattr", SHORT_ARRAY, c -> null)
+            // bytea is not supported by CrateDB
+            .add("tgargs", STRING, c -> null)
+            // pg_node_tree is not supported by CrateDB
+            .add("tgqual", STRING, c -> null)
+            .add("tgoldtable", STRING, c -> null)
+            .add("tgnewtable", STRING, c -> null)
             .build();
     }
 }

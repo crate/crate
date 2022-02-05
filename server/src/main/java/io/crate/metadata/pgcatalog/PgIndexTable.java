@@ -32,6 +32,7 @@ import static io.crate.types.DataTypes.INTEGER_ARRAY;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.SHORT_ARRAY;
 import static io.crate.types.DataTypes.REGCLASS;
+import static io.crate.types.DataTypes.STRING;
 
 public class PgIndexTable {
 
@@ -56,10 +57,8 @@ public class PgIndexTable {
             .add("indcollation", INTEGER_ARRAY, x -> null)
             .add("indclass", INTEGER_ARRAY, x -> null)
             .add("indoption", SHORT_ARRAY, x -> null)
-            .startObjectArray("indexprs", x -> null)
-            .endObjectArray()
-            .startObjectArray("indpred", x -> null)
-            .endObjectArray()
+            .add("indexprs", STRING, x -> null)
+            .add("indpred", STRING, x -> null)
             .build();
     }
 

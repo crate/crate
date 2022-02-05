@@ -21,27 +21,21 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
 
-import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.STRING;
+public final class PgForeignTable {
 
-public class PgNamespaceTable {
+    public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_foreign_table");
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_namespace");
-
-    public static SystemTable<SchemaInfo> create() {
-        return SystemTable.<SchemaInfo>builder(IDENT)
-            .add("oid", INTEGER, s -> schemaOid(s.name()))
-            .add("nspname", STRING, SchemaInfo::name)
-            .add("nspowner", INTEGER, c -> 0)
-            .add("nspacl", new ArrayType<>(DataTypes.UNTYPED_OBJECT), c -> null)
-            .add("xmin", INTEGER, c -> 0)
+    public static SystemTable<Void> create() {
+        return SystemTable.<Void>builder(NAME)
+            .add("ftrelid", INTEGER, c -> null)
+            .add("ftserver", INTEGER, c -> null)
+            .add("ftoptions", STRING_ARRAY, c -> null)
             .build();
     }
 }
