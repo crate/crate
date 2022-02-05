@@ -22,29 +22,28 @@
 package io.crate.execution.ddl.tables;
 
 import io.crate.metadata.RelationName;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCloseTableOrPartitionRequest> {
 
-    private final RelationName relationName;
+    private final List<RelationName> tables;
     @Nullable
     private final String partitionIndexName;
     private final boolean openTable;
 
-    public OpenCloseTableOrPartitionRequest(RelationName relationName, @Nullable String partitionIndexName, boolean openTable) {
-        this.relationName = relationName;
+    public OpenCloseTableOrPartitionRequest(List<RelationName> tables, @Nullable String partitionIndexName, boolean openTable) {
+        this.tables = tables;
         this.partitionIndexName = partitionIndexName;
         this.openTable = openTable;
-    }
-
-    public RelationName tableIdent() {
-        return relationName;
     }
 
     @Nullable
@@ -58,7 +57,15 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
 
     public OpenCloseTableOrPartitionRequest(StreamInput in) throws IOException {
         super(in);
-        relationName = new RelationName(in);
+        if (in.getVersion().before(Version.fromString("4.8.0"))) {
+            tables = List.of(new RelationName(in));
+        } else {
+            int count = in.readVInt();
+            tables = new ArrayList<>(count);
+            for (int i = 0; i < count; i++) {
+                tables.add(new RelationName(in));
+            }
+        }
         partitionIndexName = in.readOptionalString();
         openTable = in.readBoolean();
     }
@@ -66,8 +73,21 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        relationName.writeTo(out);
+        if (out.getVersion().before(Version.fromString("4.8.0"))) {
+            // Before 4.8.0 request was used only for closing table with non-null RelationName field.
+            // In this branch it's guaranteed that we are not passing empty list
+            tables.get(0).writeTo(out);
+        } else {
+            out.writeVInt(tables.size());
+            for (int i = 0; i < tables.size(); i++) {
+                tables.get(i).writeTo(out);
+            }
+        }
         out.writeOptionalString(partitionIndexName);
         out.writeBoolean(openTable);
+    }
+
+    public List<RelationName> tables() {
+        return tables;
     }
 }

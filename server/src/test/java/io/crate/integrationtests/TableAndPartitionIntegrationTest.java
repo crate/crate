@@ -36,7 +36,7 @@ import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
-public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
+public class TableAndPartitionIntegrationTest extends SQLIntegrationTestCase {
 
     @Before
     public void prepareClosedTable() {

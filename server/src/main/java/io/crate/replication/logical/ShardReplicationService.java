@@ -149,24 +149,22 @@ public class ShardReplicationService implements Closeable {
                                            @Nullable IndexShard indexShard,
                                            Settings indexSettings) {
             var tracker = shards.remove(shardId);
-            if (tracker != null) {
-                try {
-                    tracker.close();
-                } catch (IOException e) {
-                    LOGGER.error("Error while closing shard changes tracker of shardId=" + shardId, e);
-                }
-            }
+            stopTracker(tracker, shardId);
         }
 
         @Override
         public void afterIndexShardDeleted(ShardId shardId, Settings indexSettings) {
             var tracker = shards.remove(shardId);
-            if (tracker != null) {
-                try {
-                    tracker.close();
-                } catch (IOException e) {
-                    LOGGER.error("Error while closing shard changes tracker of shardId=" + shardId, e);
-                }
+            stopTracker(tracker, shardId);
+        }
+    }
+
+    private void stopTracker(@Nullable ShardReplicationChangesTracker tracker, ShardId shardId) {
+        if (tracker != null) {
+            try {
+                tracker.close();
+            } catch (IOException e) {
+                LOGGER.error("Error while closing shard changes tracker of shardId=" + shardId, e);
             }
         }
     }

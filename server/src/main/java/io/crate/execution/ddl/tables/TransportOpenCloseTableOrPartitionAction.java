@@ -39,6 +39,9 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import static io.crate.execution.ddl.tables.TransportCloseTable.getIndices;
+
+
 @Singleton
 public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTransportAction<OpenCloseTableOrPartitionRequest, AcknowledgedResponse> {
 
@@ -82,6 +85,6 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
     @Override
     protected ClusterBlockException checkBlock(OpenCloseTableOrPartitionRequest request, ClusterState state) {
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE,
-            indexNameExpressionResolver.concreteIndexNames(state, STRICT_INDICES_OPTIONS, request.tableIdent().indexNameOrAlias()));
+            indexNameExpressionResolver.concreteIndexNames(state, STRICT_INDICES_OPTIONS, getIndices(request.tables(), request.partitionIndexName())));
     }
 }

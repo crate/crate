@@ -22,6 +22,7 @@
 package io.crate.metadata.cluster;
 
 import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -35,6 +36,7 @@ import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotInProgressException;
 import org.elasticsearch.snapshots.SnapshotsService;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -61,9 +63,9 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
         Set<Index> indicesToClose = context.indicesMetadata().stream()
             .map(IndexMetadata::getIndex)
             .collect(Collectors.toSet());
-        IndexTemplateMetadata templateMetadata = context.templateMetadata();
+        List<IndexTemplateMetadata> templatesMetadata = context.templatesMetadata();
 
-        if (indicesToClose.isEmpty() && templateMetadata == null) {
+        if (indicesToClose.isEmpty() && templatesMetadata.isEmpty()) {
             return currentState;
         }
 
@@ -89,7 +91,7 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
         }
 
         // mark closed at possible partitioned table template
-        if (templateMetadata != null) {
+        for (IndexTemplateMetadata templateMetadata: templatesMetadata) {
             mdBuilder.put(updateOpenCloseOnPartitionTemplate(templateMetadata, false));
         }
 
@@ -102,7 +104,9 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
         if (context.partitionName() != null) {
             updatedState = ddlClusterStateService.onCloseTablePartition(updatedState, context.partitionName());
         } else {
-            updatedState = ddlClusterStateService.onCloseTable(updatedState, request.tableIdent());
+            for (RelationName relationName: request.tables()) {
+                updatedState = ddlClusterStateService.onCloseTable(updatedState, relationName);
+            }
         }
 
         RoutingTable.Builder rtBuilder = RoutingTable.builder(currentState.routingTable());

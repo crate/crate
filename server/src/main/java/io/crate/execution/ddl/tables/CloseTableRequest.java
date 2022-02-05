@@ -23,40 +23,60 @@
 package io.crate.execution.ddl.tables;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.metadata.RelationName;
 
-public final class CloseTableRequest extends AcknowledgedRequest<CloseTableRequest> {
+public class CloseTableRequest extends AcknowledgedRequest<CloseTableRequest> {
 
-    private final RelationName table;
+    private final List<RelationName> tables;
     private final String partition;
 
-    public CloseTableRequest(RelationName table, @Nullable String partition) {
-        this.table = table;
+    public CloseTableRequest(List<RelationName> tables, @Nullable String partition) {
+        this.tables = tables;
         this.partition = partition;
     }
 
     public CloseTableRequest(StreamInput in) throws IOException {
         super(in);
-        this.table = new RelationName(in);
-        this.partition = in.readOptionalString();
+        if (in.getVersion().before(Version.fromString("4.8.0"))) {
+            tables = List.of(new RelationName(in));
+        } else {
+            int count = in.readVInt();
+            tables = new ArrayList<>(count);
+            for (int i = 0; i < count; i++) {
+                tables.add(new RelationName(in));
+            }
+        }
+        partition = in.readOptionalString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        table.writeTo(out);
+        if (out.getVersion().before(Version.fromString("4.8.0"))) {
+            // Before 4.8.0 request was used only for closing table with non-null RelationName field.
+            // In this branch it's guaranteed that we are not passing empty list
+            tables.get(0).writeTo(out);
+        } else {
+            out.writeVInt(tables.size());
+            for (int i = 0; i < tables.size(); i++) {
+                tables.get(i).writeTo(out);
+            }
+        }
         out.writeOptionalString(partition);
     }
 
-    public RelationName table() {
-        return table;
+    public List<RelationName> tables() {
+        return tables;
     }
 
     @Nullable

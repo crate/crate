@@ -27,12 +27,16 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
+import io.crate.common.unit.TimeValue;
+import io.crate.metadata.RelationName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -82,9 +86,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.cluster.DDLClusterStateService;
+
+import javax.annotation.Nullable;
 
 public final class TransportCloseTable extends TransportMasterNodeAction<CloseTableRequest, AcknowledgedResponse> {
 
@@ -142,35 +147,44 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         clusterService.submitStateUpdateTask("add-block-close-table", new AddCloseBlocksTask(listener, request));
     }
 
+    public static String[] getIndices(List<RelationName> tables, @Nullable String partition) {
+        return partition != null ? new String[] {partition} : tables.stream()
+            .map(t -> t.indexNameOrAlias())
+            .toArray(String[]::new);
+    }
+
     /**
      * Step 3 - Move index states from OPEN to CLOSE in cluster state for indices that are ready for closing.
-     * @param target
      */
     static ClusterState closeRoutingTable(ClusterState currentState,
-                                          AlterTableTarget target,
+                                          List<AlterTableTarget> targets,
                                           DDLClusterStateService ddlClusterStateService,
                                           Map<Index, ClusterBlock> blockedIndices,
                                           Map<Index, AcknowledgedResponse> results) {
         // Remove the index routing table of closed indices if the cluster is in a mixed version
         // that does not support the replication of closed indices
         final boolean removeRoutingTable = currentState.nodes().getMinNodeVersion().before(Version.V_4_3_0);
+        ClusterState updatedState = null;
+        for (AlterTableTarget target: targets) {
 
-        IndexTemplateMetadata templateMetadata = target.templateMetadata();
-        ClusterState updatedState;
-        if (templateMetadata == null) {
-            updatedState = currentState;
-        } else {
-            Metadata.Builder metadata = Metadata.builder(currentState.metadata());
-            metadata.put(closePartitionTemplate(templateMetadata));
-            updatedState = ClusterState.builder(currentState).metadata(metadata).build();
-        }
+            IndexTemplateMetadata templateMetadata = target.templateMetadata();
+            if (templateMetadata == null) {
+                // Update only on the first iteration otherwise just use value from the previous iteration
+                updatedState = updatedState == null ? currentState : updatedState;
+            } else {
+                Metadata.Builder metadata = Metadata.builder(currentState.metadata());
+                metadata.put(closePartitionTemplate(templateMetadata));
+                updatedState = ClusterState.builder(currentState).metadata(metadata).build();
+            }
 
-        String partition = target.partition();
-        if (partition != null) {
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(partition);
-            updatedState = ddlClusterStateService.onCloseTablePartition(updatedState, partitionName);
-        } else {
-            updatedState = ddlClusterStateService.onCloseTable(updatedState, target.table());
+            String partition = target.partition();
+            if (partition != null) {
+                PartitionName partitionName = PartitionName.fromIndexOrTemplate(partition);
+                updatedState = ddlClusterStateService.onCloseTablePartition(updatedState, partitionName);
+            } else {
+                updatedState = ddlClusterStateService.onCloseTable(updatedState, target.table());
+            }
+
         }
 
         final Metadata.Builder metadata = Metadata.builder(updatedState.metadata());
@@ -253,11 +267,9 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
     @Override
     protected ClusterBlockException checkBlock(CloseTableRequest request, ClusterState state) {
-        String partition = request.partition();
-        String indexName = partition == null ? request.table().indexNameOrAlias() : partition;
         return state.blocks().indicesBlockedException(
             ClusterBlockLevel.METADATA_WRITE,
-            indexNameExpressionResolver.concreteIndexNames(state, STRICT_INDICES_OPTIONS, indexName)
+            getIndices(request.tables(), request.partition())
         );
     }
 
@@ -352,10 +364,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
-            RelationName table = request.table();
-            String partition = request.partition();
-            Index[] indices = indexNameExpressionResolver.concreteIndices(currentState,
-                    IndicesOptions.lenientExpandOpen(), partition == null ? table.indexNameOrAlias() : partition);
+            Index[] indices = indexNameExpressionResolver.concreteIndices(currentState, IndicesOptions.lenientExpandOpen(), getIndices(request.tables(), request.partition()));
             if (indices.length == 0) {
                 return currentState;
             }
@@ -419,15 +428,16 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         @Override
         public ClusterState execute(final ClusterState currentState) throws Exception {
-            AlterTableTarget target = AlterTableTarget.resolve(
+            List<AlterTableTarget> targets = request.tables().stream().map(table -> AlterTableTarget.resolve(
                 indexNameExpressionResolver,
                 currentState,
-                request.table(),
-                request.partition()
-            );
+                table,
+                request.partition())
+            ).collect(Collectors.toList());
+
             final ClusterState updatedState = closeRoutingTable(
                 currentState,
-                target,
+                targets,
                 ddlClusterStateService,
                 blockedIndices,
                 results

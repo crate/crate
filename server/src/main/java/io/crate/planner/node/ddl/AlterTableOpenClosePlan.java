@@ -37,6 +37,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Table;
 
+import java.util.List;
 import java.util.function.Function;
 
 public class AlterTableOpenClosePlan implements Plan {
@@ -74,7 +75,7 @@ public class AlterTableOpenClosePlan implements Plan {
         }
 
         dependencies.alterTableOperation()
-            .executeAlterTableOpenClose(tableInfo, analyzedAlterTable.isOpenTable(), partitionName)
+            .executeAlterTableOpenClose(List.of(tableInfo.ident()), analyzedAlterTable.isOpenTable(), partitionName)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }
