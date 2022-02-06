@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.scalar.systeminformation;
+package io.crate.expression.scalar.postgres;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
@@ -31,43 +31,35 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
-public class PgGetExpr extends Scalar<String, Object> {
+public class PgGetPartKeyDefFunction extends Scalar<String, Object> {
 
-    public static final String NAME = "pg_get_expr";
+    public static final String NAME = "pg_get_partkeydef";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
                 FQN,
-                DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            PgGetExpr::new
-        );
-        module.register(
-            Signature.scalar(
-                FQN,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.BOOLEAN.getTypeSignature()
-            ),
-            PgGetExpr::new
+            PgGetPartKeyDefFunction::new
         );
     }
 
     private final Signature signature;
     private final Signature boundSignature;
 
-    public PgGetExpr(Signature signature, Signature boundSignature) {
+    // pg_get_partkeydef is only provided for postgres compatibility and 
+    // always returns NULL. It is supposed to return the PARTITION BY clause
+    public PgGetPartKeyDefFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
 
     @Override
     public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
+        assert args.length == 1 : "number of args must be 1";
         return null;
     }
 

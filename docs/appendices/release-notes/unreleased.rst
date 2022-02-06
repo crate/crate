@@ -56,7 +56,23 @@ None
 Changes
 =======
 
-None
+- Added the :ref:`scalar-pg_get_partkeydef` scalar function for improved compatibility with 
+  PostgreSQL.
+
+- Added the :ref:`pg_is_in_recovery` scalar function for improved compatibility with 
+  PostgreSQL. 
+
+- Added the :ref:`scalar-pg_tablespace_location` scalar function for improved compatibility 
+  with PostgreSQL. 
+
+- Added the :ref:`scalar-txid_current` scalar function for improved compatibility with
+  PostgreSQL. 
+
+- Moved the :ref:`scalar-quote_ident` function to the `pg_catalog` for improved
+  compatibility with PostgreSQL. 
+
+- Added the option for 3 parameters for the :ref:`scalar-pg_get_expr` function
+  for improved compatibility with PostgreSQL. 
 
 
 Fixes

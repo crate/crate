@@ -3378,10 +3378,59 @@ clients that use the PostgreSQL wire protocol. The function always returns
 Synopsis::
 
    pg_get_expr(expr text, relation_oid int)
+   pg_get_expr(expr text, relation_oid int, pretty boolean)
 
 Example::
 
     cr> select pg_get_expr('literal', 1) AS col;
+    +------+
+    |  col |
+    +------+
+    | NULL |
+    +------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-pg_is_in_recovery:
+
+``pg_is_in_recovery()``
+-----------------
+
+The function ``pg_is_in_recovery`` is implemented to improve compatibility with
+clients that use the PostgreSQL wire protocol. The function always returns
+``false``.
+
+Synopsis::
+
+   pg_is_in_recovery()
+
+Example::
+
+    cr> select pg_is_in_recovery() AS col;
+    +-------+
+    |  col  |
+    +-------+
+    | false |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-pg_get_partkeydef:
+
+``pg_get_partkeydef()``
+-----------------
+
+The function ``pg_get_partkeydef`` is implemented to improve compatibility with
+clients that use the PostgreSQL wire protocol. The function always returns
+``null``.
+
+Synopsis::
+
+   pg_get_partkeydef(relation_oid int)
+
+Example::
+
+    cr> select pg_get_partkeydef(1) AS col;
     +------+
     |  col |
     +------+
@@ -3438,6 +3487,30 @@ Example::
     +-------+
     | crate |
     +-------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-pg_tablespace_location:
+
+``pg_tablespace_location()``
+-----------------
+
+The function ``pg_tablespace_location`` is implemented to improve compatibility with
+clients that use the PostgreSQL wire protocol. The function always returns
+an empty string.
+
+Synopsis::
+
+   pg_tablespace_location(relation_oid int)
+
+Example::
+
+    cr> select pg_tablespace_location(1) AS col;
+    +------+
+    |  col |
+    +------+
+    |      |
+    +------+
     SELECT 1 row in set (... sec)
 
 
@@ -3607,6 +3680,31 @@ If the given ``OID`` is not know, ``???`` is returned::
     |  ??? |
     +------+
     SELECT 1 row in set (... sec)
+
+
+.. _scalar-txid_current:
+
+``txid_current()``
+-----------------
+
+The function ``txid_current`` is implemented to improve compatibility with
+clients that use the PostgreSQL wire protocol. The function always returns
+``0``.
+
+Synopsis::
+
+   txid_current()
+
+Example::
+
+    cr> select txid_current() AS col;
+    +------+
+    |  col |
+    +------+
+    |    0 |
+    +------+
+    SELECT 1 row in set (... sec)
+
 
 
 .. _scalar-special:
