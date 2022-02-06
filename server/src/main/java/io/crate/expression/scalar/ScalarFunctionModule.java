@@ -57,8 +57,12 @@ import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.scalar.postgres.CurrentSettingFunction;
 import io.crate.expression.scalar.postgres.PgBackendPidFunction;
 import io.crate.expression.scalar.postgres.PgEncodingToCharFunction;
+import io.crate.expression.scalar.postgres.PgGetPartKeyDefFunction;
 import io.crate.expression.scalar.postgres.PgGetUserByIdFunction;
+import io.crate.expression.scalar.postgres.PgIsInRecoveryFunction;
 import io.crate.expression.scalar.postgres.PgPostmasterStartTime;
+import io.crate.expression.scalar.postgres.PgTablespaceLocationFunction;
+import io.crate.expression.scalar.postgres.TxidCurrentFunction;
 import io.crate.expression.scalar.regex.RegexpReplaceFunction;
 import io.crate.expression.scalar.string.AsciiFunction;
 import io.crate.expression.scalar.string.ChrFunction;
@@ -198,7 +202,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         CurrentSchemasFunction.register(this);
         PgGetExpr.register(this);
         CurrentSettingFunction.register(this, getProvider(SessionSettingRegistry.class));
-
+        
         PgBackendPidFunction.register(this);
         PgEncodingToCharFunction.register(this);
         PgGetUserByIdFunction.register(this);
@@ -209,6 +213,10 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         FormatTypeFunction.register(this);
         PgFunctionIsVisibleFunction.register(this);
         PgGetFunctionResultFunction.register(this);
+        PgGetPartKeyDefFunction.register(this);
         PgPostmasterStartTime.register(this);
+        PgIsInRecoveryFunction.register(this);
+        PgTablespaceLocationFunction.register(this);
+        TxidCurrentFunction.register(this);
     }
 }

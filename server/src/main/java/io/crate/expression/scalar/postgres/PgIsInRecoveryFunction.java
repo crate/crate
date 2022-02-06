@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.scalar.systeminformation;
+package io.crate.expression.scalar.postgres;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
@@ -31,44 +31,33 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
-public class PgGetExpr extends Scalar<String, Object> {
+public class PgIsInRecoveryFunction extends Scalar<Boolean, Void> {
 
-    public static final String NAME = "pg_get_expr";
+    public static final String NAME = "pg_is_in_recovery";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
                 FQN,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
-            PgGetExpr::new
-        );
-        module.register(
-            Signature.scalar(
-                FQN,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.BOOLEAN.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
-            PgGetExpr::new
+                DataTypes.BOOLEAN.getTypeSignature()
+            ).withFeatures(NO_FEATURES),
+            PgIsInRecoveryFunction::new
         );
     }
 
     private final Signature signature;
     private final Signature boundSignature;
 
-    public PgGetExpr(Signature signature, Signature boundSignature) {
+    public PgIsInRecoveryFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
 
     @Override
-    public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
-        return null;
+    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Void>... args) {
+        assert args.length == 0 : "number of args must be 0";
+        return Boolean.FALSE;
     }
 
     @Override

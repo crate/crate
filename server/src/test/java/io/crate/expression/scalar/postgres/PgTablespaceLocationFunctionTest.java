@@ -24,18 +24,11 @@ package io.crate.expression.scalar.postgres;
 import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-
-public class PgGetExprFunctionTest extends ScalarTestCase {
+public class PgTablespaceLocationFunctionTest extends ScalarTestCase {
 
     @Test
-    public void testPgGetExpr() throws Exception {
-        assertEvaluate("pg_get_expr('whatever', 1)", null);
-        assertEvaluate("pg_get_expr('whatever', 1, false)", null);
+    public void testPgTablespaceLocationFunction() throws Exception {
+        assertEvaluate("pg_tablespace_location(123)", "");
     }
 
-    @Test
-    public void testPgGetExprWithFQNFunctionName() throws Exception {
-        assertNormalize("pg_catalog.pg_get_expr('whatever', 1)", isLiteral(null));
-    }
 }
