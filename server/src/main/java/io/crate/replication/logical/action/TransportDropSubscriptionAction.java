@@ -23,6 +23,7 @@ package io.crate.replication.logical.action;
 
 import io.crate.action.FutureActionListener;
 import io.crate.exceptions.Exceptions;
+import io.crate.execution.ddl.tables.CloseTableRequest;
 import io.crate.execution.ddl.tables.TransportCloseTable;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.metadata.Schemas;
@@ -138,7 +139,10 @@ public class TransportDropSubscriptionAction extends TransportMasterNodeAction<D
     private CompletableFuture<Void> submitCloseSubscriptionsTablesTask(DropSubscriptionRequest request,
                                                                        List<OpenCloseTable> openCloseTables) {
         FutureActionListener<AcknowledgedResponse, Void> future = new FutureActionListener<>(r -> null);
-        transportCloseTable.closeTables(future, openCloseTables, request.ackTimeout());
+        CloseTableRequest closeTableRequest = new CloseTableRequest(openCloseTables.get(0).relationName(), openCloseTables.get(0).partitionIndexName());
+        clusterService.submitStateUpdateTask("add-block-close-table",
+             transportCloseTable.new AddCloseBlocksTask(future, closeTableRequest));
+
         return future;
     }
 
