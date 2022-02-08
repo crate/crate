@@ -267,7 +267,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAlterBlobTableOpenClose() {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"blob.blobs\" doesn't support or allow ALTER OPEN/CLOSE operations.");
+        expectedException.expectMessage("The relation \"blob.blobs\" doesn't support or allow ALTER CLOSE operations.");
         e.analyze("alter blob table blobs close");
     }
 
