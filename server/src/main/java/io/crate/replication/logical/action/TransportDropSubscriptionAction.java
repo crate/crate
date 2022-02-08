@@ -30,13 +30,21 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import javax.annotation.Nonnull;
+import java.util.Iterator;
+
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 
 @Singleton
 public class TransportDropSubscriptionAction extends AbstractDDLTransportAction<DropSubscriptionRequest, AcknowledgedResponse> {
@@ -70,11 +78,14 @@ public class TransportDropSubscriptionAction extends AbstractDDLTransportAction<
                 SubscriptionsMetadata oldMetadata = (SubscriptionsMetadata) mdBuilder.getCustom(SubscriptionsMetadata.TYPE);
                 if (oldMetadata != null && oldMetadata.subscription().containsKey(request.name())) {
 
-                    // LogicalReplicationService will react to cluster change events and will stop the replication.
+                    // This is second step out of 3. Tracking of shards is already stopped on the first step (CLOSE TABLE).
+                    // Removing setting so that last step (OPEN TABLE) will update engine.
                     SubscriptionsMetadata newMetadata = SubscriptionsMetadata.newInstance(oldMetadata);
                     newMetadata.subscription().remove(request.name());
                     assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
                     mdBuilder.putCustom(SubscriptionsMetadata.TYPE, newMetadata);
+
+                    mdBuilder = removeSubscriptionSetting(currentMetadata.indices(), mdBuilder, request.name());
 
                     return ClusterState.builder(currentState).metadata(mdBuilder).build();
                 } else if (request.ifExists() == false) {
@@ -90,4 +101,30 @@ public class TransportDropSubscriptionAction extends AbstractDDLTransportAction<
     protected ClusterBlockException checkBlock(DropSubscriptionRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
+
+    /**
+     * Removes the REPLICATION_SUBSCRIPTION_NAME index setting from all relevant to subscription indices.
+     */
+    private Metadata.Builder removeSubscriptionSetting(ImmutableOpenMap<String, IndexMetadata> indices,
+                                                       Metadata.Builder mdBuilder,
+                                                       @Nonnull String subscriptionToDrop) {
+        Iterator<IndexMetadata> indicesIterator = indices.valuesIt();
+        while (indicesIterator.hasNext()) {
+            IndexMetadata indexMetadata = indicesIterator.next();
+            var settings = indexMetadata.getSettings();
+            var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(settings); // Can be null.
+            if (subscriptionToDrop.equals(subscriptionName)) {
+                var settingsBuilder = Settings.builder().put(settings);
+                settingsBuilder.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
+                mdBuilder.put(
+                    IndexMetadata
+                        .builder(indexMetadata)
+                        .settingsVersion(1 + indexMetadata.getSettingsVersion())
+                        .settings(settingsBuilder)
+                );
+            }
+        }
+        return mdBuilder;
+    }
+
 }
