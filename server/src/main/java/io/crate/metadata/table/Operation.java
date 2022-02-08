@@ -42,7 +42,8 @@ public enum Operation {
     DROP("DROP"),
     ALTER("ALTER"),
     ALTER_BLOCKS("ALTER"),
-    ALTER_OPEN_CLOSE("ALTER OPEN/CLOSE"),
+    ALTER_OPEN("ALTER OPEN"),
+    ALTER_CLOSE("ALTER CLOSE"),
     ALTER_TABLE_RENAME("ALTER RENAME"),
     ALTER_REROUTE("ALTER REROUTE"),
     REFRESH("REFRESH"),
@@ -55,16 +56,16 @@ public enum Operation {
     public static final EnumSet<Operation> ALL = EnumSet.allOf(Operation.class);
     public static final EnumSet<Operation> SYS_READ_ONLY = EnumSet.of(READ);
     public static final EnumSet<Operation> READ_ONLY = EnumSet.of(READ, ALTER_BLOCKS);
-    public static final EnumSet<Operation> CLOSED_OPERATIONS = EnumSet.of(ALTER_OPEN_CLOSE, ALTER_TABLE_RENAME);
+    public static final EnumSet<Operation> CLOSED_OPERATIONS = EnumSet.of(ALTER_OPEN, ALTER_CLOSE, ALTER_TABLE_RENAME);
     public static final EnumSet<Operation> BLOB_OPERATIONS = EnumSet.of(READ, OPTIMIZE, ALTER, ALTER_REROUTE, DROP);
     public static final EnumSet<Operation> READ_DISABLED_OPERATIONS = EnumSet.of(UPDATE, INSERT, DELETE, DROP, ALTER,
-        ALTER_OPEN_CLOSE, ALTER_REROUTE, ALTER_BLOCKS, REFRESH, OPTIMIZE);
-    public static final EnumSet<Operation> WRITE_DISABLED_OPERATIONS = EnumSet.of(READ, ALTER, ALTER_OPEN_CLOSE,
+        ALTER_OPEN, ALTER_CLOSE, ALTER_REROUTE, ALTER_BLOCKS, REFRESH, OPTIMIZE);
+    public static final EnumSet<Operation> WRITE_DISABLED_OPERATIONS = EnumSet.of(READ, ALTER, ALTER_OPEN, ALTER_CLOSE,
         ALTER_BLOCKS, ALTER_REROUTE, SHOW_CREATE, REFRESH, OPTIMIZE, COPY_TO, CREATE_SNAPSHOT);
     public static final EnumSet<Operation> METADATA_DISABLED_OPERATIONS = EnumSet.of(READ, UPDATE, INSERT, DELETE,
-        ALTER_BLOCKS, ALTER_OPEN_CLOSE, ALTER_REROUTE, REFRESH, SHOW_CREATE, OPTIMIZE);
+        ALTER_BLOCKS, ALTER_OPEN, ALTER_CLOSE, ALTER_REROUTE, REFRESH, SHOW_CREATE, OPTIMIZE);
     public static final EnumSet<Operation> LOGICAL_REPLICATED = EnumSet.of(
-        READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE);
+        READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE, ALTER_OPEN);
 
     private final String representation;
 
