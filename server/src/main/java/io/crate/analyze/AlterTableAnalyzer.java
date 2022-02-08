@@ -129,7 +129,7 @@ class AlterTableAnalyzer {
             relationName = schemas.resolveRelation(table.getName(), txnCtx.sessionContext().searchPath());
         }
 
-        DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_OPEN_CLOSE);
+        DocTableInfo tableInfo = schemas.getTableInfo(relationName, node.openTable() ? Operation.ALTER_OPEN : Operation.ALTER_CLOSE);
         return new AnalyzedAlterTableOpenClose(tableInfo, table, node.openTable());
     }
 }
