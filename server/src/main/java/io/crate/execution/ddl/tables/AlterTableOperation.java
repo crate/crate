@@ -144,7 +144,7 @@ public class AlterTableOperation {
         return session;
     }
 
-    public CompletableFuture<Long> executeAlterTableOpenClose(DocTableInfo tableInfo,
+    public CompletableFuture<Long> executeAlterTableOpenClose(List<RelationName> tables,
                                                               boolean openTable,
                                                               @Nullable PartitionName partitionName) {
         String partitionIndexName = null;
@@ -153,12 +153,11 @@ public class AlterTableOperation {
         }
         FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         if (openTable || clusterService.state().getNodes().getMinNodeVersion().before(Version.V_4_3_0)) {
-            OpenCloseTableOrPartitionRequest request = new OpenCloseTableOrPartitionRequest(
-                tableInfo.ident(), partitionIndexName, openTable);
+            OpenCloseTableOrPartitionRequest request = new OpenCloseTableOrPartitionRequest(tables, partitionIndexName, openTable);
             transportOpenCloseTableOrPartitionAction.execute(request, listener);
         } else {
             transportCloseTable.execute(
-                new CloseTableRequest(tableInfo.ident(), partitionIndexName),
+                new CloseTableRequest(tables, partitionIndexName),
                 listener
             );
         }

@@ -21,21 +21,6 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.contains;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.StringJoiner;
-import java.util.concurrent.TimeUnit;
-
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.junit.Test;
-
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
@@ -44,6 +29,20 @@ import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.StringJoiner;
+import java.util.concurrent.TimeUnit;
+
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.contains;
 
 
 public class LogicalReplicationITest extends LogicalReplicationITestCase {
@@ -437,5 +436,26 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
             " JOIN pg_class r ON sr.srrelid = r.oid");
         assertThat(printedTable(res.rows()), is("sub1| t1| r| NULL\n"));
+    }
+
+    @Test
+    public void test_write_to_subscribed_table_is_allowed_after_dropping_subscription() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("CREATE TABLE doc.t2 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        executeOnPublisher("INSERT INTO doc.t2 (id) VALUES (1), (2)");
+
+        // It's important to subscribe to more than 1 table to check
+        // that re-used close/open table logic works with multiple tables
+        createPublication("pub1", false, List.of("doc.t1", "doc.t2"));
+        createSubscription("sub1", "pub1");
+
+        executeOnSubscriber("DROP SUBSCRIPTION sub1 ");
+
+        var response = executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)");
+        assertThat(response.rowCount(), is(1L));
+
+        response = executeOnSubscriber("INSERT INTO doc.t2 (id) VALUES(3)");
+        assertThat(response.rowCount(), is(1L));
     }
 }

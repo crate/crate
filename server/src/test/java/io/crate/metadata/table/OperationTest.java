@@ -29,7 +29,8 @@ import org.junit.Test;
 import static io.crate.metadata.table.Operation.ALL;
 import static io.crate.metadata.table.Operation.ALTER;
 import static io.crate.metadata.table.Operation.ALTER_BLOCKS;
-import static io.crate.metadata.table.Operation.ALTER_OPEN_CLOSE;
+import static io.crate.metadata.table.Operation.ALTER_CLOSE;
+import static io.crate.metadata.table.Operation.ALTER_OPEN;
 import static io.crate.metadata.table.Operation.ALTER_REROUTE;
 import static io.crate.metadata.table.Operation.COPY_TO;
 import static io.crate.metadata.table.Operation.CREATE_SNAPSHOT;
@@ -62,18 +63,18 @@ public class OperationTest extends ESTestCase {
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_READ, true).build(), IndexMetadata.State.OPEN),
             containsInAnyOrder(UPDATE, INSERT, DELETE, DROP, ALTER,
-                               ALTER_OPEN_CLOSE, ALTER_BLOCKS, REFRESH, OPTIMIZE, ALTER_REROUTE));
+                ALTER_OPEN, ALTER_CLOSE, ALTER_BLOCKS, REFRESH, OPTIMIZE, ALTER_REROUTE));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_WRITE, true).build(), IndexMetadata.State.OPEN),
-            containsInAnyOrder(READ, ALTER, ALTER_OPEN_CLOSE, ALTER_BLOCKS,
+            containsInAnyOrder(READ, ALTER, ALTER_OPEN, ALTER_CLOSE, ALTER_BLOCKS,
                                SHOW_CREATE, REFRESH, OPTIMIZE, COPY_TO,
                                CREATE_SNAPSHOT, ALTER_REROUTE));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_METADATA, true).build(), IndexMetadata.State.OPEN),
             containsInAnyOrder(READ, UPDATE, INSERT, DELETE, ALTER_BLOCKS,
-                               ALTER_OPEN_CLOSE, REFRESH, SHOW_CREATE, OPTIMIZE, ALTER_REROUTE));
+                ALTER_OPEN, ALTER_CLOSE, REFRESH, SHOW_CREATE, OPTIMIZE, ALTER_REROUTE));
     }
 
     @Test
@@ -81,19 +82,19 @@ public class OperationTest extends ESTestCase {
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_READ, true)
                 .put(IndexMetadata.SETTING_BLOCKS_WRITE, true).build(), IndexMetadata.State.OPEN),
-            containsInAnyOrder(ALTER, ALTER_OPEN_CLOSE, ALTER_BLOCKS, REFRESH,
+            containsInAnyOrder(ALTER, ALTER_OPEN, ALTER_CLOSE, ALTER_BLOCKS, REFRESH,
                 OPTIMIZE, ALTER_REROUTE));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_WRITE, true)
                 .put(IndexMetadata.SETTING_BLOCKS_METADATA, true).build(), IndexMetadata.State.OPEN),
-            containsInAnyOrder(READ, ALTER_OPEN_CLOSE, ALTER_BLOCKS, REFRESH,
+            containsInAnyOrder(READ, ALTER_OPEN, ALTER_CLOSE, ALTER_BLOCKS, REFRESH,
                                SHOW_CREATE, OPTIMIZE, ALTER_REROUTE));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_READ, true)
                 .put(IndexMetadata.SETTING_BLOCKS_METADATA, true).build(), IndexMetadata.State.OPEN),
-            containsInAnyOrder(INSERT, UPDATE, DELETE, ALTER_OPEN_CLOSE,
+            containsInAnyOrder(INSERT, UPDATE, DELETE, ALTER_OPEN, ALTER_CLOSE,
                 ALTER_BLOCKS, REFRESH, OPTIMIZE, ALTER_REROUTE));
     }
 
@@ -104,7 +105,7 @@ public class OperationTest extends ESTestCase {
             .build();
         assertThat(
             Operation.buildFromIndexSettingsAndState(replicatedIndexSettings, IndexMetadata.State.OPEN),
-            containsInAnyOrder(READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE)
+            containsInAnyOrder(READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE, ALTER_OPEN)
         );
     }
 }
