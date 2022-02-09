@@ -80,6 +80,21 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
         assertThat(mapping.source().string(), Matchers.is("{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\"}}}}"));
     }
 
+    @Test
+    public void test_mappingMetadata_set_to_null() throws Throwable {
+        IndexMetadata indexMetadata = IndexMetadata.builder(new RelationName("blob", "b1").indexNameOrAlias())
+            .settings(Settings.builder().put("index.version.created", Version.V_4_7_0))
+            .numberOfShards(1)
+            .numberOfReplicas(0)
+            .putMapping(null) // here
+            .build();
+
+        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
+        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata);
+
+        assertThat(updatedMetadata.mapping(), is(nullValue()));
+    }
+
     private static CompressedXContent createDynamicStringMappingTemplate() throws IOException {
         // @formatter:off
         XContentBuilder builder = XContentFactory.jsonBuilder()
