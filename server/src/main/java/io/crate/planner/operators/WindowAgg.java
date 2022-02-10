@@ -127,7 +127,11 @@ public class WindowAgg extends ForwardingLogicalPlan {
         if (newSource == source) {
             return this;
         }
-        return new WindowAgg(newSource, windowDefinition, List.copyOf(newWindowFunctions), newSource.outputs());
+        if (newWindowFunctions.isEmpty()) {
+            return newSource;
+        } else {
+            return new WindowAgg(newSource, windowDefinition, List.copyOf(newWindowFunctions), newSource.outputs());
+        }
     }
 
     public List<WindowFunction> windowFunctions() {

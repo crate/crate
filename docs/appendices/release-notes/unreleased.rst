@@ -69,4 +69,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused a failure when a window function over a partition
+  is not used in an upper query. For example:
+  ``select x from (select x, ROW_NUMBER() OVER (PARTITION BY y) from t) t1``
+
 - Updated the bundled JDK to 17.0.2+8
