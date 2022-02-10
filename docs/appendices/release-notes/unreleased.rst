@@ -67,4 +67,6 @@ Fixes
 - Fixed an issue that caused truncation of milliseconds in ``timezone`` scalar
   function.
 
-None
+- Fixed an issue that caused a failure when a window function over a partition
+  is not used in an upper query. For example:
+  ``select x from (select x, ROW_NUMBER() OVER (PARTITION BY y) from t) t1``
