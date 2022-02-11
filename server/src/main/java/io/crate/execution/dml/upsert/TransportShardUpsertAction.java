@@ -182,7 +182,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     throw Exceptions.toRuntimeException(e);
                 }
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Failed to execute upsert shardId={} id={} error={}", request.shardId(), item.id(), e);
+                    logger.debug("Failed to execute upsert on nodeName={}, shardId={} id={} error={}", clusterService.localNode().getName(), request.shardId(), item.id(), e);
                 }
 
                 // *mark* the item as failed by setting the source to null
