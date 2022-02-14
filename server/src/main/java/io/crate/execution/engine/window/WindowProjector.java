@@ -73,6 +73,7 @@ public class WindowProjector {
                                            Executor executor) {
         var windowFunctionSymbols = projection.windowFunctions();
         var numWindowFunctions = windowFunctionSymbols.size();
+        assert numWindowFunctions > 0 : "WindowAggProjection must have at least 1 window function.";
 
         ArrayList<WindowFunction> windowFunctions = new ArrayList<>(numWindowFunctions);
         ArrayList<CollectExpression<Row, ?>> windowFuncArgsExpressions = new ArrayList<>(numWindowFunctions);
