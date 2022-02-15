@@ -63,6 +63,10 @@ Changes
 - Improved the evaluation performance of implicit casts by utilize the compile
   step of the function to determine the return type.
 
+- Fixed an issue with the handling of quoted identifiers in column names where
+  certain characters break the processing. This makes sure any special characters
+  can be used as column name.
+
 - Added a ``flush_stats`` column to the :ref:`sys.shards <sys-shards>` table.
 
 - Allowed users to be able to specify different S3 compatible storage endpoints

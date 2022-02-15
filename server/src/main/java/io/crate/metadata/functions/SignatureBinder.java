@@ -162,8 +162,8 @@ public class SignatureBinder {
                 throw new IllegalStateException("Type parameters cannot have parameters");
             }
             var boundTS = boundVariables.getTypeVariable(baseType).getTypeSignature();
-            if (typeSignature instanceof ParameterTypeSignature) {
-                return new ParameterTypeSignature(((ParameterTypeSignature) typeSignature).parameterName(), boundTS);
+            if (typeSignature instanceof ParameterTypeSignature p) {
+                return new ParameterTypeSignature(p.unescapedParameterName(), boundTS);
             }
             return boundTS;
         }
@@ -172,9 +172,9 @@ public class SignatureBinder {
             typeSignature.getParameters(),
             typeSignatureParameter -> applyBoundVariables(typeSignatureParameter, boundVariables));
 
-        if (typeSignature instanceof ParameterTypeSignature) {
+        if (typeSignature instanceof ParameterTypeSignature p) {
             return new ParameterTypeSignature(
-                ((ParameterTypeSignature) typeSignature).parameterName(),
+                p.unescapedParameterName(),
                 new TypeSignature(baseType, parameters)
             );
         }

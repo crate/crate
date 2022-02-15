@@ -33,7 +33,7 @@ public final class ParameterTypeSignature extends TypeSignature {
     public ParameterTypeSignature(String parameterName,
                                   TypeSignature typeSignature) {
         super(typeSignature.getBaseTypeName(), typeSignature.getParameters());
-        this.parameterName = parameterName;
+        this.parameterName = unEscape(parameterName);
     }
 
     public ParameterTypeSignature(StreamInput in) throws IOException {
@@ -41,7 +41,11 @@ public final class ParameterTypeSignature extends TypeSignature {
         parameterName = in.readString();
     }
 
-    public String parameterName() {
+    public String escapedParameterName() {
+        return escape(parameterName);
+    }
+
+    public String unescapedParameterName() {
         return parameterName;
     }
 
@@ -59,6 +63,16 @@ public final class ParameterTypeSignature extends TypeSignature {
     @Override
     public String toString() {
         // Quote name as it may be a sub-column ident which is allowed to contain white spaces
-        return "\"" + parameterName + "\" " + super.toString();
+        return "\"" + escapedParameterName() + "\" " + super.toString();
+    }
+
+    private static String escape(String input) {
+        // double quotes need to escaped to be valid in type signatures
+        return input.replace("\"", "\\\"");
+    }
+
+    private static String unEscape(String input) {
+        // double quotes should be unescaped to be valid in data types
+        return input.replace("\\\"", "\"");
     }
 }

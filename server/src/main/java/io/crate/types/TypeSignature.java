@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -29,11 +30,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 
-import static java.lang.Character.isDigit;
-import static java.lang.String.format;
+import io.crate.signatures.TypeSignatureParser;
 
 public class TypeSignature implements Writeable {
 
@@ -56,84 +55,11 @@ public class TypeSignature implements Writeable {
      * <p>
      */
     public static TypeSignature parseTypeSignature(String signature) {
-        if (isDigit(signature.charAt(0)) && !signature.contains(" ")) {
-            return TypeSignature.of(Integer.parseInt(signature));
-        } else if (!signature.contains("(")) {
-            return TypeSignature.of(signature, List.of());
-        }
-
-        String baseName = null;
-        List<TypeSignature> parameters = new ArrayList<>();
-        int parameterStart = -1;
-        int bracketCount = 0;
-
-        for (int i = 0; i < signature.length(); i++) {
-            char c = signature.charAt(i);
-            if (c == '(') {
-                if (bracketCount == 0) {
-                    assert baseName == null : "Expected baseName to be null";
-                    baseName = signature.substring(0, i);
-                    parameterStart = i + 1;
-                }
-                bracketCount++;
-            } else if (c == ')') {
-                bracketCount--;
-                if (bracketCount == 0) {
-                    assert parameterStart >= 0 : "Expected parameter start to be >= 0";
-                    parameters.add(parseTypeSignatureParameter(signature, parameterStart, i));
-                    parameterStart = i + 1;
-                    if (i == signature.length() - 1) {
-                        return TypeSignature.of(baseName, parameters);
-                    }
-                }
-            } else if (c == ',') {
-                if (bracketCount == 1) {
-                    assert parameterStart >= 0 : "Expected parameter start to be >= 0";
-                    parameters.add(parseTypeSignatureParameter(signature, parameterStart, i));
-                    parameterStart = i + 1;
-                }
-            }
-        }
-
-        throw new IllegalArgumentException(format(Locale.ENGLISH, "Bad type signature: '%s'", signature));
+        return TypeSignatureParser.parse(signature);
     }
 
     protected static TypeSignature of(int parseInt) {
         return new IntegerLiteralTypeSignature(parseInt);
-    }
-
-    private static TypeSignature of(String signature, List<TypeSignature> parameters) {
-        if (isNamedTypeSignature(signature)) {
-            String parameterName;
-            int splitStart;
-            if (signature.charAt(0) == '"') {
-                int closingIdx = signature.lastIndexOf('"');
-                if (closingIdx == -1) {
-                    throw new IllegalArgumentException(format(Locale.ENGLISH, "Bad type signature: '%s'", signature));
-                }
-                parameterName = signature.substring(1, closingIdx);
-                splitStart = signature.indexOf(' ', closingIdx);
-            } else {
-                splitStart = signature.indexOf(' ');
-                parameterName = signature.substring(0, splitStart);
-            }
-            return new ParameterTypeSignature(
-                parameterName,
-                new TypeSignature(signature.substring(splitStart + 1), parameters));
-        } else {
-            return new TypeSignature(signature, parameters);
-        }
-    }
-
-
-    private static boolean isNamedTypeSignature(String signature) {
-        return !DataTypes.PRIMITIVE_TYPE_NAMES_WITH_SPACES.contains(signature)
-               && (signature.charAt(0) == '"' || signature.contains(" "));
-    }
-
-    private static TypeSignature parseTypeSignatureParameter(String signature, int begin, int end) {
-        String parameterName = signature.substring(begin, end).trim();
-        return parseTypeSignature(parameterName);
     }
 
     public static void toStream(TypeSignature typeSignature, StreamOutput out) throws IOException {
@@ -193,8 +119,8 @@ public class TypeSignature implements Writeable {
             if (parameters.size() > 1) {
                 for (int i = 0; i < parameters.size() - 1; ) {
                     var valTypeSignature = parameters.get(i + 1);
-                    if (valTypeSignature instanceof ParameterTypeSignature) {
-                        var innerTypeName = ((ParameterTypeSignature) valTypeSignature).parameterName();
+                    if (valTypeSignature instanceof ParameterTypeSignature p) {
+                        var innerTypeName = p.unescapedParameterName();
                         builder.setInnerType(innerTypeName, valTypeSignature.createType());
                     }
                     i += 2;
@@ -206,9 +132,9 @@ public class TypeSignature implements Writeable {
             ArrayList<DataType<?>> dataTypes = new ArrayList<>(parameters.size());
             for (int i = 0; i < parameters.size(); i++) {
                 var parameterTypeSignature = parameters.get(i);
-                if (parameterTypeSignature instanceof ParameterTypeSignature) {
-                    fields.add(((ParameterTypeSignature) parameterTypeSignature).parameterName());
-                    dataTypes.add(parameterTypeSignature.createType());
+                if (parameterTypeSignature instanceof ParameterTypeSignature p) {
+                    fields.add(p.unescapedParameterName());
+                    dataTypes.add(p.createType());
                 } else {
                     // No named parameter found, row type is based on a signature without detailed field information
                     return RowType.EMPTY;
@@ -284,4 +210,5 @@ public class TypeSignature implements Writeable {
     public TypeSignatureType type() {
         return TypeSignatureType.TYPE_SIGNATURE;
     }
+
 }
