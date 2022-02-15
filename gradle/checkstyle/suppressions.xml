@@ -26,5 +26,5 @@
         "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
-    <suppress files=".*[/\\]antlr.v4[/\\].*" checks="[a-zA-Z0-9]*"/>
+    <suppress files=".*[/\\]antlr[/\\].*" checks="[a-zA-Z0-9]*"/>
 </suppressions>

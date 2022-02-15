@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,44 +19,36 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.types;
+package io.crate.signatures;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import static java.lang.String.format;
 
-import java.io.IOException;
+import java.util.Locale;
 
-public final class IntegerLiteralTypeSignature extends TypeSignature {
+import org.antlr.v4.runtime.RecognitionException;
 
-    private final int value;
+public class TypeSignatureParsingException extends RuntimeException {
 
-    public IntegerLiteralTypeSignature(int value) {
-        super("");
-        this.value = value;
+    private final int line;
+    private final int charPositionInLine;
+
+    TypeSignatureParsingException(String message, RecognitionException cause, int line, int charPositionInLine) {
+        super(message, cause);
+
+        this.line = line;
+        this.charPositionInLine = charPositionInLine;
     }
 
-    public IntegerLiteralTypeSignature(StreamInput in) throws IOException {
-        super(in);
-        value = in.readInt();
+    TypeSignatureParsingException(String message) {
+        this(message, null, 1, 0);
     }
 
-    public int value() {
-        return value;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeInt(value);
+    public String getErrorMessage() {
+        return super.getMessage();
     }
 
     @Override
-    public TypeSignatureType type() {
-        return TypeSignatureType.INTEGER_LITERAL_SIGNATURE;
-    }
-
-    @Override
-    public String toString() {
-        return String.valueOf(value);
+    public String getMessage() {
+        return format(Locale.ENGLISH, "line %s:%s: %s", line, charPositionInLine, getErrorMessage());
     }
 }
