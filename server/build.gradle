@@ -23,6 +23,16 @@ apply plugin: 'java-library'
 apply plugin: 'java-test-fixtures'
 apply from: "$rootDir/gradle/javaModule.gradle"
 
+ext.antlr = [
+    source : "src/main/antlr",
+    output : "src/main/java/io/crate/signatures/antlr",
+    package: 'io.crate.signatures.antlr'
+]
+
+configurations {
+    antlr4
+}
+
 archivesBaseName = 'crate-server'
 
 idea.module.testSourceDirs += sourceSets.testFixtures.java.srcDirs
@@ -42,7 +52,6 @@ sourceSets.test.resources.includes += [
     '**/*.binary'
 ]
 
-
 dependencies {
     api project(':libs:dex')
     api project(':libs:es-x-content')
@@ -59,6 +68,9 @@ dependencies {
 
     api "io.netty:netty-buffer:${versions.netty4}"
     api "io.netty:netty-codec-http:${versions.netty4}"
+
+    antlr4 "org.antlr:antlr4:${versions.antlr}"
+    implementation "org.antlr:antlr4-runtime:${versions.antlr}"
     implementation "io.netty:netty-codec:${versions.netty4}"
     implementation "io.netty:netty-common:${versions.netty4}"
     implementation "io.netty:netty-handler:${versions.netty4}"
@@ -159,9 +171,34 @@ task getVersion(dependsOn: 'classes', type: JavaExec) {
     }
 }
 
+task antlrOutputDir {
+    doLast {
+        mkdir(antlr.output)
+    }
+}
+
+task generateGrammarSource(dependsOn: antlrOutputDir, type: JavaExec) {
+    inputs.files(fileTree(antlr.source))
+    outputs.dir file(antlr.output)
+
+    def grammars = fileTree(antlr.source).include('**/*.g4')
+
+    main = 'org.antlr.v4.Tool'
+    classpath = configurations.antlr4
+    args = [
+        "-o", "${antlr.output}",
+        "-visitor",
+        "-no-listener",
+        "-package", antlr.package,
+        grammars.files
+    ].flatten()
+}
+
+tasks.withType(JavaCompile) {
+    it.dependsOn('generateGrammarSource')
+}
+
 test {
     outputs.dir("$projectDir/data")
     jacoco.excludes = ["*Test*"]
 }
-
-clean.dependsOn('cleanTest')
