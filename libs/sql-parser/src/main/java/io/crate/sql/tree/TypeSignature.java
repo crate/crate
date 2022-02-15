@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,45 +19,8 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.types;
+package io.crate.sql.tree;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+public abstract class TypeSignature extends Node {
 
-import java.io.IOException;
-
-public final class IntegerLiteralTypeSignature extends TypeSignature {
-
-    private final int value;
-
-    public IntegerLiteralTypeSignature(int value) {
-        super("");
-        this.value = value;
-    }
-
-    public IntegerLiteralTypeSignature(StreamInput in) throws IOException {
-        super(in);
-        value = in.readInt();
-    }
-
-    public int value() {
-        return value;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeInt(value);
-    }
-
-    @Override
-    public TypeSignatureType type() {
-        return TypeSignatureType.INTEGER_LITERAL_SIGNATURE;
-    }
-
-    @Override
-    public String toString() {
-        return String.valueOf(value);
-    }
 }
-

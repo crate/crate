@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,45 +19,43 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.types;
+package io.crate.sql.tree;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import java.util.Objects;
 
-import java.io.IOException;
+public class ArrayTypeSignature extends TypeSignature {
 
-public final class IntegerLiteralTypeSignature extends TypeSignature {
+    private final TypeSignature type;
 
-    private final int value;
-
-    public IntegerLiteralTypeSignature(int value) {
-        super("");
-        this.value = value;
+    public ArrayTypeSignature(TypeSignature type) {
+        this.type = type;
     }
 
-    public IntegerLiteralTypeSignature(StreamInput in) throws IOException {
-        super(in);
-        value = in.readInt();
-    }
-
-    public int value() {
-        return value;
+    public TypeSignature type() {
+        return type;
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeInt(value);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ArrayTypeSignature that = (ArrayTypeSignature) o;
+        return Objects.equals(type, that.type);
     }
 
     @Override
-    public TypeSignatureType type() {
-        return TypeSignatureType.INTEGER_LITERAL_SIGNATURE;
+    public int hashCode() {
+        return Objects.hash(type);
     }
 
     @Override
     public String toString() {
-        return String.valueOf(value);
+        return "ArrayTypeSignature{" +
+               "type=" + type +
+               '}';
     }
 }
-

@@ -51,6 +51,7 @@ import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.ArraySubQueryExpression;
+import io.crate.sql.tree.ArrayTypeSignature;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.BetweenPredicate;
@@ -107,6 +108,7 @@ import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
+import io.crate.sql.tree.TypeSignatureType;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.IfExpression;
 import io.crate.sql.tree.InListExpression;
@@ -190,6 +192,8 @@ import io.crate.sql.tree.TokenFilters;
 import io.crate.sql.tree.Tokenizer;
 import io.crate.sql.tree.TrimMode;
 import io.crate.sql.tree.TryCast;
+import io.crate.sql.tree.TypeParameter;
+import io.crate.sql.tree.TypeSignature;
 import io.crate.sql.tree.Union;
 import io.crate.sql.tree.Update;
 import io.crate.sql.tree.Values;
@@ -1889,6 +1893,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             visitCollection(context.columnDefinition(), ColumnDefinition.class));
     }
 
+
     @Override
     public Node visitMaybeParametrizedDataType(SqlBaseParser.MaybeParametrizedDataTypeContext context) {
         StringLiteral name = (StringLiteral) visit(context.baseDataType());
@@ -1909,6 +1914,57 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitIdentDataType(SqlBaseParser.IdentDataTypeContext context) {
         return StringLiteral.fromObject(getIdentText(context.ident()));
+    }
+
+    @Override public Node visitObjectTypeSignature(SqlBaseParser.ObjectTypeSignatureContext context) {
+        return new TypeSignatureType("object",
+            visitCollection(context.typeSignatureParameter(), TypeSignature.class)
+        );
+    }
+
+    @Override public Node visitGenericTypeSignature(SqlBaseParser.GenericTypeSignatureContext context) {
+        return new TypeSignatureType(
+            getIdentText(context.ident()),
+            visitCollection(context.typeSignatureParameter(), TypeSignature.class)
+        );
+    }
+
+    @Override public Node visitTypeSignatureParameter(SqlBaseParser.TypeSignatureParameterContext context) {
+        Integer integer = null;
+        if (context.INTEGER_VALUE() != null) {
+            integer = Integer.parseInt(context.INTEGER_VALUE().getText());
+        }
+        String identifier = null;
+        if (context.ident() != null) {
+            identifier = getIdentText(context.ident());
+        }
+        return new TypeParameter(integer, identifier, visitOptionalContext(context.typeSignature(), TypeSignature.class));
+    }
+
+    @Override
+    public Node visitDoublePrecisionTypeSignature(SqlBaseParser.DoublePrecisionTypeSignatureContext context) {
+        return new TypeSignatureType("double precision", List.of());
+    }
+
+    @Override
+    public Node visitTimeStampWithoutTimeZoneTypeSignature(SqlBaseParser.TimeStampWithoutTimeZoneTypeSignatureContext context) {
+        return new TypeSignatureType("timestamp without time zone", List.of());
+    }
+
+    @Override
+    public Node visitTimeStampWithTimeZoneTypeSignature(SqlBaseParser.TimeStampWithTimeZoneTypeSignatureContext context) {
+        return new TypeSignatureType("timestamp with time zone", List.of());
+    }
+
+    @Override
+    public Node visitTimeWithTimeZoneType(SqlBaseParser.TimeWithTimeZoneTypeContext context) {
+        return new TypeSignatureType("time with time zone", List.of());
+    }
+
+    @Override
+    public Node visitArrayTypeSignature(SqlBaseParser.ArrayTypeSignatureContext context) {
+        var typeSignature = visitOptionalContext(context.typeSignature(), TypeSignature.class);
+        return new ArrayTypeSignature(typeSignature);
     }
 
     @Override
@@ -1973,6 +2029,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             .map(clazz::cast)
             .collect(toList());
     }
+
+
 
     private static String unquote(String value) {
         return value.substring(1, value.length() - 1)

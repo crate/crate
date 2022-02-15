@@ -29,14 +29,17 @@ import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.TypeSignatureType;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.QuerySpecification;
+import io.crate.sql.tree.RecordFieldTypeSignature;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
+
 import org.junit.Test;
 
 import java.util.List;
@@ -50,6 +53,7 @@ import static io.crate.sql.tree.QueryUtil.table;
 import static java.lang.String.format;
 import static java.util.Collections.nCopies;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;

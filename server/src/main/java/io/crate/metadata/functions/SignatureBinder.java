@@ -482,7 +482,7 @@ public class SignatureBinder {
         // We always register numeric and text arguments without precision and scale thus the parameters
         // should not be checked while signature matching.
         String baseTypeName = fromTypeSignature.getBaseTypeName();
-        return ALLOW_BASENAME_MATCH.contains(baseTypeName) && baseTypeName.equals(toTypeSignature.getBaseTypeName());
+        return ALLOW_BASENAME_MATCH.contains(baseTypeName) && baseTypeName.equalsIgnoreCase(toTypeSignature.getBaseTypeName());
     }
 
     private interface TypeConstraintSolver {

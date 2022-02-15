@@ -578,6 +578,22 @@ definedDataType
     | CHARACTER VARYING
     ;
 
+typeSignature
+    : DOUBLE PRECISION                                                              #doublePrecisionTypeSignature
+    | TIMESTAMP WITHOUT TIME ZONE                                                   #timeStampWithoutTimeZoneTypeSignature
+    | TIMESTAMP WITH TIME ZONE                                                      #timeStampWithTimeZoneTypeSignature
+    | TIME WITH TIME ZONE                                                           #timeWithTimeZoneType
+    | ARRAY '(' typeSignature ')'                                                   #arrayTypeSignature
+    | OBJECT ('(' typeSignatureParameter (',' typeSignatureParameter)* ')')?        #objectTypeSignature
+    | ident ('(' typeSignatureParameter (',' typeSignatureParameter)* ')')?         #genericTypeSignature
+    ;
+
+typeSignatureParameter
+    : INTEGER_VALUE
+    | typeSignature
+    | ident typeSignature
+    ;
+
 objectTypeDefinition
     : OBJECT ('(' type=(DYNAMIC | STRICT | IGNORED) ')')?
         (AS '(' columnDefinition ( ',' columnDefinition )* ')')?

@@ -45,10 +45,12 @@ import io.crate.sql.tree.Extract;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.TypeSignatureType;
 import io.crate.sql.tree.IfExpression;
 import io.crate.sql.tree.InListExpression;
 import io.crate.sql.tree.InPredicate;
 import io.crate.sql.tree.IntegerLiteral;
+import io.crate.sql.tree.IntegerTypeSignature;
 import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.IsNotNullPredicate;
 import io.crate.sql.tree.IsNullPredicate;
@@ -65,6 +67,7 @@ import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.RecordFieldTypeSignature;
 import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.SimpleCaseExpression;
@@ -145,6 +148,21 @@ public final class ExpressionFormatter {
         protected String visitExpression(Expression node, @Nullable List<Expression> parameters) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
+        }
+
+        @Override
+        public String visitRecordFieldTypeSignature(RecordFieldTypeSignature typeSignature, List<Expression> context) {
+            return typeSignature.toString();
+        }
+
+        @Override
+        public String visitGenericTypeSignature(TypeSignatureType typeSignature, List<Expression> context) {
+            return typeSignature.toString();
+        }
+
+        @Override
+        public String visitIntegerTypeSignature(IntegerTypeSignature typeSignature, List<Expression> context) {
+            return typeSignature.toString();
         }
 
         @Override
@@ -612,6 +630,8 @@ public final class ExpressionFormatter {
                    node.getType().accept(this, parameters) +
                    ")";
         }
+
+
 
         @Override
         protected String visitSearchedCaseExpression(SearchedCaseExpression node, @Nullable List<Expression> parameters) {

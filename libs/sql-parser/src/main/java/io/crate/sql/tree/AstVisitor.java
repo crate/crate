@@ -643,4 +643,16 @@ public abstract class AstVisitor<R, C> {
     public R visitBitString(BitString bitString, C context) {
         return visitLiteral(bitString, context);
     }
+
+    public R visitRecordFieldTypeSignature(RecordFieldTypeSignature typeSignature, C context) {
+        return visitNode(typeSignature, context);
+    }
+
+    public R visitGenericTypeSignature(TypeSignatureType typeSignature, C context) {
+        return visitNode(typeSignature, context);
+    }
+
+    public R visitIntegerTypeSignature(IntegerTypeSignature typeSignature, C context) {
+        return visitNode(typeSignature, context);
+    }
 }

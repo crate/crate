@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,45 +19,47 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.types;
+package io.crate.sql.tree;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import java.util.Objects;
 
-import java.io.IOException;
+public class IntegerTypeSignature extends TypeSignature {
 
-public final class IntegerLiteralTypeSignature extends TypeSignature {
+    private final Integer value;
 
-    private final int value;
-
-    public IntegerLiteralTypeSignature(int value) {
-        super("");
+    public IntegerTypeSignature(Integer value) {
         this.value = value;
     }
 
-    public IntegerLiteralTypeSignature(StreamInput in) throws IOException {
-        super(in);
-        value = in.readInt();
-    }
-
-    public int value() {
+    public Integer Value() {
         return value;
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeInt(value);
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitIntegerTypeSignature(this, context);
     }
 
-    @Override
-    public TypeSignatureType type() {
-        return TypeSignatureType.INTEGER_LITERAL_SIGNATURE;
-    }
-
-    @Override
     public String toString() {
-        return String.valueOf(value);
+        return "IntegerTypeSignature{" +
+               "value=" + value +
+               '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        IntegerTypeSignature that = (IntegerTypeSignature) o;
+        return Objects.equals(value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
     }
 }
-

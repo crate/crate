@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,45 +19,56 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.types;
+package io.crate.sql.tree;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import javax.annotation.Nullable;
 
-import java.io.IOException;
+public class TypeParameter extends TypeSignature {
 
-public final class IntegerLiteralTypeSignature extends TypeSignature {
+    @Nullable
+    private final Integer numericalValue;
 
-    private final int value;
+    @Nullable
+    private final String identifier;
 
-    public IntegerLiteralTypeSignature(int value) {
-        super("");
-        this.value = value;
+    @Nullable
+    private final TypeSignature typeSignature;
+
+    public TypeParameter(@Nullable Integer numericalValue,
+                         @Nullable String identifier,
+                         @Nullable TypeSignature typeSignature) {
+        this.numericalValue = numericalValue;
+        this.identifier = identifier;
+        this.typeSignature = typeSignature;
     }
 
-    public IntegerLiteralTypeSignature(StreamInput in) throws IOException {
-        super(in);
-        value = in.readInt();
+    @Nullable
+    public Integer numericalValue() {
+        return numericalValue;
     }
 
-    public int value() {
-        return value;
+    @Nullable
+    public String identifier() {
+        return identifier;
+    }
+
+    @Nullable
+    public TypeSignature typeSignature() {
+        return typeSignature;
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeInt(value);
+    public int hashCode() {
+        return 0;
     }
 
     @Override
-    public TypeSignatureType type() {
-        return TypeSignatureType.INTEGER_LITERAL_SIGNATURE;
+    public boolean equals(Object obj) {
+        return false;
     }
 
     @Override
     public String toString() {
-        return String.valueOf(value);
+        return null;
     }
 }
-

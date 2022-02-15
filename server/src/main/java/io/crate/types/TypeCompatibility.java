@@ -49,7 +49,7 @@ public final class TypeCompatibility {
 
         String fromTypeBaseName = fromType.getTypeSignature().getBaseTypeName();
         String toTypeBaseName = toType.getTypeSignature().getBaseTypeName();
-        if (fromTypeBaseName.equals(toTypeBaseName)) {
+        if (fromTypeBaseName.equalsIgnoreCase(toTypeBaseName)) {
             // If given types share the same base, e.g. arrays, parameter types must be compatible.
             if (!fromType.getTypeParameters().isEmpty() || !toType.getTypeParameters().isEmpty()) {
                 return typeCompatibilityForParametrizedType(fromType, toType);

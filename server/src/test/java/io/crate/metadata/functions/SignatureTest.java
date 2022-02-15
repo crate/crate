@@ -47,9 +47,9 @@ public class SignatureTest {
             .name("foo")
             .kind(FunctionType.SCALAR)
             .argumentTypes(
-                parseTypeSignature("E"),
-                DataTypes.INTEGER.getTypeSignature(),
-                objectType.getTypeSignature()
+                    parseTypeSignature("E"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    objectType.getTypeSignature()
             )
             .returnType(DataTypes.BIGINT_ARRAY.getTypeSignature())
             .variableArityGroup(

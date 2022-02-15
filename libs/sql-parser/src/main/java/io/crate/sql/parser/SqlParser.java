@@ -47,6 +47,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.MultiStatement;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.TypeSignature;
 
 public class SqlParser {
     private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
@@ -88,6 +89,14 @@ public class SqlParser {
 
     public static Expression createExpression(String expression) {
         return INSTANCE.generateExpression(expression);
+    }
+
+    public static TypeSignature createTypeSignature(String typeSignature) {
+        return INSTANCE.generateTypeSignature(typeSignature);
+    }
+
+    public TypeSignature generateTypeSignature(String typeSignature) {
+        return (TypeSignature) invokeParser("typeSignature", typeSignature, SqlBaseParser::typeSignature);
     }
 
     private Expression generateExpression(String expression) {
