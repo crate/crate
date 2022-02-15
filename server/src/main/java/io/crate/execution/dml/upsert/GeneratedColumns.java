@@ -99,7 +99,7 @@ public final class GeneratedColumns<T> {
         }
     }
 
-    void validateValues(HashMap<String, Object> source) {
+    void validateValues(Map<String, Object> source) {
         for (var entry : toValidate.entrySet()) {
             Reference ref = entry.getKey();
             Object providedValue = ValueExtractors.fromMap(source, ref.column());

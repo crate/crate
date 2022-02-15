@@ -60,11 +60,7 @@ public interface InsertSourceGen {
                               GeneratedColumns.Validation validation,
                               List<Reference> targets) {
         if (targets.size() == 1 && targets.get(0).column().equals(DocSysColumns.RAW)) {
-            if (table.generatedColumns().isEmpty() && table.defaultExpressionColumns().isEmpty()) {
-                return new FromRawInsertSource();
-            } else {
-                return new GeneratedColsFromRawInsertSource(txnCtx, nodeCtx, table.generatedColumns(), table.defaultExpressionColumns());
-            }
+            return new FromRawInsertSource(table, txnCtx, nodeCtx, indexName);
         }
         return new InsertSourceFromCells(txnCtx, nodeCtx, table, indexName, validation, targets);
     }

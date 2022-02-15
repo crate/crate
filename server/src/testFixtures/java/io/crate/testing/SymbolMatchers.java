@@ -24,6 +24,7 @@ package io.crate.testing;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.FetchStub;
@@ -153,6 +154,13 @@ public class SymbolMatchers {
             return allOf(Matchers.instanceOf(Reference.class), fm);
         }
         return allOf(Matchers.instanceOf(Reference.class), hasDataType(dataType), fm);
+    }
+
+    public static Matcher<Symbol> isDynamicReference(String expectedName) {
+        return allOf(
+            Matchers.instanceOf(DynamicReference.class),
+            isReference(expectedName)
+        );
     }
 
     public static Matcher<Symbol> isVoidReference(String expectedName) {

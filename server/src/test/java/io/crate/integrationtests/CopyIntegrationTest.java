@@ -355,14 +355,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 " id int," +
                 " quote as cast(id as string)" +
                 ")");
-
         execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
-        assertThat(response.rowCount(), is(3L));
-        refresh();
-
-        // quote is not generated through expression but read from source without validation
-        execute("select quote from quotes order by id limit 1");
-        assertThat((String) response.rows()[0][0], is("Don't pañic."));
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test
@@ -783,7 +777,9 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         // one of the first files will have a duplicate key error
         assertThat(result, containsString("| 1| 1| {A document with the same primary key exists already={count=1, line_numbers=["));
         // file `data3.json` has a invalid timestamp error
-        assertThat(result, containsString("data3.json| 1| 2| {failed to parse field [ts] of type [date]={count=2, line_numbers=["));
+        assertThat(result, containsString("data3.json| 1| 2| {Cannot cast value "));
+        assertThat(result, containsString("Cannot cast value `Juli` to type `timestamp with time zone`={count=1, line_numbers=[3]}"));
+        assertThat(result, containsString("Cannot cast value `May` to type `timestamp with time zone`={count=1, line_numbers=[2]}"));
         // file `data4.json` has an invalid json item entry
         assertThat(result, containsString("data4.json| 1| 1| {JSON parser error: "));
     }
@@ -885,5 +881,37 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(printedTable(response.rows()), is(
             "1626188198073| 1625097600000\n"
         ));
+    }
+
+    @Test
+    public void test_copy_from_unknown_column_to_strict_object() throws Exception {
+        // test for strict_table ver. can be found at FromRawInsertSourceTest, whereas strict_object is tested by DocumentMapper
+        execute("create table t (o object(strict) as (a int))");
+
+        List<String> lines = List.of(
+            "{\"o\": {\"a\":123, \"b\":456}}"
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ? return summary", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        assertThat(printedTable(response.rows()),
+                   containsString("mapping set to strict, dynamic introduction of [b] within [o] is not allowed"));
+    }
+
+    @Test
+    public void test_copy_from_unknown_column_to_dynamic_object() throws Exception {
+        execute("create table t (o object(dynamic) as (a int))");
+
+        List<String> lines = List.of(
+            "{\"o\": {\"a\":123, \"b\":456}}"
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ? with (shared = true)", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select o['a'] + o['b'] from t");
+        assertThat(printedTable(response.rows()), is("579\n"));
     }
 }

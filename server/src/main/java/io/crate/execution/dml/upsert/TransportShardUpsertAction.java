@@ -43,11 +43,8 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.DocumentSourceMissingException;
@@ -314,16 +311,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        InsertSourceGen insertSourceGen) throws Exception {
         assert insertSourceGen != null : "InsertSourceGen must not be null";
         BytesReference rawSource;
-        Map<String, Object> source = null;
+        Map<String, Object> source;
         try {
-            // This optimizes for the case where the insert value is already string-based, so we can take directly
-            // the rawSource
-            if (insertSourceGen instanceof FromRawInsertSource) {
-                rawSource = insertSourceGen.generateSourceAndCheckConstraintsAsBytesReference(item.insertValues());
-            } else {
-                source = insertSourceGen.generateSourceAndCheckConstraints(item.insertValues());
-                rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source, SOURCE_WRITERS));
-            }
+            source = insertSourceGen.generateSourceAndCheckConstraints(item.insertValues());
+            rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source, SOURCE_WRITERS));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -336,14 +327,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Engine.IndexResult indexResult = index(item, indexShard, isRetry, seqNo, primaryTerm, version);
         Object[] returnvalues = null;
         if (returnGen != null) {
-            // This optimizes for the case where the insert value is already string-based, so only parse the source
-            // when return values are requested
-            if (source == null) {
-                source = JsonXContent.JSON_XCONTENT.createParser(
-                    NamedXContentRegistry.EMPTY,
-                    DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                    BytesReference.toBytes(rawSource)).map();
-            }
             returnvalues = returnGen.generateReturnValues(
                 // return -1 as docId, the docId can only be retrieved by fetching the inserted document again, which
                 // we want to avoid. The docId is anyway just valid with the lifetime of a searcher and can change afterwards.

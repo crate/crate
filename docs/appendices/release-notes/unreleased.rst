@@ -56,6 +56,10 @@ None
 Changes
 =======
 
+- Added type validation logic to ``COPY FROM``. Now raw data will be parsed and
+  validated against the target table schema and casted if possible utilizing
+  :ref:`type casting <data-types-casting>`.
+
 - Improved the evaluation performance of implicit casts by utilize the compile
   step of the function to determine the return type.
 
@@ -78,6 +82,11 @@ Fixes
 .. If you add an entry here, the fix needs to be backported to the latest
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
+
+- Fixed an issue from ``COPY FROM`` that caused the tables' default expressions
+  to be evaluated only once, causing a single value to be used throughout the
+  table instead of per row. This only affected non-deterministic functions such
+  as ``gen_random_text_uuid()``, ``random()``, etc.
 
 - Fixed an issue that could lead to errors when reading translog files from
   CrateDB versions < 4.0.

@@ -22,10 +22,8 @@
 package io.crate.analyze;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -48,7 +46,6 @@ import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -112,9 +109,14 @@ class InsertAnalyzer {
             txnCtx.sessionContext().sessionUser(),
             txnCtx.sessionContext().searchPath()
         );
-        List<Reference> targetColumns =
-            new ArrayList<>(resolveTargetColumns(insert.columns(), tableInfo));
-
+        List<Reference> targetColumns;
+        if (insert.columns().isEmpty()) {
+            targetColumns = new ArrayList<>(tableInfo.columns());
+        } else {
+            targetColumns = insert.columns().stream()
+                .map(col -> tableInfo.resolveColumn(col, true, true))
+                .toList();
+        }
         AnalyzedRelation subQueryRelation = relationAnalyzer.analyze(
             insert.insertSource(),
             new StatementAnalysisContext(typeHints, Operation.READ, txnCtx, targetColumns));
@@ -223,32 +225,6 @@ class InsertAnalyzer {
                         conflictTarget, pkColumnIdents));
             }
         }
-    }
-
-    public static Collection<Reference> resolveTargetColumns(Collection<String> targetColumnNames,
-                                                              DocTableInfo targetTable) {
-        if (targetColumnNames.isEmpty()) {
-            return targetTable.columns();
-        }
-        LinkedHashSet<Reference> columns = new LinkedHashSet<>(targetColumnNames.size());
-        for (String targetColumnName : targetColumnNames) {
-            ColumnIdent columnIdent = ColumnIdent.fromPath(targetColumnName);
-            Reference reference = targetTable.getReference(columnIdent);
-            Reference targetReference;
-            if (reference == null) {
-                DynamicReference dynamicReference = targetTable.getDynamic(columnIdent, true, true);
-                if (dynamicReference == null) {
-                    throw new ColumnUnknownException(targetColumnName, targetTable.ident());
-                }
-                targetReference = dynamicReference;
-            } else {
-                targetReference = reference;
-            }
-            if (!columns.add(targetReference)) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", targetColumnName));
-            }
-        }
-        return columns;
     }
 
     private static void ensureClusteredByPresentOrNotRequired(List<Reference> targetColumnRefs, DocTableInfo tableInfo) {

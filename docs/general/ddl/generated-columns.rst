@@ -80,11 +80,6 @@ against the result of applying the generation expression::
     ... VALUES (100.0, 2.0, 12.0);
     SQLParseException[Given value 12.0 for generated column quotient does not match calculation (dividend / divisor) = 50.0]
 
-.. WARNING::
-
-   Supplied values for generated columns are not validated when they are
-   imported using ``COPY FROM``.
-
 
 .. _ddl-generated-columns-last-modified:
 

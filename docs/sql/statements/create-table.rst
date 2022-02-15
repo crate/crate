@@ -82,9 +82,9 @@ A table consists of one or more *base columns* and any number of *generated
 columns* and/or *table_constraints*.
 
 The optional constraint clauses specify constraints (tests) that new or updated
-rows must satisfy for an insert or update operation to succeed. A constraint is
-an SQL object that helps define the set of valid values in the table in various
-ways.
+rows must satisfy for an ``INSERT``, ``UPDATE`` or ``COPY FROM`` operation to
+succeed. A constraint is an SQL object that helps define the set of valid
+values in the table in various ways.
 
 There are two ways to define constraints: table constraints and column
 constraints. A column constraint is defined as part of a column definition. A
@@ -124,8 +124,8 @@ Default clause
 ^^^^^^^^^^^^^^
 
 The optional default clause defines the default value of the column. The value
-is inserted when the column is a target of a ``INSERT`` statement that doesn't
-contain an explicit value for it.
+is inserted when the column is a target of an ``INSERT`` or ``COPY FROM``
+statement that doesn't contain an explicit value for it.
 
 The default clause :ref:`expression <gloss-expression>` is variable-free, it
 means that subqueries and cross-references to other columns are not allowed.
@@ -137,7 +137,8 @@ Generated columns
 ~~~~~~~~~~~~~~~~~
 
 A generated column is a persistent column that is computed as needed from the
-``generation_expression`` for every ``INSERT`` and ``UPDATE`` operation.
+``generation_expression`` for every ``INSERT``, ``UPDATE`` and ``COPY FROM``
+operation.
 
 The ``GENERATED ALWAYS`` part of the syntax is optional.
 
@@ -849,8 +850,8 @@ The column policy is defined like this::
     WITH ( column_policy = {'dynamic' | 'strict'} )
 
 :strict:
-  Rejecting any column on insert, update or copy from which is not defined in
-  the schema
+  Rejecting any column on ``INSERT``, ``UPDATE`` or ``COPY FROM`` which is not
+  defined in the schema
 
 :dynamic:
   New columns can be added using ``INSERT``, ``UPDATE`` or ``COPY FROM``. New

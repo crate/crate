@@ -99,10 +99,9 @@ See also: :ref:`dml-importing-data`.
 Data type checks
 ----------------
 
-CrateDB does not check if the column's data types match the types from the
-import file. It does not cast the types but will always import the data as in
-the source file. Furthermore CrateDB will only check for primary key duplicates
-but not for other :ref:`column_constraints` like ``NOT NULL``.
+CrateDB checks if the column's data types match the types from the import file.
+It casts the types and will always import the data as in the source file.
+Furthermore CrateDB will check for all :ref:`column_constraints`.
 
 For example a `WKT`_ string cannot be imported into a column of ``geo_shape``
 or ``geo_point`` type, since there is no implicit cast to the `GeoJSON`_ format.
