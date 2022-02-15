@@ -68,6 +68,10 @@ Fixes
   creation failed when an interval is included in a function call as part of a
   generated column.
 
+- Fixed an issue with the handling of quoted identifiers in column names where
+  certain characters break the processing. This makes sure any special characters
+  can be used as column name.
+
 - Fixed a race condition that could cause a ``blocked by: [FORBIDDEN/4/Table or
   partition preparing to close`` error when inserting into a partitioned table
   where a single partition got closed.
