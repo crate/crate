@@ -464,11 +464,9 @@ Example CSV data::
 
 .. NOTE::
 
-  * The ``COPY FROM`` statement will not convert or validate your data. Please
-    make sure that it fits your schema.
+  * The ``COPY FROM`` statement will convert and validate your data.
   * Values for generated columns will be computed if the data does not contain
-    them, otherwise they will be imported but not validated, so please make
-    sure that they are correct.
+    them, otherwise they will be imported and validated
   * Furthermore, column names in your data are considered case sensitive (as if
     they were quoted in a SQL statement).
 
@@ -564,12 +562,12 @@ about failures and successfully imported records is returned.
 ::
 
    cr> COPY locations FROM '/tmp/import_data/locations_with_failure/locations*.json' RETURN SUMMARY;
-    +--...--+----------...--------+---------------+-------------+-------------------...--------------------------------------+
+    +--...--+----------...--------+---------------+-------------+--------------------...-------------------------------------+
     | node  | uri                 | success_count | error_count | errors                                                     |
-    +--...--+----------...--------+---------------+-------------+-------------------...--------------------------------------+
+    +--...--+----------...--------+---------------+-------------+--------------------...-------------------------------------+
     | {...} | .../locations1.json |             6 |           0 | {}                                                         |
-    | {...} | .../locations2.json |             5 |           2 | {"failed to parse ...{"count": 2, "line_numbers": [1, 2]}} |
-    +--...--+----------...--------+---------------+-------------+-------------------...--------------------------------------+
+    | {...} | .../locations2.json |             5 |           2 | {"Cannot cast value...{"count": ..., "line_numbers": ...}} |
+    +--...--+----------...--------+---------------+-------------+--------------------...-------------------------------------+
     COPY 2 rows in set (... sec)
 
 .. Hidden: delete imported data

@@ -91,7 +91,7 @@ public class CopyFromFailFastITest extends SQLIntegrationTestCase {
                 "COPY t FROM ? WITH (bulk_size = 1, fail_fast = true)", // fail_fast = true
                 new Object[]{target.toUri() + "*"}),
             JobKilledException.class,
-            "ERRORS: {failed to parse field"
+            "ERRORS: {Cannot cast value `fail here` to type `integer`"
         );
     }
 
@@ -155,7 +155,7 @@ public class CopyFromFailFastITest extends SQLIntegrationTestCase {
                     "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
                     new Object[]{target.toUri() + "*"}),
                 JobKilledException.class,
-                "failed to parse field [b] of type [integer]"
+                "Cannot cast value `fail here` to type `integer`"
             ),
             new MockLogAppender.PatternSeenEventExcpectation(
                 "assert failure on node=" + nodeNameOfShard1,
@@ -227,7 +227,7 @@ public class CopyFromFailFastITest extends SQLIntegrationTestCase {
                     "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
                     new Object[]{target.toUri() + "*"}),
                 JobKilledException.class,
-                "failed to parse field [b] of type [integer]"
+                "Cannot cast value `fail here` to type `integer`"
             ),
             new MockLogAppender.PatternSeenEventExcpectation(
                 "assert failure on node=" + nodeNameOfShard0,

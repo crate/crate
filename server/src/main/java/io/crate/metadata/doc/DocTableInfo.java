@@ -49,6 +49,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
@@ -461,6 +462,21 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             );
         }
         return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity(), position);
+    }
+
+    @Nonnull
+    public Reference resolveColumn(String targetColumnName,
+                                   boolean forWrite,
+                                   boolean errorOnUnknownObjectKey) throws ColumnUnknownException {
+        ColumnIdent columnIdent = ColumnIdent.fromPath(targetColumnName);
+        Reference reference = getReference(columnIdent);
+        if (reference == null) {
+            reference = getDynamic(columnIdent, forWrite, errorOnUnknownObjectKey);
+            if (reference == null) {
+                throw new ColumnUnknownException(targetColumnName, ident);
+            }
+        }
+        return reference;
     }
 
     @Override
