@@ -120,7 +120,9 @@ public final class ExpressionFormatter {
                                                                           @Nullable List<Expression> parameters,
                                                                           T formatter) {
         String formattedExpression = expression.accept(formatter, parameters);
-        if (formattedExpression.startsWith("(") && formattedExpression.endsWith(")")) {
+        if (formattedExpression.startsWith("(")
+                && formattedExpression.endsWith(")")
+                && !(expression instanceof SubqueryExpression)) {
             return formattedExpression.substring(1, formattedExpression.length() - 1);
         } else {
             return formattedExpression;
@@ -161,20 +163,20 @@ public final class ExpressionFormatter {
         public String visitArrayComparisonExpression(ArrayComparisonExpression node, @Nullable List<Expression> parameters) {
             StringBuilder builder = new StringBuilder();
 
-            String array = node.getRight().toString();
-            String left = node.getLeft().toString();
+            String array = node.getRight().accept(this, parameters);
+            String left = node.getLeft().accept(this, parameters);
             String type = node.getType().getValue();
 
-            builder.append(left + " " + type + " ANY(" + array + ")");
+            builder.append("(" + left + " " + type + " ANY(" + array + "))");
             return builder.toString();
         }
 
         @Override
         protected String visitArraySubQueryExpression(ArraySubQueryExpression node, @Nullable List<Expression> parameters) {
             StringBuilder builder = new StringBuilder();
-            String subqueryExpression = node.subqueryExpression().toString();
-
-            return builder.append("ARRAY(").append(subqueryExpression).append(")").toString();
+            String subqueryExpression = node.subqueryExpression().accept(this, parameters);
+            assert subqueryExpression.startsWith("(") : "subqueryExpression must be enclosed in parenthesis";
+            return builder.append("ARRAY").append(subqueryExpression).append("").toString();
         }
 
         @Override

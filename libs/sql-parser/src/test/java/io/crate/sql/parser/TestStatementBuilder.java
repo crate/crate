@@ -1733,6 +1733,12 @@ public class TestStatementBuilder {
         printStatement("RESTORE SNAPSHOT repo1.snap1 TABLES, PRIVILEGES");
     }
 
+    @Test
+    public void test_scalar_subquery_in_selectlist() {
+        printStatement("SELECT (SELECT 1)");
+        printStatement("SELECT (SELECT 1) = ANY([5])");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
