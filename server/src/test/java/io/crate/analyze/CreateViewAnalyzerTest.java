@@ -125,4 +125,15 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         e.analyze("create view blob.v1 as select 1");
     }
+
+    @Test
+    public void test_create_view_with_any_select() {
+        CreateViewStmt stmt = e.analyze(
+            "CREATE OR REPLACE VIEW subselect_view_any AS SELECT (SELECT 1) = ANY([5])");
+        assertThat(
+            stmt.analyzedQuery().outputs(), contains(
+                isSQL("((SELECT 1 FROM (empty_row)) = ANY([5]))")
+            )
+        );
+    }
 }
