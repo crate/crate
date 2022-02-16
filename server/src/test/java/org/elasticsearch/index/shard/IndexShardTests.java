@@ -941,23 +941,6 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testCompletionStatsMarksSearcherAccessed() throws Exception {
-        IndexShard indexShard = null;
-        try {
-            indexShard = newStartedShard();
-            IndexShard shard = indexShard;
-            assertBusy(() -> {
-                ThreadPool threadPool = shard.getThreadPool();
-                assertThat(threadPool.relativeTimeInMillis(), greaterThan(shard.getLastSearcherAccess()));
-            });
-            long prevAccessTime = shard.getLastSearcherAccess();
-            assertThat("searcher was marked as accessed", shard.getLastSearcherAccess(), is(prevAccessTime));
-        } finally {
-            closeShards(indexShard);
-        }
-    }
-
-    @Test
     public void testDocStats() throws Exception {
         IndexShard indexShard = null;
         try {
@@ -3516,7 +3499,7 @@ public class IndexShardTests extends IndexShardTestCase {
 
             @Override
             public void updateState(ClusterState state) {
-                
+
             }
         }, future);
         assertThat(future.actionGet(5, TimeUnit.SECONDS), is(true));
