@@ -67,9 +67,4 @@ public class IndicesStatsRequestBuilder extends BroadcastOperationRequestBuilder
         request.store(store);
         return this;
     }
-
-    public IndicesStatsRequestBuilder setCompletion(boolean completion) {
-        request.completion(completion);
-        return this;
-    }
 }
