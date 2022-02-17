@@ -81,10 +81,12 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        Settings settings,
                                        boolean autoCreateIndices,
                                        List<? extends Symbol> outputs,
-                                       List<Symbol> returnValues
+                                       List<Symbol> returnValues,
+                                       @Nullable String[] includes,
+                                       @Nullable String[] excludes
                                        ) {
 
-        super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
+        super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices, includes, excludes);
         assert partitionedBySymbols.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
             : "All references and fields in partitionedBySymbols must be resolved to inputColumns, got: " + partitionedBySymbols;
         this.allTargetColumns = allTargetColumns;
@@ -303,7 +305,9 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             Settings.EMPTY,
             autoCreateIndices(),
             outputs,
-            returnValues
+            returnValues,
+            includes(),
+            excludes()
             );
     }
 }

@@ -97,6 +97,8 @@ public class ColumnIndexWriterProjectionTest {
             Settings.EMPTY,
             true,
             List.of(),
+            null,
+            null,
             null
         );
 
@@ -142,7 +144,9 @@ public class ColumnIndexWriterProjectionTest {
             Settings.EMPTY,
             true,
             List.of(),
-            List.of()
+            List.of(),
+            null,
+            null
         );
 
         BytesStreamOutput out = new BytesStreamOutput();

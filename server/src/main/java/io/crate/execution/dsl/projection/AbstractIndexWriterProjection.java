@@ -35,6 +35,7 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public abstract class AbstractIndexWriterProjection extends Projection {
@@ -62,6 +63,11 @@ public abstract class AbstractIndexWriterProjection extends Projection {
 
     private boolean autoCreateIndices;
 
+    @Nullable
+    private String[] includes;
+
+    @Nullable
+    private String[] excludes;
 
     protected AbstractIndexWriterProjection(RelationName relationName,
                                             @Nullable String partitionIdent,
@@ -69,13 +75,17 @@ public abstract class AbstractIndexWriterProjection extends Projection {
                                             @Nullable ColumnIdent clusteredByColumn,
                                             Settings settings,
                                             List<Symbol> idSymbols,
-                                            boolean autoCreateIndices) {
+                                            boolean autoCreateIndices,
+                                            @Nullable String[] includes,
+                                            @Nullable String[] excludes) {
         this.relationName = relationName;
         this.partitionIdent = partitionIdent;
         this.primaryKeys = primaryKeys;
         this.clusteredByColumn = clusteredByColumn;
         this.autoCreateIndices = autoCreateIndices;
         this.idSymbols = idSymbols;
+        this.includes = includes;
+        this.excludes = excludes;
 
         this.bulkActions = settings.getAsInt(BULK_SIZE, BULK_SIZE_DEFAULT);
         if (bulkActions <= 0) {
@@ -106,8 +116,31 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         }
         bulkActions = in.readVInt();
         autoCreateIndices = in.readBoolean();
+        if (in.readBoolean()) {
+            int length = in.readVInt();
+            includes = new String[length];
+            for (int i = 0; i < length; i++) {
+                includes[i] = in.readString();
+            }
+        }
+        if (in.readBoolean()) {
+            int length = in.readVInt();
+            excludes = new String[length];
+            for (int i = 0; i < length; i++) {
+                excludes[i] = in.readString();
+            }
+        }
     }
 
+    @Nullable
+    public String[] includes() {
+        return includes;
+    }
+
+    @Nullable
+    public String[] excludes() {
+        return excludes;
+    }
 
     public List<? extends Symbol> ids() {
         return idSymbols;
@@ -175,7 +208,8 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         if (!relationName.equals(that.relationName)) return false;
         if (partitionIdent != null ? !partitionIdent.equals(that.partitionIdent) : that.partitionIdent != null)
             return false;
-
+        if (!Arrays.equals(includes, that.includes)) return false;
+        if (!Arrays.equals(excludes, that.excludes)) return false;
         return true;
     }
 
@@ -191,6 +225,8 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         result = 31 * result + partitionedBySymbols.hashCode();
         result = 31 * result + (clusteredBySymbol != null ? clusteredBySymbol.hashCode() : 0);
         result = 31 * result + (autoCreateIndices ? 1 : 0);
+        result = 31 * result + Arrays.hashCode(includes);
+        result = 31 * result + Arrays.hashCode(excludes);
         return result;
     }
 
@@ -220,5 +256,23 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         }
         out.writeVInt(bulkActions);
         out.writeBoolean(autoCreateIndices);
+        if (includes == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeVInt(includes.length);
+            for (String include : includes) {
+                out.writeString(include);
+            }
+        }
+        if (excludes == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeVInt(excludes.length);
+            for (String exclude : excludes) {
+                out.writeString(exclude);
+            }
+        }
     }
 }

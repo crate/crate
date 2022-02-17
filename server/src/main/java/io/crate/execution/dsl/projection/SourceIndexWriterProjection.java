@@ -34,7 +34,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -53,12 +52,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private final InputColumn rawSourceSymbol;
     private final List<? extends Symbol> outputs;
 
-    @Nullable
-    private String[] includes;
-
-    @Nullable
-    private String[] excludes;
-
     public SourceIndexWriterProjection(RelationName relationName,
                                        @Nullable String partitionIdent,
                                        Reference rawSourceReference,
@@ -73,10 +66,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        @Nullable Symbol clusteredBySymbol,
                                        List<? extends Symbol> outputs,
                                        boolean autoCreateIndices) {
-        super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, idSymbols, autoCreateIndices);
+        super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, idSymbols, autoCreateIndices, includes, excludes);
         this.rawSourceReference = rawSourceReference;
-        this.includes = includes;
-        this.excludes = excludes;
         this.partitionedBySymbols = partitionedBySymbols;
         this.clusteredBySymbol = clusteredBySymbol;
         this.rawSourceSymbol = rawSourcePtr;
@@ -95,21 +86,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         overwriteDuplicates = in.readBoolean();
         rawSourceReference = Reference.fromStream(in);
         rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
-
-        if (in.readBoolean()) {
-            int length = in.readVInt();
-            includes = new String[length];
-            for (int i = 0; i < length; i++) {
-                includes[i] = in.readString();
-            }
-        }
-        if (in.readBoolean()) {
-            int length = in.readVInt();
-            excludes = new String[length];
-            for (int i = 0; i < length; i++) {
-                excludes[i] = in.readString();
-            }
-        }
         outputs = Symbols.listFromStream(in);
     }
 
@@ -124,16 +100,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     public Reference rawSourceReference() {
         return rawSourceReference;
-    }
-
-    @Nullable
-    public String[] includes() {
-        return includes;
-    }
-
-    @Nullable
-    public String[] excludes() {
-        return excludes;
     }
 
     @Override
@@ -155,16 +121,12 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         return Objects.equals(overwriteDuplicates, that.overwriteDuplicates) &&
                Objects.equals(rawSourceReference, that.rawSourceReference) &&
                Objects.equals(rawSourceSymbol, that.rawSourceSymbol) &&
-               Arrays.equals(includes, that.includes) &&
-               Arrays.equals(excludes, that.excludes) &&
                failFast == that.failFast;
     }
 
     @Override
     public int hashCode() {
         int result = Objects.hash(super.hashCode(), overwriteDuplicates, rawSourceReference, rawSourceSymbol, failFast);
-        result = 31 * result + Arrays.hashCode(includes);
-        result = 31 * result + Arrays.hashCode(excludes);
         return result;
     }
 
@@ -178,25 +140,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         out.writeBoolean(overwriteDuplicates);
         Reference.toStream(rawSourceReference, out);
         Symbols.toStream(rawSourceSymbol, out);
-
-        if (includes == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeVInt(includes.length);
-            for (String include : includes) {
-                out.writeString(include);
-            }
-        }
-        if (excludes == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeVInt(excludes.length);
-            for (String exclude : excludes) {
-                out.writeString(exclude);
-            }
-        }
         Symbols.toStream(outputs, out);
     }
 

@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+import io.crate.common.collections.Lists2;
+import io.crate.metadata.ColumnIdent;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 
@@ -63,11 +65,12 @@ public final class InsertFromSubQueryPlanner {
             !plannerContext.clusterState().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
             throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
         }
-
+        var partitionedBy = statement.tableInfo().partitionedBy();
+        var partitionedByNames = Lists2.map(statement.tableInfo().partitionedBy(), ColumnIdent::fqn);
         List<Reference> targetColsExclPartitionCols = new ArrayList<>(
-            statement.columns().size() - statement.tableInfo().partitionedBy().size());
+            statement.columns().size() - partitionedBy.size());
         for (Reference column : statement.columns()) {
-            if (statement.tableInfo().partitionedBy().contains(column.column())) {
+            if (partitionedBy.contains(column.column())) {
                 continue;
             }
             targetColsExclPartitionCols.add(column);
@@ -95,7 +98,9 @@ public final class InsertFromSubQueryPlanner {
             Settings.EMPTY,
             statement.tableInfo().isPartitioned(),
             outputs,
-            statement.outputs() == null ? List.of() : statement.outputs()
+            statement.outputs() == null ? List.of() : statement.outputs(),
+            null,
+            partitionedByNames.isEmpty() ? null : partitionedByNames.toArray(new String[0])
         );
         LogicalPlan plannedSubQuery = logicalPlanner.plan(
             statement.subQueryRelation(),
