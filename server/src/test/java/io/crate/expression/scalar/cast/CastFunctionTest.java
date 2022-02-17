@@ -28,7 +28,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.functions.Signature;
-import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -43,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.SymbolMatchers.isFunction;
@@ -292,6 +292,17 @@ public class CastFunctionTest extends ScalarTestCase {
     @Test
     public void test_can_cast_json_to_object() throws Exception {
         assertEvaluate("('{\"x\":  10}'::json)::object", is(Map.of("x", 10)));
+    }
+
+    @Test
+    public void test_can_cast_to_object_with_invalid_key_names() throws Exception {
+        assertThrowsMatches(() -> assertEvaluate("('{\"(\": 10}'::json)::object", null),
+                            ConversionException.class,
+                            "Cannot cast object element `(` with value `10` to type `object`");
+
+        assertThrowsMatches(() -> assertEvaluate("('{\"invalid,key\": 10}'::json)::object", null),
+                            ConversionException.class,
+                            "Cannot cast object element `invalid,key` with value `10` to type `object`");
     }
 
     @Test

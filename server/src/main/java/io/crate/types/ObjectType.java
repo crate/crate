@@ -44,6 +44,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
+
 import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapComparator;
@@ -60,6 +61,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public static final int ID = 12;
     public static final String NAME = "object";
     private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, true, null);
+    private static final Set<String> INVALID_OBJECT_KEYS = Set.of("(", ")", "\"", ":", ",");
 
     public static class Builder {
 
@@ -165,6 +167,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         HashMap<String, Object> newMap = new HashMap<>(map);
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             String key = entry.getKey();
+            for (var invalidKeyName : INVALID_OBJECT_KEYS) {
+                if(key.contains(invalidKeyName)) {
+                    throw ConversionException.forObjectChild(key, entry.getValue(), this);
+                }
+            }
             DataType<?> targetType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
 
             Object sourceValue = entry.getValue();
