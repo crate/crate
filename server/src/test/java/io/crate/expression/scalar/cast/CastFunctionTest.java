@@ -295,7 +295,7 @@ public class CastFunctionTest extends ScalarTestCase {
     }
 
     @Test
-    public void test_can_cast_to_object_with_invalid_key_names() throws Exception {
+    public void test_prevent_cast_to_object_with_invalid_key_names() throws Exception {
         assertThrowsMatches(() -> assertEvaluate("('{\"(\": 10}'::json)::object", null),
                             ConversionException.class,
                             "Cannot cast object element `(` with value `10` to type `object`");
