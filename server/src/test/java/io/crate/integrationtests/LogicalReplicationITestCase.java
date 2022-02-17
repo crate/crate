@@ -233,7 +233,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         InetSocketAddress address = transportService.boundAddress().publishAddress().address();
         return String.format(
             Locale.ENGLISH,
-            "crate://%s:%d?user=%s&mode=sniff&seeds=%s:%d",
+            "crate://%s:%d?user=%s&seeds=%s:%d",
             address.getHostName(),
             address.getPort(),
             SUBSCRIBING_USER,

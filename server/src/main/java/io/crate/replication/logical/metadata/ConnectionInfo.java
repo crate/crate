@@ -41,7 +41,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
-import static org.elasticsearch.transport.RemoteConnectionStrategy.REMOTE_CONNECTION_MODE;
 import static org.elasticsearch.transport.SniffConnectionStrategy.REMOTE_CLUSTER_SEEDS;
 
 public class ConnectionInfo implements Writeable {
@@ -62,7 +61,7 @@ public class ConnectionInfo implements Writeable {
         USERNAME.getKey(),
         PASSWORD.getKey(),
         SSLMODE.getKey(),
-        REMOTE_CONNECTION_MODE.getKey(),
+        // Remote connection mode is always SNIFF - user don't have to specify it in the connection string.
         REMOTE_CLUSTER_SEEDS.getKey()
     );
 
@@ -145,7 +144,12 @@ public class ConnectionInfo implements Writeable {
                                   "Connection string argument '%s' is not supported", settingName)
                 );
             }
-            settingsBuilder.put(settingName, settingValue);
+            if (settingName.equals(REMOTE_CLUSTER_SEEDS.getKey())) {
+                settingsBuilder.putList(settingName, settingValue.split(","));
+            } else {
+                settingsBuilder.put(settingName, settingValue);
+            }
+
         }
 
         return new ConnectionInfo(hosts, settingsBuilder.build());
