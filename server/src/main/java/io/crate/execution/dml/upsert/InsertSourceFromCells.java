@@ -119,14 +119,6 @@ public final class InsertSourceFromCells implements InsertSourceGen {
 
         generatedColumns.setNextRow(row);
         generatedColumns.validateValues(source);
-        for (int i = 0; i < partitionedByColumns.size(); i++) {
-            var pCol = partitionedByColumns.get(i);
-            var column = pCol.column();
-            ArrayList<String> fullPath = new ArrayList<>(1 + column.path().size());
-            fullPath.add(column.name());
-            fullPath.addAll(column.path());
-            Maps.removeByPath(source, fullPath);
-        }
         for (var entry : generatedColumns.generatedToInject()) {
             var reference = entry.getKey();
             var value = entry.getValue().value();
