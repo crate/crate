@@ -14,7 +14,7 @@ pipeline {
     stage('Parallel') {
       parallel {
         stage('sphinx') {
-          agent { label 'medium' }
+          agent { label 'small' }
           steps {
             sh 'cd ./blackbox/ && ./bootstrap.sh'
             sh './blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E docs/ docs/_out/html'
@@ -54,7 +54,7 @@ pipeline {
           }
         }
         stage('itest') {
-          agent { label 'medium' }
+          agent { label 'small' }
           steps {
             sh 'git clean -xdff'
             checkout scm

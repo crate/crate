@@ -101,7 +101,7 @@ may not work anymore.  See :ref:`builtin-analyzer` for details about available
 builtin analyzer or :ref:`sql-ddl-custom-analyzer`.
 
 If no analyzer is specified when using a fulltext index, the
-:ref:`plain <plain-analyzer>` analyzer is used::
+:ref:`standard <standard-analyzer>` analyzer is used::
 
     cr> create table table_c (
     ...   first_column text INDEX using fulltext

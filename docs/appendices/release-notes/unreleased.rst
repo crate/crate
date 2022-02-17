@@ -69,4 +69,11 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that led to an ``Invalid query used in CREATE VIEW`` error if
+  using a scalar subquery within the query part of a ``CREATE VIEW`` statement.
+
+- Fixed an issue that caused a failure when a window function over a partition
+  is not used in an upper query. For example:
+  ``select x from (select x, ROW_NUMBER() OVER (PARTITION BY y) from t) t1``
+
+- Updated the bundled JDK to 17.0.2+8
