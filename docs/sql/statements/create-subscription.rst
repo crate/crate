@@ -48,16 +48,46 @@ subscription is enabled, which is by default on creation.
 .. _sql-create-subscription-params:
 
 Parameters
-===========
+==========
 
 **subscription_name**
   The name of the new subscription.
 
+.. _sql-create-subscription-conn-info:
+
 **CONNECTION 'conninfo'**
-  The connection string to the publisher.
+  The connection string to the publisher, which is URL in the following format:
+  ::
+
+      crate://host:[port]?params
+
+  Port is optional and default value is ``4300``. Parameters are given in the
+  ``key=value`` format and separated by ``&``. Example:
+
+  ::
+
+      crate://example.com?user=my_user&password=1234&sslmode=disable
+
+  There can be multiple ``host:port`` pairs, separated by a comma. Parameters
+  will be same for all hosts. Example:
+
+  ::
+
+      crate://example.com:4310,123.123.123.123
+
+  Supported parameters:
+
+  ``user``: name of the user who connects to a publishing cluster. Required.
+
+  ``password``: user password.
+
+  ``sslmode``: one of the values (``prefer``, ``allow``, ``disable``, ``require``).
+
+  ``seeds``:  A comma separated list of initial seed nodes to discover eligible
+  nodes from the remote cluster.
 
 **PUBLICATION publication_name**
-Names of the publications on the publisher to subscribe to
+  Names of the publications on the publisher to subscribe to
 
 Clauses
 =======
