@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.common.Randomness;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -568,5 +569,46 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "      └ Rename[ts_production] AS b\n" +
             "        └ Collect[doc.metric_mini | [ts_production] | ((ts_production AS start >= $1) AND (ts_production AS start <= $2))]";
         assertThat(plan, is(isPlan(expectedPlan)));
+    }
+
+    @Test
+    public void test_can_create_execution_plan_from_join_condition_depending_on_multiple_tables() throws Exception {
+        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+            .addTable("""
+                CREATE TABLE IF NOT EXISTS sensor_readings (
+                    "time" TIMESTAMP WITH TIME ZONE NOT NULL,
+                    "sensor_id" INTEGER NOT NULL,
+                    "battery_level" DOUBLE PRECISION)
+            """
+            ).build();
+        String statement = """
+            SELECT
+                time_series."time",
+                sensors.sensor_id,
+                readings.battery_level
+            FROM generate_series(
+                '2022-02-09 10:00:00',
+                '2022-02-09 10:10:00',
+                '1 minute'::INTERVAL
+            ) time_series ("time")
+            CROSS JOIN UNNEST([1]) sensors(sensor_id)
+            LEFT JOIN sensor_readings readings
+                ON time_series.time = readings.time AND sensors.sensor_id = readings.sensor_id
+        """;
+        LogicalPlan logicalPlan = executor.logicalPlan(statement);
+        assertThat(logicalPlan, is(isPlan(
+            "Eval[time, sensor_id, battery_level]\n" +
+            "  └ NestedLoopJoin[LEFT | ((time = time) AND (sensor_id = sensor_id))]\n" +
+            "    ├ NestedLoopJoin[CROSS]\n" +
+            "    │  ├ Rename[time] AS time_series\n" +
+            "    │  │  └ TableFunction[generate_series | [col1] | true]\n" +
+            "    │  └ Rename[sensor_id] AS sensors\n" +
+            "    │    └ TableFunction[unnest | [col1] | true]\n" +
+            "    └ Rename[battery_level, time, sensor_id] AS readings\n" +
+            "      └ Collect[doc.sensor_readings | [battery_level, time, sensor_id] | true]"
+        )));
+
+        Object plan = executor.plan(statement);
+        assertThat(plan, Matchers.instanceOf(Join.class));
     }
 }
