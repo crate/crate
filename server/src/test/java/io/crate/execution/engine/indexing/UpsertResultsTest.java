@@ -24,8 +24,6 @@ package io.crate.execution.engine.indexing;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.Test;
 
@@ -94,5 +92,12 @@ public class UpsertResultsTest {
                     [URI: file:///t2.json, ERRORS: {failed to parse={count=2, line_numbers=[4, 5]}}]"""
             )
         );
+    }
+
+    @Test
+    public void testResultToFailureSuccessMessages() {
+        UpsertResults upsertResults = new UpsertResults();
+        upsertResults.addResult("file:///t5.json", null, 5);
+        assertThat(UpsertResults.resultsToFailure(upsertResults).getMessage(), is("Job killed. \n[URI: file:///t5.json, ERRORS: {}]"));
     }
 }
