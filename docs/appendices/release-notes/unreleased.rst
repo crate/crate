@@ -64,6 +64,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could lead to an ``Couldn't create execution plan`` error
+  when using a join condition referencing multiple other relations.
+
 - Fixed an issue that led to an ``Invalid query used in CREATE VIEW`` error if
   using a scalar subquery within the query part of a ``CREATE VIEW`` statement.
 
