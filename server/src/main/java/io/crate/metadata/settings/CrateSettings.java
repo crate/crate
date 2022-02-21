@@ -177,7 +177,9 @@ public final class CrateSettings implements ClusterStateListener {
         MemoryManagerFactory.MEMORY_ALLOCATION_TYPE,
 
         LogicalReplicationSettings.REPLICATION_CHANGE_BATCH_SIZE,
-        LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION
+        LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION,
+        LogicalReplicationSettings.REPLICATION_RECOVERY_CHUNK_SIZE,
+        LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS
     );
 
 
