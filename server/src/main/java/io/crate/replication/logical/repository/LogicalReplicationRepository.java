@@ -48,15 +48,11 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
 import org.elasticsearch.index.store.Store;
-import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.Repository;
@@ -83,17 +79,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
 
     private static final Logger LOGGER = LogManager.getLogger(LogicalReplicationRepository.class);
 
-    public static final Setting<ByteSizeValue> RECOVERY_CHUNK_SIZE =
-        Setting.byteSizeSetting("replication.logical.indices.recovery.chunk_size",
-                                new ByteSizeValue(1, ByteSizeUnit.MB),
-                                new ByteSizeValue(1, ByteSizeUnit.KB),
-                                new ByteSizeValue(1, ByteSizeUnit.GB),
-                                Setting.Property.Dynamic,
-                                Setting.Property.NodeScope
-        );
-
-
-
     public static final String TYPE = "logical_replication";
     public static final String LATEST = "_latest_";
     public static final String REMOTE_REPOSITORY_PREFIX = "_logical_replication_";
@@ -104,17 +89,16 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     private final RepositoryMetadata metadata;
     private final String subscriptionName;
     private final ThreadPool threadPool;
-    private final Settings settings;
     private final ClusterService clusterService;
     private final RemoteClusters remoteClusters;
+    private final LogicalReplicationSettings replicationSettings;
 
-    public LogicalReplicationRepository(Settings settings,
-                                        ClusterService clusterService,
+    public LogicalReplicationRepository(ClusterService clusterService,
                                         LogicalReplicationService logicalReplicationService,
                                         RemoteClusters remoteClusters,
                                         RepositoryMetadata metadata,
-                                        ThreadPool threadPool) {
-        this.settings = settings;
+                                        ThreadPool threadPool,
+                                        LogicalReplicationSettings replicationSettings) {
         this.clusterService = clusterService;
         this.logicalReplicationService = logicalReplicationService;
         this.remoteClusters = remoteClusters;
@@ -124,6 +108,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         //noinspection ConstantConditions
         this.subscriptionName = Strings.split(metadata.name(), REMOTE_REPOSITORY_PREFIX)[1];
         this.threadPool = threadPool;
+        this.replicationSettings = replicationSettings;
     }
 
     @Override
@@ -359,7 +344,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                     LOGGER,
                     clusterService.getClusterName().value(),
                     store,
-                    RecoverySettings.INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING.get(settings),
+                    replicationSettings.maxConcurrentFileChunks(),
                     restoreUUID,
                     //metadata,
                     publisherShardNode,
@@ -368,7 +353,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                     remoteClient,
                     threadPool,
                     recoveryState,
-                    RECOVERY_CHUNK_SIZE.get(settings),
+                    replicationSettings.recoveryChunkSize(),
                     new ActionListener<>() {
                         @Override
                         public void onResponse(Void unused) {

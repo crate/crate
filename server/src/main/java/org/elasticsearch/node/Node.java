@@ -47,6 +47,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.net.ssl.SNIHostName;
 
+import io.crate.replication.logical.LogicalReplicationSettings;
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -605,6 +606,9 @@ public class Node implements Closeable {
             );
             resourcesToClose.add(logicalReplicationService);
 
+
+            LogicalReplicationSettings replicationSettings = new LogicalReplicationSettings(settings, clusterService);
+
             RepositoriesModule repositoriesModule = new RepositoriesModule(
                 this.environment,
                 pluginsService.filterPlugins(RepositoryPlugin.class),
@@ -613,8 +617,8 @@ public class Node implements Closeable {
                 logicalReplicationService,
                 remoteClusters,
                 threadPool,
-                xContentRegistry
-            );
+                xContentRegistry,
+                replicationSettings);
             modules.add(repositoriesModule);
 
             CopyModule copyModule = new CopyModule(pluginsService.filterPlugins(CopyPlugin.class));
@@ -705,6 +709,7 @@ public class Node implements Closeable {
                     b.bind(SnapshotShardsService.class).toInstance(snapshotShardsService);
                     b.bind(RestoreService.class).toInstance(restoreService);
                     b.bind(Discovery.class).toInstance(discoveryModule.getDiscovery());
+                    b.bind(LogicalReplicationSettings.class).toInstance(replicationSettings);
                     {
                         RecoverySettings recoverySettings = new RecoverySettings(settings,
                                                                                  settingsModule.getClusterSettings());
