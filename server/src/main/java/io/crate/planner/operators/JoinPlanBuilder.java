@@ -27,6 +27,7 @@ import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.join.JoinType;
@@ -67,17 +68,26 @@ public class JoinPlanBuilder {
             return Filter.create(plan.apply(from.get(0)), whereClause);
         }
         Map<Set<RelationName>, Symbol> queryParts = QuerySplitter.split(whereClause);
-        LinkedHashMap<Set<RelationName>, JoinPair> joinPairsByRelations =
-            JoinOperations.buildRelationsToJoinPairsMap(
-                JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts));
-
-        Collection<RelationName> orderedRelationNames = JoinOrdering.getOrderedRelationNames(
-            Lists2.map(from, AnalyzedRelation::relationName),
-            joinPairsByRelations.keySet(),
-            queryParts.keySet()
-        );
-
-        Iterator<RelationName> it = orderedRelationNames.iterator();
+        List<JoinPair> allJoinPairs = JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
+        boolean optimizeOrder = true;
+        for (var joinPair : allJoinPairs) {
+            if (hasAdditionalDependencies(joinPair)) {
+                optimizeOrder = false;
+                break;
+            }
+        }
+        LinkedHashMap<Set<RelationName>, JoinPair> joinPairsByRelations = JoinOperations.buildRelationsToJoinPairsMap(allJoinPairs);
+        Iterator<RelationName> it;
+        if (optimizeOrder) {
+            Collection<RelationName> orderedRelationNames = JoinOrdering.getOrderedRelationNames(
+                Lists2.map(from, AnalyzedRelation::relationName),
+                joinPairsByRelations.keySet(),
+                queryParts.keySet()
+            );
+            it = orderedRelationNames.iterator();
+        } else {
+            it = Lists2.map(from, AnalyzedRelation::relationName).iterator();
+        }
 
         final RelationName lhsName = it.next();
         final RelationName rhsName = it.next();
@@ -136,6 +146,21 @@ public class JoinPlanBuilder {
         assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs";
 
         return joinPlan;
+    }
+
+    private static boolean hasAdditionalDependencies(JoinPair joinPair) {
+        Symbol condition = joinPair.condition();
+        if (condition == null) {
+            return false;
+        }
+        boolean[] hasAdditionalDependencies = {false};
+        FieldsVisitor.visitFields(condition, scopedSymbol -> {
+            RelationName relation = scopedSymbol.relation();
+            if (!relation.equals(joinPair.left()) && !relation.equals(joinPair.right())) {
+                hasAdditionalDependencies[0] = true;
+            }
+        });
+        return hasAdditionalDependencies[0];
     }
 
     private static LogicalPlan createJoinPlan(LogicalPlan lhsPlan,
