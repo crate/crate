@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.replication.logical.LogicalReplicationSettings;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -54,7 +55,8 @@ public class RepositoriesModule extends AbstractModule {
                               LogicalReplicationService logicalReplicationService,
                               RemoteClusters remoteClusters,
                               ThreadPool threadPool,
-                              NamedXContentRegistry namedXContentRegistry) {
+                              NamedXContentRegistry namedXContentRegistry,
+                              LogicalReplicationSettings replicationSettings) {
         Map<String, Repository.Factory> factories = new HashMap<>();
         factories.put(FsRepository.TYPE, new Repository.Factory() {
 
@@ -74,13 +76,12 @@ public class RepositoriesModule extends AbstractModule {
                 @Override
                 public Repository create(RepositoryMetadata metadata) throws Exception {
                     return new LogicalReplicationRepository(
-                        clusterService.getSettings(),
                         clusterService,
                         logicalReplicationService,
                         remoteClusters,
                         metadata,
-                        threadPool
-                    );
+                        threadPool,
+                        replicationSettings);
                 }
 
                 @Override

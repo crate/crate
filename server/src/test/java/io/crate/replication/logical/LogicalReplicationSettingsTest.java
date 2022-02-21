@@ -25,11 +25,15 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Test;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_CHANGE_BATCH_SIZE;
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_RECOVERY_CHUNK_SIZE;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS;
 import static org.hamcrest.Matchers.is;
 
 public class LogicalReplicationSettingsTest extends CrateDummyClusterServiceUnitTest {
@@ -43,11 +47,15 @@ public class LogicalReplicationSettingsTest extends CrateDummyClusterServiceUnit
                 Settings.builder()
                     .put(REPLICATION_CHANGE_BATCH_SIZE.getKey(), 20)
                     .put(REPLICATION_READ_POLL_DURATION.getKey(), "1s")
+                    .put(REPLICATION_RECOVERY_CHUNK_SIZE.getKey(), "10MB")
+                    .put(REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS.getKey(), 3)
                     .build()
             ))
             .build();
         ClusterServiceUtils.setState(clusterService, newState);
-        assertThat(replicationSettings.batchSize(), is(20L));
+        assertThat(replicationSettings.batchSize(), is(20));
         assertThat(replicationSettings.pollDelay().millis(), is(1000L));
+        assertThat(replicationSettings.recoveryChunkSize(), is(new ByteSizeValue(10, ByteSizeUnit.MB)));
+        assertThat(replicationSettings.maxConcurrentFileChunks(), is(3));
     }
 }

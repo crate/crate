@@ -32,6 +32,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
@@ -55,6 +57,24 @@ public class LogicalReplicationSettings {
         Setting.Property.Dynamic,
         Setting.Property.NodeScope
     );
+
+    public static final Setting<ByteSizeValue> REPLICATION_RECOVERY_CHUNK_SIZE =
+        Setting.byteSizeSetting("replication.logical.recovery.chunk_size",
+            new ByteSizeValue(1, ByteSizeUnit.MB),
+            new ByteSizeValue(1, ByteSizeUnit.KB),
+            new ByteSizeValue(1, ByteSizeUnit.GB),
+            Setting.Property.Dynamic,
+            Setting.Property.NodeScope
+        );
+
+    /**
+     * Controls the maximum number of file chunk requests that can be sent concurrently between clusters.
+     */
+    public static final Setting<Integer> REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS =
+        Setting.intSetting("replication.logical.recovery.max_concurrent_file_chunks",
+            2, 1, 5,
+            Setting.Property.Dynamic, Setting.Property.NodeScope
+        );
 
     /**
      * Internal index setting marking an index as subscribed/replicated and stores to what subscription
@@ -117,23 +137,29 @@ public class LogicalReplicationSettings {
         EngineConfig.INDEX_CODEC_SETTING
     );
 
-    private long batchSize;
+    private int batchSize;
+    private int maxConcurrentFileChunks;
     private TimeValue pollDelay;
+    private ByteSizeValue recoveryChunkSize;
 
     @Inject
     public LogicalReplicationSettings(Settings settings, ClusterService clusterService) {
         batchSize = REPLICATION_CHANGE_BATCH_SIZE.get(settings);
         pollDelay = REPLICATION_READ_POLL_DURATION.get(settings);
+        recoveryChunkSize = REPLICATION_RECOVERY_CHUNK_SIZE.get(settings);
+        maxConcurrentFileChunks = REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS.get(settings);
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(REPLICATION_CHANGE_BATCH_SIZE, this::batchSize);
         clusterService.getClusterSettings().addSettingsUpdateConsumer(REPLICATION_READ_POLL_DURATION, this::pollDelay);
+        clusterService.getClusterSettings().addSettingsUpdateConsumer(REPLICATION_RECOVERY_CHUNK_SIZE, this::recoveryChunkSize);
+        clusterService.getClusterSettings().addSettingsUpdateConsumer(REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS, this::maxConcurrentFileChunks);
     }
 
-    public long batchSize() {
+    public int batchSize() {
         return batchSize;
     }
 
-    public void batchSize(long batchSize) {
+    public void batchSize(int batchSize) {
         this.batchSize = batchSize;
     }
 
@@ -145,4 +171,19 @@ public class LogicalReplicationSettings {
         this.pollDelay = pollDelay;
     }
 
+    public ByteSizeValue recoveryChunkSize() {
+        return recoveryChunkSize;
+    }
+
+    public void recoveryChunkSize(final ByteSizeValue recoveryChunkSize) {
+        this.recoveryChunkSize = recoveryChunkSize;
+    }
+
+    public int maxConcurrentFileChunks() {
+        return maxConcurrentFileChunks;
+    }
+
+    public void maxConcurrentFileChunks(int maxConcurrentFileChunks) {
+        this.maxConcurrentFileChunks = maxConcurrentFileChunks;
+    }
 }
