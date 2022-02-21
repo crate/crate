@@ -16,6 +16,7 @@ cgroups
 charset
 cleartext
 concat
+conninfo
 deallocate
 Deallocate
 deallocating
