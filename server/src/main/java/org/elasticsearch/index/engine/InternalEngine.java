@@ -1362,7 +1362,6 @@ public class InternalEngine extends Engine {
                 plan = DeletionStrategy.processNormally(opVsLucene == OpVsLuceneDocStatus.LUCENE_DOC_NOT_FOUND, delete.version());
             }
         }
-        markSeqNoAsSeen(delete.seqNo());
         return plan;
     }
 
