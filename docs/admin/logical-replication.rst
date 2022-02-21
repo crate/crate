@@ -50,6 +50,16 @@ A publication is created using the
 altered or dropped using corresponding commands. The individual tables can be
 added and removed dynamically using ALTER PUBLICATION.
 
+.. CAUTION::
+
+    Publishing cluster must have
+    :ref:`setting <sql-create-table-soft-deletes-enabled>`
+    set to ``true`` so that subscribing cluster can catch up all changes made
+    during replication pause caused by network issues or explicitly done by a user.
+    Also, :ref:`setting <sql-create-table-soft-deletes-retention-lease-period>`
+    should be greater than or equal to
+    ``replication.logical.reads_poll_duration``.
+
 .. _logical-replication-subscription:
 
 Subscription
