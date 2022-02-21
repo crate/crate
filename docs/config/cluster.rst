@@ -1415,6 +1415,52 @@ The following settings can be used to configure the behavior of the
   all data nodes are started. However, the value must be bigger than the half
   of the expected number of data nodes in the cluster.
 
+Logical Replication
+-------------------
+
+Replication process can be configured by the following settings. Settings
+are dynamic and can be changed in runtime.
+
+.. _replication.logical.ops_batch_size:
+
+**replication.logical.ops_batch_size**
+  | *Default:* ``50000``
+  | *Min value:* ``16``
+  | *Runtime:* ``yes``
+
+Maximum number of operations to replicate from the publisher cluster per poll.
+Represents a number to advance a sequence.
+
+.. _replication.logical.reads_poll_duration:
+
+**replication.logical.reads_poll_duration**
+  | *Default:* ``50``
+  | *Runtime:* ``yes``
+
+The maximum time (in milliseconds) to wait for changes per poll operation. When
+a subscriber makes another one request to a publisher, it has
+``reads_poll_duration`` milliseconds to harvest changes from the publisher.
+
+.. _replication.logical.recovery.chunk_size:
+
+**replication.logical.recovery.chunk_size**
+  | *Default:* ``1MB``
+  | *Min value:* ``1KB``
+  | *Max value:* ``1GB``
+  | *Runtime:* ``yes``
+
+Chunk size to transfer files during the initial recovery of a replicating table.
+
+.. _replication.logical.recovery.max_concurrent_file_chunks:
+
+**replication.logical.recovery.max_concurrent_file_chunks**
+  | *Default:* ``2``
+  | *Min value:* ``1``
+  | *Max value:* ``5``
+  | *Runtime:* ``yes``
+
+Controls the number of file chunk requests that can be sent in parallel between
+clusters during the recovery.
 
 .. _`Active Directory application`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/
 .. _`Azure Portal`: https://portal.azure.com

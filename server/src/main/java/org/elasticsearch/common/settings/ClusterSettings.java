@@ -470,6 +470,8 @@ public final class ClusterSettings extends AbstractScopedSettings {
         SslSettings.SSL_RESOURCE_POLL_INTERVAL,
         BlobIndicesService.SETTING_BLOBS_PATH,
         LogicalReplicationSettings.REPLICATION_CHANGE_BATCH_SIZE,
-        LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION
+        LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION,
+        LogicalReplicationSettings.REPLICATION_RECOVERY_CHUNK_SIZE,
+        LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS
     );
 }
