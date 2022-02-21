@@ -21,11 +21,32 @@
 
 package io.crate.metadata.sys;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.STRING;
+import static java.util.Map.entry;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.GroupShardsIterator;
+import org.elasticsearch.cluster.routing.ShardIterator;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.index.seqno.RetentionLease;
+import org.elasticsearch.index.seqno.SeqNoStats;
+import org.elasticsearch.index.shard.ShardId;
+
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
+
 import io.crate.action.sql.SessionContext;
-import io.crate.user.Privilege;
-import io.crate.user.User;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
@@ -39,28 +60,8 @@ import io.crate.metadata.SystemTable;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.types.DataTypes;
-
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.GroupShardsIterator;
-import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.index.seqno.RetentionLease;
-import org.elasticsearch.index.seqno.SeqNoStats;
-import org.elasticsearch.index.shard.ShardId;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.STRING;
-import static java.util.Map.entry;
+import io.crate.user.Privilege;
+import io.crate.user.User;
 
 public class SysShardsTableInfo {
 

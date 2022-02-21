@@ -19,9 +19,12 @@
 
 package org.elasticsearch.action.admin.indices.stats;
 
+import java.io.IOException;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -29,8 +32,6 @@ import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.seqno.RetentionLeaseStats;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.ShardPath;
-
-import java.io.IOException;
 
 public class ShardStats implements Writeable {
 
@@ -83,6 +84,11 @@ public class ShardStats implements Writeable {
 
     public CommonStats getStats() {
         return this.commonStats;
+    }
+
+    @Nullable
+    public CommitStats getCommitStats() {
+        return this.commitStats;
     }
 
     @Nullable

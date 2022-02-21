@@ -19,6 +19,9 @@
 
 package org.elasticsearch.action.admin.indices.stats;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.node.TransportBroadcastByNodeAction;
@@ -40,9 +43,6 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
-import java.util.List;
 
 public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<IndicesStatsRequest, IndicesStatsResponse, ShardStats> {
 
@@ -114,10 +114,6 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
         }
         if (request.store()) {
             flags.set(CommonStatsFlags.Flag.Store);
-        }
-        if (request.completion()) {
-            flags.set(CommonStatsFlags.Flag.Completion);
-            flags.completionDataFields(request.completionFields());
         }
 
         CommitStats commitStats;

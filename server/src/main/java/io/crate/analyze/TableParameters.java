@@ -21,13 +21,13 @@
 
 package io.crate.analyze;
 
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.common.collections.MapBuilder;
-import io.crate.metadata.settings.NumberOfReplicasSetting;
-import io.crate.metadata.settings.Validators;
-import io.crate.metadata.table.ColumnPolicies;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.DataTypes;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
@@ -37,20 +37,22 @@ import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocatio
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.store.Store;
 
-import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.ThreadSafe;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.common.collections.MapBuilder;
+import io.crate.common.unit.TimeValue;
+import io.crate.metadata.settings.NumberOfReplicasSetting;
+import io.crate.metadata.settings.Validators;
+import io.crate.metadata.table.ColumnPolicies;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataTypes;
 
 /**
  * Container for the supported settings that can be used in the `WITH` clause of `CREATE TABLE` statements
@@ -115,7 +117,10 @@ public class TableParameters {
             IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING,
 
             // this setting is needed for tests and is not documented. see ReplicaShardAllocatorIT for usages.
-            IndexSettings.FILE_BASED_RECOVERY_THRESHOLD_SETTING
+            IndexSettings.FILE_BASED_RECOVERY_THRESHOLD_SETTING,
+
+            // this setting is needed for tests and is not documented. see IndexRecoveryIT for usages.
+            Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING
         );
 
     /**
@@ -133,7 +138,8 @@ public class TableParameters {
         // We want IndexSettings#isExplicitRefresh and it's usages to work
         IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
 
-        IndexSettings.FILE_BASED_RECOVERY_THRESHOLD_SETTING
+        IndexSettings.FILE_BASED_RECOVERY_THRESHOLD_SETTING,
+        Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING
     );
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_DEFAULT
