@@ -206,6 +206,9 @@ information about the currently applied cluster settings.
     | settings['replication']['logical']                                                | object           |
     | settings['replication']['logical']['ops_batch_size']                              | integer          |
     | settings['replication']['logical']['reads_poll_duration']                         | text             |
+    | settings['replication']['logical']['recovery']                                    | object           |
+    | settings['replication']['logical']['recovery']['chunk_size']                      | text             |
+    | settings['replication']['logical']['recovery']['max_concurrent_file_chunks']      | integer          |
     | settings['stats']                                                                 | object           |
     | settings['stats']['breaker']                                                      | object           |
     | settings['stats']['breaker']['log']                                               | object           |
