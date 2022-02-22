@@ -82,4 +82,8 @@ Fixes
   is not used in an upper query. For example:
   ``select x from (select x, ROW_NUMBER() OVER (PARTITION BY y) from t) t1``
 
+- Fixed an incorrect optimization of comparison function arguments for explicit
+  cast arguments resulting in a wrong result set. Example:
+  ```WHERE strCol::bigint > 3```
+
 - Updated the bundled JDK to 17.0.2+8
