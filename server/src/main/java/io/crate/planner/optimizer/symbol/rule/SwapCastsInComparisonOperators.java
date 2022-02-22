@@ -39,6 +39,9 @@ import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
 import io.crate.planner.optimizer.symbol.Rule;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
+import io.crate.types.StringType;
 
 
 public class SwapCastsInComparisonOperators implements Rule<Function> {
@@ -54,7 +57,30 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
             .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> CAST_FUNCTION_NAMES.contains(f.name()))
                 .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
-            );
+            )
+            // check that arg(0) is a casting function is done above
+            .with(f -> swapDoesntAffectComparison((Function) f.arguments().get(0)));
+    }
+
+    /**
+     * Checks whether cast swapping is safe.
+     * Types can be convertible to each other
+     * but swapped comparison results can be different, for example
+     * '10':int > 3 but '10' < '3',
+     */
+    private boolean swapDoesntAffectComparison(Function f) {
+        var castingFromType = f.arguments().get(0).valueType(); // Reference original type.
+        var castingToType = f.valueType(); // Reference cast, which is about to be swapped to a parameter.
+
+        if (castingFromType.id() == StringType.ID
+            && (DataTypes.isNumericPrimitive(castingToType) || castingToType.id() == NumericType.ID)) {
+            // str -> num
+            return false;
+        } else if (DataTypes.isNumericPrimitive(castingFromType) && castingToType.id() == StringType.ID) {
+            // checking other way around, primitive-num -> str, fromType cannot be numeric as it's not storage supported.
+            return false;
+        }
+        return true;
     }
 
     @Override

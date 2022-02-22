@@ -22,6 +22,8 @@
 package io.crate.planner.optimizer.symbol;
 
 
+import io.crate.expression.operator.GtOperator;
+import io.crate.expression.symbol.Function;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Symbol;
@@ -42,5 +44,25 @@ public class OptimizerTest extends CrateDummyClusterServiceUnitTest {
             SymbolMatchers.isFunction("_cast"),
             SymbolMatchers.isLiteral("10")
         ));
+    }
+
+    @Test
+    public void test_comparison_of_string_and_numeric_doesnt_optimize_away_cast() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (strCol string, intCol int)")
+            .build();
+
+        //checking either sides of num <-> str comparison, reference casting remains
+        Symbol symbol1 = Optimizer.optimizeCasts(e.asSymbol("strCol::bigint > 3"), e.getPlannerContext(clusterService.state()));
+        Symbol symbol2 = Optimizer.optimizeCasts(e.asSymbol("intCol::string > '3'"), e.getPlannerContext(clusterService.state()));
+
+        assertThat(symbol1, SymbolMatchers.isFunction(GtOperator.NAME));
+        assertThat(symbol2, SymbolMatchers.isFunction(GtOperator.NAME));
+
+        Function func1 = (Function) symbol1;
+        Function func2 = (Function) symbol1;
+        // In all cases below ref cast used to be swapped with parameter.
+        assertThat(func1.arguments().get(0), SymbolMatchers.isFunction("cast"));
+        assertThat(func2.arguments().get(0), SymbolMatchers.isFunction("cast"));
     }
 }

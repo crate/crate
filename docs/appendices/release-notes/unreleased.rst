@@ -82,4 +82,10 @@ Fixes
   is not used in an upper query. For example:
   ``select x from (select x, ROW_NUMBER() OVER (PARTITION BY y) from t) t1``
 
+- Fixed an issue that caused numbers being compared as strings in queries where
+  selected column is string casted to number and compared with a number or vice
+  versa. Example:
+  ``SELECT * FROM test WHERE strCol::bigint > 3`` or
+  ``SELECT * FROM test WHERE intCol::string > '3'``
+
 - Updated the bundled JDK to 17.0.2+8
