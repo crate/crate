@@ -22,6 +22,7 @@
 package io.crate.planner.optimizer.symbol;
 
 
+import io.crate.expression.operator.GtOperator;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Symbol;
@@ -41,6 +42,21 @@ public class OptimizerTest extends CrateDummyClusterServiceUnitTest {
             "op_like",
             SymbolMatchers.isFunction("_cast"),
             SymbolMatchers.isLiteral("10")
+        ));
+    }
+
+    @Test
+    public void test_cast_is_not_swapped_when_column_explicitly_casted() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (strCol string, intCol int)")
+            .build();
+
+        Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("strCol::bigint > 3"), e.getPlannerContext(clusterService.state()));
+
+        assertThat(symbol, SymbolMatchers.isFunction(
+            GtOperator.NAME,
+            SymbolMatchers.isFunction("cast"),
+            SymbolMatchers.isLiteral(3L)
         ));
     }
 }
