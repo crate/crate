@@ -79,3 +79,7 @@ Fixes
 - Fixed an issue that caused a failure when a window function over a partition
   is not used in an upper query. For example:
   ``select x from (select x, ROW_NUMBER() OVER (PARTITION BY y) from t) t1``
+
+- Fixed an incorrect optimization of comparison function arguments for explicit
+  cast arguments resulting in a wrong result set. Example:
+  ```WHERE strCol::bigint > 3```
