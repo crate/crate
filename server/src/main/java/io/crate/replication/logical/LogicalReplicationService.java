@@ -89,20 +89,20 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     private final MetadataTracker metadataTracker;
 
     public LogicalReplicationService(IndexScopedSettings indexScopedSettings,
-                                     Settings settings,
                                      ClusterService clusterService,
                                      RemoteClusters remoteClusters,
                                      ThreadPool threadPool,
-                                     Client client) {
+                                     Client client,
+                                     LogicalReplicationSettings replicationSettings) {
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.remoteClusters = remoteClusters;
         this.client = client;
         this.metadataTracker = new MetadataTracker(
             indexScopedSettings,
-            settings,
             threadPool,
             this,
+            replicationSettings,
             remoteClusters::getClient,
             clusterService
         );

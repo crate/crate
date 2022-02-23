@@ -21,15 +21,14 @@
 
 package io.crate.replication.logical;
 
-import io.crate.common.unit.TimeValue;
+import java.util.Set;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -39,9 +38,8 @@ import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.engine.EngineConfig;
 
-import java.util.Set;
+import io.crate.common.unit.TimeValue;
 
-@Singleton
 public class LogicalReplicationSettings {
 
     public static final Setting<Integer> REPLICATION_CHANGE_BATCH_SIZE = Setting.intSetting(
@@ -142,7 +140,6 @@ public class LogicalReplicationSettings {
     private TimeValue pollDelay;
     private ByteSizeValue recoveryChunkSize;
 
-    @Inject
     public LogicalReplicationSettings(Settings settings, ClusterService clusterService) {
         batchSize = REPLICATION_CHANGE_BATCH_SIZE.get(settings);
         pollDelay = REPLICATION_READ_POLL_DURATION.get(settings);
