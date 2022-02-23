@@ -354,7 +354,7 @@ should be crossed out as well.
 - [ ] ba2d70d8eb6 Serialize Outbound Messages on IO Threads (#56961) (#57080)
 - [ ] 9bc9d01b841 Do not Block Snapshot Thread Pool Fully During Restore or Snapshot (#57360) (#57511)
 - [ ] 7aad4f6470f Store parsed mapping settings in IndexSettings (#57492)
-- [ ] 59570eaa7db Fix Local Translog Recovery not Updating Safe Commit in Edge Case (#57350) (#57380)
+- [x] 59570eaa7db Fix Local Translog Recovery not Updating Safe Commit in Edge Case (#57350) (#57380)
 - [ ] e4fd78f866c Remove Overly Strict Safety Mechnism in Shard Snapshot Logic (#57227) (#57362)
 - [ ] 04ef39da778 Change cluster info actions to be able to resolve data streams. (#57343)
 - [ ] 75868ea915d Catch InputCoercionException thrown by Jackson parser (#57287) (#57330)
