@@ -212,6 +212,7 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.ShardReplicationService;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
@@ -597,13 +598,18 @@ public class Node implements Closeable {
 
             RemoteClusters remoteClusters = new RemoteClusters(settings, threadPool, transportService);
             resourcesToClose.add(remoteClusters);
+
+            final LogicalReplicationSettings logicalReplicationSettings = new LogicalReplicationSettings(
+                settings,
+                clusterService
+            );
             final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
                 settingsModule.getIndexScopedSettings(),
-                settings,
                 clusterService,
                 remoteClusters,
                 threadPool,
-                client
+                client,
+                logicalReplicationSettings
             );
             resourcesToClose.add(logicalReplicationService);
 
@@ -710,7 +716,6 @@ public class Node implements Closeable {
                     b.bind(SnapshotShardsService.class).toInstance(snapshotShardsService);
                     b.bind(RestoreService.class).toInstance(restoreService);
                     b.bind(Discovery.class).toInstance(discoveryModule.getDiscovery());
-                    b.bind(LogicalReplicationSettings.class).toInstance(replicationSettings);
                     {
                         RecoverySettings recoverySettings = new RecoverySettings(settings,
                                                                                  settingsModule.getClusterSettings());
@@ -731,6 +736,7 @@ public class Node implements Closeable {
                     b.bind(UserLookup.class).toInstance(userLookup);
                     b.bind(Authentication.class).toInstance(authentication);
                     b.bind(LogicalReplicationService.class).toInstance(logicalReplicationService);
+                    b.bind(LogicalReplicationSettings.class).toInstance(logicalReplicationSettings);
                     b.bind(RemoteClusters.class).toInstance(remoteClusters);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                 }
