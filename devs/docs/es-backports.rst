@@ -249,7 +249,7 @@ should be crossed out as well.
 - [ ] 10be10c99be Migrate CompletionFieldMapper to parametrized format (#59691)
 - [ ] 343053c0a7f Fix compilation in Eclipse (backport #59675)
 - [ ] 27067de6991 Make MappedFieldType#meta final (#59383)
-- [ ] b599f7a9c07 Fix estimate size of translog operations (#59206)
+- [x] b599f7a9c07 Fix estimate size of translog operations (#59206)
 - [ ] 2b70758a052 Correct type parametrization in geo mappers. (#59583)
 - [ ] cc7093645cc Cleanup some Serialization Code around Snapshots (#59532) (#59606)
 - [ ] b8d73a1e7ee Default gateway.auto_import_dangling_indices to false (#59302)
