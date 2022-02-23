@@ -57,6 +57,19 @@ public class ReleasableLock implements Releasable {
         return this;
     }
 
+    /**
+     * Try acquiring lock, returning null if unable.
+     */
+    public ReleasableLock tryAcquire() {
+        boolean locked = lock.tryLock();
+        if (locked) {
+            assert addCurrentThread();
+            return this;
+        } else {
+            return null;
+        }
+    }
+
     private boolean addCurrentThread() {
         final Integer current = holdingThreads.get();
         holdingThreads.set(current == null ? 1 : current + 1);
