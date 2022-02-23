@@ -1080,7 +1080,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
         private final BytesReference source;
         private final String routing;
 
-        private Index(final StreamInput in) throws IOException {
+        Index(final StreamInput in) throws IOException {
             final int format = in.readVInt(); // SERIALIZATION_FORMAT
             assert format >= FORMAT_6_0 : "format was: " + format;
             id = in.readString();
@@ -1090,10 +1090,10 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             }
             source = in.readBytesReference();
             routing = in.readOptionalString();
+            version = in.readLong();
             if (format < FORMAT_NO_PARENT) {
                 in.readOptionalString(); // _parent
             }
-            this.version = in.readLong();
             if (format < FORMAT_NO_VERSION_TYPE) {
                 in.readByte(); // _version_type
             }
@@ -1173,7 +1173,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             return new Source(source, routing);
         }
 
-        private void write(final StreamOutput out) throws IOException {
+        void write(final StreamOutput out) throws IOException {
             final int format;
             if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
                 format = SERIALIZATION_FORMAT;
@@ -1190,6 +1190,9 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             out.writeBytesReference(source);
             out.writeOptionalString(routing);
             out.writeLong(version);
+            if (format < FORMAT_NO_PARENT) {
+                out.writeOptionalString(null); // _parent
+            }
             if (format < FORMAT_NO_VERSION_TYPE) {
                 out.writeByte(VersionType.EXTERNAL.getValue());
             }
