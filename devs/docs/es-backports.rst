@@ -363,7 +363,7 @@ should be crossed out as well.
 - [x] d6b79bcd95e Remove Mapper.updateFieldType() (#57151)
 - [ ] 343fb699a4c Remove unused logic from FieldNamesFieldMapper. (#56834)
 - [ ] dde75b0f64e Fix Confusing Exception on Shard Snapshot Abort (#57116) (#57117)
-- [ ] 5569137ae3c Flatten ReleaseableBytesReference Object Trees (#57092) (#57109)
+- [x] 5569137ae3c Flatten ReleaseableBytesReference Object Trees (#57092) (#57109)
 - [ ] 9fa60f7367b Add History UUID Index Setting (#56930) (#57104)
 - [ ] d8165a3439b Turn off translog retention only when shard started (#57063)
 - [ ] 1dabdd9a201 Close channel on handshake error with old version (#56989) (#57025)
