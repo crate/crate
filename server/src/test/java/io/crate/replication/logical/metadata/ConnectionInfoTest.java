@@ -26,6 +26,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import java.util.List;
+
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -80,12 +82,13 @@ public class ConnectionInfoTest extends ESTestCase {
 
     @Test
     public void test_arguments() {
-        var connInfo = ConnectionInfo.fromURL("crate://example.com?user=my_user&password=1234&sslmode=disable");
+        var connInfo = ConnectionInfo.fromURL("crate://example.com?user=my_user&password=1234&sslmode=disable&seeds=123.123.123.123,123.123.123.124");
         assertThat(connInfo.settings(), is(
             Settings.builder()
                 .put("user", "my_user")
                 .put("password", "1234")
                 .put("sslmode", "disable")
+                .putList("seeds", List.of("123.123.123.123", "123.123.123.124"))
                 .build()
         ));
     }

@@ -31,6 +31,14 @@ Logical replication is useful for the following use cases:
 
 - Replicating between different compatible versions of CrateDB.
 
+
+.. SEEALSO::
+
+    :ref:`replication.logical.ops_batch_size <replication.logical.ops_batch_size>`
+    :ref:`replication.logical.reads_poll_duration <replication.logical.reads_poll_duration>`
+    :ref:`replication.logical.recovery.chunk_size <replication.logical.recovery.chunk_size>`
+    :ref:`replication.logical.recovery.max_concurrent_file_chunks <replication.logical.recovery.max_concurrent_file_chunks>`
+
 .. _logical-replication-publication:
 
 Publication
