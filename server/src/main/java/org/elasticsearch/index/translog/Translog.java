@@ -1138,7 +1138,10 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
 
         @Override
         public long estimateSize() {
-            return (id.length() * 2) + source.length() + 12;
+            return (2 * id.length())
+                + source.length()
+                + (routing != null ? 2 * routing.length() : 0)
+                + (4 * Long.BYTES); // timestamp, seq_no, primary_term, and version
         }
 
         public String id() {
@@ -1310,7 +1313,9 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
 
         @Override
         public long estimateSize() {
-            return ((uid.field().length() + uid.text().length()) * 2) + 20;
+            return (id.length() * 2)
+                + ((uid.field().length() * 2) + (uid.text().length()) * 2)
+                + (3 * Long.BYTES); // seq_no, primary_term, and version;
         }
 
         public String id() {
@@ -1471,7 +1476,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
 
         @Override
         public int hashCode() {
-            return 31 * 31 * 31 + 31 * 31 * Long.hashCode(seqNo) + 31 * Long.hashCode(primaryTerm) + reason().hashCode();
+            return 31 * 31 * Long.hashCode(seqNo) + 31 * Long.hashCode(primaryTerm) + reason().hashCode();
         }
 
         @Override
