@@ -74,10 +74,10 @@ public final class MetadataTracker implements Closeable {
     private static final Logger LOGGER = Loggers.getLogger(MetadataTracker.class);
 
     private final ThreadPool threadPool;
-    private final LogicalReplicationService logicalReplicationService;
+    private final LogicalReplicationService replicationService;
+    private final LogicalReplicationSettings replicationSettings;
     private final Function<String, Client> remoteClient;
     private final ClusterService clusterService;
-    private final TimeValue pollDelay;
     private final IndexScopedSettings indexScopedSettings;
 
     // Using a copy-on-write approach. The assumption is that subscription changes are rare and reads happen more frequently
@@ -86,16 +86,16 @@ public final class MetadataTracker implements Closeable {
     private volatile boolean isActive = false;
 
     public MetadataTracker(IndexScopedSettings indexScopedSettings,
-                           Settings settings,
                            ThreadPool threadPool,
-                           LogicalReplicationService logicalReplicationService,
+                           LogicalReplicationService replicationService,
+                           LogicalReplicationSettings replicationSettings,
                            Function<String, Client> remoteClient,
                            ClusterService clusterService) {
         this.threadPool = threadPool;
-        this.logicalReplicationService = logicalReplicationService;
+        this.replicationService = replicationService;
+        this.replicationSettings = replicationSettings;
         this.remoteClient = remoteClient;
         this.clusterService = clusterService;
-        this.pollDelay = LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION.get(settings);
         this.indexScopedSettings = indexScopedSettings;
     }
 
@@ -106,7 +106,7 @@ public final class MetadataTracker implements Closeable {
             threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
             threadPool.scheduler(),
             this::run,
-            BackoffPolicy.exponentialBackoff(pollDelay, 8)
+            BackoffPolicy.exponentialBackoff(replicationSettings.pollDelay(), 8)
         );
         runnable.run();
         isActive = true;
@@ -129,7 +129,7 @@ public final class MetadataTracker implements Closeable {
         }
         cancellable = threadPool.schedule(
             this::run,
-            pollDelay,
+            replicationSettings.pollDelay(),
             ThreadPool.Names.LOGICAL_REPLICATION
         );
     }
