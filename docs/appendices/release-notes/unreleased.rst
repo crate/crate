@@ -64,6 +64,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could lead to errors when reading translog files from
+  CrateDB versions < 4.0.
+
 - Fixed an issue that could lead to an ``Couldn't create execution plan`` error
   when using a join condition referencing multiple other relations.
 

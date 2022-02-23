@@ -3317,6 +3317,22 @@ public class TranslogTests extends ESTestCase {
         }
     }
 
+    @Test
+    public void test_translog_index_operation_bwc_serialization() throws Throwable {
+        Translog.Index index = new Translog.Index("id1", 2L, 1L, new byte[] { 1, 2, 3, 4 });
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_3_2_0);
+        index.write(out);
+        StreamInput in = out.bytes().streamInput();
+
+        Translog.Index index2 = new Translog.Index(in);
+        assertThat(index.id(), is(index2.id()));
+        assertThat(index.version(), is(index2.version()));
+        assertThat(index.seqNo(), is(index2.seqNo()));
+        assertThat(index.primaryTerm(), is(index2.primaryTerm()));
+        assertThat(index.source(), is(index2.source()));
+    }
+
     static boolean hasCircularReference(Exception cause) {
         final Queue<Throwable> queue = new LinkedList<>();
         queue.add(cause);
