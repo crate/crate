@@ -26,13 +26,13 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.bytes.ReleasableBytesReference;
 import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 
@@ -493,6 +493,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
      */
     public Location add(final Operation operation) throws IOException {
         final ReleasableBytesStreamOutput out = new ReleasableBytesStreamOutput(bigArrays);
+        boolean successfullySerialized = false;
         try {
             final long start = out.position();
             out.skip(Integer.BYTES);
@@ -502,8 +503,9 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             out.seek(start);
             out.writeInt(operationSize);
             out.seek(end);
-            final BytesReference bytes = out.bytes();
-            try (ReleasableLock ignored = readLock.acquire()) {
+            successfullySerialized = true;
+            try (ReleasableBytesReference bytes = new ReleasableBytesReference(out.bytes(), out);
+                 ReleasableLock ignored = readLock.acquire()) {
                 ensureOpen();
                 if (operation.primaryTerm() > current.getPrimaryTerm()) {
                     assert false :
@@ -521,7 +523,9 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             closeOnTragicEvent(ex);
             throw new TranslogException(shardId, "Failed to write operation [" + operation + "]", ex);
         } finally {
-            Releasables.close(out);
+            if (successfullySerialized == false) {
+                Releasables.close(out);
+            }
         }
     }
 
@@ -1869,7 +1873,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             1,
             location.resolve(getFilename(1)),
             channelFactory,
-            new ByteSizeValue(10),
+            TranslogConfig.DEFAULT_BUFFER_SIZE,
             1,
             initialGlobalCheckpoint,
             () -> {

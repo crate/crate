@@ -108,7 +108,7 @@ should be crossed out as well.
 - [ ] 244f1a60f92 Selectively Add ClusterState Listeners Depending on Node Roles (#63223) (#63396)
 - [ ] eac99dd594a SnapshotShardSizeInfo should prefer default value when provided (#63390) (#63394)
 - [ ] dd4b0d85fe0 Write translog operation bytes to byte stream (#63298)
-- [ ] 64bbbaeef1a Do not block Translog add on file write (#63374)
+- [x] 64bbbaeef1a Do not block Translog add on file write (#63374)
 - [ ] f17ca18dfa8 Make array value parsing flag more robust. (#63371)
 - [ ] 87076c32e21 Determine shard size before allocating shards recovering from snapshots (#61906) (#63337)
 - [ ] ca68298e89c Remove MapperService argument from IndexFieldData.Builder#build (#63197) (#63311)

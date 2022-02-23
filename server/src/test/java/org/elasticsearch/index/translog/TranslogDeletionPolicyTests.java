@@ -19,17 +19,8 @@
 
 package org.elasticsearch.index.translog;
 
-import org.apache.lucene.store.ByteArrayDataOutput;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import io.crate.common.collections.Tuple;
-import io.crate.common.io.IOUtils;
+import static java.lang.Math.min;
+import static org.hamcrest.Matchers.equalTo;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -38,8 +29,18 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.lang.Math.min;
-import static org.hamcrest.Matchers.equalTo;
+import org.apache.lucene.store.ByteArrayDataOutput;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.ReleasableBytesReference;
+import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+import org.mockito.Mockito;
+
+import io.crate.common.collections.Tuple;
+import io.crate.common.io.IOUtils;
 
 
 public class TranslogDeletionPolicyTests extends ESTestCase {
@@ -206,7 +207,7 @@ public class TranslogDeletionPolicyTests extends ESTestCase {
             for (int ops = randomIntBetween(0, 20); ops > 0; ops--) {
                 out.reset(bytes);
                 out.writeInt(ops);
-                writer.add(new BytesArray(bytes), ops);
+                writer.add(ReleasableBytesReference.wrap(new BytesArray(bytes)), ops);
             }
         }
         return new Tuple<>(readers, writer);
