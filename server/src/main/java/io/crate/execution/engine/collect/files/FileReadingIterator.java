@@ -97,7 +97,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         this.shared = shared;
         this.numReaders = numReaders;
         this.readerNumber = readerNumber;
-        this.fileInputs = fileUris.stream().map(uri -> toFileInput(uri, withClauseOptions)).toList();
+        this.fileInputs = fileUris.stream().map(uri -> toFileInput(uri, withClauseOptions)).filter(Objects::nonNull).toList();
         this.collectorExpressions = collectorExpressions;
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
