@@ -21,22 +21,26 @@
 
 package io.crate.replication.logical.analyze;
 
+import java.util.Locale;
+
+import org.elasticsearch.index.IndexSettings;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.collections.Lists2;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
-import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
+import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
 import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
 import io.crate.sql.tree.AlterPublication;
@@ -47,9 +51,6 @@ import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.index.IndexSettings;
-
-import java.util.Locale;
 
 public class LogicalReplicationAnalyzer {
 
@@ -150,11 +151,11 @@ public class LogicalReplicationAnalyzer {
     }
 
     public AnalyzedDropSubscription analyze(DropSubscription dropSubscription) {
-        if (dropSubscription.ifExists() == false
-            && logicalReplicationService.subscriptions().containsKey(dropSubscription.name()) == false) {
+        var subscription = logicalReplicationService.subscriptions().get(dropSubscription.name());
+        if (dropSubscription.ifExists() == false && subscription == null) {
             throw new SubscriptionUnknownException(dropSubscription.name());
         }
-        return new AnalyzedDropSubscription(dropSubscription.name(), dropSubscription.ifExists());
+        return new AnalyzedDropSubscription(dropSubscription.name(), subscription, dropSubscription.ifExists());
     }
 
     public AnalyzedAlterSubscription analyze(AlterSubscription alterSubscription) {

@@ -21,30 +21,27 @@
 
 package io.crate.replication.logical.plan;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+
 import io.crate.action.FutureActionListener;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.execution.support.ChainableAction;
 import io.crate.execution.support.ChainableActions;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.replication.logical.action.DropSubscriptionRequest;
 import io.crate.replication.logical.analyze.AnalyzedDropSubscription;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
-
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 
 public class DropSubscriptionPlan implements Plan {
 
@@ -66,11 +63,8 @@ public class DropSubscriptionPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
 
-        List<RelationName> tables = InformationSchemaIterables.tablesStream(dependencies.schemas())
-            .filter(t -> t instanceof DocTableInfo)
-            .filter(t -> analyzedDropSubscription.name().equals(REPLICATION_SUBSCRIPTION_NAME.get(t.parameters())))
-            .map(t -> t.ident())
-            .collect(Collectors.toList());
+        List<RelationName> tables = analyzedDropSubscription.subscription()
+            .relations().keySet().stream().toList();
 
         final List<ChainableAction<Long>> actions = new ArrayList<>();
 
