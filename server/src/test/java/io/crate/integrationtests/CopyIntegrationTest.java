@@ -84,6 +84,12 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public CopyIntegrationTest() throws URISyntaxException {
     }
 
+    @Test
+    public void testCopyFromUnknownDirectory() {
+        execute("create table t (a int)");
+        ensureYellow();
+        execute("copy t from 'file:///tmp/unknown_dir/*'");
+    }
 
     @Test
     public void testCopyFromFileWithJsonExtension() throws Exception {

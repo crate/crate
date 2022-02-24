@@ -75,6 +75,10 @@ Fixes
 - Fixed an issue that could lead to an ``Couldn't create execution plan`` error
   when using a join condition referencing multiple other relations.
 
+- Fixed an issue that caused an NPE when executing ``COPY FROM`` with a globbed
+  URI having a parent directory that does not exist in the filesystem. This
+  affected copying from filesystems local to CrateDB nodes only.
+
 - Fixed an issue that led to an ``Invalid query used in CREATE VIEW`` error if
   using a scalar subquery within the query part of a ``CREATE VIEW`` statement.
 
