@@ -83,6 +83,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    public void testCopyFromUnknownDirectory() {
+        execute("create table t (a int)");
+        ensureYellow();
+        execute("copy t from ?", new Object[]{"/tmp/unknown_dir/*"});
+    }
+
+    @Test
     public void testCopyFromFileWithJsonExtension() throws Exception {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext) with (number_of_replicas = 0)");
