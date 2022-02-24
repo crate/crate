@@ -21,24 +21,31 @@
 
 package io.crate.replication.logical.analyze;
 
+import java.util.function.Consumer;
+
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.DDLStatement;
 import io.crate.expression.symbol.Symbol;
-
-import java.util.function.Consumer;
+import io.crate.replication.logical.metadata.Subscription;
 
 public class AnalyzedDropSubscription implements DDLStatement {
 
     private final String name;
+    private final Subscription subscription;
     private final boolean ifExists;
 
-    public AnalyzedDropSubscription(String name, boolean ifExists) {
+    public AnalyzedDropSubscription(String name, Subscription subscription, boolean ifExists) {
         this.name = name;
+        this.subscription = subscription;
         this.ifExists = ifExists;
     }
 
     public String name() {
         return name;
+    }
+
+    public Subscription subscription() {
+        return subscription;
     }
 
     public boolean ifExists() {
