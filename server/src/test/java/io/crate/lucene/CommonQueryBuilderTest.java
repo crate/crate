@@ -224,8 +224,8 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(query.toString(), is("_id:[ff 69 31]"));
 
         query = convert("_id = 1");
-        assertThat(query, instanceOf(TermQuery.class));
-        assertThat(query.toString(), is("_id:[fe 1f]"));
+        assertThat(query, instanceOf(GenericFunctionQuery.class));
+        assertThat(query.toString(), is("(_cast(_id, 'integer') = 1)"));
     }
 
     @Test
