@@ -42,7 +42,6 @@ import java.io.InputStreamReader;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -290,18 +289,16 @@ public class FileReadingIterator implements BatchIterator<Row> {
     @VisibleForTesting
     public static URI toURI(String fileUri) {
         if (fileUri.startsWith("/")) {
-            // using Paths.get().toUri instead of new URI(...) as it also encodes umlauts and other special characters
-            return Paths.get(fileUri).toUri();
-        } else {
-            URI uri = URI.create(fileUri);
-            if (uri.getScheme() == null) {
-                throw new IllegalArgumentException("relative fileURIs are not allowed");
-            }
-            if (uri.getScheme().equals("file") && !uri.getSchemeSpecificPart().startsWith("///")) {
-                throw new IllegalArgumentException("Invalid fileURI");
-            }
-            return uri;
+            fileUri = "file://" + fileUri;
         }
+        URI uri = URI.create(fileUri);
+        if (uri.getScheme() == null) {
+            throw new IllegalArgumentException("relative fileURIs are not allowed");
+        }
+        if (uri.getScheme().equals("file") && !uri.getSchemeSpecificPart().startsWith("///")) {
+            throw new IllegalArgumentException("Invalid fileURI");
+        }
+        return uri;
     }
 
     @Nullable

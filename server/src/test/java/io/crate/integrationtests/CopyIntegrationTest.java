@@ -89,6 +89,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create table t (a int)");
         ensureYellow();
         execute("copy t from 'file:///tmp/unknown_dir/*'");
+        execute("copy t from '/tmp/unknown_dir/*'");
     }
 
     @Test
