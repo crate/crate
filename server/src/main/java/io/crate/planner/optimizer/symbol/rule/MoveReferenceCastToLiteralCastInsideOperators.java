@@ -24,6 +24,8 @@ package io.crate.planner.optimizer.symbol.rule;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
+import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
@@ -39,7 +41,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static io.crate.expression.operator.Operators.COMPARISON_OPERATORS;
-import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 
@@ -62,7 +63,8 @@ public class MoveReferenceCastToLiteralCastInsideOperators implements Rule<Funct
             .with(f -> MATCHING_OPERATORS.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType() == SymbolType.LITERAL)
             .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
-                .with(f -> CAST_FUNCTION_NAMES.contains(f.name()))
+                // We have to respect explicit casts, see https://github.com/crate/crate/issues/12135
+                .with(f -> f.name().equals(ImplicitCastFunction.NAME) || f.name().equals(TryCastFunction.NAME))
                 .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
             );
     }
