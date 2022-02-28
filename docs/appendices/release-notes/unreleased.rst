@@ -63,6 +63,11 @@ Changes
   parameter and also a ``WITH`` clause parameter ``protocol`` to choose between
   ``HTTP`` or ``HTTPS``.
 
+- Added the option to import CSV files without field headers using the ``COPY
+  FROM`` statement.
+
+- Added the option to import only a subset of columns using ``COPY FROM`` when
+  import CSV files with headers.
 
 Fixes
 =====

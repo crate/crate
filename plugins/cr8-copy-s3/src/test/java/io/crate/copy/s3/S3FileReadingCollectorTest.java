@@ -246,6 +246,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             false,
             1,
             0,
+            List.of("id", "name", "details"),
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
             Settings.EMPTY);

@@ -87,7 +87,8 @@ statement
     | RESTORE SNAPSHOT qname
         (ALL | METADATA | TABLE tableWithPartitions | metatypes=idents)
         withProperties?                                                              #restore
-    | COPY tableWithPartition FROM path=expr withProperties? (RETURN SUMMARY)?       #copyFrom
+    | COPY tableWithPartition ('(' ident (',' ident)* ')')?
+         FROM path=expr withProperties? (RETURN SUMMARY)?                            #copyFrom
     | COPY tableWithPartition columns? where?
         TO DIRECTORY? path=expr withProperties?                                      #copyTo
     | DROP BLOB TABLE (IF EXISTS)? table                                             #dropBlobTable

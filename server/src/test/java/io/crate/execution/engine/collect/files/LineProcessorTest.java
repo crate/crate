@@ -31,6 +31,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
@@ -46,7 +47,7 @@ public class LineProcessorTest {
 
     @Before
     public void setup() {
-        subjectUnderTest  = new LineProcessor(CopyFromParserProperties.DEFAULT);
+        subjectUnderTest  = new LineProcessor(CopyFromParserProperties.DEFAULT, List.of("a", "b"));
     }
 
     @Test

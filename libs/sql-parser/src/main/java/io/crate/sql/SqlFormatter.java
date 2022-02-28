@@ -182,6 +182,17 @@ public final class SqlFormatter {
 
             append(indent, "COPY ");
             copyFrom.table().accept(this, indent);
+            var columns = node.columns().iterator();
+            if (columns.hasNext()) {
+                builder.append('(');
+                while (columns.hasNext()) {
+                    builder.append(columns.next());
+                    if (columns.hasNext()) {
+                        builder.append(", ");
+                    }
+                }
+                builder.append(')');
+            }
             append(indent, " FROM ");
             copyFrom.path().accept(this, indent);
             if (!copyFrom.properties().isEmpty()) {

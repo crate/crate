@@ -69,6 +69,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private final Iterable<LineCollectorExpression<?>> collectorExpressions;
 
     private volatile Throwable killed;
+    private final List<String> targetColumns;
     private final CopyFromParserProperties parserProperties;
     private final FileUriCollectPhase.InputFormat inputFormat;
     private Iterator<FileInput> fileInputsIterator = null;
@@ -88,6 +89,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                 Boolean shared,
                                 int numReaders,
                                 int readerNumber,
+                                List<String> targetColumns,
                                 CopyFromParserProperties parserProperties,
                                 FileUriCollectPhase.InputFormat inputFormat,
                                 Settings withClauseOptions) {
@@ -99,6 +101,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         this.readerNumber = readerNumber;
         this.fileInputs = fileUris.stream().map(uri -> toFileInput(uri, withClauseOptions)).filter(Objects::nonNull).toList();
         this.collectorExpressions = collectorExpressions;
+        this.targetColumns = targetColumns;
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
         initCollectorState();
@@ -122,6 +125,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                                  Boolean shared,
                                                  int numReaders,
                                                  int readerNumber,
+                                                 List<String> targetColumns,
                                                  CopyFromParserProperties parserProperties,
                                                  FileUriCollectPhase.InputFormat inputFormat,
                                                  Settings withClauseOptions) {
@@ -134,13 +138,14 @@ public class FileReadingIterator implements BatchIterator<Row> {
             shared,
             numReaders,
             readerNumber,
+            targetColumns,
             parserProperties,
             inputFormat,
             withClauseOptions);
     }
 
     private void initCollectorState() {
-        lineProcessor = new LineProcessor(parserProperties);
+        lineProcessor = new LineProcessor(parserProperties, targetColumns);
         lineProcessor.startCollect(collectorExpressions);
         fileInputsIterator = fileInputs.iterator();
     }

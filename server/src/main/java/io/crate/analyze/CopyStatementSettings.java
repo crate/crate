@@ -57,6 +57,11 @@ public final class CopyStatementSettings {
         false,
         Setting.Property.Dynamic);
 
+    public static final Setting<Boolean> INPUT_HEADER_SETTINGS = Setting.boolSetting(
+        "header",
+        true,
+        Setting.Property.Dynamic);
+
     public static final Setting<Character> CSV_COLUMN_SEPARATOR = new Setting<>(
         "delimiter",
         String.valueOf(CsvSchema.DEFAULT_COLUMN_SEPARATOR),

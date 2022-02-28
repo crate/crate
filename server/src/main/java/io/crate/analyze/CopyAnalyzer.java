@@ -83,12 +83,14 @@ class CopyAnalyzer {
         if (node.isReturnSummary()) {
             return new AnalyzedCopyFromReturnSummary(
                 tableInfo,
+                node.columns(),
                 table,
                 properties,
                 normalizer.normalize(uri, txnCtx));
         } else {
             return new AnalyzedCopyFrom(
                 tableInfo,
+                node.columns(),
                 table,
                 properties,
                 normalizer.normalize(uri, txnCtx));

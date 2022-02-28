@@ -111,7 +111,7 @@ public class LineContext {
         currentLineNumber++;
     }
 
-    long getCurrentLineNumber() {
+    public long getCurrentLineNumber() {
         return currentLineNumber;
     }
 }

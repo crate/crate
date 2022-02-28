@@ -1109,6 +1109,7 @@ public class TestStatementBuilder {
         printStatement("copy foo partition (a={key='value'}) from ?");
         printStatement("copy foo from '/folder/file.extension'");
         printStatement("copy foo from ?");
+        printStatement("copy foo (a,b) from ?");
         printStatement("copy foo from ? with (some_property=1)");
         printStatement("copy foo from ? with (some_property=false)");
         printStatement("copy schemah.foo from '/folder/file.extension'");

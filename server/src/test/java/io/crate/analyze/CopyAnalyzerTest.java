@@ -138,6 +138,15 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testCopyFromWithColumnList() throws Exception {
+        BoundCopyFrom analysis = analyze("COPY users (id, name) FROM  '/some/distant/file.ext'");
+        List<String> outputs = analysis.targetColumns();
+        assertThat(outputs.size(), is(2));
+        assertThat(outputs.get(0), is("id"));
+        assertThat(outputs.get(1), is("name"));
+    }
+
+    @Test
     public void testCopyFromUnknownSchema() throws Exception {
         expectedException.expect(SchemaUnknownException.class);
         analyze("COPY suess.shards FROM '/nope/nope/still.nope'");
@@ -174,6 +183,19 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             is(Settings.builder()
                    .put("empty_string_as_null", true)
                    .put("format", "csv")
+                   .build())
+        );
+    }
+
+    @Test
+    public void test_copy_from_supports_header_setting_option() {
+        BoundCopyFrom analysis = analyze(
+            "COPY users FROM '/some/distant/file.ext' WITH (format='csv', header=false)");
+        assertThat(
+            analysis.settings(),
+            is(Settings.builder()
+                   .put("format", "csv")
+                   .put("header", false)
                    .build())
         );
     }

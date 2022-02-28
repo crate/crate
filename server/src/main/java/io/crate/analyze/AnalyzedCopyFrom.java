@@ -27,20 +27,24 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 import io.crate.types.DataType;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 public class AnalyzedCopyFrom implements AnalyzedStatement {
 
     private final DocTableInfo tableInfo;
+    private final List<String> targetColumns;
     private final Table<Symbol> table;
     private final GenericProperties<Symbol> properties;
     private final Symbol uri;
 
     AnalyzedCopyFrom(DocTableInfo tableInfo,
+                     List<String> targetColumns,
                      Table<Symbol> table,
                      GenericProperties<Symbol> properties,
                      Symbol uri) {
         this.tableInfo = tableInfo;
+        this.targetColumns = targetColumns;
         this.table = table;
         this.properties = properties;
         this.uri = uri;
@@ -48,6 +52,10 @@ public class AnalyzedCopyFrom implements AnalyzedStatement {
 
     public DocTableInfo tableInfo() {
         return tableInfo;
+    }
+
+    public List<String> targetColumns() {
+        return targetColumns;
     }
 
     public GenericProperties<Symbol> properties() {

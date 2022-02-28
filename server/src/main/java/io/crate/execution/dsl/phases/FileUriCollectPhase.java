@@ -43,6 +43,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
 
     private final Collection<String> executionNodes;
     private final Symbol targetUri;
+    private final List<String> targetColumns;
     private final List<Symbol> toCollect;
     private final CopyFromParserProperties parserProperties;
     private final String compression;
@@ -56,6 +57,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
                                String name,
                                Collection<String> executionNodes,
                                Symbol targetUri,
+                               List<String> targetColumns,
                                List<Symbol> toCollect,
                                List<Projection> projections,
                                String compression,
@@ -66,6 +68,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         super(jobId, phaseId, name, projections);
         this.executionNodes = executionNodes;
         this.targetUri = targetUri;
+        this.targetColumns = targetColumns;
         this.toCollect = toCollect;
         this.compression = compression;
         this.sharedStorage = sharedStorage;
@@ -82,6 +85,10 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
 
     public Symbol targetUri() {
         return targetUri;
+    }
+
+    public List<String> targetColumns() {
+        return targetColumns;
     }
 
     @Override
@@ -121,13 +128,17 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         compression = in.readOptionalString();
         sharedStorage = in.readOptionalBoolean();
         targetUri = Symbols.fromStream(in);
-
         int numNodes = in.readVInt();
         List<String> nodes = new ArrayList<>(numNodes);
         for (int i = 0; i < numNodes; i++) {
             nodes.add(in.readString());
         }
         this.executionNodes = nodes;
+        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
+            targetColumns = in.readList(StreamInput::readString);
+        } else {
+            targetColumns = List.of();
+        }
         toCollect = Symbols.listFromStream(in);
         inputFormat = InputFormat.values()[in.readVInt()];
         if (in.getVersion().onOrAfter(Version.V_4_4_0)) {
@@ -151,6 +162,9 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         out.writeVInt(executionNodes.size());
         for (String node : executionNodes) {
             out.writeString(node);
+        }
+        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
+            out.writeStringCollection(targetColumns);
         }
         Symbols.toStream(toCollect, out);
         out.writeVInt(inputFormat.ordinal());
@@ -195,6 +209,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         FileUriCollectPhase that = (FileUriCollectPhase) o;
         return Objects.equals(executionNodes, that.executionNodes) &&
                Objects.equals(targetUri, that.targetUri) &&
+               Objects.equals(targetColumns, that.targetColumns) &&
                Objects.equals(toCollect, that.toCollect) &&
                Objects.equals(parserProperties, that.parserProperties) &&
                Objects.equals(compression, that.compression) &&
@@ -210,6 +225,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
             super.hashCode(),
             executionNodes,
             targetUri,
+            targetColumns,
             toCollect,
             parserProperties,
             compression,
@@ -224,6 +240,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         return "FileUriCollectPhase{" +
                "executionNodes=" + executionNodes +
                ", targetUri=" + targetUri +
+               ", targetColumns=" + targetColumns +
                ", toCollect=" + toCollect +
                ", parserProperties=" + parserProperties +
                ", compression='" + compression + '\'' +

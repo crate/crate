@@ -21,20 +21,24 @@
 
 package io.crate.sql.tree;
 
+import java.util.List;
 import java.util.Objects;
 
 public class CopyFrom<T> extends Statement {
 
     private final Table<T> table;
+    private final List<String> columns;
     private final T path;
     private final GenericProperties<T> properties;
     private final boolean returnSummary;
 
     public CopyFrom(Table<T> table,
+                    List<String> columns,
                     T path,
                     GenericProperties<T> properties,
                     boolean returnSummary) {
         this.table = table;
+        this.columns = columns;
         this.path = path;
         this.properties = properties;
         this.returnSummary = returnSummary;
@@ -42,6 +46,10 @@ public class CopyFrom<T> extends Statement {
 
     public Table<T> table() {
         return table;
+    }
+
+    public List<String> columns() {
+        return columns;
     }
 
     public T path() {
@@ -67,19 +75,21 @@ public class CopyFrom<T> extends Statement {
         CopyFrom<?> copyFrom = (CopyFrom<?>) o;
         return returnSummary == copyFrom.returnSummary &&
                Objects.equals(table, copyFrom.table) &&
+               Objects.equals(columns, copyFrom.columns) &&
                Objects.equals(path, copyFrom.path) &&
                Objects.equals(properties, copyFrom.properties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(table, path, properties, returnSummary);
+        return Objects.hash(table, columns, path, properties, returnSummary);
     }
 
     @Override
     public String toString() {
         return "CopyFrom{" +
                "table=" + table +
+               ", columns=" + columns +
                ", path=" + path +
                ", properties=" + properties +
                ", returnSummary=" + returnSummary +

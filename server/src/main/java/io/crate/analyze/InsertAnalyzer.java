@@ -225,7 +225,7 @@ class InsertAnalyzer {
         }
     }
 
-    private static Collection<Reference> resolveTargetColumns(Collection<String> targetColumnNames,
+    public static Collection<Reference> resolveTargetColumns(Collection<String> targetColumnNames,
                                                               DocTableInfo targetTable) {
         if (targetColumnNames.isEmpty()) {
             return targetTable.columns();

@@ -51,11 +51,12 @@ public class FileUriCollectPhaseTest {
             "test",
             Collections.singletonList("noop_id"),
             Literal.of("uri"),
+            List.of(),
             List.of(createReference("name", DataTypes.STRING)),
             Collections.emptyList(),
             null,
             false,
-            new CopyFromParserProperties(true, '|'),
+            new CopyFromParserProperties(true, true, '|'),
             FileUriCollectPhase.InputFormat.CSV,
             Settings.EMPTY
         );
@@ -71,6 +72,7 @@ public class FileUriCollectPhaseTest {
         assertThat(expected.nodeIds(), is(actual.nodeIds()));
         assertThat(expected.distributionInfo(), is(actual.distributionInfo()));
         assertThat(expected.targetUri(), is(actual.targetUri()));
+        assertThat(expected.targetColumns(), is(actual.targetColumns()));
         assertThat(expected.toCollect(), is(actual.toCollect()));
 
         // parser properties option serialization implemented in crate >= 4.4.0
@@ -92,11 +94,12 @@ public class FileUriCollectPhaseTest {
             "test",
             Collections.singletonList("noop_id"),
             Literal.of("uri"),
+            List.of(),
             List.of(createReference("name", DataTypes.STRING)),
             Collections.emptyList(),
             null,
             false,
-            new CopyFromParserProperties(true, '|'),
+            new CopyFromParserProperties(true, true, '|'),
             FileUriCollectPhase.InputFormat.CSV,
             Settings.EMPTY
         );
@@ -122,11 +125,12 @@ public class FileUriCollectPhaseTest {
             "test",
             Collections.singletonList("noop_id"),
             Literal.of("uri"),
+            List.of(),
             List.of(createReference("name", DataTypes.STRING)),
             Collections.emptyList(),
             null,
             false,
-            new CopyFromParserProperties(true, '|'),
+            new CopyFromParserProperties(true, true, '|'),
             FileUriCollectPhase.InputFormat.CSV,
             Settings.EMPTY
         );
@@ -137,11 +141,12 @@ public class FileUriCollectPhaseTest {
             "test",
             Collections.singletonList("noop_id"),
             Literal.of("uri"),
+            List.of("a", "b"),
             List.of(createReference("name", DataTypes.STRING)),
             Collections.emptyList(),
             null,
             false,
-            new CopyFromParserProperties(true, '|'),
+            new CopyFromParserProperties(true, true, '|'),
             FileUriCollectPhase.InputFormat.CSV,
             Settings.builder().put("protocol", "http").build()
         );
@@ -165,11 +170,12 @@ public class FileUriCollectPhaseTest {
             "test",
             Collections.singletonList("noop_id"),
             Literal.of("uri"),
+            List.of("a", "b"),
             List.of(createReference("name", DataTypes.STRING)),
             Collections.emptyList(),
             null,
             false,
-            new CopyFromParserProperties(true, '|'),
+            new CopyFromParserProperties(true, true, '|'),
             FileUriCollectPhase.InputFormat.CSV,
             Settings.builder().put("protocol", "http").build()
         );

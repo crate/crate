@@ -44,10 +44,11 @@ public class AnalyzedCopyFromReturnSummary extends AnalyzedCopyFrom implements A
     private final List<ScopedSymbol> fields;
 
     AnalyzedCopyFromReturnSummary(DocTableInfo tableInfo,
+                                  List<String> targetColumns,
                                   Table<Symbol> table,
                                   GenericProperties<Symbol> properties,
                                   Symbol uri) {
-        super(tableInfo, table, properties, uri);
+        super(tableInfo, targetColumns, table, properties, uri);
         this.fields = List.of(
             new ScopedSymbol(tableInfo.ident(), new ColumnIdent("node"), ObjectType.builder()
                 .setInnerType("id", DataTypes.STRING)

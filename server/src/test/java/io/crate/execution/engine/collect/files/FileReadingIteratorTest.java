@@ -176,6 +176,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             false,
             1,
             0,
+            List.of("name", "id", "age"),
             CopyFromParserProperties.DEFAULT,
             format,
             Settings.EMPTY);
