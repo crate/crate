@@ -30,10 +30,15 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
+
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 public class ImplicitCastFunction extends Scalar<Object, Object> {
 
@@ -53,22 +58,56 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
 
     private final Signature signature;
     private final Signature boundSignature;
+    @Nullable
+    private final DataType<?> targetType;
 
     private ImplicitCastFunction(Signature signature, Signature boundSignature) {
+        this(signature, boundSignature, null);
+    }
+
+    private ImplicitCastFunction(Signature signature, Signature boundSignature, @Nullable DataType<?> targetType) {
         this.signature = signature;
         this.boundSignature = boundSignature;
+        this.targetType = targetType;
+    }
+
+    @Override
+    public Scalar<Object, Object> compile(List<Symbol> args) {
+        assert args.size() == 2 : "number of arguments must be 2";
+        Symbol input = args.get(1);
+        if (input instanceof Input) {
+            String targetTypeValue = (String) ((Input<?>) input).value();
+            var targetTypeSignature = parseTypeSignature(targetTypeValue);
+            var targetType = targetTypeSignature.createType();
+            return new ImplicitCastFunction(
+                signature,
+                boundSignature,
+                targetType
+            );
+        }
+        return this;
     }
 
     @Override
     public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
-        var targetTypeSignature = parseTypeSignature((String) args[1].value());
-        var targetType = targetTypeSignature.createType();
+        assert args.length == 1 || args.length == 2 : "number of args must be 1 or 2";
+        var arg = args[0].value();
+        if (targetType == null) {
+            var targetTypeSignature = parseTypeSignature((String) args[1].value());
+            var targetType = targetTypeSignature.createType();
+            return castToTargetType(targetType, arg);
+        } else {
+            return castToTargetType(targetType, arg);
+        }
+    }
+
+    private static Object castToTargetType(DataType<?> targetType, Object arg) {
         try {
-            return targetType.implicitCast(args[0].value());
+            return targetType.implicitCast(arg);
         } catch (ConversionException e) {
             throw e;
         } catch (ClassCastException | IllegalArgumentException e) {
-            throw new ConversionException(args[0].value(), targetType);
+            throw new ConversionException(arg, targetType);
         }
     }
 

@@ -33,6 +33,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+
+import org.hamcrest.core.IsSame;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -51,6 +53,7 @@ import static io.crate.types.DataTypes.GEO_SHAPE;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -297,5 +300,10 @@ public class CastFunctionTest extends ScalarTestCase {
     @Test
     public void test_can_cast_text_to_json_array() throws Exception {
         assertEvaluate("'[{\"x\": 10}, {\"x\": 20}]'::json[]", is(List.of("{\"x\":10}", "{\"x\":20}")));
+    }
+
+    @Test
+    public void test_implicit_cast_is_compiled() throws Exception {
+        assertCompile("_cast(a, 'double precision')", (s) -> not(IsSame.sameInstance(s)) );
     }
 }

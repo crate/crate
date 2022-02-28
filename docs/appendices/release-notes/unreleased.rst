@@ -56,6 +56,9 @@ None
 Changes
 =======
 
+- Improved the evaluation performance of implicit casts by utilize the compile
+  step of the function to determine the return type.
+
 - Added a ``flush_stats`` column to the :ref:`sys.shards <sys-shards>` table.
 
 - Allowed users to be able to specify different S3 compatible storage endpoints
