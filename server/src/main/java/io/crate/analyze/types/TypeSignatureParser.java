@@ -23,10 +23,6 @@ package io.crate.analyze.types;
 
 import java.util.ArrayList;
 
-import javax.annotation.Nullable;
-
-import org.elasticsearch.common.recycler.Recycler;
-
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayDataTypeSignature;
 import io.crate.sql.tree.DataTypeParameter;
@@ -38,17 +34,15 @@ import io.crate.types.IntegerLiteralTypeSignature;
 import io.crate.types.ParameterTypeSignature;
 import io.crate.types.TypeSignature;
 
-public class TypeSignatureParser extends DefaultTraversalVisitor<TypeSignature, Void> {
+public final class TypeSignatureParser extends DefaultTraversalVisitor<TypeSignature, Void> {
 
     private static final SqlParser SQL_PARSER = new SqlParser();
-
-    private TypeSignatureParser() {
-    }
-
     private static final TypeSignatureParser INSTANCE = new TypeSignatureParser();
 
+    private TypeSignatureParser() {}
+
     public static TypeSignature parse(String signature) {
-        DataTypeSignature dataTypeSignature = SQL_PARSER.generateDataTypeSignature(signature);
+        var dataTypeSignature = SQL_PARSER.generateDataTypeSignature(signature);
         return dataTypeSignature.accept(INSTANCE, null);
     }
 
@@ -62,7 +56,7 @@ public class TypeSignatureParser extends DefaultTraversalVisitor<TypeSignature, 
 
     public TypeSignature visitGenericSignatureType(GenericSignatureType typeSignature, Void context) {
         String name = typeSignature.name();
-        ArrayList<TypeSignature> fields = new ArrayList<>();
+        var fields = new ArrayList<TypeSignature>();
         for (DataTypeSignature field : typeSignature.fields()) {
             fields.add(field.accept(this, context));
         }
@@ -70,11 +64,11 @@ public class TypeSignatureParser extends DefaultTraversalVisitor<TypeSignature, 
         if (name.length() == 1) {
             name = name.toUpperCase();
         }
-        return new io.crate.types.TypeSignature(name, fields);
+        return new TypeSignature(name, fields);
     }
 
     public TypeSignature visitDataTypeParameter(DataTypeParameter dataTypeParameter, Void context) {
-        if (dataTypeParameter.identifier() != null) {
+        if (dataTypeParameter.identifier() != null && dataTypeParameter.typeSignature() != null) {
             var typeSignature = dataTypeParameter.typeSignature().accept(this, context);
             return new ParameterTypeSignature(dataTypeParameter.identifier(), typeSignature);
         }
@@ -84,7 +78,6 @@ public class TypeSignatureParser extends DefaultTraversalVisitor<TypeSignature, 
         if (dataTypeParameter.typeSignature() != null) {
             return dataTypeParameter.typeSignature().accept(this, context);
         }
-
         throw new IllegalArgumentException("Invalid DataTypeParameter: " + dataTypeParameter.toString());
     }
 
