@@ -5,6 +5,8 @@
 ``ALTER CLUSTER``
 =================
 
+.. include:: ../../_include/version-note.rst
+
 Alter the state of an existing cluster.
 
 .. rubric:: Table of Contents
@@ -17,7 +19,7 @@ Synopsis
 
 ::
 
-    ALTER CLUSTER 
+    ALTER CLUSTER
       { REROUTE RETRY FAILED
       | DECOMMISSION <nodeId | nodeName>
       | SWAP TABLE source TO target [ WITH ( expr = expr [ , ... ] ) ]

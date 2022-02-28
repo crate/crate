@@ -5,6 +5,8 @@
 Value Expressions
 =================
 
+.. include:: ../../_include/version-note.rst
+
 Value expressions are expressions which return a single value.
 
 They can be used in many contexts of many statements.

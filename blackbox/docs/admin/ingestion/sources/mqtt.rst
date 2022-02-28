@@ -5,6 +5,8 @@
 MQTT Ingestion Source
 =====================
 
+.. include:: ../../../_include/version-note.rst
+
 .. sidebar:: Overview
 
    .. figure:: mqtt-01.png

@@ -4,6 +4,8 @@
 Community Edition
 =================
 
+.. include:: ../_include/version-note.rst
+
 The community edition (``CE``) of CrateDB is a distribution that excludes
 enterprise modules which are licensed under a more restrictive license. The
 ``CE`` can be used under the terms of the Apache License version 2 without

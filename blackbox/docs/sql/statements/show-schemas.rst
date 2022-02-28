@@ -4,6 +4,8 @@
 ``SHOW SCHEMAS``
 ================
 
+.. include:: ../../_include/version-note.rst
+
 Lists the table schemas of the database.
 
 .. rubric:: Table of Contents

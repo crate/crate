@@ -4,6 +4,8 @@
 Altering Tables
 ===============
 
+.. include:: ../../_include/version-note.rst
+
 .. NOTE::
 
    ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported.

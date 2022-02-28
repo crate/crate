@@ -4,6 +4,8 @@
  Storage
 =========
 
+.. include:: ../../_include/version-note.rst
+
 Data storage options can be tuned for each column similar to how indexing is defined.
 
 .. _ddl-storage-columnstore:

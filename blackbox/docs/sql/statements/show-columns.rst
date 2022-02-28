@@ -4,6 +4,8 @@
 ``SHOW COLUMNS``
 ================
 
+.. include:: ../../_include/version-note.rst
+
 ``SHOW COLUMNS`` displays information about columns in a given table.
 
 .. rubric:: Table of Contents

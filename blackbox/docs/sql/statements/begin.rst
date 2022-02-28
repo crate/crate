@@ -5,6 +5,8 @@
 ``BEGIN``
 =========
 
+.. include:: ../../_include/version-note.rst
+
 Start a transaction block
 
 .. rubric:: Table of Contents

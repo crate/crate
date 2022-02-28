@@ -5,6 +5,8 @@
 ``KILL``
 ========
 
+.. include:: ../../_include/version-note.rst
+
 Kills active jobs in the CrateDB cluster.
 
 .. rubric:: Table of Contents

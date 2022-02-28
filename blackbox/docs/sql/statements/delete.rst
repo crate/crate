@@ -4,6 +4,8 @@
 ``DELETE``
 ==========
 
+.. include:: ../../_include/version-note.rst
+
 Delete rows of a table
 
 .. rubric:: Table of Contents

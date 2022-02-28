@@ -4,6 +4,8 @@
 ``SHOW TABLES``
 ===============
 
+.. include:: ../../_include/version-note.rst
+
 Lists the tables in the database.
 
 .. rubric:: Table of Contents

@@ -5,6 +5,8 @@
 System Information
 ==================
 
+.. include:: ../_include/version-note.rst
+
 CrateDB provides the ``sys`` schema which contains virtual tables. These tables
 are read-only and can be queried to get statistical real-time information about
 the cluster, its nodes and their shards:
@@ -1200,8 +1202,8 @@ statements.
 +------------------------------+----------------------------------------------------+------------------+
 | ``total_count``              | Total number of queries executed                   | ``LONG``         |
 +------------------------------+----------------------------------------------------+------------------+
-| ``failed_count``             | Total number of queries that failed to complete    | ``LONG``         |  
-|                              | successfully.                                      |                  | 
+| ``failed_count``             | Total number of queries that failed to complete    | ``LONG``         |
+|                              | successfully.                                      |                  |
 +------------------------------+----------------------------------------------------+------------------+
 | ``sum_of_durations``         | Sum of durations in ms of all executed queries per | ``LONG``         |
 |                              | statement type.                                    |                  |

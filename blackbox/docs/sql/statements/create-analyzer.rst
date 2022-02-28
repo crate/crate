@@ -5,6 +5,8 @@
 ``CREATE ANALYZER``
 ===================
 
+.. include:: ../../_include/version-note.rst
+
 Define a new fulltext analyzer.
 
 .. rubric:: Table of Contents
@@ -89,4 +91,3 @@ Parameters
 :custom_name:
   A custom unqiue name needed when defining custom
   tokenizers/token_filter/char_filter.
-

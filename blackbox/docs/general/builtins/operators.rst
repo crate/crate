@@ -4,6 +4,8 @@
 Comparison Operators
 ====================
 
+.. include:: ../../_include/version-note.rst
+
 These operations test whether two expressions are equal. Comparison Operators
 result in a value of ``true``, ``false`` or ``null``.
 The following tables show the usual comparison operators that can be used for

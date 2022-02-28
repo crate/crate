@@ -5,6 +5,8 @@
 ``SET`` and ``RESET``
 =====================
 
+.. include:: ../../_include/version-note.rst
+
 Change and restore settings at runtime. To get an overview of available CrateDB
 settings, see :ref:`config`. Only settings documented with *Runtime:* ``yes``
 can be changed.

@@ -4,6 +4,8 @@
 Environment Variables
 =====================
 
+.. include:: ../_include/version-note.rst
+
 CrateDB can be configured with some `environment variables`_.
 
 There are many different ways to set environment variables, depending on how

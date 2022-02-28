@@ -6,6 +6,8 @@
 ``DROP INGEST RULE``
 ====================
 
+.. include:: ../../_include/version-note.rst
+
 Deletes an existing ingestion rule.
 
    .. WARNING::

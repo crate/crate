@@ -4,6 +4,8 @@
 Generated Columns
 =================
 
+.. include:: ../../_include/version-note.rst
+
 It is possible to define columns whose value is computed by applying a
 *generation expression* in the context of the current row. The generation
 expression can reference the values of other columns.

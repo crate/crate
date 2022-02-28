@@ -15,6 +15,8 @@
 Ingestion Rules
 ===============
 
+.. include:: ../../_include/version-note.rst
+
 Ingestion rules define where and how the incoming data of a specific
 :ref:`ingestion source <administration-ingestion-sources>` should be routed and
 stored.

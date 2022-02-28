@@ -4,6 +4,8 @@
 User Management
 ===============
 
+.. include:: ../_include/version-note.rst
+
 .. NOTE::
 
    User management is an

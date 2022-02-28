@@ -4,6 +4,8 @@
 System Columns
 ==============
 
+.. include:: ../../_include/version-note.rst
+
 On every table CrateDB implements several implicitly defined system columns.
 Their names are reserved and cannot be used as user-defined column names. All
 system columns are prefixed with an underscore, consist of lowercase letters

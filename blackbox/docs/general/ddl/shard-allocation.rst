@@ -4,6 +4,8 @@
  Shard Allocation Filtering
 ============================
 
+.. include:: ../../_include/version-note.rst
+
 Shard allocation filters allows to configure shard and replicas allocation per
 table across generic attributes associated with nodes.
 

@@ -4,6 +4,8 @@
 Administration
 ==============
 
+.. include:: ../_include/version-note.rst
+
 This section of the documentation covers any feature primarily of interest to a
 database administrator.
 

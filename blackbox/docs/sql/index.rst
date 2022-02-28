@@ -2,6 +2,8 @@
 SQL Syntax
 ==========
 
+.. include:: ../_include/version-note.rst
+
 CrateDB uses `SQL`_ to query documents.
 
 This section of the documentation provides a full SQL syntax reference.

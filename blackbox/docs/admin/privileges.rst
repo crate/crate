@@ -5,6 +5,8 @@
 Privileges
 ==========
 
+.. include:: ../_include/version-note.rst
+
 The superuser is allowed to execute any statement without any privilege checks.
 
 The superuser uses ``GRANT``, ``DENY`` and ``REVOKE`` statements to control

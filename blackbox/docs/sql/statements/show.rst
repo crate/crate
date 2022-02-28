@@ -5,6 +5,8 @@
 ``SHOW (session settings)``
 ===========================
 
+.. include:: ../../_include/version-note.rst
+
 The ``SHOW`` statement can display the value of either one or all session
 setting variables. Some of these can also be configured via
 :ref:`SET SESSION <ref-set>`.

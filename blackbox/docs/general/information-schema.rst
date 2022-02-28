@@ -5,6 +5,8 @@
 Information Schema
 ==================
 
+.. include:: ../_include/version-note.rst
+
 ``information_schema`` is a special schema that contains virtual tables which
 are read-only and can be queried to get information about the state of the
 cluster.

@@ -5,6 +5,8 @@
 ``INSERT``
 ==========
 
+.. include:: ../../_include/version-note.rst
+
 Create new rows in a table.
 
 .. rubric:: Table of Contents

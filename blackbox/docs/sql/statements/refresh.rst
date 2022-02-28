@@ -5,6 +5,8 @@
 ``REFRESH``
 ===========
 
+.. include:: ../../_include/version-note.rst
+
 Refresh one or more tables explicitly.
 
 .. rubric:: Table of Contents

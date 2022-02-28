@@ -4,6 +4,8 @@
 ``CREATE INGEST RULE``
 ======================
 
+.. include:: ../../_include/version-note.rst
+
 Defines a new ingestion rule.
 
    .. WARNING::
@@ -39,14 +41,14 @@ Parameters
 
 :rule_name:
   The rule name.
-  
+
 :source_ident:
   The ingestion source identifier.
-  
+
 :condition:
   A boolean expression using references specific to the ingestion
   implementation.
-  
+
 :table_ident:
   The target table identifier.
 

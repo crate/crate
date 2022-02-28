@@ -4,6 +4,8 @@
 ``DROP ANALYZER``
 =================
 
+.. include:: ../../_include/version-note.rst
+
 Remove a custom analzer.
 
 .. rubric:: Table of Contents

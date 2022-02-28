@@ -4,6 +4,8 @@
 ``DROP USER``
 =============
 
+.. include:: ../../_include/version-note.rst
+
 Drop an existing database user.
 
 .. rubric:: Table of Contents

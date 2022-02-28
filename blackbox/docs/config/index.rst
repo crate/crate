@@ -4,6 +4,8 @@
 Configuration
 =============
 
+.. include:: ../_include/version-note.rst
+
 CrateDB ships with sensible defaults, so configuration is typically not needed
 for basic, single node use.
 

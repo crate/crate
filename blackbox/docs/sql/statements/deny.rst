@@ -4,6 +4,8 @@
 ``DENY``
 ========
 
+.. include:: ../../_include/version-note.rst
+
 Denies privilege to an existing user on the whole cluster or on a specific
 object.
 

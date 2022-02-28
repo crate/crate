@@ -5,6 +5,8 @@
 Running CrateDB
 ===============
 
+.. include:: ./_include/version-note.rst
+
 This document covers the basics of running CrateDB from the command line.
 
 .. SEEALSO::

@@ -5,6 +5,8 @@
 ``CREATE VIEW``
 ===============
 
+.. include:: ../../_include/version-note.rst
+
 Define a new view.
 
 .. rubric:: Table of Contents

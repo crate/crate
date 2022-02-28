@@ -4,6 +4,8 @@
 Client Interfaces
 =================
 
+.. include:: ../_include/version-note.rst
+
 There are two ways for clients to talk to CrateDB. This section of the documentation covers both from a
 client implementation perspective.
 

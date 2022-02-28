@@ -4,6 +4,8 @@
 ``DROP TABLE``
 ==============
 
+.. include:: ../../_include/version-note.rst
+
 Remove a table.
 
 .. rubric:: Table of Contents

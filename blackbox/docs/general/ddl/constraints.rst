@@ -2,6 +2,8 @@
 Constraints
 ===========
 
+.. include:: ../../_include/version-note.rst
+
 Columns can be constrained in two ways:
 
 .. contents::

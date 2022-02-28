@@ -5,6 +5,8 @@
 ``DROP REPOSITORY``
 ===================
 
+.. include:: ../../_include/version-note.rst
+
 Unregister a repository.
 
 .. rubric:: Table of Contents

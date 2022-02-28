@@ -5,6 +5,8 @@
 ``SET LICENSE``
 ===============
 
+.. include:: ../../_include/version-note.rst
+
 Sets the license Key.
 
 .. rubric:: Table of Contents

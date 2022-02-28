@@ -4,6 +4,8 @@
 Array Comparisons
 =================
 
+.. include:: ../../_include/version-note.rst
+
 This section contains several constructs that can be used to make comparisons
 between a list of values. Comparison operations result in a boolean value
 (``true``/``false``) or ``null``.

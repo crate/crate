@@ -4,6 +4,8 @@
 Usage Data Collector
 ====================
 
+.. include:: ../_include/version-note.rst
+
 The CrateDB Usage Data Collector (UDC) is a sub-system that gathers usage data,
 reporting it to the UDC server at https://udc.crate.io. It is easy to disable,
 and does not collect any data that is confidential. For more information about
@@ -45,7 +47,7 @@ CrateDB Version   The CrateDB version.
 Java Version      The Java version CrateDB is currently running with.
 Hardware Address  MAC address to uniquely identify instances behind
                   firewalls.
-Processor count   Number of available CPUs as reported by 
+Processor count   Number of available CPUs as reported by
                   ``Runtime.availableProcessors``
 Enterprise        Identifies whether the Enterprise Edition is used.
 License           License information of the CrateDB Enterprise Edition.

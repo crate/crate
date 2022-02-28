@@ -5,6 +5,8 @@
 Selecting Data
 ==============
 
+.. include:: ../../_include/version-note.rst
+
 Selecting (i.e. retrieving) data from CrateDB is done by using a SQL ``SELECT``
 statement. The response to a ``SELECT`` query contains the column names of the
 result, the actual result rows as a two-dimensional array of values, the row
@@ -687,7 +689,7 @@ Object Arrays
 =============
 
 Arrays in CrateDB can be queried for containment using the
-:ref:`sql_dql_any_array` operator. 
+:ref:`sql_dql_any_array` operator.
 
 It is possible to access fields of :ref:`sql_dql_objects` using subscript
 expressions. If the parent is an object array, you'll get an array of the

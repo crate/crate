@@ -4,6 +4,8 @@
 Release Notes
 =============
 
+.. include:: ../../_include/version-note.rst
+
 Information about individual CrateDB releases, typically including upgrade
 information and changelog.
 

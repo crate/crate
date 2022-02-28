@@ -4,6 +4,8 @@
 Replication
 ===========
 
+.. include:: ../../_include/version-note.rst
+
 Replication of a table in CrateDB means that each primary shard of a table is
 stored additionally on so called secondary shards. This can be useful for
 better read performance and high availability.

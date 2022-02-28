@@ -5,6 +5,8 @@
 Built-in Functions and Operators
 ================================
 
+.. include:: ../../_include/version-note.rst
+
 This chapter provides an overview of built-in functions and operators.
 
 Operators are reserved keywords that are primarily used in a

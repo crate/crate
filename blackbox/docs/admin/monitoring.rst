@@ -4,6 +4,8 @@
 JMX Monitoring
 ==============
 
+.. include:: ../_include/version-note.rst
+
 The JMX monitoring feature exposes query metrics via the `JMX`_ API.
 
 .. NOTE::

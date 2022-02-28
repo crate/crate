@@ -4,6 +4,8 @@
 Subquery Expressions
 ====================
 
+.. include:: ../../_include/version-note.rst
+
 The following operators can be used with a subquery to form a subquery
 expression that results in a boolean value (``true``/``false``) or ``null``.
 

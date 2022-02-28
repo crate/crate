@@ -5,6 +5,8 @@
 SQL Standard Compliance
 =======================
 
+.. include:: ../_include/version-note.rst
+
 This section provides a list of features that CrateDB supports and to what
 extent it conforms to the current SQL standard `ISO/IEC 9075`_ "Database
 Language SQL".

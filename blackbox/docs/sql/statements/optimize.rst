@@ -5,6 +5,8 @@
 ``OPTIMIZE``
 ============
 
+.. include:: ../../_include/version-note.rst
+
 Optimize one or more tables explicitly.
 
 .. rubric:: Table of Contents

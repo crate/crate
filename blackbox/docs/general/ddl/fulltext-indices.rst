@@ -6,6 +6,8 @@
 Fulltext Indices
 ================
 
+.. include:: ../../_include/version-note.rst
+
 Fulltext indices take the contents of one or more fields and split it up into
 tokens that are used for fulltext-search. The transformation from a text to
 separate tokens is done by an analyzer. In order to create fulltext search

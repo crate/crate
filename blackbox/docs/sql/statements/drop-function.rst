@@ -5,6 +5,8 @@
 ``DROP FUNCTION``
 =================
 
+.. include:: ../../_include/version-note.rst
+
 Drop a function.
 
 .. rubric:: Table of Contents

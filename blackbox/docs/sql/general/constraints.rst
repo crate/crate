@@ -5,6 +5,8 @@
 Constraints
 ===========
 
+.. include:: ../../_include/version-note.rst
+
 .. rubric:: Table of Contents
 
 .. contents::

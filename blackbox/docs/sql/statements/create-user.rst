@@ -4,6 +4,8 @@
 ``CREATE USER``
 ===============
 
+.. include:: ../../_include/version-note.rst
+
 Create a new database user.
 
 .. rubric:: Table of Contents

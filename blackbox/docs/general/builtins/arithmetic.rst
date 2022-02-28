@@ -6,6 +6,8 @@
 Arithmetic Operators
 ====================
 
+.. include:: ../../_include/version-note.rst
+
 Arithmetic operators perform mathematical operations on two expressions of
 numeric data types or timestamps.
 

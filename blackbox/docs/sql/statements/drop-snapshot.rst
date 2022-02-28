@@ -5,6 +5,8 @@
 ``DROP SNAPSHOT``
 =================
 
+.. include:: ../../_include/version-note.rst
+
 Delete an existing snapshot and all files referenced only by this snapshot.
 
 .. rubric:: Table of Contents

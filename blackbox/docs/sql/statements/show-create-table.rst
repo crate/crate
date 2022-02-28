@@ -5,6 +5,8 @@
 ``SHOW CREATE TABLE``
 =====================
 
+.. include:: ../../_include/version-note.rst
+
 Shows the ``CREATE TABLE`` statement that creates the named table.
 
 .. rubric:: Table of Contents

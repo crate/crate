@@ -5,6 +5,8 @@
 ``DEALLOCATE``
 ==============
 
+.. include:: ../../_include/version-note.rst
+
 Deallocate a prepared statement
 
 .. rubric:: Table of Contents

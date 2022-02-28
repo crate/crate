@@ -2,6 +2,8 @@
 Show Create Table
 =================
 
+.. include:: ../../_include/version-note.rst
+
 .. hide:
     cr> create table if not exists my_table (
     ...   first_column integer primary key,

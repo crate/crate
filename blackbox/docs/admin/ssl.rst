@@ -4,6 +4,8 @@
 Secured Communications (SSL/TLS)
 ================================
 
+.. include:: ../_include/version-note.rst
+
 Secured communication allows you to encrypt traffic between the CrateDB node
 and a client. This applies to connections using HTTP (i.e. `Admin UI
 <https://crate.io/docs/crate/guide/getting_started/connect/admin_ui.html>`_,

@@ -5,6 +5,8 @@
 ``COMMIT``
 ==========
 
+.. include:: ../../_include/version-note.rst
+
 Commit the current transaction
 
 .. rubric:: Table of Contents

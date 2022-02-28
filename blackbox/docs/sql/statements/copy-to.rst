@@ -5,6 +5,8 @@
 ``COPY TO``
 ===========
 
+.. include:: ../../_include/version-note.rst
+
 Export table contents to files on CrateDB node machines.
 
 .. rubric:: Table of Contents

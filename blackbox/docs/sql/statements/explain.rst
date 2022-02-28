@@ -4,6 +4,8 @@
 ``EXPLAIN``
 ===========
 
+.. include:: ../../_include/version-note.rst
+
 Explain or analyze the plan for a given statement.
 
 .. rubric:: Table of Contents

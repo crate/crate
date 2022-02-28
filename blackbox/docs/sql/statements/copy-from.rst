@@ -5,6 +5,8 @@
 ``COPY FROM``
 =============
 
+.. include:: ../../_include/version-note.rst
+
 Copy data from files into a table.
 
 .. rubric:: Table of Contents

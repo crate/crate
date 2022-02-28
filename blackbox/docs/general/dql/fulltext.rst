@@ -5,6 +5,8 @@
 Fulltext Search
 ===============
 
+.. include:: ../../_include/version-note.rst
+
 In order to use fulltext search on one or more columns, a
 :ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>` has to be
 defined while creating the column: either with ``CREATE TABLE`` or ``ALTER

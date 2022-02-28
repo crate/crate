@@ -5,6 +5,8 @@
 Union All
 =========
 
+.. include:: ../../_include/version-note.rst
+
 UNION ALL can be used to combine results from multiple ``SELECT`` statements.
 For further information on the syntax and usages see :ref:`sql_reference_union`.
 ::

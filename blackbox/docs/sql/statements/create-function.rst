@@ -5,6 +5,8 @@
 ``CREATE FUNCTION``
 ===================
 
+.. include:: ../../_include/version-note.rst
+
 Create a new function.
 
 .. rubric:: Table of Contents

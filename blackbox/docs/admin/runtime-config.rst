@@ -4,6 +4,8 @@
 Runtime Configuration
 =====================
 
+.. include:: ../_include/version-note.rst
+
 The CrateDB cluster can be configured at runtime using the :ref:`SET <ref-set>`
 and :ref:`RESET <ref-set>` statement. See the :ref:`Cluster Settings
 <conf-cluster-settings>` configuration section for details about the supported
@@ -56,9 +58,9 @@ settings::
 
 ::
 
-    cr> SELECT 
+    cr> SELECT
     ...   settings['stats']['jobs_log_size'] AS jobs_size,
-    ...   settings['stats']['operations_log_size'] AS op_size 
+    ...   settings['stats']['operations_log_size'] AS op_size
     ... FROM sys.cluster;
     +-----------+---------+
     | jobs_size | op_size |
@@ -75,9 +77,9 @@ startup defined configuration file value or to its default value::
 
 ::
 
-    cr> SELECT 
+    cr> SELECT
     ...   settings['stats']['jobs_log_size'] AS jobs_size,
-    ...   settings['stats']['operations_log_size'] AS op_size 
+    ...   settings['stats']['operations_log_size'] AS op_size
     ... FROM sys.cluster;
     +-----------+---------+
     | jobs_size | op_size |
@@ -93,9 +95,9 @@ startup defined configuration file value or to its default value::
 
 ::
 
-    cr> SELECT 
+    cr> SELECT
     ...   settings['stats']['jobs_log_size'] AS jobs_size,
-    ...   settings['stats']['operations_log_size'] AS op_size 
+    ...   settings['stats']['operations_log_size'] AS op_size
     ... FROM sys.cluster;
     +-----------+---------+
     | jobs_size | op_size |

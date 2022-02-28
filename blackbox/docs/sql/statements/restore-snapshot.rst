@@ -5,6 +5,8 @@
 ``RESTORE SNAPSHOT``
 ====================
 
+.. include:: ../../_include/version-note.rst
+
 Restore a snapshot into the cluster.
 
 .. rubric:: Table of Contents

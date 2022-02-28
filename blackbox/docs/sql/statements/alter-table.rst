@@ -5,6 +5,8 @@
 ``ALTER TABLE``
 ===============
 
+.. include:: ../../_include/version-note.rst
+
 Alter an existing table.
 
 .. rubric:: Table of Contents

@@ -5,6 +5,8 @@
 ``SELECT``
 ==========
 
+.. include:: ../../_include/version-note.rst
+
 Retrieve rows from a table.
 
 .. rubric:: Table of Contents

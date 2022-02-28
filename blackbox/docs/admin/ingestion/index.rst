@@ -4,6 +4,8 @@
 Ingestion Framework
 ===================
 
+.. include:: ../../_include/version-note.rst
+
 .. sidebar:: Overview
 
    .. figure:: ingestion-01.png

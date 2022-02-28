@@ -6,6 +6,8 @@
 Data Types
 ==========
 
+.. include:: ../../_include/version-note.rst
+
 Data can be stored in different formats. CrateDB has different types that can
 be specified if a table is created using the the :ref:`ref-create-table`
 statement. Data types play a central role as they limit what kind of data can

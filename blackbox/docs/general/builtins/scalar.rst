@@ -5,6 +5,8 @@
 Scalar Functions
 ================
 
+.. include:: ../../_include/version-note.rst
+
 Scalar functions return a single value (not a table).
 
 .. rubric:: Table of Contents

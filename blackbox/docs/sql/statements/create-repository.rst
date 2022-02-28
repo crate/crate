@@ -5,6 +5,8 @@
 ``CREATE REPOSITORY``
 =====================
 
+.. include:: ../../_include/version-note.rst
+
 Register a new repository used to store, manage and restore snapshots.
 
 .. rubric:: Table of Contents

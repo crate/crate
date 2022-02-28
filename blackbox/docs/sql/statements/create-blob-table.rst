@@ -5,6 +5,8 @@
 ``CREATE BLOB TABLE``
 =====================
 
+.. include:: ../../_include/version-note.rst
+
 Define a new table for storing binary large objects.
 
 .. rubric:: Table of Contents

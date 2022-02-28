@@ -4,6 +4,8 @@
 Logging
 =======
 
+.. include:: ../_include/version-note.rst
+
 CrateDB supports two kinds of logging:
 
 - Application logging with `Log4j`_

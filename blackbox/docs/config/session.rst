@@ -4,6 +4,8 @@
 Session Settings
 ================
 
+.. include:: ../_include/version-note.rst
+
 This section documents settings that only apply to the currently connected client
 session. Currently, there is only one of these settings.
 

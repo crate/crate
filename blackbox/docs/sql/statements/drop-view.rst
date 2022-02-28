@@ -5,6 +5,8 @@
 ``DROP VIEW``
 =============
 
+.. include:: ../../_include/version-note.rst
+
 Drop one or more views.
 
 .. rubric:: Table of Contents

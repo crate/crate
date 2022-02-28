@@ -5,6 +5,8 @@
 ``UPDATE``
 ==========
 
+.. include:: ../../_include/version-note.rst
+
 Update rows of a table.
 
 .. rubric:: Table of Contents

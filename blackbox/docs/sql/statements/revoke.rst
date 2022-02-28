@@ -4,6 +4,8 @@
 ``REVOKE``
 ==========
 
+.. include:: ../../_include/version-note.rst
+
 Revokes a previously granted privilege on the whole cluster or on a specific
 object.
 

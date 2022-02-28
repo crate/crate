@@ -5,6 +5,8 @@
 Lexical Structure
 =================
 
+.. include:: ../../_include/version-note.rst
+
 An SQL input consists of a sequence of commands each of which is a sequence of
 tokens, terminated by a semicolon (``;``).
 

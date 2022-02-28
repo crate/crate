@@ -4,6 +4,8 @@
 Column Policy
 =============
 
+.. include:: ../../_include/version-note.rst
+
 The Column Policy defines if a table enforces its defined schema or if it's
 allowed to store additional columns which are a not defined in the table
 schema.

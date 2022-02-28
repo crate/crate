@@ -4,6 +4,8 @@
 Host Based Authentication (HBA)
 ===============================
 
+.. include:: ../../_include/version-note.rst
+
 This section explains how to configure CrateDB client connection and
 authentication.
 

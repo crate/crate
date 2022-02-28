@@ -4,6 +4,8 @@
 Authentication Methods
 ======================
 
+.. include:: ../../_include/version-note.rst
+
 There are multiple ways to authenticate against CrateDB.
 
 .. NOTE::

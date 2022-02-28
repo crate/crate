@@ -4,6 +4,8 @@
 PostgreSQL Wire Protocol
 ========================
 
+.. include:: ../_include/version-note.rst
+
 .. rubric:: Table of Contents
 
 .. contents::

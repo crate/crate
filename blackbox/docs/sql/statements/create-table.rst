@@ -5,6 +5,8 @@
 ``CREATE TABLE``
 ================
 
+.. include:: ../../_include/version-note.rst
+
 Define a new table.
 
 .. rubric:: Table of Contents

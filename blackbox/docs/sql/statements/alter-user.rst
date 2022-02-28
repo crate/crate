@@ -5,6 +5,8 @@
 ``ALTER USER``
 ==============
 
+.. include:: ../../_include/version-note.rst
+
 Alter an existing database user.
 
 .. rubric:: Table of Contents

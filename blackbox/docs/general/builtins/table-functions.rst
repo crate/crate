@@ -6,6 +6,8 @@
 Table Functions
 ===============
 
+.. include:: ../../_include/version-note.rst
+
 Table functions are functions that produce a set of rows. They are used like a
 table or subquery in the ``FROM`` clause of a query.
 
@@ -16,7 +18,7 @@ If multiple table functions with different amount of rows are used, ``null``
 values will be returned for the functions that are exhausted. An example::
 
 
-    cr> select unnest([1, 2, 3]), unnest([1, 2]); 
+    cr> select unnest([1, 2, 3]), unnest([1, 2]);
     +-------------------+----------------+
     | unnest([1, 2, 3]) | unnest([1, 2]) |
     +-------------------+----------------+
