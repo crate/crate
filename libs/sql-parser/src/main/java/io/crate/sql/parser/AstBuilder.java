@@ -51,7 +51,7 @@ import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.ArraySubQueryExpression;
-import io.crate.sql.tree.ArrayTypeSignature;
+import io.crate.sql.tree.ArrayDataTypeSignature;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.BetweenPredicate;
@@ -108,7 +108,7 @@ import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
-import io.crate.sql.tree.TypeSignatureType;
+import io.crate.sql.tree.GenericSignatureType;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.IfExpression;
 import io.crate.sql.tree.InListExpression;
@@ -192,8 +192,8 @@ import io.crate.sql.tree.TokenFilters;
 import io.crate.sql.tree.Tokenizer;
 import io.crate.sql.tree.TrimMode;
 import io.crate.sql.tree.TryCast;
-import io.crate.sql.tree.TypeParameter;
-import io.crate.sql.tree.TypeSignature;
+import io.crate.sql.tree.DataTypeParameter;
+import io.crate.sql.tree.DataTypeSignature;
 import io.crate.sql.tree.Union;
 import io.crate.sql.tree.Update;
 import io.crate.sql.tree.Values;
@@ -1917,15 +1917,16 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override public Node visitObjectTypeSignature(SqlBaseParser.ObjectTypeSignatureContext context) {
-        return new TypeSignatureType("object",
-            visitCollection(context.typeSignatureParameter(), TypeSignature.class)
+        return new GenericSignatureType(
+            "object",
+            visitCollection(context.typeSignatureParameter(), DataTypeSignature.class)
         );
     }
 
     @Override public Node visitGenericTypeSignature(SqlBaseParser.GenericTypeSignatureContext context) {
-        return new TypeSignatureType(
+        return new GenericSignatureType(
             getIdentText(context.ident()),
-            visitCollection(context.typeSignatureParameter(), TypeSignature.class)
+            visitCollection(context.typeSignatureParameter(), DataTypeSignature.class)
         );
     }
 
@@ -1938,33 +1939,33 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         if (context.ident() != null) {
             identifier = getIdentText(context.ident());
         }
-        return new TypeParameter(integer, identifier, visitOptionalContext(context.typeSignature(), TypeSignature.class));
+        return new DataTypeParameter(integer, identifier, visitOptionalContext(context.dataTypeSignature(), DataTypeSignature.class));
     }
 
     @Override
     public Node visitDoublePrecisionTypeSignature(SqlBaseParser.DoublePrecisionTypeSignatureContext context) {
-        return new TypeSignatureType("double precision", List.of());
+                return new GenericSignatureType("double precision", List.of());
     }
 
     @Override
     public Node visitTimeStampWithoutTimeZoneTypeSignature(SqlBaseParser.TimeStampWithoutTimeZoneTypeSignatureContext context) {
-        return new TypeSignatureType("timestamp without time zone", List.of());
+        return new GenericSignatureType("timestamp without time zone", List.of());
     }
 
     @Override
     public Node visitTimeStampWithTimeZoneTypeSignature(SqlBaseParser.TimeStampWithTimeZoneTypeSignatureContext context) {
-        return new TypeSignatureType("timestamp with time zone", List.of());
+        return new GenericSignatureType("timestamp with time zone", List.of());
     }
 
     @Override
     public Node visitTimeWithTimeZoneType(SqlBaseParser.TimeWithTimeZoneTypeContext context) {
-        return new TypeSignatureType("time with time zone", List.of());
+        return new GenericSignatureType("time with time zone", List.of());
     }
 
     @Override
     public Node visitArrayTypeSignature(SqlBaseParser.ArrayTypeSignatureContext context) {
-        var typeSignature = visitOptionalContext(context.typeSignature(), TypeSignature.class);
-        return new ArrayTypeSignature(typeSignature);
+        var dataTypeSignature = visitOptionalContext(context.dataTypeSignature(), DataTypeSignature.class);
+        return new ArrayDataTypeSignature(dataTypeSignature);
     }
 
     @Override

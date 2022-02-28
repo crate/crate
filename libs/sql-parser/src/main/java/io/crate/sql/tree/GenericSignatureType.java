@@ -21,40 +21,38 @@
 
 package io.crate.sql.tree;
 
+import java.util.List;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
+public class GenericSignatureType extends DataTypeSignature {
 
-public class RecordFieldTypeSignature extends TypeSignature {
+    private final String identifier;
+    private final List<DataTypeSignature> fields;
 
-    @Nullable
-    private final String id;
-    private final TypeSignature typeSignature;
+    public GenericSignatureType(String identifier, List<DataTypeSignature> fields) {
+        this.identifier = identifier;
+        this.fields = fields;
+    }
 
-    public RecordFieldTypeSignature(@Nullable String id, TypeSignature typeSignature) {
-        this.id = id;
-        this.typeSignature = typeSignature;
+    public String name() {
+        return identifier;
+    }
+
+    public List<DataTypeSignature> fields() {
+        return fields;
+    }
+
+    @Override
+    public String toString() {
+        return "DataTypeSignatureType{" +
+               "identifier='" + identifier + '\'' +
+               ", fields=" + fields +
+               '}';
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitRecordFieldTypeSignature(this, context);
-    }
-
-    public String toString() {
-        return "RecordFieldTypeSignature{" +
-               "id='" + id + '\'' +
-               ", typeSignature=" + typeSignature +
-               '}';
-    }
-
-    @Nullable
-    public String getId() {
-        return id;
-    }
-
-    public TypeSignature getTypeSignature() {
-        return typeSignature;
+        return visitor.visitGenericSignatureType(this, context);
     }
 
     @Override
@@ -65,12 +63,12 @@ public class RecordFieldTypeSignature extends TypeSignature {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        RecordFieldTypeSignature that = (RecordFieldTypeSignature) o;
-        return Objects.equals(id, that.id) && Objects.equals(typeSignature, that.typeSignature);
+        GenericSignatureType that = (GenericSignatureType) o;
+        return Objects.equals(identifier, that.identifier) && Objects.equals(fields, that.fields);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, typeSignature);
+        return Objects.hash(identifier, fields);
     }
 }

@@ -29,14 +29,12 @@ import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
-import io.crate.sql.tree.TypeSignatureType;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.QuerySpecification;
-import io.crate.sql.tree.RecordFieldTypeSignature;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
 

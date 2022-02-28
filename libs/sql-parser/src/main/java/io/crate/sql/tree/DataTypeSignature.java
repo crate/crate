@@ -21,45 +21,6 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
+public abstract class DataTypeSignature extends Node {
 
-public class IntegerTypeSignature extends TypeSignature {
-
-    private final Integer value;
-
-    public IntegerTypeSignature(Integer value) {
-        this.value = value;
-    }
-
-    public Integer Value() {
-        return value;
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitIntegerTypeSignature(this, context);
-    }
-
-    public String toString() {
-        return "IntegerTypeSignature{" +
-               "value=" + value +
-               '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        IntegerTypeSignature that = (IntegerTypeSignature) o;
-        return Objects.equals(value, that.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
-    }
 }

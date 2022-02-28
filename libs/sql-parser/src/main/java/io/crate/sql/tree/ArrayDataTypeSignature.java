@@ -21,6 +21,46 @@
 
 package io.crate.sql.tree;
 
-public abstract class TypeSignature extends Node {
+import java.util.Objects;
 
+public class ArrayDataTypeSignature extends DataTypeSignature {
+
+    private final DataTypeSignature type;
+
+    public ArrayDataTypeSignature(DataTypeSignature type) {
+        this.type = type;
+    }
+
+    public DataTypeSignature type() {
+        return type;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ArrayDataTypeSignature that = (ArrayDataTypeSignature) o;
+        return Objects.equals(type, that.type);
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitArrayDataTypeSignature(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type);
+    }
+
+    @Override
+    public String toString() {
+        return "ArrayTypeSignature{" +
+               "type=" + type +
+               '}';
+    }
 }

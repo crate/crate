@@ -21,54 +21,59 @@
 
 package io.crate.sql.tree;
 
-import java.util.List;
-import java.util.Objects;
+import javax.annotation.Nullable;
 
-public class TypeSignatureType extends TypeSignature {
+public class DataTypeParameter extends DataTypeSignature {
 
+    @Nullable
+    private final Integer numericalValue;
+
+    @Nullable
     private final String identifier;
-    private final List<TypeSignature> fields;
 
-    public TypeSignatureType(String identifier, List<TypeSignature> fields) {
+    @Nullable
+    private final DataTypeSignature dataTypeSignature;
+
+    public DataTypeParameter(@Nullable Integer numericalValue,
+                             @Nullable String identifier,
+                             @Nullable DataTypeSignature dataTypeSignature) {
+        this.numericalValue = numericalValue;
         this.identifier = identifier;
-        this.fields = fields;
-    }
-
-    public String name() {
-        return identifier;
-    }
-
-    public List<TypeSignature> fields() {
-        return fields;
-    }
-
-    @Override
-    public String toString() {
-        return "TypeSignatureType{" +
-               "identifier='" + identifier + '\'' +
-               ", fields=" + fields +
-               '}';
+        this.dataTypeSignature = dataTypeSignature;
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitGenericTypeSignature(this, context);
+        return visitor.visitDataTypeParameter(this, context);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        TypeSignatureType that = (TypeSignatureType) o;
-        return Objects.equals(identifier, that.identifier) && Objects.equals(fields, that.fields);
+    @Nullable
+    public Integer numericalValue() {
+        return numericalValue;
+    }
+
+    @Nullable
+    public String identifier() {
+        return identifier;
+    }
+
+    @Nullable
+    public DataTypeSignature typeSignature() {
+        return dataTypeSignature;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(identifier, fields);
+        return 0;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return null;
     }
 }

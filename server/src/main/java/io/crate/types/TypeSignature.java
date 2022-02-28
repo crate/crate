@@ -42,7 +42,7 @@ public class TypeSignature implements Writeable {
     }
 
     static TypeSignature parseTypeSignatureWithParser(String signature) {
-        return TypeSignatureParser.apply(signature);
+        return TypeSignatureParser.parse(signature);
     }
 
     protected static TypeSignature of(int parseInt) {

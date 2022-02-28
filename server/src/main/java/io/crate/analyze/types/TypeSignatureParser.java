@@ -22,64 +22,70 @@
 package io.crate.analyze.types;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.elasticsearch.common.recycler.Recycler;
+
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.ArrayTypeSignature;
-import io.crate.sql.tree.TypeParameter;
-import io.crate.sql.tree.TypeSignatureType;
+import io.crate.sql.tree.ArrayDataTypeSignature;
+import io.crate.sql.tree.DataTypeParameter;
+import io.crate.sql.tree.DataTypeSignature;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.GenericSignatureType;
 import io.crate.types.ArrayType;
 import io.crate.types.IntegerLiteralTypeSignature;
 import io.crate.types.ParameterTypeSignature;
 import io.crate.types.TypeSignature;
 
-public class TypeSignatureParser {
+public class TypeSignatureParser extends DefaultTraversalVisitor<TypeSignature, Void> {
 
     private static final SqlParser SQL_PARSER = new SqlParser();
 
-    private TypeSignatureParser() {}
-
-    public static io.crate.types.TypeSignature apply(String signature) {
-        return convert(SQL_PARSER.createTypeSignature(signature));
+    private TypeSignatureParser() {
     }
 
-    @Nullable
-    static io.crate.types.TypeSignature convert(@Nullable io.crate.sql.tree.TypeSignature typeSignature) {
-        if (typeSignature == null) {
-            return null;
+    private static final TypeSignatureParser INSTANCE = new TypeSignatureParser();
+
+    public static TypeSignature parse(String signature) {
+        DataTypeSignature dataTypeSignature = SQL_PARSER.generateDataTypeSignature(signature);
+        return dataTypeSignature.accept(INSTANCE, null);
+    }
+
+    public TypeSignature visitArrayDataTypeSignature(ArrayDataTypeSignature arrayDataTypeSignature, Void context) {
+        var parameter = new ArrayList<TypeSignature>();
+        if (arrayDataTypeSignature.type() != null) {
+            parameter.add(arrayDataTypeSignature.type().accept(this, context));
         }
-        if (typeSignature instanceof ArrayTypeSignature a) {
-                List<TypeSignature> parameter = new ArrayList<>();
-                if (a.type() != null) {
-                    parameter.add(convert(a.type()));
-                }
-                return new io.crate.types.TypeSignature(ArrayType.NAME, parameter);
-            }
-        if (typeSignature instanceof TypeSignatureType t) {
-                String name = t.name();
-                ArrayList<TypeSignature> fields = new ArrayList<>();
-                for (io.crate.sql.tree.TypeSignature field : t.fields()) {
-                    fields.add(convert(field));
-                }
-                // Ugly hack
-                if (name.length() == 1) {
-                    name = name.toUpperCase();
-                }
-                return new io.crate.types.TypeSignature(name, fields);
-            }
-        if (typeSignature instanceof TypeParameter t) {
-                if (t.identifier() != null) {
-                    return new ParameterTypeSignature(t.identifier(), convert(t.typeSignature()));
-                }
-                if (t.numericalValue() != null) {
-                    return new IntegerLiteralTypeSignature(t.numericalValue());
-                }
-                if (t.typeSignature() != null) {
-                    return convert(t.typeSignature());
-                }
-            }
-        throw new IllegalArgumentException("Invalid Expression: " + typeSignature.toString());
+        return new TypeSignature(ArrayType.NAME, parameter);
     }
+
+    public TypeSignature visitGenericSignatureType(GenericSignatureType typeSignature, Void context) {
+        String name = typeSignature.name();
+        ArrayList<TypeSignature> fields = new ArrayList<>();
+        for (DataTypeSignature field : typeSignature.fields()) {
+            fields.add(field.accept(this, context));
+        }
+        // Ugly hack
+        if (name.length() == 1) {
+            name = name.toUpperCase();
+        }
+        return new io.crate.types.TypeSignature(name, fields);
+    }
+
+    public TypeSignature visitDataTypeParameter(DataTypeParameter dataTypeParameter, Void context) {
+        if (dataTypeParameter.identifier() != null) {
+            var typeSignature = dataTypeParameter.typeSignature().accept(this, context);
+            return new ParameterTypeSignature(dataTypeParameter.identifier(), typeSignature);
+        }
+        if (dataTypeParameter.numericalValue() != null) {
+            return new IntegerLiteralTypeSignature(dataTypeParameter.numericalValue());
+        }
+        if (dataTypeParameter.typeSignature() != null) {
+            return dataTypeParameter.typeSignature().accept(this, context);
+        }
+
+        throw new IllegalArgumentException("Invalid DataTypeParameter: " + dataTypeParameter.toString());
+    }
+
 }
