@@ -95,7 +95,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromFileWithJsonExtension() throws Exception {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext) with (number_of_replicas = 0)");
-        ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertEquals(3L, response.rowCount());
@@ -113,9 +112,61 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromFileWithCSVOption() {
         execute("create table quotes (id int primary key, " +
             "quote string index using fulltext) with (number_of_replicas = 0)");
-        ensureYellow();
 
         execute("copy quotes from ? with (format='csv')", new Object[]{copyFilePath + "test_copy_from_csv.ext"});
+        assertEquals(3L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[0].length, is(2));
+
+        execute("select quote from quotes where id = 1");
+        assertThat(response.rows()[0][0], is("Don't pa\u00f1ic."));
+    }
+
+    @Test
+    public void testCopyFromFileWithCSVOptionWithDynamicColumnCreation() {
+        execute("create table quotes (id int primary key, " +
+                "quote string index using fulltext) with (number_of_replicas = 0, column_policy = 'dynamic')");
+
+        execute("copy quotes from ? with (format='csv')", new Object[]{copyFilePath + "test_copy_from_csv_extra_column.ext"});
+        assertEquals(3L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[0].length, is(3));
+
+        execute("select quote, comment from quotes where id = 1");
+        assertThat(response.rows()[0][0], is("Don't pa\u00f1ic."));
+        assertThat(response.rows()[0][1], is("good one"));
+    }
+
+    @Test
+    public void testCopyFromFileWithCSVOptionWithTargetColumns() {
+        execute("create table quotes (id int primary key, " +
+                "quote string index using fulltext, comment text) with (number_of_replicas = 0)");
+
+        execute("copy quotes(id, quote, comment) from ? with (format='csv')", new Object[]{copyFilePath + "test_copy_from_csv_extra_column.ext"});
+        assertEquals(3L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[0].length, is(3));
+
+        execute("select quote, comment from quotes where id = 1");
+        assertThat(response.rows()[0][0], is("Don't pa\u00f1ic."));
+        assertThat(response.rows()[0][1], is("good one"));
+    }
+
+    @Test
+    public void testCopyFromFileWithCSVOptionWithNoHeader() {
+        execute("create table quotes (id int primary key, " +
+                "quote string index using fulltext) with (number_of_replicas = 0)");
+
+        execute("copy quotes from ? with (format='csv', header=false)", new Object[]{copyFilePath + "test_copy_from_csv_no_header.ext"});
         assertEquals(3L, response.rowCount());
         refresh();
 
@@ -143,7 +194,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyFromWithOverwriteDuplicates() throws Exception {
         execute("create table t (id int primary key) with (number_of_replicas = 0)");
-        ensureYellow();
 
         execute("insert into t (id) values (?)", new Object[][]{
             new Object[]{1},
@@ -171,7 +221,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromFileWithoutPK() throws Exception {
         execute("create table quotes (id int, " +
                 "quote string index using fulltext) with (number_of_replicas=0)");
-        ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertEquals(6L, response.rowCount());
@@ -186,7 +235,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromFilePattern() {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext) with (number_of_replicas=0)");
-        ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePathShared + "*.json"});
         assertEquals(6L, response.rowCount());
@@ -199,7 +247,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyFromFileWithEmptyLine() throws Exception {
         execute("create table foo (id integer primary key) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
         File newFile = folder.newFile();
 
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(newFile), StandardCharsets.UTF_8)) {
@@ -224,7 +271,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromFileWithInvalidColumns() throws Exception {
         execute("create table foo (id integer primary key) clustered into 1 shards " +
                 "with (number_of_replicas=0, column_policy='dynamic')");
-        ensureYellow();
         File newFile = folder.newFile();
 
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(newFile), StandardCharsets.UTF_8)) {
@@ -255,7 +301,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyFromInvalidJson() throws Exception {
         execute("create table foo (id integer primary key) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
         File newFile = folder.newFile();
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(newFile), StandardCharsets.UTF_8)) {
             writer.write("{|}");
@@ -296,7 +341,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 " quote string," +
                 " gen_quote as concat(quote, ' This is awesome!')" +
                 ")");
-        ensureYellow();
 
         execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
         refresh();
@@ -311,7 +355,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 " id int," +
                 " quote as cast(id as string)" +
                 ")");
-        ensureYellow();
 
         execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
         assertThat(response.rowCount(), is(3L));
@@ -342,7 +385,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("CREATE TABLE times (" +
                 "   time timestamp with time zone" +
                 ") partitioned by (time)");
-        ensureYellow();
 
         execute("copy times from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from_null_value.json"});
         refresh();
@@ -361,7 +403,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 " quote string," +
                 " id_str as cast(id+1 as string)" +
                 ") partitioned by (id_str)");
-        ensureYellow();
 
         execute("copy quotes partition (id_str = 1) from ? with (shared=true)", new Object[]{
             copyFilePath + "test_copy_from.json"});
@@ -375,7 +416,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyToFile() throws Exception {
         execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
-        ensureYellow();
 
         assertThrowsMatches(() -> execute("copy singleshard to '/tmp/file.json'"),
                      isSQLError(containsString("Using COPY TO without specifying a DIRECTORY is not supported"),
@@ -413,7 +453,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyToWithCompression() throws Exception {
         execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
-        ensureYellow();
         execute("insert into singleshard (name) values ('foo')");
         execute("refresh table singleshard");
 
@@ -465,7 +504,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyToFileColumnsJsonObjectOutput() throws Exception {
         execute("create table singleshard (name string, test object as (foo string)) clustered into 1 shards with (number_of_replicas = 0)");
-        ensureYellow();
         execute("insert into singleshard (name, test) values ('foobar', {foo='bar'})");
         execute("refresh table singleshard");
 
@@ -520,7 +558,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         // assert that rows with nested arrays aren't imported
         execute("create table users (id int, " +
             "name string) with (number_of_replicas=0)");
-        ensureYellow();
         execute("copy users from ? with (shared=true)", new Object[]{
             nestedArrayCopyFilePath + "nested_array_copy_from.json"});
         assertEquals(1L, response.rowCount()); // only 1 document got inserted
@@ -538,7 +575,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 "   day TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', timestamp)," +
                 "   timestamp TIMESTAMP WITH TIME ZONE" +
                 ") PARTITIONED BY (day)");
-        ensureYellow();
         execute("insert into foo (timestamp) values (1454454000377)");
         refresh();
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
@@ -573,7 +609,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromTwoHttpUrls() throws Exception {
         execute("create blob table blobs with (number_of_replicas = 0)");
         execute("create table names (id int primary key, name string) with (number_of_replicas = 0)");
-        ensureYellow();
 
         String r1 = "{\"id\": 1, \"name\":\"Marvin\"}";
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
@@ -611,7 +646,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create table quotes (id int, quote string) " +
             "clustered by (id)" +
             "with (number_of_replicas = 0)");
-        ensureYellow();
 
         execute("copy quotes from ? with (shared = true)", new Object[]{copyFilePath + "test_copy_from.json"});
         assertEquals(3L, response.rowCount());
@@ -626,7 +660,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create table quotes (id int primary key, quote string) " +
             "clustered by (id)" +
             "with (number_of_replicas = 0)");
-        ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertEquals(3L, response.rowCount());
@@ -704,7 +737,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             "   g_ts_month timestamp with time zone generated always as date_trunc('month', ts)," +
             "   primary key (guid, g_ts_month)" +
             ") partitioned by (g_ts_month)");
-        ensureYellow();
 
         Path path = tmpFileWithLines(Arrays.asList(
             "{\"guid\": \"a\", \"ts\": 1496275200000}",

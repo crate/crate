@@ -31,8 +31,10 @@ Synopsis
 
 ::
 
-    COPY table_ident [ PARTITION (partition_column = value [ , ... ]) ]
-    FROM uri [ WITH ( option = value [, ...] ) ] [ RETURN SUMMARY ]
+    COPY table_identifier
+      [ ( column_ident [, ...] ) ]
+      [ PARTITION (partition_column = value [ , ... ]) ]
+      FROM uri [ WITH ( option = value [, ...] ) ] [ RETURN SUMMARY ]
 
 
 .. _sql-copy-from-desc:
@@ -84,6 +86,11 @@ Example CSV data::
     1,"Don't panic"
     2,"Ford, you're turning into a penguin. Stop it."
 
+Example CSV data with no header::
+
+    1,"Don't panic"
+    2,"Ford, you're turning into a penguin. Stop it."
+
 See also: :ref:`dml-importing-data`.
 
 
@@ -118,6 +125,13 @@ Parameters
 ``table_ident``
   The name (optionally schema-qualified) of an existing table where the data
   should be put.
+
+.. _sql-copy-from-column_ident:
+
+``column_ident``
+  Used in an optional columns declaration, each ``column_ident`` is the name of a column in the ``table_ident`` table.
+
+  This currently only has an effect if using the CSV file format. See the ``header`` section for how it behaves.
 
 .. _sql-copy-from-uri:
 
@@ -513,6 +527,36 @@ be ignored.
 This option specifies the format of the input file. Available formats are
 ``csv`` or ``json``. If a format is not specified and the format cannot be
 guessed from the file extension, the file will be processed as JSON.
+
+
+.. _sql-copy-from-header:
+
+``header``
+''''''''''
+
+Used to indicate if the first line of a CSV file contains a header with the
+column names. Defaults to ``true``.
+
+If set to ``false``, the CSV must not contain column names in the first line
+and instead the columns declared in the statement are used. If no columns are
+declared in the statement, it will default to all columns present in the table
+in their ``CREATE TABLE`` declaration order.
+
+If set to ``true`` the first line in the CSV file must contain the column
+names. You can use the optional column declaration in addition to import only a
+subset of the data.
+
+If the statement contains no column declarations, all fields in the CSV are
+read and if it contains fields where there is no matching column in the table,
+the behavior depends on the ``column_policy`` table setting. If ``dynamic`` it
+implicitly adds new columns, if ``strict`` the operation will fail.
+
+An example of using input file with no header
+
+::
+
+    cr> COPY quotes FROM 'file:///tmp/import_data/quotes.csv' with (format='csv', header=false);
+    COPY OK, 3 rows affected (... sec)
 
 
 .. _sql-copy-from-return-summary:

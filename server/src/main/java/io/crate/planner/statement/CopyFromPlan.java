@@ -158,10 +158,16 @@ public final class CopyFromPlan implements Plan {
         // instead of the Symbol type, such as the uri can be evaluated and converted
         // to the required type already at this stage, but not later on in FileCollectSource.
         var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()));
+        var header = settings.getAsBoolean("header", true);
+        var targetColumns = copyFrom.targetColumns();
+        if (!header && copyFrom.targetColumns().isEmpty()) {
+            targetColumns = Lists2.map(copyFrom.tableInfo().columns(), Reference::toString);
+        }
 
         return new BoundCopyFrom(
             copyFrom.tableInfo(),
             partitionIdent,
+            targetColumns,
             settings,
             boundedURI,
             inputFormat,
@@ -299,6 +305,7 @@ public final class CopyFromPlan implements Plan {
                 boundedCopyFrom.settings().getAsInt("num_readers", allNodes.getSize()),
                 boundedCopyFrom.nodePredicate()),
             boundedCopyFrom.uri(),
+            boundedCopyFrom.targetColumns(),
             toCollect,
             Collections.emptyList(),
             boundedCopyFrom.settings().get("compression", null),

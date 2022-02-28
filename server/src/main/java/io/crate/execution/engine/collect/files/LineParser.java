@@ -29,16 +29,19 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class LineParser {
 
     private final CopyFromParserProperties parserProperties;
+    private final List<String> targetColumns;
     private CSVLineParser csvLineParser;
 
     private InputType inputType;
 
-    public LineParser(CopyFromParserProperties parserProperties) {
+    public LineParser(CopyFromParserProperties parserProperties, List<String> targetColumns) {
         this.parserProperties = parserProperties;
+        this.targetColumns = targetColumns;
     }
 
     private enum InputType {
@@ -50,17 +53,20 @@ public class LineParser {
                               FileUriCollectPhase.InputFormat inputFormat,
                               BufferedReader currentReader) throws IOException {
         if (isInputCsv(inputFormat, currentUri)) {
-            csvLineParser = new CSVLineParser(parserProperties);
-            csvLineParser.parseHeader(currentReader.readLine());
+            csvLineParser = new CSVLineParser(parserProperties, targetColumns);
+            if (parserProperties.fileHeader()) {
+                csvLineParser.parseHeader(currentReader.readLine());
+            }
             inputType = InputType.CSV;
         } else {
             inputType = InputType.JSON;
         }
     }
 
-    public byte[] getByteArray(String line) throws IOException {
+    public byte[] getByteArray(String line, long rowNumber) throws IOException {
         if (inputType == InputType.CSV) {
-            return csvLineParser.parse(line);
+            return parserProperties.fileHeader() ?
+                csvLineParser.parse(line, rowNumber) : csvLineParser.parseWithoutHeader(line, rowNumber);
         } else {
             return line.getBytes(StandardCharsets.UTF_8);
         }

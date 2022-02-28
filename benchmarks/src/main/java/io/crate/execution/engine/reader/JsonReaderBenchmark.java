@@ -149,6 +149,7 @@ public class JsonReaderBenchmark {
             false,
             1,
             0,
+            List.of("id", "name"),
             CopyFromParserProperties.DEFAULT,
             JSON,
             Settings.EMPTY);

@@ -80,6 +80,14 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((Literal) collectPhase.targetUri()).value(), is("/path/to/file.extension"));
     }
 
+    public void testCopyFromPlanWithTargetColumns() {
+        Collect plan = plan("copy users(id, name) from '/path/to/file.extension'");
+        assertThat(plan.collectPhase(), instanceOf(FileUriCollectPhase.class));
+
+        FileUriCollectPhase collectPhase = (FileUriCollectPhase) plan.collectPhase();
+        assertThat(collectPhase.targetColumns(), is(List.of("id", "name")));
+    }
+
     @Test
     public void testCopyFromNumReadersSetting() {
         Collect plan = plan("copy users from '/path/to/file.extension' with (num_readers=1)");

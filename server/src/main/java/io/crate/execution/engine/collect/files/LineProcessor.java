@@ -28,14 +28,15 @@ import io.crate.expression.reference.file.LineContext;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 
 public final class LineProcessor {
 
     private final LineContext lineContext = new LineContext();
     private final LineParser lineParser;
 
-    public LineProcessor(CopyFromParserProperties parserProperties) {
-        lineParser = new LineParser(parserProperties);
+    public LineProcessor(CopyFromParserProperties parserProperties, List<String> targetColumns) {
+        lineParser = new LineParser(parserProperties, targetColumns);
     }
 
     public void startCollect(Iterable<LineCollectorExpression<?>> collectorExpressions) {
@@ -55,7 +56,7 @@ public final class LineProcessor {
 
     public void process(String line) throws IOException {
         lineContext.incrementCurrentLineNumber();
-        byte[] jsonByteArray = lineParser.getByteArray(line);
+        byte[] jsonByteArray = lineParser.getByteArray(line, lineContext.getCurrentLineNumber());
         lineContext.rawSource(jsonByteArray);
     }
 

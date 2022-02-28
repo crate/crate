@@ -244,6 +244,7 @@ public class FileReadingCollectorTest extends ESTestCase {
             false,
             1,
             0,
+            List.of("a", "b"),
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
             Settings.EMPTY);

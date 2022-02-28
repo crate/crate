@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import io.crate.analyze.CopyFromParserProperties;
+
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
@@ -34,15 +35,27 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 
 public class CSVLineParser {
 
-    private final ArrayList<String> keyList = new ArrayList<>();
     private final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    private final ArrayList<String> headerKeyList = new ArrayList<>();
+    private String[] columnNamesArray;
+    private final List<String> targetColumns;
     private final ObjectReader csvReader;
 
-    public CSVLineParser(CopyFromParserProperties properties) {
-        var mapper = new CsvMapper().enable(CsvParser.Feature.TRIM_SPACES);
+    public CSVLineParser(CopyFromParserProperties properties, List<String> columns) {
+        targetColumns = columns;
+        if (!properties.fileHeader()) {
+            columnNamesArray = new String[targetColumns.size()];
+            for (int i = 0; i < targetColumns.size(); i++) {
+                columnNamesArray[i] = targetColumns.get(i);
+            }
+        }
+        var mapper = new CsvMapper()
+            .enable(CsvParser.Feature.TRIM_SPACES);
         if (properties.emptyStringAsNull()) {
             mapper.enable(CsvParser.Feature.EMPTY_STRING_AS_NULL);
         }
@@ -56,25 +69,66 @@ public class CSVLineParser {
 
     public void parseHeader(String header) throws IOException {
         MappingIterator<String> iterator = csvReader.readValues(header.getBytes(StandardCharsets.UTF_8));
-        iterator.readAll(keyList);
-        HashSet<String> keySet = new HashSet<>(keyList);
+        iterator.readAll(headerKeyList);
+        columnNamesArray = new String[headerKeyList.size()];
+        for (int i = 0; i < headerKeyList.size(); i++) {
+            String headerKey = headerKeyList.get(i);
+            if (targetColumns.isEmpty() || targetColumns.contains(headerKey)) {
+                columnNamesArray[i] = headerKey;
+            }
+        }
+        HashSet<String> keySet = new HashSet<>(headerKeyList);
         keySet.remove("");
-        if (keySet.size() != keyList.size() || keySet.size() == 0) {
+        if (keySet.size() != headerKeyList.size() || keySet.size() == 0) {
             throw new IllegalArgumentException("Invalid header: duplicate entries or no entries present");
         }
     }
 
-    public byte[] parse(String row) throws IOException {
-        MappingIterator<Object> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
+    public byte[] parse(String row, long rowNumber) throws IOException {
+        MappingIterator<String> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
+        out.reset();
+        XContentBuilder jsonBuilder = new XContentBuilder(JsonXContent.JSON_XCONTENT, out).startObject();
+        int i = 0, j = 0;
+        while (iterator.hasNext()) {
+            if (i >= headerKeyList.size()) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Number of values exceeds " +
+                                                                "number of keys in csv file at line %d", rowNumber));
+            }
+            if (columnNamesArray.length == j || i >= columnNamesArray.length) {
+                break;
+            }
+            var key = columnNamesArray[i];
+            var value = iterator.next();
+            i++;
+            if (key != null) {
+                jsonBuilder.field(key, value);
+                j++;
+            }
+        }
+        jsonBuilder.endObject().close();
+        return out.toByteArray();
+    }
+
+    public byte[] parseWithoutHeader(String row, long rowNumber) throws IOException {
+        MappingIterator<String> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
         out.reset();
         XContentBuilder jsonBuilder = new XContentBuilder(JsonXContent.JSON_XCONTENT, out).startObject();
         int i = 0;
         while (iterator.hasNext()) {
-            if (i >= keyList.size()) {
-                throw new IllegalArgumentException("Number of values exceeds number of keys");
+            if (i >= columnNamesArray.length) {
+                break;
             }
-            jsonBuilder.field(keyList.get(i), iterator.next());
+            var key = columnNamesArray[i];
+            var value = iterator.next();
             i++;
+            if (key != null) {
+                jsonBuilder.field(key, value);
+            }
+        }
+        if (columnNamesArray.length > i) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Expected %d values, " +
+                                               "encountered %d at line %d. This is not allowed when there " +
+                                               "is no header provided)",columnNamesArray.length, i, rowNumber));
         }
         jsonBuilder.endObject().close();
         return out.toByteArray();

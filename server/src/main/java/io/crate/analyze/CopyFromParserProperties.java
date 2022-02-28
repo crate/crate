@@ -22,6 +22,8 @@
 package io.crate.analyze;
 
 import io.crate.common.annotations.VisibleForTesting;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -32,6 +34,7 @@ import java.util.Objects;
 
 import static io.crate.analyze.CopyStatementSettings.CSV_COLUMN_SEPARATOR;
 import static io.crate.analyze.CopyStatementSettings.EMPTY_STRING_AS_NULL;
+import static io.crate.analyze.CopyStatementSettings.INPUT_HEADER_SETTINGS;
 
 
 public class CopyFromParserProperties implements Writeable {
@@ -40,28 +43,42 @@ public class CopyFromParserProperties implements Writeable {
 
     private final boolean emptyStringAsNull;
     private final char columnSeparator;
+    private final boolean fileHeader;
+
 
     public static CopyFromParserProperties of(Settings settings) {
         return new CopyFromParserProperties(
             EMPTY_STRING_AS_NULL.get(settings),
+            INPUT_HEADER_SETTINGS.get(settings),
             CSV_COLUMN_SEPARATOR.get(settings)
         );
     }
 
     @VisibleForTesting
     public CopyFromParserProperties(boolean emptyStringAsNull,
+                                    boolean fileHeader,
                                     char columnSeparator) {
         this.emptyStringAsNull = emptyStringAsNull;
+        this.fileHeader = fileHeader;
         this.columnSeparator = columnSeparator;
     }
 
     public CopyFromParserProperties(StreamInput in) throws IOException {
         emptyStringAsNull = in.readBoolean();
+        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
+            fileHeader = in.readBoolean();
+        } else {
+            fileHeader = true;
+        }
         columnSeparator = (char) in.readByte();
     }
 
     public boolean emptyStringAsNull() {
         return emptyStringAsNull;
+    }
+
+    public boolean fileHeader() {
+        return fileHeader;
     }
 
     public char columnSeparator() {
@@ -71,6 +88,9 @@ public class CopyFromParserProperties implements Writeable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeBoolean(emptyStringAsNull);
+        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
+            out.writeBoolean(fileHeader);
+        }
         out.writeByte((byte) columnSeparator);
     }
 
@@ -84,18 +104,20 @@ public class CopyFromParserProperties implements Writeable {
         }
         CopyFromParserProperties that = (CopyFromParserProperties) o;
         return emptyStringAsNull == that.emptyStringAsNull &&
+               fileHeader == that.fileHeader &&
                columnSeparator == that.columnSeparator;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(emptyStringAsNull, columnSeparator);
+        return Objects.hash(emptyStringAsNull, fileHeader, columnSeparator);
     }
 
     @Override
     public String toString() {
         return "CopyFromParserProperties{" +
                "emptyStringAsNull=" + emptyStringAsNull +
+               ", fileHeader=" + fileHeader +
                ", columnSeparator=" + columnSeparator +
                '}';
     }

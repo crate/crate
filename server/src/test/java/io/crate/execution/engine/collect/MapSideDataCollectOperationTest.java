@@ -45,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -76,6 +77,7 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             "test",
             Collections.singletonList("noop_id"),
             Literal.of(Paths.get(tmpFile.toURI()).toUri().toString()),
+            List.of("a", "b"),
             Arrays.asList(
                 createReference("name", DataTypes.STRING),
                 createReference(new ColumnIdent("details", "age"), DataTypes.INTEGER)

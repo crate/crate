@@ -28,6 +28,8 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
+
+import java.util.List;
 import java.util.function.Predicate;
 
 public class BoundCopyFrom {
@@ -35,6 +37,7 @@ public class BoundCopyFrom {
     private final DocTableInfo tableInfo;
     @Nullable
     private final String partitionIdent;
+    private final List<String> targetColumns;
     private final Settings settings;
     private final Symbol uri;
     private final FileUriCollectPhase.InputFormat inputFormat;
@@ -42,12 +45,14 @@ public class BoundCopyFrom {
 
     public BoundCopyFrom(DocTableInfo tableInfo,
                          @Nullable String partitionIdent,
+                         List<String> targetColumns,
                          Settings settings,
                          Symbol uri,
                          FileUriCollectPhase.InputFormat inputFormat,
                          Predicate<DiscoveryNode> nodeFilters) {
         this.tableInfo = tableInfo;
         this.partitionIdent = partitionIdent;
+        this.targetColumns = targetColumns;
         this.settings = settings;
         this.uri = uri;
         this.inputFormat = inputFormat;
@@ -61,6 +66,10 @@ public class BoundCopyFrom {
     @Nullable
     public String partitionIdent() {
         return partitionIdent;
+    }
+
+    public List<String> targetColumns() {
+        return targetColumns;
     }
 
     public Settings settings() {

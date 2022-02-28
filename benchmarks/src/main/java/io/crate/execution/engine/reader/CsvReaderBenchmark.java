@@ -149,6 +149,7 @@ public class CsvReaderBenchmark {
             false,
             1,
             0,
+            List.of("id", "name"),
             CopyFromParserProperties.DEFAULT,
             CSV,
             Settings.EMPTY);
