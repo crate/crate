@@ -129,7 +129,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromFileWithUmlautsWhitespacesAndGlobs() throws Exception {
+    public void testCopyFromFileWithUmlautsWhitespacesAndGlobsWithFileSchemeAndUrlEncoding() throws Exception {
         execute("create table t (id int primary key, name string) clustered into 1 shards with (number_of_replicas = 0)");
         File tmpFolder = folder.newFolder("äwesöme földer");
         File file = new File(tmpFolder, "süpär.json");
@@ -138,6 +138,31 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
         execute("copy t from ?", new Object[]{Paths.get(tmpFolder.toURI()).toUri().toString() + "s*.json"});
+    }
+
+    @Test
+    public void testCopyFromFileWithUmlautsWhitespacesAndGlobsWithoutScheme() throws Exception {
+        execute("create table t (id int primary key, name string) clustered into 1 shards with (number_of_replicas = 0)");
+        File tmpFolder = folder.newFolder("äwesöme földer");
+        File file = new File(tmpFolder, "süpär.json");
+
+        List<String> lines = Collections.singletonList("{\"id\": 1, \"name\": \"Arthur\"}");
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ?", new Object[]{tmpFolder.toString() + "/s*.json"});
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testCopyFromFileWithUmlautsWhitespacesAndGlobsWithFileScheme() throws Exception {
+        execute("create table t (id int primary key, name string) clustered into 1 shards with (number_of_replicas = 0)");
+        File tmpFolder = folder.newFolder("äwesöme földer");
+        File file = new File(tmpFolder, "süpär.json");
+
+        List<String> lines = Collections.singletonList("{\"id\": 1, \"name\": \"Arthur\"}");
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ?", new Object[]{"file://" + tmpFolder.toString() + "/s*.json"});
         assertThat(response.rowCount(), is(1L));
     }
 
