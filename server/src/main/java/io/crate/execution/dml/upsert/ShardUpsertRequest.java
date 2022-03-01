@@ -55,6 +55,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
     private DuplicateKeyAction duplicateKeyAction;
     private boolean continueOnError;
     private boolean validateConstraints = true;
+    private boolean isRetry = false;
     private SessionSettings sessionSettings;
 
     /**
@@ -74,6 +75,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
      */
     @Nullable
     private Symbol[] returnValues;
+
 
     public ShardUpsertRequest(
         ShardId shardId,
@@ -133,6 +135,11 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 }
             }
         }
+        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
+            isRetry = in.readBoolean();
+        } else {
+            isRetry = false;
+        }
     }
 
     @Override
@@ -178,6 +185,18 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 out.writeVInt(0);
             }
         }
+        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
+            out.writeBoolean(isRetry);
+        }
+    }
+
+    @Override
+    public void onRetry() {
+        this.isRetry = true;
+    }
+
+    public boolean isRetry() {
+        return isRetry;
     }
 
     @Nullable
