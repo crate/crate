@@ -3367,4 +3367,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     public MeanMetric getFlushMetric() {
         return flushMetric;
     }
+
+    public long periodicFlushCount() {
+        return periodicFlushMetric.count();
+    }
 }

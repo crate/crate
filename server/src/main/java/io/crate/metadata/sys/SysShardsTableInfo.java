@@ -191,6 +191,7 @@ public class SysShardsTableInfo {
             .endObject()
             .startObject(Columns.FLUSH_STATS.name())
                 .add("count", LONG, ShardRowContext::flushCount)
+                .add("periodic_count", LONG, ShardRowContext::flushPeriodicCount)
                 .add("total_time_ns", LONG, ShardRowContext::flushTotalTimeNs)
             .endObject()
             .setPrimaryKeys(
