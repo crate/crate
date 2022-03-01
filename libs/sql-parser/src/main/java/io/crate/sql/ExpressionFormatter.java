@@ -45,7 +45,6 @@ import io.crate.sql.tree.Extract;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.sql.tree.GenericSignatureType;
 import io.crate.sql.tree.IfExpression;
 import io.crate.sql.tree.InListExpression;
 import io.crate.sql.tree.InPredicate;
@@ -146,11 +145,6 @@ public final class ExpressionFormatter {
         protected String visitExpression(Expression node, @Nullable List<Expression> parameters) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
-        }
-
-        @Override
-        public String visitGenericSignatureType(GenericSignatureType typeSignature, List<Expression> context) {
-            return typeSignature.toString();
         }
 
         @Override
@@ -618,8 +612,6 @@ public final class ExpressionFormatter {
                    node.getType().accept(this, parameters) +
                    ")";
         }
-
-
 
         @Override
         protected String visitSearchedCaseExpression(SearchedCaseExpression node, @Nullable List<Expression> parameters) {
