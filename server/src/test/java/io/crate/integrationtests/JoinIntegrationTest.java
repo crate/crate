@@ -296,9 +296,9 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
         assertThat(printedTable(response.rows()),
             is("strict| blob_path\n" +
                "strict| closed\n" +
-               "strict| id\n" +
-               "strict| min_lucene_version\n" +
-               "strict| node\n"));
+               "strict| flush_stats\n" +
+               "strict| flush_stats['count']\n" +
+               "strict| flush_stats['total_time_ns']\n"));
     }
 
     @Test

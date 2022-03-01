@@ -382,4 +382,12 @@ public class ShardRowContext {
             return List.of();
         }
     }
+
+    public long flushCount() {
+        return indexShard.getFlushMetric().count();
+    }
+
+    public long flushTotalTimeNs() {
+        return indexShard.getFlushMetric().sum();
+    }
 }
