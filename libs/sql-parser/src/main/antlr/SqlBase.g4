@@ -579,19 +579,24 @@ definedDataType
     ;
 
 dataTypeSignature
-    : DOUBLE PRECISION                                                              #doublePrecisionTypeSignature
-    | TIMESTAMP WITHOUT TIME ZONE                                                   #timeStampWithoutTimeZoneTypeSignature
-    | TIMESTAMP WITH TIME ZONE                                                      #timeStampWithTimeZoneTypeSignature
-    | TIME WITH TIME ZONE                                                           #timeWithTimeZoneType
-    | ARRAY '(' dataTypeSignature ')'                                               #arrayTypeSignature
-    | OBJECT ('(' typeSignatureParameter (',' typeSignatureParameter)* ')')?        #objectTypeSignature
-    | ident ('(' typeSignatureParameter (',' typeSignatureParameter)* ')')?         #genericTypeSignature
+    : DOUBLE PRECISION                                                                  #doublePrecisionTypeSignature
+    | TIMESTAMP WITHOUT TIME ZONE                                                       #timeStampWithoutTimeZoneTypeSignature
+    | TIMESTAMP WITH TIME ZONE                                                          #timeStampWithTimeZoneTypeSignature
+    | TIME WITH TIME ZONE                                                               #timeWithTimeZoneType
+    | ARRAY '(' dataTypeSignature ')'                                                   #arrayTypeSignature
+    | OBJECT ('(' typeSignatureParameter (',' typeSignatureParameter)* ')')?            #objectTypeSignature
+    | signatureIdent ('(' typeSignatureParameter (',' typeSignatureParameter)* ')')?    #genericTypeSignature
     ;
 
 typeSignatureParameter
     : INTEGER_VALUE
     | dataTypeSignature
-    | ident dataTypeSignature
+    | signatureIdent dataTypeSignature
+    ;
+
+signatureIdent
+    : unquotedIdent
+    | quotedIdent
     ;
 
 objectTypeDefinition

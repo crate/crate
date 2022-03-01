@@ -1291,6 +1291,24 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return null;
     }
 
+    @Nullable
+    private String getIdentText(@Nullable SqlBaseParser.SignatureIdentContext ident) {
+        if (ident == null) {
+            return null;
+        }
+        String result = null;
+        if (ident.quotedIdent() != null) {
+            var token = ident.quotedIdent().getText();
+            result = token.substring(1, token.length() - 1);
+        }
+
+        if (ident.unquotedIdent() != null) {
+            result = ident.unquotedIdent().getText();
+        }
+
+        return result;
+    }
+
     @Override
     public Node visitTableName(SqlBaseParser.TableNameContext ctx) {
         return new Table<>(getQualifiedName(ctx.qname()), false);
@@ -1925,7 +1943,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override public Node visitGenericTypeSignature(SqlBaseParser.GenericTypeSignatureContext context) {
         return new GenericSignatureType(
-            getIdentText(context.ident()),
+            getIdentText(context.signatureIdent()),
             visitCollection(context.typeSignatureParameter(), DataTypeSignature.class)
         );
     }
@@ -1935,10 +1953,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         if (context.INTEGER_VALUE() != null) {
             integer = Integer.parseInt(context.INTEGER_VALUE().getText());
         }
-        String identifier = null;
-        if (context.ident() != null) {
-            identifier = getIdentText(context.ident());
-        }
+        var identifier = getIdentText(context.signatureIdent());
+
         return new DataTypeParameter(integer, identifier, visitOptionalContext(context.dataTypeSignature(), DataTypeSignature.class));
     }
 

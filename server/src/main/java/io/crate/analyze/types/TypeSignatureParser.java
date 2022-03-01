@@ -42,8 +42,12 @@ public final class TypeSignatureParser extends DefaultTraversalVisitor<TypeSigna
     private TypeSignatureParser() {}
 
     public static TypeSignature parse(String signature) {
-        var dataTypeSignature = SQL_PARSER.generateDataTypeSignature(signature);
-        return dataTypeSignature.accept(INSTANCE, null);
+        try {
+            var dataTypeSignature = SQL_PARSER.generateDataTypeSignature(signature);
+            return dataTypeSignature.accept(INSTANCE, null);
+        } catch (Exception e) {
+            throw e;
+        }
     }
 
     public TypeSignature visitArrayDataTypeSignature(ArrayDataTypeSignature arrayDataTypeSignature, Void context) {

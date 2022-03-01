@@ -27,6 +27,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static io.crate.common.collections.Lists2.getOnlyElement;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
@@ -235,6 +236,18 @@ public class TypeSignatureTest extends ESTestCase {
         var signature = type.getTypeSignature();
         assertThat(signature.toString(), is("object(text,\"foo # !!:: '\'\" text)"));
         var parsedSignature = TypeSignatureParser.parse(signature.toString());
+        assertThat(parsedSignature, is(signature));
+        assertThat(parsedSignature.createType(), is(type));
+    }
+
+    @Test
+    public void test_create_and_parse_object_type_containing_parameter_name_with_spaces() {
+        var type = ObjectType.builder()
+            .setInnerType("first\"\" field", DataTypes.STRING)
+            .build();
+        var signature = type.getTypeSignature();
+        assertThat(signature.toString(), is("object(text,\"first\"\" field\" text)"));
+        var parsedSignature = parseTypeSignature(signature.toString());
         assertThat(parsedSignature, is(signature));
         assertThat(parsedSignature.createType(), is(type));
     }
