@@ -258,7 +258,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         boolean isRetry;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
-                isRetry = retryCount > 0;
+                isRetry = retryCount > 0 || request.isRetry();
                 if (tryInsertFirst) {
                     return insert(request, item, indexShard, isRetry, returnValueGen, insertSourceGen);
                 } else {
