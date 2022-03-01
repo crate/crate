@@ -1082,6 +1082,15 @@ Table schema
     * - ``retention_leases``
       - Versioned collection of retention leases.
       - ``OBJECT``
+    * - ``flush_stats``
+      - Flush information. Shard relocation resets this information.
+      - ``OBJECT``
+    * - ``flush_stats['count']``
+      - The total amount of flush operations that happened on the shard.
+      - ``BIGINT``
+    * - ``flush_stats['total_time_ns']``
+      - The total time spent on flush operations on the shard.
+      - ``BIGINT``
 
 
 .. NOTE::

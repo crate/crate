@@ -172,10 +172,11 @@ public class SysShardsTest extends SQLIntegrationTestCase {
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = execute("select * from sys.shards");
         assertEquals(26L, response.rowCount());
-        assertEquals(20, response.cols().length);
+        assertEquals(21, response.cols().length);
         assertThat(response.cols(), arrayContaining(
             "blob_path",
             "closed",
+            "flush_stats",
             "id",
             "min_lucene_version",
             "node",
