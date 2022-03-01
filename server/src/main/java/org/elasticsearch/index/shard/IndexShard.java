@@ -3363,4 +3363,12 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     public void verifyShardBeforeIndexClosing() throws IllegalStateException {
         getEngine().verifyEngineBeforeIndexClosing();
     }
+
+    public MeanMetric getFlushMetric() {
+        return flushMetric;
+    }
+
+    public long periodicFlushCount() {
+        return periodicFlushMetric.count();
+    }
 }

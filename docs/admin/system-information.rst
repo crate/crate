@@ -1082,6 +1082,20 @@ Table schema
     * - ``retention_leases``
       - Versioned collection of retention leases.
       - ``OBJECT``
+    * - ``flush_stats``
+      - Flush information. Shard relocation resets this information.
+      - ``OBJECT``
+    * - ``flush_stats['count']``
+      - The total amount of flush operations that happened on the shard.
+      - ``BIGINT``
+    * - ``flush_stats['periodic_count']``
+      - The number of periodic flushes. Each periodic flush also counts as a
+        regular flush. A periodic flush can happen after writes depending on
+        settings like the translog flush threshold.
+      - ``BIGINT``
+    * - ``flush_stats['total_time_ns']``
+      - The total time spent on flush operations on the shard.
+      - ``BIGINT``
 
 
 .. NOTE::
