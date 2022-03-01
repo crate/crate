@@ -7,6 +7,7 @@ queue_rules:
       - check-success~=^Test CrateDB SQL on windows
       - check-success=docs/readthedocs.org:crate
       - check-success~=^checkstyle
+      - check-success~=^Vale
 
 
 pull_request_rules:
@@ -19,6 +20,7 @@ pull_request_rules:
       - status-success~=^Test CrateDB SQL on windows
       - status-success=docs/readthedocs.org:crate
       - status-success~=^checkstyle
+      - status-success~=^Vale
     actions:
       queue:
         method: rebase
