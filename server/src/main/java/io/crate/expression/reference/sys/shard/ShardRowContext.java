@@ -390,4 +390,8 @@ public class ShardRowContext {
     public long flushTotalTimeNs() {
         return indexShard.getFlushMetric().sum();
     }
+
+    public long flushPeriodicCount() {
+        return indexShard.periodicFlushCount();
+    }
 }

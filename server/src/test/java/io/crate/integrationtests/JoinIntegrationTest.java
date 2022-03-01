@@ -298,7 +298,7 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
                "strict| closed\n" +
                "strict| flush_stats\n" +
                "strict| flush_stats['count']\n" +
-               "strict| flush_stats['total_time_ns']\n"));
+               "strict| flush_stats['periodic_count']\n"));
     }
 
     @Test
