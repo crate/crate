@@ -412,7 +412,7 @@ should be crossed out as well.
 - [ ] 4403b690485 Fix NPE in Partial Snapshot Without Global State (#55776) (#55783)
 - [ ] 1a3f9e5a07c Return true for can_match on idle search shards (#55428)
 - [ ] b0e8a8a4d12 [Backport] Refactor Spatial Field Mappers (#55696)
-- [ ] dc899781f23 Fix Broken ExistingStoreRecoverySource Deserialization (#55657) (#55665)
+- [x] dc899781f23 Fix Broken ExistingStoreRecoverySource Deserialization (#55657) (#55665)
 - [ ] d66af46724c Always use deprecateAndMaybeLog for deprecation warnings (#55319)
 - [ ] 08444555058 Add geo_shape mapper supporting doc-values in Spatial Plugin (#55037) (#55500)
 - [ ] db7eb8e8fff Remove Redundant CS Update on Snapshot Finalization (#55276) (#55528)
