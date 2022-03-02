@@ -542,7 +542,7 @@ should be crossed out as well.
 - [ ] 89c2834b249 Deprecate creation of dot-prefixed index names except for hidden and system indices (#49959)
 - [ ] 9efa5be60e3 Password-protected Keystore Feature Branch PR (#51123) (#51510)
 - [ ] 2eeea21d849 Use Consistent ClusterState throughout Snapshot API Calls (#51464) (#51471)
-- [ ] af1ff52e701 Fix TransportMasterNodeAction not Retrying NodeClosedException (#51325) (#51437)
+- [x] af1ff52e701 Fix TransportMasterNodeAction not Retrying NodeClosedException (#51325) (#51437)
 - [ ] f0d8c785e32 Fix Inconsistent Shard Failure Count in Failed Snapshots (#51416) (#51426)
 - [ ] acf84b68cb0 Do not wrap soft-deletes reader for segment stats (#51331)
 - [ ] 4e8ab43a3e6 Simplify Snapshot Initialization (#51256) (#51344)

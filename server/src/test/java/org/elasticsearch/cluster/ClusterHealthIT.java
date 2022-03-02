@@ -19,7 +19,15 @@
 
 package org.elasticsearch.cluster;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
@@ -27,14 +35,10 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.InternalTestCluster;
 import org.junit.Test;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 public class ClusterHealthIT extends SQLIntegrationTestCase {
 
@@ -217,4 +221,18 @@ public class ClusterHealthIT extends SQLIntegrationTestCase {
         assertFalse(healthResponseFuture.get().isTimedOut());
     }
 
+    @Test
+    public void testHealthOnMasterFailover() throws Exception {
+        final String node = internalCluster().startDataOnlyNode();
+        final List<ActionFuture<ClusterHealthResponse>> responseFutures = new ArrayList<>();
+        // Run a few health requests concurrent to master fail-overs against a data-node to make sure master failover is handled
+        // without exceptions
+        for (int i = 0; i < 20; ++i) {
+            responseFutures.add(client(node).admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).execute());
+            internalCluster().restartNode(internalCluster().getMasterName(), InternalTestCluster.EMPTY_CALLBACK);
+        }
+        for (ActionFuture<ClusterHealthResponse> responseFuture : responseFutures) {
+            assertSame(responseFuture.get().getStatus(), ClusterHealthStatus.GREEN);
+        }
+    }
 }
