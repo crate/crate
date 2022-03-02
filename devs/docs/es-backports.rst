@@ -511,7 +511,7 @@ should be crossed out as well.
 - [ ] 96d603979b4 Upgrade Lucene to 8.5.0-snapshot-b01d7cb (#52584)
 - [ ] 0a09e159594 Add Caching for RepositoryData in BlobStoreRepository (#52341) (#52566)
 - [ ] 4bb780bc373 Refactor Inflexible Snapshot Repository BwC (#52365) (#52557)
-- [ ] 3afb5ca1330 Fix synchronization in ByteSizeCachingDirectory (#52512)
+- [x] 3afb5ca1330 Fix synchronization in ByteSizeCachingDirectory (#52512)
 - [x] 0c7ae0217de Fix testPrepareIndexForPeerRecovery (#52245)
 - [x] 5aa612c2759 Fix testRestoreLocalHistoryFromTranslog (#52441)
 - [ ] 8d2261fe479 Refactor GeoShapeIndexer by extracting polygon / line decomposers (#52422) (#52506)
