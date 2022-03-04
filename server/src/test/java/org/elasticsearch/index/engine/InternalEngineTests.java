@@ -1755,12 +1755,12 @@ public class InternalEngineTests extends EngineTestCase {
     @Test
     public void testVersioningCreateExistsException() throws IOException {
         ParsedDocument doc = testParsedDocument("1", null, testDocument(), B_1, null);
-        Engine.Index create = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 0,
+        Engine.Index create = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 1,
                                                Versions.MATCH_DELETED, VersionType.INTERNAL, PRIMARY, 0, -1, false, UNASSIGNED_SEQ_NO, 0);
         Engine.IndexResult indexResult = engine.index(create);
         assertThat(indexResult.getVersion(), equalTo(1L));
 
-        create = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 0, Versions.MATCH_DELETED,
+        create = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 1, Versions.MATCH_DELETED,
                                   VersionType.INTERNAL, PRIMARY, 0, -1, false, UNASSIGNED_SEQ_NO, 0);
         indexResult = engine.index(create);
         assertThat(indexResult.getResultType(), equalTo(Engine.Result.Type.FAILURE));
@@ -3100,7 +3100,7 @@ public class InternalEngineTests extends EngineTestCase {
         final int numDocs = randomIntBetween(1, 10);
         for (int i = 0; i < numDocs; i++) {
             ParsedDocument doc = testParsedDocument(Integer.toString(i), null, testDocument(), new BytesArray("{}"), null);
-            Engine.Index firstIndexRequest = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 0,
+            Engine.Index firstIndexRequest = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 1,
                                                               Versions.MATCH_DELETED, VersionType.INTERNAL, PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);
             Engine.IndexResult indexResult = engine.index(firstIndexRequest);
             assertThat(indexResult.getVersion(), equalTo(1L));
@@ -3125,7 +3125,7 @@ public class InternalEngineTests extends EngineTestCase {
         final boolean flush = randomBoolean();
         int randomId = randomIntBetween(numDocs + 1, numDocs + 10);
         ParsedDocument doc = testParsedDocument(Integer.toString(randomId), null, testDocument(), new BytesArray("{}"), null);
-        Engine.Index firstIndexRequest = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 0, 1,
+        Engine.Index firstIndexRequest = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 1, 1,
                                                           VersionType.EXTERNAL, PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);
         Engine.IndexResult indexResult = engine.index(firstIndexRequest);
         assertThat(indexResult.getVersion(), equalTo(1L));
@@ -3135,7 +3135,7 @@ public class InternalEngineTests extends EngineTestCase {
         }
 
         doc = testParsedDocument(Integer.toString(randomId), null, testDocument(), new BytesArray("{}"), null);
-        Engine.Index idxRequest = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 0, 2,
+        Engine.Index idxRequest = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 1, 2,
                                                    VersionType.EXTERNAL, PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);
         Engine.IndexResult result = engine.index(idxRequest);
         engine.refresh("test");
@@ -3181,7 +3181,7 @@ public class InternalEngineTests extends EngineTestCase {
         final int numDocs = randomIntBetween(1, 10);
         for (int i = 0; i < numDocs; i++) {
             ParsedDocument doc = testParsedDocument(Integer.toString(i), null, testDocument(), new BytesArray("{}"), null);
-            Engine.Index firstIndexRequest = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 0,
+            Engine.Index firstIndexRequest = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 1,
                                                               Versions.MATCH_DELETED, VersionType.INTERNAL, PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);
             Engine.IndexResult index = engine.index(firstIndexRequest);
             assertThat(index.getVersion(), equalTo(1L));
@@ -3765,7 +3765,7 @@ public class InternalEngineTests extends EngineTestCase {
             newUid(doc),
             doc,
             UNASSIGNED_SEQ_NO,
-            0,
+            1,
             randomBoolean() ? Versions.MATCH_DELETED : Versions.MATCH_ANY,
             VersionType.INTERNAL,
             PRIMARY,
@@ -3788,7 +3788,7 @@ public class InternalEngineTests extends EngineTestCase {
             newUid(doc),
             doc,
             UNASSIGNED_SEQ_NO,
-            0,
+            1,
             Versions.MATCH_ANY,
             VersionType.INTERNAL,
             PRIMARY,
@@ -3830,7 +3830,7 @@ public class InternalEngineTests extends EngineTestCase {
             newUid(doc),
             doc,
             UNASSIGNED_SEQ_NO,
-            0,
+            1,
             randomBoolean() ? Versions.MATCH_DELETED : Versions.MATCH_ANY,
             VersionType.INTERNAL,
             PRIMARY,
@@ -3853,7 +3853,7 @@ public class InternalEngineTests extends EngineTestCase {
             newUid(doc),
             doc,
             UNASSIGNED_SEQ_NO,
-            0,
+            1,
             Versions.MATCH_DELETED,
             VersionType.INTERNAL,
             PRIMARY,
@@ -3889,7 +3889,7 @@ public class InternalEngineTests extends EngineTestCase {
     }
 
     public Engine.Index appendOnlyPrimary(ParsedDocument doc, boolean retry, final long autoGeneratedIdTimestamp, boolean create) {
-        return new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 0, create ? Versions.MATCH_DELETED : Versions.MATCH_ANY,
+        return new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 1, create ? Versions.MATCH_DELETED : Versions.MATCH_ANY,
             VersionType.INTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), autoGeneratedIdTimestamp, retry,
             UNASSIGNED_SEQ_NO, 0);
     }
