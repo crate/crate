@@ -20,6 +20,9 @@
 package org.elasticsearch.action;
 
 import io.crate.common.CheckedSupplier;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
+
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.CheckedConsumer;
 import io.crate.common.CheckedFunction;
@@ -173,13 +176,7 @@ public interface ActionListener<Response> {
             if (throwable == null) {
                 listener.onResponse(response);
             } else {
-                if (throwable instanceof Exception) {
-                    listener.onFailure((Exception) throwable);
-                } else if (throwable instanceof Error) {
-                    throw (Error) throwable;
-                } else {
-                    throw new AssertionError("Should have been either Error or Exception", throwable);
-                }
+                listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(throwable)));
             }
         };
     }
