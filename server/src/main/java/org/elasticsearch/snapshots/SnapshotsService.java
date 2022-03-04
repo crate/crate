@@ -749,15 +749,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         return unmodifiableList(builder);
     }
 
-    private static SnapshotShardFailure findShardFailure(List<SnapshotShardFailure> shardFailures, ShardId shardId) {
-        for (SnapshotShardFailure shardFailure : shardFailures) {
-            if (shardId.getIndexName().equals(shardFailure.index()) && shardId.getId() == shardFailure.shardId()) {
-                return shardFailure;
-            }
-        }
-        return null;
-    }
-
     @Override
     public void applyClusterState(ClusterChangedEvent event) {
         try {
