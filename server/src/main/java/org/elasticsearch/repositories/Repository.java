@@ -129,8 +129,21 @@ public interface Repository extends LifecycleComponent {
      * Returns a {@link RepositoryData} to describe the data in the repository, including the snapshots
      * and the indices across all snapshots found in the repository.  Throws a {@link RepositoryException}
      * if there was an error in reading the data.
+     *
+     * @deprecated Use {@link #getRepositoryData()} instead
      */
     void getRepositoryData(ActionListener<RepositoryData> listener);
+
+    /**
+     * Returns a {@link RepositoryData} to describe the data in the repository, including the snapshots
+     * and the indices across all snapshots found in the repository.  Throws a {@link RepositoryException}
+     * if there was an error in reading the data.
+     */
+    default CompletableFuture<RepositoryData> getRepositoryData() {
+        FutureActionListener<RepositoryData, RepositoryData> future = FutureActionListener.newInstance();
+        getRepositoryData(future);
+        return future;
+    }
 
     /**
      * Finalizes snapshotting process

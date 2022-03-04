@@ -54,7 +54,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.StepListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateApplier;
@@ -165,10 +164,9 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * @param repositoryName repository name
      * @return repository data
      */
-    public RepositoryData getRepositoryData(final String repositoryName) {
+    public CompletableFuture<RepositoryData> getRepositoryData(final String repositoryName) {
         Repository repository = repositoriesService.repository(repositoryName);
-        assert repository != null; // should only be called once we've validated the repository exists
-        return PlainActionFuture.get(repository::getRepositoryData);
+        return repository.getRepositoryData();
     }
 
     /**
@@ -268,9 +266,12 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         final String snapshotName = request.snapshot();
         validate(repositoryName, snapshotName);
         final SnapshotId snapshotId = new SnapshotId(snapshotName, UUIDs.randomBase64UUID()); // new UUID for the snapshot
-        final StepListener<RepositoryData> repositoryDataListener = new StepListener<>();
-        repositoriesService.repository(repositoryName).getRepositoryData(repositoryDataListener);
-        repositoryDataListener.whenComplete(repositoryData -> {
+        Repository repository = repositoriesService.repository(repositoryName);
+        repository.getRepositoryData().whenComplete((repositoryData, err) -> {
+            if (err != null) {
+                listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(err)));
+                return;
+            }
             clusterService.submitStateUpdateTask("create_snapshot [" + snapshotName + ']', new ClusterStateUpdateTask() {
 
                 private SnapshotsInProgress.Entry newSnapshot = null;
@@ -344,7 +345,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     return request.masterNodeTimeout();
                 }
             });
-        }, listener::onFailure);
+        });
     }
 
     private static boolean isOld(SnapshotInfo snapshotInfo) {
@@ -475,6 +476,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 final String snapshotName = snapshot.snapshot().getSnapshotId().getName();
                 final StepListener<RepositoryData> repositoryDataListener = new StepListener<>();
                 repository.getRepositoryData(repositoryDataListener);
+
+
                 repositoryDataListener.whenComplete(repositoryData -> {
                     // check if the snapshot name already exists in the repository
                     if (repositoryData.getSnapshotIds().stream().anyMatch(s -> s.getName().equals(snapshotName))) {
@@ -1164,11 +1167,17 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * @param snapshotName    snapshotName
      * @param listener        listener
      */
-    public void deleteSnapshot(final String repositoryName, final String snapshotName, final ActionListener<Void> listener,
+    public void deleteSnapshot(final String repositoryName,
+                               final String snapshotName,
+                               final ActionListener<Void> listener,
                                final boolean immediatePriority) {
         // First, look for the snapshot in the repository
         final Repository repository = repositoriesService.repository(repositoryName);
-        repository.getRepositoryData(ActionListener.wrap(repositoryData -> {
+        repository.getRepositoryData().whenComplete((repositoryData, err) -> {
+            if (err != null) {
+                listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(err)));
+                return;
+            }
             Optional<SnapshotId> matchedEntry = repositoryData.getSnapshotIds()
                 .stream()
                 .filter(s -> s.getName().equals(snapshotName))
@@ -1185,10 +1194,11 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 }
             }
             if (matchedEntry.isPresent() == false) {
-                throw new SnapshotMissingException(repositoryName, snapshotName);
+                listener.onFailure(new SnapshotMissingException(repositoryName, snapshotName));
+            } else {
+                deleteSnapshot(new Snapshot(repositoryName, matchedEntry.get()), listener, repoGenId, immediatePriority);
             }
-            deleteSnapshot(new Snapshot(repositoryName, matchedEntry.get()), listener, repoGenId, immediatePriority);
-        }, listener::onFailure));
+        });
     }
 
     /**
@@ -1200,7 +1210,9 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * @param listener listener
      * @param repositoryStateId the unique id for the state of the repository
      */
-    private void deleteSnapshot(final Snapshot snapshot, final ActionListener<Void> listener, final long repositoryStateId,
+    private void deleteSnapshot(final Snapshot snapshot,
+                                final ActionListener<Void> listener,
+                                final long repositoryStateId,
                                 final boolean immediatePriority) {
         LOGGER.info("deleting snapshot [{}]", snapshot);
         Priority priority = immediatePriority ? Priority.IMMEDIATE : Priority.NORMAL;

@@ -19,6 +19,17 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.get;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -39,15 +50,8 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * Transport Action for get snapshots operation
@@ -91,6 +95,27 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
     protected void masterOperation(final GetSnapshotsRequest request,
                                    final ClusterState state,
                                    final ActionListener<GetSnapshotsResponse> listener) {
+        String repository = request.repository();
+        var futureRepositoryData = isCurrentSnapshotsOnly(request.snapshots())
+            ? CompletableFuture.<RepositoryData>completedFuture(null)
+            : snapshotsService.getRepositoryData(repository);
+        futureRepositoryData.whenComplete((repositoryData, err) -> {
+            if (err != null) {
+                listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(err)));
+                return;
+            }
+            try {
+                masterOperationWithRepositoryData(request, state, listener, repositoryData);
+            } catch (Exception e) {
+                listener.onFailure(e);
+            }
+        });
+    }
+
+    private void masterOperationWithRepositoryData(final GetSnapshotsRequest request,
+                                                   final ClusterState state,
+                                                   final ActionListener<GetSnapshotsResponse> listener,
+                                                   final RepositoryData repositoryData) {
         try {
             final String repository = request.repository();
             final Map<String, SnapshotId> allSnapshotIds = new HashMap<>();
@@ -100,15 +125,10 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
                 allSnapshotIds.put(snapshotId.getName(), snapshotId);
                 currentSnapshots.add(snapshotInfo);
             }
-
-            final RepositoryData repositoryData;
-            if (isCurrentSnapshotsOnly(request.snapshots()) == false) {
-                repositoryData = snapshotsService.getRepositoryData(repository);
+            if (repositoryData != null) {
                 for (SnapshotId snapshotId : repositoryData.getAllSnapshotIds()) {
                     allSnapshotIds.put(snapshotId.getName(), snapshotId);
                 }
-            } else {
-                repositoryData = null;
             }
 
             final Set<SnapshotId> toResolve = new HashSet<>();
