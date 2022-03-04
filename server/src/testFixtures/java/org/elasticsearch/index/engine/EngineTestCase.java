@@ -152,7 +152,7 @@ public abstract class EngineTestCase extends ESTestCase {
     protected Path primaryTranslogDir;
     protected Path replicaTranslogDir;
     // A default primary term is used by engine instances created in this test.
-    protected final PrimaryTermSupplier primaryTerm = new PrimaryTermSupplier(0L);
+    protected final PrimaryTermSupplier primaryTerm = new PrimaryTermSupplier(1L);
 
     protected Settings indexSettings() {
         // TODO randomize more settings
