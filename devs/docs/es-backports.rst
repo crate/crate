@@ -551,7 +551,7 @@ should be crossed out as well.
 - [ ] 43ed244a043 Account soft-deletes in FrozenEngine (#51192) (#51229)
 - [ ] 694b8ab95dd Fix CorruptedBlobStoreRepository Test (#51128) (#51186)
 - [ ] 107989df3ee Introduce hidden indices (#51164)
-- [ ] e51b209dd35 Fix Infinite Retry Loop in loading RepositoryData (#50987) (#51093)
+- [x] e51b209dd35 Fix Infinite Retry Loop in loading RepositoryData (#50987) (#51093)
 - [x] 4b0581f1824 Remove custom metadata tool (#50813)
 - [x] 16c07472e5d Track Snapshot Version in RepositoryData (#50930) (#50989)
 - [su] 6e7478b8461 Allow proxy mode server name to be configured (#50951)

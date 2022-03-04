@@ -18,6 +18,19 @@
  */
 package org.elasticsearch.snapshots;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.Collections;
+import java.util.Locale;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
@@ -29,6 +42,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -38,19 +52,8 @@ import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.Collections;
-import java.util.Locale;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
+import org.junit.Test;
 
 public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCase {
 
@@ -250,6 +253,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         }
     }
 
+    @Test
     public void testCorruptedSnapshotIsIgnored() throws Exception {
         Path repo = randomRepoPath();
         final String repoName = "test";
@@ -280,6 +284,41 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         assertThat(resp.getSnapshots().size(), is(snapshots - 1));
 
         client().admin().cluster().prepareDeleteSnapshot(repoName, snapshotToCorrupt.getName()).get();
+    }
+
+    @Test
+    public void testMountCorruptedRepositoryData() throws Exception {
+        disableRepoConsistencyCheck("This test intentionally corrupts the repository contents");
+        Client client = client();
+
+        Path repo = randomRepoPath();
+        final String repoName = "test-repo";
+        logger.info("-->  creating repository at {}", repo.toAbsolutePath());
+        execute("CREATE REPOSITORY \"test-repo\" TYPE fs WITH (location = ?, compress = false)", new Object[] { repo.toAbsolutePath().toString() });
+
+        final String snapshot = "test-snap";
+
+        logger.info("--> creating snapshot");
+        CreateSnapshotResponse createSnapshotResponse = client.admin().cluster().prepareCreateSnapshot(repoName, snapshot)
+            .setWaitForCompletion(true).setIndices("test-idx-*").get();
+        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
+            equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
+
+        logger.info("--> corrupt index-N blob");
+        final Repository repository = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
+        final RepositoryData repositoryData = getRepositoryData(repository);
+        Files.write(repo.resolve("index-" + repositoryData.getGenId()), randomByteArrayOfLength(randomIntBetween(1, 100)));
+
+        logger.info("--> verify loading repository data throws RepositoryException");
+        expectThrows(RepositoryException.class, () -> getRepositoryData(repository));
+
+        logger.info("--> mount repository path in a new repository");
+        final String otherRepoName = "other-repo";
+        execute("CREATE REPOSITORY \"other-repo\" TYPE fs WITH (location = ?, compress = false)", new Object[] { repo.toAbsolutePath().toString() });
+        final Repository otherRepo = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(otherRepoName);
+
+        logger.info("--> verify loading repository data from newly mounted repository throws RepositoryException");
+        expectThrows(RepositoryException.class, () -> getRepositoryData(otherRepo));
     }
 
     private void assertRepositoryBlocked(Client client, String repo, String existingSnapshot) {
