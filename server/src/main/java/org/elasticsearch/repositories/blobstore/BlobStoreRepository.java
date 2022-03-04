@@ -1121,6 +1121,9 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     listener.onFailure(e);
                 }
                 return;
+            } catch (Exception e) {
+                listener.onFailure(new RepositoryException(metadata.name(), "Unexpected exception when loading repository data", e));
+                return;
             }
         }
     }
