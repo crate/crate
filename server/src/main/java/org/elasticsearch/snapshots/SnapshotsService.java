@@ -19,10 +19,31 @@
 
 package org.elasticsearch.snapshots;
 
+import static java.util.Collections.unmodifiableList;
+import static org.elasticsearch.cluster.SnapshotsInProgress.completed;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.common.collections.Tuple;
-import io.crate.common.unit.TimeValue;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -33,7 +54,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.StepListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
-import org.elasticsearch.action.support.GroupedActionListener;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -76,25 +96,12 @@ import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static java.util.Collections.unmodifiableList;
-import static org.elasticsearch.cluster.SnapshotsInProgress.completed;
+import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * Service responsible for creating snapshots
@@ -193,34 +200,31 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         // then, look in the repository
         final Repository repository = repositoriesService.repository(repositoryName);
 
-        GroupedActionListener<SnapshotInfo> snapshotInfosListener = new GroupedActionListener<>(
-            ActionListener.wrap(
-                snapshotInfos -> {
-                    final ArrayList<SnapshotInfo> snapshotList = new ArrayList<>(snapshotSet);
-                    snapshotList.addAll(snapshotInfos);
-                    CollectionUtil.timSort(snapshotList);
-                    listener.onResponse(unmodifiableList(snapshotList));
-                },
-                listener::onFailure
-            ),
-            snapshotIdsToIterate.size()
-        );
-
-        for (SnapshotId snapshotId : snapshotIdsToIterate) {
-            StepListener<SnapshotInfo> future = new StepListener<>();
-            future.whenComplete(
-                snapshotInfosListener::onResponse,
-                (ex) -> {
-                    if (ignoreUnavailable) {
-                        LOGGER.warn(() -> new ParameterizedMessage("failed to get snapshot [{}]", snapshotId), ex);
-                        snapshotInfosListener.onResponse(null);
-                    } else {
-                        snapshotInfosListener.onFailure(ex);
-                    }
-                }
-            );
-            repository.getSnapshotInfo(snapshotId, future);
+        List<CompletableFuture<SnapshotInfo>> futureSnapshotInfos = new ArrayList<>(snapshotIdsToIterate.size());
+        for (var snapshotId : snapshotIdsToIterate) {
+            if (ignoreUnavailable) {
+                futureSnapshotInfos.add(repository.getSnapshotInfo(snapshotId).exceptionally(ex -> {
+                    LOGGER.warn(() -> new ParameterizedMessage("failed to get snapshot [{}]", snapshotId), ex);
+                    return null;
+                }));
+            } else {
+                futureSnapshotInfos.add(repository.getSnapshotInfo(snapshotId));
+            }
         }
+        CompletableFutures.allAsList(futureSnapshotInfos).whenComplete((snapshotInfos, e) -> {
+            if (e != null) {
+                listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(e)));
+                return;
+            }
+            ArrayList<SnapshotInfo> snapshotList = new ArrayList<>(snapshotSet);
+            for (SnapshotInfo snapshotInfo : snapshotInfos) {
+                if (snapshotInfo != null) {
+                    snapshotList.add(snapshotInfo);
+                }
+            }
+            CollectionUtil.timSort(snapshotList);
+            listener.onResponse(unmodifiableList(snapshotList));
+        });
     }
 
     /**
@@ -343,67 +347,60 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         }, listener::onFailure);
     }
 
+    private static boolean isOld(SnapshotInfo snapshotInfo) {
+        Version version = snapshotInfo.version();
+        return version == null
+            ? false
+            : version.before(SHARD_GEN_IN_REPO_DATA_VERSION);
+    }
+
     public void hasOldVersionSnapshots(String repositoryName,
-                                          RepositoryData repositoryData,
-                                          ActionListener<Boolean> listener,
-                                          @Nullable SnapshotId excluded) {
+                                       RepositoryData repositoryData,
+                                       ActionListener<Boolean> listener,
+                                       @Nullable SnapshotId excluded) {
+        hasOldVersionSnapshots(repositoryName, repositoryData, excluded)
+            .whenComplete(ActionListener.toBiConsumer(listener));
+    }
+
+    public CompletableFuture<Boolean> hasOldVersionSnapshots(String repositoryName,
+                                                             RepositoryData repositoryData,
+                                                             @Nullable SnapshotId excluded) {
         final Collection<SnapshotId> snapshotIds = repositoryData.getSnapshotIds();
         var snapshotIdsFiltered = snapshotIds.stream()
             .filter(snapshotId -> snapshotId.equals(excluded) == false)
             .toList();
-        if (snapshotIdsFiltered.isEmpty()) {
-            listener.onResponse(false);
-        } else {
-            if (repositoryData.shardGenerations().totalShards() > 0) {
-                listener.onResponse(false);
-            } else {
-                final Repository repository = repositoriesService.repository(repositoryName);
-                GroupedActionListener<Boolean> allSnapshotIdsListener = new GroupedActionListener<>(ActionListener.wrap(
-                    oldFormatResults -> {
-                        boolean hasOldFormatSnapshots = false;
-                        for (boolean res : oldFormatResults) {
-                            hasOldFormatSnapshots = res;
-                        }
-                        if (hasOldFormatSnapshots == false || repositoryData.shardGenerations().totalShards() == 0) {
-                            listener.onResponse(hasOldFormatSnapshots);
-                        } else {
-                            listener.onFailure(
-                                new RuntimeException("Found non-empty shard generations ["
-                                                     + repositoryData.shardGenerations()
-                                                     + "] but repository contained old version snapshots")
-                            );
-                        }
-                    },
-                    (e) -> {
-                        if (e instanceof SnapshotMissingException) {
-                            LOGGER.warn("Failed to load snapshot metadata, assuming repository is in old format", e);
-                            listener.onResponse(true);
-                        } else {
-                            listener.onFailure(e);
-                        }
-                    }),
-                    snapshotIdsFiltered.size()
-                );
-                for (var snapshotId : snapshotIdsFiltered) {
-                    final Version known = repositoryData.getVersion(snapshotId);
-                    if (known == null) {
-                        repository.getSnapshotInfo(
-                            snapshotId,
-                            ActionListener.delegateFailure(allSnapshotIdsListener, (delegate, snapshotInfo) -> {
-                                var version = snapshotInfo.version();
-                                if (version != null) {
-                                    delegate.onResponse(version.before(SHARD_GEN_IN_REPO_DATA_VERSION));
-                                } else {
-                                    delegate.onResponse(false);
-                                }
-                            })
-                        );
-                    } else {
-                        allSnapshotIdsListener.onResponse(known.before(SHARD_GEN_IN_REPO_DATA_VERSION));
-                    }
-                }
-            }
+        if (snapshotIdsFiltered.isEmpty() || repositoryData.shardGenerations().totalShards() > 0) {
+            return CompletableFuture.completedFuture(false);
         }
+
+        final Repository repository = repositoriesService.repository(repositoryName);
+        List<CompletableFuture<Boolean>> hasOldFormatSnapshotFutures = Lists2.map(snapshotIdsFiltered, snapshotId -> {
+            Version known = repositoryData.getVersion(snapshotId);
+            if (known != null) {
+                return CompletableFuture.completedFuture(known.before(SHARD_GEN_IN_REPO_DATA_VERSION));
+            }
+            return repository.getSnapshotInfo(snapshotId)
+                .thenApply(SnapshotsService::isOld)
+                .exceptionally(e -> {
+                    var t = SQLExceptions.unwrap(e);
+                    if (t instanceof SnapshotMissingException) {
+                        LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to check for old version snapshots", repositoryName), t);
+                        return true;
+                    }
+                    throw Exceptions.toRuntimeException(t);
+                });
+        });
+        return CompletableFutures.allAsList(hasOldFormatSnapshotFutures)
+            .thenApply(oldFormatResults -> {
+                boolean anyOld = oldFormatResults.stream().anyMatch(Boolean.TRUE::equals);
+                if (anyOld && repositoryData.shardGenerations().totalShards() > 0) {
+                    throw new RuntimeException(
+                        "Found non-empty shard generations ["
+                            + repositoryData.shardGenerations()
+                            + "] but repository contained old version snapshots");
+                }
+                return anyOld;
+            });
     }
 
     /**
