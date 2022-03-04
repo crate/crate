@@ -20,7 +20,12 @@
 package org.elasticsearch.repositories;
 
 
-import io.crate.analyze.repositories.TypeSettings;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
@@ -38,10 +43,8 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.function.Function;
+import io.crate.action.FutureActionListener;
+import io.crate.analyze.repositories.TypeSettings;
 
 /**
  * An interface for interacting with a repository in snapshot and restore.
@@ -86,8 +89,15 @@ public interface Repository extends LifecycleComponent {
      *
      * @param snapshotId  snapshot id
      * @param listener   listener invoked on completion
+     * @deprecated Use {@link #getSnapshotInfo(SnapshotId) instead
      */
     void getSnapshotInfo(SnapshotId snapshotId, ActionListener<SnapshotInfo> listener);
+
+    default CompletableFuture<SnapshotInfo> getSnapshotInfo(SnapshotId snapshotId) {
+        FutureActionListener<SnapshotInfo, SnapshotInfo> future = FutureActionListener.newInstance();
+        getSnapshotInfo(snapshotId, future);
+        return future;
+    }
 
     /**
      * Returns global metadata associated with the snapshot.

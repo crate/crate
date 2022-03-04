@@ -42,7 +42,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -53,10 +52,10 @@ import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
-import org.junit.Test;
 
 public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCase {
 
+    @Test
     public void testConcurrentlyChangeRepositoryContents() throws Exception {
         Client client = client();
 
@@ -115,6 +114,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
             .addSnapshots(snapshot).get().getSnapshots());
     }
 
+    @Test
     public void testFindDanglingLatestGeneration() throws Exception {
         Path repo = randomRepoPath();
         final String repoName = "test";
@@ -194,6 +194,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
             .addSnapshots(snapshot).get().getSnapshots());
     }
 
+    @Test
     public void testHandlingMissingRootLevelSnapshotMetadata() throws Exception {
         Path repo = randomRepoPath();
         final String repoName = "test";
