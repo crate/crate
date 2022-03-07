@@ -28,6 +28,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParserUtils;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotState;
+import org.elasticsearch.snapshots.SnapshotsService;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -412,6 +413,13 @@ public final class RepositoryData {
             builder.endObject();
         }
         builder.endObject();
+        if (shouldWriteShardGens) {
+            // TODO: Apply 609b015e3c1 to resolve this
+            // TODO: write this field once 7.6 is able to read it and add tests to :qa:snapshot-repository-downgrade that make sure older
+            //       ES versions can't corrupt the repository by writing to it and all the snapshots in it are v7.6 or newer
+            // Add min version field to make it impossible for older ES versions to deserialize this object
+            // builder.field(MIN_VERSION, SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION.toString());
+        }
         builder.endObject();
         return builder;
     }
@@ -526,6 +534,12 @@ public final class RepositoryData {
                             shardGenerations.put(indexId, i, gens.get(i));
                         }
                     }
+                } else if (MIN_VERSION.equals(field)) {
+                    if (parser.nextToken() != XContentParser.Token.VALUE_STRING) {
+                        throw new ElasticsearchParseException("version string expected [min_version]");
+                    }
+                    final Version version = Version.fromString(parser.text());
+                    assert version.onOrAfter(SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION);
                 } else {
                     throw new ElasticsearchParseException("unknown field name  [" + field + "]");
                 }

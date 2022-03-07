@@ -27,17 +27,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.SnapshotsInProgress.Entry;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -52,6 +53,8 @@ import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
+
+import io.crate.common.collections.Lists2;
 
 public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCase {
 
@@ -237,17 +240,23 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         logger.info("--> verify that repo is assumed in old metadata format");
         final SnapshotsService snapshotsService = internalCluster().getCurrentMasterNodeInstance(SnapshotsService.class);
         final ThreadPool threadPool = internalCluster().getCurrentMasterNodeInstance(ThreadPool.class);
-        assertThat(PlainActionFuture.get(f -> threadPool.generic().execute(
-            ActionRunnable.wrap(f, (d) -> snapshotsService.hasOldVersionSnapshots(repoName, getRepositoryData(repository), d, null)))),
-            is(true));
+        assertThat(
+            threadPool.generic().submit(() -> {
+                return snapshotsService.hasOldVersionSnapshots(repoName, getRepositoryData(repository), null);
+            }).get().get(),
+            is(true)
+        );
 
         logger.info("--> verify that snapshot with missing root level metadata can be deleted");
-        client().admin().cluster().prepareDeleteSnapshot(repoName, snapshotToCorrupt.getName()).get();
+        execute("drop snapshot test.\"" + snapshotToCorrupt.getName() + "\"");
 
         logger.info("--> verify that repository is assumed in new metadata format after removing corrupted snapshot");
-        assertThat(PlainActionFuture.get(f -> threadPool.generic().execute(
-            ActionRunnable.wrap(f, (d) -> snapshotsService.hasOldVersionSnapshots(repoName, getRepositoryData(repository), d,null)))),
-            is(false));
+        assertThat(
+            threadPool.generic().submit(() -> {
+                return snapshotsService.hasOldVersionSnapshots(repoName, getRepositoryData(repository), null);
+            }).get().get(),
+            is(false)
+        );
         final RepositoryData finalRepositoryData = getRepositoryData(repository);
         for (SnapshotId snapshotId : finalRepositoryData.getSnapshotIds()) {
             assertThat(finalRepositoryData.getVersion(snapshotId), is(Version.CURRENT));
