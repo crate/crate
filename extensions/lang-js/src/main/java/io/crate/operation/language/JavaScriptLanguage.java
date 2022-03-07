@@ -47,6 +47,7 @@ public class JavaScriptLanguage implements UDFLanguage {
 
     private static final Engine ENGINE = Engine.newBuilder()
         .option("js.foreign-object-prototype", "true")
+        .option("engine.WarnInterpreterOnly", "false")
         .build();
 
     private static final HostAccess HOST_ACCESS = HostAccess.newBuilder()
