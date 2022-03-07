@@ -267,11 +267,16 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         validate(repositoryName, snapshotName);
         final SnapshotId snapshotId = new SnapshotId(snapshotName, UUIDs.randomBase64UUID()); // new UUID for the snapshot
         Repository repository = repositoriesService.repository(repositoryName);
-        repository.getRepositoryData().whenComplete((repositoryData, err) -> {
+        CompletableFuture<RepositoryData> futureRepositoryData = repository.getRepositoryData();
+        var futureOldVersions = futureRepositoryData
+            .thenCompose(repositoryData -> hasOldVersionSnapshots(repositoryName, repositoryData, null));
+        futureOldVersions.whenComplete((hasOldFormatSnapshots, err) -> {
+
             if (err != null) {
                 listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(err)));
                 return;
             }
+            final RepositoryData repositoryData = futureRepositoryData.join();
             clusterService.submitStateUpdateTask("create_snapshot [" + snapshotName + ']', new ClusterStateUpdateTask() {
 
                 private SnapshotsInProgress.Entry newSnapshot = null;
@@ -300,7 +305,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                             threadPool.absoluteTimeInMillis(),
                             repositoryData.getGenId(),
                             null,
-                            clusterService.state().nodes().getMinNodeVersion().onOrAfter(SHARD_GEN_IN_REPO_DATA_VERSION));
+                            hasOldFormatSnapshots == false &&
+                                clusterService.state().nodes().getMinNodeVersion().onOrAfter(SHARD_GEN_IN_REPO_DATA_VERSION));
                         initializingSnapshots.add(newSnapshot.snapshot());
                         snapshots = new SnapshotsInProgress(newSnapshot);
                     } else {
@@ -355,13 +361,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             : version.before(SHARD_GEN_IN_REPO_DATA_VERSION);
     }
 
-    public void hasOldVersionSnapshots(String repositoryName,
-                                       RepositoryData repositoryData,
-                                       ActionListener<Boolean> listener,
-                                       @Nullable SnapshotId excluded) {
-        hasOldVersionSnapshots(repositoryName, repositoryData, excluded)
-            .whenComplete(ActionListener.toBiConsumer(listener));
-    }
 
     public CompletableFuture<Boolean> hasOldVersionSnapshots(String repositoryName,
                                                              RepositoryData repositoryData,
