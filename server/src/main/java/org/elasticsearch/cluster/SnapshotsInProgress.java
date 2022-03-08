@@ -124,10 +124,51 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             this.useShardGenerations = useShardGenerations;
         }
 
-        public Entry(Snapshot snapshot, boolean includeGlobalState, boolean partial, State state, List<IndexId> indices,
+        private static boolean assertShardsConsistent(State state, List<IndexId> indices,
+                                                      ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
+            if ((state == State.INIT || state == State.ABORTED) && shards.isEmpty()) {
+                return true;
+            }
+            final Set<String> indexNames = indices.stream().map(IndexId::getName).collect(Collectors.toSet());
+            final Set<String> indexNamesInShards = new HashSet<>();
+            shards.keysIt().forEachRemaining(s -> indexNamesInShards.add(s.getIndexName()));
+            assert indexNames.equals(indexNamesInShards)
+                : "Indices in shards " + indexNamesInShards + " differ from expected indices " + indexNames +
+                  " for state [" + state + "]";
+            return true;
+        }
+
+        public Entry(Snapshot snapshot,
+                     boolean includeGlobalState,
+                     boolean partial,
+                     State state,
+                     List<IndexId> indices,
                      List<String> templates,
-                     long startTime, long repositoryStateId, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards, boolean useShardGenerations) {
+                     long startTime,
+                     long repositoryStateId,
+                     ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards,
+                     boolean useShardGenerations) {
             this(snapshot, includeGlobalState, partial, state, indices, templates, startTime, repositoryStateId, shards, null, useShardGenerations);
+        }
+
+        public Entry(Entry entry,
+                     State state,
+                     List<IndexId> indices,
+                     long repositoryStateId,
+                     ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards,
+                     boolean useShardGenerations,
+                     String failure) {
+            this(
+                entry.snapshot,
+                entry.includeGlobalState,
+                entry.partial,
+                state,
+                indices,
+                entry.templates,
+                entry.startTime,
+                repositoryStateId, shards,
+                failure,
+                useShardGenerations);
         }
 
         public Entry(Entry entry, State state, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
@@ -142,20 +183,6 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
 
         public Entry(Entry entry, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
             this(entry, entry.state, shards, entry.failure);
-        }
-
-        private static boolean assertShardsConsistent(State state, List<IndexId> indices,
-                                                      ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
-            if ((state == State.INIT || state == State.ABORTED) && shards.isEmpty()) {
-                return true;
-            }
-            final Set<String> indexNames = indices.stream().map(IndexId::getName).collect(Collectors.toSet());
-            final Set<String> indexNamesInShards = new HashSet<>();
-            shards.keysIt().forEachRemaining(s -> indexNamesInShards.add(s.getIndexName()));
-            assert indexNames.equals(indexNamesInShards)
-                : "Indices in shards " + indexNamesInShards + " differ from expected indices " + indexNames +
-                  " for state [" + state + "]";
-            return true;
         }
 
         @Override

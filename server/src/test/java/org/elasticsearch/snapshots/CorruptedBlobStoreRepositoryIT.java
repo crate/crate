@@ -27,7 +27,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -38,7 +37,6 @@ import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.SnapshotsInProgress.Entry;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -53,8 +51,6 @@ import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
-
-import io.crate.common.collections.Lists2;
 
 public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCase {
 

@@ -25,7 +25,6 @@ import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.SQLResponse;
 import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.cluster.metadata.IndexMetadata;

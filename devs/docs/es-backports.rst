@@ -545,7 +545,7 @@ should be crossed out as well.
 - [x] af1ff52e701 Fix TransportMasterNodeAction not Retrying NodeClosedException (#51325) (#51437)
 - [ ] f0d8c785e32 Fix Inconsistent Shard Failure Count in Failed Snapshots (#51416) (#51426)
 - [ ] acf84b68cb0 Do not wrap soft-deletes reader for segment stats (#51331)
-- [ ] 4e8ab43a3e6 Simplify Snapshot Initialization (#51256) (#51344)
+- [x] 4e8ab43a3e6 Simplify Snapshot Initialization (#51256) (#51344)
 - [x] 157b352b476 Exclude nested documents in LuceneChangesSnapshot (#51279)
 - [x] 7b4c2bfdc4b Fix Overly Optimistic Request Deduplication (#51270) (#51291)
 - [x] 43ed244a043 Account soft-deletes in FrozenEngine (#51192) (#51229)
