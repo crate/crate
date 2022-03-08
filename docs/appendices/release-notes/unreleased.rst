@@ -64,6 +64,11 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue from ``COPY FROM`` that caused the tables' default expressions
+  to be evaluated only once, causing a single value to be used throughout the
+  table instead of per row. This only affected non-deterministic functions such
+  as ``gen_random_text_uuid()``, ``random()``, etc.
+
 - Fixed an issue that could lead to errors when reading translog files from
   CrateDB versions < 4.0.
 

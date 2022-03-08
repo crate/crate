@@ -27,6 +27,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Map;
@@ -99,5 +100,26 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("'abc' is too long for the text type of length: 2");
         insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
+    }
+
+    @Test
+    public void test_default_clauses_are_evaluated_per_row() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (id text default gen_random_text_uuid(), x int)")
+            .build();
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        InsertSourceGen sourceGen = new GeneratedColsFromRawInsertSource(
+            txnCtx,
+            e.nodeCtx,
+            tbl.generatedColumns(),
+            tbl.defaultExpressionColumns()
+        );
+        Map<String, Object> result;
+        result = sourceGen.generateSourceAndCheckConstraints(new Object[] {"{\"x\":10}"});
+        var id1 = result.get("id");
+        result = sourceGen.generateSourceAndCheckConstraints(new Object[] {"{\"x\":20}"});
+        var id2 = result.get("id");
+        assertThat(id1, Matchers.notNullValue());
+        assertThat(id1, Matchers.not(is(id2)));
     }
 }
