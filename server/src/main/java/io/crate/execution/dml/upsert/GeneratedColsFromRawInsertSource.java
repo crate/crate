@@ -43,7 +43,9 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
 
     private final Map<Reference, Input<?>> generatedCols;
     private final List<CollectExpression<Map<String, Object>, ?>> expressions;
-    private final Map<Reference, Object> defaults;
+    private final List<Reference> defaultExpressionColumns;
+    private final NodeContext nodeCtx;
+    private final TransactionContext txnCtx;
 
     GeneratedColsFromRawInsertSource(TransactionContext txnCtx,
                                      NodeContext nodeCtx,
@@ -55,14 +57,16 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
         this.generatedCols = new HashMap<>(generatedColumns.size());
         generatedColumns.forEach(r -> generatedCols.put(r, ctx.add(r.generatedExpression())));
         expressions = ctx.expressions();
-        defaults = buildDefaults(defaultExpressionColumns, txnCtx, nodeCtx);
+        this.defaultExpressionColumns = defaultExpressionColumns;
+        this.nodeCtx = nodeCtx;
+        this.txnCtx = txnCtx;
     }
 
     @Override
     public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) {
         String rawSource = (String) values[0];
         Map<String, Object> source = XContentHelper.toMap(new BytesArray(rawSource), XContentType.JSON);
-        mixinDefaults(source, defaults);
+        generateDefaultsAndMerge(source);
         for (int i = 0; i < expressions.size(); i++) {
             expressions.get(i).setNextRow(source);
         }
@@ -77,21 +81,11 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
         return source;
     }
 
-    private Map<Reference, Object> buildDefaults(List<Reference> defaults,
-                                                 TransactionContext txnCtx,
-                                                 NodeContext nodeCtx) {
-        HashMap<Reference, Object> m = new HashMap<>();
-        for (Reference ref : defaults) {
+    private void generateDefaultsAndMerge(Map<String, Object> source) {
+        for (Reference ref : defaultExpressionColumns) {
+            ColumnIdent column = ref.column();
             Object val = SymbolEvaluator.evaluateWithoutParams(txnCtx, nodeCtx, ref.defaultExpression());
-            m.put(ref, val);
-        }
-        return m;
-    }
-
-    private static void mixinDefaults(Map<String, Object> source, Map<Reference, Object> defaults) {
-        for (var entry : defaults.entrySet()) {
-            ColumnIdent column = entry.getKey().column();
-            Maps.mergeInto(source, column.name(), column.path(), entry.getValue(), Map::putIfAbsent);
+            Maps.mergeInto(source, column.name(), column.path(), val, Map::putIfAbsent);
         }
     }
 }
