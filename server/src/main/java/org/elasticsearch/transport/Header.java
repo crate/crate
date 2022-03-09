@@ -19,11 +19,11 @@
 
 package org.elasticsearch.transport;
 
+import java.io.IOException;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
-
-import java.io.IOException;
 
 public class Header {
 

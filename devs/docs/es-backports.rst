@@ -366,9 +366,9 @@ should be crossed out as well.
 - [x] 5569137ae3c Flatten ReleaseableBytesReference Object Trees (#57092) (#57109)
 - [ ] 9fa60f7367b Add History UUID Index Setting (#56930) (#57104)
 - [ ] d8165a3439b Turn off translog retention only when shard started (#57063)
-- [ ] 1dabdd9a201 Close channel on handshake error with old version (#56989) (#57025)
-- [ ] 99f7115f228 Revert "Close channel on handshake error with old version (#56989)"
-- [ ] c81a189da95 Close channel on handshake error with old version (#56989)
+- [x] 1dabdd9a201 Close channel on handshake error with old version (#56989) (#57025)
+- [s] 99f7115f228 Revert "Close channel on handshake error with old version (#56989)"
+- [s] c81a189da95 Close channel on handshake error with old version (#56989)
 - [ ] fb000d6cf4e Simplify range query methods for range types. (#56976)
 - [x] 18bfbeda297 Move merge compatibility logic from MappedFieldType to FieldMapper (#56915)
 - [ ] 46e5c37267c Remove Dead Conditional from RoutingTable (#56870) (#56914)
