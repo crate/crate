@@ -34,6 +34,7 @@ import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -118,9 +119,10 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
                                                    final RepositoryData repositoryData) {
         try {
             final String repository = request.repository();
+            final SnapshotsInProgress snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE);
             final Map<String, SnapshotId> allSnapshotIds = new HashMap<>();
             final List<SnapshotInfo> currentSnapshots = new ArrayList<>();
-            for (SnapshotInfo snapshotInfo : snapshotsService.currentSnapshots(repository)) {
+            for (SnapshotInfo snapshotInfo : SnapshotsService.currentSnapshots(snapshotsInProgress, repository)) {
                 SnapshotId snapshotId = snapshotInfo.snapshotId();
                 allSnapshotIds.put(snapshotId.getName(), snapshotId);
                 currentSnapshots.add(snapshotInfo);
@@ -160,6 +162,7 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
 
             if (request.verbose()) {
                 snapshotsService.snapshots(
+                    snapshotsInProgress,
                     repository,
                     new ArrayList<>(toResolve),
                     request.ignoreUnavailable(),
