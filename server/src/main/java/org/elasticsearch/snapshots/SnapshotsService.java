@@ -164,28 +164,37 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * @return repository data
      */
     public CompletableFuture<RepositoryData> getRepositoryData(final String repositoryName) {
-        Repository repository = repositoriesService.repository(repositoryName);
-        return repository.getRepositoryData();
+        try {
+            Repository repository = repositoriesService.repository(repositoryName);
+            return repository.getRepositoryData();
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     /**
      * Returns a list of snapshots from repository sorted by snapshot creation date
      *
-     * @param repositoryName repository name
-     * @param snapshotIds       snapshots for which to fetch snapshot information
-     * @param ignoreUnavailable if true, snapshots that could not be read will only be logged with a warning,
-     *                          if false, they will throw an error
+     * @param snapshotsInProgress snapshots in progress in the cluster state
+     * @param repositoryName      repository name
+     * @param snapshotIds         snapshots for which to fetch snapshot information
+     * @param ignoreUnavailable   if true, snapshots that could not be read will only be logged with a warning,
+     *                            if false, they will throw an error
      * @return list of snapshots
      */
-    public void snapshots(final String repositoryName,
-                          final List<SnapshotId> snapshotIds,
-                          final boolean ignoreUnavailable,
+    public void snapshots(@Nullable SnapshotsInProgress snapshotsInProgress,
+                          String repositoryName,
+                          List<SnapshotId> snapshotIds,
+                          boolean ignoreUnavailable,
                           ActionListener<Collection<SnapshotInfo>> listener) {
         final Set<SnapshotInfo> snapshotSet = new HashSet<>();
         final Set<SnapshotId> snapshotIdsToIterate = new HashSet<>(snapshotIds);
         // first, look at the snapshots in progress
-        final List<SnapshotsInProgress.Entry> entries =
-            currentSnapshots(repositoryName, snapshotIdsToIterate.stream().map(SnapshotId::getName).collect(Collectors.toList()));
+        final List<SnapshotsInProgress.Entry> entries = currentSnapshots(
+            snapshotsInProgress,
+            repositoryName,
+            snapshotIdsToIterate.stream().map(SnapshotId::getName).collect(Collectors.toList())
+        );
         for (SnapshotsInProgress.Entry entry : entries) {
             snapshotSet.add(inProgressSnapshot(entry));
             snapshotIdsToIterate.remove(entry.snapshot().getSnapshotId());
@@ -227,12 +236,13 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
     /**
      * Returns a list of currently running snapshots from repository sorted by snapshot creation date
      *
+     * @param snapshotsInProgress snapshots in progress in the cluster state
      * @param repositoryName repository name
      * @return list of snapshots
      */
-    public List<SnapshotInfo> currentSnapshots(final String repositoryName) {
+    public static List<SnapshotInfo> currentSnapshots(@Nullable SnapshotsInProgress snapshotsInProgress, String repositoryName) {
         List<SnapshotInfo> snapshotList = new ArrayList<>();
-        List<SnapshotsInProgress.Entry> entries = currentSnapshots(repositoryName, Collections.emptyList());
+        List<SnapshotsInProgress.Entry> entries = currentSnapshots(snapshotsInProgress, repositoryName, Collections.emptyList());
         for (SnapshotsInProgress.Entry entry : entries) {
             snapshotList.add(inProgressSnapshot(entry));
         }
@@ -703,7 +713,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         return new SnapshotInfo(
             entry.snapshot().getSnapshotId(),
             entry.indices().stream().map(IndexId::getName).collect(Collectors.toList()),
-            entry.startTime(), entry.includeGlobalState()
+            entry.startTime(),
+            entry.includeGlobalState()
         );
     }
 
@@ -713,12 +724,14 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * This method is executed on master node
      * </p>
      *
-     * @param repository repository id
-     * @param snapshots  list of snapshots that will be used as a filter, empty list means no snapshots are filtered
+     * @param snapshotsInProgress snapshots in progress in the cluster state
+     * @param repository          repository id
+     * @param snapshots           list of snapshots that will be used as a filter, empty list means no snapshots are filtered
      * @return list of metadata for currently running snapshots
      */
-    public List<SnapshotsInProgress.Entry> currentSnapshots(final String repository, final List<String> snapshots) {
-        SnapshotsInProgress snapshotsInProgress = clusterService.state().custom(SnapshotsInProgress.TYPE);
+    public static List<SnapshotsInProgress.Entry> currentSnapshots(@Nullable SnapshotsInProgress snapshotsInProgress,
+                                                                   String repository,
+                                                                   List<String> snapshots) {
         if (snapshotsInProgress == null || snapshotsInProgress.entries().isEmpty()) {
             return Collections.emptyList();
         }
@@ -1203,7 +1216,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             // if nothing found by the same name, then look in the cluster state for current in progress snapshots
             long repoGenId = repositoryData.getGenId();
             if (matchedEntry.isPresent() == false) {
-                Optional<SnapshotsInProgress.Entry> matchedInProgress = currentSnapshots(repositoryName, Collections.emptyList()).stream()
+                Optional<SnapshotsInProgress.Entry> matchedInProgress = currentSnapshots(
+                    clusterService.state().custom(SnapshotsInProgress.TYPE), repositoryName, Collections.emptyList()).stream()
                     .filter(s -> s.snapshot().getSnapshotId().getName().equals(snapshotName)).findFirst();
                 if (matchedInProgress.isPresent()) {
                     matchedEntry = matchedInProgress.map(s -> s.snapshot().getSnapshotId());
