@@ -227,7 +227,7 @@ should be crossed out as well.
 - [ ] 1f6a3765e46 Fix NPE in SnapshotsInProgress Constructor (#60355)
 - [ ] 753fd4f6bc3 Cleanup and optimize More Serialization Spots (#59959) (#60331)
 - [ ] c7bfb5de41b Add search `fields` parameter to support high-level field retrieval. (#60258)
-- [ ] 9450ea08b4d Log and track open/close of transport connections (#60297)
+- [x] 9450ea08b4d Log and track open/close of transport connections (#60297)
 - [ ] d39622e17ec Stop Serializing RepositoryData Twice when Writing (#60107) (#60269)
 - [ ] a55c869aab3 Properly document keepalive and other tcp options (#60216)
 - [ ] cb4c21fa7bd [DOCS] Fix typo in adapt auto expand replica comments (#60187) (#60239)
