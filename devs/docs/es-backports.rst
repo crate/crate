@@ -216,7 +216,7 @@ should be crossed out as well.
 - [ ] 9f6f66f1567 Fail searchable snapshot shards on invalid license (#60722)
 - [ ] b3ae5d26bd1 Move mapper validation to the mappers themselves (#60072) (#60649)
 - [ ] 212ce22d155 Optimize CS Persistence Stream Use (#60643) (#60647)
-- [ ] 3409e019d23 Ignore shutdown when retrying recoveries (#60586)
+- [x] 3409e019d23 Ignore shutdown when retrying recoveries (#60586)
 - [ ] 2cde43b799d Allows nanosecond resolution in search_after (backport of #60328) (#60426)
 - [ ] d2ddf8cd6a1 Improve deserialization failure logging (#60577)
 - [ ] 3270cb3088c More Efficient Writes for Snapshot Shard Generations (#60458) (#60575)
