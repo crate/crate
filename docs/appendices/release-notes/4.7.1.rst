@@ -1,0 +1,63 @@
+.. _version_4.7.1:
+
+=============
+Version 4.7.1
+=============
+
+Released on 2022-03-10.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 4.7.1.
+
+    We recommend that you upgrade to the latest 4.6 release before moving to
+    4.7.1.
+
+    A rolling upgrade from 4.6.x to 4.7.1 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.7.0` release notes for a full list of changes in the
+4.7 series.
+
+Fixes
+=====
+
+- Fixed an issue from ``COPY FROM`` that caused the tables' default expressions
+  to be evaluated only once, causing a single value to be used throughout the
+  table instead of per row. This only affected non-deterministic functions such
+  as ``gen_random_text_uuid()``, ``random()``, etc.
+
+- Fixed an issue that could lead to errors when reading translog files from
+  CrateDB versions < 4.0.
+
+- Fixed an issue that could lead to an ``Couldn't create execution plan`` error
+  when using a join condition referencing multiple other relations.
+
+- Fixed an issue that caused an NPE when executing ``COPY FROM`` with a globbed
+  URI having a parent directory that does not exist in the filesystem. This
+  affected copying from filesystems local to CrateDB nodes only.
+
+- Fixed an issue that led to an ``Invalid query used in CREATE VIEW`` error if
+  using a scalar subquery within the query part of a ``CREATE VIEW`` statement.
+
+- Fixed an issue that caused a failure when a window function over a partition
+  is not used in an upper query. For example:
+  ``select x from (select x, ROW_NUMBER() OVER (PARTITION BY y) from t) t1``
+
+- Fixed an incorrect optimization of comparison function arguments for explicit
+  cast arguments resulting in a wrong result set. Example:
+  ```WHERE strCol::bigint > 3```
+
+- Updated the bundled JDK to 17.0.2+8
