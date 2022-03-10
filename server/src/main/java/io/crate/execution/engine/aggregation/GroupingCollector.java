@@ -81,7 +81,8 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                Version minNodeVersion,
                                                Input<?> keyInput,
                                                DataType keyType,
-                                               Version indexVersionCreated) {
+                                               Version indexVersionCreated,
+                                               Supplier<Map<Object, Object[]>> supplier) {
         return new GroupingCollector<>(
             expressions,
             aggregations,
@@ -100,7 +101,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             ),
             row -> keyInput.value(),
             indexVersionCreated,
-            GroupByMaps.mapForType(keyType)
+            supplier == null ? GroupByMaps.mapForType(keyType) : supplier
         );
     }
 

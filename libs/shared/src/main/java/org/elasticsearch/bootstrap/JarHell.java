@@ -278,6 +278,9 @@ public class JarHell {
                 if (clazz.startsWith("org.apache.lucene.index.AssertingLeafReader")) {
                     return; // overwritten to disable thread-change assertion
                 }
+                if (clazz.endsWith(".package-info")) {
+                    return;
+                }
                 throw new IllegalStateException("jar hell!" + System.lineSeparator() +
                         "class: " + clazz + System.lineSeparator() +
                         "jar1: " + previous + System.lineSeparator() +

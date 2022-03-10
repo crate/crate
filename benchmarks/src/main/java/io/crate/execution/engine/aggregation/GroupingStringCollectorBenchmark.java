@@ -111,7 +111,8 @@ public class GroupingStringCollectorBenchmark {
             Version.CURRENT,
             keyInputs.get(0),
             DataTypes.STRING,
-            Version.CURRENT
+            Version.CURRENT,
+            null
         );
     }
 

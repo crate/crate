@@ -23,11 +23,16 @@ package io.crate.execution.engine.aggregation;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
+import com.koloboke.collect.map.hash.HashLongObjMaps;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenCustomHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongHash;
+import net.jpountz.xxhash.XXHash32;
+import net.jpountz.xxhash.XXHashFactory;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -86,10 +91,40 @@ import io.netty.util.collection.LongObjectHashMap;
 @Warmup(iterations = 2)
 public class GroupingLongCollectorBenchmark {
 
-    private GroupingCollector groupBySumCollector;
+    private GroupingCollector currentNettyMapCollector;
+    private GroupingCollector kolobokeCollector;
+    private GroupingCollector fastutilCollector;
+    private GroupingCollector fastutilCustomHashCollector;
+    private GroupingCollector jdkCollector;
+
     private List<Row> rows;
     private long[] numbers;
     private IndexSearcher searcher;
+    private static final XXHash32 xxHash32 = XXHashFactory.fastestInstance().hash32();
+
+
+    private static final class LongHashStrategy implements LongHash.Strategy {
+
+        private static final LongHashStrategy INSTANCE = new LongHashStrategy();
+
+        @Override
+        public int hashCode(long value) {
+            return xxHash32.hash(new byte[] {
+                (byte)(value >> 56),
+                (byte)(value >> 48),
+                (byte)(value >> 40),
+                (byte)(value >> 32),
+                (byte)(value >> 24),
+                (byte)(value >> 16),
+                (byte)(value >> 8),
+                (byte)value}, 0, Long.BYTES, 0);
+        }
+
+        @Override
+        public boolean equals(long a, long b) {
+            return a == b;
+        }
+    }
 
     @Setup
     public void createGroupingCollector() throws Exception {
@@ -108,7 +143,17 @@ public class GroupingLongCollectorBenchmark {
             DataTypes.INTEGER
         );
         var memoryManager = new OnHeapMemoryManager(bytes -> {});
-        groupBySumCollector = createGroupBySumCollector(sumAgg, memoryManager);
+
+        currentNettyMapCollector = createGroupBySumCollector(sumAgg, memoryManager, () -> new PrimitiveMapWithNulls(new LongObjectHashMap<>()));
+        jdkCollector = createGroupBySumCollector(sumAgg, memoryManager, () -> new HashMap());
+        kolobokeCollector = createGroupBySumCollector(sumAgg, memoryManager, () -> new PrimitiveMapWithNulls(HashLongObjMaps.newMutableMap()));
+        fastutilCollector = createGroupBySumCollector(sumAgg, memoryManager, () -> new PrimitiveMapWithNulls(new Long2ObjectOpenHashMap<>()));
+        fastutilCustomHashCollector = createGroupBySumCollector(sumAgg,
+            memoryManager,
+            () -> new PrimitiveMapWithNulls(
+                        new Long2ObjectOpenCustomHashMap(LongHashStrategy.INSTANCE)
+            )
+        );
 
         int size = 20_000_000;
         rows = new ArrayList<>(size);
@@ -127,7 +172,7 @@ public class GroupingLongCollectorBenchmark {
         searcher = new IndexSearcher(DirectoryReader.open(iw));
     }
 
-    private static GroupingCollector createGroupBySumCollector(AggregationFunction sumAgg, MemoryManager memoryManager) {
+    private static GroupingCollector createGroupBySumCollector(AggregationFunction sumAgg, MemoryManager memoryManager, Supplier<Map<Object, Object[]>> supplier) {
         InputCollectExpression keyInput = new InputCollectExpression(0);
         List<Input<?>> keyInputs = Arrays.<Input<?>>asList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
@@ -143,14 +188,39 @@ public class GroupingLongCollectorBenchmark {
             Version.CURRENT,
             keyInputs.get(0),
             DataTypes.LONG,
-            Version.CURRENT
+            Version.CURRENT,
+            supplier
         );
     }
 
     @Benchmark
     public void measureGroupBySumLong(Blackhole blackhole) throws Exception {
         var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL, true);
-        blackhole.consume(BatchIterators.collect(rowsIterator, groupBySumCollector).get());
+        blackhole.consume(BatchIterators.collect(rowsIterator, currentNettyMapCollector).get());
+    }
+
+    @Benchmark
+    public void measureGroupBySumLongJDK(Blackhole blackhole) throws Exception {
+        var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL, true);
+        blackhole.consume(BatchIterators.collect(rowsIterator, jdkCollector).get());
+    }
+
+    @Benchmark
+    public void measureGroupBySumLongFastutil(Blackhole blackhole) throws Exception {
+        var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL, true);
+        blackhole.consume(BatchIterators.collect(rowsIterator, fastutilCollector).get());
+    }
+
+    @Benchmark
+    public void measureGroupBySumLongFastutilCustom(Blackhole blackhole) throws Exception {
+        var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL, true);
+        blackhole.consume(BatchIterators.collect(rowsIterator, fastutilCustomHashCollector).get());
+    }
+
+    @Benchmark
+    public void measureGroupBySumLongKoloboke(Blackhole blackhole) throws Exception {
+        var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL, true);
+        blackhole.consume(BatchIterators.collect(rowsIterator, kolobokeCollector).get());
     }
 
     @Benchmark

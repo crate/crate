@@ -80,7 +80,8 @@ public class GroupingProjector implements Projector {
                 minNodeVersion,
                 keyInputs.get(0),
                 key.valueType(),
-                indexVersionCreated
+                indexVersionCreated,
+                null
             );
         } else {
             //noinspection unchecked
