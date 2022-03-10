@@ -21,13 +21,12 @@
 
 package io.crate.replication.logical.repository;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.replication.logical.LogicalReplicationSettings;
-import io.crate.replication.logical.action.GetStoreMetadataAction;
-import io.crate.replication.logical.action.PublicationsStateAction;
-import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
-import io.crate.replication.logical.metadata.ConnectionInfo;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexCommit;
@@ -66,11 +65,13 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.RemoteClusters;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import io.crate.common.unit.TimeValue;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.replication.logical.action.GetStoreMetadataAction;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 
 /**
  * Derived from org.opensearch.replication.repository.RemoteClusterRepository
@@ -136,10 +137,9 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         StepListener<PublicationsStateAction.Response> responseStepListener = new StepListener<>();
         getPublicationsState(responseStepListener);
         responseStepListener.whenComplete(stateResponse -> {
-            listener.onResponse(new SnapshotInfo(snapshotId,
-                                             stateResponse.concreteIndices(),
-                                             SnapshotState.SUCCESS,
-                                             Version.CURRENT));
+            listener.onResponse(
+                new SnapshotInfo(snapshotId, stateResponse.concreteIndices(), SnapshotState.SUCCESS, Version.CURRENT)
+            );
         }, listener::onFailure);
     }
 
@@ -149,8 +149,9 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         getPublicationsState(responseStepListener);
         responseStepListener.whenComplete(stateResponse -> {
             var indices = stateResponse.concreteIndices().toArray(new String[0]);
+            var templates = stateResponse.concreteTemplates().toArray(new String[0]);
             StepListener<ClusterState> clusterStateStepListener = new StepListener<>();
-            getRemoteClusterState(clusterStateStepListener, indices);
+            getRemoteClusterState(false, false, clusterStateStepListener, indices, templates);
             clusterStateStepListener.whenComplete(
                 remoteClusterState -> listener.onResponse(remoteClusterState.metadata()),
                 listener::onFailure
@@ -203,7 +204,13 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         StepListener<PublicationsStateAction.Response> responseStepListener = new StepListener<>();
         responseStepListener.whenComplete(stateResponse -> {
             StepListener<ClusterState> clusterStateStepListener = new StepListener<>();
-            getRemoteClusterState(clusterStateStepListener, stateResponse.concreteIndices().toArray(new String[0]));
+            getRemoteClusterState(
+                false,
+                false,
+                clusterStateStepListener,
+                stateResponse.concreteIndices().toArray(new String[0]),
+                stateResponse.concreteTemplates().toArray(new String[0])
+            );
             clusterStateStepListener.whenComplete(remoteClusterState -> {
                 var remoteMetadata = remoteClusterState.metadata();
                 var shardGenerations = ShardGenerations.builder();
@@ -303,10 +310,9 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                                      ShardId snapshotShardId,
                                                      RecoveryState recoveryState,
                                                      ActionListener<Void> listener) {
-        var subscriberShardId = store.shardId();
         // 1. Get all the files info from the publisher cluster for this shardId
         StepListener<ClusterState> clusterStateStepListener = new StepListener<>();
-        getRemoteClusterState(true, true, clusterStateStepListener, indexId.getName());
+        getRemoteClusterState(true, true, clusterStateStepListener, new String[]{indexId.getName()}, Strings.EMPTY_ARRAY);
         clusterStateStepListener.whenComplete(publisherClusterState -> {
             var publisherShardRouting = publisherClusterState.routingTable()
                 .shardRoutingTable(
@@ -403,13 +409,17 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     private void getRemoteClusterState(ActionListener<ClusterState> listener, String... remoteIndices) {
-        getRemoteClusterState(false, false, listener, remoteIndices);
+        getRemoteClusterState(false, false, listener, remoteIndices, Strings.EMPTY_ARRAY);
     }
 
-    private void getRemoteClusterState(boolean includeNodes, boolean includeRouting, ActionListener<ClusterState> listener, String... remoteIndices) {
+    private void getRemoteClusterState(boolean includeNodes,
+                                       boolean includeRouting,
+                                       ActionListener<ClusterState> listener,
+                                       String[] remoteIndices,
+                                       String[] remoteTemplates) {
         var clusterStateRequest = getRemoteClient().admin().cluster().prepareState()
-            .clear()
             .setIndices(remoteIndices)
+            .setTemplates(remoteTemplates)
             .setMetadata(true)
             .setNodes(includeNodes)
             .setRoutingTable(includeRouting)
@@ -422,7 +432,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 public void onResponse(ClusterStateResponse clusterStateResponse) {
                     ClusterState remoteState = clusterStateResponse.getState();
                     LOGGER.trace("Successfully fetched the cluster state from remote repository {}", remoteState);
-                    listener.onResponse(clusterStateResponse.getState());
+                    listener.onResponse(remoteState);
                 }
 
                 @Override

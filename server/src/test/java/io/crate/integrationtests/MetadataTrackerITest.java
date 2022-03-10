@@ -130,6 +130,57 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         });
     }
 
+    @Test
+    public void test_new_table_and_new_partition_is_replicated() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+        executeOnPublisher("CREATE TABLE doc.t2 (id INT, p INT) PARTITIONED BY (p)");
+        createPublication("pub1", true, List.of("doc.t1", "doc.t2"));
+        createSubscription("sub1", "pub1");
+
+        // Ensure tracker has started
+        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+
+        // Create new partition
+        executeOnPublisher("INSERT INTO doc.t2 (id, p) VALUES (1, 1)");
+        // Create new table
+        executeOnPublisher("CREATE TABLE doc.t3 (id INT)");
+        executeOnPublisher("GRANT DQL ON TABLE doc.t3 TO " + SUBSCRIBING_USER);
+
+        assertBusy(() -> {
+            var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
+                                        " WHERE table_name = 't3'" +
+                                        " ORDER BY ordinal_position");
+            assertThat(printedTable(r.rows()), is("id\n"));
+            r = executeOnSubscriber("SELECT values FROM information_schema.table_partitions" +
+                                        " WHERE table_name = 't2'" +
+                                        " ORDER BY partition_ident");
+            assertThat(printedTable(r.rows()), is("{p=1}\n"));
+            ensureGreenOnSubscriber();
+        });
+    }
+
+    @Test
+    public void test_new_empty_partitioned_table_is_replicated() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+        createPublication("pub1", true, List.of("doc.t1"));
+        createSubscription("sub1", "pub1");
+
+        // Ensure tracker has started
+        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+
+        // Create new table
+        executeOnPublisher("CREATE TABLE doc.t2 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("GRANT DQL ON TABLE doc.t2 TO " + SUBSCRIBING_USER);
+
+        assertBusy(() -> {
+            var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
+                                        " WHERE table_name = 't2'" +
+                                        " ORDER BY ordinal_position");
+            assertThat(printedTable(r.rows()), is("id\n" +
+                                                  "p\n"));
+        });
+    }
+
     private boolean isTrackerActive() throws Exception {
         var replicationService = subscriberCluster.getInstance(LogicalReplicationService.class, subscriberCluster.getMasterName());
         Field m = replicationService.getClass().getDeclaredField("metadataTracker");

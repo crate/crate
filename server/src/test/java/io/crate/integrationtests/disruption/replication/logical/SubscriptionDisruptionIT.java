@@ -21,15 +21,10 @@
 
 package io.crate.integrationtests.disruption.replication.logical;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
-
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
-
+import io.crate.integrationtests.LogicalReplicationITestCase;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.MetadataTracker;
+import io.crate.replication.logical.action.PublicationsStateAction;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,10 +36,14 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
-import io.crate.integrationtests.LogicalReplicationITestCase;
-import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.replication.logical.MetadataTracker;
-import io.crate.replication.logical.action.PublicationsStateAction;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.is;
 
 @LogicalReplicationITestCase.PublisherClusterScope(numberOfNodes = 1, supportsDedicatedMasters = false)
 @LogicalReplicationITestCase.SubscriberClusterScope(numberOfNodes = 1, supportsDedicatedMasters = false)
@@ -103,7 +102,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
         // Ensure tracker started
         assertBusy(() -> assertThat(isMetadataTrackerActive(), is(true)));
 
-        var expectedLogMessage = "Tracking of metadata failed for subscription 'sub1', will retry";
+        var expectedLogMessage = "Retrieving remote metadata failed for subscription 'sub1', will retry";
         var mockAppender = appendLogger(expectedLogMessage, MetadataTracker.class, Level.WARN);
 
         startDisrupting(MockTransportService::addFailToSendNoConnectRule);
