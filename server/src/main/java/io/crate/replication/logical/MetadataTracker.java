@@ -26,12 +26,16 @@ import static io.crate.replication.logical.repository.LogicalReplicationReposito
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
@@ -59,11 +63,13 @@ import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.NoSuchRemoteClusterException;
 
 import io.crate.action.FutureActionListener;
+import io.crate.common.TriConsumer;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.Exceptions;
 import io.crate.execution.support.RetryRunnable;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.Subscription;
@@ -182,7 +188,7 @@ public final class MetadataTracker implements Closeable {
                         countDown.onSuccess();
                     });
                 } else {
-                    LOGGER.warn("Tracking of metadata failed for subscription '" + subscriptionName + "', will retry", e);
+                    LOGGER.warn("Retrieving remote metadata failed for subscription '" + subscriptionName + "', will retry", e);
                     countDown.onSuccess();
                 }
             };
@@ -191,6 +197,12 @@ public final class MetadataTracker implements Closeable {
             getRemoteClusterState(subscriptionName).whenComplete(
                 (remoteClusterState, err) -> {
                     if (err == null) {
+                        PublicationsMetadata publicationsMetadata = remoteClusterState.metadata().custom(PublicationsMetadata.TYPE);
+                        if (publicationsMetadata == null) {
+                            LOGGER.trace("No publications found on remote cluster.");
+                            return;
+                        }
+
                         clusterService.submitStateUpdateTask("track-metadata", new AckedClusterStateUpdateTask<>(
                             new AckMetadataUpdateRequest(),
                             listener
@@ -198,10 +210,30 @@ public final class MetadataTracker implements Closeable {
 
                             @Override
                             public ClusterState execute(ClusterState localClusterState) throws Exception {
-                                return updateIndexMetadata(subscriptionName,
-                                                           localClusterState,
-                                                           remoteClusterState,
-                                                           indexScopedSettings);
+                                if (LOGGER.isTraceEnabled()) {
+                                    LOGGER.trace("Process cluster state for subscription {}", subscriptionName);
+                                }
+                                var subscription = retrieveSubscription(subscriptionName, localClusterState);
+                                if (subscription == null) {
+                                    LOGGER.trace("Subscription '" + subscriptionName +
+                                                 "' not found inside current local cluster state");
+                                    return localClusterState;
+                                }
+
+                                subscribeToNewRelations(
+                                    subscriptionName,
+                                    subscription,
+                                    localClusterState,
+                                    remoteClusterState,
+                                    replicationService
+                                );
+                                return updateIndexMetadata(
+                                    subscriptionName,
+                                    subscription,
+                                    localClusterState,
+                                    remoteClusterState,
+                                    indexScopedSettings
+                                );
                             }
 
                             @Override
@@ -227,35 +259,27 @@ public final class MetadataTracker implements Closeable {
 
     }
 
+    @Nullable
+    static Subscription retrieveSubscription(String subscriptionName, ClusterState currentState) {
+        SubscriptionsMetadata subscriptionsMetadata = currentState.metadata().custom(SubscriptionsMetadata.TYPE);
+        if (subscriptionsMetadata == null) {
+            LOGGER.trace("No subscriptions found inside current local cluster state");
+            return null;
+        }
+        return subscriptionsMetadata.subscription().get(subscriptionName);
+    }
+
     @VisibleForTesting
     static ClusterState updateIndexMetadata(String subscriptionName,
+                                            Subscription subscription,
                                             ClusterState subscriberClusterState,
                                             ClusterState publisherClusterState,
                                             IndexScopedSettings indexScopedSettings) {
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("Process cluster state for subscription {}", subscriptionName);
-        }
-        PublicationsMetadata publicationsMetadata = publisherClusterState.metadata().custom(PublicationsMetadata.TYPE);
-        SubscriptionsMetadata subscriptionsMetadata = subscriberClusterState.metadata().custom(SubscriptionsMetadata.TYPE);
-        if (publicationsMetadata == null || subscriptionsMetadata == null) {
-            return subscriberClusterState;
-        }
-        var subscribedTables = new HashSet<RelationName>();
-        Subscription subscription = subscriptionsMetadata.subscription().get(subscriptionName);
-        if (subscription != null) {
-            for (var publicationName : subscription.publications()) {
-                var publications = publicationsMetadata.publications();
-                if (publications != null) {
-                    var publication = publications.get(publicationName);
-                    subscribedTables.addAll(publication.tables());
-                }
-            }
-        }
         // Check for all the subscribed tables if the index metadata and settings changed and if so apply
         // the changes from the publisher cluster state to the subscriber cluster state
         var updatedMetadataBuilder = Metadata.builder(subscriberClusterState.metadata());
         var updateClusterState = false;
-        for (var followedTable : subscribedTables) {
+        for (var followedTable : subscription.relations().keySet()) {
             var publisherIndexMetadata = publisherClusterState.metadata().index(followedTable.indexNameOrAlias());
             var subscriberIndexMetadata = subscriberClusterState.metadata().index(followedTable.indexNameOrAlias());
             if (publisherIndexMetadata != null && subscriberIndexMetadata != null) {
@@ -264,7 +288,11 @@ public final class MetadataTracker implements Closeable {
                 if (updatedMapping != null) {
                     updatedIndexMetadataBuilder.putMapping(updatedMapping).mappingVersion(publisherIndexMetadata.getMappingVersion());
                 }
-                var updatedSettings = updateIndexMetadataSettings(publisherIndexMetadata, subscriberIndexMetadata, indexScopedSettings);
+                var updatedSettings = updateIndexMetadataSettings(
+                    publisherIndexMetadata.getSettings(),
+                    subscriberIndexMetadata.getSettings(),
+                    indexScopedSettings
+                );
                 if (updatedSettings != null) {
                     updatedIndexMetadataBuilder.settings(updatedSettings).settingsVersion(subscriberIndexMetadata.getSettingsVersion() + 1L);
                 }
@@ -274,6 +302,7 @@ public final class MetadataTracker implements Closeable {
                 }
             }
         }
+
         if (updateClusterState) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Updated index metadata for subscription {}", subscriptionName);
@@ -282,6 +311,128 @@ public final class MetadataTracker implements Closeable {
         } else {
             return subscriberClusterState;
         }
+    }
+
+    /**
+     * Extract new relations of all publications of the subscription based on the local and publishers cluster state
+     * and initiate a restore of these.
+     * See also {@link LogicalReplicationService#restore}.
+     */
+    private static void subscribeToNewRelations(String subscriptionName,
+                                                Subscription subscription,
+                                                ClusterState subscriberClusterState,
+                                                ClusterState publisherClusterState,
+                                                LogicalReplicationService replicationService) {
+        subscribeToNewRelations(
+            subscriptionName,
+            subscriberClusterState,
+            publisherClusterState,
+            relationNames -> replicationService.updateSubscriptionState(
+                subscriptionName,
+                relationNames,
+                Subscription.State.INITIALIZING,
+                null
+            ),
+            (relationNames, toRestoreIndices, toRestoreTemplates) -> replicationService.restore(
+                subscriptionName,
+                subscription.settings(),
+                relationNames,
+                toRestoreIndices,
+                toRestoreTemplates
+            )
+        );
+    }
+
+    @VisibleForTesting
+    static CompletableFuture<Boolean> subscribeToNewRelations(
+        String subscriptionName,
+        ClusterState subscriberClusterState,
+        ClusterState publisherClusterState,
+        Function<Collection<RelationName>, CompletableFuture<Boolean>> updateStateFunction,
+        TriConsumer<Collection<RelationName>, List<String>, List<String>> restoreConsumer) {
+        PublicationsMetadata publicationsMetadata = publisherClusterState.metadata().custom(PublicationsMetadata.TYPE);
+        SubscriptionsMetadata subscriptionsMetadata = subscriberClusterState.metadata().custom(SubscriptionsMetadata.TYPE);
+        if (publicationsMetadata == null || subscriptionsMetadata == null) {
+            return CompletableFuture.completedFuture(true);
+        }
+        Subscription subscription = subscriptionsMetadata.subscription().get(subscriptionName);
+
+        var subscribedRelations = subscription.relations();
+        var publications = publicationsMetadata.publications();
+        var relationNamesForStateUpdate = new HashSet<RelationName>();
+        var toRestoreIndices = new ArrayList<String>();
+        var toRestoreTemplates = new ArrayList<String>();
+        for (var publicationName : subscription.publications()) {
+            var publication = publications.get(publicationName);
+
+            Predicate<String> skipIndexOrTemplate = indexOrTemplateName ->
+                subscriberClusterState.metadata().hasIndex(indexOrTemplateName)
+                || subscriberClusterState.metadata().templates().containsKey(indexOrTemplateName);
+            if (publication.isForAllTables() == false) {
+                skipIndexOrTemplate = skipIndexOrTemplate.and(
+                    indexOrTemplateName -> publication.tables().contains(RelationName.fromIndexName(indexOrTemplateName))
+                );
+            }
+
+            var indicesIt = publisherClusterState.metadata().indices().keysIt();
+            while (indicesIt.hasNext()) {
+                var indexName = indicesIt.next();
+                if (skipIndexOrTemplate.test(indexName)) {
+                    continue;
+                }
+                var indexParts = new IndexParts(indexName);
+                var relationName = indexParts.toRelationName();
+                if (subscribedRelations.get(relationName) == null) {
+                    // Case: New normal table or partition of new partitioned table
+                    toRestoreIndices.add(indexName);
+                    relationNamesForStateUpdate.add(relationName);
+                } else if (indexParts.isPartitioned()) {
+                    // Case: New partition of existing partitioned table
+                    // Note: Subscription state for partitions are not tracked
+                    toRestoreIndices.add(indexName);
+                }
+            }
+
+            // Detect new templates of new partitioned tables
+            var templatesIt = publisherClusterState.metadata().templates().keysIt();
+            while (templatesIt.hasNext()) {
+                var templateName = templatesIt.next();
+                if (skipIndexOrTemplate.test(templateName)) {
+                    continue;
+                }
+                var indexParts = new IndexParts(templateName);
+                if (indexParts.isPartitioned()) {
+                    var relationName = indexParts.toRelationName();
+                    if (subscribedRelations.get(relationName) == null) {
+                        toRestoreTemplates.add(templateName);
+                        relationNamesForStateUpdate.add(relationName);
+                    }
+                }
+            }
+        }
+
+        if (toRestoreIndices.isEmpty() && toRestoreTemplates.isEmpty()) {
+            return CompletableFuture.completedFuture(true);
+        }
+
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Restoring newly subscribed relations={}, indices={}, templates={}",
+                         relationNamesForStateUpdate,
+                         toRestoreIndices,
+                         toRestoreTemplates
+            );
+        }
+
+        var stateFuture = CompletableFuture.completedFuture(true);
+        if (relationNamesForStateUpdate.isEmpty() == false) {
+            stateFuture = updateStateFunction.apply(relationNamesForStateUpdate);
+        }
+
+        // Trigger restore of new subscribed relations
+        return stateFuture.whenComplete(
+            (ignored, ignoredErr) ->
+                restoreConsumer.accept(relationNamesForStateUpdate, toRestoreIndices, toRestoreTemplates)
+        );
     }
 
     @Nullable
@@ -301,17 +452,17 @@ public final class MetadataTracker implements Closeable {
     }
 
     @Nullable
-    private static Settings updateIndexMetadataSettings(IndexMetadata publisherMetadata,
-                                                        IndexMetadata subscriberMetadata,
+    private static Settings updateIndexMetadataSettings(Settings publisherMetadataSettings,
+                                                        Settings subscriberMetadataSettings,
                                                         IndexScopedSettings indexScopedSettings) {
-        var publisherSettings = publisherMetadata.getSettings();
-        var subscriberMetadataSetting = Settings.builder().put(subscriberMetadata.getSettings());
-        var updatedSettings = publisherMetadata.getSettings().filter(key -> isReplicatableSetting(key, indexScopedSettings) &&
-                                                      !Objects.equals(subscriberMetadataSetting.get(key), publisherSettings.get(key)));
+        var newSettingsBuilder = Settings.builder().put(subscriberMetadataSettings);
+        var updatedSettings = publisherMetadataSettings.filter(
+            key -> isReplicatableSetting(key, indexScopedSettings) &&
+                   !Objects.equals(subscriberMetadataSettings.get(key), publisherMetadataSettings.get(key)));
         if (updatedSettings.isEmpty()) {
             return null;
         }
-        return subscriberMetadataSetting.put(updatedSettings).build();
+        return newSettingsBuilder.put(updatedSettings).build();
     }
 
     private static boolean isReplicatableSetting(String key, IndexScopedSettings indexScopedSettings) {
