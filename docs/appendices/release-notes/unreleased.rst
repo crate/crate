@@ -64,30 +64,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Fixed an issue from ``COPY FROM`` that caused the tables' default expressions
-  to be evaluated only once, causing a single value to be used throughout the
-  table instead of per row. This only affected non-deterministic functions such
-  as ``gen_random_text_uuid()``, ``random()``, etc.
-
-- Fixed an issue that could lead to errors when reading translog files from
-  CrateDB versions < 4.0.
-
-- Fixed an issue that could lead to an ``Couldn't create execution plan`` error
-  when using a join condition referencing multiple other relations.
-
-- Fixed an issue that caused an NPE when executing ``COPY FROM`` with a globbed
-  URI having a parent directory that does not exist in the filesystem. This
-  affected copying from filesystems local to CrateDB nodes only.
-
-- Fixed an issue that led to an ``Invalid query used in CREATE VIEW`` error if
-  using a scalar subquery within the query part of a ``CREATE VIEW`` statement.
-
-- Fixed an issue that caused a failure when a window function over a partition
-  is not used in an upper query. For example:
-  ``select x from (select x, ROW_NUMBER() OVER (PARTITION BY y) from t) t1``
-
-- Fixed an incorrect optimization of comparison function arguments for explicit
-  cast arguments resulting in a wrong result set. Example:
-  ```WHERE strCol::bigint > 3```
-
-- Updated the bundled JDK to 17.0.2+8
+None
