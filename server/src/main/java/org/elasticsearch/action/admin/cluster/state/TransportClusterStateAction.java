@@ -19,8 +19,10 @@
 
 package org.elasticsearch.action.admin.cluster.state;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.common.unit.TimeValue;
+import java.io.IOException;
+import java.util.function.Predicate;
+
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -40,8 +42,10 @@ import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.function.Predicate;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.unit.TimeValue;
 
 public class TransportClusterStateAction extends TransportMasterNodeReadAction<ClusterStateRequest, ClusterStateResponse> {
 
@@ -86,7 +90,12 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
             : acceptableClusterStatePredicate.or(clusterState -> clusterState.nodes().isLocalNodeElectedMaster() == false);
 
         if (acceptableClusterStatePredicate.test(state)) {
-            ActionListener.completeWith(listener, () -> buildResponse(request, state));
+            ActionListener.completeWith(listener, () -> buildResponse(
+                request,
+                state,
+                indexNameExpressionResolver,
+                logger
+            ));
         } else {
             assert acceptableClusterStateOrNotMasterPredicate.test(state) == false;
             new ClusterStateObserver(state, clusterService, request.waitForTimeout(), logger)
@@ -95,7 +104,12 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
                     @Override
                     public void onNewClusterState(ClusterState newState) {
                         if (acceptableClusterStatePredicate.test(newState)) {
-                            ActionListener.completeWith(listener, () -> buildResponse(request, newState));
+                            ActionListener.completeWith(listener, () -> buildResponse(
+                                request,
+                                newState,
+                                indexNameExpressionResolver,
+                                logger
+                            ));
                         } else {
                             listener.onFailure(new NotMasterException(
                                 "master stepped down waiting for metadata version " +
@@ -120,8 +134,11 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
         }
     }
 
-    private ClusterStateResponse buildResponse(final ClusterStateRequest request,
-                                               final ClusterState currentState) {
+    @VisibleForTesting
+    static ClusterStateResponse buildResponse(final ClusterStateRequest request,
+                                              final ClusterState currentState,
+                                              final IndexNameExpressionResolver indexNameExpressionResolver,
+                                              final Logger logger) {
         logger.trace("Serving cluster state request using version {}", currentState.version());
         ClusterState.Builder builder = ClusterState.builder(currentState.getClusterName());
         builder.version(currentState.version());
@@ -151,16 +168,24 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
         mdBuilder.clusterUUID(currentState.metadata().clusterUUID());
 
         if (request.metadata()) {
-            if (request.indices().length > 0) {
-                String[] indices = indexNameExpressionResolver.concreteIndexNames(currentState, request);
-                for (String filteredIndex : indices) {
-                    IndexMetadata indexMetadata = currentState.metadata().index(filteredIndex);
-                    if (indexMetadata != null) {
-                        mdBuilder.put(indexMetadata, false);
+            if (request.indices().length == 0 && request.templates().length == 0) {
+                mdBuilder = Metadata.builder(currentState.metadata());
+            } else {
+                if (request.indices().length > 0) {
+                    String[] indices = indexNameExpressionResolver.concreteIndexNames(currentState, request);
+                    for (String filteredIndex : indices) {
+                        IndexMetadata indexMetadata = currentState.metadata().index(filteredIndex);
+                        if (indexMetadata != null) {
+                            mdBuilder.put(indexMetadata, false);
+                        }
                     }
                 }
-            } else {
-                mdBuilder = Metadata.builder(currentState.metadata());
+                for (String template : request.templates()) {
+                    var templateMetadata = currentState.metadata().templates().get(template);
+                    if (templateMetadata != null) {
+                        mdBuilder.put(templateMetadata);
+                    }
+                }
             }
 
             // filter out metadata that shouldn't be returned by the API
