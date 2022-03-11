@@ -526,7 +526,7 @@ should be crossed out as well.
 - [ ] 28a8db730f4 In FieldTypeLookup, factor out flat object field logic. (#52091)
 - [ ] d8169e5fdcf Don't Upload Redundant Shard Files (#51729) (#52147)
 - [ ] 90eb6a020da Remove Redundant Loading of RepositoryData during Restore (#51977) (#52108)
-- [ ] b77ef1f61bc Cleanup some Dead Code in o.e.index.store (#52045) (#52084)
+- [x] b77ef1f61bc Cleanup some Dead Code in o.e.index.store (#52045) (#52084)
 - [x] 337d73a7c6f Rename MapperService#fullName to fieldType.
 - [s] 91e938ead81 Add Trace Logging of REST Requests (#51684) (#52015)
 - [s] 0f333c89b9e Always rewrite search shard request outside of the search thread pool (#51708) (#51979)
