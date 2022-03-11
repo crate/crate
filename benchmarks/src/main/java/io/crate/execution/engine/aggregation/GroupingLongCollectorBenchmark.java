@@ -212,7 +212,7 @@ public class GroupingLongCollectorBenchmark {
     }
 
     @Benchmark
-    public void measureGroupBySumLongFastutilCustom(Blackhole blackhole) throws Exception {
+    public void measureGroupBySumLongFastutilCustomHash(Blackhole blackhole) throws Exception {
         var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL, true);
         blackhole.consume(BatchIterators.collect(rowsIterator, fastutilCustomHashCollector).get());
     }

@@ -81,6 +81,39 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                Version minNodeVersion,
                                                Input<?> keyInput,
                                                DataType keyType,
+                                               Version indexVersionCreated) {
+        return new GroupingCollector<>(
+            expressions,
+            aggregations,
+            mode,
+            inputs,
+            filters,
+            ramAccounting,
+            memoryManager,
+            minNodeVersion,
+            (key, cells) -> cells[0] = key,
+            1,
+            GroupByMaps.accountForNewEntry(
+                ramAccounting,
+                SizeEstimatorFactory.create(keyType),
+                keyType
+            ),
+            row -> keyInput.value(),
+            indexVersionCreated,
+            GroupByMaps.mapForType(keyType)
+        );
+    }
+
+    static GroupingCollector<Object> singleKey(CollectExpression<Row, ?>[] expressions,
+                                               AggregateMode mode,
+                                               AggregationFunction[] aggregations,
+                                               Input[][] inputs,
+                                               Input<Boolean>[] filters,
+                                               RamAccounting ramAccounting,
+                                               MemoryManager memoryManager,
+                                               Version minNodeVersion,
+                                               Input<?> keyInput,
+                                               DataType keyType,
                                                Version indexVersionCreated,
                                                Supplier<Map<Object, Object[]>> supplier) {
         return new GroupingCollector<>(
@@ -101,7 +134,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             ),
             row -> keyInput.value(),
             indexVersionCreated,
-            supplier == null ? GroupByMaps.mapForType(keyType) : supplier
+            supplier
         );
     }
 
