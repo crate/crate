@@ -116,26 +116,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                DataType keyType,
                                                Version indexVersionCreated,
                                                Supplier<Map<Object, Object[]>> supplier) {
-        return new GroupingCollector<>(
-            expressions,
-            aggregations,
-            mode,
-            inputs,
-            filters,
-            ramAccounting,
-            memoryManager,
-            minNodeVersion,
-            (key, cells) -> cells[0] = key,
-            1,
-            GroupByMaps.accountForNewEntry(
-                ramAccounting,
-                SizeEstimatorFactory.create(keyType),
-                keyType
-            ),
-            row -> keyInput.value(),
-            indexVersionCreated,
-            supplier
-        );
+        return singleKey(expressions, mode, aggregations, inputs, filters, ramAccounting, memoryManager, minNodeVersion, keyInput, keyType, indexVersionCreated,supplier);
     }
 
     static GroupingCollector<List<Object>> manyKeys(CollectExpression<Row, ?>[] expressions,
