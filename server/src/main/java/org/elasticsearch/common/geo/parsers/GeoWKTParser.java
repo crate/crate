@@ -154,7 +154,7 @@ public class GeoWKTParser {
             return null;
         }
         PointBuilder pt = new PointBuilder(nextNumber(stream), nextNumber(stream));
-        if (isNumberNext(stream) == true) {
+        if (isNumberNext(stream)) {
             GeoPoint.assertZValue(nextNumber(stream));
         }
         nextCloser(stream);
@@ -335,7 +335,7 @@ public class GeoWKTParser {
     }
 
     private static String nextComma(StreamTokenizer stream) throws IOException, ElasticsearchParseException {
-        if (nextWord(stream).equals(COMMA) == true) {
+        if (nextWord(stream).equals(COMMA)) {
             return COMMA;
         }
         throw new ElasticsearchParseException("expected " + COMMA + " but found: " + tokenString(stream), stream.lineno());

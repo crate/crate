@@ -532,7 +532,7 @@ should be crossed out as well.
 - [ ] 0f333c89b9e Always rewrite search shard request outside of the search thread pool (#51708) (#51979)
 - [x] 8d3e73b3a03 Add host address to BindTransportException message (#51269)
 - [ ] 337153b29fd Throw better exception on wrong `dynamic_templates` syntax (#51783)
-- [ ] 21224caeaf2 Remove comparison to true for booleans (#51723)
+- [x] 21224caeaf2 Remove comparison to true for booleans (#51723)
 - [x] 39a3a950de0 Simplify rebalancer's weight function (#51632)
 - [x] 27c15d6ccd4 Fix InternalEngineTests.testSeqNoAndCheckpoints (#51630) (#51672)
 - [s] 86f3b47299b Make `date_range` query rounding consistent with `date` (#50237) (#51741) // no date_range
