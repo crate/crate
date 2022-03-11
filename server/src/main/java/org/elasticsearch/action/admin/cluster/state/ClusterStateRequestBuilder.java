@@ -19,12 +19,13 @@
 
 package org.elasticsearch.action.admin.cluster.state;
 
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeReadOperationRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+
+import io.crate.common.unit.TimeValue;
 
 public class ClusterStateRequestBuilder extends MasterNodeReadOperationRequestBuilder<ClusterStateRequest, ClusterStateResponse, ClusterStateRequestBuilder> {
 
@@ -100,6 +101,11 @@ public class ClusterStateRequestBuilder extends MasterNodeReadOperationRequestBu
 
     public ClusterStateRequestBuilder setIndicesOptions(IndicesOptions indicesOptions) {
         request.indicesOptions(indicesOptions);
+        return this;
+    }
+
+    public ClusterStateRequestBuilder setTemplates(String... templates) {
+        request.templates(templates);
         return this;
     }
 
