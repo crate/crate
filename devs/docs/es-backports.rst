@@ -527,11 +527,11 @@ should be crossed out as well.
 - [ ] d8169e5fdcf Don't Upload Redundant Shard Files (#51729) (#52147)
 - [ ] 90eb6a020da Remove Redundant Loading of RepositoryData during Restore (#51977) (#52108)
 - [ ] b77ef1f61bc Cleanup some Dead Code in o.e.index.store (#52045) (#52084)
-- [ ] 337d73a7c6f Rename MapperService#fullName to fieldType.
-- [ ] 91e938ead81 Add Trace Logging of REST Requests (#51684) (#52015)
-- [ ] 0f333c89b9e Always rewrite search shard request outside of the search thread pool (#51708) (#51979)
+- [x] 337d73a7c6f Rename MapperService#fullName to fieldType.
+- [s] 91e938ead81 Add Trace Logging of REST Requests (#51684) (#52015)
+- [s] 0f333c89b9e Always rewrite search shard request outside of the search thread pool (#51708) (#51979)
 - [x] 8d3e73b3a03 Add host address to BindTransportException message (#51269)
-- [ ] 337153b29fd Throw better exception on wrong `dynamic_templates` syntax (#51783)
+- [s] 337153b29fd Throw better exception on wrong `dynamic_templates` syntax (#51783) // we removed dynamic_templates
 - [x] 21224caeaf2 Remove comparison to true for booleans (#51723)
 - [x] 39a3a950de0 Simplify rebalancer's weight function (#51632)
 - [x] 27c15d6ccd4 Fix InternalEngineTests.testSeqNoAndCheckpoints (#51630) (#51672)

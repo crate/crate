@@ -110,7 +110,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         if (mapperService == null) {
             fieldTypeLookup = name -> null;
         } else {
-            fieldTypeLookup = mapperService::fullName;
+            fieldTypeLookup = mapperService::fieldType;
         }
         var relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
         this.table = schemas.getTableInfo(relationName);
