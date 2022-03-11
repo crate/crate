@@ -19,7 +19,8 @@
 
 package org.elasticsearch.action.admin.cluster.state;
 
-import io.crate.common.unit.TimeValue;
+import java.io.IOException;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -28,7 +29,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
+import io.crate.common.unit.TimeValue;
 
 public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateRequest> implements IndicesRequest.Replaceable {
 
@@ -42,6 +43,7 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
     private Long waitForMetadataVersion;
     private TimeValue waitForTimeout = DEFAULT_WAIT_FOR_NODE_TIMEOUT;
     private String[] indices = Strings.EMPTY_ARRAY;
+    private String[] templates = Strings.EMPTY_ARRAY;
     private IndicesOptions indicesOptions = IndicesOptions.lenientExpandOpen();
 
     public ClusterStateRequest() {
@@ -54,6 +56,7 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         blocks = true;
         customs = true;
         indices = Strings.EMPTY_ARRAY;
+        templates = Strings.EMPTY_ARRAY;
         return this;
     }
 
@@ -64,6 +67,7 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         blocks = false;
         customs = false;
         indices = Strings.EMPTY_ARRAY;
+        templates = Strings.EMPTY_ARRAY;
         return this;
     }
 
@@ -124,6 +128,15 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         return this;
     }
 
+    public String[] templates() {
+        return templates;
+    }
+
+    public ClusterStateRequest templates(String... templates) {
+        this.templates = templates;
+        return this;
+    }
+
     public ClusterStateRequest customs(boolean customs) {
         this.customs = customs;
         return this;
@@ -159,6 +172,9 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
             waitForTimeout = in.readTimeValue();
             waitForMetadataVersion = in.readOptionalLong();
         }
+        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
+            templates = in.readStringArray();
+        }
     }
 
     @Override
@@ -174,6 +190,9 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         if (out.getVersion().onOrAfter(Version.V_4_4_0)) {
             out.writeTimeValue(waitForTimeout);
             out.writeOptionalLong(waitForMetadataVersion);
+        }
+        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
+            out.writeStringArray(templates);
         }
     }
 
