@@ -59,7 +59,7 @@ public class QueryShardContext {
     }
 
     public MappedFieldType fieldMapper(String name) {
-        return failIfFieldMappingNotFound(name, mapperService.fullName(name));
+        return failIfFieldMappingNotFound(name, mapperService.fieldType(name));
     }
 
     public ObjectMapper getObjectMapper(String name) {
