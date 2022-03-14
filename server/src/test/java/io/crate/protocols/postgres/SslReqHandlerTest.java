@@ -77,7 +77,9 @@ public class SslReqHandlerTest extends ESTestCase {
                 chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> null),
                 // use a simple ssl context
-                getSelfSignedSslContextProvider());
+                getSelfSignedSslContextProvider(),
+                null,
+                KeyData.generate(1));
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 

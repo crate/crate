@@ -56,7 +56,6 @@ import java.util.UUID;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -70,14 +69,12 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.exceptions.SQLParseException;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class PostgresITest extends SQLIntegrationTestCase {
