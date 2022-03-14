@@ -1209,7 +1209,10 @@ public class Node implements Closeable {
                                                        ClusterService clusterService,
                                                        ThreadPool threadPool,
                                                        NodeClient client) {
-        return new InternalClusterInfoService(settings, clusterService, threadPool, client);
+        var service = new InternalClusterInfoService(settings, clusterService, threadPool, client);
+        // listen for state changes (this node starts/stops being the elected master, or new nodes are added)
+        clusterService.addListener(service);
+        return service;
     }
 
     /** Constructs a {@link org.elasticsearch.http.HttpServerTransport} which may be mocked for tests. */
