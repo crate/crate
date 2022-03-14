@@ -36,6 +36,7 @@ import javax.annotation.Nullable;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
+import io.crate.execution.jobs.TasksService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -84,6 +85,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     private final SQLOperations sqlOperations;
     private final NetworkService networkService;
+    private final TasksService tasksService;
 
     private final boolean enabled;
     private final String[] bindHosts;
@@ -114,6 +116,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                          SQLOperations sqlOperations,
                          UserManager userManager,
                          NetworkService networkService,
+                         TasksService tasksService,
                          Authentication authentication,
                          NettyBootstrap nettyBootstrap,
                          SslContextProvider sslContextProvider) {
@@ -124,6 +127,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         this.networkService = networkService;
         this.authentication = authentication;
         this.nettyBootstrap = nettyBootstrap;
+        this.tasksService = tasksService;
 
         if (SslSettings.isPSQLSslEnabled(settings)) {
             namedLogger.info("PSQL SSL support is enabled.");
@@ -162,6 +166,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                     sqlOperations,
                     userManager::getAccessControl,
                     authentication,
+                    tasksService,
                     sslContextProvider);
                 pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
                 pipeline.addLast("handler", postgresWireProtocol.handler);

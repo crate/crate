@@ -136,6 +136,7 @@ public class Session implements AutoCloseable {
     @VisibleForTesting
     @Nullable
     CompletableFuture<?> activeExecution;
+    private UUID activeJobID;
 
     private final NodeContext nodeCtx;
     private final Analyzer analyzer;
@@ -628,26 +629,26 @@ public class Session implements AutoCloseable {
             return resultReceiver.completionFuture();
         }
 
-        var jobId = UUIDs.dirtyUUID();
+        activeJobID = UUIDs.dirtyUUID();
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         var clusterState = executor.clusterService().state();
         var txnCtx = new CoordinatorTxnCtx(sessionContext);
         var nodeCtx = executor.nodeContext();
         var params = new RowN(portal.params().toArray());
         var plannerContext = new PlannerContext(
-            clusterState, routingProvider, jobId, txnCtx, nodeCtx, maxRows, params);
+            clusterState, routingProvider, activeJobID, txnCtx, nodeCtx, maxRows, params);
         var analyzedStmt = portal.analyzedStatement();
         String rawStatement = portal.preparedStmt().rawStatement();
         if (analyzedStmt == null) {
             String errorMsg = "Statement must have been analyzed: " + rawStatement;
-            jobsLogs.logPreExecutionFailure(jobId, rawStatement, errorMsg, sessionContext.sessionUser());
+            jobsLogs.logPreExecutionFailure(activeJobID, rawStatement, errorMsg, sessionContext.sessionUser());
             throw new IllegalStateException(errorMsg);
         }
         Plan plan;
         try {
             plan = planner.plan(analyzedStmt, plannerContext);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(jobId, rawStatement, SQLExceptions.messageOf(t), sessionContext.sessionUser());
+            jobsLogs.logPreExecutionFailure(activeJobID, rawStatement, SQLExceptions.messageOf(t), sessionContext.sessionUser());
             throw t;
         }
         if (!analyzedStmt.isWriteOperation()) {
@@ -656,7 +657,7 @@ public class Session implements AutoCloseable {
                 clusterState,
                 indexName -> executor.clusterService().state().metadata().hasIndex(indexName),
                 resultReceiver,
-                jobId,
+                activeJobID,
                 (newJobId, resultRec) -> retryQuery(
                     newJobId,
                     analyzedStmt,
@@ -672,9 +673,9 @@ public class Session implements AutoCloseable {
             );
         }
         jobsLogs.logExecutionStart(
-            jobId, rawStatement, sessionContext.sessionUser(), StatementClassifier.classify(plan));
+            activeJobID, rawStatement, sessionContext.sessionUser(), StatementClassifier.classify(plan));
         RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(
-            resultReceiver, maxRows, new JobsLogsUpdateListener(jobId, jobsLogs));
+            resultReceiver, maxRows, new JobsLogsUpdateListener(activeJobID, jobsLogs));
         portal.setActiveConsumer(consumer);
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
         return resultReceiver.completionFuture();
@@ -793,4 +794,7 @@ public class Session implements AutoCloseable {
         return currentTransactionState;
     }
 
+    public java.util.UUID getActiveJobID() {
+        return activeJobID;
+    }
 }

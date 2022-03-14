@@ -85,7 +85,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             mock(SQLOperations.class),
             userManager,
             networkService,
-            new AlwaysOKAuthentication(userManager),
+            null, new AlwaysOKAuthentication(userManager),
             new NettyBootstrap(),
             mock(SslContextProvider.class));
         try {
@@ -107,7 +107,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             mock(SQLOperations.class),
             userManager,
             networkService,
-            new AlwaysOKAuthentication(userManager),
+            null, new AlwaysOKAuthentication(userManager),
             new NettyBootstrap(),
             mock(SslContextProvider.class));
         try {
@@ -133,7 +133,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             mock(SQLOperations.class),
             userManager,
             networkService,
-            new AlwaysOKAuthentication(userManager),
+            null, new AlwaysOKAuthentication(userManager),
             new NettyBootstrap(),
             mock(SslContextProvider.class));
         try {
@@ -159,7 +159,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             mock(SQLOperations.class),
             userManager,
             networkService,
-            new AlwaysOKAuthentication(userName -> User.CRATE_USER),
+            null, new AlwaysOKAuthentication(userName -> User.CRATE_USER),
             new NettyBootstrap(),
             mock(SslContextProvider.class));
         try {

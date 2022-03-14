@@ -76,7 +76,7 @@ public class SslReqHandlerTest extends ESTestCase {
                 sessionContext -> AccessControl.DISABLED,
                 new AlwaysOKAuthentication(userName -> null),
                 // use a simple ssl context
-                getSelfSignedSslContextProvider());
+                null, getSelfSignedSslContextProvider());
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 

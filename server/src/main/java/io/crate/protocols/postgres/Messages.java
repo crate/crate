@@ -513,4 +513,16 @@ public class Messages {
             channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentAuthenticationCleartextPassword"));
         }
     }
+
+    static void sendKeyData(Channel channel, int pid, int secretKey) {
+        ByteBuf buffer = channel.alloc().buffer(13);
+        buffer.writeByte('K');
+        buffer.writeInt(12);
+        buffer.writeInt(pid);
+        buffer.writeInt(secretKey);
+        ChannelFuture channelFuture = channel.writeAndFlush(buffer);
+        if (LOGGER.isTraceEnabled()) {
+            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentKeyData"));
+        }
+    }
 }
