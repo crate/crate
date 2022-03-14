@@ -80,13 +80,12 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
             internalCluster().startNode(
                 Settings.builder()
                     .put(Environment.PATH_DATA_SETTING.getKey(), createTempDir())
-                    .put(CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "1ms"));
+                    .put(CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "0ms"));
         }
         List<String> nodeIds = getNodeIds();
 
         var clusterInfoService = getMockInternalClusterInfoService();
         clusterInfoService.setUpdateFrequency(TimeValue.timeValueMillis(200));
-        clusterInfoService.onMaster();
 
         // prevent any effects from in-flight recoveries, since we are only simulating a 100-byte disk
         clusterInfoService.setShardSizeFunctionAndRefresh(shardRouting -> 0L);
@@ -94,8 +93,10 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
         clusterInfoService.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) ->
             setDiskUsage(fsInfoPath, 100, between(10, 100)));
 
+        clusterInfoService.refresh();
+
         execute("SET GLOBAL TRANSIENT" +
-                "   cluster.routing.allocation.disk.watermark.low='80%'," +
+                "   cluster.routing.allocation.disk.watermark.low='90%'," +
                 "   cluster.routing.allocation.disk.watermark.high='90%'," +
                 "   cluster.routing.allocation.disk.watermark.flood_stage='100%'");
 
