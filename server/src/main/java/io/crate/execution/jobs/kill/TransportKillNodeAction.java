@@ -88,6 +88,21 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> impleme
         broadcast(request, listener, Collections.emptyList());
     }
 
+    /**
+     * Broadcasts the kill request but ignore responses
+     */
+    public void broadcast(Request request) {
+        broadcast(request, new ActionListener<Long>() {
+            @Override
+            public void onResponse(Long aLong) {
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+            }
+        });
+    }
+
     public void broadcast(Request request, ActionListener<Long> listener, Collection<String> excludedNodeIds) {
         Stream<DiscoveryNode> nodes = StreamSupport.stream(clusterService.state().nodes().spliterator(), false);
         Collection<DiscoveryNode> filteredNodes = nodes.filter(node -> !excludedNodeIds.contains(node.getId())).collect(Collectors.toList());

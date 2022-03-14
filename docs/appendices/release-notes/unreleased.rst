@@ -56,6 +56,8 @@ None
 Changes
 =======
 
+- Implemented cancelling requests section of PostgreSQL wire protocol.
+
 - Added the :ref:`Logical Replication <administration-logical-replication>`
   feature allowing to replicate data across multiple clusters.
 

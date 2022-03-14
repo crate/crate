@@ -52,7 +52,7 @@ public class KillJobsRequest extends TransportRequest {
         this.reason = reason;
     }
 
-    Collection<UUID> toKill() {
+    public Collection<UUID> toKill() {
         return toKill;
     }
 
