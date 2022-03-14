@@ -19,6 +19,25 @@
 
 package org.elasticsearch.cluster.service;
 
+import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -33,7 +52,6 @@ import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.TimeoutClusterStateListener;
 import org.elasticsearch.cluster.metadata.ProcessClusterEventTimeoutException;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -41,34 +59,13 @@ import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
-import io.crate.common.collections.Iterables;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+import io.crate.common.unit.TimeValue;
 
 public class ClusterApplierService extends AbstractLifecycleComponent implements ClusterApplier {
 
@@ -93,16 +90,11 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
     private final Collection<ClusterStateApplier> highPriorityStateAppliers = new CopyOnWriteArrayList<>();
     private final Collection<ClusterStateApplier> normalPriorityStateAppliers = new CopyOnWriteArrayList<>();
     private final Collection<ClusterStateApplier> lowPriorityStateAppliers = new CopyOnWriteArrayList<>();
-    private final Iterable<ClusterStateApplier> clusterStateAppliers = Iterables.concat(highPriorityStateAppliers,
-        normalPriorityStateAppliers, lowPriorityStateAppliers);
 
     private final Collection<ClusterStateListener> clusterStateListeners = new CopyOnWriteArrayList<>();
-    private final Collection<TimeoutClusterStateListener> timeoutClusterStateListeners =
-        Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Map<TimeoutClusterStateListener, NotifyTimeout> timeoutClusterStateListeners = new ConcurrentHashMap<>();
 
     private final LocalNodeMasterListeners localNodeMasterListeners;
-
-    private final Queue<NotifyTimeout> onGoingTimeouts = ConcurrentCollections.newQueue();
 
     private final AtomicReference<ClusterState> state; // last applied state
 
@@ -179,18 +171,15 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
 
     @Override
     protected synchronized void doStop() {
-        for (NotifyTimeout onGoingTimeout : onGoingTimeouts) {
-            onGoingTimeout.cancel();
+        for (Map.Entry<TimeoutClusterStateListener, NotifyTimeout> onGoingTimeout : timeoutClusterStateListeners.entrySet()) {
             try {
-                onGoingTimeout.cancel();
-                onGoingTimeout.listener.onClose();
+                onGoingTimeout.getValue().cancel();
+                onGoingTimeout.getKey().onClose();
             } catch (Exception ex) {
                 LOGGER.debug("failed to notify listeners on shutdown", ex);
             }
         }
         ThreadPool.terminate(threadPoolExecutor, 10, TimeUnit.SECONDS);
-        // close timeout listeners that did not have an ongoing timeout
-        timeoutClusterStateListeners.forEach(TimeoutClusterStateListener::onClose);
         removeListener(localNodeMasterListeners);
     }
 
@@ -262,13 +251,9 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
      * Removes a timeout listener for updated cluster states.
      */
     public void removeTimeoutListener(TimeoutClusterStateListener listener) {
-        timeoutClusterStateListeners.remove(listener);
-        for (Iterator<NotifyTimeout> it = onGoingTimeouts.iterator(); it.hasNext(); ) {
-            NotifyTimeout timeout = it.next();
-            if (timeout.listener.equals(listener)) {
-                timeout.cancel();
-                it.remove();
-            }
+        final NotifyTimeout timeout = timeoutClusterStateListeners.remove(listener);
+        if (timeout != null) {
+            timeout.cancel();
         }
     }
 
@@ -295,12 +280,12 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
             threadPoolExecutor.execute(new SourcePrioritizedRunnable(Priority.HIGH, "_add_listener_") {
                 @Override
                 public void run() {
+                    final NotifyTimeout notifyTimeout = new NotifyTimeout(listener, timeout);
+                    final NotifyTimeout previous = timeoutClusterStateListeners.put(listener, notifyTimeout);
+                    assert previous == null : "Added same listener [" + listener + "]";
                     if (timeout != null) {
-                        NotifyTimeout notifyTimeout = new NotifyTimeout(listener, timeout);
                         notifyTimeout.cancellable = threadPool.schedule(notifyTimeout, timeout, ThreadPool.Names.GENERIC);
-                        onGoingTimeouts.add(notifyTimeout);
                     }
-                    timeoutClusterStateListeners.add(listener);
                     listener.postAdded();
                 }
             });
@@ -506,16 +491,29 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
     }
 
     private void callClusterStateAppliers(ClusterChangedEvent clusterChangedEvent, StopWatch stopWatch) {
-        clusterStateAppliers.forEach(applier -> {
+        callClusterStateAppliers(clusterChangedEvent, stopWatch, highPriorityStateAppliers);
+        callClusterStateAppliers(clusterChangedEvent, stopWatch, normalPriorityStateAppliers);
+        callClusterStateAppliers(clusterChangedEvent, stopWatch, lowPriorityStateAppliers);
+    }
+
+    private static void callClusterStateAppliers(ClusterChangedEvent clusterChangedEvent, StopWatch stopWatch,
+                                                 Collection<ClusterStateApplier> clusterStateAppliers) {
+        for (ClusterStateApplier applier : clusterStateAppliers) {
             LOGGER.trace("calling [{}] with change to version [{}]", applier, clusterChangedEvent.state().version());
             try (Releasable ignored = stopWatch.timing("running applier [" + applier + "]")) {
                 applier.applyClusterState(clusterChangedEvent);
             }
-        });
+        }
     }
 
     private void callClusterStateListeners(ClusterChangedEvent clusterChangedEvent, StopWatch stopWatch) {
-        Stream.concat(clusterStateListeners.stream(), timeoutClusterStateListeners.stream()).forEach(listener -> {
+        callClusterStateListener(clusterChangedEvent, stopWatch, clusterStateListeners);
+        callClusterStateListener(clusterChangedEvent, stopWatch, timeoutClusterStateListeners.keySet());
+    }
+
+    private void callClusterStateListener(ClusterChangedEvent clusterChangedEvent, StopWatch stopWatch,
+                                          Collection<? extends ClusterStateListener> listeners) {
+        for (ClusterStateListener listener : listeners) {
             try {
                 LOGGER.trace("calling [{}] with change to version [{}]", listener, clusterChangedEvent.state().version());
                 try (Releasable ignored = stopWatch.timing("notifying listener [" + listener + "]")) {
@@ -524,7 +522,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
             } catch (Exception ex) {
                 LOGGER.warn("failed to notify ClusterStateListener", ex);
             }
-        });
+        }
     }
 
     private static class SafeClusterApplyListener implements ClusterApplyListener {
@@ -566,12 +564,13 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
         }
     }
 
-    class NotifyTimeout implements Runnable {
+    private class NotifyTimeout implements Runnable {
         final TimeoutClusterStateListener listener;
+        @Nullable
         final TimeValue timeout;
         volatile Scheduler.Cancellable cancellable;
 
-        NotifyTimeout(TimeoutClusterStateListener listener, TimeValue timeout) {
+        NotifyTimeout(TimeoutClusterStateListener listener, @Nullable TimeValue timeout) {
             this.listener = listener;
             this.timeout = timeout;
         }
@@ -584,6 +583,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
 
         @Override
         public void run() {
+            assert timeout != null : "This should only ever execute if there's an actual timeout set";
             if (cancellable != null && cancellable.isCancelled()) {
                 return;
             }
