@@ -185,7 +185,7 @@ final class DocValuesGroupByOptimizedIterator {
     static class GroupByIterator {
 
         @VisibleForTesting
-        static BatchIterator<Row> forSingleKey(List<DocValueAggregator> aggregators,
+        static <K> BatchIterator<Row> forSingleKey(List<DocValueAggregator> aggregators,
                                                IndexSearcher indexSearcher,
                                                Reference keyReference,
                                                List<? extends LuceneCollectorExpression<?>> keyExpressions,
@@ -210,7 +210,7 @@ final class DocValuesGroupByOptimizedIterator {
                 (key, cells) -> cells[0] = key,
                 query,
                 new CollectorContext(collectorContext.readerId()),
-                GroupByMaps.mapForType(keyReference.valueType())
+                (Supplier) GroupByMaps.mapForType(keyReference.valueType())
             );
         }
 
