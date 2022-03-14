@@ -27,7 +27,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.NotifyOnceListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Randomness;
@@ -35,6 +34,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.discovery.PeerFinder.TransportAddressConnector;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.ConnectionProfile;
@@ -70,11 +70,11 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
 
     @Override
     public void connectToRemoteMasterNode(TransportAddress transportAddress, ActionListener<DiscoveryNode> listener) {
-        transportService.getThreadPool().generic().execute(new ActionRunnable<>(listener) {
+        transportService.getThreadPool().generic().execute(new AbstractRunnable() {
+            private final AbstractRunnable thisConnectionAttempt = this;
 
             @Override
             protected void doRun() {
-
                 // TODO if transportService is already connected to this address then skip the handshaking
 
                 final DiscoveryNode targetNode = new DiscoveryNode("", transportAddress.toString(),
@@ -82,7 +82,7 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
                     transportAddress.address().getHostString(), transportAddress.getAddress(), transportAddress, emptyMap(),
                     emptySet(), Version.CURRENT.minimumCompatibilityVersion());
 
-                LOGGER.trace("[{}] opening probe connection", this);
+                LOGGER.trace("[{}] opening probe connection", thisConnectionAttempt);
                 transportService.openConnection(
                     targetNode,
                     ConnectionProfile.buildSingleChannelProfile(
@@ -96,7 +96,7 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
 
                         @Override
                         public void onResponse(Connection connection) {
-                            LOGGER.trace("[{}] opened probe connection", this);
+                            LOGGER.trace("[{}] opened probe connection", thisConnectionAttempt);
 
                             // use NotifyOnceListener to make sure the following line does not result in onFailure being called when
                             // the connection is closed in the onResponse handler
@@ -106,7 +106,7 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
                                 protected void innerOnResponse(DiscoveryNode remoteNode) {
                                     try {
                                         // success means (amongst other things) that the cluster names match
-                                        LOGGER.trace("[{}] handshake successful: {}", this, remoteNode);
+                                        LOGGER.trace("[{}] handshake successful: {}", thisConnectionAttempt, remoteNode);
                                         IOUtils.closeWhileHandlingException(connection);
 
                                         if (remoteNode.equals(transportService.getLocalNode())) {
@@ -119,7 +119,7 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
                                             transportService.connectToNode(remoteNode, new ActionListener<Void>() {
                                                 @Override
                                                 public void onResponse(Void ignored) {
-                                                    LOGGER.trace("[{}] full connection successful: {}", this, remoteNode);
+                                                    LOGGER.trace("[{}] full connection successful: {}", thisConnectionAttempt, remoteNode);
                                                     listener.onResponse(remoteNode);
                                                 }
 
@@ -139,7 +139,7 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
                                     // we opened a connection and successfully performed a low-level handshake, so we were definitely
                                     // talking to an Elasticsearch node, but the high-level handshake failed indicating some kind of
                                     // mismatched configurations (e.g. cluster name) that the user should address
-                                    LOGGER.warn(new ParameterizedMessage("handshake failed for [{}]", this), e);
+                                    LOGGER.warn(new ParameterizedMessage("handshake failed for [{}]", thisConnectionAttempt), e);
                                     IOUtils.closeWhileHandlingException(connection);
                                     listener.onFailure(e);
                                 }
@@ -154,6 +154,11 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
                         }
                     }
                 );
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                listener.onFailure(e);
             }
 
             @Override
