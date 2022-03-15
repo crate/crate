@@ -19,7 +19,12 @@
 
 package org.elasticsearch.cluster;
 
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -27,7 +32,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDeci
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.store.Store;
@@ -35,17 +39,20 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.hamcrest.Matchers;
+import org.junit.Test;
 
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import io.crate.common.unit.TimeValue;
+import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.testing.UseRandomizedSchema;
 
 /**
  * Integration tests for the ClusterInfoService collecting information
  */
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
-public class ClusterInfoServiceIT extends ESIntegTestCase {
+public class ClusterInfoServiceIT extends SQLIntegrationTestCase {
 
+    @Test
+    @UseRandomizedSchema(random = false)
     public void testClusterInfoServiceCollectsInformation() throws Exception {
         internalCluster().startNodes(2);
         assertAcked(prepareCreate("test").setSettings(Settings.builder()
@@ -53,6 +60,9 @@ public class ClusterInfoServiceIT extends ESIntegTestCase {
                                                           .put(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey(), 1)
                                                           .put(EnableAllocationDecider.INDEX_ROUTING_REBALANCE_ENABLE_SETTING.getKey(),
                                                                EnableAllocationDecider.Rebalance.NONE).build()));
+        if (randomBoolean()) {
+            execute("alter table test close");
+        }
         ensureGreen("test");
         InternalTestCluster internalTestCluster = internalCluster();
         // Get the cluster info service on the master node
