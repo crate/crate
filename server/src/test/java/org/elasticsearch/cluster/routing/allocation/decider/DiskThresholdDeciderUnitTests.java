@@ -21,6 +21,13 @@
 
 package org.elasticsearch.cluster.routing.allocation.decider;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
+import static org.hamcrest.Matchers.containsString;
+
+import java.util.Collections;
+import java.util.HashSet;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterInfo;
 import org.elasticsearch.cluster.ClusterName;
@@ -50,13 +57,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
-
-import java.util.Collections;
-import java.util.HashSet;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
-import static org.hamcrest.Matchers.containsString;
 
 public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 

@@ -56,6 +56,9 @@ None
 Changes
 =======
 
+- Write blocks added due to low disk space are now automatically removed if a
+  node again drops below the high watermark.
+
 - Added type validation logic to ``COPY FROM``. Now raw data will be parsed and
   validated against the target table schema and casted if possible utilizing
   :ref:`type casting <data-types-casting>`.

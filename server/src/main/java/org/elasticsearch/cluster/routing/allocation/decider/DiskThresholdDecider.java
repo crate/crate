@@ -95,6 +95,7 @@ public class DiskThresholdDecider extends AllocationDecider {
                                               Metadata metadata,
                                               RoutingTable routingTable) {
         long totalSize = 0L;
+
         for (ShardRouting routing : node.shardsWithState(ShardRoutingState.INITIALIZING)) {
             if (routing.relocatingNodeId() == null) {
                 // in practice the only initializing-but-not-relocating shards with a nonzero expected shard size will be ones created
