@@ -52,7 +52,7 @@ public class BatchedRerouteService implements RerouteService {
     private final Object mutex = new Object();
 
     @Nullable // null if no reroute is currently pending
-    private List<ActionListener<Void>> pendingRerouteListeners;
+    private List<ActionListener<ClusterState>> pendingRerouteListeners;
     private Priority pendingTaskPriority = Priority.LANGUID;
 
     /**
@@ -67,8 +67,8 @@ public class BatchedRerouteService implements RerouteService {
      * Initiates a reroute.
      */
     @Override
-    public final void reroute(String reason, Priority priority, ActionListener<Void> listener) {
-        final List<ActionListener<Void>> currentListeners;
+    public final void reroute(String reason, Priority priority, ActionListener<ClusterState> listener) {
+        final List<ActionListener<ClusterState>> currentListeners;
         synchronized (mutex) {
             if (pendingRerouteListeners != null) {
                 if (priority.sameOrAfter(pendingTaskPriority)) {
@@ -150,7 +150,7 @@ public class BatchedRerouteService implements RerouteService {
 
                     @Override
                     public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                        ActionListener.onResponse(currentListeners, null);
+                        ActionListener.onResponse(currentListeners, newState);
                     }
                 }
             );

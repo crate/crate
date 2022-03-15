@@ -61,8 +61,9 @@ public class ClusterInfo implements ToXContentFragment, Writeable {
      * @see #shardIdentifierFromRouting
      */
     public ClusterInfo(ImmutableOpenMap<String, DiskUsage> leastAvailableSpaceUsage,
-            ImmutableOpenMap<String, DiskUsage> mostAvailableSpaceUsage, ImmutableOpenMap<String, Long> shardSizes,
-            ImmutableOpenMap<ShardRouting, String> routingToDataPath) {
+                       ImmutableOpenMap<String, DiskUsage> mostAvailableSpaceUsage,
+                       ImmutableOpenMap<String, Long> shardSizes,
+                       ImmutableOpenMap<ShardRouting, String> routingToDataPath) {
         this.leastAvailableSpaceUsage = leastAvailableSpaceUsage;
         this.shardSizes = shardSizes;
         this.mostAvailableSpaceUsage = mostAvailableSpaceUsage;
