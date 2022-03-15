@@ -21,6 +21,7 @@
 
 package io.crate.expression.symbol;
 
+import org.joda.time.Period;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -33,5 +34,12 @@ public class LiteralValueFormatterTest {
         StringBuilder sb = new StringBuilder();
         LiteralValueFormatter.format(new Object[] { null, null}, sb);
         assertThat(sb.toString(), is("[NULL, NULL]"));
+    }
+
+    @Test
+    public void test_format_intervals() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        LiteralValueFormatter.format(Period.seconds(1), sb);
+        assertThat(sb.toString(), is("'PT1S'::interval"));
     }
 }
