@@ -127,6 +127,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             false,
             UUID.randomUUID(),
             UpsertResultContext.forRowCount(),
+            false,
             false);
 
         RowN rowN = new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null});

@@ -97,7 +97,7 @@ final class UpdateSourceGen {
             generatedColumns = new GeneratedColumns<>(
                 inputFactory,
                 txnCtx,
-                GeneratedColumns.Validation.VALUE_MATCH,
+                true,
                 refResolver,
                 this.updateColumns,
                 table.generatedColumns()

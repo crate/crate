@@ -65,7 +65,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                                  NodeContext nodeCtx,
                                  DocTableInfo table,
                                  String indexName,
-                                 GeneratedColumns.Validation validation,
+                                 boolean validation,
                                  List<Reference> targets) {
         Tuple<List<Reference>, List<Input<?>>> allTargetColumnsAndDefaults = addDefaults(targets, table, txnCtx, nodeCtx);
         this.targets = allTargetColumnsAndDefaults.v1();

@@ -81,7 +81,6 @@ import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.dml.upsert.GeneratedColumns;
 import io.crate.execution.dml.upsert.InsertSourceFromCells;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
@@ -515,7 +514,7 @@ public class InsertFromValues implements LogicalPlan {
                 plannerContext.nodeContext(),
                 tableInfo,
                 index,
-                GeneratedColumns.Validation.VALUE_MATCH,
+                true,
                 writerProjection.allTargetColumns()));
         validator.generateSourceAndCheckConstraints(cells);
     }

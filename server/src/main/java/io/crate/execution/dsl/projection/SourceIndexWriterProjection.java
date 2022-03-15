@@ -46,8 +46,10 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private static final String OVERWRITE_DUPLICATES = "overwrite_duplicates";
     private static final boolean OVERWRITE_DUPLICATES_DEFAULT = false;
     private static final String FAIL_FAST = "fail_fast";
+    private static final String SOURCE_VALIDATION = "validation";
 
     private final boolean failFast;
+    private final boolean validation;
     private final Boolean overwriteDuplicates;
     private final Reference rawSourceReference;
     private final InputColumn rawSourceSymbol;
@@ -83,6 +85,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         this.outputs = outputs;
         overwriteDuplicates = settings.getAsBoolean(OVERWRITE_DUPLICATES, OVERWRITE_DUPLICATES_DEFAULT);
         this.failFast = settings.getAsBoolean(FAIL_FAST, false);
+        this.validation = settings.getAsBoolean(SOURCE_VALIDATION, true);
     }
 
     SourceIndexWriterProjection(StreamInput in) throws IOException {
@@ -111,6 +114,11 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             }
         }
         outputs = Symbols.listFromStream(in);
+        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
+            validation = in.readBoolean();
+        } else {
+            validation = true;
+        }
     }
 
     @Override
@@ -157,12 +165,18 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                Objects.equals(rawSourceSymbol, that.rawSourceSymbol) &&
                Arrays.equals(includes, that.includes) &&
                Arrays.equals(excludes, that.excludes) &&
-               failFast == that.failFast;
+               failFast == that.failFast &&
+               validation == that.validation;
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(super.hashCode(), overwriteDuplicates, rawSourceReference, rawSourceSymbol, failFast);
+        int result = Objects.hash(super.hashCode(),
+                                  overwriteDuplicates,
+                                  rawSourceReference,
+                                  rawSourceSymbol,
+                                  failFast,
+                                  validation);
         result = 31 * result + Arrays.hashCode(includes);
         result = 31 * result + Arrays.hashCode(excludes);
         return result;
@@ -198,6 +212,9 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             }
         }
         Symbols.toStream(outputs, out);
+        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
+            out.writeBoolean(validation);
+        }
     }
 
     public boolean overwriteDuplicates() {
@@ -206,5 +223,9 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     public boolean failFast() {
         return failFast;
+    }
+
+    public boolean validation() {
+        return validation;
     }
 }

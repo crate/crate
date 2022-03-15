@@ -94,7 +94,8 @@ public class IndexWriterProjector implements Projector {
                                 boolean overwriteDuplicates,
                                 UUID jobId,
                                 UpsertResultContext upsertResultContext,
-                                boolean failFast) {
+                                boolean failFast,
+                                boolean validation) {
         Input<String> source;
         if (includes == null && excludes == null) {
             //noinspection unchecked
@@ -114,7 +115,7 @@ public class IndexWriterProjector implements Projector {
             new Reference[]{rawSourceReference},
             null,
             jobId,
-            false);
+            validation);
 
         Function<String, ShardUpsertRequest.Item> itemFactory =
             id -> new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null, null, null);
