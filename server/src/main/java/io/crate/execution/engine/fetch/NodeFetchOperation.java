@@ -82,7 +82,7 @@ public class NodeFetchOperation {
             var mapperService = indexService.mapperService();
             LuceneReferenceResolver resolver = new LuceneReferenceResolver(
                 indexService.index().getName(),
-                mapperService::fullName,
+                mapperService::fieldType,
                 fetchTask.table(readerId).partitionedByColumns()
             );
             ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());

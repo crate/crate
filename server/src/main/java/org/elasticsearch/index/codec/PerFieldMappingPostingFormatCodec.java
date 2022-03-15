@@ -54,7 +54,7 @@ public class PerFieldMappingPostingFormatCodec extends Lucene87Codec {
 
     @Override
     public PostingsFormat getPostingsFormatForField(String field) {
-        final MappedFieldType fieldType = mapperService.fullName(field);
+        final MappedFieldType fieldType = mapperService.fieldType(field);
         if (fieldType == null) {
             logger.warn("no index mapper found for field: [{}] returning default postings format", field);
         }

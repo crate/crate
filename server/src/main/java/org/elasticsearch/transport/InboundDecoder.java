@@ -19,6 +19,7 @@
 
 package org.elasticsearch.transport;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.io.IOUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -72,7 +73,7 @@ public class InboundDecoder implements Releasable {
                 } else {
                     totalNetworkSize = messageLength + TcpHeader.BYTES_REQUIRED_FOR_MESSAGE_SIZE;
 
-                    Header header = readHeader(messageLength, reference);
+                    Header header = readHeader(version, messageLength, reference);
                     bytesConsumed += headerBytesToRead;
                     if (header.isCompressed()) {
                         decompressor = new TransportDecompressor(recycler);
@@ -166,7 +167,8 @@ public class InboundDecoder implements Releasable {
         }
     }
 
-    private Header readHeader(int networkMessageSize, BytesReference bytesReference) throws IOException {
+    @VisibleForTesting
+    static Header readHeader(Version version, int networkMessageSize, BytesReference bytesReference) throws IOException {
         try (StreamInput streamInput = bytesReference.streamInput()) {
             streamInput.skip(TcpHeader.BYTES_REQUIRED_FOR_MESSAGE_SIZE);
             long requestId = streamInput.readLong();

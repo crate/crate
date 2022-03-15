@@ -2021,4 +2021,30 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         execute("SELECT o['my first \" field'] FROM t1");
         assertThat(printedTable(response.rows()), Matchers.is("foo\n"));
     }
+
+    /**
+     * https://github.com/crate/crate/issues/12081
+     */
+    @Test
+    public void test_subcolumn_can_contain_brackets_in_inserts() {
+        execute("create table doc.obj (obj OBJECT);");
+        execute("insert into doc.obj (obj) VALUES ('{\"(\": 1.0}');");
+        execute("insert into doc.obj (obj) VALUES ('{\"(\": 1.0}');");
+        refresh();
+        execute("SELECT count(*) FROM doc.obj");
+        assertThat(printedTable(response.rows()), Matchers.is("2\n"));
+        execute("SELECT obj FROM doc.obj limit 1");
+        assertThat(printedTable(response.rows()), Matchers.is("{(=1.0}\n"));
+    }
+
+
+    @Test
+    public void test_double_quotes_in_column_names_and_insert_values() {
+        execute("create table doc.test (\"\"\"\" text);");
+        execute("insert into doc.test VALUES ('\"\"')");
+        refresh();
+        execute("SELECT \"\"\"\" FROM doc.test");
+        assertThat(printedTable(response.rows()), Matchers.is("\"\"\n"));
+    }
+
 }

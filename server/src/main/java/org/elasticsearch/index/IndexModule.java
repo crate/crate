@@ -63,7 +63,8 @@ import java.util.function.Function;
 /**
  * IndexModule represents the central extension point for index level custom implementations like:
  * <ul>
- *      <li>{@link DirectoryService} - Custom {@link DirectoryService} instances can be registered via {@link IndexStorePlugin}</li>
+ *      <li>{@link IndexStorePlugin.DirectoryFactory} - Custom {@link IndexStorePlugin.DirectoryFactory} instances can be registered
+ *      via {@link IndexStorePlugin}</li>
  *      <li>{@link IndexEventListener} - Custom {@link IndexEventListener} instances can be registered via
  *      {@link #addIndexEventListener(IndexEventListener)}</li>
  *      <li>Settings update listener - Custom settings update listener can be registered via

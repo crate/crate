@@ -215,7 +215,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
 
         Map fields = (Map) ((Literal) arguments.get(0)).value();
         String fieldName = (String) fields.keySet().iterator().next();
-        MappedFieldType fieldType = context.queryShardContext().getMapperService().fullName(fieldName);
+        MappedFieldType fieldType = context.queryShardContext().getMapperService().fieldType(fieldName);
         GeoShapeFieldMapper.GeoShapeFieldType geoShapeFieldType = (GeoShapeFieldMapper.GeoShapeFieldType) fieldType;
         String matchType = (String) ((Input) arguments.get(2)).value();
         @SuppressWarnings("unchecked")

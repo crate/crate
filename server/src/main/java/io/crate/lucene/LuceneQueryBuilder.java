@@ -100,7 +100,7 @@ public class LuceneQueryBuilder {
                            IndexCache indexCache) throws UnsupportedFeatureException {
         var refResolver = new LuceneReferenceResolver(
             indexName,
-            mapperService::fullName,
+            mapperService::fieldType,
             table.partitionedByColumns()
         );
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.PARTITION, refResolver, null);
@@ -157,7 +157,7 @@ public class LuceneQueryBuilder {
             this.nodeContext = nodeCtx;
             this.txnCtx = txnCtx;
             this.queryShardContext = queryShardContext;
-            FieldTypeLookup typeLookup = mapperService::fullName;
+            FieldTypeLookup typeLookup = mapperService::fieldType;
             this.docInputFactory = new DocInputFactory(
                 nodeCtx,
                 new LuceneReferenceResolver(
@@ -210,7 +210,7 @@ public class LuceneQueryBuilder {
 
         @Nullable
         public MappedFieldType getFieldTypeOrNull(String fqColumnName) {
-            return mapperService.fullName(fqColumnName);
+            return mapperService.fieldType(fqColumnName);
         }
 
         public QueryShardContext queryShardContext() {
