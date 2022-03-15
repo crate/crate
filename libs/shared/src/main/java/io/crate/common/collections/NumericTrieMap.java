@@ -2,11 +2,7 @@ package io.crate.common.collections;
 
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Map based on trie.
@@ -208,9 +204,57 @@ public class NumericTrieMap<K extends Number, V> implements Map<K,V> {
     public Collection<V> values() {
         throw new UnsupportedOperationException("values is not supported on NumericTrieMap");
     }
-
     @Override
     public Set<Entry<K, V>> entrySet() {
-        throw new UnsupportedOperationException("entrySet is not supported on NumericTrieMap");
+        // We can store prefix in a TrieNode itself but it would increase memory consumption.
+        // Trie is traversed (in linear time) to build entry set on demand.
+        Set<Entry<K, V>> entrySet = new HashSet<>(); // Size is not equal to nodes.size() since not all nodes are leafs.
+        if (NULL_KEY_NODE.isLeaf == true) {
+            entrySet.add(new TrieEntry<>(null, NULL_KEY_NODE.value));
+        }
+        dfs(ROOT_NODE, entrySet, 0);
+        return entrySet;
+    }
+
+    /**
+     * Performs a Depth-first search over the trie and creates an entrySet.
+     */
+    private void dfs(TrieNode node, Set<Entry<K,V>> entrySet, long numberPrefix) {
+        if (node.isLeaf == true) {
+            entrySet.add(new TrieEntry(numberPrefix, node.value));
+        }
+        for (Map.Entry<DIGIT, Integer> entry: node.transitions.entrySet()) {
+            if(entry.getValue() != null) { // if transition exists
+                dfs(nodes.get(entry.getValue()), entrySet, numberPrefix * 10 + entry.getKey().ordinal());
+            }
+        }
+    }
+
+    private static class TrieEntry<K,V> implements Entry<K,V> {
+
+        private final K key;
+        private V value;
+
+        public TrieEntry(K key, V value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        @Override
+        public K getKey() {
+            return key;
+        }
+
+        @Override
+        public V getValue() {
+            return value;
+        }
+
+        @Override
+        public V setValue(V value) {
+            V oldVal = this.value;
+            this.value = value;
+            return oldVal;
+        }
     }
 }
