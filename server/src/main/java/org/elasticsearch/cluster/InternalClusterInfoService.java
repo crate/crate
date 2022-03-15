@@ -272,6 +272,11 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
         }
     }
 
+    // allow tests to adjust the node stats on receipt
+    List<NodeStats> adjustNodesStats(List<NodeStats> nodeStats) {
+        return nodeStats;
+    }
+
     /**
      * Refreshes the ClusterInfo in a blocking fashion
      */
@@ -284,11 +289,11 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
             public void onResponse(NodesStatsResponse nodesStatsResponse) {
                 ImmutableOpenMap.Builder<String, DiskUsage> leastAvailableUsagesBuilder = ImmutableOpenMap.builder();
                 ImmutableOpenMap.Builder<String, DiskUsage> mostAvailableUsagesBuilder = ImmutableOpenMap.builder();
-                fillDiskUsagePerNode(
-                    LOGGER,
-                    nodesStatsResponse.getNodes(),
+                fillDiskUsagePerNode(LOGGER,
+                    adjustNodesStats(nodesStatsResponse.getNodes()),
                     leastAvailableUsagesBuilder,
-                    mostAvailableUsagesBuilder);
+                    mostAvailableUsagesBuilder
+                );
                 leastAvailableSpaceUsages = leastAvailableUsagesBuilder.build();
                 mostAvailableSpaceUsages = mostAvailableUsagesBuilder.build();
             }
