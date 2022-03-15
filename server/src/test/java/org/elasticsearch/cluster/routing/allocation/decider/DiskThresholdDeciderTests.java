@@ -53,6 +53,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
@@ -64,6 +65,7 @@ import static org.elasticsearch.cluster.routing.ShardRoutingState.UNASSIGNED;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.oneOf;
 
 public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
@@ -992,7 +994,13 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         DevNullClusterInfo(ImmutableOpenMap<String, DiskUsage> leastAvailableSpaceUsage,
                            ImmutableOpenMap<String, DiskUsage> mostAvailableSpaceUsage,
                            ImmutableOpenMap<String, Long> shardSizes) {
-            super(leastAvailableSpaceUsage, mostAvailableSpaceUsage, shardSizes, null);
+            this(leastAvailableSpaceUsage, mostAvailableSpaceUsage, shardSizes, ImmutableOpenMap.of());
+        }
+
+        DevNullClusterInfo(ImmutableOpenMap<String, DiskUsage> leastAvailableSpaceUsage,
+                           ImmutableOpenMap<String, DiskUsage> mostAvailableSpaceUsage,
+                           ImmutableOpenMap<String, Long> shardSizes, ImmutableOpenMap<NodeAndPath, ReservedSpace> reservedSpace) {
+            super(leastAvailableSpaceUsage, mostAvailableSpaceUsage, shardSizes, null, reservedSpace);
         }
 
         @Override

@@ -173,6 +173,7 @@ public class RecoveryState implements ToXContentFragment, Writeable {
                 getTranslog().start();
                 break;
             case FINALIZE:
+                assert getIndex().bytesStillToRecover() >= 0 : "moving to stage FINALIZE without completing file details";
                 validateAndSetStage(Stage.TRANSLOG, stage);
                 getTranslog().stop();
                 break;
@@ -679,6 +680,8 @@ public class RecoveryState implements ToXContentFragment, Writeable {
 
     public static class Index extends Timer implements ToXContentFragment, Writeable {
 
+        private boolean fileDetailsComplete;
+
         public static final long UNKNOWN = -1L;
 
         private final Map<String, File> fileDetails = new HashMap<>();
@@ -695,14 +698,20 @@ public class RecoveryState implements ToXContentFragment, Writeable {
         public synchronized void reset() {
             super.reset();
             fileDetails.clear();
+            fileDetailsComplete = false;
             sourceThrottlingInNanos = UNKNOWN;
             targetThrottleTimeInNanos = UNKNOWN;
         }
 
         public synchronized void addFileDetail(String name, long length, boolean reused) {
+            assert fileDetailsComplete == false : "addFileDetail for [" + name + "] when file details are already complete";
             File file = new File(name, length, reused);
             File existing = fileDetails.put(name, file);
             assert existing == null : "file [" + name + "] is already reported";
+        }
+
+        public synchronized void setFileDetailsComplete() {
+            fileDetailsComplete = true;
         }
 
         public synchronized void addRecoveredBytesToFile(String name, long bytes) {
@@ -802,6 +811,23 @@ public class RecoveryState implements ToXContentFragment, Writeable {
                 recovered += file.recovered();
             }
             return recovered;
+        }
+
+        /**
+         * @return number of bytes still to recover, i.e. {@link Index#totalRecoverBytes()} minus {@link Index#recoveredBytes()}, or
+         * {@code -1} if the full set of files to recover is not yet known
+         */
+        public synchronized long bytesStillToRecover() {
+            if (fileDetailsComplete == false) {
+                return -1L;
+            }
+            long total = 0L;
+            for (File file : fileDetails.values()) {
+                if (file.reused() == false) {
+                    total += file.length() - file.recovered();
+                }
+            }
+            return total;
         }
 
         /**

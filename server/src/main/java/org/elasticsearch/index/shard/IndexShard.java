@@ -200,7 +200,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     @Nullable
-    private RecoveryState recoveryState;
+    private volatile RecoveryState recoveryState;
 
     private final RecoveryStats recoveryStats = new RecoveryStats();
     private final MeanMetric refreshMetric = new MeanMetric();
@@ -991,7 +991,9 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     public StoreStats storeStats() {
         try {
-            return store.stats();
+            final RecoveryState recoveryState = this.recoveryState;
+            final long bytesStillToRecover = recoveryState == null ? -1L : recoveryState.getIndex().bytesStillToRecover();
+            return store.stats(bytesStillToRecover == -1 ? StoreStats.UNKNOWN_RESERVED_BYTES : bytesStillToRecover);
         } catch (IOException e) {
             failShard("Failing shard because of exception during storeStats", e);
             throw new ElasticsearchException("io exception while building 'store stats'", e);

@@ -112,7 +112,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         when(indexShard.shardId()).thenReturn(shardId);
         when(indexShard.state()).thenReturn(IndexShardState.STARTED);
 
-        StoreStats storeStats = new StoreStats(123456L);
+        StoreStats storeStats = new StoreStats(123456L, 0L);
         when(indexShard.storeStats()).thenReturn(storeStats);
 
         Path dataPath = Paths.get("/dummy/" + indexUUID + "/" + shardId.id());

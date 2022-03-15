@@ -130,6 +130,8 @@ public abstract class FileRestoreContext {
                 }
             }
 
+            recoveryState.getIndex().setFileDetailsComplete();
+
             if (filesToRecover.isEmpty()) {
                 LOGGER.trace("[{}] [{}] no files to recover, all exist within the local store", shardId, snapshotId);
             }
