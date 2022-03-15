@@ -23,6 +23,7 @@ package io.crate.replication.logical.action;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -83,7 +84,7 @@ public class TransportDropSubscriptionAction extends AbstractDDLTransportAction<
                     assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
                     mdBuilder.putCustom(SubscriptionsMetadata.TYPE, newMetadata);
 
-                    removeSubscriptionSetting(subscription, currentMetadata, mdBuilder);
+                    removeSubscriptionSetting(subscription, currentState, mdBuilder);
 
                     return ClusterState.builder(currentState).metadata(mdBuilder).build();
                 } else if (request.ifExists() == false) {
@@ -104,20 +105,26 @@ public class TransportDropSubscriptionAction extends AbstractDDLTransportAction<
      * Removes the REPLICATION_SUBSCRIPTION_NAME index setting from all indices included by the subscription.
      */
     private void removeSubscriptionSetting(Subscription subscription,
-                                           Metadata metadata,
+                                           ClusterState currentState,
                                            Metadata.Builder mdBuilder) {
         for (var relationName : subscription.relations().keySet()) {
-            IndexMetadata indexMetadata = metadata.index(relationName.indexNameOrAlias());
-            assert indexMetadata != null : "Cannot resolve indexMetadata for relation=" + relationName;
-            var settingsBuilder = Settings.builder().put(indexMetadata.getSettings());
-            settingsBuilder.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
-            mdBuilder.put(
-                IndexMetadata
-                    .builder(indexMetadata)
-                    .settingsVersion(1 + indexMetadata.getSettingsVersion())
-                    .settings(settingsBuilder)
+            var concreteIndices = indexNameExpressionResolver.concreteIndexNames(
+                currentState,
+                IndicesOptions.lenientExpandOpen(),
+                relationName.indexNameOrAlias()
             );
+            for (var indexName : concreteIndices) {
+                IndexMetadata indexMetadata = currentState.metadata().index(indexName);
+                assert indexMetadata != null : "Cannot resolve indexMetadata for relation=" + relationName;
+                var settingsBuilder = Settings.builder().put(indexMetadata.getSettings());
+                settingsBuilder.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
+                mdBuilder.put(
+                    IndexMetadata
+                        .builder(indexMetadata)
+                        .settingsVersion(1 + indexMetadata.getSettingsVersion())
+                        .settings(settingsBuilder)
+                );
+            }
         }
     }
-
 }

@@ -430,9 +430,9 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     @Test
     public void test_write_to_subscribed_table_is_allowed_after_dropping_subscription() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
-        executeOnPublisher("CREATE TABLE doc.t2 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("CREATE TABLE doc.t2 (id INT, p INT) PARTITIONED BY (p) WITH(" + defaultTableSettings() + ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
-        executeOnPublisher("INSERT INTO doc.t2 (id) VALUES (1), (2)");
+        executeOnPublisher("INSERT INTO doc.t2 (id, p) VALUES (1, 1), (2, 2)");
 
         // It's important to subscribe to more than 1 table to check
         // that re-used close/open table logic works with multiple tables
@@ -444,7 +444,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         var response = executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)");
         assertThat(response.rowCount(), is(1L));
 
-        response = executeOnSubscriber("INSERT INTO doc.t2 (id) VALUES(3)");
+        response = executeOnSubscriber("INSERT INTO doc.t2 (id, p) VALUES(3, 3)");
         assertThat(response.rowCount(), is(1L));
     }
 }

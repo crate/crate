@@ -21,13 +21,6 @@
 
 package io.crate.replication.logical.plan;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
-
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-
 import io.crate.action.FutureActionListener;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -42,6 +35,12 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.replication.logical.action.DropSubscriptionRequest;
 import io.crate.replication.logical.analyze.AnalyzedDropSubscription;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class DropSubscriptionPlan implements Plan {
 
@@ -71,7 +70,7 @@ public class DropSubscriptionPlan implements Plan {
         // Step 1 - Close subscribed tables and consequently stop tracking and remove retention lease.
         actions.add(new ChainableAction<>(
             () -> dependencies.alterTableOperation()
-                .executeAlterTableOpenClose(tables, false, null)
+                .executeAlterTableOpenClose(tables, false, true, null)
                 .exceptionally(error -> {
                     throw new IllegalStateException(
                         "Couldn't close subscribed tables, please retry DROP SUBSCRIPTION command."
@@ -102,7 +101,7 @@ public class DropSubscriptionPlan implements Plan {
         // Reopen table to update table engine to normal (Operation will be reset back to ALL)
         actions.add(new ChainableAction<>(
             () -> dependencies.alterTableOperation()
-                .executeAlterTableOpenClose(tables, true, null)
+                .executeAlterTableOpenClose(tables, true, true, null)
                 .exceptionally(error -> {
                     String tablesHint = "all subscribed tables. ";
                     if (tables.size() < 5) {
