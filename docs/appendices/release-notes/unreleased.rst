@@ -56,6 +56,10 @@ None
 Changes
 =======
 
+- Fixed an issue with the handling of intervals in generated columns. The table
+  creation failed when an interval is included in a function call as part of a
+  generated column.
+
 - Write blocks added due to low disk space are now automatically removed if a
   node again drops below the high watermark.
 
