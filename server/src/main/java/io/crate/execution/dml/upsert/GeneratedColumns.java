@@ -40,11 +40,6 @@ import java.util.Map;
 
 public final class GeneratedColumns<T> {
 
-    public enum Validation {
-        NONE,
-        VALUE_MATCH
-    }
-
     private static final GeneratedColumns EMPTY = new GeneratedColumns<>();
 
     @SuppressWarnings("unchecked")
@@ -64,7 +59,7 @@ public final class GeneratedColumns<T> {
 
     GeneratedColumns(InputFactory inputFactory,
                      TransactionContext txnCtx,
-                     Validation validation,
+                     boolean validation,
                      ReferenceResolver<CollectExpression<T, ?>> refResolver,
                      Collection<Reference> presentColumns,
                      List<GeneratedReference> allGeneratedColumns) {
@@ -75,7 +70,7 @@ public final class GeneratedColumns<T> {
                 generatedToInject.put(generatedCol, ctx.add(generatedCol.generatedExpression()));
             }
         }
-        if (validation == Validation.VALUE_MATCH) {
+        if (validation) {
             toValidate = new HashMap<>();
             for (var generatedCol : allGeneratedColumns) {
                 // We skip validation of top level columns that are injected (since the user doesn't provide them)

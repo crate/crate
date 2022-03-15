@@ -51,7 +51,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 
-public class FromRawInsertSource implements InsertSourceGen, ParameterizedXContentParser.FieldParser {
+public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedXContentParser.FieldParser {
 
     private final DocTableInfo table;
     private final TransactionContext txnCtx;
@@ -61,10 +61,10 @@ public class FromRawInsertSource implements InsertSourceGen, ParameterizedXConte
     @VisibleForTesting
     final RefLookUpCache refLookUpCache;
 
-    public FromRawInsertSource(DocTableInfo table,
-                               TransactionContext txnCtx,
-                               NodeContext nodeCtx,
-                               String indexName) {
+    public ValidatedRawInsertSource(DocTableInfo table,
+                                    TransactionContext txnCtx,
+                                    NodeContext nodeCtx,
+                                    String indexName) {
         this.table = table;
         this.inputFactory = new InputFactory(nodeCtx);
         this.txnCtx = txnCtx;
@@ -103,7 +103,7 @@ public class FromRawInsertSource implements InsertSourceGen, ParameterizedXConte
             GeneratedColumns<Map<String, Object>> generatedColumns = new GeneratedColumns<>(
                 inputFactory,
                 txnCtx,
-                GeneratedColumns.Validation.VALUE_MATCH,
+                true,
                 FromSourceRefResolver.WITHOUT_PARTITIONED_BY_REFS,
                 refLookUpCache.getPresentColumns(),
                 table.generatedColumns());

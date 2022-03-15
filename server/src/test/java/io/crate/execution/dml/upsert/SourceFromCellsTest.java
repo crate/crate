@@ -24,7 +24,6 @@ package io.crate.execution.dml.upsert;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Maps;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
@@ -32,7 +31,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
@@ -87,7 +85,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGeneratedSourceBytesRef() throws IOException {
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.nodeCtx, t1, "t1", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y));
+            txnCtx, e.nodeCtx, t1, "t1", true, Arrays.asList(x, y));
         var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1, 2});
         assertThat(source, is(Map.of("x", 1, "y", 2, "z", 3)));
     }
@@ -95,7 +93,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGenerateSourceRaisesAnErrorIfGeneratedColumnValueIsSuppliedByUserAndDoesNotMatch() throws IOException {
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.nodeCtx, t1, "t1", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y, z));
+            txnCtx, e.nodeCtx, t1, "t1", true, Arrays.asList(x, y, z));
 
         expectedException.expectMessage("Given value 8 for generated column z does not match calculation (x + y) = 3");
         sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1, 2, 8});
@@ -104,7 +102,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGeneratedColumnGenerationThatDependsOnNestedColumnOfObject() throws IOException {
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.nodeCtx, t2, "t2", GeneratedColumns.Validation.VALUE_MATCH, Collections.singletonList(obj));
+            txnCtx, e.nodeCtx, t2, "t2", true, Collections.singletonList(obj));
         HashMap<Object, Object> m = new HashMap<>();
         m.put("a", 10);
         var map = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{m});
@@ -120,7 +118,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         PartitionName partitionName = new PartitionName(t3.ident(), singletonList(null));
 
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.nodeCtx, t3, partitionName.asIndexName(), GeneratedColumns.Validation.VALUE_MATCH, emptyList());
+            txnCtx, e.nodeCtx, t3, partitionName.asIndexName(), true, emptyList());
 
         expectedException.expectMessage("\"p\" must not be null");
         sourceFromCells.generateSourceAndCheckConstraints(new Object[0]);
@@ -133,7 +131,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         PartitionName partitionName = new PartitionName(t3.ident(), singletonList("10"));
 
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.nodeCtx, t3, partitionName.asIndexName(), GeneratedColumns.Validation.VALUE_MATCH, emptyList());
+            txnCtx, e.nodeCtx, t3, partitionName.asIndexName(), true, emptyList());
 
         // this must pass without error
         sourceFromCells.generateSourceAndCheckConstraints(new Object[0]);
@@ -146,7 +144,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         Reference x = (Reference) relation.outputs().get(0);
 
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.nodeCtx, t4, "t4", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x));
+            txnCtx, e.nodeCtx, t4, "t4", true, Arrays.asList(x));
 
         Object[] input = new Object[]{1};
         var source = sourceFromCells.generateSourceAndCheckConstraints(input);
@@ -161,7 +159,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         Reference y = (Reference) relation.outputs().get(1);
 
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.nodeCtx, t4, "t4", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y));
+            txnCtx, e.nodeCtx, t4, "t4", true, Arrays.asList(x, y));
 
         Object[] input = {1, "cr8"};
         var source = sourceFromCells.generateSourceAndCheckConstraints(input);
@@ -175,7 +173,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         // b as obj['a'] + 1
         List<Reference> targets = List.of(obj);
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.nodeCtx, t2, "t2", GeneratedColumns.Validation.VALUE_MATCH, targets);
+            txnCtx, e.nodeCtx, t2, "t2", true, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
         providedValueForObj.put("a", 10);
         providedValueForObj.put("c", 13);
@@ -194,7 +192,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         // b as obj['a'] + 1
         List<Reference> targets = List.of(obj);
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.nodeCtx, t2, "t2", GeneratedColumns.Validation.VALUE_MATCH, targets);
+            txnCtx, e.nodeCtx, t2, "t2", true, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
         providedValueForObj.put("a", 10);
         providedValueForObj.put("c", 14);
@@ -211,7 +209,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(obj, Matchers.notNullValue());
         List<Reference> targets = List.of(obj);
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.nodeCtx, t5, "t4", GeneratedColumns.Validation.VALUE_MATCH, targets);
+            txnCtx, e.nodeCtx, t5, "t4", true, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
         providedValueForObj.put("y", 2);
         var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj});
@@ -227,7 +225,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(obj, Matchers.notNullValue());
         List<Reference> targets = List.of(obj);
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.nodeCtx, t5, "t5", GeneratedColumns.Validation.VALUE_MATCH, targets);
+            txnCtx, e.nodeCtx, t5, "t5", true, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
         providedValueForObj.put("x", 2);
         var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj});
@@ -238,7 +236,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     public void test_generated_based_on_default() throws Exception {
         DocTableInfo t6 = e.resolveTableInfo("t6");
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.nodeCtx, t6, "t6", GeneratedColumns.Validation.VALUE_MATCH, List.of());
+            txnCtx, e.nodeCtx, t6, "t6", true, List.of());
         var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[0]);
         assertThat(Maps.getByPath(source, "x"), is(1));
         assertThat(Maps.getByPath(source, "y"), is(2));
@@ -255,7 +253,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             tableInfo,
             "t",
-            GeneratedColumns.Validation.VALUE_MATCH,
+            true,
             List.of(Objects.requireNonNull(tableInfo.getReference(new ColumnIdent("x")))));
 
         var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1});
@@ -277,7 +275,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             tableInfo,
             partition.asIndexName(),
-            GeneratedColumns.Validation.VALUE_MATCH,
+            true,
             List.of());
 
         var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{});
@@ -296,7 +294,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             tableInfo,
             tableInfo.concreteIndices()[0],
-            GeneratedColumns.Validation.VALUE_MATCH,
+            true,
             List.copyOf(tableInfo.columns())
         );
         var payloads = List.of(Map.of("x", 10), Map.of("x", 20));
@@ -318,7 +316,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             table,
             table.concreteIndices()[0],
-            GeneratedColumns.Validation.VALUE_MATCH,
+            true,
             List.copyOf(table.columns())
         );
         Map<String, Object> obj = new HashMap<>();
@@ -339,7 +337,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             t,
             t.concreteIndices()[0],
-            GeneratedColumns.Validation.VALUE_MATCH,
+            true,
             List.of()
         );
         var source = sourceGen.generateSourceAndCheckConstraints(new Object[]{});
@@ -357,7 +355,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             t,
             t.concreteIndices()[0],
-            GeneratedColumns.Validation.VALUE_MATCH,
+            true,
             List.of()
         );
         expectedException.expect(IllegalArgumentException.class);
@@ -376,7 +374,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             t,
             t.concreteIndices()[0],
-            GeneratedColumns.Validation.VALUE_MATCH,
+            true,
             List.of()
         );
         expectedException.expect(IllegalArgumentException.class);
@@ -397,7 +395,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             robotsTable,
             robotsTable.concreteIndices()[0],
-            GeneratedColumns.Validation.VALUE_MATCH,
+            true,
             List.of(name, model)
         );
         Map<String, Object> source = sourceGen.generateSourceAndCheckConstraints(new Object[] { "foo", null });
@@ -416,7 +414,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             tbl,
             tbl.concreteIndices()[0],
-            GeneratedColumns.Validation.NONE,
+            false,
             List.of(x)
         );
         Map<String, Object> result;
@@ -446,7 +444,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             tbl,
             new PartitionName(tbl.ident(), List.of("1630454400000")).asIndexName(),
-            GeneratedColumns.Validation.VALUE_MATCH,
+            true,
             List.of(ts, g_ts_month)
         );
         Map<String, Object> generateSourceAndCheckConstraints =
@@ -473,7 +471,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             tbl,
             new PartitionName(tbl.ident(), List.of("1630454400000")).asIndexName(),
-            GeneratedColumns.Validation.VALUE_MATCH,
+            true,
             List.of(ts, g_ts_month)
         );
         assertThrows(IllegalArgumentException.class, () -> {

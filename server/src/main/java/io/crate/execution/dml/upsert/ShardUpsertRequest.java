@@ -52,11 +52,11 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         IGNORE
     }
 
-    private DuplicateKeyAction duplicateKeyAction;
-    private boolean continueOnError;
-    private boolean validateConstraints = true;
+    private final DuplicateKeyAction duplicateKeyAction;
+    private final boolean continueOnError;
+    private final boolean validation;
     private boolean isRetry = false;
-    private SessionSettings sessionSettings;
+    private final SessionSettings sessionSettings;
 
     /**
      * List of column names used on update
@@ -81,7 +81,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         ShardId shardId,
         UUID jobId,
         boolean continueOnError,
-        boolean validateConstraints,
+        boolean validation,
         DuplicateKeyAction duplicateKeyAction,
         SessionSettings sessionSettings,
         @Nullable String[] updateColumns,
@@ -90,7 +90,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         super(shardId, jobId);
         assert updateColumns != null || insertColumns != null : "Missing updateAssignments, whether for update nor for insert";
         this.continueOnError = continueOnError;
-        this.validateConstraints = validateConstraints;
+        this.validation = validation;
         this.duplicateKeyAction = duplicateKeyAction;
         this.sessionSettings = sessionSettings;
         this.updateColumns = updateColumns;
@@ -118,7 +118,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         }
         continueOnError = in.readBoolean();
         duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
-        validateConstraints = in.readBoolean();
+        validation = in.readBoolean();
 
         sessionSettings = new SessionSettings(in);
         int numItems = in.readVInt();
@@ -167,7 +167,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
 
         out.writeBoolean(continueOnError);
         out.writeVInt(duplicateKeyAction.ordinal());
-        out.writeBoolean(validateConstraints);
+        out.writeBoolean(validation);
 
         sessionSettings.writeTo(out);
 
@@ -223,8 +223,8 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         return continueOnError;
     }
 
-    public boolean validateConstraints() {
-        return validateConstraints;
+    public boolean validation() {
+        return validation;
     }
 
     public DuplicateKeyAction duplicateKeyAction() {
@@ -244,7 +244,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         }
         ShardUpsertRequest items = (ShardUpsertRequest) o;
         return continueOnError == items.continueOnError &&
-               validateConstraints == items.validateConstraints &&
+               validation == items.validation &&
                Objects.equals(sessionSettings, items.sessionSettings) &&
                duplicateKeyAction == items.duplicateKeyAction &&
                Arrays.equals(updateColumns, items.updateColumns) &&
@@ -258,7 +258,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                                   sessionSettings,
                                   duplicateKeyAction,
                                   continueOnError,
-                                  validateConstraints);
+                                  validation);
         result = 31 * result + Arrays.hashCode(updateColumns);
         result = 31 * result + Arrays.hashCode(insertColumns);
         result = 31 * result + Arrays.hashCode(returnValues);
@@ -417,7 +417,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         @Nullable
         private final Reference[] missingAssignmentsColumns;
         private final UUID jobId;
-        private final boolean validateGeneratedColumns;
+        private final boolean validation;
         @Nullable
         private final Symbol[] returnValues;
 
@@ -429,7 +429,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                        @Nullable Reference[] missingAssignmentsColumns,
                        @Nullable Symbol[] returnValue,
                        UUID jobId,
-                       boolean validateGeneratedColumns) {
+                       boolean validation) {
             this.sessionSettings = sessionSettings;
             this.timeout = timeout;
             this.duplicateKeyAction = duplicateKeyAction;
@@ -438,7 +438,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             this.missingAssignmentsColumns = missingAssignmentsColumns;
             this.jobId = jobId;
             this.returnValues = returnValue;
-            this.validateGeneratedColumns = validateGeneratedColumns;
+            this.validation = validation;
         }
 
         public ShardUpsertRequest newRequest(ShardId shardId) {
@@ -446,7 +446,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 shardId,
                 jobId,
                 continueOnError,
-                validateGeneratedColumns,
+                validation,
                 duplicateKeyAction,
                 sessionSettings,
                 assignmentsColumns,

@@ -51,7 +51,7 @@ import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
+public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
     private DocTableInfo t1;
@@ -81,7 +81,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (a int)")
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
-        FromRawInsertSource insertSource = new FromRawInsertSource(t, txnCtx, e.nodeCtx, "t");
+        ValidatedRawInsertSource insertSource = new ValidatedRawInsertSource(t, txnCtx, e.nodeCtx, "t");
         Asserts.assertThrowsMatches(
             () -> insertSource.generateSourceAndCheckConstraints(new Object[]{"{}}"}), // trailing '}'
             IllegalArgumentException.class,
@@ -95,7 +95,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (b boolean)")
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
-        FromRawInsertSource insertSource = new FromRawInsertSource(t, txnCtx, e.nodeCtx, "t");
+        ValidatedRawInsertSource insertSource = new ValidatedRawInsertSource(t, txnCtx, e.nodeCtx, "t");
         Asserts.assertThrowsMatches(
             () -> insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"b\": \"\"}"}),
             IllegalArgumentException.class,
@@ -109,7 +109,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (a int) with (column_policy='strict')")
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
-        FromRawInsertSource insertSource = new FromRawInsertSource(t, txnCtx, e.nodeCtx, "t");
+        ValidatedRawInsertSource insertSource = new ValidatedRawInsertSource(t, txnCtx, e.nodeCtx, "t");
         Asserts.assertThrowsMatches(
             () -> insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"b\": \"\"}"}),
             StrictDynamicMappingException.class,
@@ -123,7 +123,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (x int, y as x + 1, z as x + 2) with (column_policy = 'dynamic')")
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
-        FromRawInsertSource insertSource = new FromRawInsertSource(t, txnCtx, e.nodeCtx, "t");
+        ValidatedRawInsertSource insertSource = new ValidatedRawInsertSource(t, txnCtx, e.nodeCtx, "t");
 
         // iteration 1
         Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"x\":1, \"y\":2}"});
@@ -173,7 +173,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_lookUpCache_presentColumns() throws IOException {
-        FromRawInsertSource.RefLookUpCache cache = new FromRawInsertSource.RefLookUpCache();
+        ValidatedRawInsertSource.RefLookUpCache cache = new ValidatedRawInsertSource.RefLookUpCache();
         Reference t = createReference("t", DataTypes.INTEGER);
 
         cache.get("t");
@@ -213,7 +213,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table generated_based_on_default (x int default 1, y as x + 1)")
             .build();
         DocTableInfo t = e.resolveTableInfo("generated_based_on_default");
-        FromRawInsertSource insertSource = new FromRawInsertSource(t, txnCtx, e.nodeCtx, "generated_based_on_default");
+        ValidatedRawInsertSource insertSource = new ValidatedRawInsertSource(t, txnCtx, e.nodeCtx, "generated_based_on_default");
         Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
         assertThat(Maps.getByPath(map, "x"), is(1));
         assertThat(Maps.getByPath(map, "y"), is(2));
@@ -225,7 +225,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table generated_based_on_default (x int default 1, y as x + 1)")
             .build();
         DocTableInfo t = e.resolveTableInfo("generated_based_on_default");
-        FromRawInsertSource insertSource = new FromRawInsertSource(t, txnCtx, e.nodeCtx, "generated_based_on_default");
+        ValidatedRawInsertSource insertSource = new ValidatedRawInsertSource(t, txnCtx, e.nodeCtx, "generated_based_on_default");
         Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"x\":2}"});
         assertThat(Maps.getByPath(map, "x"), is(2));
         assertThat(Maps.getByPath(map, "y"), is(3));
@@ -237,7 +237,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (x varchar(2) as 'ab  ')")
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
-        var insertSource = new FromRawInsertSource(t, txnCtx, e.nodeCtx, "t");
+        var insertSource = new ValidatedRawInsertSource(t, txnCtx, e.nodeCtx, "t");
         Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
         assertThat(Maps.getByPath(map, "x"), is("ab"));
     }
@@ -248,7 +248,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (x varchar(2) as 'abc')")
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
-        var insertSource = new FromRawInsertSource(t, txnCtx, e.nodeCtx, "t");
+        var insertSource = new ValidatedRawInsertSource(t, txnCtx, e.nodeCtx, "t");
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("'abc' is too long for the text type of length: 2");
         insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
@@ -260,7 +260,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (x varchar(2) as 'abc')")
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
-        var insertSource = new FromRawInsertSource(t, txnCtx, e.nodeCtx, "t");
+        var insertSource = new ValidatedRawInsertSource(t, txnCtx, e.nodeCtx, "t");
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("'abc' is too long for the text type of length: 2");
         insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
@@ -268,7 +268,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGenerateSourceRaisesAnErrorIfGeneratedColumnValueIsSuppliedByUserAndDoesNotMatch() throws IOException {
-        FromRawInsertSource sourceFromCells = new FromRawInsertSource(t1, txnCtx, e.nodeCtx, "t1");
+        ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(t1, txnCtx, e.nodeCtx, "t1");
 
         expectedException.expectMessage("Given value 8 for generated column z does not match calculation (x + y) = 3");
         sourceFromCells.generateSourceAndCheckConstraints(new Object[]{"{\"x\":1, \"y\":2, \"z\":8}"});
@@ -276,7 +276,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGeneratedColumnGenerationThatDependsOnNestedColumnOfObject() throws IOException {
-        FromRawInsertSource sourceFromCells = new FromRawInsertSource(t2, txnCtx, e.nodeCtx, "t2");
+        ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(t2, txnCtx, e.nodeCtx, "t2");
         var map = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{"{\"obj\":{\"a\":10}}"});
         assertThat(map.get("b"), is(11));
         assertThat(Maps.getByPath(map, "obj.a"), is(10));
@@ -289,7 +289,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo t3 = ((DocTableRelation) relation.from().get(0)).tableInfo();
         PartitionName partitionName = new PartitionName(t3.ident(), singletonList(null));
 
-        FromRawInsertSource sourceFromCells = new FromRawInsertSource(t3, txnCtx, e.nodeCtx, partitionName.asIndexName());
+        ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(t3, txnCtx, e.nodeCtx, partitionName.asIndexName());
 
         expectedException.expectMessage("\"p\" must not be null");
         sourceFromCells.generateSourceAndCheckConstraints(new Object[]{"{}"});
@@ -301,7 +301,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo t3 = ((DocTableRelation) relation.from().get(0)).tableInfo();
         PartitionName partitionName = new PartitionName(t3.ident(), singletonList("10"));
 
-        FromRawInsertSource sourceFromCells = new FromRawInsertSource(t3, txnCtx, e.nodeCtx, partitionName.asIndexName());
+        ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(t3, txnCtx, e.nodeCtx, partitionName.asIndexName());
 
         // this must pass without error
         sourceFromCells.generateSourceAndCheckConstraints(new Object[]{"{}"});
@@ -312,7 +312,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = e.analyze("select x from t4");
         DocTableInfo t4 = ((DocTableRelation) relation.from().get(0)).tableInfo();
 
-        FromRawInsertSource sourceFromCells = new FromRawInsertSource(t4, txnCtx, e.nodeCtx, "t4");
+        ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(t4, txnCtx, e.nodeCtx, "t4");
 
         var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[] {"{\"x\":1}"});
         assertThat(source, is(Map.of("x", 1, "y", "crate")));
@@ -323,7 +323,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = e.analyze("select x, y from t4");
         DocTableInfo t4 = ((DocTableRelation) relation.from().get(0)).tableInfo();
 
-        FromRawInsertSource sourceFromCells = new FromRawInsertSource(t4, txnCtx, e.nodeCtx, "t4");
+        ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(t4, txnCtx, e.nodeCtx, "t4");
 
         var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[] {"{\"x\":1, \"y\": \"cr8\"}"});
         assertThat(source, is(Map.of("x", 1, "y", "cr8")));
@@ -334,7 +334,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
         // obj object as (a int,
         //                c as obj['a'] + 3),
         // b as obj['a'] + 1
-        FromRawInsertSource sourceFromCells = new FromRawInsertSource(t2, txnCtx, e.nodeCtx, "t2");
+        ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(t2, txnCtx, e.nodeCtx, "t2");
 
         var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[] {"{\"obj\":{\"a\":10, \"c\":13}}"});
 
@@ -348,7 +348,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
         // obj object as (a int,
         //                c as obj['a'] + 3),
         // b as obj['a'] + 1
-        FromRawInsertSource sourceFromCells = new FromRawInsertSource(t2, txnCtx, e.nodeCtx, "t2");
+        ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(t2, txnCtx, e.nodeCtx, "t2");
 
         expectedException.expectMessage("Given value 14 for generated column obj['c'] does not match calculation (obj['a'] + 3) = 13");
         sourceFromCells.generateSourceAndCheckConstraints(new Object[]{"{\"obj\":{\"a\":10, \"c\":14}}"});
@@ -360,7 +360,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo t5 = e.resolveTableInfo("t5");
         Reference obj = t5.getReference(new ColumnIdent("obj"));
         assertThat(obj, Matchers.notNullValue());
-        FromRawInsertSource sourceFromCells = new FromRawInsertSource(t5, txnCtx, e.nodeCtx, "t4");
+        ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(t5, txnCtx, e.nodeCtx, "t4");
 
         var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{"{\"obj\":{\"y\":2}}"});
         assertThat(Maps.getByPath(source, "obj.x"), is(0));
@@ -373,7 +373,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo t5 = e.resolveTableInfo("t5");
         Reference obj = t5.getReference(new ColumnIdent("obj"));
         assertThat(obj, Matchers.notNullValue());
-        FromRawInsertSource sourceFromCells = new FromRawInsertSource(t5, txnCtx, e.nodeCtx, "t5");
+        ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(t5, txnCtx, e.nodeCtx, "t5");
 
         var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{"{\"obj\":{\"x\":2}}"});
         assertThat(Maps.getByPath(source, "obj.x"), is(2));
@@ -385,7 +385,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (x int, y as x not null)")
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("t");
-        FromRawInsertSource sourceFromCells = new FromRawInsertSource(
+        ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(
             tableInfo,
             txnCtx,
             e.nodeCtx,
@@ -405,7 +405,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("t");
         PartitionName partition = new PartitionName(tableInfo.ident(), singletonList(null));
-        FromRawInsertSource sourceFromCells = new FromRawInsertSource(
+        ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(
             tableInfo,
             txnCtx,
             e.nodeCtx,
@@ -422,7 +422,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (id text default gen_random_text_uuid(), x int)")
             .build();
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        InsertSourceGen sourceGen = new FromRawInsertSource(
+        InsertSourceGen sourceGen = new ValidatedRawInsertSource(
             tbl,
             txnCtx,
             e.nodeCtx,
@@ -448,7 +448,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             """)
             .build();
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        InsertSourceGen sourceGen = new FromRawInsertSource(
+        InsertSourceGen sourceGen = new ValidatedRawInsertSource(
             tbl,
             txnCtx,
             e.nodeCtx,
@@ -472,7 +472,7 @@ public class FromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
             """)
             .build();
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        InsertSourceGen sourceGen = new FromRawInsertSource(
+        InsertSourceGen sourceGen = new ValidatedRawInsertSource(
             tbl,
             txnCtx,
             e.nodeCtx,

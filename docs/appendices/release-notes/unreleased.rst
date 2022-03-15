@@ -63,6 +63,10 @@ Changes
 - Write blocks added due to low disk space are now automatically removed if a
   node again drops below the high watermark.
 
+- Added a ``WITH`` clause parameter, ``validation`` to ``COPY FROM`` which
+  can enable or disable the newly added type validation feature. Please see
+  :ref:`validation <sql-copy-from-validation>` for more details.
+
 - Added type validation logic to ``COPY FROM``. Now raw data will be parsed and
   validated against the target table schema and casted if possible utilizing
   :ref:`type casting <data-types-casting>`.

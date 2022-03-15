@@ -105,4 +105,62 @@ public class SourceIndexWriterProjectionSerializationTest {
 
         assertThat(new SourceIndexWriterProjection(in2).failFast(), is((expected.failFast())));
     }
+
+    @Test
+    public void testSerializationValidationFlag() throws IOException {
+        RelationName relationName = new RelationName("doc", "test");
+        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
+        Reference reference = new Reference(
+            referenceIdent,
+            RowGranularity.DOC,
+            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            ColumnPolicy.STRICT,
+            Reference.IndexType.FULLTEXT,
+            false,
+            true,
+            0,
+            Literal.of(Map.of("f", 10)
+            )
+        );
+        String partitionIdent = "pIdent";
+        InputColumn inputColumn = new InputColumn(123);
+        List<ColumnIdent> primaryKeys = List.of(new ColumnIdent("colIdent"));
+        List<Symbol> partitionedBySymbols = List.of(reference);
+        ColumnIdent clusteredByColumn = new ColumnIdent("col1");
+        Settings settings = Settings.builder().put("validation", false).build();
+        // validation property set to false
+        SourceIndexWriterProjection validationFlagSetToFalse = new SourceIndexWriterProjection(
+            relationName,
+            partitionIdent,
+            reference,
+            inputColumn,
+            primaryKeys,
+            partitionedBySymbols,
+            clusteredByColumn,
+            settings,
+            null,
+            null,
+            List.of(),
+            null,
+            AbstractIndexWriterProjection.OUTPUTS,
+            false
+        );
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_4_7_0);
+        validationFlagSetToFalse.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_4_7_0);
+
+        assertThat(new SourceIndexWriterProjection(in).validation(), is(true)); // validation flag value lost and set to default (true)
+
+        BytesStreamOutput out2 = new BytesStreamOutput();
+        out2.setVersion(Version.V_4_8_0);
+        validationFlagSetToFalse.writeTo(out2);
+
+        StreamInput in2 = out2.bytes().streamInput();
+        in2.setVersion(Version.V_4_8_0);
+
+        assertThat(new SourceIndexWriterProjection(in2).validation(), is(false)); // validation flag value recovered
+    }
 }

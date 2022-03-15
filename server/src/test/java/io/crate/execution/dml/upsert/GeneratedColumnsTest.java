@@ -56,7 +56,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
         GeneratedColumns<Doc> generatedColumns = new GeneratedColumns<>(
             new InputFactory(e.nodeCtx),
             CoordinatorTxnCtx.systemTransactionContext(),
-            GeneratedColumns.Validation.NONE,
+            false,
             new DocRefResolver(Collections.emptyList()),
             Collections.emptyList(),
             table.generatedColumns()

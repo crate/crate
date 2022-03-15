@@ -24,7 +24,6 @@ package io.crate.testing;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.BatchIterators;
 import io.crate.data.Input;
-import io.crate.execution.dml.upsert.GeneratedColumns;
 import io.crate.execution.dml.upsert.InsertSourceGen;
 import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.expression.InputFactory;
@@ -138,7 +137,7 @@ public final class QueryTester implements AutoCloseable {
                 plannerContext.nodeContext(),
                 table,
                 table.concreteIndices()[0],
-                GeneratedColumns.Validation.NONE,
+                false,
                 Collections.singletonList(table.getReference(ColumnIdent.fromPath(column)))
             );
             BytesReference source = sourceGen.generateSourceAndCheckConstraintsAsBytesReference(new Object[]{value});

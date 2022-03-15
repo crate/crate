@@ -57,11 +57,15 @@ public interface InsertSourceGen {
                               NodeContext nodeCtx,
                               DocTableInfo table,
                               String indexName,
-                              GeneratedColumns.Validation validation,
+                              boolean validate,
                               List<Reference> targets) {
         if (targets.size() == 1 && targets.get(0).column().equals(DocSysColumns.RAW)) {
-            return new FromRawInsertSource(table, txnCtx, nodeCtx, indexName);
+            if (!validate && table.generatedColumns().isEmpty() && table.defaultExpressionColumns().isEmpty()) {
+                return new RawInsertSource();
+            } else {
+                return new ValidatedRawInsertSource(table, txnCtx, nodeCtx, indexName);
+            }
         }
-        return new InsertSourceFromCells(txnCtx, nodeCtx, table, indexName, validation, targets);
+        return new InsertSourceFromCells(txnCtx, nodeCtx, table, indexName, validate, targets);
     }
 }

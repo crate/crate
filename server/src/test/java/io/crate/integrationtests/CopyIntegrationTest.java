@@ -32,6 +32,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -913,5 +914,135 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("refresh table t");
         execute("select o['a'] + o['b'] from t");
         assertThat(printedTable(response.rows()), is("579\n"));
+    }
+
+    @Test
+    public void testCopyFromWithValidationSetToFalseIgnoresTypeValidation() throws Exception {
+
+        // copying an empty string to a boolean column
+
+        execute("create table t (a boolean)");
+
+        List<String> lines = List.of("{\"a\": \"\"}");
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ? with (shared = true, validation = false) return summary",
+                new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select a from t");
+        assertThat(response.rows()[0][0], is(false)); // empty string inserted as a false, implying validation skipped
+    }
+
+    @Test
+    public void testCopyFromWithValidationSetToTrueDoesTypeValidation() throws Exception {
+
+        // copying an empty string to a boolean column
+
+        execute("create table t (a boolean)");
+
+        List<String> lines = List.of("{\"a\": \"\"}");
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ? with (shared = true, validation = true) return summary",
+                new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        assertThat(printedTable(response.rows()), containsString("Cannot cast value `` to type `boolean`"));
+        execute("refresh table t");
+        execute("select count(*) from t");
+        assertThat(response.rows()[0][0], is(0L));
+    }
+
+    @Test
+    public void testCopyFromWithValidationSetToFalseStillValidatesIfGeneratedColumnsInvolved() throws Exception {
+        execute("create table t (a boolean, b int generated always as 1)");
+
+        List<String> lines = List.of("{\"a\": \"\"}");
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ? with (shared = true, validation = false) return summary",
+                new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        assertThat(printedTable(response.rows()), containsString("Cannot cast value `` to type `boolean`"));
+        execute("refresh table t");
+        execute("select count(*) from t");
+        assertThat(response.rows()[0][0], is(0L));
+    }
+
+    @Test
+    public void testCopyFromWithValidationSetToFalseAndInsertingToPartitionedByColumn() throws Exception {
+        // copying an empty string to a boolean column
+
+        execute("create table t (a boolean, b boolean) partitioned by (b)");
+
+        List<String> lines = List.of("{\"b\": \"\"}");
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ? with (shared = true, validation = false) return summary",
+                new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        assertThat(printedTable(response.rows()),
+                   // The validation should be skipped but since it is partitioned by column, that is used to create shards,
+                   // the values cannot stay raw. Notice that the error message is different from,
+                   // Cannot cast value `` to type `boolean`
+                   containsString("Can't convert \"\" to boolean={count=1, line_numbers=[1]}"));
+        execute("refresh table t");
+        execute("select count(*) from t");
+        assertThat(response.rows()[0][0], is(0L));
+    }
+
+    @Test
+    public void testCopyFromWithValidationSetToFalseAndInsertingToNonPartitionedByColumn() throws Exception {
+        // copying an empty string to a boolean column
+
+        execute("create table t (a boolean, b boolean) partitioned by (b)");
+
+        List<String> lines = List.of("{\"a\": \"\"}"); // a
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ? with (shared = true, validation = false) return summary",
+                new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select a from t");
+        assertThat(response.rows()[0][0], is(false)); // empty string inserted as a false, implying validation skipped
+    }
+
+    @Test
+    public void testCopyFromWithValidationSetToFalseStillValidatesIfDefaultExpressionsInvolved() throws Exception {
+        execute("create table t (a boolean, b int default 1)");
+
+        List<String> lines = List.of("{\"a\": \"\"}");
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ? with (shared = true, validation = false) return summary",
+                new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        assertThat(printedTable(response.rows()), containsString("Cannot cast value `` to type `boolean`"));
+        execute("refresh table t");
+        execute("select count(*) from t");
+        assertThat(response.rows()[0][0], is(0L));
+    }
+
+    @Test
+    public void testCopyFromWithValidationSetToFalseIgnoreCheckConstraints() throws Exception {
+        execute("create table t (a boolean check (a = true))");
+
+        List<String> lines = List.of("{\"a\": false}");
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        //validation=true to show comparison
+        execute("copy t from ? with (shared = true, validation = true) return summary",
+                new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        assertThat(printedTable(response.rows()),
+                   containsString("CHECK (\"a\" = true) and values {a=false}={count=1, line_numbers=[1]}"));
+
+        //validation=false
+        execute("copy t from ? with (shared = true, validation = false) return summary",
+                new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        assertThat(printedTable(response.rows()),
+                   // NOT contains the validation error
+                   not(containsString("CHECK (\"a\" = true) and values {a=false}={count=1, line_numbers=[1]}")));
     }
 }
