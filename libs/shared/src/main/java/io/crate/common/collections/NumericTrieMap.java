@@ -123,7 +123,7 @@ public class NumericTrieMap<K extends Number, V> implements Map<K,V> {
         if (key == null) {
             return NULL_KEY_NODE.isLeaf();
         }
-        TrieNode keyNode = findNodeForNumber((long) key);
+        TrieNode keyNode = findNodeForNumber(((Number) key).longValue());
         return keyNode == null ? false : keyNode.isLeaf();
     }
 
@@ -132,7 +132,7 @@ public class NumericTrieMap<K extends Number, V> implements Map<K,V> {
         if (key == null) {
             return NULL_KEY_NODE.isLeaf() ? NULL_KEY_NODE.value() : null;
         }
-        TrieNode keyNode = findNodeForNumber((long) key);
+        TrieNode keyNode = findNodeForNumber(((Number) key).longValue());
         return keyNode == null ? null : (keyNode.isLeaf() ? keyNode.value() : null);
     }
 
@@ -144,7 +144,7 @@ public class NumericTrieMap<K extends Number, V> implements Map<K,V> {
             return oldVal;
         }
 
-        long primitiveKey = (long) key;
+        long primitiveKey = key.longValue();
         TrieNode currentNode = ROOT_NODE;
         // Need at least one iteration when key == 0
         do {
@@ -178,7 +178,7 @@ public class NumericTrieMap<K extends Number, V> implements Map<K,V> {
             return oldVal;
         }
 
-        TrieNode keyNode = findNodeForNumber((long) key);
+        TrieNode keyNode = findNodeForNumber(((Number) key).longValue());
         V oldVal = keyNode == null ? null : (keyNode.isLeaf() ? keyNode.value() : null);
         keyNode.putValue(null);
         keyNode.setLeaf(false);
