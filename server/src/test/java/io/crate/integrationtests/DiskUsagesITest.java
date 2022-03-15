@@ -21,32 +21,46 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.cluster.ClusterInfoService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.MockInternalClusterInfoService;
-import org.elasticsearch.cluster.routing.RoutingNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.monitor.fs.FsInfo;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
+import static java.util.stream.Collectors.toList;
+import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static java.util.stream.Collectors.toList;
-import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import org.elasticsearch.cluster.ClusterInfoService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.DiskUsage;
+import org.elasticsearch.cluster.MockInternalClusterInfoService;
+import org.elasticsearch.cluster.block.ClusterBlock;
+import org.elasticsearch.cluster.block.ClusterBlockException;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.routing.RoutingNode;
+import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.monitor.fs.FsInfo;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedSchema;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
 public class DiskUsagesITest extends SQLIntegrationTestCase {
@@ -332,6 +346,109 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
                     .count(),
                 is(0L));
         });
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseJdbc(0) // need execute to throw ClusterBlockException instead of PGException
+    public void testAutomaticReleaseOfIndexBlock() throws Exception {
+        for (int i = 0; i < 3; i++) {
+            // ensure that each node has a single data path
+            internalCluster().startNode(Settings.builder().put(Environment.PATH_DATA_SETTING.getKey(), createTempDir()));
+        }
+
+        final List<String> nodeIds = StreamSupport.stream(client().admin().cluster().prepareState().get().getState()
+            .getRoutingNodes().spliterator(), false).map(RoutingNode::nodeId).collect(Collectors.toList());
+
+        // Start with all nodes at 50% usage
+        final MockInternalClusterInfoService cis = (MockInternalClusterInfoService)
+            internalCluster().getInstance(ClusterInfoService.class, internalCluster().getMasterName());
+        cis.setUpdateFrequency(TimeValue.timeValueMillis(100));
+
+        // prevent any effects from in-flight recoveries, since we are only simulating a 100-byte disk
+        cis.setShardSizeFunctionAndRefresh(shardRouting -> 0L);
+
+        // start with all nodes below the low watermark
+        cis.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) -> setDiskUsage(fsInfoPath, 100, between(15, 100)));
+
+        final boolean watermarkBytes = randomBoolean(); // we have to consistently use bytes or percentage for the disk watermark settings
+        client().admin().cluster().prepareUpdateSettings().setTransientSettings(Settings.builder()
+            .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING.getKey(), watermarkBytes ? "15b" : "85%")
+            .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING.getKey(), watermarkBytes ? "10b" : "90%")
+            .put(
+                DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING.getKey(),
+                watermarkBytes ? "5b" : "95%")
+            .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "150ms")).get();
+
+        // Create an index with 6 shards so we can check allocation for it
+        execute("create table test (id int primary key, foo text) " +
+                "clustered into 6 shards with (number_of_replicas = 0)");
+        ensureGreen();
+
+
+        {
+            final Map<String, Integer> shardCountByNodeId = getShardCountByNodeId();
+            assertThat("node0 has 2 shards", shardCountByNodeId.get(nodeIds.get(0)), equalTo(2));
+            assertThat("node1 has 2 shards", shardCountByNodeId.get(nodeIds.get(1)), equalTo(2));
+            assertThat("node2 has 2 shards", shardCountByNodeId.get(nodeIds.get(2)), equalTo(2));
+        }
+
+        execute("insert into test (id, foo) values (1, 'bar')");
+        execute("refresh table test");
+        assertThat(execute("select * from test").rowCount(), is(1L));
+
+        // Move all nodes above the low watermark so no shard movement can occur, and at least one node above the flood stage watermark so
+        // the index is blocked
+        cis.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) -> setDiskUsage(
+            fsInfoPath,
+            100,
+            discoveryNode.getId().equals(nodeIds.get(2)) ? between(0, 4) : between(0, 9)
+        ));
+
+        assertBusy(() -> {
+            assertBlocked(
+                () -> execute("insert into test (id, foo) values (1, 'bar') on conflict (id) do nothing"),
+                IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK
+            );
+        });
+
+        assertFalse(client().admin().cluster().prepareHealth("test").setWaitForEvents(Priority.LANGUID).get().isTimedOut());
+
+        // Cannot add further documents
+        assertBlocked(
+            () -> execute("insert into test (id, foo) values (2, 'bar') on conflict (id) do nothing"),
+            IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK
+        );
+        assertThat(execute("select * from test").rowCount(), is(1L));
+
+        // Move all nodes below the high watermark so that the index is unblocked
+        cis.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) -> setDiskUsage(fsInfoPath, 100, between(10, 100)));
+
+        // Attempt to create a new document until DiskUsageMonitor unblocks the index
+        assertBusy(() -> {
+            try {
+                execute("insert into test (id, foo) values (3, 'bar') on conflict (id) do nothing");
+            } catch (ClusterBlockException e) {
+                throw new AssertionError("retrying", e);
+            }
+            execute("refresh table test");
+        });
+        assertThat(TestingHelpers.printedTable(execute("select id from test order by 1 asc").rows()), is(
+            "1\n" +
+            "3\n"
+        ));
+    }
+
+    private void assertBlocked(Runnable runnable, ClusterBlock clusterBlock) {
+        try {
+            runnable.run();
+            fail("Expected ClusterBlockException");
+        } catch (ClusterBlockException e) {
+            assertThat(e.blocks().size(), greaterThan(0));
+            for (var block : e.blocks()) {
+                assertThat(block.id(), is(clusterBlock.id()));
+            }
+        }
     }
 
     private static ClusterState clusterState() {
