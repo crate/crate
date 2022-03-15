@@ -104,7 +104,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
         shardSizes.put("[test][0][p]", 10L); // 10 bytes
         final ClusterInfo clusterInfo = new ClusterInfo(leastAvailableUsages.build(),
-                                                        mostAvailableUsage.build(), shardSizes.build(), ImmutableOpenMap.of());
+            mostAvailableUsage.build(), shardSizes.build(), ImmutableOpenMap.of(),  ImmutableOpenMap.of());
         RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.singleton(decider)),
                                                              clusterState.getRoutingNodes(), clusterState, clusterInfo, System.nanoTime());
         allocation.debugDecision(true);
@@ -160,7 +160,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         final long shardSize = randomIntBetween(110, 1000);
         shardSizes.put("[test][0][p]", shardSize);
         ClusterInfo clusterInfo = new ClusterInfo(leastAvailableUsages.build(), mostAvailableUsage.build(),
-                                                  shardSizes.build(), ImmutableOpenMap.of());
+            shardSizes.build(), ImmutableOpenMap.of(),  ImmutableOpenMap.of());
         RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.singleton(decider)),
                                                              clusterState.getRoutingNodes(), clusterState, clusterInfo, System.nanoTime());
         allocation.debugDecision(true);
@@ -242,7 +242,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         shardSizes.put("[test][2][p]", 10L);
 
         final ClusterInfo clusterInfo = new ClusterInfo(leastAvailableUsages.build(), mostAvailableUsage.build(),
-                                                        shardSizes.build(), shardRoutingMap.build());
+            shardSizes.build(), shardRoutingMap.build(), ImmutableOpenMap.of());
         RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.singleton(decider)),
                                                              clusterState.getRoutingNodes(), clusterState, clusterInfo, System.nanoTime());
         allocation.debugDecision(true);

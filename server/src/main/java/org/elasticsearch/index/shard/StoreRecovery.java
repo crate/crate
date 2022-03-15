@@ -184,6 +184,7 @@ final class StoreRecovery {
 
         try (IndexWriter writer = new IndexWriter(new StatsDirectoryWrapper(hardLinkOrCopyTarget, indexRecoveryStats), iwc)) {
             writer.addIndexes(sources);
+            indexRecoveryStats.setFileDetailsComplete();
             if (split) {
                 writer.deleteDocuments(new ShardSplittingQuery(indexMetadata, shardId));
             }
@@ -421,14 +422,15 @@ final class StoreRecovery {
                     writeEmptyRetentionLeasesFile(indexShard);
                 }
                 // since we recover from local, just fill the files and size
+                final RecoveryState.Index index = recoveryState.getIndex();
                 try {
-                    final RecoveryState.Index index = recoveryState.getIndex();
                     if (si != null) {
                         addRecoveredFileDetails(si, store, index);
                     }
                 } catch (IOException e) {
                     logger.debug("failed to list file details", e);
                 }
+                index.setFileDetailsComplete();
             } else {
                 store.createEmpty(indexShard.indexSettings().getIndexVersionCreated().luceneVersion);
                 final String translogUUID = Translog.createEmptyTranslog(
@@ -436,6 +438,7 @@ final class StoreRecovery {
                     indexShard.getPendingPrimaryTerm());
                 store.associateIndexWithNewTranslog(translogUUID);
                 writeEmptyRetentionLeasesFile(indexShard);
+                indexShard.recoveryState().getIndex().setFileDetailsComplete();
             }
             indexShard.openEngineAndRecoverFromTranslog();
             indexShard.getEngine().fillSeqNoGaps(indexShard.getPendingPrimaryTerm());

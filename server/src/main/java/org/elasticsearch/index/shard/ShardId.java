@@ -19,18 +19,20 @@
 
 package org.elasticsearch.index.shard;
 
+import java.io.IOException;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.xcontent.ToXContentFragment;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.Index;
-
-import java.io.IOException;
 
 /**
  * Allows for shard level components to be injected with the shard id.
  */
-public class ShardId implements Writeable, Comparable<ShardId> {
+public class ShardId implements Writeable, ToXContentFragment, Comparable<ShardId> {
 
     private final Index index;
     private final int shardId;
@@ -124,5 +126,10 @@ public class ShardId implements Writeable, Comparable<ShardId> {
             return index.getUUID().compareTo(o.getIndex().getUUID());
         }
         return Integer.compare(shardId, o.getId());
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        return builder.value(toString());
     }
 }

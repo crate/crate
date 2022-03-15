@@ -3499,12 +3499,14 @@ public class IndexShardTests extends IndexShardTestCase {
                                 .directory()
                                 .copyFrom(sourceStore.directory(), file, file, IOContext.DEFAULT);
                         }
+                        recoveryState.getIndex().setFileDetailsComplete();
                         return null;
                     });
                 }
 
             @Override
             public void updateState(ClusterState state) {
+
 
             }
         }, future);
