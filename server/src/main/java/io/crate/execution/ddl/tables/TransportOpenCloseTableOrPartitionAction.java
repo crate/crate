@@ -86,6 +86,7 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
         return TransportCloseTable.checkBlock(
             state,
             indexNameExpressionResolver,
+            request.ignoreUnavailableIndices(),
             request.tables(),
             request.partitionIndexName()
         );
