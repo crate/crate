@@ -64,6 +64,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue with the handling of intervals in generated columns. The table
+  creation failed when an interval is included in a function call as part of a
+  generated column.
+
 - Fixed a race condition that could cause a ``blocked by: [FORBIDDEN/4/Table or
   partition preparing to close`` error when inserting into a partitioned table
   where a single partition got closed.
