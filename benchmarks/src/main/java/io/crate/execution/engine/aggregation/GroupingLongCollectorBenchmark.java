@@ -26,8 +26,11 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
+import io.crate.common.collections.NumericTrieMap;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -87,6 +90,7 @@ import io.netty.util.collection.LongObjectHashMap;
 public class GroupingLongCollectorBenchmark {
 
     private GroupingCollector groupBySumCollector;
+    private GroupingCollector trieMapCollector;
     private List<Row> rows;
     private long[] numbers;
     private IndexSearcher searcher;
@@ -108,7 +112,8 @@ public class GroupingLongCollectorBenchmark {
             DataTypes.INTEGER
         );
         var memoryManager = new OnHeapMemoryManager(bytes -> {});
-        groupBySumCollector = createGroupBySumCollector(sumAgg, memoryManager);
+        groupBySumCollector = createGroupBySumCollector(sumAgg, memoryManager, () -> new PrimitiveMapWithNulls(new LongObjectHashMap<>()));
+        trieMapCollector = createGroupBySumCollector(sumAgg, memoryManager, () -> new NumericTrieMap());
 
         int size = 20_000_000;
         rows = new ArrayList<>(size);
@@ -127,7 +132,7 @@ public class GroupingLongCollectorBenchmark {
         searcher = new IndexSearcher(DirectoryReader.open(iw));
     }
 
-    private static GroupingCollector createGroupBySumCollector(AggregationFunction sumAgg, MemoryManager memoryManager) {
+    private static GroupingCollector createGroupBySumCollector(AggregationFunction sumAgg, MemoryManager memoryManager, Supplier<Map<Object, Object[]>> supplier) {
         InputCollectExpression keyInput = new InputCollectExpression(0);
         List<Input<?>> keyInputs = Arrays.<Input<?>>asList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
@@ -143,7 +148,8 @@ public class GroupingLongCollectorBenchmark {
             Version.CURRENT,
             keyInputs.get(0),
             DataTypes.LONG,
-            Version.CURRENT
+            Version.CURRENT,
+            supplier
         );
     }
 
@@ -151,6 +157,12 @@ public class GroupingLongCollectorBenchmark {
     public void measureGroupBySumLong(Blackhole blackhole) throws Exception {
         var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL, true);
         blackhole.consume(BatchIterators.collect(rowsIterator, groupBySumCollector).get());
+    }
+
+    @Benchmark
+    public void measureGroupBySumLongTrieMap(Blackhole blackhole) throws Exception {
+        var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL, true);
+        blackhole.consume(BatchIterators.collect(rowsIterator, trieMapCollector).get());
     }
 
     @Benchmark

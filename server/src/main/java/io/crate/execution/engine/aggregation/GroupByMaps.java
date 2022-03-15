@@ -23,13 +23,8 @@ package io.crate.execution.engine.aggregation;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
-import io.crate.types.ByteType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.IntegerType;
-import io.crate.types.LongType;
-import io.crate.types.ShortType;
-import io.crate.types.TimestampType;
+import io.crate.common.collections.NumericTrieMap;
+import io.crate.types.*;
 import io.netty.util.collection.ByteObjectHashMap;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.LongObjectHashMap;
@@ -71,16 +66,12 @@ public final class GroupByMaps {
     public static <K, V> Supplier<Map<K, V>> mapForType(DataType<K> type) {
         switch (type.id()) {
             case ByteType.ID:
-                return () -> (Map) new PrimitiveMapWithNulls<>(new ByteObjectHashMap<>());
             case ShortType.ID:
-                return () -> (Map) new PrimitiveMapWithNulls<>(new ShortObjectHashMap<>());
             case IntegerType.ID:
-                return () -> (Map) new PrimitiveMapWithNulls<>(new IntObjectHashMap<>());
-
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                return () -> (Map) new PrimitiveMapWithNulls<>(new LongObjectHashMap<>());
+                return () -> new NumericTrieMap();
 
             default:
                 return HashMap::new;
