@@ -90,4 +90,5 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that caused an ``Relation unknown`` error while trying to
+  close an empty partitioned table using ``ALTER TABLE ... CLOSE``.
