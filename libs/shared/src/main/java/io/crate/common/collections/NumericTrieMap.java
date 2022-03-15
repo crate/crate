@@ -110,7 +110,7 @@ public class NumericTrieMap<K extends Number, V> implements Map<K,V> {
         TrieNode currentNode = ROOT_NODE;
         // Need at least one iteration when key == 0
         do {
-            int lastDigit = (int) key % 10;
+            int lastDigit = (int) (key % 10);
             currentNode = currentNode.goToState(lastDigit);
             key = key / 10;
         }
@@ -148,7 +148,7 @@ public class NumericTrieMap<K extends Number, V> implements Map<K,V> {
         TrieNode currentNode = ROOT_NODE;
         // Need at least one iteration when key == 0
         do {
-            int lastDigit = (int) primitiveKey % 10;
+            int lastDigit = (int) (primitiveKey % 10);
             TrieNode nextNode = currentNode.goToState(lastDigit);
             if (nextNode == null) {
                 nextNode = new TrieNode();
