@@ -89,10 +89,10 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
         clusterInfoService.onMaster();
 
         // prevent any effects from in-flight recoveries, since we are only simulating a 100-byte disk
-        clusterInfoService.shardSizeFunction = shardRouting -> 0L;
+        clusterInfoService.setShardSizeFunctionAndRefresh(shardRouting -> 0L);
         // start with all nodes below the watermark
-        clusterInfoService.diskUsageFunction = (discoveryNode, fsInfoPath) ->
-            setDiskUsage(fsInfoPath, 100, between(10, 100));
+        clusterInfoService.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) ->
+            setDiskUsage(fsInfoPath, 100, between(10, 100)));
 
         execute("SET GLOBAL TRANSIENT" +
                 "   cluster.routing.allocation.disk.watermark.low='80%'," +
@@ -112,9 +112,9 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
 
 
         // move node3 above high watermark
-        clusterInfoService.diskUsageFunction = (discoveryNode, fsInfoPath) -> setDiskUsage(
+        clusterInfoService.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) -> setDiskUsage(
             fsInfoPath, 100,
-            discoveryNode.getId().equals(nodeIds.get(2)) ? between(0, 9) : between(10, 100));
+            discoveryNode.getId().equals(nodeIds.get(2)) ? between(0, 9) : between(10, 100)));
 
         assertBusy(() -> {
             var shardCountByNodeId = getShardCountByNodeId();
@@ -124,8 +124,8 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
         });
 
         // move all nodes below watermark again
-        clusterInfoService.diskUsageFunction = (discoveryNode, fsInfoPath) ->
-            setDiskUsage(fsInfoPath, 100, between(10, 100));
+        clusterInfoService.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) ->
+            setDiskUsage(fsInfoPath, 100, between(10, 100)));
 
         assertBusy(() -> {
             var shardCountByNodeId = getShardCountByNodeId();
@@ -154,10 +154,10 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
         });
 
         // shards are 1 byte large
-        clusterInfoService.shardSizeFunction = shardRouting -> 1L;
+        clusterInfoService.setShardSizeFunctionAndRefresh(shardRouting -> 1L);
         // start with all nodes below the watermark
-        clusterInfoService.diskUsageFunction = (discoveryNode, fsInfoPath) ->
-            setDiskUsage(fsInfoPath, 1000L, 1000L);
+        clusterInfoService.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) ->
+            setDiskUsage(fsInfoPath, 1000L, 1000L));
 
         execute("SET GLOBAL TRANSIENT" +
                 "   cluster.routing.allocation.disk.watermark.low='90%'," +
@@ -178,11 +178,11 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
         execute("SET GLOBAL TRANSIENT cluster.routing.rebalance.enable='none'");
 
         // node2 suddenly has 99 bytes free, less than 10%, but moving one shard is enough to bring it up to 100 bytes free:
-        clusterInfoService.diskUsageFunction = (discoveryNode, fsInfoPath) -> setDiskUsage(
+        clusterInfoService.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) -> setDiskUsage(
             fsInfoPath, 1000L,
             discoveryNode.getId().equals(nodeIds.get(2))
                 ? 101L - masterAppliedClusterState.get().getRoutingNodes().node(nodeIds.get(2)).numberOfOwningShards()
-                : 1000L);
+                : 1000L));
 
         clusterInfoService.refresh();
 
@@ -217,13 +217,13 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
         });
 
         // shards are 1 byte large
-        clusterInfoService.shardSizeFunction = shardRouting -> 1L;
+        clusterInfoService.setShardSizeFunctionAndRefresh(shardRouting -> 1L);
         // node 2 only has space for one shard
-        clusterInfoService.diskUsageFunction = (discoveryNode, fsInfoPath) -> setDiskUsage(
+        clusterInfoService.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) -> setDiskUsage(
             fsInfoPath, 1000L,
             discoveryNode.getId().equals(nodeIds.get(2))
                 ? 150L - masterAppliedClusterState.get().getRoutingNodes().node(nodeIds.get(2)).numberOfOwningShards()
-                : 1000L);
+                : 1000L));
 
         execute("SET GLOBAL TRANSIENT" +
                 "   cluster.routing.allocation.disk.watermark.low='85%'," +
@@ -286,10 +286,10 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
 
         var clusterInfoService = getMockInternalClusterInfoService();
         // prevent any effects from in-flight recoveries, since we are only simulating a 100-byte disk
-        clusterInfoService.shardSizeFunction = shardRouting -> 0L;
+        clusterInfoService.setShardSizeFunctionAndRefresh(shardRouting -> 0L);
         // start with all paths below the watermark
-        clusterInfoService.diskUsageFunction = (discoveryNode, fsInfoPath) ->
-            setDiskUsage(fsInfoPath, 100, between(10, 100));
+        clusterInfoService.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) ->
+            setDiskUsage(fsInfoPath, 100, between(10, 100)));
 
         execute("SET GLOBAL TRANSIENT" +
                 "   cluster.routing.allocation.disk.watermark.low='90%'," +
@@ -321,16 +321,14 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
                 .count(),
             is(1L));
 
-        // one of the paths on node0 suddenly exceeds the high watermark
-        clusterInfoService.diskUsageFunction = (discoveryNode, fsInfoPath) -> setDiskUsage(
-            fsInfoPath, 100L,
-            fsInfoPath.getPath().startsWith(pathOverWatermark) ? between(0, 9) : between(10, 100));
-
         // disable rebalancing, or else we might move shards back
         // onto the over-full path since we're not faking that
         execute("SET GLOBAL TRANSIENT cluster.routing.rebalance.enable='none'");
 
-        clusterInfoService.refresh();
+        // one of the paths on node0 suddenly exceeds the high watermark
+        clusterInfoService.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) -> setDiskUsage(
+            fsInfoPath, 100L,
+            fsInfoPath.getPath().startsWith(pathOverWatermark) ? between(0, 9) : between(10, 100)));
 
         logger.info("waiting for shards to relocate off path [{}]", pathOverWatermark);
         assertBusy(() -> {
