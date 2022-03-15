@@ -32,6 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -105,5 +106,17 @@ public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
         if (throwable != null) {
             throw throwable;
         }
+    }
+
+    /**
+     * https://github.com/crate/crate/issues/12196
+     */
+    @Test
+    public void test_intervals_in_generated_column() {
+        execute("create table test(t timestamp, calculated timestamp generated always as DATE_BIN('15 minutes'::INTERVAL, t, '2001-01-01'))");
+        execute("insert into test(t) values('2020-02-11 15:44:17')");
+        refresh();
+        execute("select date_format('%Y-%m-%d %H:%i:%s', calculated) from test");
+        assertThat(printedTable(response.rows()), is("2020-02-11 15:30:00\n"));
     }
 }

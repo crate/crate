@@ -50,8 +50,11 @@ public class LiteralValueFormatter {
             formatIterable((Iterable<?>) value, builder);
         } else if (value.getClass().isArray()) {
             formatArray(value, builder);
-        } else if (value instanceof String || value instanceof Point || value instanceof Period) {
+        } else if (value instanceof String || value instanceof Point) {
             builder.append(Literals.quoteStringLiteral(value.toString()));
+        } else if (value instanceof Period) {
+            builder.append(Literals.quoteStringLiteral(value.toString()));
+            builder.append("::interval");
         } else if (value instanceof Long
                    && ((Long) value <= Integer.MAX_VALUE
                    || (Long) value >= Integer.MIN_VALUE)) {
