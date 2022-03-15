@@ -105,7 +105,8 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
         });
     }
 
-    private List<NodeStats> adjustNodesStats(List<NodeStats> nodesStats) {
+    @Override
+    List<NodeStats> adjustNodesStats(List<NodeStats> nodesStats) {
         BiFunction<DiscoveryNode, FsInfo.Path, FsInfo.Path> diskUsageFunction = this.diskUsageFunction;
         if (diskUsageFunction == null) {
             return nodesStats;
