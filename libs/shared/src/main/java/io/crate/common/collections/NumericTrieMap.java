@@ -153,13 +153,14 @@ public class NumericTrieMap<K extends Number, V> implements Map<K,V> {
         // Need at least one iteration when key == 0
         do {
             int lastDigit = (int) primitiveKey % 10;
-            currentNode = currentNode.goToState(lastDigit);
-            if (currentNode == null) {
-                TrieNode newNode = new TrieNode();
-                nodes.add(newNode);
+            TrieNode nextNode = currentNode.goToState(lastDigit);
+            if (nextNode == null) {
+                nextNode = new TrieNode();
+                nodes.add(nextNode);
                 currentNode.addTransition(lastDigit, nodes.size() - 1);
             }
             primitiveKey = primitiveKey / 10;
+            currentNode = nextNode;
         }
         while (primitiveKey > 0 && currentNode != null);
 
