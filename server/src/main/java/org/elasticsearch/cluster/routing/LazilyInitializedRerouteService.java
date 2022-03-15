@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.routing;
 
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Priority;
 
 /**
@@ -33,7 +34,7 @@ public class LazilyInitializedRerouteService implements RerouteService {
     private final SetOnce<RerouteService> delegate = new SetOnce<>();
 
     @Override
-    public void reroute(String reason, Priority priority, ActionListener<Void> listener) {
+    public void reroute(String reason, Priority priority, ActionListener<ClusterState> listener) {
         assert delegate.get() != null;
         delegate.get().reroute(reason, priority, listener);
     }
