@@ -23,7 +23,6 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -94,8 +93,6 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
     private final Collection<ClusterStateListener> clusterStateListeners = new CopyOnWriteArrayList<>();
     private final Map<TimeoutClusterStateListener, NotifyTimeout> timeoutClusterStateListeners = new ConcurrentHashMap<>();
 
-    private final LocalNodeMasterListeners localNodeMasterListeners;
-
     private final AtomicReference<ClusterState> state; // last applied state
 
     private final String nodeName;
@@ -106,7 +103,6 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
         this.clusterSettings = clusterSettings;
         this.threadPool = threadPool;
         this.state = new AtomicReference<>();
-        this.localNodeMasterListeners = new LocalNodeMasterListeners();
         this.nodeName = nodeName;
 
         this.slowTaskLoggingThreshold = CLUSTER_SERVICE_SLOW_TASK_LOGGING_THRESHOLD_SETTING.get(settings);
@@ -136,7 +132,6 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
     protected synchronized void doStart() {
         Objects.requireNonNull(nodeConnectionsService, "please set the node connection service before starting");
         Objects.requireNonNull(state.get(), "please set initial state before starting");
-        addListener(localNodeMasterListeners);
         threadPoolExecutor = createThreadPoolExecutor();
     }
 
@@ -180,7 +175,6 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
             }
         }
         ThreadPool.terminate(threadPoolExecutor, 10, TimeUnit.SECONDS);
-        removeListener(localNodeMasterListeners);
     }
 
     @Override
@@ -261,7 +255,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
      * Add a listener for on/off local node master events
      */
     public void addLocalNodeMasterListener(LocalNodeMasterListener listener) {
-        localNodeMasterListeners.add(listener);
+        addListener(listener);
     }
 
     /**
@@ -594,43 +588,6 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
             }
             // note, we rely on the listener to remove itself in case of timeout if needed
         }
-    }
-
-    private static class LocalNodeMasterListeners implements ClusterStateListener {
-
-        private final List<LocalNodeMasterListener> listeners = new CopyOnWriteArrayList<>();
-        private volatile boolean master = false;
-
-        private LocalNodeMasterListeners() {
-        }
-
-        @Override
-        public void clusterChanged(ClusterChangedEvent event) {
-            if (!master && event.localNodeMaster()) {
-                master = true;
-                for (LocalNodeMasterListener listener : listeners) {
-                    try {
-                        listener.onMaster();
-                    } catch (Exception e) {
-                        LOGGER.warn("failed to notify LocalNodeMasterListener", e);
-                    }
-                }
-            } else if (master && !event.localNodeMaster()) {
-                master = false;
-                for (LocalNodeMasterListener listener : listeners) {
-                    try {
-                        listener.offMaster();
-                    } catch (Exception e) {
-                        LOGGER.warn("failed to notify LocalNodeMasterListener", e);
-                    }
-                }
-            }
-        }
-
-        private void add(LocalNodeMasterListener listener) {
-            listeners.add(listener);
-        }
-
     }
 
     // this one is overridden in tests so we can control time
