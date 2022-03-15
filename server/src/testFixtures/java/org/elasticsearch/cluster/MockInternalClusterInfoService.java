@@ -65,6 +65,17 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
         super(settings, clusterService, threadPool, client);
     }
 
+
+    public void setDiskUsageFunctionAndRefresh(BiFunction<DiscoveryNode, FsInfo.Path, FsInfo.Path> diskUsageFunction) {
+        this.diskUsageFunction = diskUsageFunction;
+        refresh();
+    }
+
+    public void setShardSizeFunctionAndRefresh(Function<ShardRouting, Long> shardSizeFunction) {
+        this.shardSizeFunction = shardSizeFunction;
+        refresh();
+    }
+
     @Override
     public ClusterInfo getClusterInfo() {
         final ClusterInfo clusterInfo = super.getClusterInfo();
