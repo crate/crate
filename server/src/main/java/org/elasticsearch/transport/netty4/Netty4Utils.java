@@ -19,19 +19,6 @@
 
 package org.elasticsearch.transport.netty4;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.CompositeByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.util.NettyRuntime;
-import io.netty.util.internal.logging.InternalLoggerFactory;
-import io.netty.util.internal.logging.Log4J2LoggerFactory;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.BytesRefIterator;
-import io.crate.common.Booleans;
-import org.elasticsearch.common.bytes.BytesReference;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,15 +26,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.BytesRefIterator;
+import org.elasticsearch.common.bytes.BytesReference;
+
+import io.crate.common.Booleans;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.util.NettyRuntime;
+
 public class Netty4Utils {
-
-    static {
-        InternalLoggerFactory.setDefaultFactory(Log4J2LoggerFactory.INSTANCE);
-    }
-
-    public static void setup() {
-
-    }
 
     private static final AtomicBoolean IS_AVAILABLE_PROCESSORS_SET = new AtomicBoolean();
 
