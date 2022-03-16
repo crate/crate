@@ -21,16 +21,11 @@
 
 package io.crate.execution.ddl.tables;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.cluster.DDLClusterStateHelpers;
+import io.crate.metadata.cluster.DDLClusterStateService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -80,12 +75,15 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
-
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.cluster.DDLClusterStateHelpers;
-import io.crate.metadata.cluster.DDLClusterStateService;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
 public final class TransportCloseTable extends TransportMasterNodeAction<CloseTableRequest, AcknowledgedResponse> {
 
@@ -255,7 +253,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     @Override
     protected ClusterBlockException checkBlock(CloseTableRequest request, ClusterState state) {
         String partition = request.partition();
-        if (partition == null && isEmptyPartitionedTable(request.table(), state)) {
+        if (partition == null && isEmptyPartitionedTable(request.table(), state, indexNameExpressionResolver)) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         }
         String indexName = partition == null ? request.table().indexNameOrAlias() : partition;
@@ -265,7 +263,9 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         );
     }
 
-    private boolean isEmptyPartitionedTable(RelationName relationName, ClusterState clusterState) {
+    public static boolean isEmptyPartitionedTable(RelationName relationName,
+                                                  ClusterState clusterState,
+                                                  IndexNameExpressionResolver indexNameExpressionResolver) {
         var concreteIndices = indexNameExpressionResolver.concreteIndexNames(
             clusterState,
             IndicesOptions.lenientExpandOpen(),
@@ -388,7 +388,8 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         @Override
         public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-            if (blockedIndices.isEmpty() && isEmptyPartitionedTable(request.table(), newState)) {
+            if (blockedIndices.isEmpty()
+                && isEmptyPartitionedTable(request.table(), newState, indexNameExpressionResolver)) {
                 clusterService.submitStateUpdateTask(
                     "close-indices",
                     new CloseRoutingTableTask(
