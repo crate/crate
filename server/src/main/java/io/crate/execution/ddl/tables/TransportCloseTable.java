@@ -31,8 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -81,6 +79,8 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
+
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateHelpers;
@@ -99,8 +99,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     private final ActiveShardsObserver activeShardsObserver;
 
     @Inject
-    public TransportCloseTable(String actionName,
-                               TransportService transportService,
+    public TransportCloseTable(TransportService transportService,
                                ClusterService clusterService,
                                ThreadPool threadPool,
                                IndexNameExpressionResolver indexNameExpressionResolver,
@@ -254,11 +253,29 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     @Override
     protected ClusterBlockException checkBlock(CloseTableRequest request, ClusterState state) {
         String partition = request.partition();
+        if (partition == null && isEmptyPartitionedTable(request.table(), state)) {
+            return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
+        }
         String indexName = partition == null ? request.table().indexNameOrAlias() : partition;
         return state.blocks().indicesBlockedException(
             ClusterBlockLevel.METADATA_WRITE,
             indexNameExpressionResolver.concreteIndexNames(state, STRICT_INDICES_OPTIONS, indexName)
         );
+    }
+
+    private boolean isEmptyPartitionedTable(RelationName relationName, ClusterState clusterState) {
+        var concreteIndices = indexNameExpressionResolver.concreteIndexNames(
+            clusterState,
+            IndicesOptions.lenientExpandOpen(),
+            relationName.indexNameOrAlias()
+        );
+        if (concreteIndices.length > 0) {
+            return false;
+        }
+
+        var templateName = PartitionName.templateName(relationName.schema(), relationName.name());
+        var templateMetadata = clusterState.metadata().templates().get(templateName);
+        return templateMetadata != null;
     }
 
 
@@ -369,6 +386,19 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         @Override
         public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
+            if (blockedIndices.isEmpty() && isEmptyPartitionedTable(request.table(), newState)) {
+                clusterService.submitStateUpdateTask(
+                    "close-indices",
+                    new CloseRoutingTableTask(
+                        Priority.URGENT,
+                        blockedIndices,
+                        Map.of(),
+                        request,
+                        listener
+                    )
+                );
+                return;
+            }
             if (oldState == newState) {
                 assert blockedIndices.isEmpty()
                         : "List of blocked indices is not empty but cluster state wasn't changed";
