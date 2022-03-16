@@ -44,6 +44,7 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.reference.file.SourceLineNumberExpression;
+import io.crate.expression.reference.file.SourceParsingFailureExpression;
 import io.crate.expression.reference.file.SourceUriExpression;
 import io.crate.expression.reference.file.SourceUriFailureExpression;
 import io.crate.expression.symbol.InputColumn;
@@ -240,6 +241,9 @@ public final class CopyFromPlan implements Plan {
             final InputColumn lineNumberSymbol = new InputColumn(toCollect.size(), DataTypes.LONG);
             toCollect.add(SourceLineNumberExpression.getReferenceForRelation(table.ident()));
 
+            final InputColumn sourceParsingFailureSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
+            toCollect.add(SourceParsingFailureExpression.getReferenceForRelation(table.ident()));
+
             if (returnSummary) {
                 List<? extends Symbol> fields = ((AnalyzedCopyFromReturnSummary) copyFrom).outputs();
                 projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
@@ -262,6 +266,7 @@ public final class CopyFromPlan implements Plan {
                 table.isPartitioned(), // autoCreateIndices
                 sourceUriSymbol,
                 sourceUriFailureSymbol,
+                sourceParsingFailureSymbol,
                 lineNumberSymbol
             );
         } else {

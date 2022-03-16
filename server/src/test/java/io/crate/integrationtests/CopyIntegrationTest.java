@@ -1129,4 +1129,21 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             assertThat(exceptionMessage, is(expectedMessage));
         }
     }
+
+    @Test
+    public void test_copy_from_fail_gracefully_in_case_of_invalid_data() throws Exception {
+        execute("create table t (x int)");
+        List<String> lines = List.of(
+            "x\n",
+            "1,2\n",
+            "3\n",
+            "4,5\n"
+        );
+
+        File file = folder.newFile(UUID.randomUUID() + ".csv");
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        execute("copy t from ? with (shared = true) return summary", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        assertThat(response.rows()[0][2], is(1L));
+        assertThat(response.rows()[0][3], is(2L));
+    }
 }
