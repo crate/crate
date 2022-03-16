@@ -32,7 +32,10 @@ import java.util.zip.Checksum;
  * {@link StreamInput} so anything read will update the checksum
  */
 public final class BufferedChecksumStreamInput extends FilterStreamInput {
+
     private static final int SKIP_BUFFER_SIZE = 1024;
+    private static final ThreadLocal<byte[]> BUFFER = ThreadLocal.withInitial(() -> new byte[8]);
+
     private byte[] skipBuffer;
     private final Checksum digest;
     private final String source;
@@ -68,6 +71,28 @@ public final class BufferedChecksumStreamInput extends FilterStreamInput {
     public void readBytes(byte[] b, int offset, int len) throws IOException {
         delegate.readBytes(b, offset, len);
         digest.update(b, offset, len);
+    }
+
+    @Override
+    public short readShort() throws IOException {
+        final byte[] buf = BUFFER.get();
+        readBytes(buf, 0, 2);
+        return (short) (((buf[0] & 0xFF) << 8) | (buf[1] & 0xFF));
+    }
+
+    @Override
+    public int readInt() throws IOException {
+        final byte[] buf = BUFFER.get();
+        readBytes(buf, 0, 4);
+        return ((buf[0] & 0xFF) << 24) | ((buf[1] & 0xFF) << 16) | ((buf[2] & 0xFF) << 8) | (buf[3] & 0xFF);
+    }
+
+    @Override
+    public long readLong() throws IOException {
+        final byte[] buf = BUFFER.get();
+        readBytes(buf, 0, 8);
+        return (((long) (((buf[0] & 0xFF) << 24) | ((buf[1] & 0xFF) << 16) | ((buf[2] & 0xFF) << 8) | (buf[3] & 0xFF))) << 32)
+            | ((((buf[4] & 0xFF) << 24) | ((buf[5] & 0xFF) << 16) | ((buf[6] & 0xFF) << 8) | (buf[7] & 0xFF)) & 0xFFFFFFFFL);
     }
 
     @Override
