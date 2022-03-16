@@ -46,7 +46,21 @@ public abstract class FilterStreamInput extends StreamInput {
     }
 
     @Override
-    @SuppressWarnings("sync-override")
+    public short readShort() throws IOException {
+        return delegate.readShort();
+    }
+
+    @Override
+    public int readInt() throws IOException {
+        return delegate.readInt();
+    }
+
+    @Override
+    public long readLong() throws IOException {
+        return delegate.readLong();
+    }
+
+    @Override
     public void reset() throws IOException {
         delegate.reset();
     }

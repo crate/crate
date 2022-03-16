@@ -517,7 +517,7 @@ should be crossed out as well.
 - [ ] 8d2261fe479 Refactor GeoShapeIndexer by extracting polygon / line decomposers (#52422) (#52506)
 - [ ] 9d40277d4cb Deciders should not by default collect yes'es (#52438)
 - [ ] a742c58d45d Extract a ConnectionManager interface (#51722)
-- [ ] cc628748e10 Optimize FilterStreamInput for Network Reads (#52395) (#52403)
+- [x] cc628748e10 Optimize FilterStreamInput for Network Reads (#52395) (#52403)
 - [ ] 146def8caad Implement top_metrics agg (#51155) (#52366)
 - [ ] 7efce22f19d Fix a DST error in date_histogram (backport #52016) (#52237)
 - [ ] dac720d7a16 Add a cluster setting to disallow expensive queries (#51385) (#52279)
