@@ -45,6 +45,7 @@ import org.elasticsearch.index.engine.MissingHistoryOperationsException;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.GlobalCheckpointListeners.GlobalCheckpointListener;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -57,6 +58,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
@@ -166,38 +168,47 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
 
                 indexShard.addGlobalCheckpointListener(
                     request.fromSeqNo(),
-                    (globalCheckpoint, e) -> {
-                        if (globalCheckpoint != UNASSIGNED_SEQ_NO) {
-                            // At this point indexShard.lastKnownGlobalCheckpoint  has advanced but it may not yet have been synced
-                            // to the translog, which means we can't return those changes. Return to the caller to retry.
-                            // TODO: Figure out a better way to wait for the global checkpoint to be synced to the translog
-                            if (globalCheckpoint < request.fromSeqNo()) {
-                                assert globalCheckpoint >
-                                       indexShard.getLastSyncedGlobalCheckpoint() : "Checkpoint didn't advance at all";
-                                listener.onFailure(new ElasticsearchTimeoutException("global checkpoint not synced."));
-                                return;
-                            }
-                            try {
-                                super.asyncShardOperation(request, shardId, listener);
-                            } catch (IOException ioException) {
-                                listener.onFailure(ioException);
-                            }
-                        } else {
-                            assert e != null : "Exception expected if globalCheckout != " + UNASSIGNED_SEQ_NO;
-                            if (e instanceof TimeoutException) {
-                                LOGGER.trace("Waiting for advanced globalCheckpoint timed out", e);
-                                var latestSeqNoStats = indexShard.seqNoStats();
-                                var indexService = indicesService.indexServiceSafe(shardId.getIndex());
-                                var response = new Response(
-                                    List.of(),
-                                    request.fromSeqNo(),
-                                    indexShard.getMaxSeqNoOfUpdatesOrDeletes(),
-                                    latestSeqNoStats.getGlobalCheckpoint(),
-                                    indexService.getMetadata().getVersion()
-                                );
-                                listener.onResponse(response);
+                    new GlobalCheckpointListener() {
+
+                        @Override
+                        public Executor executor() {
+                            return threadPool.executor(ThreadPool.Names.LISTENER);
+                        }
+
+                        @Override
+                        public void accept(long globalCheckpoint, Exception e) {
+                            if (globalCheckpoint != UNASSIGNED_SEQ_NO) {
+                                // At this point indexShard.lastKnownGlobalCheckpoint  has advanced but it may not yet have been synced
+                                // to the translog, which means we can't return those changes. Return to the caller to retry.
+                                // TODO: Figure out a better way to wait for the global checkpoint to be synced to the translog
+                                if (globalCheckpoint < request.fromSeqNo()) {
+                                    assert globalCheckpoint >
+                                        indexShard.getLastSyncedGlobalCheckpoint() : "Checkpoint didn't advance at all";
+                                    listener.onFailure(new ElasticsearchTimeoutException("global checkpoint not synced."));
+                                    return;
+                                }
+                                try {
+                                    TransportAction.super.asyncShardOperation(request, shardId, listener);
+                                } catch (IOException ioException) {
+                                    listener.onFailure(ioException);
+                                }
                             } else {
-                                listener.onFailure(e);
+                                assert e != null : "Exception expected if globalCheckout != " + UNASSIGNED_SEQ_NO;
+                                if (e instanceof TimeoutException) {
+                                    LOGGER.trace("Waiting for advanced globalCheckpoint timed out", e);
+                                    var latestSeqNoStats = indexShard.seqNoStats();
+                                    var indexService = indicesService.indexServiceSafe(shardId.getIndex());
+                                    var response = new Response(
+                                        List.of(),
+                                        request.fromSeqNo(),
+                                        indexShard.getMaxSeqNoOfUpdatesOrDeletes(),
+                                        latestSeqNoStats.getGlobalCheckpoint(),
+                                        indexService.getMetadata().getVersion()
+                                    );
+                                    listener.onResponse(response);
+                                } else {
+                                    listener.onFailure(e);
+                                }
                             }
                         }
                     },
