@@ -82,10 +82,6 @@ import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.new
  */
 public class Netty4Transport extends TcpTransport {
 
-    static {
-        Netty4Utils.setup();
-    }
-
     public static final Setting<Integer> WORKER_COUNT =
         new Setting<>("transport.netty.worker_count",
             (s) -> Integer.toString(EsExecutors.numberOfProcessors(s)),

@@ -104,7 +104,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
         shardSizes.put("[test][0][p]", 10L); // 10 bytes
         final ClusterInfo clusterInfo = new ClusterInfo(leastAvailableUsages.build(),
-                                                        mostAvailableUsage.build(), shardSizes.build(), ImmutableOpenMap.of());
+            mostAvailableUsage.build(), shardSizes.build(), ImmutableOpenMap.of(),  ImmutableOpenMap.of());
         RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.singleton(decider)),
                                                              clusterState.getRoutingNodes(), clusterState, clusterInfo, System.nanoTime());
         allocation.debugDecision(true);
@@ -160,7 +160,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         final long shardSize = randomIntBetween(110, 1000);
         shardSizes.put("[test][0][p]", shardSize);
         ClusterInfo clusterInfo = new ClusterInfo(leastAvailableUsages.build(), mostAvailableUsage.build(),
-                                                  shardSizes.build(), ImmutableOpenMap.of());
+            shardSizes.build(), ImmutableOpenMap.of(),  ImmutableOpenMap.of());
         RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.singleton(decider)),
                                                              clusterState.getRoutingNodes(), clusterState, clusterInfo, System.nanoTime());
         allocation.debugDecision(true);
@@ -242,7 +242,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         shardSizes.put("[test][2][p]", 10L);
 
         final ClusterInfo clusterInfo = new ClusterInfo(leastAvailableUsages.build(), mostAvailableUsage.build(),
-                                                        shardSizes.build(), shardRoutingMap.build());
+            shardSizes.build(), shardRoutingMap.build(), ImmutableOpenMap.of());
         RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.singleton(decider)),
                                                              clusterState.getRoutingNodes(), clusterState, clusterInfo, System.nanoTime());
         allocation.debugDecision(true);
@@ -323,7 +323,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         assertEquals(10L, getExpectedShardSize(test_0, 0L, allocation));
 
         RoutingNode node = new RoutingNode("node1", new DiscoveryNode("node1", buildNewFakeTransportAddress(),
-                                                                      emptyMap(), emptySet(), Version.CURRENT), test_0, test_1.getTargetRelocatingShard(), test_2);
+                emptyMap(), emptySet(), Version.CURRENT), test_0, test_1.getTargetRelocatingShard(), test_2);
         assertEquals(100L, sizeOfRelocatingShards(allocation, node, false, "/dev/null"));
         assertEquals(90L, sizeOfRelocatingShards(allocation, node, true, "/dev/null"));
         assertEquals(0L, sizeOfRelocatingShards(allocation, node, true, "/dev/some/other/dev"));
@@ -440,15 +440,15 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         assertEquals(10L, getExpectedShardSize(test_0, 0L, allocation));
 
         ShardRouting target = ShardRouting.newUnassigned(new ShardId(new Index("target", "5678"), 0),
-                                                         true, LocalShardsRecoverySource.INSTANCE, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
+            true, LocalShardsRecoverySource.INSTANCE, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
         assertEquals(1110L, getExpectedShardSize(target, 0L, allocation));
 
         ShardRouting target2 = ShardRouting.newUnassigned(new ShardId(new Index("target2", "9101112"), 0),
-                                                          true, LocalShardsRecoverySource.INSTANCE, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
+            true, LocalShardsRecoverySource.INSTANCE, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
         assertEquals(110L, getExpectedShardSize(target2, 0L, allocation));
 
         target2 = ShardRouting.newUnassigned(new ShardId(new Index("target2", "9101112"), 1),
-                                             true, LocalShardsRecoverySource.INSTANCE, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
+            true, LocalShardsRecoverySource.INSTANCE, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
         assertEquals(1000L, getExpectedShardSize(target2, 0L, allocation));
 
         // check that the DiskThresholdDecider still works even if the source index has been deleted
@@ -459,7 +459,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 
         allocationService.reroute(clusterState, "foo");
         RoutingAllocation allocationWithMissingSourceIndex = new RoutingAllocation(null,
-                                                                                   clusterStateWithMissingSourceIndex.getRoutingNodes(), clusterStateWithMissingSourceIndex, info, 0);
+            clusterStateWithMissingSourceIndex.getRoutingNodes(), clusterStateWithMissingSourceIndex, info, 0);
         assertEquals(42L, getExpectedShardSize(target, 42L, allocationWithMissingSourceIndex));
         assertEquals(42L, getExpectedShardSize(target2, 42L, allocationWithMissingSourceIndex));
     }

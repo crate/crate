@@ -19,7 +19,14 @@
 
 package org.elasticsearch.cluster.routing.allocation.decider;
 
+import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING;
+import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING;
+
+import java.util.List;
+import java.util.Set;
+
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterInfo;
@@ -41,11 +48,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
-
-import java.util.Set;
-
-import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING;
-import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING;
 
 /**
  * The {@link DiskThresholdDecider} checks that the node a shard is potentially
@@ -94,9 +96,16 @@ public class DiskThresholdDecider extends AllocationDecider {
                                               ClusterInfo clusterInfo,
                                               Metadata metadata,
                                               RoutingTable routingTable) {
-        long totalSize = 0L;
+        // Account for reserved space wherever it is available
+        final ClusterInfo.ReservedSpace reservedSpace = clusterInfo.getReservedSpace(node.nodeId(), dataPath);
+        long totalSize = reservedSpace.getTotal();
+        // NB this counts all shards on the node when the ClusterInfoService retrieved the node stats, which may include shards that are
+        // no longer initializing because their recovery failed or was cancelled.
 
-        for (ShardRouting routing : node.shardsWithState(ShardRoutingState.INITIALIZING)) {
+        // Where reserved space is unavailable (e.g. stats are out-of-sync) compute a conservative estimate for initialising shards
+        final List<ShardRouting> initializingShards = node.shardsWithState(ShardRoutingState.INITIALIZING);
+        initializingShards.removeIf(shardRouting -> reservedSpace.containsShardId(shardRouting.shardId()));
+        for (ShardRouting routing : initializingShards) {
             if (routing.relocatingNodeId() == null) {
                 // in practice the only initializing-but-not-relocating shards with a nonzero expected shard size will be ones created
                 // by a resize (shrink/split/clone) operation which we expect to happen using hard links, so they shouldn't be taking
@@ -367,14 +376,29 @@ public class DiskThresholdDecider extends AllocationDecider {
             // If there is no usage, and we have other nodes in the cluster,
             // use the average usage for all nodes as the usage for this node
             usage = averageUsage(node, usages);
-            LOGGER.debug("unable to determine disk usage for {}, defaulting to average across nodes [{} total] [{} free] [{}% free]",
-                    node.nodeId(), usage.getTotalBytes(), usage.getFreeBytes(), usage.getFreeDiskAsPercentage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("unable to determine disk usage for {}, defaulting to average across nodes [{} total] [{} free] [{}% free]",
+                        node.nodeId(), usage.getTotalBytes(), usage.getFreeBytes(), usage.getFreeDiskAsPercentage());
+            }
         }
 
-        final DiskUsageWithRelocations diskUsageWithRelocations = new DiskUsageWithRelocations(usage,
-            sizeOfRelocatingShards(node, subtractLeavingShards, usage.getPath(),
-                allocation.clusterInfo(), allocation.metadata(), allocation.routingTable()));
-        LOGGER.trace("getDiskUsage(subtractLeavingShards={}) returning {}", subtractLeavingShards, diskUsageWithRelocations);
+        final DiskUsageWithRelocations diskUsageWithRelocations = new DiskUsageWithRelocations(
+            usage,
+            diskThresholdSettings.includeRelocations()
+                ? sizeOfRelocatingShards(
+                    node,
+                    subtractLeavingShards,
+                    usage.getPath(),
+                    allocation.clusterInfo(),
+                    allocation.metadata(),
+                    allocation.routingTable()
+                )
+                : 0
+        );
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("getDiskUsage(subtractLeavingShards={}) returning {}", subtractLeavingShards, diskUsageWithRelocations);
+        }
+
         return diskUsageWithRelocations;
     }
 

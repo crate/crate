@@ -125,10 +125,6 @@ import io.netty.util.concurrent.Future;
 
 public class Netty4HttpServerTransport extends AbstractLifecycleComponent implements HttpServerTransport {
 
-    static {
-        Netty4Utils.setup();
-    }
-
     /*
      * Size in bytes of an individual message received by io.netty.handler.codec.MessageAggregator which accumulates the content for an
      * HTTP request. This number is used for estimating the maximum number of allowed buffers before the MessageAggregator's internal
