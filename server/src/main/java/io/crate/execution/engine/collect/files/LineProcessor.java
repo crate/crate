@@ -55,11 +55,25 @@ public final class LineProcessor {
 
     public void process(String line) throws IOException {
         lineContext.incrementCurrentLineNumber();
+        lineContext.resetCurrentParsingFailure(); // Reset prev failure if there is any.
         byte[] jsonByteArray = lineParser.getByteArray(line);
         lineContext.rawSource(jsonByteArray);
     }
 
-    public void setFailure(String failure) {
+    /**
+     * Set IO failure. Can be added only once per URI and nullifies
+     * `error_count` and `success_count` in summary when encountered.
+     */
+    public void setUriFailure(String failure) {
         lineContext.setCurrentUriFailure(failure);
+    }
+
+    /**
+     * Set a non-IO failure. Can be added multiple times per URI and
+     * each failure gets traced in `error_count` and  `error` columns
+     * in summary.
+     */
+    public void setParsingFailure(String failure) {
+        lineContext.setCurrentParsingFailure(failure);
     }
 }

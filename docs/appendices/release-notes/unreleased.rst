@@ -71,4 +71,7 @@ Fixes
 - Fixed an issue that caused an ``Relation unknown`` error while trying to
   close an empty partitioned table using ``ALTER TABLE ... CLOSE``.
 
+- Fixed an issue that caused ``COPY FROM RETURN SUMMARY`` fail non-gracefully
+  in case of import from CSV containing invalid line(s).
+
 - Updated to Admin UI 1.20.2, which fixes duplicate entries in query history.
