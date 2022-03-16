@@ -60,7 +60,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final ClusterService clusterService;
     private final boolean autoCreateIndices;
     private final BiConsumer<ShardedRequests, String> itemFailureRecorder;
-    private final Predicate<ShardedRequests> hasSourceUriFailure;
+    private final Predicate<ShardedRequests> hasSourceFailure;
     private final Input<String> sourceUriInput;
     private final Input<Long> lineNumberInput;
     private final ToLongFunction<Row> estimateRowSize;
@@ -84,7 +84,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         this.sourceInfoExpressions = upsertContext.getSourceInfoExpressions();
         this.itemFactory = itemFactory;
         this.itemFailureRecorder = upsertContext.getItemFailureRecorder();
-        this.hasSourceUriFailure = upsertContext.getHasSourceUriFailureChecker();
+        this.hasSourceFailure = upsertContext.getHasSourceFailureChecker();
         this.sourceUriInput = upsertContext.getSourceUriInput();
         this.lineNumberInput = upsertContext.getLineNumberInput();
         this.autoCreateIndices = autoCreateIndices;
@@ -112,7 +112,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         for (int i = 0; i < sourceInfoExpressions.size(); i++) {
             sourceInfoExpressions.get(i).setNextRow(row);
         }
-        if (hasSourceUriFailure.test(shardedRequests)) {
+        if (hasSourceFailure.test(shardedRequests)) {
             // source uri failed processing (reading)
             return;
         }

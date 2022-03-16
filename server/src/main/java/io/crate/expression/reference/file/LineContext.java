@@ -39,6 +39,7 @@ public class LineContext {
     private Map<String, Object> parsedSource;
     private String currentUri;
     private String currentUriFailure;
+    private String currentParsingFailure;
     private long currentLineNumber = 0;
 
     @Nullable
@@ -85,6 +86,7 @@ public class LineContext {
     public void currentUri(URI currentUri) {
         this.currentUri = currentUri.toString();
         currentUriFailure = null;
+        currentParsingFailure = null;
     }
 
     String currentUri() {
@@ -96,11 +98,26 @@ public class LineContext {
     }
 
     /**
-     * Return the current URI failure if any. A NULL value indicates that no failure happened while accessing the URI.
+     * Sets the current parsing failure.
+     */
+    public void setCurrentParsingFailure(String failureMessage) {
+        currentParsingFailure = failureMessage;
+    }
+
+    /**
+     * Returns the current URI failure if any. A NULL value indicates that no failure happened while accessing the URI.
      */
     @Nullable
     String getCurrentUriFailure() {
         return currentUriFailure;
+    }
+
+    /**
+     * Returns the current parsing (non-IO) failure if any. A NULL value indicates that no failure happened while accessing the URI.
+     */
+    @Nullable
+    String getCurrentParsingFailure() {
+        return currentParsingFailure;
     }
 
     public void resetCurrentLineNumber() {
@@ -113,5 +130,9 @@ public class LineContext {
 
     public long getCurrentLineNumber() {
         return currentLineNumber;
+    }
+
+    public void resetCurrentParsingFailure() {
+        currentParsingFailure = null;
     }
 }
