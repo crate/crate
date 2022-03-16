@@ -37,6 +37,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
@@ -68,12 +69,14 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
 
     @Inject
     public RetentionLeaseBackgroundSyncAction(
+            final Settings settings,
             final TransportService transportService,
             final ClusterService clusterService,
             final IndicesService indicesService,
             final ThreadPool threadPool,
             final ShardStateAction shardStateAction) {
         super(
+            settings,
             ACTION_NAME,
             transportService,
             clusterService,

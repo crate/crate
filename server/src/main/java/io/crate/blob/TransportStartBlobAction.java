@@ -21,31 +21,34 @@
 
 package io.crate.blob;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
 
 public class TransportStartBlobAction extends TransportReplicationAction<StartBlobRequest, StartBlobRequest, StartBlobResponse> {
 
     private final BlobTransferTarget transferTarget;
 
     @Inject
-    public TransportStartBlobAction(TransportService transportService,
+    public TransportStartBlobAction(Settings settings,
+                                    TransportService transportService,
                                     ClusterService clusterService,
                                     IndicesService indicesService,
                                     ThreadPool threadPool,
                                     ShardStateAction shardStateAction,
                                     BlobTransferTarget transferTarget) {
         super(
+            settings,
             StartBlobAction.NAME,
             transportService,
             clusterService,

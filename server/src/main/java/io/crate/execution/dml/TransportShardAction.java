@@ -37,6 +37,7 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.shard.IndexShard;
@@ -67,7 +68,8 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     private final MappingUpdatePerformer mappingUpdate;
     private final TasksService tasksService;
 
-    protected TransportShardAction(String actionName,
+    protected TransportShardAction(Settings settings,
+                                   String actionName,
                                    TransportService transportService,
                                    ClusterService clusterService,
                                    IndicesService indicesService,
@@ -77,6 +79,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
                                    Writeable.Reader<Request> reader,
                                    SchemaUpdateClient schemaUpdateClient) {
         super(
+            settings,
             actionName,
             transportService,
             clusterService,

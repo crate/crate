@@ -42,6 +42,7 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -74,9 +75,10 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
 
 
         transportShardDeleteAction = new TransportShardDeleteAction(
+            Settings.EMPTY,
             MockTransportService.createNewService(
                 Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings()),
-            mock(ClusterService.class),
+            clusterService,
             indicesService,
             mock(TasksService.class),
             mock(ThreadPool.class),

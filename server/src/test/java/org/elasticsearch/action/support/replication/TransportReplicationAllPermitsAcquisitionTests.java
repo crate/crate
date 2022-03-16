@@ -431,6 +431,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                    IndexShard replica,
                    SetOnce<Boolean> executedOnPrimary) {
             super(
+                settings,
                 actionName,
                 transportService,
                 clusterService,

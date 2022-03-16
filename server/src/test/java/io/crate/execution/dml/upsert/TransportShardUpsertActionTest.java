@@ -108,7 +108,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  ShardStateAction shardStateAction,
                                                  NodeContext nodeCtx,
                                                  Schemas schemas) {
-            super(threadPool, clusterService, transportService, schemaUpdateClient,
+            super(Settings.EMPTY, threadPool, clusterService, transportService, schemaUpdateClient,
                 tasksService, indicesService, shardStateAction, nodeCtx, schemas);
         }
 

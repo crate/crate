@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.indices.refresh;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.replication.BasicReplicationRequest;
@@ -28,12 +30,11 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
 
 
 public class TransportShardRefreshAction
@@ -43,12 +44,13 @@ public class TransportShardRefreshAction
     public static final ActionType<ReplicationResponse> TYPE = new ActionType<>(NAME);
 
     @Inject
-    public TransportShardRefreshAction(TransportService transportService,
+    public TransportShardRefreshAction(Settings settings,
+                                       TransportService transportService,
                                        ClusterService clusterService,
                                        IndicesService indicesService,
                                        ThreadPool threadPool,
                                        ShardStateAction shardStateAction) {
-        super(NAME, transportService, clusterService, indicesService, threadPool, shardStateAction,
+        super(settings, NAME, transportService, clusterService, indicesService, threadPool, shardStateAction,
                 BasicReplicationRequest::new, BasicReplicationRequest::new, ThreadPool.Names.REFRESH);
     }
 
