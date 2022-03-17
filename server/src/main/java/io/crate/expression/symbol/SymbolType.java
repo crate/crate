@@ -21,6 +21,7 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.exceptions.JobKilledException;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
@@ -69,7 +70,11 @@ public enum SymbolType {
     }
 
     public Symbol newInstance(StreamInput in) throws IOException {
-        return reader.read(in);
+        try {
+            return reader.read(in);
+        } catch (StackOverflowError e) {
+            throw JobKilledException.of("Maximum call stack size exceeded");
+        }
     }
 
     public boolean isValueSymbol() {
