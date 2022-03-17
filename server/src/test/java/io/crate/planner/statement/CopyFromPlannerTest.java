@@ -22,6 +22,7 @@
 package io.crate.planner.statement;
 
 import io.crate.analyze.AnalyzedCopyFrom;
+import io.crate.analyze.BoundCopyFrom;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
@@ -33,13 +34,13 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.Matchers.instanceOf;
@@ -62,8 +63,15 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private Collect plan(String statement) {
         AnalyzedCopyFrom analysis = e.analyze(statement);
+        BoundCopyFrom boundCopyFrom = CopyFromPlan.bind(
+            analysis,
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext(),
+            Row.EMPTY,
+            SubQueryResults.EMPTY);
         return (Collect) CopyFromPlan.planCopyFromExecution(
             analysis,
+            boundCopyFrom,
             clusterService.state().nodes(),
             plannerContext,
             Row.EMPTY,
@@ -99,7 +107,8 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyFromPlanWithParameters() {
         Collect collect = plan("copy users " +
-                               "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true, fail_fast = true, protocol = 'http')");
+                               "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true, " +
+                               "fail_fast=true, protocol='http', wait_for_completion=false)");
         assertThat(collect.collectPhase(), instanceOf(FileUriCollectPhase.class));
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) collect.collectPhase();
@@ -109,6 +118,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.sharedStorage(), is(true));
         assertThat(indexWriterProjection.failFast(), is(true));
         assertThat(collectPhase.withClauseOptions().get("protocol"), is("http"));
+        assertThat(collectPhase.withClauseOptions().getAsBoolean("wait_for_completion", true), is(false));
 
         // verify defaults:
         collect = plan("copy users from '/path/to/file.ext'");

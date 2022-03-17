@@ -23,6 +23,7 @@ package io.crate.planner.node.management;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.RowConsumerToResultReceiver;
+import io.crate.analyze.BoundCopyFrom;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.InMemoryBatchIterator;
@@ -136,13 +137,19 @@ public class ExplainPlan implements Plan {
                 ((LogicalPlan) subPlan).print(printContext);
                 consumer.accept(InMemoryBatchIterator.of(new Row1(printContext.toString()), SENTINEL), null);
             } else if (subPlan instanceof CopyFromPlan) {
+                BoundCopyFrom boundCopyFrom = CopyFromPlan.bind(
+                    ((CopyFromPlan) subPlan).copyFrom(),
+                    plannerContext.transactionContext(),
+                    plannerContext.nodeContext(),
+                    params,
+                    subQueryResults);
                 ExecutionPlan executionPlan = CopyFromPlan.planCopyFromExecution(
-                        ((CopyFromPlan) subPlan).copyFrom(),
-                        dependencies.clusterService().state().nodes(),
-                        plannerContext,
-                        params,
-                        subQueryResults
-                    );
+                    ((CopyFromPlan) subPlan).copyFrom(),
+                    boundCopyFrom,
+                    dependencies.clusterService().state().nodes(),
+                    plannerContext,
+                    params,
+                    subQueryResults);
                 String planAsJson = DataTypes.STRING.implicitCast(PlanPrinter.objectMap(executionPlan));
                 consumer.accept(InMemoryBatchIterator.of(new Row1(planAsJson), SENTINEL), null);
             } else {

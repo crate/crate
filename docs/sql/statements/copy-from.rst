@@ -404,6 +404,16 @@ after an error. This is best effort and due to the distributed execution, it
 may continue processing some records before it aborts.
 Defaults to ``false``.
 
+.. _sql-copy-from-wait_for_completion:
+
+``wait_for_completion``
+'''''''''''''''''''''''
+
+A boolean value indicating if the ``COPY FROM`` should wait for
+the copy operation to complete. If set to ``false`` the request
+returns at once and the copy operation runs in the background.
+Defaults to ``true``.
+
 .. _sql-copy-from-shared:
 
 ``shared``

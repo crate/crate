@@ -338,6 +338,17 @@ Possible values for the ``format`` settings are:
   line in an output file. This is the default behavior if columns are defined.
 
 
+.. _sql-copy-to-wait_for_completion:
+
+``wait_for_completion``
+'''''''''''''''''''''''
+
+A boolean value indicating if the ``COPY TO`` should wait for
+the copy operation to complete. If set to ``false`` the request
+returns at once and the copy operation runs in the background.
+Defaults to ``true``.
+
+
 .. _Amazon S3: https://aws.amazon.com/s3/
 .. _Amazon Simple Storage Service: https://aws.amazon.com/s3/
 .. _AWS documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html

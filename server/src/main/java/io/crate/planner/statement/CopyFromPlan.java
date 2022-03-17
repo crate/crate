@@ -41,6 +41,7 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
 import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
+import io.crate.execution.engine.JobLauncher;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.reference.file.SourceLineNumberExpression;
@@ -108,8 +109,17 @@ public final class CopyFromPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
+
+        var boundedCopyFrom = bind(
+            copyFrom,
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext(),
+            params,
+            subQueryResults);
+
         ExecutionPlan plan = planCopyFromExecution(
             copyFrom,
+            boundedCopyFrom,
             dependencies.clusterService().state().nodes(),
             plannerContext,
             params,
@@ -118,9 +128,13 @@ public final class CopyFromPlan implements Plan {
         NodeOperationTree nodeOpTree = NodeOperationTreeGenerator
             .fromPlan(plan, dependencies.localNodeId());
 
-        dependencies.phasesTaskFactory()
-            .create(plannerContext.jobId(), List.of(nodeOpTree))
-            .execute(consumer, plannerContext.transactionContext());
+        JobLauncher jobLauncher = dependencies.phasesTaskFactory()
+            .create(plannerContext.jobId(), List.of(nodeOpTree));
+
+        jobLauncher.execute(
+            consumer,
+            plannerContext.transactionContext(),
+            boundedCopyFrom.settings().getAsBoolean("wait_for_completion", true));
     }
 
     @VisibleForTesting
@@ -175,16 +189,11 @@ public final class CopyFromPlan implements Plan {
     }
 
     public static ExecutionPlan planCopyFromExecution(AnalyzedCopyFrom copyFrom,
+                                                      BoundCopyFrom boundedCopyFrom,
                                                       DiscoveryNodes allNodes,
                                                       PlannerContext context,
                                                       Row params,
                                                       SubQueryResults subQueryResults) {
-        var boundedCopyFrom = bind(
-            copyFrom,
-            context.transactionContext(),
-            context.nodeContext(),
-            params,
-            subQueryResults);
 
         /*
          * Create a plan that reads json-objects-lines from a file

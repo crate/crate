@@ -37,6 +37,7 @@ import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.JobLauncher;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.RefVisitor;
@@ -104,8 +105,16 @@ public final class CopyToPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        ExecutionPlan executionPlan = planCopyToExecution(
+
+        var boundedCopyTo = bind(
             copyTo,
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext(),
+            params,
+            subQueryResults);
+
+        ExecutionPlan executionPlan = planCopyToExecution(
+            boundedCopyTo,
             plannerContext,
             tableStats,
             executor.projectionBuilder(),
@@ -115,24 +124,23 @@ public final class CopyToPlan implements Plan {
 
         NodeOperationTree nodeOpTree = NodeOperationTreeGenerator
             .fromPlan(executionPlan, executor.localNodeId());
-        executor.phasesTaskFactory()
-            .create(plannerContext.jobId(), List.of(nodeOpTree))
-            .execute(consumer, plannerContext.transactionContext());
+
+        JobLauncher jobLauncher = executor.phasesTaskFactory()
+            .create(plannerContext.jobId(), List.of(nodeOpTree));
+
+        jobLauncher.execute(
+            consumer,
+            plannerContext.transactionContext(),
+            boundedCopyTo.withClauseOptions().getAsBoolean("wait_for_completion", true));
     }
 
     @VisibleForTesting
-    static ExecutionPlan planCopyToExecution(AnalyzedCopyTo copyTo,
+    static ExecutionPlan planCopyToExecution(BoundCopyTo boundedCopyTo,
                                              PlannerContext context,
                                              TableStats tableStats,
                                              ProjectionBuilder projectionBuilder,
                                              Row params,
                                              SubQueryResults subQueryResults) {
-        var boundedCopyTo = bind(
-            copyTo,
-            context.transactionContext(),
-            context.nodeContext(),
-            params,
-            subQueryResults);
 
         WriterProjection.OutputFormat outputFormat = boundedCopyTo.outputFormat();
         if (outputFormat == null) {
