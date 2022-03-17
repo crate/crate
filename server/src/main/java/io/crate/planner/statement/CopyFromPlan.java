@@ -31,7 +31,10 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.data.EmptyRowConsumer;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.phases.NodeOperationTree;
@@ -41,6 +44,7 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
 import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
+import io.crate.execution.engine.JobLauncher;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.reference.file.SourceLineNumberExpression;
@@ -84,9 +88,11 @@ import java.util.stream.Collectors;
 import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
+import static io.crate.data.SentinelRow.SENTINEL;
 
 public final class CopyFromPlan implements Plan {
 
+    private static boolean waitForCompletion;
     private final AnalyzedCopyFrom copyFrom;
 
     public CopyFromPlan(AnalyzedCopyFrom copyFrom) {
@@ -118,9 +124,15 @@ public final class CopyFromPlan implements Plan {
         NodeOperationTree nodeOpTree = NodeOperationTreeGenerator
             .fromPlan(plan, dependencies.localNodeId());
 
-        dependencies.phasesTaskFactory()
-            .create(plannerContext.jobId(), List.of(nodeOpTree))
-            .execute(consumer, plannerContext.transactionContext());
+        JobLauncher jobLauncher = dependencies.phasesTaskFactory()
+            .create(plannerContext.jobId(), List.of(nodeOpTree));
+
+        if (waitForCompletion) {
+            jobLauncher.execute(consumer, plannerContext.transactionContext());
+        } else {
+            jobLauncher.execute(new EmptyRowConsumer(), plannerContext.transactionContext());
+            consumer.accept(InMemoryBatchIterator.of(Row1.ROW_COUNT_UNKNOWN, SENTINEL), null);
+        }
     }
 
     @VisibleForTesting
@@ -158,6 +170,7 @@ public final class CopyFromPlan implements Plan {
         // instead of the Symbol type, such as the uri can be evaluated and converted
         // to the required type already at this stage, but not later on in FileCollectSource.
         var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()));
+        waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
         var header = settings.getAsBoolean("header", true);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
