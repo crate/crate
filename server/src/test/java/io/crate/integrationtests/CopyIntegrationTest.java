@@ -30,6 +30,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
@@ -58,6 +59,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -107,6 +109,20 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("select quote from quotes where id = 1");
         assertThat(response.rows()[0][0], is("Don't pa\u00f1ic."));
+    }
+
+    @Test
+    public void testCopyFromFileNoWaitForCompletion() throws Exception {
+        execute("create table quotes (id int primary key, " +
+                "quote string index using fulltext) with (number_of_replicas = 0)");
+
+        execute("copy quotes from ? with (format='csv', wait_for_completion=false)",
+                new Object[]{copyFilePath + "test_copy_from_csv.ext"});
+        assertThat(response.rowCount(), either(is(0L)).or(is(-1L)));
+        refresh();
+        Thread.sleep(1000);
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
     }
 
     @Test
