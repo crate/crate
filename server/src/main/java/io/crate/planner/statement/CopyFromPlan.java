@@ -103,10 +103,6 @@ public final class CopyFromPlan implements Plan {
         return copyFrom;
     }
 
-    public boolean waitForCompletion() {
-        return waitForCompletion;
-    }
-
     @Override
     public StatementType type() {
         return StatementType.COPY;
