@@ -2030,6 +2030,7 @@ public class InternalEngineTests extends EngineTestCase {
                     assertThat(result.getResultType(), equalTo(Engine.Result.Type.SUCCESS));
                     assertThat(result.getFailure(), nullValue());
                     lastFieldValue = index.docs().get(0).get("value");
+                    assert lastFieldValue != null : "lastFieldValue is null after getting it from index docs";
                     docDeleted = false;
                     lastOpVersion = result.getVersion();
                     lastOpSeqNo = result.getSeqNo();
@@ -2105,8 +2106,11 @@ public class InternalEngineTests extends EngineTestCase {
         if (docDeleted == false) {
             try (Searcher searcher = engine.acquireSearcher("test")) {
                 final TotalHitCountCollector collector = new TotalHitCountCollector();
-                searcher.search(new TermQuery(new Term("value", lastFieldValue)), collector);
-                assertThat(collector.getTotalHits(), equalTo(1));
+                // lastFieldValue can be null if all index ops had a version conflict
+                if (lastFieldValue != null) {
+                    searcher.search(new TermQuery(new Term("value", lastFieldValue)), collector);
+                    assertThat(collector.getTotalHits(), equalTo(1));
+                }
             }
         }
         return opsPerformed;
