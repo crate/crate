@@ -21,45 +21,13 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
-
-import static org.mockito.Mockito.mock;
+import org.junit.Test;
 
 public class RemoteConnectionStrategyTests extends ESTestCase {
 
-    public void testSameStrategyChangeMeansThatStrategyDoesNotNeedToBeRebuilt() {
-        ClusterConnectionManager connectionManager = new ClusterConnectionManager(Settings.EMPTY, mock(Transport.class));
-        RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager("cluster-alias", connectionManager);
-        FakeConnectionStrategy first = new FakeConnectionStrategy("cluster-alias", mock(TransportService.class), remoteConnectionManager,
-                                                                  RemoteConnectionStrategy.ConnectionStrategy.SNIFF);
-        Settings newSettings = Settings.builder()
-            .put(RemoteConnectionStrategy.REMOTE_CONNECTION_MODE.getKey(), "sniff")
-            .build();
-        assertFalse(first.shouldRebuildConnection(newSettings));
-    }
-
-    public void testChangeInConnectionProfileMeansTheStrategyMustBeRebuilt() {
-        ClusterConnectionManager connectionManager = new ClusterConnectionManager(TestProfiles.LIGHT_PROFILE, mock(Transport.class));
-        assertEquals(TimeValue.MINUS_ONE, connectionManager.getConnectionProfile().getPingInterval());
-        assertEquals(false, connectionManager.getConnectionProfile().getCompressionEnabled());
-        RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager("cluster-alias", connectionManager);
-        FakeConnectionStrategy first = new FakeConnectionStrategy("cluster-alias", mock(TransportService.class), remoteConnectionManager,
-                                                                  RemoteConnectionStrategy.ConnectionStrategy.SNIFF);
-
-        Settings.Builder newBuilder = Settings.builder();
-        newBuilder.put(RemoteConnectionStrategy.REMOTE_CONNECTION_MODE.getKey(), "sniff");
-        if (randomBoolean()) {
-            newBuilder.put(RemoteConnectionStrategy.REMOTE_CONNECTION_PING_SCHEDULE.getKey(),
-                           TimeValue.timeValueSeconds(5));
-        } else {
-            newBuilder.put(RemoteConnectionStrategy.REMOTE_CONNECTION_COMPRESS.getKey(), true);
-        }
-        assertTrue(first.shouldRebuildConnection(newBuilder.build()));
-    }
-
+    @Test
     public void testCorrectChannelNumber() {
         for (RemoteConnectionStrategy.ConnectionStrategy strategy : RemoteConnectionStrategy.ConnectionStrategy.values()) {
             String settingKey = RemoteConnectionStrategy.REMOTE_CONNECTION_MODE.getKey();
@@ -67,37 +35,6 @@ public class RemoteConnectionStrategyTests extends ESTestCase {
             ConnectionProfile proxyProfile = RemoteConnectionStrategy.buildConnectionProfile(Settings.EMPTY, proxySettings);
             assertEquals("Incorrect number of channels for " + strategy.name(),
                          strategy.getNumberOfChannels(), proxyProfile.getNumConnections());
-        }
-    }
-
-    private static class FakeConnectionStrategy extends RemoteConnectionStrategy {
-
-        private final ConnectionStrategy strategy;
-
-        FakeConnectionStrategy(String clusterAlias, TransportService transportService, RemoteConnectionManager connectionManager,
-                               RemoteConnectionStrategy.ConnectionStrategy strategy) {
-            super(clusterAlias, transportService, connectionManager);
-            this.strategy = strategy;
-        }
-
-        @Override
-        protected boolean strategyMustBeRebuilt(Settings newSettings) {
-            return false;
-        }
-
-        @Override
-        protected ConnectionStrategy strategyType() {
-            return this.strategy;
-        }
-
-        @Override
-        protected boolean shouldOpenMoreConnections() {
-            return false;
-        }
-
-        @Override
-        protected void connectImpl(ActionListener<Void> listener) {
-
         }
     }
 }
