@@ -514,61 +514,6 @@ public class SniffConnectionStrategyTests extends ESTestCase {
         }
     }
 
-    public void testSniffStrategyWillNeedToBeRebuiltIfNumOfConnectionsOrSeedsOrProxyChange() {
-        List<DiscoveryNode> knownNodes = new CopyOnWriteArrayList<>();
-        try (MockTransportService seedTransport = startTransport("seed_node", knownNodes, Version.CURRENT);
-             MockTransportService discoverableTransport = startTransport("discoverable_node", knownNodes, Version.CURRENT)) {
-            DiscoveryNode seedNode = seedTransport.getLocalNode();
-            DiscoveryNode discoverableNode = discoverableTransport.getLocalNode();
-            knownNodes.add(seedNode);
-            knownNodes.add(discoverableNode);
-            Collections.shuffle(knownNodes, random());
-
-
-            try (MockTransportService localService = MockTransportService.createNewService(Settings.EMPTY, Version.CURRENT, threadPool)) {
-                localService.start();
-                localService.acceptIncomingRequests();
-
-                ClusterConnectionManager connectionManager = new ClusterConnectionManager(profile, localService.transport);
-                try (RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager(clusterAlias, connectionManager);
-                     SniffConnectionStrategy strategy = new SniffConnectionStrategy(clusterAlias, localService, remoteConnectionManager,
-                                                                                    null, 3, n -> true, seedNodes(seedNode))) {
-                    PlainActionFuture<Void> connectFuture = PlainActionFuture.newFuture();
-                    strategy.connect(connectFuture);
-                    connectFuture.actionGet(5, TimeUnit.SECONDS);
-
-                    assertTrue(connectionManager.nodeConnected(seedNode));
-                    assertTrue(connectionManager.nodeConnected(discoverableNode));
-                    assertTrue(strategy.assertNoRunningConnections());
-
-                    Setting<?> seedSetting = SniffConnectionStrategy.REMOTE_CLUSTER_SEEDS;
-                    Setting<?> proxySetting = SniffConnectionStrategy.REMOTE_CLUSTERS_PROXY;
-                    Setting<?> numConnections = SniffConnectionStrategy.REMOTE_NODE_CONNECTIONS;
-
-                    Settings noChange = Settings.builder()
-                        .put(seedSetting.getKey(), Strings.arrayToCommaDelimitedString(seedNodes(seedNode).toArray()))
-                        .put(numConnections.getKey(), 3)
-                        .build();
-                    assertFalse(strategy.shouldRebuildConnection(noChange));
-                    Settings seedsChanged = Settings.builder()
-                        .put(seedSetting.getKey(), Strings.arrayToCommaDelimitedString(seedNodes(discoverableNode).toArray()))
-                        .build();
-                    assertTrue(strategy.shouldRebuildConnection(seedsChanged));
-                    Settings proxyChanged = Settings.builder()
-                        .put(seedSetting.getKey(), Strings.arrayToCommaDelimitedString(seedNodes(seedNode).toArray()))
-                        .put(proxySetting.getKey(), "proxy_address:9300")
-                        .build();
-                    assertTrue(strategy.shouldRebuildConnection(proxyChanged));
-                    Settings connectionsChanged = Settings.builder()
-                        .put(seedSetting.getKey(), Strings.arrayToCommaDelimitedString(seedNodes(seedNode).toArray()))
-                        .put(numConnections.getKey(), 4)
-                        .build();
-                    assertTrue(strategy.shouldRebuildConnection(connectionsChanged));
-                }
-            }
-        }
-    }
-
     public void testGetNodePredicateNodeRoles() {
         TransportAddress address = new TransportAddress(TransportAddress.META_ADDRESS, 0);
         Predicate<DiscoveryNode> nodePredicate = SniffConnectionStrategy.getNodePredicate(Settings.EMPTY);
