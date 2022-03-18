@@ -1771,14 +1771,14 @@ public class InternalEngineTests extends EngineTestCase {
     public void testOutOfOrderDocsOnReplica() throws IOException {
         final List<Engine.Operation> ops = generateSingleDocHistory(
             true, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL, VersionType.EXTERNAL_GTE, VersionType.FORCE),
-            false, 2, 2, 20, "1");
+            2, 2, 20, "1");
         assertOpsOnReplica(ops, replicaEngine, true, logger);
     }
 
     @Test
     public void testConcurrentOutOfOrderDocsOnReplica() throws IOException, InterruptedException {
         final List<Engine.Operation> opsDoc1 = generateSingleDocHistory(
-            true, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL), false, 2, 100, 300, "1");
+            true, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL), 2, 100, 300, "1");
         final Engine.Operation lastOpDoc1 = opsDoc1.get(opsDoc1.size() - 1);
         final String lastFieldValueDoc1;
         if (lastOpDoc1 instanceof Engine.Index) {
@@ -1790,7 +1790,7 @@ public class InternalEngineTests extends EngineTestCase {
         }
         final List<Engine.Operation> opsDoc2 =
             generateSingleDocHistory(
-                true, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL), false, 2, 100, 300, "2");
+                true, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL), 2, 100, 300, "2");
         final Engine.Operation lastOpDoc2 = opsDoc2.get(opsDoc2.size() - 1);
         final String lastFieldValueDoc2;
         if (lastOpDoc2 instanceof Engine.Index) {
@@ -1871,14 +1871,14 @@ public class InternalEngineTests extends EngineTestCase {
     @Test
     public void testInternalVersioningOnPrimary() throws IOException {
         final List<Engine.Operation> ops = generateSingleDocHistory(
-            false, VersionType.INTERNAL, false, 2, 2, 20, "1");
+            false, VersionType.INTERNAL, 2, 2, 20, "1");
         assertOpsOnPrimary(ops, Versions.NOT_FOUND, true, engine);
     }
 
     @Test
     public void testVersionOnPrimaryWithConcurrentRefresh() throws Exception {
         List<Engine.Operation> ops = generateSingleDocHistory(
-            false, VersionType.INTERNAL, false, 2, 10, 100, "1");
+            false, VersionType.INTERNAL, 2, 10, 100, "1");
         CountDownLatch latch = new CountDownLatch(1);
         AtomicBoolean running = new AtomicBoolean(true);
         Thread refreshThread = new Thread(() -> {
@@ -2118,7 +2118,7 @@ public class InternalEngineTests extends EngineTestCase {
         nonInternalVersioning.remove(VersionType.INTERNAL);
         final VersionType versionType = randomFrom(nonInternalVersioning);
         final List<Engine.Operation> ops = generateSingleDocHistory(
-            false, versionType, false, 2, 2, 20, "1");
+            false, versionType, 2, 2, 20, "1");
         final Engine.Operation lastOp = ops.get(ops.size() - 1);
         final String lastFieldValue;
         if (lastOp instanceof Engine.Index) {
@@ -2198,9 +2198,9 @@ public class InternalEngineTests extends EngineTestCase {
     @Test
     public void testVersioningPromotedReplica() throws IOException {
         final List<Engine.Operation> replicaOps = generateSingleDocHistory(
-            true, VersionType.INTERNAL, false, 1, 2, 20, "1");
+            true, VersionType.INTERNAL, 1, 2, 20, "1");
         List<Engine.Operation> primaryOps = generateSingleDocHistory(
-            false, VersionType.INTERNAL, false, 2, 2, 20, "1");
+            false, VersionType.INTERNAL, 2, 2, 20, "1");
         Engine.Operation lastReplicaOp = replicaOps.get(replicaOps.size() - 1);
         final boolean deletedOnReplica = lastReplicaOp instanceof Engine.Delete;
         final long finalReplicaVersion = lastReplicaOp.version();
@@ -2223,7 +2223,7 @@ public class InternalEngineTests extends EngineTestCase {
     @Test
     public void testConcurrentExternalVersioningOnPrimary() throws IOException, InterruptedException {
         final List<Engine.Operation> ops = generateSingleDocHistory(
-            false, VersionType.EXTERNAL, false, 2, 100, 300, "1");
+            false, VersionType.EXTERNAL, 2, 100, 300, "1");
         final Engine.Operation lastOp = ops.get(ops.size() - 1);
         final String lastFieldValue;
         if (lastOp instanceof Engine.Index) {
@@ -5443,14 +5443,14 @@ public class InternalEngineTests extends EngineTestCase {
     @Test
     public void testLuceneHistoryOnPrimary() throws Exception {
         final List<Engine.Operation> operations = generateSingleDocHistory(
-            false, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL), false, 2, 10, 300, "1");
+            false, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL), 2, 10, 300, "1");
         assertOperationHistoryInLucene(operations);
     }
 
     @Test
     public void testLuceneHistoryOnReplica() throws Exception {
         final List<Engine.Operation> operations = generateSingleDocHistory(
-            true, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL), false, 2, 10, 300, "2");
+            true, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL), 2, 10, 300, "2");
         Randomness.shuffle(operations);
         assertOperationHistoryInLucene(operations);
     }
@@ -5509,7 +5509,7 @@ public class InternalEngineTests extends EngineTestCase {
         final AtomicReference<RetentionLeases> retentionLeasesHolder = new AtomicReference<>(
             new RetentionLeases(primaryTerm, retentionLeasesVersion.get(), Collections.emptyList()));
         final List<Engine.Operation> operations = generateSingleDocHistory(
-            true, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL), false, 2, 10, 300, "2");
+            true, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL), 2, 10, 300, "2");
         Randomness.shuffle(operations);
         Set<Long> existingSeqNos = new HashSet<>();
         store = createStore();
@@ -5612,7 +5612,7 @@ public class InternalEngineTests extends EngineTestCase {
         }
         latch.await();
         List<Engine.Operation> ops = generateSingleDocHistory(
-            true, VersionType.EXTERNAL, false, 1, 10, 1000, "1");
+            true, VersionType.EXTERNAL, 1, 10, 1000, "1");
         concurrentlyApplyOps(ops, engine);
         done.set(true);
         for (Thread thread : refreshThreads) {
