@@ -42,7 +42,8 @@ public final class EmptyRowConsumer implements RowConsumer {
 
     private void consumeIt(BatchIterator<Row> iterator) {
         try {
-            while(iterator.moveNext()) {}
+            while (iterator.moveNext()) {
+            }
             if (iterator.allLoaded()) {
                 completionFuture.complete(null);
                 iterator.close();

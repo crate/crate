@@ -39,7 +39,6 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.Matchers.instanceOf;
@@ -99,7 +98,8 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyFromPlanWithParameters() {
         Collect collect = plan("copy users " +
-                               "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true, fail_fast = true, protocol = 'http')");
+                               "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true, " +
+                               "fail_fast=true, protocol='http', wait_for_completion=false)");
         assertThat(collect.collectPhase(), instanceOf(FileUriCollectPhase.class));
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) collect.collectPhase();
@@ -109,6 +109,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.sharedStorage(), is(true));
         assertThat(indexWriterProjection.failFast(), is(true));
         assertThat(collectPhase.withClauseOptions().get("protocol"), is("http"));
+        assertThat(collectPhase.withClauseOptions().getAsBoolean("wait_for_completion", true), is(false));
 
         // verify defaults:
         collect = plan("copy users from '/path/to/file.ext'");

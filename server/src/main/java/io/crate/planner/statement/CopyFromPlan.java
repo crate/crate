@@ -103,6 +103,10 @@ public final class CopyFromPlan implements Plan {
         return copyFrom;
     }
 
+    public boolean waitForCompletion() {
+        return waitForCompletion;
+    }
+
     @Override
     public StatementType type() {
         return StatementType.COPY;
@@ -170,7 +174,6 @@ public final class CopyFromPlan implements Plan {
         // instead of the Symbol type, such as the uri can be evaluated and converted
         // to the required type already at this stage, but not later on in FileCollectSource.
         var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()));
-        waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
         var header = settings.getAsBoolean("header", true);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
@@ -244,6 +247,8 @@ public final class CopyFromPlan implements Plan {
         if (clusteredBy != null) {
             clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
         }
+
+        waitForCompletion = boundedCopyFrom.settings().getAsBoolean("wait_for_completion", true);
 
         SourceIndexWriterProjection sourceIndexWriterProjection;
         List<? extends Symbol> projectionOutputs = AbstractIndexWriterProjection.OUTPUTS;

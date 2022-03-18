@@ -147,6 +147,8 @@ public final class CopyToPlan implements Plan {
             params,
             subQueryResults);
 
+        waitForCompletion = boundedCopyTo.withClauseOptions().getAsBoolean("wait_for_completion", true);
+
         WriterProjection.OutputFormat outputFormat = boundedCopyTo.outputFormat();
         if (outputFormat == null) {
             outputFormat = boundedCopyTo.columnsDefined() ?
@@ -252,8 +254,6 @@ public final class CopyToPlan implements Plan {
             settingAsEnum(WriterProjection.CompressionType.class, COMPRESSION_SETTING.get(settings));
         WriterProjection.OutputFormat outputFormat =
             settingAsEnum(WriterProjection.OutputFormat.class, OUTPUT_FORMAT_SETTING.get(settings));
-
-        waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
 
         if (!columnsDefined && outputFormat == WriterProjection.OutputFormat.JSON_ARRAY) {
             throw new UnsupportedFeatureException("Output format not supported without specifying columns.");

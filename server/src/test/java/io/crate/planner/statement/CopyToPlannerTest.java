@@ -137,10 +137,12 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyToPlanWithParameters() {
-        Merge merge = plan("copy users to directory '/path/to' with (protocol = 'http')");
+        Merge merge = plan("copy users to directory '/path/to' with (protocol='http', wait_for_completion=false)");
         Collect collect = (Collect) merge.subPlan();
         WriterProjection writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
         assertThat(writerProjection.withClauseOptions().get("protocol"), is("http"));
+        assertThat(writerProjection.withClauseOptions().getAsBoolean(
+            "wait_for_completion", true), is(false));
 
         // verify defaults:
         merge = plan("copy users to directory '/path/to/'");
