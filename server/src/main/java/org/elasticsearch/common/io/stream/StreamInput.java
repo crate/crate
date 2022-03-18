@@ -43,7 +43,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
@@ -1048,27 +1047,29 @@ public abstract class StreamInput extends InputStream {
      * Reads a list of objects
      */
     public <T> List<T> readList(Writeable.Reader<T> reader) throws IOException {
-        return readCollection(reader, ArrayList::new);
+        int size = readVInt();
+        ensureCanReadBytes(size);
+        ArrayList<T> list = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            list.add(reader.read(this));
+        }
+        return list;
     }
 
     /**
      * Reads a set of objects
      */
     public <T> Set<T> readSet(Writeable.Reader<T> reader) throws IOException {
-        return readCollection(reader, HashSet::new);
-    }
-
-    /**
-     * Reads a collection of objects
-     */
-    private <T, C extends Collection<? super T>> C readCollection(Writeable.Reader<T> reader,
-                                                                  IntFunction<C> constructor) throws IOException {
-        int count = readArraySize();
-        C builder = constructor.apply(count);
-        for (int i = 0; i < count; i++) {
-            builder.add(reader.read(this));
+        int size = readVInt();
+        if (size > ArrayUtil.MAX_ARRAY_LENGTH) {
+            throw new IllegalStateException("array length must be <= to " + ArrayUtil.MAX_ARRAY_LENGTH + " but was: " + size);
         }
-        return builder;
+        ensureCanReadBytes(size);
+        HashSet<T> set = new HashSet<>((int) (size / 0.75 + 1.0));
+        for (int i = 0; i < size; i++) {
+            set.add(reader.read(this));
+        }
+        return set;
     }
 
     /**
