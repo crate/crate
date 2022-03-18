@@ -120,9 +120,10 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 new Object[]{copyFilePath + "test_copy_from_csv.ext"});
         assertThat(response.rowCount(), either(is(0L)).or(is(-1L)));
         refresh();
-        Thread.sleep(1000);
-        execute("select * from quotes");
-        assertEquals(3L, response.rowCount());
+        assertBusy(() -> {
+            var response = execute("select * from quotes");
+            assertThat(response.rowCount(), is(3L));
+        });
     }
 
     @Test
