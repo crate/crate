@@ -1770,7 +1770,7 @@ public class InternalEngineTests extends EngineTestCase {
     @Test
     public void testOutOfOrderDocsOnReplica() throws IOException {
         final List<Engine.Operation> ops = generateSingleDocHistory(
-            true, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL, VersionType.EXTERNAL_GTE, VersionType.FORCE),
+            true, randomFrom(VersionType.INTERNAL, VersionType.EXTERNAL, VersionType.EXTERNAL_GTE),
             2, 2, 20, "1");
         assertOpsOnReplica(ops, replicaEngine, true, logger);
     }
