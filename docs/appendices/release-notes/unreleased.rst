@@ -98,6 +98,9 @@ Changes
 - Added the option to import only a subset of columns using ``COPY FROM`` when
   import CSV files with headers.
 
+- Added the option to run ``COPY FROM`` and ``COPY TO`` operations in the
+  background without waiting for them to complete.
+
 Fixes
 =====
 
