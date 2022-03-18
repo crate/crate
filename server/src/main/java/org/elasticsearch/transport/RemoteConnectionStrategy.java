@@ -29,7 +29,6 @@ import java.net.UnknownHostException;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -254,29 +253,6 @@ public abstract class RemoteConnectionStrategy implements TransportConnectionLis
         }
     }
 
-    boolean shouldRebuildConnection(Settings newSettings) {
-        ConnectionStrategy newMode = REMOTE_CONNECTION_MODE.get(newSettings);
-        if (newMode.equals(strategyType()) == false) {
-            return true;
-        } else {
-            Boolean compressionEnabled = REMOTE_CONNECTION_COMPRESS
-                .get(newSettings);
-            TimeValue pingSchedule = REMOTE_CONNECTION_PING_SCHEDULE
-                .get(newSettings);
-
-            ConnectionProfile oldProfile = connectionManager.getConnectionProfile();
-            ConnectionProfile.Builder builder = new ConnectionProfile.Builder(oldProfile);
-            builder.setCompressionEnabled(compressionEnabled);
-            builder.setPingInterval(pingSchedule);
-            ConnectionProfile newProfile = builder.build();
-            return connectionProfileChanged(oldProfile, newProfile) || strategyMustBeRebuilt(newSettings);
-        }
-    }
-
-    protected abstract boolean strategyMustBeRebuilt(Settings newSettings);
-
-    protected abstract ConnectionStrategy strategyType();
-
     @Override
     public void onNodeDisconnected(DiscoveryNode node, Transport.Connection connection) {
         if (shouldOpenMoreConnections()) {
@@ -332,11 +308,6 @@ public abstract class RemoteConnectionStrategy implements TransportConnectionLis
             }
         }
         return result;
-    }
-
-    private boolean connectionProfileChanged(ConnectionProfile oldProfile, ConnectionProfile newProfile) {
-        return Objects.equals(oldProfile.getCompressionEnabled(), newProfile.getCompressionEnabled()) == false
-               || Objects.equals(oldProfile.getPingInterval(), newProfile.getPingInterval()) == false;
     }
 
     static class StrategyValidator<T> implements Setting.Validator<T> {

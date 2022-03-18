@@ -19,9 +19,19 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.Booleans;
-import io.crate.common.io.IOUtils;
-import io.crate.types.DataTypes;
+import static org.elasticsearch.common.settings.Setting.intSetting;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.Version;
@@ -41,21 +51,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.elasticsearch.common.settings.Setting.intSetting;
+import io.crate.common.Booleans;
+import io.crate.common.io.IOUtils;
+import io.crate.types.DataTypes;
 
 public class SniffConnectionStrategy extends RemoteConnectionStrategy {
 
@@ -110,7 +108,6 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
         && (node.isMasterEligibleNode() == false || node.isDataNode());
 
 
-    private final List<String> configuredSeedNodes;
     private final List<Supplier<DiscoveryNode>> seedNodes;
     private final int maxNumRemoteConnections;
     private final Predicate<DiscoveryNode> nodePredicate;
@@ -165,7 +162,6 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
         this.proxyAddress = proxyAddress;
         this.maxNumRemoteConnections = maxNumRemoteConnections;
         this.nodePredicate = nodePredicate;
-        this.configuredSeedNodes = configuredSeedNodes;
         this.seedNodes = seedNodes;
     }
 
@@ -176,20 +172,6 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
     @Override
     protected boolean shouldOpenMoreConnections() {
         return connectionManager.size() < maxNumRemoteConnections;
-    }
-
-    @Override
-    protected boolean strategyMustBeRebuilt(Settings newSettings) {
-        String proxy = REMOTE_CLUSTERS_PROXY.get(newSettings);
-        List<String> addresses = REMOTE_CLUSTER_SEEDS.get(newSettings);
-        int nodeConnections = REMOTE_NODE_CONNECTIONS.get(newSettings);
-        return nodeConnections != maxNumRemoteConnections || seedsChanged(configuredSeedNodes, addresses)
-               || proxyChanged(proxyAddress, proxy);
-    }
-
-    @Override
-    protected ConnectionStrategy strategyType() {
-        return ConnectionStrategy.SNIFF;
     }
 
     @Override
@@ -458,22 +440,5 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
                                      node.getRoles(),
                                      node.getVersion());
         }
-    }
-
-    private boolean seedsChanged(final List<String> oldSeedNodes, final List<String> newSeedNodes) {
-        if (oldSeedNodes.size() != newSeedNodes.size()) {
-            return true;
-        }
-        Set<String> oldSeeds = new HashSet<>(oldSeedNodes);
-        Set<String> newSeeds = new HashSet<>(newSeedNodes);
-        return oldSeeds.equals(newSeeds) == false;
-    }
-
-    private boolean proxyChanged(String oldProxy, String newProxy) {
-        if (oldProxy == null || oldProxy.isEmpty()) {
-            return (newProxy == null || newProxy.isEmpty()) == false;
-        }
-
-        return Objects.equals(oldProxy, newProxy) == false;
     }
 }
