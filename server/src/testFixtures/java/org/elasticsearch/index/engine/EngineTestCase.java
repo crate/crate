@@ -849,23 +849,16 @@ public abstract class EngineTestCase extends ESTestCase {
         }
     }
 
-    public static List<Engine.Operation> generateSingleDocHistory(
-        final boolean forReplica,
-        final VersionType versionType,
-        final boolean partialOldPrimary,
-        final long primaryTerm,
-        final int minOpCount,
-        final int maxOpCount,
-        final String docId) {
+    public static List<Engine.Operation> generateSingleDocHistory(boolean forReplica,
+                                                                  VersionType versionType,
+                                                                  long primaryTerm,
+                                                                  int minOpCount,
+                                                                  int maxOpCount,
+                                                                  String docId) {
         final int numOfOps = randomIntBetween(minOpCount, maxOpCount);
         final List<Engine.Operation> ops = new ArrayList<>();
         final Term id = newUid(docId);
-        final int startWithSeqNo;
-        if (partialOldPrimary) {
-            startWithSeqNo = randomBoolean() ? numOfOps - 1 : randomIntBetween(0, numOfOps - 1);
-        } else {
-            startWithSeqNo = 0;
-        }
+        final int startWithSeqNo = 0;
         final String valuePrefix = (forReplica ? "r_" : "p_") + docId + "_";
         final boolean incrementTermWhenIntroducingSeqNo = randomBoolean();
         for (int i = 0; i < numOfOps; i++) {
