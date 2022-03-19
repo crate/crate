@@ -125,8 +125,6 @@ public final class CopyFromPlan extends CopyPlan implements Plan {
         executeWithWaitCondition(consumer, plannerContext.transactionContext(), jobLauncher::execute, copyFrom.waitForCompletion());
     }
 
-
-
     @VisibleForTesting
     public static BoundCopyFrom bind(AnalyzedCopyFrom copyFrom,
                                      CoordinatorTxnCtx txnCtx,
