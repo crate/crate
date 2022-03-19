@@ -31,10 +31,7 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
-import io.crate.data.EmptyRowConsumer;
-import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.phases.NodeOperationTree;
@@ -88,11 +85,9 @@ import java.util.stream.Collectors;
 import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
-import static io.crate.data.SentinelRow.SENTINEL;
 
 public final class CopyFromPlan implements Plan {
 
-    private static boolean waitForCompletion;
     private final AnalyzedCopyFrom copyFrom;
 
     public CopyFromPlan(AnalyzedCopyFrom copyFrom) {
@@ -127,13 +122,10 @@ public final class CopyFromPlan implements Plan {
         JobLauncher jobLauncher = dependencies.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        if (waitForCompletion) {
-            jobLauncher.execute(consumer, plannerContext.transactionContext());
-        } else {
-            jobLauncher.execute(new EmptyRowConsumer(), plannerContext.transactionContext());
-            consumer.accept(InMemoryBatchIterator.of(Row1.ROW_COUNT_UNKNOWN, SENTINEL), null);
-        }
+        CopyPlan.executeWithWaitCondition(consumer, plannerContext.transactionContext(), jobLauncher::execute, copyFrom.waitForCompletion());
     }
+
+
 
     @VisibleForTesting
     public static BoundCopyFrom bind(AnalyzedCopyFrom copyFrom,
@@ -171,6 +163,8 @@ public final class CopyFromPlan implements Plan {
         // to the required type already at this stage, but not later on in FileCollectSource.
         var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()));
         var header = settings.getAsBoolean("header", true);
+        var waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
+        copyFrom.setWaitForCompletion(waitForCompletion);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
             targetColumns = Lists2.map(copyFrom.tableInfo().columns(), Reference::toString);
@@ -243,8 +237,6 @@ public final class CopyFromPlan implements Plan {
         if (clusteredBy != null) {
             clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
         }
-
-        waitForCompletion = boundedCopyFrom.settings().getAsBoolean("wait_for_completion", true);
 
         SourceIndexWriterProjection sourceIndexWriterProjection;
         List<? extends Symbol> projectionOutputs = AbstractIndexWriterProjection.OUTPUTS;

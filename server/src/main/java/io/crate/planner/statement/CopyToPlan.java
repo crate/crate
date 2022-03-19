@@ -29,10 +29,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
-import io.crate.data.EmptyRowConsumer;
-import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -81,13 +78,11 @@ import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.OUTPUT_FORMAT_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
-import static io.crate.data.SentinelRow.SENTINEL;
 
 public final class CopyToPlan implements Plan {
 
     private final AnalyzedCopyTo copyTo;
     private final TableStats tableStats;
-    private static boolean waitForCompletion;
 
     public CopyToPlan(AnalyzedCopyTo copyTo, TableStats tableStats) {
         this.copyTo = copyTo;
@@ -125,12 +120,7 @@ public final class CopyToPlan implements Plan {
         JobLauncher jobLauncher = executor.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        if (waitForCompletion) {
-            jobLauncher.execute(consumer, plannerContext.transactionContext());
-        } else {
-            jobLauncher.execute(new EmptyRowConsumer(), plannerContext.transactionContext());
-            consumer.accept(InMemoryBatchIterator.of(Row1.ROW_COUNT_UNKNOWN, SENTINEL), null);
-        }
+        CopyPlan.executeWithWaitCondition(consumer, plannerContext.transactionContext(), jobLauncher::execute, copyTo.waitForCompletion());
     }
 
     @VisibleForTesting
@@ -146,8 +136,6 @@ public final class CopyToPlan implements Plan {
             context.nodeContext(),
             params,
             subQueryResults);
-
-        waitForCompletion = boundedCopyTo.withClauseOptions().getAsBoolean("wait_for_completion", true);
 
         WriterProjection.OutputFormat outputFormat = boundedCopyTo.outputFormat();
         if (outputFormat == null) {
@@ -254,6 +242,9 @@ public final class CopyToPlan implements Plan {
             settingAsEnum(WriterProjection.CompressionType.class, COMPRESSION_SETTING.get(settings));
         WriterProjection.OutputFormat outputFormat =
             settingAsEnum(WriterProjection.OutputFormat.class, OUTPUT_FORMAT_SETTING.get(settings));
+
+        var waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
+        copyTo.setWaitForCompletion(waitForCompletion);
 
         if (!columnsDefined && outputFormat == WriterProjection.OutputFormat.JSON_ARRAY) {
             throw new UnsupportedFeatureException("Output format not supported without specifying columns.");

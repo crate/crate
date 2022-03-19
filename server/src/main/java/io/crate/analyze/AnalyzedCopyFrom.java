@@ -37,6 +37,7 @@ public class AnalyzedCopyFrom implements AnalyzedStatement {
     private final Table<Symbol> table;
     private final GenericProperties<Symbol> properties;
     private final Symbol uri;
+    private boolean waitForCompletion;
 
     AnalyzedCopyFrom(DocTableInfo tableInfo,
                      List<String> targetColumns,
@@ -68,6 +69,14 @@ public class AnalyzedCopyFrom implements AnalyzedStatement {
 
     public Symbol uri() {
         return uri;
+    }
+
+    public boolean waitForCompletion() {
+        return waitForCompletion;
+    }
+
+    public void setWaitForCompletion(boolean waitForCompletion) {
+        this.waitForCompletion = waitForCompletion;
     }
 
     @Override
