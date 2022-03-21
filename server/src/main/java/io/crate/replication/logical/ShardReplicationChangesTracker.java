@@ -21,6 +21,34 @@
 
 package io.crate.replication.logical;
 
+import io.crate.common.collections.Tuple;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.support.RetryListener;
+import io.crate.execution.support.RetryRunnable;
+import io.crate.replication.logical.action.ReplayChangesAction;
+import io.crate.replication.logical.action.ShardChangesAction;
+import io.crate.replication.logical.seqno.RetentionLeaseHelper;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchTimeoutException;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.NoShardAvailableActionException;
+import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.action.support.replication.ReplicationResponse;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.CheckedConsumer;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.IndexShardClosedException;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.node.NodeClosedException;
+import org.elasticsearch.threadpool.Scheduler;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.NodeDisconnectedException;
+import org.elasticsearch.transport.NodeNotConnectedException;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,31 +58,6 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.action.support.replication.ReplicationResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.CheckedConsumer;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.IndexShardClosedException;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.threadpool.Scheduler;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.NodeDisconnectedException;
-import org.elasticsearch.transport.NodeNotConnectedException;
-
-import io.crate.common.collections.Tuple;
-import io.crate.exceptions.Exceptions;
-import io.crate.execution.support.RetryListener;
-import io.crate.execution.support.RetryRunnable;
-import io.crate.replication.logical.action.ReplayChangesAction;
-import io.crate.replication.logical.action.ShardChangesAction;
-import io.crate.replication.logical.seqno.RetentionLeaseHelper;
 
 /**
  * Replicates batches of {@link org.elasticsearch.index.translog.Translog.Operation}'s to the subscribers target shards.
@@ -143,25 +146,34 @@ public class ShardReplicationChangesTracker implements Closeable {
                     );
                 },
                 e -> {
-                    if (e instanceof ElasticsearchTimeoutException) {
+                    var t = SQLExceptions.unwrap(e);
+                    if (t instanceof ElasticsearchTimeoutException) {
                         if (LOGGER.isDebugEnabled()) {
                             LOGGER.debug("[{}] Timed out waiting for new changes. Current seqNo: {}",
                                          shardId,
                                          fromSeqNo);
                         }
                         updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
-                    } else if (e instanceof NodeNotConnectedException || e instanceof NodeDisconnectedException) {
+                    } else if (t instanceof NodeNotConnectedException
+                        || t instanceof NodeDisconnectedException
+                        || t instanceof NodeClosedException) {
                         LOGGER.info("[{}] Node not connected. Retrying.. {}",
                                     shardId, e.getStackTrace());
                         updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
-                    } else if (e instanceof IndexShardClosedException) {
-                        LOGGER.warn("[{}] Remote shard closed, will stop tracking changes", shardId);
+                    } else if (t instanceof IndexShardClosedException) {
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("[{}] Remote shard closed (table closed?), will stop tracking changes", shardId);
+                        }
+                    } else if (t instanceof IndexNotFoundException || t instanceof NoShardAvailableActionException) {
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("[{}] Remote shard not found (dropped table?), will stop tracking changes", shardId);
+                        }
                     } else {
                         LOGGER.warn(
                             String.format(Locale.ENGLISH,
                                           "[%s] Unable to get changes from seqNo: %d, will stop tracking",
                                           shardId, fromSeqNo),
-                            e);
+                            t);
                     }
 
                 }

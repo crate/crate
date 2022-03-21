@@ -21,12 +21,13 @@
 
 package io.crate.replication.logical.repository;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
+import io.crate.common.unit.TimeValue;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.replication.logical.action.GetStoreMetadataAction;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexCommit;
@@ -65,13 +66,11 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.RemoteClusters;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.replication.logical.LogicalReplicationSettings;
-import io.crate.replication.logical.action.GetStoreMetadataAction;
-import io.crate.replication.logical.action.PublicationsStateAction;
-import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
-import io.crate.replication.logical.metadata.ConnectionInfo;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Derived from org.opensearch.replication.repository.RemoteClusterRepository
@@ -469,10 +468,12 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 @Override
                 public void onResponse(AcknowledgedResponse acknowledgedResponse) {
                     if (acknowledgedResponse.isAcknowledged()) {
-                        LOGGER.info("Successfully released resources at the publisher cluster for {} at {}",
-                                    shardId,
-                                    publisherShardNode
-                        );
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("Successfully released resources at the publisher cluster for {} at {}",
+                                shardId,
+                                publisherShardNode
+                            );
+                        }
                     }
                 }
 
