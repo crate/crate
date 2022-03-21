@@ -60,15 +60,7 @@ public final class TestingRowConsumer implements RowConsumer {
     }
 
     public List<Object[]> getResult() throws Exception {
-        try {
-            return consumer.completionFuture().get(10, TimeUnit.SECONDS);
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause != null) {
-                Exceptions.rethrowUnchecked(cause);
-            }
-            throw e;
-        }
+        return getResultWithTimeout(10);
     }
 
     public List<Object[]> getResultWithTimeout(int timeout) throws Exception {
