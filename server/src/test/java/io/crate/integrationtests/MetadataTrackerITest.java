@@ -183,6 +183,98 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         });
     }
 
+    @Test
+    public void test_deleted_partition_is_replicated() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("INSERT INTO t1 (id, p) VALUES (1, 1), (2, 2)");
+        createPublication("pub1", true, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        // Ensure tracker has started
+        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+
+        // Wait until table is replicated
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE t1");
+            var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
+            assertThat(printedTable(r.rows()), is(
+                "1| 1\n" +
+                "2| 2\n"));
+
+        });
+
+        // Drop partition
+        executeOnPublisher("DELETE FROM t1 WHERE p = 1");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE t1");
+            var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
+            assertThat(printedTable(r.rows()), is("2| 2\n"));
+        });
+    }
+
+    @Test
+    public void test_dropped_partited_table_is_replicated() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("INSERT INTO t1 (id, p) VALUES (1, 1), (2, 2)");
+        createPublication("pub1", true, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        // Ensure tracker has started
+        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+
+        // Wait until table is replicated
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE t1");
+            var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
+            assertThat(printedTable(r.rows()), is(
+                "1| 1\n" +
+                    "2| 2\n"));
+
+        });
+
+        // Drop table
+        executeOnPublisher("DROP TABLE t1");
+
+        assertBusy(() -> {
+            var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
+                " WHERE table_name = 't1'" +
+                " ORDER BY ordinal_position");
+            assertThat(r.rowCount(), is(0L));
+        });
+    }
+
+    @Test
+    public void test_dropped_table_is_replicated() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT)");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
+        createPublication("pub1", true, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        // Ensure tracker has started
+        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+
+        // Wait until table is replicated
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE t1");
+            var r = executeOnSubscriber("SELECT id FROM t1 ORDER BY id");
+            assertThat(printedTable(r.rows()), is(
+                "1\n" +
+                "2\n"));
+
+        });
+
+        // Drop table
+        executeOnPublisher("DROP TABLE t1");
+
+        assertBusy(() -> {
+            var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
+                " WHERE table_name = 't1'" +
+                " ORDER BY ordinal_position");
+            assertThat(r.rowCount(), is(0L));
+        });
+    }
+
     private boolean isTrackerActive() throws Exception {
         var replicationService = subscriberCluster.getInstance(LogicalReplicationService.class, subscriberCluster.getMasterName());
         Field m = replicationService.getClass().getDeclaredField("metadataTracker");
