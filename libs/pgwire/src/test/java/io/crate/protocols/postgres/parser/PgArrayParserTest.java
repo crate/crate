@@ -51,7 +51,7 @@ public class PgArrayParserTest {
     };
 
     private static <T> T parse(String array, Function<byte[], Object> convert) {
-        return (T) PgArrayParser.parse(array.getBytes(UTF_8), convert);
+        return (T) PgArrayParser.parse(array, convert);
     }
 
     @Test

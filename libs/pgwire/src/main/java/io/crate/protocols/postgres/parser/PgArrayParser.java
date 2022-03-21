@@ -23,11 +23,11 @@ package io.crate.protocols.postgres.parser;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 
 import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -52,22 +52,21 @@ public class PgArrayParser {
         }
     };
 
-    private static final PgArrayParser INSTANCE = new PgArrayParser();
-
-    public static Object parse(byte[] bytes, Function<byte[], Object> convert) {
-        return INSTANCE.invokeParser(
-            new ByteArrayInputStream(bytes),
-            io.crate.protocols.postgres.antlr.v4.PgArrayParser::array,
-            convert);
+    public static Object parse(String s, Function<byte[], Object> convert) {
+        return invokeParser(CharStreams.fromString(s), convert);
     }
 
-    private Object invokeParser(InputStream inputStream,
-                                Function<io.crate.protocols.postgres.antlr.v4.PgArrayParser, ParserRuleContext> parseFunction,
-                                Function<byte[], Object> convert) {
+    public static Object parse(byte[] bytes, Function<byte[], Object> convert) {
         try {
-            var lexer = new PgArrayLexer(CharStreams.fromStream(
-                inputStream,
-                StandardCharsets.UTF_8));
+            return invokeParser(CharStreams.fromStream(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8), convert);
+        } catch (IOException e) {
+            return new IllegalArgumentException(e);
+        }
+    }
+
+    private static Object invokeParser(CharStream input, Function<byte[], Object> convert) {
+        try {
+            var lexer = new PgArrayLexer(input);
             var tokenStream = new CommonTokenStream(lexer);
             var parser = new io.crate.protocols.postgres.antlr.v4.PgArrayParser(tokenStream);
 
@@ -81,20 +80,18 @@ public class PgArrayParser {
             try {
                 // first, try parsing with potentially faster SLL mode
                 parser.getInterpreter().setPredictionMode(PredictionMode.SLL);
-                tree = parseFunction.apply(parser);
+                tree = parser.array();
             } catch (ParseCancellationException ex) {
                 // if we fail, parse with LL mode
                 tokenStream.seek(0); // rewind input stream
                 parser.reset();
 
                 parser.getInterpreter().setPredictionMode(PredictionMode.LL);
-                tree = parseFunction.apply(parser);
+                tree = parser.array();
             }
             return tree.accept(new PgArrayASTVisitor(convert));
         } catch (StackOverflowError e) {
             throw new PgArrayParsingException("stack overflow while parsing: " + e.getLocalizedMessage());
-        } catch (IOException e) {
-            return new IllegalArgumentException(e);
         }
     }
 }

@@ -56,6 +56,9 @@ None
 Changes
 =======
 
+- Optimized the casting from string to arrays by avoiding an unnecessary string
+  to byte conversion.
+
 - Fixed an issue with the handling of intervals in generated columns. The table
   creation failed when an interval is included in a function call as part of a
   generated column.
