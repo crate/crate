@@ -21,46 +21,6 @@
 
 package io.crate.replication.logical;
 
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
-import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import javax.annotation.Nullable;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreClusterStateListener;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.snapshots.RestoreInfo;
-import org.elasticsearch.snapshots.RestoreService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.RemoteClusters;
-
 import io.crate.action.FutureActionListener;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SQLExceptions;
@@ -75,6 +35,45 @@ import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.replication.logical.repository.LogicalReplicationRepository;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreClusterStateListener;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
+import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.snapshots.RestoreInfo;
+import org.elasticsearch.snapshots.RestoreService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.RemoteClusters;
+
+import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
+import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
 
 public class LogicalReplicationService implements ClusterStateListener, Closeable {
 
@@ -91,23 +90,27 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     private volatile PublicationsMetadata currentPublicationsMetadata = new PublicationsMetadata();
     private final MetadataTracker metadataTracker;
 
-    public LogicalReplicationService(IndexScopedSettings indexScopedSettings,
+    public LogicalReplicationService(Settings settings,
+                                     IndexScopedSettings indexScopedSettings,
                                      ClusterService clusterService,
                                      RemoteClusters remoteClusters,
                                      ThreadPool threadPool,
                                      Client client,
+                                     AllocationService allocationService,
                                      LogicalReplicationSettings replicationSettings) {
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.remoteClusters = remoteClusters;
         this.client = client;
         this.metadataTracker = new MetadataTracker(
+            settings,
             indexScopedSettings,
             threadPool,
             this,
             replicationSettings,
             remoteClusters::getClient,
-            clusterService
+            clusterService,
+            allocationService
         );
         clusterService.addListener(this);
     }
@@ -504,7 +507,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         return updateSubscriptionState(subscriptionName, oldSubscription, relations);
     }
 
-    private CompletableFuture<Boolean> updateSubscriptionState(String subscriptionName,
+    public CompletableFuture<Boolean> updateSubscriptionState(String subscriptionName,
                                                                Subscription subscription,
                                                                Map<RelationName, Subscription.RelationState> relations) {
         var newSubscription = new Subscription(

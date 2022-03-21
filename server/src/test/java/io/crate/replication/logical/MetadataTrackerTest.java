@@ -21,24 +21,14 @@
 
 package io.crate.replication.logical;
 
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
-import static io.crate.replication.logical.MetadataTracker.retrieveSubscription;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
+import io.crate.Constants;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -55,14 +45,23 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.Constants;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.metadata.ConnectionInfo;
-import io.crate.replication.logical.metadata.Publication;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.replication.logical.metadata.Subscription;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+import static io.crate.replication.logical.MetadataTracker.retrieveSubscription;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 public class MetadataTrackerTest extends ESTestCase {
 
@@ -316,7 +315,8 @@ public class MetadataTrackerTest extends ESTestCase {
         AtomicReference<String> ref = new AtomicReference<>();
 
         MetadataTracker.subscribeToNewRelations(
-            "sub1",
+            retrieveSubscription("sub1", SUBSCRIBER_CLUSTER_STATE),
+            publications(PUBLISHER_CLUSTER_STATE),
             SUBSCRIBER_CLUSTER_STATE,
             PUBLISHER_CLUSTER_STATE,
             relationNames -> {
@@ -345,7 +345,8 @@ public class MetadataTrackerTest extends ESTestCase {
             .build();
 
         var future = MetadataTracker.subscribeToNewRelations(
-            "sub1",
+            retrieveSubscription("sub1", subscriberClusterState),
+            publications(publisherClusterState),
             subscriberClusterState,
             publisherClusterState,
             relationNames -> {
@@ -376,7 +377,8 @@ public class MetadataTrackerTest extends ESTestCase {
             .build();
 
         var future = MetadataTracker.subscribeToNewRelations(
-            "sub1",
+            retrieveSubscription("sub1", subscriberClusterState),
+            publications(publisherClusterState),
             subscriberClusterState,
             publisherClusterState,
             relationNames -> {
@@ -408,7 +410,8 @@ public class MetadataTrackerTest extends ESTestCase {
             .build();
 
         var future = MetadataTracker.subscribeToNewRelations(
-            "sub1",
+            retrieveSubscription("sub1", subscriberClusterState),
+            publications(publisherClusterState),
             subscriberClusterState,
             publisherClusterState,
             relationNames -> {
@@ -440,7 +443,8 @@ public class MetadataTrackerTest extends ESTestCase {
             .build();
 
         var future = MetadataTracker.subscribeToNewRelations(
-            "sub1",
+            retrieveSubscription("sub1", subscriberClusterState),
+            publications(publisherClusterState),
             subscriberClusterState,
             publisherClusterState,
             relationNames -> {
@@ -473,7 +477,8 @@ public class MetadataTrackerTest extends ESTestCase {
             .build();
 
         var future = MetadataTracker.subscribeToNewRelations(
-            "sub1",
+            retrieveSubscription("sub1", subscriberClusterState),
+            publications(publisherClusterState),
             subscriberClusterState,
             publisherClusterState,
             relationNames -> {
@@ -505,7 +510,8 @@ public class MetadataTrackerTest extends ESTestCase {
             .build();
 
         var future = MetadataTracker.subscribeToNewRelations(
-            "sub1",
+            retrieveSubscription("sub1", subscriberClusterState),
+            publications(publisherClusterState),
             subscriberClusterState,
             publisherClusterState,
             relationNames -> {
@@ -519,5 +525,10 @@ public class MetadataTrackerTest extends ESTestCase {
         );
 
         assertThat(future.get(5, TimeUnit.SECONDS), is(true));
+    }
+
+    private Map<String, Publication> publications(ClusterState state) {
+        PublicationsMetadata publicationsMetadata = state.metadata().custom(PublicationsMetadata.TYPE);
+        return publicationsMetadata.publications();
     }
 }

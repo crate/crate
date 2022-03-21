@@ -21,47 +21,6 @@
 
 package io.crate.replication.logical;
 
-import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
-import javax.annotation.Nullable;
-
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.Scheduler;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.ConnectTransportException;
-import org.elasticsearch.transport.NoSuchRemoteClusterException;
-
 import io.crate.action.FutureActionListener;
 import io.crate.common.TriConsumer;
 import io.crate.common.annotations.VisibleForTesting;
@@ -70,39 +29,95 @@ import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.Exceptions;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchTimeoutException;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.threadpool.Scheduler;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.ConnectTransportException;
+import org.elasticsearch.transport.NoSuchRemoteClusterException;
+
+import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+
+import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC;
 
 public final class MetadataTracker implements Closeable {
 
     private static final Logger LOGGER = Loggers.getLogger(MetadataTracker.class);
 
+    private final Settings settings;
     private final ThreadPool threadPool;
     private final LogicalReplicationService replicationService;
     private final LogicalReplicationSettings replicationSettings;
     private final Function<String, Client> remoteClient;
     private final ClusterService clusterService;
     private final IndexScopedSettings indexScopedSettings;
+    private final AllocationService allocationService;
+    private final IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver();
 
     // Using a copy-on-write approach. The assumption is that subscription changes are rare and reads happen more frequently
     private volatile Set<String> subscriptionsToTrack = new HashSet<>();
     private volatile Scheduler.Cancellable cancellable;
     private volatile boolean isActive = false;
 
-    public MetadataTracker(IndexScopedSettings indexScopedSettings,
+    public MetadataTracker(Settings settings,
+                           IndexScopedSettings indexScopedSettings,
                            ThreadPool threadPool,
                            LogicalReplicationService replicationService,
                            LogicalReplicationSettings replicationSettings,
                            Function<String, Client> remoteClient,
-                           ClusterService clusterService) {
+                           ClusterService clusterService,
+                           AllocationService allocationService) {
+        this.settings = settings;
         this.threadPool = threadPool;
         this.replicationService = replicationService;
         this.replicationSettings = replicationSettings;
         this.remoteClient = remoteClient;
+
         this.clusterService = clusterService;
         this.indexScopedSettings = indexScopedSettings;
+        this.allocationService = allocationService;
     }
 
     private void start() {
@@ -220,9 +235,17 @@ public final class MetadataTracker implements Closeable {
                                     return localClusterState;
                                 }
 
+                                localClusterState = removeDroppedTablesOrPartitions(
+                                    subscriptionName,
+                                    subscription,
+                                    localClusterState,
+                                    remoteClusterState
+                                );
+
                                 subscribeToNewRelations(
                                     subscriptionName,
                                     subscription,
+                                    publicationsMetadata.publications(),
                                     localClusterState,
                                     remoteClusterState,
                                     replicationService
@@ -320,11 +343,13 @@ public final class MetadataTracker implements Closeable {
      */
     private static void subscribeToNewRelations(String subscriptionName,
                                                 Subscription subscription,
+                                                Map<String, Publication> publications,
                                                 ClusterState subscriberClusterState,
                                                 ClusterState publisherClusterState,
                                                 LogicalReplicationService replicationService) {
         subscribeToNewRelations(
-            subscriptionName,
+            subscription,
+            publications,
             subscriberClusterState,
             publisherClusterState,
             relationNames -> replicationService.updateSubscriptionState(
@@ -345,20 +370,14 @@ public final class MetadataTracker implements Closeable {
 
     @VisibleForTesting
     static CompletableFuture<Boolean> subscribeToNewRelations(
-        String subscriptionName,
+        Subscription subscription,
+        Map<String, Publication> publications,
         ClusterState subscriberClusterState,
         ClusterState publisherClusterState,
         Function<Collection<RelationName>, CompletableFuture<Boolean>> updateStateFunction,
         TriConsumer<Collection<RelationName>, List<String>, List<String>> restoreConsumer) {
-        PublicationsMetadata publicationsMetadata = publisherClusterState.metadata().custom(PublicationsMetadata.TYPE);
-        SubscriptionsMetadata subscriptionsMetadata = subscriberClusterState.metadata().custom(SubscriptionsMetadata.TYPE);
-        if (publicationsMetadata == null || subscriptionsMetadata == null) {
-            return CompletableFuture.completedFuture(true);
-        }
-        Subscription subscription = subscriptionsMetadata.subscription().get(subscriptionName);
 
         var subscribedRelations = subscription.relations();
-        var publications = publicationsMetadata.publications();
         var relationNamesForStateUpdate = new HashSet<RelationName>();
         var toRestoreIndices = new ArrayList<String>();
         var toRestoreTemplates = new ArrayList<String>();
@@ -433,6 +452,67 @@ public final class MetadataTracker implements Closeable {
             (ignored, ignoredErr) ->
                 restoreConsumer.accept(relationNamesForStateUpdate, toRestoreIndices, toRestoreTemplates)
         );
+    }
+
+    private ClusterState removeDroppedTablesOrPartitions(String subscriptionName,
+                                                         Subscription subscription,
+                                                         ClusterState subscriberClusterState,
+                                                         ClusterState publisherClusterState) {
+        HashSet<RelationName> relationsToUpdate = new HashSet<>();
+        HashSet<Index> indicesToRemove = new HashSet<>();
+        ArrayList<String> templatesToRemove = new ArrayList<>();
+        for (var relationName : subscription.relations().keySet()) {
+            var possibleTemplateName = PartitionName.templateName(relationName.schema(), relationName.name());
+            var isPartitioned = subscriberClusterState.metadata().templates().get(possibleTemplateName) != null;
+            if (isPartitioned
+                && publisherClusterState.metadata().templates().get(possibleTemplateName) == null) {
+                templatesToRemove.add(possibleTemplateName);
+                relationsToUpdate.add(relationName);
+            }
+
+            var concreteIndices = indexNameExpressionResolver.concreteIndices(
+                subscriberClusterState,
+                IndicesOptions.lenientExpand(),
+                relationName.indexNameOrAlias()
+            );
+            for (var concreteIndex : concreteIndices) {
+                if (publisherClusterState.metadata().hasIndex(concreteIndex.getName()) == false) {
+                    indicesToRemove.add(concreteIndex);
+                    if (isPartitioned == false) {
+                        relationsToUpdate.add(relationName);
+                    }
+                }
+            }
+        }
+
+        var updatedClusterState = subscriberClusterState;
+        if (templatesToRemove.isEmpty() == false) {
+            var newMetadataBuilder = Metadata.builder(subscriberClusterState.metadata());
+            for (var templateName : templatesToRemove) {
+                newMetadataBuilder.removeTemplate(templateName);
+            }
+            updatedClusterState = ClusterState.builder(subscriberClusterState).metadata(newMetadataBuilder).build();
+        }
+
+        if (indicesToRemove.isEmpty() == false) {
+            updatedClusterState = MetadataDeleteIndexService.deleteIndices(
+                updatedClusterState,
+                settings,
+                allocationService,
+                indicesToRemove
+            );
+        }
+        if (relationsToUpdate.isEmpty() == false) {
+            HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
+            for (var entry : subscription.relations().entrySet()) {
+                if (relationsToUpdate.contains(entry.getKey()) == false) {
+                    relations.put(entry.getKey(), entry.getValue());
+                }
+            }
+            replicationService.updateSubscriptionState(subscriptionName, subscription, relations);
+        }
+
+        return updatedClusterState;
     }
 
     @Nullable
