@@ -23,14 +23,8 @@ import static org.elasticsearch.common.settings.Setting.boolSetting;
 import static org.elasticsearch.common.settings.Setting.timeSetting;
 
 import java.io.Closeable;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -47,34 +41,8 @@ import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.types.DataTypes;
 
 public abstract class RemoteConnectionStrategy implements TransportConnectionListener, Closeable {
-
-    enum ConnectionStrategy {
-        SNIFF(SniffConnectionStrategy.CHANNELS_PER_CONNECTION, SniffConnectionStrategy::enablementSettings) {
-            @Override
-            public String toString() {
-                return "sniff";
-            }
-        };
-
-        private final int numberOfChannels;
-        private final Supplier<Stream<Setting<?>>> enablementSettings;
-
-        ConnectionStrategy(int numberOfChannels, Supplier<Stream<Setting<?>>> enablementSettings) {
-            this.numberOfChannels = numberOfChannels;
-            this.enablementSettings = enablementSettings;
-        }
-
-        public int getNumberOfChannels() {
-            return numberOfChannels;
-        }
-
-        public Supplier<Stream<Setting<?>>> getEnablementSettings() {
-            return enablementSettings;
-        }
-    }
 
     /**
      * The name of a node attribute to select nodes that should be connected to in the remote cluster.
@@ -84,13 +52,6 @@ public abstract class RemoteConnectionStrategy implements TransportConnectionLis
      */
     public static final Setting<String> REMOTE_NODE_ATTRIBUTE =
         Setting.simpleString("cluster.remote.node.attr", Setting.Property.NodeScope);
-
-    public static final Setting<ConnectionStrategy> REMOTE_CONNECTION_MODE = new Setting<>(
-            "mode",
-            ConnectionStrategy.SNIFF.name(),
-            value -> ConnectionStrategy.valueOf(value.toUpperCase(Locale.ROOT)),
-            DataTypes.STRING,
-            Setting.Property.Dynamic);
 
     public static final Setting<Boolean> REMOTE_CONNECTION_COMPRESS = boolSetting(
         "transport.compress",
@@ -123,7 +84,6 @@ public abstract class RemoteConnectionStrategy implements TransportConnectionLis
 
     static ConnectionProfile buildConnectionProfile(Settings nodeSettings,
                                                     Settings connectionSettings) {
-        ConnectionStrategy mode = REMOTE_CONNECTION_MODE.get(connectionSettings);
         boolean compress = REMOTE_CONNECTION_COMPRESS.exists(connectionSettings)
             ? REMOTE_CONNECTION_COMPRESS.get(connectionSettings)
             : TransportSettings.TRANSPORT_COMPRESS.get(nodeSettings);
@@ -137,28 +97,8 @@ public abstract class RemoteConnectionStrategy implements TransportConnectionLis
             .setPingInterval(pingInterval)
             .addConnections(0, TransportRequestOptions.Type.BULK, TransportRequestOptions.Type.STATE,
                             TransportRequestOptions.Type.RECOVERY, TransportRequestOptions.Type.PING)
-            .addConnections(mode.numberOfChannels, TransportRequestOptions.Type.REG);
+            .addConnections(SniffConnectionStrategy.CHANNELS_PER_CONNECTION, TransportRequestOptions.Type.REG);
         return builder.build();
-    }
-
-    static RemoteConnectionStrategy buildStrategy(String clusterAlias,
-                                                  TransportService transportService,
-                                                  RemoteConnectionManager connectionManager,
-                                                  Settings nodeSettings,
-                                                  Settings connectionSettings) {
-        ConnectionStrategy mode = REMOTE_CONNECTION_MODE.get(connectionSettings);
-        switch (mode) {
-            case SNIFF:
-                return new SniffConnectionStrategy(
-                    clusterAlias,
-                    transportService,
-                    connectionManager,
-                    nodeSettings,
-                    connectionSettings
-                );
-            default:
-                throw new AssertionError("Invalid connection strategy" + mode);
-        }
     }
 
     /**
@@ -269,42 +209,5 @@ public abstract class RemoteConnectionStrategy implements TransportConnectionLis
             }
         }
         return result;
-    }
-
-    static class StrategyValidator<T> implements Setting.Validator<T> {
-
-        private final String key;
-        private final ConnectionStrategy expectedStrategy;
-        private final Consumer<T> valueChecker;
-
-        StrategyValidator(String key, ConnectionStrategy expectedStrategy) {
-            this(key, expectedStrategy, (v) -> {});
-        }
-
-        StrategyValidator(String key, ConnectionStrategy expectedStrategy, Consumer<T> valueChecker) {
-            this.key = key;
-            this.expectedStrategy = expectedStrategy;
-            this.valueChecker = valueChecker;
-        }
-
-        @Override
-        public void validate(T value) {
-            valueChecker.accept(value);
-        }
-
-        @Override
-        public void validate(T value, Map<Setting<?>, Object> settings) {
-            ConnectionStrategy modeType = (ConnectionStrategy) settings.get(REMOTE_CONNECTION_MODE);
-            if (modeType.equals(expectedStrategy) == false) {
-                throw new IllegalArgumentException("Setting \"" + key + "\" cannot be used with the configured \"" + REMOTE_CONNECTION_MODE.getKey()
-                                                   + "\" [required=" + expectedStrategy.name() + ", configured=" + modeType.name() + "]");
-            }
-        }
-
-        @Override
-        public Iterator<Setting<?>> settings() {
-            Stream<Setting<?>> settingStream = Stream.of(REMOTE_CONNECTION_MODE);
-            return settingStream.iterator();
-        }
     }
 }
