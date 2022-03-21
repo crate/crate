@@ -24,9 +24,11 @@ package io.crate.planner.statement;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
-import io.crate.data.EmptyRowConsumer;
+import io.crate.data.CollectingRowConsumer;
 import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.metadata.TransactionContext;
@@ -40,7 +42,7 @@ public abstract class CopyPlan {
         if (waitForCompletion) {
             biConsumer.accept(consumer, txnCtx);
         } else {
-            biConsumer.accept(new EmptyRowConsumer(), txnCtx);
+            biConsumer.accept(new CollectingRowConsumer<>(Collectors.mapping(Row::materialize, Collectors.toList())), txnCtx);
             consumer.accept(InMemoryBatchIterator.of(Row1.ROW_COUNT_UNKNOWN, SENTINEL), null);
         }
     }
