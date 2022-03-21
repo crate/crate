@@ -91,7 +91,9 @@ public class ReleasePublisherResourcesAction extends ActionType<AcknowledgedResp
         @Override
         protected AcknowledgedResponse shardOperation(Request request,
                                                       ShardId shardId) throws IOException {
-            LOGGER.info("Releasing resources for {} with restore-id as {}", shardId, request.restoreUUID());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Releasing resources for {} with restore-id as {}", shardId, request.restoreUUID());
+            }
             publisherRestoreService.removeRestoreContext(request.restoreUUID());
             return new AcknowledgedResponse(true);
         }
