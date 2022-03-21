@@ -21,15 +21,6 @@
 
 package io.crate.replication.logical.metadata;
 
-import io.crate.exceptions.InvalidArgumentException;
-import io.crate.metadata.settings.Validators;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -41,7 +32,17 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
-import static org.elasticsearch.transport.SniffConnectionStrategy.REMOTE_CLUSTER_SEEDS;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.RemoteCluster;
+
+import io.crate.exceptions.InvalidArgumentException;
+import io.crate.metadata.settings.Validators;
+import io.crate.types.DataTypes;
+
 
 public class ConnectionInfo implements Writeable {
 
@@ -62,7 +63,7 @@ public class ConnectionInfo implements Writeable {
         PASSWORD.getKey(),
         SSLMODE.getKey(),
         // Remote connection mode is always SNIFF - user don't have to specify it in the connection string.
-        REMOTE_CLUSTER_SEEDS.getKey()
+        RemoteCluster.REMOTE_CLUSTER_SEEDS.getKey()
     );
 
     private static final String DEFAULT_PORT = "4300";
@@ -144,7 +145,7 @@ public class ConnectionInfo implements Writeable {
                                   "Connection string argument '%s' is not supported", settingName)
                 );
             }
-            if (settingName.equals(REMOTE_CLUSTER_SEEDS.getKey())) {
+            if (settingName.equals(RemoteCluster.REMOTE_CLUSTER_SEEDS.getKey())) {
                 settingsBuilder.putList(settingName, settingValue.split(","));
             } else {
                 settingsBuilder.put(settingName, settingValue);
