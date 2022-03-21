@@ -112,21 +112,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromFileNoWaitForCompletion() throws Exception {
-        execute("create table quotes (id int primary key, " +
-                "quote string index using fulltext) with (number_of_replicas = 0)");
-
-        execute("copy quotes from ? with (format='csv', wait_for_completion=false)",
-                new Object[]{copyFilePath + "test_copy_from_csv.ext"});
-        assertThat(response.rowCount(), either(is(0L)).or(is(-1L)));
-        refresh();
-        assertBusy(() -> {
-            var response = execute("select * from quotes");
-            assertThat(response.rowCount(), is(3L));
-        });
-    }
-
-    @Test
     public void testCopyFromFileWithCSVOption() {
         execute("create table quotes (id int primary key, " +
             "quote string index using fulltext) with (number_of_replicas = 0)");
