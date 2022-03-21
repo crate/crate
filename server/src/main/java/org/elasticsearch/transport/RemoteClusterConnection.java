@@ -71,7 +71,7 @@ public final class RemoteClusterConnection implements Closeable {
             clusterAlias,
             new ClusterConnectionManager(profile, transportService.transport)
         );
-        this.connectionStrategy = RemoteConnectionStrategy.buildStrategy(
+        this.connectionStrategy = new SniffConnectionStrategy(
             clusterAlias,
             transportService,
             remoteConnectionManager,

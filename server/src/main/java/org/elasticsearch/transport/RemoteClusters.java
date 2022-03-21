@@ -31,7 +31,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.io.IOUtils;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 
@@ -41,7 +40,7 @@ public class RemoteClusters implements Closeable {
     private final Settings settings;
     private final ThreadPool threadPool;
     private final TransportService transportService;
-    private final Map<String, RemoteClusterClient> remoteClusters = new HashMap<>();
+    private final Map<String, RemoteCluster> remoteClusters = new HashMap<>();
 
     public RemoteClusters(Settings settings,
                           ThreadPool threadPool,
@@ -64,39 +63,29 @@ public class RemoteClusters implements Closeable {
      * @throws NoSuchRemoteClusterException if there is no connected client for the subscription
      **/
     public synchronized Client getClient(String subscriptionName) {
-        RemoteClusterClient remoteClusterClient = remoteClusters.get(subscriptionName);
-        if (remoteClusterClient == null) {
+        RemoteCluster remoteCluster = remoteClusters.get(subscriptionName);
+        if (remoteCluster == null) {
             throw new NoSuchRemoteClusterException(subscriptionName);
         }
-        return remoteClusterClient;
+        return remoteCluster.client();
     }
 
     public synchronized CompletableFuture<Client> connect(String name,
                                                           ConnectionInfo connectionInfo) {
-        RemoteClusterClient remoteClient = this.remoteClusters.get(name);
-        // The ConnectionManager uses node settings in addition to connection settings
-        var connectionSettings = Settings.builder()
-            .put(settings)
-            .put(connectionInfo.settings())
-            .build();
-
-        if (remoteClient == null) {
-            // this is a new cluster we have to add a new representation
-            var remoteConnection = new RemoteClusterConnection(settings, connectionSettings, name, transportService);
-            var newRemoteClient = new RemoteClusterClient(settings, threadPool, transportService, remoteConnection);
-            remoteClusters.put(name, newRemoteClient);
-            FutureActionListener<Void, Client> listener = new FutureActionListener<>(ignored -> newRemoteClient);
-            remoteConnection.ensureConnected(listener);
-            return listener;
+        RemoteCluster remoteCluster = this.remoteClusters.get(name);
+        if (remoteCluster == null) {
+            remoteCluster = new RemoteCluster(name, settings, connectionInfo, threadPool, transportService);
+            remoteClusters.put(name, remoteCluster);
+            return remoteCluster.connectAndGetClient();
         } else {
-            return CompletableFuture.completedFuture(remoteClient);
+            return CompletableFuture.completedFuture(remoteCluster.client());
         }
     }
 
     public synchronized void remove(String subscriptionName) {
-        RemoteClusterClient remoteClusterClient = remoteClusters.remove(subscriptionName);
-        if (remoteClusterClient != null) {
-            remoteClusterClient.close();
+        RemoteCluster remoteCluster = remoteClusters.remove(subscriptionName);
+        if (remoteCluster != null) {
+            IOUtils.closeWhileHandlingException(remoteCluster);
         }
     }
 }

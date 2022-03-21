@@ -19,15 +19,12 @@
 
 package org.elasticsearch.transport;
 
-import static org.elasticsearch.common.settings.Setting.intSetting;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.SetOnce;
@@ -40,7 +37,6 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -48,37 +44,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import io.crate.common.Booleans;
 import io.crate.common.collections.Lists2;
 import io.crate.common.io.IOUtils;
-import io.crate.types.DataTypes;
 
 public class SniffConnectionStrategy extends RemoteConnectionStrategy {
-
-    /**
-     * A list of initial seed nodes to discover eligible nodes from the remote cluster
-     */
-    public static final Setting<List<String>> REMOTE_CLUSTER_SEEDS = Setting.listSetting(
-        "seeds",
-        null,
-        s -> {
-            // validate seed address
-            RemoteConnectionParser.parsePort(s);
-            return s;
-        },
-        s -> List.of(),
-        new StrategyValidator<>("seeds", ConnectionStrategy.SNIFF),
-        DataTypes.STRING_ARRAY,
-        Setting.Property.Dynamic);
-
-    /**
-     * The maximum number of node connections that will be established to a remote cluster. For instance if there is only a single
-     * seed node, other nodes will be discovered up to the given number of nodes in this setting. The default is 3.
-     */
-    public static final Setting<Integer> REMOTE_NODE_CONNECTIONS = intSetting(
-        "node_connections",
-        3,
-        1,
-        new StrategyValidator<>("node_connections", ConnectionStrategy.SNIFF),
-        Setting.Property.Dynamic);
-
 
     static final int CHANNELS_PER_CONNECTION = 6;
 
@@ -88,7 +55,6 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
 
 
     private final List<Supplier<DiscoveryNode>> seedNodes;
-    private final int maxNumRemoteConnections;
     private final Predicate<DiscoveryNode> nodePredicate;
     private final SetOnce<ClusterName> remoteClusterName = new SetOnce<>();
 
@@ -101,22 +67,19 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
             clusterAlias,
             transportService,
             connectionManager,
-            REMOTE_NODE_CONNECTIONS.get(connectionSettings),
             getNodePredicate(nodeSettings),
-            REMOTE_CLUSTER_SEEDS.get(connectionSettings)
+            RemoteCluster.REMOTE_CLUSTER_SEEDS.get(connectionSettings)
         );
     }
 
     SniffConnectionStrategy(String clusterAlias,
                             TransportService transportService,
                             RemoteConnectionManager connectionManager,
-                            int maxNumRemoteConnections,
                             Predicate<DiscoveryNode> nodePredicate,
                             List<String> configuredSeedNodes) {
         this(clusterAlias,
              transportService,
              connectionManager,
-             maxNumRemoteConnections,
              nodePredicate,
              configuredSeedNodes,
              Lists2.map(configuredSeedNodes, seedNode -> () -> resolveSeedNode(clusterAlias, seedNode))
@@ -126,23 +89,17 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
     SniffConnectionStrategy(String clusterAlias,
                             TransportService transportService,
                             RemoteConnectionManager connectionManager,
-                            int maxNumRemoteConnections,
                             Predicate<DiscoveryNode> nodePredicate,
                             List<String> configuredSeedNodes,
                             List<Supplier<DiscoveryNode>> seedNodes) {
         super(clusterAlias, transportService, connectionManager);
-        this.maxNumRemoteConnections = maxNumRemoteConnections;
         this.nodePredicate = nodePredicate;
         this.seedNodes = seedNodes;
     }
 
-    static Stream<Setting<?>> enablementSettings() {
-        return Stream.of(SniffConnectionStrategy.REMOTE_CLUSTER_SEEDS);
-    }
-
     @Override
     protected boolean shouldOpenMoreConnections() {
-        return connectionManager.size() < maxNumRemoteConnections;
+        return connectionManager.size() < CHANNELS_PER_CONNECTION;
     }
 
     @Override

@@ -466,8 +466,8 @@ public class RemoteClusterConnectionTests extends ESTestCase {
 
     private static Settings buildSniffSettings(List<String> seedNodes) {
         Settings.Builder builder = Settings.builder();
-        builder.put(RemoteConnectionStrategy.REMOTE_CONNECTION_MODE.getKey(), "sniff");
-        builder.put(SniffConnectionStrategy.REMOTE_CLUSTER_SEEDS.getKey(),
+        builder.put(RemoteCluster.REMOTE_CONNECTION_MODE.getKey(), "sniff");
+        builder.put(RemoteCluster.REMOTE_CLUSTER_SEEDS.getKey(),
                     Strings.collectionToCommaDelimitedString(seedNodes));
         return builder.build();
     }
