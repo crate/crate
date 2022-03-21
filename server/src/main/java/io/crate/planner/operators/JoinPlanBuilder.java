@@ -32,8 +32,11 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.join.JoinType;
 import javax.annotation.Nullable;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -45,6 +48,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.crate.common.collections.Iterables.getFirst;
 import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
 
 /**
@@ -57,6 +61,35 @@ import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
  */
 public class JoinPlanBuilder {
 
+    @Nullable
+    private static Map<Set<RelationName>, Symbol> extractConstantJoinConditions(JoinPair joinPair) {
+        if (joinPair.condition() != null) {
+            var staticConditions = new HashMap<Set<RelationName>, Symbol>();
+            for (var entry : QuerySplitter.split(joinPair.condition()).entrySet()) {
+                if (ConstantCondition.isConstantCondition(entry.getValue())) {
+                    staticConditions.put(entry.getKey(), entry.getValue());
+                }
+            }
+            return staticConditions;
+        }
+        return null;
+    }
+
+    private static JoinPair removeConstantJoinConditions(JoinPair joinPair) {
+        var nonStaticConditions = new HashMap<Set<RelationName>, Symbol>();
+        for (var entry : QuerySplitter.split(joinPair.condition()).entrySet()) {
+            if (!ConstantCondition.isConstantCondition(entry.getValue())) {
+                nonStaticConditions.put(entry.getKey(), entry.getValue());
+            }
+        }
+        var condition = getFirst(nonStaticConditions.values(), null);
+        if (condition != null) {
+            return JoinPair.of(joinPair.left(), joinPair.right(), joinPair.joinType(), condition);
+        }
+
+        return joinPair;
+    }
+
     static LogicalPlan buildJoinTree(List<AnalyzedRelation> from,
                                      Symbol whereClause,
                                      List<JoinPair> joinPairs,
@@ -66,7 +99,18 @@ public class JoinPlanBuilder {
             return Filter.create(plan.apply(from.get(0)), whereClause);
         }
         Map<Set<RelationName>, Symbol> queryParts = QuerySplitter.split(whereClause);
-        List<JoinPair> allJoinPairs = JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
+        var processedJoinPairs = new ArrayList<JoinPair>(joinPairs.size());
+        for (JoinPair joinPair : joinPairs) {
+            var constantJoinConditions = extractConstantJoinConditions(joinPair);
+            if(constantJoinConditions != null) {
+                queryParts.putAll(constantJoinConditions);
+                var processed = removeConstantJoinConditions(joinPair);
+                processedJoinPairs.add(processed);
+            } else {
+                processedJoinPairs.add(joinPair);
+            }
+        }
+        List<JoinPair> allJoinPairs = JoinOperations.convertImplicitJoinConditionsToJoinPairs(processedJoinPairs, queryParts);
         boolean optimizeOrder = true;
         for (var joinPair : allJoinPairs) {
             if (hasAdditionalDependencies(joinPair)) {

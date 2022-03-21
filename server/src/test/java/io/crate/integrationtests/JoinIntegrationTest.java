@@ -1253,4 +1253,20 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
         execute(stmt);
         assertThat(response.rowCount(), is(0L));
     }
+
+    /**
+     * https://github.com/crate/crate/issues/11404
+     */
+    @Test
+    @UseHashJoins(1)
+    public void test_constant_join_criteria_handling() throws Exception {
+        execute("create table doc.t1 (a integer, b text)");
+        execute("create table doc.t2 (a integer, c text)");
+        execute("explain select doc.t1.*, doc.t2.c from doc.t1 join doc.t2 on doc.t1.a = doc.t2.a and doc.t2.c = 'abc'");
+        assertThat(printedTable(response.rows()),
+                   is("Eval[a, b, c]\n" +
+                      "  └ HashJoin[(a = a)]\n" +
+                      "    ├ Collect[doc.t1 | [a, b] | true]\n" +
+                      "    └ Collect[doc.t2 | [c, a] | (c = 'abc')]\n"));
+    }
 }
