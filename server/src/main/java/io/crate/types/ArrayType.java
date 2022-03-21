@@ -205,13 +205,13 @@ public class ArrayType<T> extends DataType<List<T>> {
         if (value instanceof Collection<?> values) {
             return Lists2.map(values, convertInner);
         } else if (value instanceof String string) {
-            byte[] utf8Bytes = string.getBytes(StandardCharsets.UTF_8);
             try {
                 return (List<T>) PgArrayParser.parse(
-                    utf8Bytes,
+                    string,
                     bytes -> convertInner.apply(new String(bytes, StandardCharsets.UTF_8))
                 );
             } catch (PgArrayParsingException e) {
+                byte[] utf8Bytes = string.getBytes(StandardCharsets.UTF_8);
                 if (innerType instanceof JsonType) {
                     try {
                         return (List<T>) parseJsonList(utf8Bytes);
