@@ -60,7 +60,7 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
         null,
         s -> {
             // validate seed address
-            parsePort(s);
+            RemoteConnectionParser.parsePort(s);
             return s;
         },
         s -> List.of(),
@@ -357,7 +357,7 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
     }
 
     private static DiscoveryNode resolveSeedNode(String clusterAlias, String address) {
-        TransportAddress transportAddress = new TransportAddress(parseConfiguredAddress(address));
+        TransportAddress transportAddress = new TransportAddress(RemoteConnectionParser.parseConfiguredAddress(address));
         return new DiscoveryNode(
             clusterAlias + "#" + transportAddress.toString(),
             transportAddress,
