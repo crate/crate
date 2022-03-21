@@ -604,11 +604,13 @@ public class Node implements Closeable {
                 clusterService
             );
             final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
+                settings,
                 settingsModule.getIndexScopedSettings(),
                 clusterService,
                 remoteClusters,
                 threadPool,
                 client,
+                clusterModule.getAllocationService(),
                 logicalReplicationSettings
             );
             resourcesToClose.add(logicalReplicationService);
