@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
+import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -34,6 +35,7 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
+@UseRandomizedSchema(random = false)
 public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
     @Override
@@ -48,15 +50,15 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_schema_changes_of_subscribed_table_is_replicated() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() +")");
-        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
-        createPublication("pub1", false, List.of("doc.t1"));
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
+        createPublication("pub1", false, List.of("t1"));
         createSubscription("sub1", "pub1");
 
         // Ensure tracker has started
         assertBusy(() -> assertThat(isTrackerActive(), is(true)));
 
-        executeOnPublisher("ALTER TABLE doc.t1 ADD COLUMN value string");
+        executeOnPublisher("ALTER TABLE t1 ADD COLUMN value string");
         assertBusy(() -> {
             var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
                                         " WHERE table_name = 't1'" +
@@ -68,28 +70,28 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_schema_changes_of_subscribed_table_is_replicated_and_new_data_is_synced() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() +")");
-        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
-        createPublication("pub1", false, List.of("doc.t1"));
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
+        createPublication("pub1", false, List.of("t1"));
         createSubscription("sub1", "pub1");
 
         // Ensure tracker has started
         assertBusy(() -> assertThat(isTrackerActive(), is(true)));
 
-        executeOnPublisher("ALTER TABLE doc.t1 ADD COLUMN name varchar");
+        executeOnPublisher("ALTER TABLE t1 ADD COLUMN name varchar");
         //This insert is synced to the subscriber and the mapping might not be updated yet
-        executeOnPublisher("INSERT INTO doc.t1 (id, name) VALUES (3, 'chewbacca')");
-        executeOnPublisher("INSERT INTO doc.t1 (id, name) VALUES (4, 'r2d2')");
-        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("INSERT INTO t1 (id, name) VALUES (3, 'chewbacca')");
+        executeOnPublisher("INSERT INTO t1 (id, name) VALUES (4, 'r2d2')");
+        executeOnPublisher("REFRESH TABLE t1");
         //Lets alter the table again
-        executeOnPublisher("ALTER TABLE doc.t1 ADD COLUMN age integer");
-        executeOnPublisher("INSERT INTO doc.t1 (id, name, age) VALUES (5, 'luke', 37)");
-        executeOnPublisher("INSERT INTO doc.t1 (id, name, age) VALUES (6, 'yoda', 900)");
-        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("ALTER TABLE t1 ADD COLUMN age integer");
+        executeOnPublisher("INSERT INTO t1 (id, name, age) VALUES (5, 'luke', 37)");
+        executeOnPublisher("INSERT INTO t1 (id, name, age) VALUES (6, 'yoda', 900)");
+        executeOnPublisher("REFRESH TABLE t1");
 
         assertBusy(() -> {
-            executeOnSubscriber("REFRESH TABLE doc.t1");
-            var r = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
+            executeOnSubscriber("REFRESH TABLE t1");
+            var r = executeOnSubscriber("SELECT * FROM t1 ORDER BY id");
             assertThat(printedTable(r.rows()), is("1| NULL| NULL\n" +
                                                   "2| NULL| NULL\n" +
                                                   "3| chewbacca| NULL\n"+
@@ -132,19 +134,19 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_new_table_and_new_partition_is_replicated() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
-        executeOnPublisher("CREATE TABLE doc.t2 (id INT, p INT) PARTITIONED BY (p)");
-        createPublication("pub1", true, List.of("doc.t1", "doc.t2"));
+        executeOnPublisher("CREATE TABLE t1 (id INT)");
+        executeOnPublisher("CREATE TABLE t2 (id INT, p INT) PARTITIONED BY (p)");
+        createPublication("pub1", true, List.of("t1", "t2"));
         createSubscription("sub1", "pub1");
 
         // Ensure tracker has started
         assertBusy(() -> assertThat(isTrackerActive(), is(true)));
 
         // Create new partition
-        executeOnPublisher("INSERT INTO doc.t2 (id, p) VALUES (1, 1)");
+        executeOnPublisher("INSERT INTO t2 (id, p) VALUES (1, 1)");
         // Create new table
-        executeOnPublisher("CREATE TABLE doc.t3 (id INT)");
-        executeOnPublisher("GRANT DQL ON TABLE doc.t3 TO " + SUBSCRIBING_USER);
+        executeOnPublisher("CREATE TABLE t3 (id INT)");
+        executeOnPublisher("GRANT DQL ON TABLE t3 TO " + SUBSCRIBING_USER);
 
         assertBusy(() -> {
             var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
@@ -161,16 +163,16 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_new_empty_partitioned_table_is_replicated() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
-        createPublication("pub1", true, List.of("doc.t1"));
+        executeOnPublisher("CREATE TABLE t1 (id INT)");
+        createPublication("pub1", true, List.of("t1"));
         createSubscription("sub1", "pub1");
 
         // Ensure tracker has started
         assertBusy(() -> assertThat(isTrackerActive(), is(true)));
 
         // Create new table
-        executeOnPublisher("CREATE TABLE doc.t2 (id INT, p INT) PARTITIONED BY (p)");
-        executeOnPublisher("GRANT DQL ON TABLE doc.t2 TO " + SUBSCRIBING_USER);
+        executeOnPublisher("CREATE TABLE t2 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("GRANT DQL ON TABLE t2 TO " + SUBSCRIBING_USER);
 
         assertBusy(() -> {
             var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
