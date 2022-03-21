@@ -39,7 +39,6 @@ public class AnalyzedCopyTo implements AnalyzedStatement {
     private final List<Symbol> columns;
     @Nullable
     private final Symbol whereClause;
-    private boolean waitForCompletion;
 
     AnalyzedCopyTo(TableInfo tableInfo,
                    Table<Symbol> table,
@@ -78,14 +77,6 @@ public class AnalyzedCopyTo implements AnalyzedStatement {
     @Nullable
     public Symbol whereClause() {
         return whereClause;
-    }
-
-    public boolean waitForCompletion() {
-        return waitForCompletion;
-    }
-
-    public void setWaitForCompletion(boolean waitForCompletion) {
-        this.waitForCompletion = waitForCompletion;
     }
 
     @Override

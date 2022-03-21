@@ -34,6 +34,7 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -120,7 +121,7 @@ public final class CopyToPlan extends CopyPlan implements Plan {
         JobLauncher jobLauncher = executor.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        executeWithWaitCondition(consumer, plannerContext.transactionContext(), jobLauncher::execute, copyTo.waitForCompletion());
+        executeWithWaitCondition(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion(executionPlan));
     }
 
     @VisibleForTesting
@@ -243,9 +244,6 @@ public final class CopyToPlan extends CopyPlan implements Plan {
         WriterProjection.OutputFormat outputFormat =
             settingAsEnum(WriterProjection.OutputFormat.class, OUTPUT_FORMAT_SETTING.get(settings));
 
-        var waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
-        copyTo.setWaitForCompletion(waitForCompletion);
-
         if (!columnsDefined && outputFormat == WriterProjection.OutputFormat.JSON_ARRAY) {
             throw new UnsupportedFeatureException("Output format not supported without specifying columns.");
         }
@@ -276,5 +274,14 @@ public final class CopyToPlan extends CopyPlan implements Plan {
             throw new PartitionUnknownException(partitionName);
         }
         return List.of(partitionName.asIndexName());
+    }
+
+    private boolean waitForCompletion(ExecutionPlan plan) {
+        try {
+            return ((WriterProjection)((RoutedCollectPhase)((io.crate.planner.node.dql.Collect)plan).collectPhase())
+                .projections().get(0)).withClauseOptions().getAsBoolean("wait_for_completion", true);
+        } catch (Exception e) {
+            return true;
+        }
     }
 }

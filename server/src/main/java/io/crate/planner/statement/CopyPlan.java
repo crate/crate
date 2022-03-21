@@ -33,6 +33,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.metadata.TransactionContext;
 
+
 public abstract class CopyPlan {
 
     public static void executeWithWaitCondition(RowConsumer consumer,

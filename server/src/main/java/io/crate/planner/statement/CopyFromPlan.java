@@ -122,7 +122,7 @@ public final class CopyFromPlan extends CopyPlan implements Plan {
         JobLauncher jobLauncher = dependencies.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        executeWithWaitCondition(consumer, plannerContext.transactionContext(), jobLauncher::execute, copyFrom.waitForCompletion());
+        executeWithWaitCondition(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion(plan));
     }
 
     @VisibleForTesting
@@ -161,8 +161,6 @@ public final class CopyFromPlan extends CopyPlan implements Plan {
         // to the required type already at this stage, but not later on in FileCollectSource.
         var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()));
         var header = settings.getAsBoolean("header", true);
-        var waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
-        copyFrom.setWaitForCompletion(waitForCompletion);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
             targetColumns = Lists2.map(copyFrom.tableInfo().columns(), Reference::toString);
@@ -346,6 +344,16 @@ public final class CopyFromPlan extends CopyPlan implements Plan {
             if (idx > -1) {
                 toCollect.set(idx, Literal.of(partitionValues.get(i)));
             }
+        }
+    }
+
+    private boolean waitForCompletion(ExecutionPlan plan) {
+        try {
+            return ((FileUriCollectPhase) ((Collect) plan).collectPhase()).withClauseOptions().getAsBoolean(
+                "wait_for_completion",
+                true);
+        } catch (Exception e) {
+            return true;
         }
     }
 
