@@ -349,9 +349,8 @@ public final class CopyFromPlan extends CopyPlan implements Plan {
 
     private boolean waitForCompletion(ExecutionPlan plan) {
         try {
-            return ((FileUriCollectPhase) ((Collect) plan).collectPhase()).withClauseOptions().getAsBoolean(
-                "wait_for_completion",
-                true);
+            return ((FileUriCollectPhase) ((Collect) plan).collectPhase()).
+                withClauseOptions().getAsBoolean("wait_for_completion", true);
         } catch (Exception e) {
             return true;
         }
