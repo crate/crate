@@ -103,3 +103,6 @@ Fixes
 
 - Fixed an issue that caused an ``Relation unknown`` error while trying to
   close an empty partitioned table using ``ALTER TABLE ... CLOSE``.
+
+- Bumped JNA library to version 5.10.0. This will make CrateDB start without
+  JNA library warnings on M1 chip based MacOS systems.
