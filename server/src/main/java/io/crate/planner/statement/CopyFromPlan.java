@@ -86,7 +86,7 @@ import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
-public final class CopyFromPlan extends CopyPlan implements Plan {
+public final class CopyFromPlan implements Plan {
 
     private final AnalyzedCopyFrom copyFrom;
 
@@ -122,7 +122,7 @@ public final class CopyFromPlan extends CopyPlan implements Plan {
         JobLauncher jobLauncher = dependencies.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        execute(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion(plan));
+        CopyPlan.execute(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion(plan));
     }
 
     @VisibleForTesting

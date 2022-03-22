@@ -34,12 +34,13 @@ import io.crate.data.RowConsumer;
 import io.crate.metadata.TransactionContext;
 
 
-public abstract class CopyPlan {
+public class CopyPlan {
 
     public static void execute(RowConsumer consumer,
                                TransactionContext txnCtx,
                                BiConsumer<RowConsumer, TransactionContext> biConsumer,
                                boolean waitForCompletion) {
+
         if (waitForCompletion) {
             biConsumer.accept(consumer, txnCtx);
         } else {
