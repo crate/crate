@@ -22,6 +22,7 @@
 package io.crate.integrationtests.disruption.replication.logical;
 
 import io.crate.integrationtests.LogicalReplicationITestCase;
+import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
 import io.crate.replication.logical.action.PublicationsStateAction;
@@ -31,6 +32,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
@@ -142,8 +144,8 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
         var expectedLogMessage = "Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking";
         var mockAppender = appendLogger(expectedLogMessage, MetadataTracker.class, Level.ERROR);
 
-        startDisrupting((subscriberTransport, publisherTransport) -> {
-            subscriberTransport.addSendBehavior(publisherTransport, (connection, requestId, action, request, options) -> {
+        startDisrupting((subscriberTransport, publisherAddress) -> {
+            subscriberTransport.addSendBehavior(publisherAddress, (connection, requestId, action, request, options) -> {
                 if (action.equals(ClusterStateAction.NAME)) {
                     throw new ElasticsearchException("rejected");
                 }
@@ -201,13 +203,18 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
         mockAppender.stop();
     }
 
-    private void startDisrupting(BiConsumer<MockTransportService, MockTransportService> failureBehaviour) {
+    private void startDisrupting(BiConsumer<MockTransportService, TransportAddress> failureBehaviour) {
         logger.info("--> start disrupting subscriber<->publisher cluster");
         String subscriberNode = subscriberCluster.getMasterName();
         String publisherNode = publisherCluster.getMasterName();
         MockTransportService subscriberTransport = (MockTransportService) subscriberCluster.getInstance(TransportService.class, subscriberNode);
         MockTransportService publisherTransport = (MockTransportService) publisherCluster.getInstance(TransportService.class, publisherNode);
-        failureBehaviour.accept(subscriberTransport, publisherTransport);
+
+        PostgresNetty publisherPostgres = publisherCluster.getInstance(PostgresNetty.class);
+        for (var address : MockTransportService.extractTransportAddresses(publisherTransport)) {
+            failureBehaviour.accept(subscriberTransport, address);
+        }
+        failureBehaviour.accept(subscriberTransport, publisherPostgres.boundAddress().publishAddress());
     }
 
     private void stopDisrupting() {
@@ -216,6 +223,8 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
         String publisherNode = publisherCluster.getMasterName();
         MockTransportService subscriberTransport = (MockTransportService) subscriberCluster.getInstance(TransportService.class, subscriberNode);
         MockTransportService publisherTransport = (MockTransportService) publisherCluster.getInstance(TransportService.class, publisherNode);
+        PostgresNetty publisherPostgres = publisherCluster.getInstance(PostgresNetty.class);
         subscriberTransport.clearOutboundRules(publisherTransport);
+        subscriberTransport.clearOutboundRules(publisherPostgres.boundAddress().publishAddress());
     }
 }

@@ -39,7 +39,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 
-final class OutboundHandler {
+public final class OutboundHandler {
 
     private static final Logger LOGGER = LogManager.getLogger(OutboundHandler.class);
 
@@ -77,15 +77,15 @@ final class OutboundHandler {
      * Sends the request to the given channel. This method should be used to send {@link TransportRequest}
      * objects back to the caller.
      */
-    void sendRequest(final DiscoveryNode node,
-                     final TcpChannel channel,
-                     final long requestId,
-                     final String action,
-                     final TransportRequest request,
-                     final TransportRequestOptions options,
-                     final Version channelVersion,
-                     final boolean compressRequest,
-                     final boolean isHandshake) throws IOException, TransportException {
+    public void sendRequest(final DiscoveryNode node,
+                            final TcpChannel channel,
+                            final long requestId,
+                            final String action,
+                            final TransportRequest request,
+                            final TransportRequestOptions options,
+                            final Version channelVersion,
+                            final boolean compressRequest,
+                            final boolean isHandshake) throws IOException, TransportException {
         Version version = Version.min(this.version, channelVersion);
         OutboundMessage.Request message = new OutboundMessage.Request(
             request,

@@ -51,6 +51,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Objects;
@@ -111,6 +112,7 @@ import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
+import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.PageCacheRecycler;
@@ -145,8 +147,12 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.TransportSettings;
 
+import io.crate.action.sql.SQLOperations;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.testing.SQLTransportExecutor;
+
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -2223,5 +2229,47 @@ public final class InternalTestCluster extends TestCluster {
 
     public int numNodes() {
         return nodes.size();
+    }
+
+    public SQLTransportExecutor createSQLTransportExecutor() {
+        return createSQLTransportExecutor(false, null);
+    }
+
+    public SQLTransportExecutor createSQLTransportExecutor(boolean useSSL, @Nullable String nodeName) {
+        return new SQLTransportExecutor(
+            new SQLTransportExecutor.ClientProvider() {
+
+                @Override
+                public Client client() {
+                    if (nodeName == null) {
+                        return InternalTestCluster.this.client();
+                    }
+                    return InternalTestCluster.this.client(nodeName);
+                }
+
+                @Override
+                public String pgUrl() {
+                    PostgresNetty postgresNetty = getInstance(PostgresNetty.class);
+                    BoundTransportAddress boundAddress = postgresNetty.boundAddress();
+                    if (boundAddress == null) {
+                        return null;
+                    }
+                    InetSocketAddress address = boundAddress.publishAddress().address();
+                    return String.format(
+                        Locale.ENGLISH,
+                        "jdbc:postgresql://%s:%d/?ssl=%s&sslmode=%s",
+                        address.getHostName(),
+                        address.getPort(),
+                        useSSL,
+                        useSSL ? "require" : "disable"
+                    );
+                }
+
+                @Override
+                public SQLOperations sqlOperations() {
+                    return getInstance(SQLOperations.class);
+                }
+            }
+        );
     }
 }

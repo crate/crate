@@ -56,35 +56,66 @@ Parameters
 .. _sql-create-subscription-conn-info:
 
 **CONNECTION 'conninfo'**
+
   The connection string to the publisher, which is URL in the following format:
   ::
 
       crate://host:[port]?params
 
-  Port is optional and default value is ``4300``. Parameters are given in the
-  ``key=value`` format and separated by ``&``. Example:
+  Parameters are given in the ``key=value`` format and separated by ``&``. Example:
 
   ::
 
       crate://example.com?user=my_user&password=1234&sslmode=disable
 
-  There can be multiple ``host:port`` pairs, separated by a comma. Parameters
-  will be same for all hosts. Example:
+
+  Supported parameters:
+
+  ``mode``: Sets how the subscriber cluster communicates with the publisher
+  cluster. Two modes are supported: ``sniff`` (the default) and ``pg_tunnel``.
+
+  In the ``sniff`` mode, the subscriber cluster will use the transport protocol
+  to communicate with the other cluster and it will attempt to establish direct
+  connections to each node of the publisher cluster. The ``port`` defaults to
+  4300.
+
+  In ``sniff`` mode there can be multiple ``host:port`` pairs, separated by a
+  comma. Parameters will be same for all hosts. Example:
 
   ::
 
       crate://example.com:4310,123.123.123.123
 
-  Supported parameters:
+
+  In the ``pg_tunnel`` mode, the subscriber cluster will initiate the
+  connection using the PostgreSQL wire protocol, and then proceed communicating
+  via the transport protocol, but within the connection established via the
+  PostgreSQL protocol. All requests from the subscriber cluster to the
+  publisher cluster will get routed through a single node. The connection is
+  only established to the first host listed in the connection string.
+
+
+Parameters supported with both modes:
 
   ``user``: name of the user who connects to a publishing cluster. Required.
 
   ``password``: user password.
 
-  ``sslmode``: one of the values (``prefer``, ``allow``, ``disable``, ``require``).
+
+Parameters supported in the ``sniff`` mode:
 
   ``seeds``:  A comma separated list of initial seed nodes to discover eligible
   nodes from the remote cluster.
+
+
+Parameters supported in the ``pg_tunnel`` mode:
+
+  ``sslmode``: Configures whether the connection should use SSL. You must have
+  a working SSL setup for the PostgreSQL wire protocol on both the subscriber
+  and publisher cluster.
+
+  Allowed values are ``require`` or ``disable``. Defaults to ``disable``.
+
 
 **PUBLICATION publication_name**
   Names of the publications on the publisher to subscribe to

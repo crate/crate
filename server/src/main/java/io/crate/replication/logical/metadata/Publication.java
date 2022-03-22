@@ -91,4 +91,9 @@ public class Publication implements Writeable {
     public int hashCode() {
         return Objects.hash(owner, tables, forAllTables);
     }
+
+    @Override
+    public String toString() {
+        return "Publication{forAllTables=" + forAllTables + ", owner=" + owner + ", tables=" + tables + "}";
+    }
 }

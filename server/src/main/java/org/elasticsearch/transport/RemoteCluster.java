@@ -36,6 +36,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.io.IOUtils;
+import io.crate.protocols.postgres.PgClient;
+import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.types.DataTypes;
 
@@ -84,18 +86,22 @@ public class RemoteCluster implements Closeable {
     private final ThreadPool threadPool;
     private final Settings settings;
     private final List<Closeable> toClose = new ArrayList<>();
+    private final PgClientFactory pgClientFactory;
 
     private volatile Client client;
+
 
     public RemoteCluster(String name,
                          Settings settings,
                          ConnectionInfo connectionInfo,
+                         PgClientFactory pgClientFactory,
                          ThreadPool threadPool,
                          TransportService transportService) {
         this.settings = settings;
         this.threadPool = threadPool;
         this.clusterName = name;
         this.connectionInfo = connectionInfo;
+        this.pgClientFactory = pgClientFactory;
         this.transportService = transportService;
         this.connectionStrategy = REMOTE_CONNECTION_MODE.get(connectionInfo.settings());
     }
@@ -126,7 +132,13 @@ public class RemoteCluster implements Closeable {
     }
 
     private CompletableFuture<Client> connectPgTunnel() {
-        return CompletableFuture.failedFuture(new IllegalArgumentException("PG tunneling is not supported"));
+        try {
+            PgClient pgClient = pgClientFactory.createClient(clusterName, connectionInfo);
+            toClose.add(pgClient);
+            return pgClient.ensureConnected().thenApply(connection -> pgClient);
+        } catch (Throwable e) {
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     private CompletableFuture<Client> connectSniff() {

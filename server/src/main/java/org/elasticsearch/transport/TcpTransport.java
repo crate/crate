@@ -905,6 +905,10 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         return requestHandlers;
     }
 
+    public OutboundHandler outboundHandler() {
+        return outboundHandler;
+    }
+
     private final class ChannelsConnectedListener implements ActionListener<Void> {
 
         private final DiscoveryNode node;
@@ -997,5 +1001,4 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             assert false : e; // never called
         }
     }
-
 }

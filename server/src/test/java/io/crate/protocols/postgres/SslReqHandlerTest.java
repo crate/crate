@@ -74,6 +74,7 @@ public class SslReqHandlerTest extends ESTestCase {
             new PostgresWireProtocol(
                 mock(SQLOperations.class),
                 sessionContext -> AccessControl.DISABLED,
+                chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> null),
                 // use a simple ssl context
                 getSelfSignedSslContextProvider());
