@@ -122,7 +122,7 @@ public final class CopyFromPlan extends CopyPlan implements Plan {
         JobLauncher jobLauncher = dependencies.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        executeWithWaitCondition(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion(plan));
+        execute(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion(plan));
     }
 
     @VisibleForTesting

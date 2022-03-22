@@ -121,7 +121,7 @@ public final class CopyToPlan extends CopyPlan implements Plan {
         JobLauncher jobLauncher = executor.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        executeWithWaitCondition(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion(executionPlan));
+        execute(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion(executionPlan));
     }
 
     @VisibleForTesting

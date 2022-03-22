@@ -36,10 +36,10 @@ import io.crate.metadata.TransactionContext;
 
 public abstract class CopyPlan {
 
-    public static void executeWithWaitCondition(RowConsumer consumer,
-                                                TransactionContext txnCtx,
-                                                BiConsumer<RowConsumer, TransactionContext> biConsumer,
-                                                boolean waitForCompletion) {
+    public static void execute(RowConsumer consumer,
+                               TransactionContext txnCtx,
+                               BiConsumer<RowConsumer, TransactionContext> biConsumer,
+                               boolean waitForCompletion) {
         if (waitForCompletion) {
             biConsumer.accept(consumer, txnCtx);
         } else {
