@@ -66,6 +66,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.crate.protocols.SSL.getSession;
@@ -196,6 +197,7 @@ public class PostgresWireProtocol {
     private final Function<SessionContext, AccessControl> getAccessControl;
     private final Authentication authService;
     private final SslReqHandler sslReqHandler;
+    private final Consumer<ChannelPipeline> addTransportHandler;
 
     private DelayableWriteChannel channel;
     private int msgLength;
@@ -217,10 +219,12 @@ public class PostgresWireProtocol {
 
     PostgresWireProtocol(SQLOperations sqlOperations,
                          Function<SessionContext, AccessControl> getAcessControl,
+                         Consumer<ChannelPipeline> addTransportHandler,
                          Authentication authService,
                          @Nullable SslContextProvider sslContextProvider) {
         this.sqlOperations = sqlOperations;
         this.getAccessControl = getAcessControl;
+        this.addTransportHandler = addTransportHandler;
         this.authService = authService;
         this.sslReqHandler = new SslReqHandler(sslContextProvider);
         this.decoder = new MessageDecoder();
@@ -453,6 +457,10 @@ public class PostgresWireProtocol {
             session = sqlOperations.createSession(database, authenticatedUser);
             Messages.sendAuthenticationOK(channel)
                 .addListener(f -> sendParamsAndRdyForQuery(channel));
+
+            if (properties.containsKey("CrateDBTransport")) {
+                switchToTransportProtocol(channel);
+            }
         } catch (Exception e) {
             Messages.sendAuthenticationError(channel, e.getMessage());
         } finally {
@@ -460,6 +468,16 @@ public class PostgresWireProtocol {
             authContext = null;
         }
     }
+
+    private void switchToTransportProtocol(Channel channel) {
+        var pipeline = channel.pipeline();
+        pipeline.remove("frame-decoder");
+        pipeline.remove("handler");
+
+        // SSL is already done via PostgreSQL handshake/auth
+        addTransportHandler.accept(pipeline);
+    }
+
 
     private void sendParamsAndRdyForQuery(Channel channel) {
         Messages.sendParameterStatus(channel, "crate_version", Version.CURRENT.externalNumber());

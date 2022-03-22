@@ -62,7 +62,7 @@ public class ConnectionInfo implements Writeable {
         USERNAME.getKey(),
         PASSWORD.getKey(),
         SSLMODE.getKey(),
-        // Remote connection mode is always SNIFF - user don't have to specify it in the connection string.
+        RemoteCluster.REMOTE_CONNECTION_MODE.getKey(),
         RemoteCluster.REMOTE_CLUSTER_SEEDS.getKey()
     );
 

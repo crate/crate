@@ -27,10 +27,12 @@ import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.testing.MoreMatchers;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -194,8 +196,18 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         assertThrowsMatches(
             () ->   createSubscription("sub1", "pub1"),
-            IllegalStateException.class,
-            "Cannot create a subscription, subscribing user '" + SUBSCRIBING_USER + "' was not found."
+            Matchers.anyOf(
+                // If executing via sniff mode, the user is not found
+                MoreMatchers.exception(
+                    IllegalStateException.class,
+                    "Cannot create a subscription, subscribing user '" + SUBSCRIBING_USER + "' was not found."),
+
+                // If executing via pg-tunneling the authentication will fail because of the missing user
+                MoreMatchers.exception(
+                    IllegalStateException.class,
+                    Matchers.containsString("Error response: FATAL, trust authentication failed for user \"subscriber\"")
+                )
+            )
         );
     }
 

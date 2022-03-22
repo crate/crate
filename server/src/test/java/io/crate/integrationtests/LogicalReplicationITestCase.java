@@ -257,16 +257,16 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
     }
 
     public String publisherConnectionUrl() {
-        var transportService = publisherCluster.getInstance(TransportService.class);
-        InetSocketAddress address = transportService.boundAddress().publishAddress().address();
+        // TODO randomize between PostgreSQL tunnel and transport sniff
+        // var transportService = publisherCluster.getInstance(TransportService.class);
+        var postgres = publisherCluster.getInstance(PostgresNetty.class);
+        InetSocketAddress address = postgres.boundAddress().publishAddress().address();
         return String.format(
             Locale.ENGLISH,
-            "crate://%s:%d?user=%s&seeds=%s:%d",
+            "crate://%s:%d?user=%s&mode=pg_tunnel",
             address.getHostName(),
             address.getPort(),
-            SUBSCRIBING_USER,
-            address.getHostName(),
-            address.getPort()
+            SUBSCRIBING_USER
         );
     }
 

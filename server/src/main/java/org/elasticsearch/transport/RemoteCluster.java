@@ -29,13 +29,18 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.io.IOUtils;
+import io.crate.protocols.postgres.PgClient;
+import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.types.DataTypes;
 
@@ -84,18 +89,22 @@ public class RemoteCluster implements Closeable {
     private final ThreadPool threadPool;
     private final Settings settings;
     private final List<Closeable> toClose = new ArrayList<>();
+    private final PgClientFactory pgClientFactory;
 
     private volatile Client client;
+
 
     public RemoteCluster(String name,
                          Settings settings,
                          ConnectionInfo connectionInfo,
+                         PgClientFactory pgClientFactory,
                          ThreadPool threadPool,
                          TransportService transportService) {
         this.settings = settings;
         this.threadPool = threadPool;
         this.clusterName = name;
         this.connectionInfo = connectionInfo;
+        this.pgClientFactory = pgClientFactory;
         this.transportService = transportService;
         this.connectionStrategy = REMOTE_CONNECTION_MODE.get(connectionInfo.settings());
     }
@@ -126,7 +135,17 @@ public class RemoteCluster implements Closeable {
     }
 
     private CompletableFuture<Client> connectPgTunnel() {
-        return CompletableFuture.failedFuture(new IllegalArgumentException("PG tunneling is not supported"));
+        List<String> hosts = connectionInfo.hosts();
+        if (hosts.isEmpty()) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("No hosts configured for pg tunnel"));
+        }
+        PgClient pgClient = pgClientFactory.createClient(
+            toDiscoveryNode(hosts.get(0)),
+            ConnectionInfo.USERNAME.get(connectionInfo.settings()),
+            ConnectionInfo.PASSWORD.get(connectionInfo.settings())
+        );
+        toClose.add(pgClient);
+        return pgClient.ensureConnected().thenApply(connection -> pgClient);
     }
 
     private CompletableFuture<Client> connectSniff() {
@@ -143,5 +162,14 @@ public class RemoteCluster implements Closeable {
         });
         remoteConnection.ensureConnected(listener);
         return listener;
+    }
+
+    private DiscoveryNode toDiscoveryNode(String seedNode) {
+        var transportAddress = new TransportAddress(RemoteConnectionParser.parseConfiguredAddress(seedNode));
+        return new DiscoveryNode(
+            "RemoteCluster=" + clusterName + "#" + transportAddress.toString(),
+            transportAddress,
+            Version.CURRENT.minimumCompatibilityVersion()
+        );
     }
 }

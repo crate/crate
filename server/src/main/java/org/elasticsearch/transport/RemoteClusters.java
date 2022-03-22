@@ -32,6 +32,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.io.IOUtils;
+import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 
 
@@ -41,12 +42,15 @@ public class RemoteClusters implements Closeable {
     private final ThreadPool threadPool;
     private final TransportService transportService;
     private final Map<String, RemoteCluster> remoteClusters = new HashMap<>();
+    private final PgClientFactory pgClientFactory;
 
     public RemoteClusters(Settings settings,
                           ThreadPool threadPool,
+                          PgClientFactory pgClientFactory,
                           TransportService transportService) {
         this.settings = settings;
         this.threadPool = threadPool;
+        this.pgClientFactory = pgClientFactory;
         this.transportService = transportService;
     }
 
@@ -74,7 +78,14 @@ public class RemoteClusters implements Closeable {
                                                           ConnectionInfo connectionInfo) {
         RemoteCluster remoteCluster = this.remoteClusters.get(name);
         if (remoteCluster == null) {
-            remoteCluster = new RemoteCluster(name, settings, connectionInfo, threadPool, transportService);
+            remoteCluster = new RemoteCluster(
+                name,
+                settings,
+                connectionInfo,
+                pgClientFactory,
+                threadPool,
+                transportService
+            );
             remoteClusters.put(name, remoteCluster);
             return remoteCluster.connectAndGetClient();
         } else {

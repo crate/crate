@@ -160,11 +160,11 @@ public class RemoteConnectionManager implements ConnectionManager {
         this.connectedNodes = Collections.unmodifiableList(newConnectedNodes);
     }
 
-    static final class ProxyConnection implements Transport.Connection {
+    public static final class ProxyConnection implements Transport.Connection {
         private final Transport.Connection connection;
         private final DiscoveryNode targetNode;
 
-        private ProxyConnection(Transport.Connection connection, DiscoveryNode targetNode) {
+        public ProxyConnection(Transport.Connection connection, DiscoveryNode targetNode) {
             this.connection = connection;
             this.targetNode = targetNode;
         }

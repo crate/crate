@@ -27,6 +27,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Class to encode postgres client messages and write them onto a buffer.
@@ -36,20 +37,47 @@ import java.util.List;
  */
 class ClientMessages {
 
-    static void sendSslReqMessage(ByteBuf buffer) {
+    static ByteBuf writeSSLReqMessage(ByteBuf buffer) {
         buffer.writeInt(SslReqHandler.SSL_REQUEST_BYTE_LENGTH);
         buffer.writeInt(SslReqHandler.SSL_REQUEST_CODE);
+        return buffer;
     }
 
-    static void sendStartupMessage(ByteBuf buffer, String dbName) {
+    static ByteBuf sendStartupMessage(ByteBuf buffer, String dbName) {
+        return sendStartupMessage(buffer, dbName, Map.of());
+    }
+
+    static ByteBuf sendStartupMessage(ByteBuf buffer, String dbName, Map<String, String> properties) {
+        // length itself and protocol version number
+        // updated later to include the body
+        int length = 8;
+        int protocolVersion = 3;
+        final int lengthIndex = buffer.writerIndex();
+        buffer.writeInt(length);
+        buffer.writeInt(protocolVersion);
+
         byte[] dbKey = "database".getBytes(StandardCharsets.UTF_8);
-        byte[] dbValue = dbName.getBytes(StandardCharsets.UTF_8);
-        buffer.writeInt(8 + dbKey.length + 1 + dbValue.length + 1);
-        buffer.writeInt(3);
+        length += dbKey.length + 1;
         buffer.writeBytes(dbKey);
         buffer.writeByte(0);
+
+        byte[] dbValue = dbName.getBytes(StandardCharsets.UTF_8);
+        length += dbValue.length + 1;
         buffer.writeBytes(dbValue);
         buffer.writeByte(0);
+
+        for (var entry : properties.entrySet()) {
+            byte[] key = entry.getKey().getBytes(StandardCharsets.UTF_8);
+            byte[] value = entry.getValue().getBytes(StandardCharsets.UTF_8);
+            length += key.length + value.length + 2;
+
+            buffer.writeBytes(key);
+            buffer.writeByte(0);
+            buffer.writeBytes(value);
+            buffer.writeByte(0);
+        }
+        buffer.setInt(lengthIndex, length);
+        return buffer;
     }
 
     static void sendParseMessage(ByteBuf buffer, String stmtName, String query, int[] paramOids) {
@@ -88,7 +116,7 @@ class ClientMessages {
         byte[] portalBytes = portalName.getBytes(StandardCharsets.UTF_8);
         byte[] statementBytes = statementName.getBytes(StandardCharsets.UTF_8);
 
-        int beforeLengthWriterIndex = buffer.writerIndex();
+        final int beforeLengthWriterIndex = buffer.writerIndex();
         buffer.writeInt(0);
         writeCString(buffer, portalBytes);
         writeCString(buffer, statementBytes);
