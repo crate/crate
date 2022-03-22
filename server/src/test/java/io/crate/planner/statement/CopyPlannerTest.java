@@ -52,13 +52,13 @@ public class CopyPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyPlanNoWaitForCompletion() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
         CopyPlan.executeWithWaitCondition(consumer, plannerContext.transactionContext(), (a,b)-> {}, false);
-        assertThat((Long)consumer.getResultWithTimeout(1).get(0)[0], is(-1L));
+        assertThat((Long)consumer.getResult(1).get(0)[0], is(-1L));
     }
 
     @Test(expected = TimeoutException.class)
     public void testCopyPlanWaitForCompletion() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
         CopyPlan.executeWithWaitCondition(consumer, plannerContext.transactionContext(), (a,b)-> {}, true);
-        consumer.getResultWithTimeout(1);
+        consumer.getResult(1);
     }
 }
