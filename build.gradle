@@ -190,6 +190,7 @@ task jacocoReport(type: JacocoReport) {
         evaluationDependsOn(it.path)
         if (it.plugins.withType(JavaPlugin) && it.tasks.withType(Test)) {
             sourceSets it.sourceSets.main
+            dependsOn << it.tasks.withType(Test)
         }
     }
 
