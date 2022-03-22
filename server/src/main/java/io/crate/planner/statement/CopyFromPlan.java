@@ -109,8 +109,17 @@ public final class CopyFromPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
+
+        var boundedCopyFrom = bind(
+            copyFrom,
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext(),
+            params,
+            subQueryResults);
+
         ExecutionPlan plan = planCopyFromExecution(
             copyFrom,
+            boundedCopyFrom,
             dependencies.clusterService().state().nodes(),
             plannerContext,
             params,
@@ -122,16 +131,8 @@ public final class CopyFromPlan implements Plan {
         JobLauncher jobLauncher = dependencies.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        assert plan instanceof Collect :
-            "execution plan must be Collect plan";
-
-        assert ((Collect) plan).collectPhase() instanceof FileUriCollectPhase :
-            "collect phase must be FileUriCollectPhase";
-
-        boolean waitForCompletion = ((FileUriCollectPhase) ((Collect) plan).collectPhase()).withClauseOptions()
-            .getAsBoolean("wait_for_completion", true);
-
-        CopyPlan.execute(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion);
+        CopyPlan.execute(consumer, plannerContext.transactionContext(), jobLauncher::execute,
+                         boundedCopyFrom.settings().getAsBoolean("wait_for_completion", true));
     }
 
     @VisibleForTesting
@@ -186,16 +187,11 @@ public final class CopyFromPlan implements Plan {
     }
 
     public static ExecutionPlan planCopyFromExecution(AnalyzedCopyFrom copyFrom,
+                                                      BoundCopyFrom boundedCopyFrom,
                                                       DiscoveryNodes allNodes,
                                                       PlannerContext context,
                                                       Row params,
                                                       SubQueryResults subQueryResults) {
-        var boundedCopyFrom = bind(
-            copyFrom,
-            context.transactionContext(),
-            context.nodeContext(),
-            params,
-            subQueryResults);
 
         /*
          * Create a plan that reads json-objects-lines from a file

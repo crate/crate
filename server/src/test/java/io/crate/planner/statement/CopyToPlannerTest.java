@@ -81,9 +81,15 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private <T> T plan(String stmt) {
         CopyToPlan plan = e.plan(stmt);
+        var boundedCopyTo = CopyToPlan.bind(
+            plan.copyTo(),
+            e.getPlannerContext(clusterService.state()).transactionContext(),
+            e.getPlannerContext(clusterService.state()).nodeContext(),
+            Row.EMPTY,
+            SubQueryResults.EMPTY);
         //noinspection unchecked
         return (T) CopyToPlan.planCopyToExecution(
-            plan.copyTo(),
+            boundedCopyTo,
             e.getPlannerContext(clusterService.state()),
             new TableStats(),
             new ProjectionBuilder(e.nodeCtx),

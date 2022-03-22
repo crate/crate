@@ -34,7 +34,6 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.NodeOperationTree;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -106,8 +105,16 @@ public final class CopyToPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        ExecutionPlan executionPlan = planCopyToExecution(
+
+        var boundedCopyTo = bind(
             copyTo,
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext(),
+            params,
+            subQueryResults);
+
+        ExecutionPlan executionPlan = planCopyToExecution(
+            boundedCopyTo,
             plannerContext,
             tableStats,
             executor.projectionBuilder(),
@@ -121,34 +128,17 @@ public final class CopyToPlan implements Plan {
         JobLauncher jobLauncher = executor.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        assert executionPlan
-            instanceof io.crate.planner.node.dql.Collect : "execution plan must be Collect plan";
-
-        assert ((io.crate.planner.node.dql.Collect) executionPlan).collectPhase()
-            instanceof RoutedCollectPhase : "collect phase must be RoutedCollectPhase";
-
-        assert ((io.crate.planner.node.dql.Collect) executionPlan).collectPhase().projections().get(0)
-            instanceof WriterProjection : "projection must be WriterProjection";
-
-        boolean waitForCompletion = ((WriterProjection) ((RoutedCollectPhase) ((io.crate.planner.node.dql.Collect) executionPlan).collectPhase())
-            .projections().get(0)).withClauseOptions().getAsBoolean("wait_for_completion", true);
-
-        CopyPlan.execute(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion);
+        CopyPlan.execute(consumer, plannerContext.transactionContext(), jobLauncher::execute,
+                         boundedCopyTo.withClauseOptions().getAsBoolean("wait_for_completion", true));
     }
 
     @VisibleForTesting
-    static ExecutionPlan planCopyToExecution(AnalyzedCopyTo copyTo,
+    static ExecutionPlan planCopyToExecution(BoundCopyTo boundedCopyTo,
                                              PlannerContext context,
                                              TableStats tableStats,
                                              ProjectionBuilder projectionBuilder,
                                              Row params,
                                              SubQueryResults subQueryResults) {
-        var boundedCopyTo = bind(
-            copyTo,
-            context.transactionContext(),
-            context.nodeContext(),
-            params,
-            subQueryResults);
 
         WriterProjection.OutputFormat outputFormat = boundedCopyTo.outputFormat();
         if (outputFormat == null) {

@@ -22,6 +22,7 @@
 package io.crate.planner.statement;
 
 import io.crate.analyze.AnalyzedCopyFrom;
+import io.crate.analyze.BoundCopyFrom;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
@@ -62,8 +63,15 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private Collect plan(String statement) {
         AnalyzedCopyFrom analysis = e.analyze(statement);
+        BoundCopyFrom boundCopyFrom = CopyFromPlan.bind(
+            analysis,
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext(),
+            Row.EMPTY,
+            SubQueryResults.EMPTY);
         return (Collect) CopyFromPlan.planCopyFromExecution(
             analysis,
+            boundCopyFrom,
             clusterService.state().nodes(),
             plannerContext,
             Row.EMPTY,
