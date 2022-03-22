@@ -1,0 +1,7 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        # Due to concurrency, retries, etc. coverage is flaky
+        threshold: 3%
