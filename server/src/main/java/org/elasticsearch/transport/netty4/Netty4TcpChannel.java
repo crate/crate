@@ -44,7 +44,7 @@ public class Netty4TcpChannel implements TcpChannel {
     private final CompletableFuture<Void> closeContext = new CompletableFuture<>();
     private final ChannelStats stats = new ChannelStats();
 
-    Netty4TcpChannel(Channel channel, boolean isServer, String profile, @Nullable ChannelFuture connectFuture) {
+    public Netty4TcpChannel(Channel channel, boolean isServer, String profile, @Nullable ChannelFuture connectFuture) {
         this.channel = channel;
         this.isServer = isServer;
         this.profile = profile;

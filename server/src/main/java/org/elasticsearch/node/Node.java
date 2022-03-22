@@ -47,7 +47,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.net.ssl.SNIHostName;
 
-import io.crate.replication.logical.LogicalReplicationSettings;
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -208,6 +207,7 @@ import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.netty.NettyBootstrap;
 import io.crate.plugin.CopyPlugin;
+import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslContextProviderService;
@@ -574,7 +574,7 @@ public class Node implements Closeable {
                                                                                                             settingsModule.getIndexScopedSettings(),
                                                                                                             indexMetadataUpgraders);
             new TemplateUpgradeService(client, clusterService, threadPool, indexTemplateMetadataUpgraders);
-            final Transport transport = new Netty4Transport(
+            final Netty4Transport transport = new Netty4Transport(
                 settings,
                 Version.CURRENT,
                 threadPool,
@@ -596,7 +596,15 @@ public class Node implements Closeable {
             final GatewayMetaState gatewayMetaState = new GatewayMetaState();
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
-            RemoteClusters remoteClusters = new RemoteClusters(settings, threadPool, transportService);
+            PgClientFactory pgClientFactory = newPgClientFactory(
+                settings,
+                transportService,
+                transport,
+                sslContextProvider,
+                pageCacheRecycler,
+                nettyBootstrap
+            );
+            RemoteClusters remoteClusters = new RemoteClusters(settings, threadPool, pgClientFactory, transportService);
             resourcesToClose.add(remoteClusters);
 
             final LogicalReplicationSettings logicalReplicationSettings = new LogicalReplicationSettings(
@@ -708,6 +716,7 @@ public class Node implements Closeable {
                     b.bind(AliasValidator.class).toInstance(aliasValidator);
                     b.bind(MetadataCreateIndexService.class).toInstance(metadataCreateIndexService);
                     b.bind(Transport.class).toInstance(transport);
+                    b.bind(Netty4Transport.class).toInstance(transport);
                     b.bind(TransportService.class).toInstance(transportService);
                     b.bind(NetworkService.class).toInstance(networkService);
                     b.bind(MetadataIndexUpgradeService.class).toInstance(metadataIndexUpgradeService);
@@ -770,6 +779,23 @@ public class Node implements Closeable {
         }
     }
 
+
+    // Overridable for testing
+    protected PgClientFactory newPgClientFactory(Settings settings,
+                                                 TransportService transportService,
+                                                 Netty4Transport transport,
+                                                 SslContextProvider sslContextProvider,
+                                                 PageCacheRecycler pageCacheRecycler,
+                                                 NettyBootstrap nettyBootstrap) {
+        return new PgClientFactory(
+            settings,
+            transportService,
+            transport,
+            sslContextProvider,
+            pageCacheRecycler,
+            nettyBootstrap
+        );
+    }
 
     private void logVersion(Logger logger, JvmInfo jvmInfo) {
         logger.info(

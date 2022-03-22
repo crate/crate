@@ -106,7 +106,7 @@ public abstract class AbstractClient implements Client {
 
     private final ThreadPool threadPool;
     private final Admin admin;
-    private final Settings settings;
+    protected final Settings settings;
 
     public AbstractClient(Settings settings, ThreadPool threadPool) {
         this.settings = settings;

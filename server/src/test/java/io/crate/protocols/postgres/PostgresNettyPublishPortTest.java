@@ -32,8 +32,11 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.transport.BindTransportException;
+import org.elasticsearch.transport.Transport;
+import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.junit.Test;
 
 import java.net.UnknownHostException;
@@ -87,6 +90,8 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             networkService,
             new AlwaysOKAuthentication(userManager),
             new NettyBootstrap(),
+            mock(Netty4Transport.class),
+            PageCacheRecycler.NON_RECYCLING_INSTANCE,
             mock(SslContextProvider.class));
         try {
             psql.doStart();
@@ -109,6 +114,8 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             networkService,
             new AlwaysOKAuthentication(userManager),
             new NettyBootstrap(),
+            mock(Netty4Transport.class),
+            PageCacheRecycler.NON_RECYCLING_INSTANCE,
             mock(SslContextProvider.class));
         try {
             psql.doStart();
@@ -135,6 +142,8 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             networkService,
             new AlwaysOKAuthentication(userManager),
             new NettyBootstrap(),
+            mock(Netty4Transport.class),
+            PageCacheRecycler.NON_RECYCLING_INSTANCE,
             mock(SslContextProvider.class));
         try {
             psql.doStart();
@@ -161,6 +170,8 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             networkService,
             new AlwaysOKAuthentication(userName -> User.CRATE_USER),
             new NettyBootstrap(),
+            mock(Netty4Transport.class),
+            PageCacheRecycler.NON_RECYCLING_INSTANCE,
             mock(SslContextProvider.class));
         try {
             psql.doStart();
