@@ -121,7 +121,19 @@ public final class CopyToPlan implements Plan {
         JobLauncher jobLauncher = executor.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        CopyPlan.execute(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion(executionPlan));
+        assert executionPlan
+            instanceof io.crate.planner.node.dql.Collect : "execution plan must be Collect plan";
+
+        assert ((io.crate.planner.node.dql.Collect) executionPlan).collectPhase()
+            instanceof RoutedCollectPhase : "collect phase must be RoutedCollectPhase";
+
+        assert ((io.crate.planner.node.dql.Collect) executionPlan).collectPhase().projections().get(0)
+            instanceof WriterProjection : "projection must be WriterProjection";
+
+        boolean waitForCompletion = ((WriterProjection) ((RoutedCollectPhase) ((io.crate.planner.node.dql.Collect) executionPlan).collectPhase())
+            .projections().get(0)).withClauseOptions().getAsBoolean("wait_for_completion", true);
+
+        CopyPlan.execute(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion);
     }
 
     @VisibleForTesting
@@ -274,14 +286,5 @@ public final class CopyToPlan implements Plan {
             throw new PartitionUnknownException(partitionName);
         }
         return List.of(partitionName.asIndexName());
-    }
-
-    private boolean waitForCompletion(ExecutionPlan plan) {
-        try {
-            return ((WriterProjection)((RoutedCollectPhase)((io.crate.planner.node.dql.Collect)plan).collectPhase())
-                .projections().get(0)).withClauseOptions().getAsBoolean("wait_for_completion", true);
-        } catch (Exception e) {
-            return true;
-        }
     }
 }

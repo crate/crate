@@ -122,7 +122,16 @@ public final class CopyFromPlan implements Plan {
         JobLauncher jobLauncher = dependencies.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        CopyPlan.execute(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion(plan));
+        assert plan instanceof Collect :
+            "execution plan must be Collect plan";
+
+        assert ((Collect) plan).collectPhase() instanceof FileUriCollectPhase :
+            "collect phase must be FileUriCollectPhase";
+
+        boolean waitForCompletion = ((FileUriCollectPhase) ((Collect) plan).collectPhase()).withClauseOptions()
+            .getAsBoolean("wait_for_completion", true);
+
+        CopyPlan.execute(consumer, plannerContext.transactionContext(), jobLauncher::execute, waitForCompletion);
     }
 
     @VisibleForTesting
@@ -344,15 +353,6 @@ public final class CopyFromPlan implements Plan {
             if (idx > -1) {
                 toCollect.set(idx, Literal.of(partitionValues.get(i)));
             }
-        }
-    }
-
-    private boolean waitForCompletion(ExecutionPlan plan) {
-        try {
-            return ((FileUriCollectPhase) ((Collect) plan).collectPhase()).withClauseOptions()
-                    .getAsBoolean("wait_for_completion", true);
-        } catch (Exception e) {
-            return true;
         }
     }
 
