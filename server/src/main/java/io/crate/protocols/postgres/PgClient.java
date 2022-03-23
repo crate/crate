@@ -66,6 +66,7 @@ import org.elasticsearch.transport.netty4.Netty4Utils;
 import io.crate.common.collections.BorrowedItem;
 import io.crate.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
+import io.crate.user.User;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -80,16 +81,17 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 
 public class PgClient extends AbstractClient {
 
-    private final static Logger LOGGER = LogManager.getLogger(PgClient.class);
+    private static final Logger LOGGER = LogManager.getLogger(PgClient.class);
 
-    private final NettyBootstrap nettyBootstrap;
-    private final Netty4Transport transport;
-    private final PageCacheRecycler pageCacheRecycler;
-    private final DiscoveryNode host;
-    private final TransportService transportService;
-    private final AtomicBoolean isClosing = new AtomicBoolean(false);
-    private final String username;
-    private final String password;
+    final NettyBootstrap nettyBootstrap;
+    final Netty4Transport transport;
+    final PageCacheRecycler pageCacheRecycler;
+    final DiscoveryNode host;
+    final TransportService transportService;
+    final AtomicBoolean isClosing = new AtomicBoolean(false);
+    final String username;
+    final String password;
+    final ConnectionProfile profile;
 
     private CompletableFuture<Transport.Connection> connectionFuture;
     private BorrowedItem<EventLoopGroup> eventLoopGroup;
@@ -112,6 +114,17 @@ public class PgClient extends AbstractClient {
         this.host = host;
         this.username = username;
         this.password = password;
+        this.profile = new ConnectionProfile.Builder()
+            .setConnectTimeout(TransportSettings.CONNECT_TIMEOUT.get(settings))
+            .setHandshakeTimeout(TransportSettings.CONNECT_TIMEOUT.get(settings))
+            .setPingInterval(TransportSettings.PING_SCHEDULE.get(settings))
+            .setCompressionEnabled(TransportSettings.TRANSPORT_COMPRESS.get(settings))
+            .addConnections(1, TransportRequestOptions.Type.BULK)
+            .addConnections(1, TransportRequestOptions.Type.PING)
+            .addConnections(1, TransportRequestOptions.Type.STATE)
+            .addConnections(1, TransportRequestOptions.Type.RECOVERY)
+            .addConnections(1, TransportRequestOptions.Type.REG)
+            .build();
     }
 
     public CompletableFuture<Transport.Connection> ensureConnected() {
@@ -159,7 +172,7 @@ public class PgClient extends AbstractClient {
         bootstrap.option(ChannelOption.SO_KEEPALIVE, TransportSettings.TCP_KEEP_ALIVE.get(settings));
 
         bootstrap.handler(new ClientChannelInitializer(
-            settings,
+            profile,
             host,
             transport,
             pageCacheRecycler,
@@ -182,11 +195,9 @@ public class PgClient extends AbstractClient {
                 }
 
                 ByteBuf buffer = channel.alloc().buffer();
-                ClientMessages.sendStartupMessage(
-                    buffer,
-                    "doc",
-                    Map.of("user", username == null ? "crate" : username, "CrateDBTransport", "true")
-                );
+                String user = username == null ? User.CRATE_USER.name() : username;
+                Map<String, String> properties = Map.of("user", user, "CrateDBTransport", "true");
+                ClientMessages.sendStartupMessage(buffer, "doc", properties);
                 channel.writeAndFlush(buffer);
             } else {
                 Throwable cause = f.cause();
@@ -220,18 +231,18 @@ public class PgClient extends AbstractClient {
 
     static class ClientChannelInitializer extends ChannelInitializer<Channel> {
 
-        private final Settings settings;
         private final DiscoveryNode node;
         private final Netty4Transport transport;
         private final CompletableFuture<Transport.Connection> result;
         private final PageCacheRecycler pageCacheRecycler;
+        private final ConnectionProfile profile;
 
-        public ClientChannelInitializer(Settings settings,
+        public ClientChannelInitializer(ConnectionProfile profile,
                                         DiscoveryNode node,
                                         Netty4Transport transport,
                                         PageCacheRecycler pageCacheRecycler,
                                         CompletableFuture<Transport.Connection> result) {
-            this.settings = settings;
+            this.profile = profile;
             this.node = node;
             this.transport = transport;
             this.pageCacheRecycler = pageCacheRecycler;
@@ -243,7 +254,13 @@ public class PgClient extends AbstractClient {
             ChannelPipeline pipeline = ch.pipeline();
             pipeline.addLast("decoder", new Decoder());
 
-            Handler handler = new Handler(settings, node, transport, pageCacheRecycler, result);
+            Handler handler = new Handler(
+                profile,
+                node,
+                transport,
+                pageCacheRecycler,
+                result
+            );
             ch.pipeline().addLast("dispatcher", handler);
         }
     }
@@ -252,16 +269,16 @@ public class PgClient extends AbstractClient {
 
         private final CompletableFuture<Transport.Connection> result;
         private final PageCacheRecycler pageCacheRecycler;
-        private final Settings settings;
         private final DiscoveryNode node;
         private final Netty4Transport transport;
+        private final ConnectionProfile profile;
 
-        public Handler(Settings settings,
+        public Handler(ConnectionProfile profile,
                        DiscoveryNode node,
                        Netty4Transport transport,
                        PageCacheRecycler pageCacheRecycler,
                        CompletableFuture<Transport.Connection> result) {
-            this.settings = settings;
+            this.profile = profile;
             this.node = node;
             this.transport = transport;
             this.pageCacheRecycler = pageCacheRecycler;
@@ -314,24 +331,13 @@ public class PgClient extends AbstractClient {
             channel.pipeline().addLast("dispatcher", handler);
             Netty4TcpChannel tcpChannel = channel.attr(Netty4Transport.CHANNEL_KEY).get();
 
-            ConnectionProfile connectionProfile = new ConnectionProfile.Builder()
-                .setConnectTimeout(TransportSettings.CONNECT_TIMEOUT.get(settings))
-                .setHandshakeTimeout(TransportSettings.CONNECT_TIMEOUT.get(settings))
-                .setPingInterval(TransportSettings.PING_SCHEDULE.get(settings))
-                .setCompressionEnabled(TransportSettings.TRANSPORT_COMPRESS.get(settings))
-                .addConnections(1, TransportRequestOptions.Type.BULK)
-                .addConnections(1, TransportRequestOptions.Type.PING)
-                .addConnections(1, TransportRequestOptions.Type.STATE)
-                .addConnections(1, TransportRequestOptions.Type.RECOVERY)
-                .addConnections(1, TransportRequestOptions.Type.REG)
-                .build();
             ActionListener<Version> onHandshakeResponse = ActionListener.wrap(
                 version -> {
                     var connection = new TunneledConnection(
                         transport.outboundHandler(),
                         node,
                         tcpChannel,
-                        connectionProfile,
+                        profile,
                         version
                     );
                     long relativeMillisTime = this.transport.getThreadPool().relativeTimeInMillis();
@@ -353,7 +359,7 @@ public class PgClient extends AbstractClient {
                     }
                 }
             );
-            transport.executeHandshake(node, tcpChannel, connectionProfile, onHandshakeResponse);
+            transport.executeHandshake(node, tcpChannel, profile, onHandshakeResponse);
         }
 
         private void handleParameterStatus(ByteBuf msg) {

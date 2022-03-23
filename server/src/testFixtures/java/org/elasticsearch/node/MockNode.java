@@ -47,6 +47,11 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
+import org.elasticsearch.transport.netty4.Netty4Transport;
+
+import io.crate.netty.NettyBootstrap;
+import io.crate.protocols.postgres.MockPgClientFactory;
+import io.crate.protocols.postgres.PgClientFactory;
 
 /**
  * A node for testing which allows:
@@ -126,6 +131,20 @@ public class MockNode extends Node {
             return super.newTransportService(settings, transport, threadPool, localNodeFactory, clusterSettings);
         } else {
             return new MockTransportService(settings, transport, threadPool, localNodeFactory, clusterSettings);
+        }
+    }
+
+    @Override
+    protected PgClientFactory newPgClientFactory(Settings settings,
+                                                 TransportService transportService,
+                                                 Netty4Transport transport,
+                                                 PageCacheRecycler pageCacheRecycler,
+                                                 NettyBootstrap nettyBootstrap) {
+        PgClientFactory pgClientFactory = super.newPgClientFactory(settings, transportService, transport, pageCacheRecycler, nettyBootstrap);
+        if (getPluginsService().filterPlugins(MockTransportService.TestPlugin.class).isEmpty()) {
+            return pgClientFactory;
+        } else {
+            return new MockPgClientFactory(pgClientFactory);
         }
     }
 

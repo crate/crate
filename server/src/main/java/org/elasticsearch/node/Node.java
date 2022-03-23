@@ -596,7 +596,7 @@ public class Node implements Closeable {
             final GatewayMetaState gatewayMetaState = new GatewayMetaState();
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
-            PgClientFactory pgClientFactory = new PgClientFactory(
+            PgClientFactory pgClientFactory = newPgClientFactory(
                 settings,
                 transportService,
                 transport,
@@ -778,6 +778,20 @@ public class Node implements Closeable {
         }
     }
 
+
+    protected PgClientFactory newPgClientFactory(Settings settings,
+                                                 TransportService transportService,
+                                                 Netty4Transport transport,
+                                                 PageCacheRecycler pageCacheRecycler,
+                                                 NettyBootstrap nettyBootstrap) {
+        return new PgClientFactory(
+            settings,
+            transportService,
+            transport,
+            pageCacheRecycler,
+            nettyBootstrap
+        );
+    }
 
     private void logVersion(Logger logger, JvmInfo jvmInfo) {
         logger.info(

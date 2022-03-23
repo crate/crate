@@ -55,7 +55,8 @@ import io.crate.user.User;
 public class PgClientTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    @Repeat(iterations = 25)
+    // keeping some iterations because there was an issue with the initial implementation that caused the test timeout after a few iterations
+    @Repeat(iterations = 10)
     public void test_pg_client_can_connect_to_postgres_netty() throws Exception {
         var serverNodeSettings = Settings.builder()
             .put("node.name", "server")
@@ -131,9 +132,9 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
 
         CompletableFuture<Connection> connect = pgClient.ensureConnected();
         Connection connection = connect.get(120, TimeUnit.SECONDS);
-        System.out.println(connection);
         assertThat(connection.getNode(), is(serverHost));
 
+        // Must be able to call ensureConnected again
         CompletableFuture<Connection> conn2 = pgClient.ensureConnected();
         CompletableFuture<Connection> conn3 = pgClient.ensureConnected();
 
