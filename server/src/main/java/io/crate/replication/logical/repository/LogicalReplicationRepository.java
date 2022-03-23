@@ -173,6 +173,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
                 var builder = Settings.builder().put(indexMetadata.getSettings());
                 builder.put(LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
+                // Store publishers original index UUID to be able to resolve the original index later on
+                builder.put(LogicalReplicationSettings.PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
 
                 var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
                 indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));
@@ -191,6 +193,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
             var builder = Settings.builder().put(indexMetadata.getSettings());
             builder.put(LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
+            // Store publishers original index UUID to be able to resolve the original index later on
+            builder.put(LogicalReplicationSettings.PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
 
             var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
             indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));
