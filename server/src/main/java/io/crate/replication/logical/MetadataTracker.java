@@ -40,8 +40,6 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
@@ -53,10 +51,13 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -79,12 +80,14 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
+import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC;
 
 public final class MetadataTracker implements Closeable {
 
     private static final Logger LOGGER = Loggers.getLogger(MetadataTracker.class);
 
+    private final Settings settings;
     private final ThreadPool threadPool;
     private final LogicalReplicationService replicationService;
     private final LogicalReplicationSettings replicationSettings;
@@ -92,6 +95,7 @@ public final class MetadataTracker implements Closeable {
     private final Client client;
     private final ClusterService clusterService;
     private final IndexScopedSettings indexScopedSettings;
+    private final AllocationService allocationService;
     private final IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver();
 
     // Using a copy-on-write approach. The assumption is that subscription changes are rare and reads happen more frequently
@@ -99,13 +103,16 @@ public final class MetadataTracker implements Closeable {
     private volatile Scheduler.Cancellable cancellable;
     private volatile boolean isActive = false;
 
-    public MetadataTracker(IndexScopedSettings indexScopedSettings,
+    public MetadataTracker(Settings settings,
+                           IndexScopedSettings indexScopedSettings,
                            ThreadPool threadPool,
                            LogicalReplicationService replicationService,
                            LogicalReplicationSettings replicationSettings,
                            Function<String, Client> remoteClient,
                            Client client,
-                           ClusterService clusterService) {
+                           ClusterService clusterService,
+                           AllocationService allocationService) {
+        this.settings = settings;
         this.threadPool = threadPool;
         this.replicationService = replicationService;
         this.replicationSettings = replicationSettings;
@@ -113,6 +120,7 @@ public final class MetadataTracker implements Closeable {
         this.client = client;
         this.clusterService = clusterService;
         this.indexScopedSettings = indexScopedSettings;
+        this.allocationService = allocationService;
     }
 
     private void start() {
@@ -218,6 +226,8 @@ public final class MetadataTracker implements Closeable {
                             listener
                         ) {
 
+                            private final CompletableFuture<Boolean> ackedOnAllNodes = new CompletableFuture<>();
+
                             @Override
                             public ClusterState execute(ClusterState localClusterState) throws Exception {
                                 if (LOGGER.isTraceEnabled()) {
@@ -243,7 +253,8 @@ public final class MetadataTracker implements Closeable {
                                     publicationsMetadata.publications(),
                                     localClusterState,
                                     remoteClusterState,
-                                    replicationService
+                                    replicationService,
+                                    ackedOnAllNodes
                                 );
                                 return updateIndexMetadata(
                                     subscriptionName,
@@ -257,6 +268,12 @@ public final class MetadataTracker implements Closeable {
                             @Override
                             protected AcknowledgedResponse newResponse(boolean acknowledged) {
                                 return new AcknowledgedResponse(acknowledged);
+                            }
+
+                            @Override
+                            public void onAllNodesAcked(@Nullable Exception e) {
+                                super.onAllNodesAcked(e);
+                                ackedOnAllNodes.complete(e == null);
                             }
                         });
                     } else {
@@ -341,7 +358,8 @@ public final class MetadataTracker implements Closeable {
                                                 Map<String, Publication> publications,
                                                 ClusterState subscriberClusterState,
                                                 ClusterState publisherClusterState,
-                                                LogicalReplicationService replicationService) {
+                                                LogicalReplicationService replicationService,
+                                                CompletableFuture<Boolean> localStateAckedOnAllNodes) {
         subscribeToNewRelations(
             subscription,
             publications,
@@ -353,13 +371,18 @@ public final class MetadataTracker implements Closeable {
                 Subscription.State.INITIALIZING,
                 null
             ),
-            (relationNames, toRestoreIndices, toRestoreTemplates) -> replicationService.restore(
-                subscriptionName,
-                subscription.settings(),
-                relationNames,
-                toRestoreIndices,
-                toRestoreTemplates
-            )
+            (relationNames, toRestoreIndices, toRestoreTemplates) ->
+                localStateAckedOnAllNodes.whenComplete((acked, e) -> {
+                    if (acked && e == null) {
+                        replicationService.restore(
+                            subscriptionName,
+                            subscription.settings(),
+                            relationNames,
+                            toRestoreIndices,
+                            toRestoreTemplates
+                        );
+                    }
+                })
         );
     }
 
@@ -454,7 +477,7 @@ public final class MetadataTracker implements Closeable {
                                                          ClusterState subscriberClusterState,
                                                          ClusterState publisherClusterState) {
         HashSet<RelationName> relationsToUpdate = new HashSet<>();
-        ArrayList<String> indicesToRemove = new ArrayList<>();
+        HashSet<Index> indicesToRemove = new HashSet<>();
         ArrayList<String> templatesToRemove = new ArrayList<>();
         for (var relationName : subscription.relations().keySet()) {
             var possibleTemplateName = PartitionName.templateName(relationName.schema(), relationName.name());
@@ -465,13 +488,18 @@ public final class MetadataTracker implements Closeable {
                 relationsToUpdate.add(relationName);
             }
 
-            var concreteIndices = indexNameExpressionResolver.concreteIndexNames(
+            var concreteIndices = indexNameExpressionResolver.concreteIndices(
                 subscriberClusterState,
                 IndicesOptions.lenientExpand(),
                 relationName.indexNameOrAlias()
             );
             for (var concreteIndex : concreteIndices) {
-                if (publisherClusterState.metadata().hasIndex(concreteIndex) == false) {
+                var subscriberIndexMetadata = subscriberClusterState.metadata().index(concreteIndex);
+                var publisherIndex = new Index(
+                    concreteIndex.getName(),
+                    PUBLISHER_INDEX_UUID.get(subscriberIndexMetadata.getSettings())
+                );
+                if (publisherClusterState.metadata().hasIndex(publisherIndex) == false) {
                     indicesToRemove.add(concreteIndex);
                     if (isPartitioned == false) {
                         relationsToUpdate.add(relationName);
