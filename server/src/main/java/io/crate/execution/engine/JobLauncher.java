@@ -21,8 +21,12 @@
 
 package io.crate.execution.engine;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.CollectingRowConsumer;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.ExecutionPhases;
@@ -57,6 +61,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.BiConsumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -139,6 +144,18 @@ public final class JobLauncher {
                     break;
                 }
             }
+        }
+    }
+
+    public static void execute(RowConsumer consumer,
+                               TransactionContext txnCtx,
+                               BiConsumer<RowConsumer, TransactionContext> biConsumer,
+                               boolean waitForCompletion) {
+        if (waitForCompletion) {
+            biConsumer.accept(consumer, txnCtx);
+        } else {
+            biConsumer.accept(new CollectingRowConsumer<>(Collectors.counting()), txnCtx);
+            consumer.accept(InMemoryBatchIterator.of(Row1.ROW_COUNT_UNKNOWN, SENTINEL), null);
         }
     }
 

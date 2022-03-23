@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.statement;
+package io.crate.execution.engine;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.core.Is.is;
@@ -35,7 +35,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.TestingRowConsumer;
 
-public class CopyPlannerTest extends CrateDummyClusterServiceUnitTest {
+public class JobLauncherWaitForCompletionTest extends CrateDummyClusterServiceUnitTest {
 
     private PlannerContext plannerContext;
 
@@ -51,14 +51,14 @@ public class CopyPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyPlanNoWaitForCompletion() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        CopyPlan.execute(consumer, plannerContext.transactionContext(), (a,b)-> {}, false);
+        JobLauncher.execute(consumer, plannerContext.transactionContext(), (a,b)-> {}, false);
         assertThat((Long)consumer.getResult(1).get(0)[0], is(-1L));
     }
 
     @Test(expected = TimeoutException.class)
     public void testCopyPlanWaitForCompletion() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        CopyPlan.execute(consumer, plannerContext.transactionContext(), (a,b)-> {}, true);
+        JobLauncher.execute(consumer, plannerContext.transactionContext(), (a,b)-> {}, true);
         consumer.getResult(1);
     }
 }
