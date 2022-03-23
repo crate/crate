@@ -80,6 +80,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
+import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC;
 
 public final class MetadataTracker implements Closeable {
@@ -223,6 +224,8 @@ public final class MetadataTracker implements Closeable {
                             listener
                         ) {
 
+                            private final CompletableFuture<Boolean> ackedOnAllNodes = new CompletableFuture<>();
+
                             @Override
                             public ClusterState execute(ClusterState localClusterState) throws Exception {
                                 if (LOGGER.isTraceEnabled()) {
@@ -248,7 +251,8 @@ public final class MetadataTracker implements Closeable {
                                     publicationsMetadata.publications(),
                                     localClusterState,
                                     remoteClusterState,
-                                    replicationService
+                                    replicationService,
+                                    ackedOnAllNodes
                                 );
                                 return updateIndexMetadata(
                                     subscriptionName,
@@ -262,6 +266,12 @@ public final class MetadataTracker implements Closeable {
                             @Override
                             protected AcknowledgedResponse newResponse(boolean acknowledged) {
                                 return new AcknowledgedResponse(acknowledged);
+                            }
+
+                            @Override
+                            public void onAllNodesAcked(@Nullable Exception e) {
+                                super.onAllNodesAcked(e);
+                                ackedOnAllNodes.complete(e == null);
                             }
                         });
                     } else {
@@ -346,7 +356,8 @@ public final class MetadataTracker implements Closeable {
                                                 Map<String, Publication> publications,
                                                 ClusterState subscriberClusterState,
                                                 ClusterState publisherClusterState,
-                                                LogicalReplicationService replicationService) {
+                                                LogicalReplicationService replicationService,
+                                                CompletableFuture<Boolean> localStateAckedOnAllNodes) {
         subscribeToNewRelations(
             subscription,
             publications,
@@ -358,13 +369,18 @@ public final class MetadataTracker implements Closeable {
                 Subscription.State.INITIALIZING,
                 null
             ),
-            (relationNames, toRestoreIndices, toRestoreTemplates) -> replicationService.restore(
-                subscriptionName,
-                subscription.settings(),
-                relationNames,
-                toRestoreIndices,
-                toRestoreTemplates
-            )
+            (relationNames, toRestoreIndices, toRestoreTemplates) ->
+                localStateAckedOnAllNodes.whenComplete((acked, e) -> {
+                    if (acked && e == null) {
+                        replicationService.restore(
+                            subscriptionName,
+                            subscription.settings(),
+                            relationNames,
+                            toRestoreIndices,
+                            toRestoreTemplates
+                        );
+                    }
+                })
         );
     }
 
@@ -476,7 +492,12 @@ public final class MetadataTracker implements Closeable {
                 relationName.indexNameOrAlias()
             );
             for (var concreteIndex : concreteIndices) {
-                if (publisherClusterState.metadata().hasIndex(concreteIndex.getName()) == false) {
+                var subscriberIndexMetadata = subscriberClusterState.metadata().index(concreteIndex);
+                var publisherIndex = new Index(
+                    concreteIndex.getName(),
+                    PUBLISHER_INDEX_UUID.get(subscriberIndexMetadata.getSettings())
+                );
+                if (publisherClusterState.metadata().hasIndex(publisherIndex) == false) {
                     indicesToRemove.add(concreteIndex);
                     if (isPartitioned == false) {
                         relationsToUpdate.add(relationName);
