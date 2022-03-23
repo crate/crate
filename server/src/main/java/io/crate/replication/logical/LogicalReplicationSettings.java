@@ -21,8 +21,7 @@
 
 package io.crate.replication.logical;
 
-import java.util.Set;
-
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
@@ -38,7 +37,7 @@ import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.engine.EngineConfig;
 
-import io.crate.common.unit.TimeValue;
+import java.util.Set;
 
 public class LogicalReplicationSettings {
 
@@ -80,6 +79,16 @@ public class LogicalReplicationSettings {
      */
     public static final Setting<String> REPLICATION_SUBSCRIPTION_NAME = Setting.simpleString(
         "index.replication.logical.subscription_name",
+        Setting.Property.InternalIndex,
+        Setting.Property.IndexScope
+    );
+
+    /**
+     * Internal index setting to store the original index UUID of the publisher cluster.
+     * The index UUID on the subscriber cluster will be re-generated thus it differs from the original one.
+     */
+    public static final Setting<String> PUBLISHER_INDEX_UUID = Setting.simpleString(
+        "index.replication.logical.publisher_index_uuid",
         Setting.Property.InternalIndex,
         Setting.Property.IndexScope
     );

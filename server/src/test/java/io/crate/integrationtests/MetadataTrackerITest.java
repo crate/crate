@@ -214,7 +214,40 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
     }
 
     @Test
-    public void test_dropped_partited_table_is_replicated() throws Exception {
+    public void test_deleted_and_recreated_partition_is_also_deleted_and_restored_on_subscriber() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("INSERT INTO t1 (id, p) VALUES (1, 1), (2, 2)");
+        createPublication("pub1", true, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        // Ensure tracker has started
+        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+
+        // Wait until table is replicated
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE t1");
+            var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
+            assertThat(printedTable(r.rows()), is(
+                "1| 1\n" +
+                "2| 2\n"));
+        });
+
+        // Drop partition
+        executeOnPublisher("DELETE FROM t1 WHERE p = 1");
+        // Re-create same partition with different value
+        executeOnPublisher("INSERT INTO t1 (id, p) VALUES (11, 1)");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE t1");
+            var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
+            assertThat(printedTable(r.rows()), is(
+                "2| 2\n" +
+                    "11| 1\n"));        // <- this must contain the id of the re-created partition
+        });
+    }
+
+    @Test
+    public void test_dropped_partitioned_table_is_replicated() throws Exception {
         executeOnPublisher("CREATE TABLE t1 (id INT, p INT) PARTITIONED BY (p)");
         executeOnPublisher("INSERT INTO t1 (id, p) VALUES (1, 1), (2, 2)");
         createPublication("pub1", true, List.of("t1"));
