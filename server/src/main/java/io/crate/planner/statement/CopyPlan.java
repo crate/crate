@@ -34,7 +34,7 @@ import io.crate.data.RowConsumer;
 import io.crate.metadata.TransactionContext;
 
 
-public class CopyPlan {
+public final class CopyPlan {
 
     public static void execute(RowConsumer consumer,
                                TransactionContext txnCtx,
