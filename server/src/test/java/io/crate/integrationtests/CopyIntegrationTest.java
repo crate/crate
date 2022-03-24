@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
+import io.crate.exceptions.SQLParseException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -844,5 +845,21 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(printedTable(response.rows()), is(
             "1626188198073| 1625097600000\n"
         ));
+    }
+
+    @Test
+    public void test_copy_from_doesnt_fail_gracefully_on_parsing_error() throws Exception {
+        execute("create table t (x int)");
+
+        List<String> lines = List.of(
+            "x\n",
+            "1,2\n"
+        );
+
+        File file = folder.newFile(UUID.randomUUID() + ".csv");
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        assertThrowsMatches(() -> execute("copy t from ? with (shared = true) return summary", new Object[]{Paths.get(file.toURI()).toUri().toString()}),
+            SQLParseException.class,
+            "Number of values exceeds number of keys");
     }
 }
