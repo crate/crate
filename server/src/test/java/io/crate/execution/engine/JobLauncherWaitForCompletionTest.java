@@ -22,11 +22,23 @@
 package io.crate.execution.engine;
 
 import static org.hamcrest.core.Is.is;
+
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
+
+import org.elasticsearch.indices.IndicesService;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import io.crate.data.RowConsumer;
+import io.crate.execution.jobs.JobSetup;
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.PlannerContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -42,30 +54,33 @@ public class JobLauncherWaitForCompletionTest extends CrateDummyClusterServiceUn
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
         plannerContext = e.getPlannerContext(clusterService.state());
         jobLauncher = new JobLauncher(
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
+            UUID.randomUUID(),
+            clusterService,
+            Mockito.mock(JobSetup.class),
+            Mockito.mock(TasksService.class),
+            Mockito.mock(IndicesService.class),
+            Mockito.mock(TransportJobAction.class),
+            Mockito.mock(TransportKillJobsNodeAction.class),
             List.of(),
             false,
-            null);
+            THREAD_POOL.generic()
+        ) {
+            @Override
+            public void execute(RowConsumer consumer, TransactionContext txnCtx){
+            }
+        };
     }
 
     @Test
     public void testCopyPlanNoWaitForCompletion() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        jobLauncher.execute(consumer, plannerContext.transactionContext(), (a,b)-> {}, false);
-        assertThat((Long)consumer.getResult(1).get(0)[0], is(-1L));
-
+        jobLauncher.execute(consumer, plannerContext.transactionContext(), false);
+        assertThat((Long)consumer.getResult(50).get(0)[0], is(-1L));
     }
 
-    @Test(expected = TimeoutException.class)
     public void testCopyPlanWaitForCompletion() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        jobLauncher.execute(consumer, plannerContext.transactionContext(), (a,b)-> {}, true);
-        consumer.getResult(1);
+        jobLauncher.execute(consumer, plannerContext.transactionContext(), true);
+        assertThrows(TimeoutException.class, ()-> consumer.getResult(100));
     }
 }

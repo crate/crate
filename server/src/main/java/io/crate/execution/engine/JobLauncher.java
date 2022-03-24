@@ -61,7 +61,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.BiConsumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -101,7 +100,7 @@ import java.util.stream.Collectors;
  *          BatchConsumer
  * </pre>
  **/
-public final class JobLauncher {
+public class JobLauncher {
 
     private final TransportJobAction transportJobAction;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
@@ -149,12 +148,11 @@ public final class JobLauncher {
 
     public void execute(RowConsumer consumer,
                         TransactionContext txnCtx,
-                        BiConsumer<RowConsumer, TransactionContext> biConsumer,
                         boolean waitForCompletion) {
         if (waitForCompletion) {
-            biConsumer.accept(consumer, txnCtx);
+            execute(consumer, txnCtx);
         } else {
-            biConsumer.accept(new CollectingRowConsumer<>(Collectors.counting()), txnCtx);
+            execute(new CollectingRowConsumer<>(Collectors.counting()), txnCtx);
             consumer.accept(InMemoryBatchIterator.of(Row1.ROW_COUNT_UNKNOWN, SENTINEL), null);
         }
     }

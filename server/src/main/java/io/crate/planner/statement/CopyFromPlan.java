@@ -134,7 +134,6 @@ public final class CopyFromPlan implements Plan {
         jobLauncher.execute(
             consumer,
             plannerContext.transactionContext(),
-            jobLauncher::execute,
             boundedCopyFrom.settings().getAsBoolean("wait_for_completion", true));
     }
 

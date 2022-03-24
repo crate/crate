@@ -131,7 +131,6 @@ public final class CopyToPlan implements Plan {
         jobLauncher.execute(
             consumer,
             plannerContext.transactionContext(),
-            jobLauncher::execute,
             boundedCopyTo.withClauseOptions().getAsBoolean("wait_for_completion", true));
     }
 
