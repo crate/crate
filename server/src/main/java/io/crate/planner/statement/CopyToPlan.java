@@ -128,7 +128,7 @@ public final class CopyToPlan implements Plan {
         JobLauncher jobLauncher = executor.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        JobLauncher.execute(
+        jobLauncher.execute(
             consumer,
             plannerContext.transactionContext(),
             jobLauncher::execute,

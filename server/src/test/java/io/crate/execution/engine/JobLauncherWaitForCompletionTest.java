@@ -21,15 +21,12 @@
 
 package io.crate.execution.engine;
 
-import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.core.Is.is;
-
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
-
 import org.junit.Before;
 import org.junit.Test;
-
 import io.crate.planner.PlannerContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -38,27 +35,37 @@ import io.crate.testing.TestingRowConsumer;
 public class JobLauncherWaitForCompletionTest extends CrateDummyClusterServiceUnitTest {
 
     private PlannerContext plannerContext;
+    private JobLauncher jobLauncher;
 
     @Before
     public void setupExecutor() throws IOException {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable(USER_TABLE_DEFINITION)
-            .addTable("create table t1 (a string, x int, i int)")
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService).build();
         plannerContext = e.getPlannerContext(clusterService.state());
+        jobLauncher = new JobLauncher(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of(),
+            false,
+            null);
     }
 
     @Test
     public void testCopyPlanNoWaitForCompletion() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        JobLauncher.execute(consumer, plannerContext.transactionContext(), (a,b)-> {}, false);
+        jobLauncher.execute(consumer, plannerContext.transactionContext(), (a,b)-> {}, false);
         assertThat((Long)consumer.getResult(1).get(0)[0], is(-1L));
+
     }
 
     @Test(expected = TimeoutException.class)
     public void testCopyPlanWaitForCompletion() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        JobLauncher.execute(consumer, plannerContext.transactionContext(), (a,b)-> {}, true);
+        jobLauncher.execute(consumer, plannerContext.transactionContext(), (a,b)-> {}, true);
         consumer.getResult(1);
     }
 }

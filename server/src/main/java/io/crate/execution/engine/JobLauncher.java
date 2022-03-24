@@ -147,10 +147,10 @@ public final class JobLauncher {
         }
     }
 
-    public static void execute(RowConsumer consumer,
-                               TransactionContext txnCtx,
-                               BiConsumer<RowConsumer, TransactionContext> biConsumer,
-                               boolean waitForCompletion) {
+    public void execute(RowConsumer consumer,
+                        TransactionContext txnCtx,
+                        BiConsumer<RowConsumer, TransactionContext> biConsumer,
+                        boolean waitForCompletion) {
         if (waitForCompletion) {
             biConsumer.accept(consumer, txnCtx);
         } else {
