@@ -131,8 +131,11 @@ public final class CopyFromPlan implements Plan {
         JobLauncher jobLauncher = dependencies.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        JobLauncher.execute(consumer, plannerContext.transactionContext(), jobLauncher::execute,
-                     boundedCopyFrom.settings().getAsBoolean("wait_for_completion", true));
+        JobLauncher.execute(
+            consumer,
+            plannerContext.transactionContext(),
+            jobLauncher::execute,
+            boundedCopyFrom.settings().getAsBoolean("wait_for_completion", true));
     }
 
     @VisibleForTesting

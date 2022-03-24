@@ -128,8 +128,11 @@ public final class CopyToPlan implements Plan {
         JobLauncher jobLauncher = executor.phasesTaskFactory()
             .create(plannerContext.jobId(), List.of(nodeOpTree));
 
-        JobLauncher.execute(consumer, plannerContext.transactionContext(), jobLauncher::execute,
-                            boundedCopyTo.withClauseOptions().getAsBoolean("wait_for_completion", true));
+        JobLauncher.execute(
+            consumer,
+            plannerContext.transactionContext(),
+            jobLauncher::execute,
+            boundedCopyTo.withClauseOptions().getAsBoolean("wait_for_completion", true));
     }
 
     @VisibleForTesting
