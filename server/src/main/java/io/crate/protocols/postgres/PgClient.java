@@ -79,6 +79,10 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 
+/**
+ * A client that uses the PostgreSQL wire protocol to initiate a connection,
+ * but then switches over to use the transport protocol
+ **/
 public class PgClient extends AbstractClient {
 
     private static final Logger LOGGER = LogManager.getLogger(PgClient.class);
@@ -225,7 +229,16 @@ public class PgClient extends AbstractClient {
                 }
                 channel = null;
             }
-            // TODO check/cancel future ?
+            var future = connectionFuture;
+            connectionFuture = null;
+            if (future != null) {
+                if (!future.isDone()) {
+                    future.completeExceptionally(new AlreadyClosedException("PgClient is closed"));
+                } else if (!future.isCompletedExceptionally()) {
+                    Connection connection = future.join();
+                    connection.close();
+                }
+            }
         }
     }
 
@@ -343,9 +356,6 @@ public class PgClient extends AbstractClient {
                     long relativeMillisTime = this.transport.getThreadPool().relativeTimeInMillis();
                     tcpChannel.getChannelStats().markAccessed(relativeMillisTime);
                     tcpChannel.addCloseListener(ActionListener.wrap(connection::close));
-
-                    // TODO: Is this needed?
-                    //transport.keepAlive().registerNodeConnection(List.of(tcpChannel), connectionProfile);
                     result.complete(connection);
                 },
                 e -> {
@@ -370,24 +380,24 @@ public class PgClient extends AbstractClient {
         private void handleAuth(ByteBuf msg) {
             AuthType authType = AuthType.of(msg.readInt());
             // TODO: Need to support password auth
-            if (authType != AuthType.Ok) {
+            if (authType != AuthType.OK) {
                 throw new UnsupportedOperationException(authType + " is not supported");
             }
         }
     }
 
     enum AuthType {
-        Ok,
-        KerberosV5,
-        CleartextPassword,
-        MD5Password;
+        OK,
+        KERBEROS,
+        CLEARTEXT_PASSWORD,
+        MD5_PASSWORD;
 
         public static AuthType of(int type) {
             return switch (type) {
-                case 0 -> Ok;
-                case 2 -> KerberosV5;
-                case 3 -> CleartextPassword;
-                case 5 -> MD5Password;
+                case 0 -> OK;
+                case 2 -> KERBEROS;
+                case 3 -> CLEARTEXT_PASSWORD;
+                case 5 -> MD5_PASSWORD;
                 default -> throw new IllegalArgumentException("Unknown auth type: " + type);
             };
         }
@@ -460,7 +470,7 @@ public class PgClient extends AbstractClient {
                 options,
                 version,
                 connectionProfile.getCompressionEnabled(),
-                false
+                false // isHandshake
             );
         }
 
@@ -485,7 +495,6 @@ public class PgClient extends AbstractClient {
             if (e != null) {
                 listener.onFailure(Exceptions.toRuntimeException(e));
             } else {
-                // TODO: Is this needed/useful?
                 if (request instanceof RemoteClusterAwareRequest remoteClusterAware) {
                     DiscoveryNode targetNode = remoteClusterAware.getPreferredTargetNode();
                     transportService.sendRequest(
@@ -506,6 +515,5 @@ public class PgClient extends AbstractClient {
                 }
             }
         });
-
     }
 }
