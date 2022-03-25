@@ -41,6 +41,7 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -71,6 +72,9 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 
 /**
  * Derived from org.opensearch.replication.repository.RemoteClusterRepository
@@ -152,7 +156,22 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             StepListener<ClusterState> clusterStateStepListener = new StepListener<>();
             getRemoteClusterState(false, false, clusterStateStepListener, indices, templates);
             clusterStateStepListener.whenComplete(
-                remoteClusterState -> listener.onResponse(remoteClusterState.metadata()),
+                remoteClusterState -> {
+                    var metadataBuilder = Metadata.builder(remoteClusterState.metadata());
+                    for (var cursor : remoteClusterState.metadata().templates().values()) {
+                        // Add subscription name as a setting value which can be used to restrict operations on
+                        // partitioned tables (e.g. forbid writes/creating new partitions)
+                        var settings = Settings.builder()
+                            .put(cursor.value.settings())
+                            .put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName)
+                            .build();
+                        var templateMetadata = new IndexTemplateMetadata.Builder(cursor.value)
+                            .settings(settings);
+                        metadataBuilder.put(templateMetadata);
+                    }
+
+                    listener.onResponse(metadataBuilder.build());
+                },
                 listener::onFailure
             );
         }, listener::onFailure);
@@ -172,9 +191,9 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 var indexMetadata = i.value;
                 // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
                 var builder = Settings.builder().put(indexMetadata.getSettings());
-                builder.put(LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
+                builder.put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
                 // Store publishers original index UUID to be able to resolve the original index later on
-                builder.put(LogicalReplicationSettings.PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
+                builder.put(PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
 
                 var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
                 indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));
@@ -192,9 +211,9 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             var indexMetadata = remoteClusterState.metadata().index(index.getName());
             // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
             var builder = Settings.builder().put(indexMetadata.getSettings());
-            builder.put(LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
+            builder.put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
             // Store publishers original index UUID to be able to resolve the original index later on
-            builder.put(LogicalReplicationSettings.PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
+            builder.put(PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
 
             var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
             indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));
