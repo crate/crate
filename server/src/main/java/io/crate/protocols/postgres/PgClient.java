@@ -180,6 +180,7 @@ public class PgClient extends AbstractClient {
             host,
             transport,
             pageCacheRecycler,
+            password,
             future
         ));
         bootstrap.remoteAddress(host.getAddress().address());
@@ -249,16 +250,19 @@ public class PgClient extends AbstractClient {
         private final CompletableFuture<Transport.Connection> result;
         private final PageCacheRecycler pageCacheRecycler;
         private final ConnectionProfile profile;
+        private final String password;
 
         public ClientChannelInitializer(ConnectionProfile profile,
                                         DiscoveryNode node,
                                         Netty4Transport transport,
                                         PageCacheRecycler pageCacheRecycler,
+                                        String password,
                                         CompletableFuture<Transport.Connection> result) {
             this.profile = profile;
             this.node = node;
             this.transport = transport;
             this.pageCacheRecycler = pageCacheRecycler;
+            this.password = password;
             this.result = result;
         }
 
@@ -272,6 +276,7 @@ public class PgClient extends AbstractClient {
                 node,
                 transport,
                 pageCacheRecycler,
+                password,
                 result
             );
             ch.pipeline().addLast("dispatcher", handler);
@@ -285,16 +290,19 @@ public class PgClient extends AbstractClient {
         private final DiscoveryNode node;
         private final Netty4Transport transport;
         private final ConnectionProfile profile;
+        private final String password;
 
         public Handler(ConnectionProfile profile,
                        DiscoveryNode node,
                        Netty4Transport transport,
                        PageCacheRecycler pageCacheRecycler,
+                       @Nullable String password,
                        CompletableFuture<Transport.Connection> result) {
             this.profile = profile;
             this.node = node;
             this.transport = transport;
             this.pageCacheRecycler = pageCacheRecycler;
+            this.password = password;
             this.result = result;
         }
 
@@ -309,7 +317,7 @@ public class PgClient extends AbstractClient {
             msg.readInt(); // consume msgLength
 
             switch (msgType) {
-                case 'R' -> handleAuth(msg);
+                case 'R' -> handleAuth(ctx.channel(), msg);
                 case 'S' -> handleParameterStatus(msg);
                 case 'Z' -> handleReadyForQuery(ctx.channel(), msg);
                 case 'E' -> handleErrorResponse(msg);
@@ -377,11 +385,19 @@ public class PgClient extends AbstractClient {
             PostgresWireProtocol.readCString(msg); // consume value
         }
 
-        private void handleAuth(ByteBuf msg) {
+        private void handleAuth(Channel channel, ByteBuf msg) {
             AuthType authType = AuthType.of(msg.readInt());
-            // TODO: Need to support password auth
-            if (authType != AuthType.OK) {
-                throw new UnsupportedOperationException(authType + " is not supported");
+            switch (authType) {
+                case OK:
+                    break;
+
+                case CLEARTEXT_PASSWORD:
+                    ByteBuf buffer = channel.alloc().buffer();
+                    channel.writeAndFlush(ClientMessages.writePasswordMessage(buffer, password));
+                    break;
+
+                default:
+                    throw new UnsupportedOperationException(authType + " is not supported");
             }
         }
     }
