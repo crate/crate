@@ -31,6 +31,7 @@ import io.crate.user.User;
 import io.crate.user.UserLookup;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -368,6 +369,30 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
         createPublication("pub1", false, List.of("doc.t1"));
         createSubscription("sub1", "pub1");
+
+        assertThrowsMatches(
+            () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
+            OperationOnInaccessibleRelationException.class,
+            "The relation \"doc.t1\" doesn't support or allow INSERT operations."
+        );
+    }
+
+    @Test
+    public void test_write_to_subscribed_empty_partitioned_table_is_forbidden() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) WITH(" +
+                           defaultTableSettings() +
+                           ")");
+        createPublication("pub1", false, List.of("doc.t1"));
+        executeOnSubscriber("CREATE SUBSCRIPTION sub1" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub1");
+        // Wait until empty partitioned table (template only) is replicated
+        assertBusy(() -> {
+            var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
+                " WHERE table_name = 't1'" +
+                " ORDER BY ordinal_position");
+            assertThat(printedTable(r.rows()), Matchers.is("id\n" +
+                "p\n"));
+        });
 
         assertThrowsMatches(
             () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
