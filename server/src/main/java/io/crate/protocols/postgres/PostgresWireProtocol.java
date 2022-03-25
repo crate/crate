@@ -456,11 +456,13 @@ public class PostgresWireProtocol {
             String database = properties.getProperty("database");
             session = sqlOperations.createSession(database, authenticatedUser);
             Messages.sendAuthenticationOK(channel)
-                .addListener(f -> sendParamsAndRdyForQuery(channel));
+                .addListener(f -> {
+                    sendParamsAndRdyForQuery(channel);
+                    if (properties.containsKey("CrateDBTransport")) {
+                        switchToTransportProtocol(channel);
+                    }
+                });
 
-            if (properties.containsKey("CrateDBTransport")) {
-                switchToTransportProtocol(channel);
-            }
         } catch (Exception e) {
             Messages.sendAuthenticationError(channel, e.getMessage());
         } finally {

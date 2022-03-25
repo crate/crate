@@ -43,6 +43,15 @@ class ClientMessages {
         return buffer;
     }
 
+    static ByteBuf writePasswordMessage(ByteBuf buffer, String password) {
+        byte[] passwordBytes = password.getBytes(StandardCharsets.UTF_8);
+        buffer.writeByte('p');
+        buffer.writeInt(4 + passwordBytes.length + 1);
+        buffer.writeBytes(passwordBytes);
+        buffer.writeByte(0);
+        return buffer;
+    }
+
     static ByteBuf sendStartupMessage(ByteBuf buffer, String dbName) {
         return sendStartupMessage(buffer, dbName, Map.of());
     }

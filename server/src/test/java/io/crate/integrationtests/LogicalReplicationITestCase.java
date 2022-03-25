@@ -110,7 +110,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         );
         publisherCluster.beforeTest(random());
         publisherCluster.ensureAtLeastNumDataNodes(getPublisherNumberOfNodes());
-        publisherSqlExecutor = sqlExecutor(publisherCluster);
+        publisherSqlExecutor = publisherCluster.createSQLTransportExecutor();
 
         subscriberCluster = new InternalTestCluster(
             randomLong(),
@@ -129,7 +129,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         );
         subscriberCluster.beforeTest(random());
         subscriberCluster.ensureAtLeastNumDataNodes(getSubscriberNumberOfNodes());
-        subscriberSqlExecutor = sqlExecutor(subscriberCluster);
+        subscriberSqlExecutor = subscriberCluster.createSQLTransportExecutor();
     }
 
     @After
@@ -226,34 +226,6 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
                 return super.transportClientSettings();
             }
         };
-    }
-
-    SQLTransportExecutor sqlExecutor(InternalTestCluster cluster) {
-        return new SQLTransportExecutor(
-            new SQLTransportExecutor.ClientProvider() {
-                @Override
-                public Client client() {
-                    return ESIntegTestCase.client();
-                }
-
-                @Override
-                public String pgUrl() {
-                    PostgresNetty postgresNetty = cluster.getInstance(PostgresNetty.class);
-                    BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
-                    if (boundTransportAddress != null) {
-                        InetSocketAddress address = boundTransportAddress.publishAddress().address();
-                        return String.format(Locale.ENGLISH, "jdbc:postgresql://%s:%d/?ssl=%s&sslmode=%s",
-                                             address.getHostName(), address.getPort(), false, "disable");
-                    }
-                    return null;
-                }
-
-                @Override
-                public SQLOperations sqlOperations() {
-                    return cluster.getInstance(SQLOperations.class);
-                }
-            }
-        );
     }
 
     public String publisherConnectionUrl() {
