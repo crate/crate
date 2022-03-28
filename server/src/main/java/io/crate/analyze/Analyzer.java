@@ -651,7 +651,7 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitDropPublication(DropPublication dropPublication,
                                                       Analysis context) {
-            return logicalReplicationAnalyzer.analyze(dropPublication);
+            return logicalReplicationAnalyzer.analyze(dropPublication, context.sessionContext());
         }
 
         @Override
@@ -673,13 +673,13 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitDropSubscription(DropSubscription dropSubscription,
                                                        Analysis context) {
-            return logicalReplicationAnalyzer.analyze(dropSubscription);
+            return logicalReplicationAnalyzer.analyze(dropSubscription, context.sessionContext());
         }
 
         @Override
         public AnalyzedStatement visitAlterSubscription(AlterSubscription alterSubscription,
                                                         Analysis context) {
-            return logicalReplicationAnalyzer.analyze(alterSubscription);
+            return logicalReplicationAnalyzer.analyze(alterSubscription, context.sessionContext());
         }
     }
 }

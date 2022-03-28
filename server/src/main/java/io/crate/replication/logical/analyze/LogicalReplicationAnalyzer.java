@@ -21,17 +21,15 @@
 
 package io.crate.replication.logical.analyze;
 
-import java.util.Locale;
-
-import org.elasticsearch.index.IndexSettings;
-
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.collections.Lists2;
+import io.crate.exceptions.InvalidArgumentException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
@@ -51,6 +49,9 @@ import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
+import org.elasticsearch.index.IndexSettings;
+
+import java.util.Locale;
 
 public class LogicalReplicationAnalyzer {
 
@@ -100,10 +101,16 @@ public class LogicalReplicationAnalyzer {
         return new AnalyzedCreatePublication(createPublication.name(), createPublication.isForAllTables(), tables);
     }
 
-    public AnalyzedDropPublication analyze(DropPublication dropPublication) {
-        if (dropPublication.ifExists() == false
-            && logicalReplicationService.publications().containsKey(dropPublication.name()) == false) {
+    public AnalyzedDropPublication analyze(DropPublication dropPublication,
+                                           SessionContext sessionContext) {
+        var publication = logicalReplicationService.publications().get(dropPublication.name());
+        if (dropPublication.ifExists() == false && publication == null) {
             throw new PublicationUnknownException(dropPublication.name());
+        }
+        if (publication != null
+            && publication.owner().equals(sessionContext.sessionUser().name()) == false
+            && sessionContext.sessionUser().isSuperUser() == false) {
+            throw new UnauthorizedException("A publication can only be dropped by the owner or a superuser");
         }
 
         return new AnalyzedDropPublication(dropPublication.name(), dropPublication.ifExists());
@@ -111,8 +118,19 @@ public class LogicalReplicationAnalyzer {
 
     public AnalyzedAlterPublication analyze(AlterPublication alterPublication,
                                             SessionContext sessionContext) {
-        if (logicalReplicationService.publications().containsKey(alterPublication.name()) == false) {
+        var publication = logicalReplicationService.publications().get(alterPublication.name());
+        if (publication == null) {
             throw new PublicationUnknownException(alterPublication.name());
+        }
+        if (publication.owner().equals(sessionContext.sessionUser().name()) == false
+            && sessionContext.sessionUser().isSuperUser() == false) {
+            throw new UnauthorizedException("A publication can only be altered by the owner or a superuser");
+        }
+        if (publication.isForAllTables()) {
+            throw new InvalidArgumentException(
+                "Publication '" + alterPublication.name() + "' is defined as FOR ALL TABLES," +
+                " adding or dropping tables is not supported"
+            );
         }
         var defaultSchema = sessionContext.searchPath().currentSchema();
         var tables = Lists2.map(
@@ -150,17 +168,27 @@ public class LogicalReplicationAnalyzer {
         );
     }
 
-    public AnalyzedDropSubscription analyze(DropSubscription dropSubscription) {
+    public AnalyzedDropSubscription analyze(DropSubscription dropSubscription, SessionContext sessionContext) {
         var subscription = logicalReplicationService.subscriptions().get(dropSubscription.name());
         if (dropSubscription.ifExists() == false && subscription == null) {
             throw new SubscriptionUnknownException(dropSubscription.name());
         }
+        if (subscription != null
+            && subscription.owner().equals(sessionContext.sessionUser().name()) == false
+            && sessionContext.sessionUser().isSuperUser() == false) {
+            throw new UnauthorizedException("A subscription can only be dropped by the owner or a superuser");
+        }
         return new AnalyzedDropSubscription(dropSubscription.name(), subscription, dropSubscription.ifExists());
     }
 
-    public AnalyzedAlterSubscription analyze(AlterSubscription alterSubscription) {
-        if (logicalReplicationService.subscriptions().containsKey(alterSubscription.name()) == false) {
+    public AnalyzedAlterSubscription analyze(AlterSubscription alterSubscription, SessionContext sessionContext) {
+        var subscription = logicalReplicationService.subscriptions().get(alterSubscription.name());
+        if (subscription == null) {
             throw new SubscriptionUnknownException(alterSubscription.name());
+        }
+        if (subscription.owner().equals(sessionContext.sessionUser().name()) == false
+            && sessionContext.sessionUser().isSuperUser() == false) {
+            throw new UnauthorizedException("A subscription can only be altered by the owner or a superuser");
         }
 
         return new AnalyzedAlterSubscription(
