@@ -113,3 +113,5 @@ Fixes
 
 - Bumped JNA library to version 5.10.0. This will make CrateDB start without
   JNA library warnings on M1 chip based MacOS systems.
+
+- Updated to Admin UI 1.20.2, which fixes duplicate entries in query history.
