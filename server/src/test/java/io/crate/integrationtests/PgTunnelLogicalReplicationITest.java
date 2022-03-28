@@ -24,7 +24,10 @@ package io.crate.integrationtests;
 import static org.hamcrest.CoreMatchers.is;
 
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -40,21 +43,20 @@ import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.transport.Netty4Plugin;
-import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.protocols.ssl.SslSettings;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLErrorMatcher;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class PgTunnelLogicalReplicationITest extends ESTestCase {
 
@@ -170,7 +172,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
 
         assertBusy(() -> {
             try {
-                assertThat(subscriber.exec("select * from tbl").rowCount(), is(0L));
+                assertThat(subscriber.exec("select * from tbl").rowCount(), is(1L));
             } catch (Exception e) {
                 throw new AssertionError(e);
             }
@@ -212,5 +214,66 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
                 PGErrorStatus.EXCLUSION_VIOLATION,
                 HttpResponseStatus.INTERNAL_SERVER_ERROR,
                 5000));
+    }
+
+    @Test
+    public void test_can_use_ssl_in_pg_tunnel_subscription() throws Exception {
+        // self signed certificate doesn't work with randomized locales
+        Locale.setDefault(Locale.ENGLISH);
+
+        Path keystorePath = createTempFile();
+        var certificate = new SelfSignedCertificate();
+        char[] emptyPassword = new char[0];
+        var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null);
+        keyStore.setKeyEntry("key", certificate.key(), emptyPassword, new Certificate[] { certificate.cert() });
+        try (var out = Files.newOutputStream(keystorePath)) {
+            keyStore.store(out, emptyPassword);
+        }
+
+        publisherCluster = newCluster("publisher", Settings.builder()
+            .put("auth.host_based.enabled", true)
+            .put("auth.host_based.config.0.user", "marvin")
+            .put("auth.host_based.config.0.method", "password")
+            .put("auth.host_based.config.0.protocol", "pg")
+            .put("auth.host_based.config.0.ssl", "on")
+            .put(SslSettings.SSL_PSQL_ENABLED.getKey(), true)
+            .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keystorePath.toAbsolutePath().toString())
+            .build()
+        );
+        subscriberCluster = newCluster("subscriber", Settings.builder()
+            .put(SslSettings.SSL_PSQL_ENABLED.getKey(), true)
+            .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keystorePath.toAbsolutePath().toString())
+            .build()
+        );
+
+        publisher = publisherCluster.createSQLTransportExecutor();
+        publisher.exec("create table tbl (x int) with (number_of_replicas = 0)");
+        publisher.exec("create user marvin with (password = 'secret')");
+        publisher.exec("grant ALL TO marvin");
+        publisher.exec("create publication pub1 FOR ALL TABLES");
+
+
+        PostgresNetty postgres = publisherCluster.getInstance(PostgresNetty.class);
+        InetSocketAddress postgresAddress = postgres.boundAddress().publishAddress().address();
+        subscriber = subscriberCluster.createSQLTransportExecutor(true, null);
+        subscriber.exec(String.format(Locale.ENGLISH, """
+            CREATE SUBSCRIPTION sub1
+                CONNECTION 'crate://%s:%d?user=marvin&password=secret&mode=pg_tunnel&sslmode=require'
+                PUBLICATION pub1
+            """,
+            postgresAddress.getHostName(),
+            postgresAddress.getPort()));
+
+        assertThat(TestingHelpers.printedTable(subscriber.exec("select subname from pg_subscription").rows()), is(
+            "sub1\n"
+        ));
+        assertBusy(() -> {
+            try {
+                assertThat(subscriber.exec("select * from tbl").rowCount(), is(0L));
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        }, 10, TimeUnit.SECONDS);
     }
 }

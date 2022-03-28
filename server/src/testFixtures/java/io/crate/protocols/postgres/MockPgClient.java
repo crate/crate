@@ -45,14 +45,14 @@ public class MockPgClient extends PgClient {
 
     public MockPgClient(PgClient pgClient) {
         super(
+            pgClient.name,
             pgClient.settings(),
             pgClient.transportService,
             pgClient.nettyBootstrap,
             pgClient.transport,
+            pgClient.sslContextProvider,
             pgClient.pageCacheRecycler,
-            pgClient.host,
-            pgClient.username,
-            pgClient.password);
+            pgClient.connectionInfo);
         // MockPgClient must only be used if the TransportService is a MockTransportService
         this.stubTransport = (StubbableTransport) ((MockTransportService ) pgClient.transportService).transport();
     }

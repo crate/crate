@@ -48,6 +48,7 @@ import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.user.StubUserManager;
 import io.crate.user.User;
@@ -108,7 +109,6 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         );
         postgresNetty.start();
         TransportAddress serverAddress = postgresNetty.boundAddress().publishAddress();
-        DiscoveryNode serverHost = new DiscoveryNode("server", serverAddress, Version.CURRENT);
         DiscoveryNode localNode = new DiscoveryNode("client", serverAddress, Version.CURRENT);
         var clientTransportService = new TransportService(
             clientSettings,
@@ -120,19 +120,19 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         clientTransportService.start();
         clientTransportService.acceptIncomingRequests();
         var pgClient = new PgClient(
+            "dummy",
             clientSettings,
             clientTransportService,
             nettyBootstrap,
             clientTransport,
+            null, // sslContextProvider
             pageCacheRecycler,
-            serverHost,
-            null,
-            null
+            new ConnectionInfo(List.of(serverAddress.getAddress() + ':' + serverAddress.getPort()), Settings.EMPTY)
         );
 
         CompletableFuture<Connection> connect = pgClient.ensureConnected();
         Connection connection = connect.get(120, TimeUnit.SECONDS);
-        assertThat(connection.getNode(), is(serverHost));
+        assertThat(connection.getNode().getAddress(), is(serverAddress));
 
         // Must be able to call ensureConnected again
         CompletableFuture<Connection> conn2 = pgClient.ensureConnected();

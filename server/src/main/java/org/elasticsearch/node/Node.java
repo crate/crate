@@ -600,6 +600,7 @@ public class Node implements Closeable {
                 settings,
                 transportService,
                 transport,
+                sslContextProvider,
                 pageCacheRecycler,
                 nettyBootstrap
             );
@@ -782,12 +783,14 @@ public class Node implements Closeable {
     protected PgClientFactory newPgClientFactory(Settings settings,
                                                  TransportService transportService,
                                                  Netty4Transport transport,
+                                                 SslContextProvider sslContextProvider,
                                                  PageCacheRecycler pageCacheRecycler,
                                                  NettyBootstrap nettyBootstrap) {
         return new PgClientFactory(
             settings,
             transportService,
             transport,
+            sslContextProvider,
             pageCacheRecycler,
             nettyBootstrap
         );

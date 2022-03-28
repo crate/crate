@@ -42,6 +42,7 @@ import org.elasticsearch.client.support.AbstractClient;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.transport.CloseableConnection;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -50,6 +51,7 @@ import org.elasticsearch.transport.NodeNotConnectedException;
 import org.elasticsearch.transport.OutboundHandler;
 import org.elasticsearch.transport.RemoteClusterAwareRequest;
 import org.elasticsearch.transport.RemoteConnectionManager.ProxyConnection;
+import org.elasticsearch.transport.RemoteConnectionParser;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportException;
@@ -66,7 +68,9 @@ import org.elasticsearch.transport.netty4.Netty4Utils;
 import io.crate.common.collections.BorrowedItem;
 import io.crate.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
-import io.crate.user.User;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.replication.logical.metadata.ConnectionInfo.SSLMode;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -77,7 +81,9 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.ByteToMessageDecoder;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslHandler;
 
 /**
  * A client that uses the PostgreSQL wire protocol to initiate a connection,
@@ -87,37 +93,41 @@ public class PgClient extends AbstractClient {
 
     private static final Logger LOGGER = LogManager.getLogger(PgClient.class);
 
+    final String name;
     final NettyBootstrap nettyBootstrap;
     final Netty4Transport transport;
     final PageCacheRecycler pageCacheRecycler;
     final DiscoveryNode host;
     final TransportService transportService;
     final AtomicBoolean isClosing = new AtomicBoolean(false);
-    final String username;
-    final String password;
+    final ConnectionInfo connectionInfo;
     final ConnectionProfile profile;
+    final SslContextProvider sslContextProvider;
 
     private CompletableFuture<Transport.Connection> connectionFuture;
     private BorrowedItem<EventLoopGroup> eventLoopGroup;
     private Bootstrap bootstrap;
     private Channel channel;
 
-    public PgClient(Settings nodeSettings,
+
+
+    public PgClient(String name,
+                    Settings nodeSettings,
                     TransportService transportService,
                     NettyBootstrap nettyBootstrap,
                     Netty4Transport transport,
+                    SslContextProvider sslContextProvider,
                     PageCacheRecycler pageCacheRecycler,
-                    DiscoveryNode host,
-                    @Nullable String username,
-                    @Nullable String password) {
+                    ConnectionInfo connectionInfo) {
         super(nodeSettings, transport.getThreadPool());
+        this.name = name;
         this.transportService = transportService;
         this.nettyBootstrap = nettyBootstrap;
         this.transport = transport;
+        this.sslContextProvider = sslContextProvider;
         this.pageCacheRecycler = pageCacheRecycler;
-        this.host = host;
-        this.username = username;
-        this.password = password;
+        this.host = toDiscoveryNode(connectionInfo.hosts());
+        this.connectionInfo = connectionInfo;
         this.profile = new ConnectionProfile.Builder()
             .setConnectTimeout(TransportSettings.CONNECT_TIMEOUT.get(settings))
             .setHandshakeTimeout(TransportSettings.CONNECT_TIMEOUT.get(settings))
@@ -129,6 +139,19 @@ public class PgClient extends AbstractClient {
             .addConnections(1, TransportRequestOptions.Type.RECOVERY)
             .addConnections(1, TransportRequestOptions.Type.REG)
             .build();
+    }
+
+    private DiscoveryNode toDiscoveryNode(List<String> hosts) {
+        if (hosts.isEmpty()) {
+            throw new IllegalArgumentException("No hosts configured for pg tunnel " + name);
+        }
+        String host = hosts.get(0);
+        var transportAddress = new TransportAddress(RemoteConnectionParser.parseConfiguredAddress(host));
+        return new DiscoveryNode(
+            "RemoteCluster=" + name + "#" + transportAddress.toString(),
+            transportAddress,
+            Version.CURRENT.minimumCompatibilityVersion()
+        );
     }
 
     public CompletableFuture<Transport.Connection> ensureConnected() {
@@ -180,7 +203,8 @@ public class PgClient extends AbstractClient {
             host,
             transport,
             pageCacheRecycler,
-            password,
+            sslContextProvider,
+            connectionInfo,
             future
         ));
         bootstrap.remoteAddress(host.getAddress().address());
@@ -200,9 +224,13 @@ public class PgClient extends AbstractClient {
                 }
 
                 ByteBuf buffer = channel.alloc().buffer();
-                String user = username == null ? User.CRATE_USER.name() : username;
-                Map<String, String> properties = Map.of("user", user, "CrateDBTransport", "true");
-                ClientMessages.sendStartupMessage(buffer, "doc", properties);
+                if (connectionInfo.sslMode() == SSLMode.REQUIRE) {
+                    ClientMessages.writeSSLReqMessage(buffer);
+                } else {
+                    String user = connectionInfo.user();
+                    Map<String, String> properties = Map.of("user", user, "CrateDBTransport", "true");
+                    ClientMessages.sendStartupMessage(buffer, "doc", properties);
+                }
                 channel.writeAndFlush(buffer);
             } else {
                 Throwable cause = f.cause();
@@ -250,33 +278,38 @@ public class PgClient extends AbstractClient {
         private final CompletableFuture<Transport.Connection> result;
         private final PageCacheRecycler pageCacheRecycler;
         private final ConnectionProfile profile;
-        private final String password;
+        private final ConnectionInfo connectionInfo;
+        private final SslContextProvider sslContextProvider;
 
         public ClientChannelInitializer(ConnectionProfile profile,
                                         DiscoveryNode node,
                                         Netty4Transport transport,
                                         PageCacheRecycler pageCacheRecycler,
-                                        String password,
+                                        SslContextProvider sslContextProvider,
+                                        ConnectionInfo connectionInfo,
                                         CompletableFuture<Transport.Connection> result) {
             this.profile = profile;
             this.node = node;
             this.transport = transport;
             this.pageCacheRecycler = pageCacheRecycler;
-            this.password = password;
+            this.sslContextProvider = sslContextProvider;
+            this.connectionInfo = connectionInfo;
             this.result = result;
         }
 
         @Override
         protected void initChannel(Channel ch) throws Exception {
             ChannelPipeline pipeline = ch.pipeline();
-            pipeline.addLast("decoder", new Decoder());
-
+            SslContext sslCtx = connectionInfo.sslMode() == SSLMode.REQUIRE
+                ? sslContextProvider.clientContext()
+                : null;
+            pipeline.addLast("decoder", new Decoder(connectionInfo.user(), sslCtx));
             Handler handler = new Handler(
                 profile,
                 node,
                 transport,
                 pageCacheRecycler,
-                password,
+                connectionInfo,
                 result
             );
             ch.pipeline().addLast("dispatcher", handler);
@@ -290,19 +323,19 @@ public class PgClient extends AbstractClient {
         private final DiscoveryNode node;
         private final Netty4Transport transport;
         private final ConnectionProfile profile;
-        private final String password;
+        private final ConnectionInfo connectionInfo;
 
         public Handler(ConnectionProfile profile,
                        DiscoveryNode node,
                        Netty4Transport transport,
                        PageCacheRecycler pageCacheRecycler,
-                       @Nullable String password,
+                       ConnectionInfo connectionInfo,
                        CompletableFuture<Transport.Connection> result) {
             this.profile = profile;
             this.node = node;
             this.transport = transport;
             this.pageCacheRecycler = pageCacheRecycler;
-            this.password = password;
+            this.connectionInfo = connectionInfo;
             this.result = result;
         }
 
@@ -387,13 +420,17 @@ public class PgClient extends AbstractClient {
 
         private void handleAuth(Channel channel, ByteBuf msg) {
             AuthType authType = AuthType.of(msg.readInt());
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Server sent authentication request type={}", authType);
+            }
             switch (authType) {
                 case OK:
                     break;
 
                 case CLEARTEXT_PASSWORD:
                     ByteBuf buffer = channel.alloc().buffer();
-                    channel.writeAndFlush(ClientMessages.writePasswordMessage(buffer, password));
+                    ClientMessages.writePasswordMessage(buffer, connectionInfo.password());
+                    channel.writeAndFlush(buffer);
                     break;
 
                 default:
@@ -420,25 +457,108 @@ public class PgClient extends AbstractClient {
     }
 
 
-    static class Decoder extends LengthFieldBasedFrameDecoder {
+    /**
+     * Ensures the next handler in the netty pipeline receives complete PostgreSQL messages.
+     * Also takes care of the SSL negotiation (incl. sending a startup message) if the sslContext is present.
+     **/
+    static class Decoder extends ByteToMessageDecoder {
 
-        // PostgreSQL wire protocol message format:
-        // | Message Type (Byte1) | Length including self (Int32) | Body (depending on type) |
-        private static final int LENGTH_FIELD_OFFSET = 1;
-        private static final int LENGTH_FIELD_LENGTH = 4;
-        private static final int LENGTH_ADJUSTMENT = -4;
+        /**
+         * Minimum length of a message.
+         *
+         * <ul>
+         * <li>
+         *  <code>1 byte: message type</code>
+         * </li>
+         *
+         * <li>
+         *  <code>4 byte: message length</code>
+         * </li>
+         **/
+        private static final int HEADER_LENGTH = 5;
 
-        // keep the header
-        private static final int INITIAL_BYTES_TO_STRIP = 0;
+        private final SslContext sslContext;
+        private final String user;
 
-        public Decoder() {
-            super(
-                Integer.MAX_VALUE,
-                LENGTH_FIELD_OFFSET,
-                LENGTH_FIELD_LENGTH,
-                LENGTH_ADJUSTMENT,
-                INITIAL_BYTES_TO_STRIP
-            );
+        private boolean expectSSLResponse;
+
+        public Decoder(String user, @Nullable SslContext sslContext) {
+            this.user = user;
+            this.sslContext = sslContext;
+            this.expectSSLResponse = sslContext != null;
+        }
+
+        @Override
+        protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+            ByteBuf buf = decode(ctx, in);
+            if (buf != null) {
+                out.add(buf);
+            }
+        }
+
+        private ByteBuf decode(ChannelHandlerContext ctx, ByteBuf in) {
+            if (expectSSLResponse) {
+                if (in.readableBytes() < 1) {
+                    return null;
+                }
+                expectSSLResponse = false;
+                byte sslResponse = in.readByte();
+                if (sslResponse == 'S') {
+                    injectSSLHandler(ctx);
+                    // fall-through to handle the rest of the message
+                } else if (sslResponse == 'N') {
+                    throw new IllegalStateException("SSL required but not supported");
+                } else {
+                    throw new IllegalStateException("Unexpected SSL response: " + sslResponse);
+                }
+            }
+
+            if (in.readableBytes() < HEADER_LENGTH) {
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("PgDecoder needs more bytes readableBytes={}", in.readableBytes());
+                }
+                return null;
+            }
+
+            in.markReaderIndex();
+            byte msgType = in.readByte();
+            int msgLength = in.readInt() - 4; // exclude length of msgLength itself
+
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace(
+                    "Decoding message type={} length={} readableBytes={}",
+                    (char) msgType,
+                    msgLength,
+                    in.readableBytes()
+                );
+            }
+
+            if (in.readableBytes() < msgLength) {
+                in.resetReaderIndex();
+                return null;
+            }
+
+            // Allow handler to read msgType and msgLength again
+            in.resetReaderIndex();
+            return in.readBytes(HEADER_LENGTH + msgLength);
+        }
+
+        private void injectSSLHandler(ChannelHandlerContext ctx) {
+            ChannelPipeline pipeline = ctx.pipeline();
+            SslHandler sslHandler = sslContext.newHandler(ctx.alloc());
+            pipeline.addFirst(sslHandler);
+
+            ByteBuf buffer = ctx.alloc().buffer();
+            Map<String, String> properties = Map.of("user", user, "CrateDBTransport", "true");
+            ClientMessages.sendStartupMessage(buffer, "doc", properties);
+            ChannelFuture flushStartup = ctx.writeAndFlush(buffer);
+            if (LOGGER.isWarnEnabled()) {
+                flushStartup.addListener(f -> {
+                    if (!f.isSuccess()) {
+                        LOGGER.warn("Client failed to send startup message", f.cause());
+                    }
+                });
+            }
         }
     }
 

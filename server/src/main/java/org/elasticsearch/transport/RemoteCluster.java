@@ -29,12 +29,9 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.action.FutureActionListener;
@@ -135,17 +132,13 @@ public class RemoteCluster implements Closeable {
     }
 
     private CompletableFuture<Client> connectPgTunnel() {
-        List<String> hosts = connectionInfo.hosts();
-        if (hosts.isEmpty()) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException("No hosts configured for pg tunnel"));
+        try {
+            PgClient pgClient = pgClientFactory.createClient(clusterName, connectionInfo);
+            toClose.add(pgClient);
+            return pgClient.ensureConnected().thenApply(connection -> pgClient);
+        } catch (Throwable e) {
+            return CompletableFuture.failedFuture(e);
         }
-        PgClient pgClient = pgClientFactory.createClient(
-            toDiscoveryNode(hosts.get(0)),
-            ConnectionInfo.USERNAME.get(connectionInfo.settings()),
-            ConnectionInfo.PASSWORD.get(connectionInfo.settings())
-        );
-        toClose.add(pgClient);
-        return pgClient.ensureConnected().thenApply(connection -> pgClient);
     }
 
     private CompletableFuture<Client> connectSniff() {
@@ -162,14 +155,5 @@ public class RemoteCluster implements Closeable {
         });
         remoteConnection.ensureConnected(listener);
         return listener;
-    }
-
-    private DiscoveryNode toDiscoveryNode(String seedNode) {
-        var transportAddress = new TransportAddress(RemoteConnectionParser.parseConfiguredAddress(seedNode));
-        return new DiscoveryNode(
-            "RemoteCluster=" + clusterName + "#" + transportAddress.toString(),
-            transportAddress,
-            Version.CURRENT.minimumCompatibilityVersion()
-        );
     }
 }

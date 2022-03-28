@@ -30,7 +30,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
+
+import javax.annotation.Nullable;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -40,8 +41,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.RemoteCluster;
 
 import io.crate.exceptions.InvalidArgumentException;
-import io.crate.metadata.settings.Validators;
 import io.crate.types.DataTypes;
+import io.crate.user.User;
 
 
 public class ConnectionInfo implements Writeable {
@@ -50,11 +51,24 @@ public class ConnectionInfo implements Writeable {
 
     public static final Setting<String> PASSWORD = Setting.simpleString("password");
 
-    public static final Setting<String> SSLMODE = new Setting<>(
+
+    public enum SSLMode {
+        DISABLE,
+        REQUIRE
+    }
+
+    public static final Setting<SSLMode> SSLMODE = new Setting<>(
         "sslmode",
-        "prefer",
-        Function.identity(),
-        Validators.stringValidator("sslmode", "prefer", "allow", "disable", "require"),
+        SSLMode.DISABLE.name(),
+        input -> {
+            if (input.equalsIgnoreCase("disable")) {
+                return SSLMode.DISABLE;
+            } else if (input.equalsIgnoreCase("require")) {
+                return SSLMode.REQUIRE;
+            } else {
+                throw new InvalidArgumentException("Invalid value for sslmode: " + input);
+            }
+        },
         DataTypes.STRING
     );
 
@@ -175,6 +189,23 @@ public class ConnectionInfo implements Writeable {
 
     public Settings settings() {
         return settings;
+    }
+
+    /**
+     * @return the username supplied in the connection string or "crate" if no username was supplied.
+     **/
+    public String user() {
+        String userName = USERNAME.get(settings);
+        return userName == null ? User.CRATE_USER.name() : userName;
+    }
+
+    @Nullable
+    public String password() {
+        return PASSWORD.get(settings);
+    }
+
+    public SSLMode sslMode() {
+        return SSLMODE.get(settings);
     }
 
     @Override

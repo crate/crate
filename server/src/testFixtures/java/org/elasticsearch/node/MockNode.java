@@ -52,6 +52,7 @@ import org.elasticsearch.transport.netty4.Netty4Transport;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.postgres.MockPgClientFactory;
 import io.crate.protocols.postgres.PgClientFactory;
+import io.crate.protocols.ssl.SslContextProvider;
 
 /**
  * A node for testing which allows:
@@ -138,9 +139,11 @@ public class MockNode extends Node {
     protected PgClientFactory newPgClientFactory(Settings settings,
                                                  TransportService transportService,
                                                  Netty4Transport transport,
+                                                 SslContextProvider sslContextProvider,
                                                  PageCacheRecycler pageCacheRecycler,
                                                  NettyBootstrap nettyBootstrap) {
-        PgClientFactory pgClientFactory = super.newPgClientFactory(settings, transportService, transport, pageCacheRecycler, nettyBootstrap);
+        PgClientFactory pgClientFactory = super.newPgClientFactory(
+            settings, transportService, transport, sslContextProvider, pageCacheRecycler, nettyBootstrap);
         if (getPluginsService().filterPlugins(MockTransportService.TestPlugin.class).isEmpty()) {
             return pgClientFactory;
         } else {

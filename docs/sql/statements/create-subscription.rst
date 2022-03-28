@@ -81,10 +81,18 @@ Parameters
 
   ``password``: user password.
 
-  ``sslmode``: one of the values (``prefer``, ``allow``, ``disable``, ``require``).
-
   ``seeds``:  A comma separated list of initial seed nodes to discover eligible
   nodes from the remote cluster.
+
+
+The following options are only supported with the ``pg_tunnel`` mode:
+
+  ``sslmode``: Configures whether the connection should use SSL. You must have
+  a working SSL setup for the PostgreSQL wire protocol on both the subscriber
+  and publisher cluster.
+
+  Allowed values are ``require`` or ``disable``. Defaults to ``disable``.
+
 
 **PUBLICATION publication_name**
   Names of the publications on the publisher to subscribe to

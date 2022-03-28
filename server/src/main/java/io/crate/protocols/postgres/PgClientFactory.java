@@ -21,9 +21,6 @@
 
 package io.crate.protocols.postgres;
 
-import javax.annotation.Nullable;
-
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.PageCacheRecycler;
@@ -31,6 +28,8 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import io.crate.netty.NettyBootstrap;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 
 
 /**
@@ -47,29 +46,32 @@ public class PgClientFactory {
     final NettyBootstrap nettyBootstrap;
     final Netty4Transport transport;
     final PageCacheRecycler pageCacheRecycler;
+    final SslContextProvider sslContextProvider;
 
     public PgClientFactory(Settings settings,
                            TransportService transportService,
                            Netty4Transport transport,
+                           SslContextProvider sslContextProvider,
                            PageCacheRecycler pageCacheRecycler,
                            NettyBootstrap nettyBootstrap) {
         this.settings = settings;
         this.transportService = transportService;
         this.transport = transport;
+        this.sslContextProvider = sslContextProvider;
         this.pageCacheRecycler = pageCacheRecycler;
         this.nettyBootstrap = nettyBootstrap;
     }
 
-    public PgClient createClient(DiscoveryNode host, @Nullable String username, @Nullable String password) {
+    public PgClient createClient(String name, ConnectionInfo connectionInfo) {
         return new PgClient(
+            name,
             settings,
             transportService,
             nettyBootstrap,
             transport,
+            sslContextProvider,
             pageCacheRecycler,
-            host,
-            username,
-            password
+            connectionInfo
         );
     }
 }

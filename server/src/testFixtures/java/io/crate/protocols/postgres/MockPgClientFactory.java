@@ -21,7 +21,7 @@
 
 package io.crate.protocols.postgres;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 
 public class MockPgClientFactory extends PgClientFactory {
 
@@ -30,13 +30,14 @@ public class MockPgClientFactory extends PgClientFactory {
             pgClientFactory.settings,
             pgClientFactory.transportService,
             pgClientFactory.transport,
+            pgClientFactory.sslContextProvider,
             pgClientFactory.pageCacheRecycler,
             pgClientFactory.nettyBootstrap
         );
     }
 
     @Override
-    public PgClient createClient(DiscoveryNode host, String username, String password) {
-        return new MockPgClient(super.createClient(host, username, password));
+    public PgClient createClient(String name, ConnectionInfo connectionInfo) {
+        return new MockPgClient(super.createClient(name, connectionInfo));
     }
 }
