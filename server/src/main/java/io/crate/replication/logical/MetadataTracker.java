@@ -98,7 +98,7 @@ public final class MetadataTracker implements Closeable {
     private final IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver();
 
     // Using a copy-on-write approach. The assumption is that subscription changes are rare and reads happen more frequently
-    private volatile Set<String> subscriptionsToTrack = new HashSet<>();
+    private volatile Set<String> subscriptionsToTrack = Set.of();
     private volatile Scheduler.Cancellable cancellable;
     private volatile boolean isActive = false;
 
@@ -181,7 +181,8 @@ public final class MetadataTracker implements Closeable {
     }
 
     private void run() {
-        var currentSubscriptionsToTrack = new HashSet<>(subscriptionsToTrack);
+        // single volatile read
+        var currentSubscriptionsToTrack = subscriptionsToTrack;
 
         var countDown = new CountdownFutureCallback(currentSubscriptionsToTrack.size());
         countDown.thenRun(this::schedule);
