@@ -620,7 +620,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void test_create_publication_for_specific_tables_asks_clusterAL_and_all_for_each_table() {
+    public void test_create_publication_asks_cluster_AL_and_all_for_each_table() {
         analyze("create publication pub1 FOR TABLE t1, t2", user);
         assertAskedForCluster(Privilege.Type.AL);
         for (Privilege.Type type: READ_WRITE_DEFINE) {
@@ -630,8 +630,55 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_drop_publication_asks_cluster_AL() {
+        e = SQLExecutor.builder(clusterService)
+            .setUser(user)
+            .addPublication("pub1", true)
+            .setUserManager(userManager)
+            .build();
+        analyze("DROP PUBLICATION pub1", user);
+        assertAskedForCluster(Privilege.Type.AL);
+    }
+
+    @Test
+    public void test_alter_publication_asks_cluster_AL() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .setUser(user)
+            .addPublication("pub1", false, new RelationName("doc", "t1"))
+            .setUserManager(userManager)
+            .build();
+        analyze("ALTER PUBLICATION pub1 ADD TABLE t2", user);
+        assertAskedForCluster(Privilege.Type.AL);
+        for (Privilege.Type type: READ_WRITE_DEFINE) {
+            assertAskedForTable(type, "doc.t2");
+        }
+    }
+
+    @Test
     public void test_create_subscription_asks_cluster_AL() {
         analyze("create subscription sub1 CONNECTION 'postgresql://user@localhost/crate:5432' PUBLICATION pub1", user);
+        assertAskedForCluster(Privilege.Type.AL);
+    }
+
+    @Test
+    public void test_drop_subscription_asks_cluster_AL() {
+        e = SQLExecutor.builder(clusterService)
+            .setUser(user)
+            .addSubscription("sub1", "pub1")
+            .setUserManager(userManager)
+            .build();
+        analyze("DROP SUBSCRIPTION sub1", user);
+        assertAskedForCluster(Privilege.Type.AL);
+    }
+
+    @Test
+    public void test_alter_subscription_asks_cluster_AL() {
+        e = SQLExecutor.builder(clusterService)
+            .setUser(user)
+            .addSubscription("sub1", "pub1")
+            .setUserManager(userManager)
+            .build();
+        analyze("ALTER SUBSCRIPTION sub1 DISABLE", user);
         assertAskedForCluster(Privilege.Type.AL);
     }
 }
