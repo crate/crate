@@ -66,3 +66,5 @@ Fixes
 
 - Fixed an issue that caused an ``Relation unknown`` error while trying to
   close an empty partitioned table using ``ALTER TABLE ... CLOSE``.
+
+- Updated to Admin UI 1.20.2, which fixes duplicate entries in query history.
