@@ -21,39 +21,10 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.DescribeResult;
-import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.SessionContext;
-import io.crate.auth.Authentication;
-import io.crate.auth.AuthenticationMethod;
-import io.crate.auth.Protocol;
-import io.crate.auth.AccessControl;
-import io.crate.user.User;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
-import io.crate.expression.symbol.Symbol;
-import io.crate.protocols.postgres.types.PGType;
-import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.sql.SqlFormatter;
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.Statement;
-import io.crate.types.DataType;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.ByteToMessageDecoder;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
+import static io.crate.protocols.SSL.getSession;
+import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
+import static io.crate.protocols.postgres.Messages.sendReadyForQuery;
 
-import javax.annotation.Nullable;
-import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
@@ -68,12 +39,41 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
-import static io.crate.protocols.SSL.getSession;
-import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
-import static io.crate.protocols.postgres.Messages.sendReadyForQuery;
-import static io.crate.protocols.postgres.PostgresWireProtocol.State.PRE_STARTUP;
-import static io.crate.protocols.postgres.PostgresWireProtocol.State.STARTUP_HEADER;
+import javax.annotation.Nullable;
+import javax.net.ssl.SSLSession;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
+
+import io.crate.action.sql.DescribeResult;
+import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
+import io.crate.action.sql.SessionContext;
+import io.crate.auth.AccessControl;
+import io.crate.auth.Authentication;
+import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.Protocol;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists2;
+import io.crate.expression.symbol.Symbol;
+import io.crate.protocols.postgres.types.PGType;
+import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Statement;
+import io.crate.types.DataType;
+import io.crate.user.User;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.ssl.SslContext;
 
 
 /**
@@ -192,59 +192,36 @@ public class PostgresWireProtocol {
     public static int SERVER_VERSION_NUM = 100500;
     public static String PG_SERVER_VERSION = "10.5";
 
-    final MessageDecoder decoder;
+    final PgDecoder decoder;
     final MessageHandler handler;
     private final SQLOperations sqlOperations;
     private final Function<SessionContext, AccessControl> getAccessControl;
     private final Authentication authService;
-    private final SslReqHandler sslReqHandler;
     private final Consumer<ChannelPipeline> addTransportHandler;
     private final PgSessions activeSessions;
     @VisibleForTesting
     final KeyData keyData;
     private DelayableWriteChannel channel;
-    private int msgLength;
-    private byte msgType;
     private Session session;
     private boolean ignoreTillSync = false;
     private AuthenticationContext authContext;
     private Properties properties;
 
-    enum State {
-        PRE_STARTUP,
-        STARTUP_HEADER,
-        STARTUP_BODY,
-        MSG_HEADER,
-        MSG_BODY,
-        CANCEL_BODY
-    }
-
-    private State state = PRE_STARTUP;
-
     PostgresWireProtocol(SQLOperations sqlOperations,
                          Function<SessionContext, AccessControl> getAcessControl,
                          Consumer<ChannelPipeline> addTransportHandler,
                          Authentication authService,
-                         @Nullable SslContextProvider sslContextProvider,
+                         Supplier<SslContext> getSslContext,
                          PgSessions activeSessions,
                          KeyData keyData) {
         this.sqlOperations = sqlOperations;
         this.getAccessControl = getAcessControl;
         this.addTransportHandler = addTransportHandler;
         this.authService = authService;
-        this.sslReqHandler = new SslReqHandler(sslContextProvider);
-        this.decoder = new MessageDecoder();
+        this.decoder = new PgDecoder(getSslContext);
         this.handler = new MessageHandler();
         this.keyData = keyData;
         this.activeSessions = activeSessions;
-    }
-
-    private static void traceLogRequestCode(int requestCode) {
-        if (LOGGER.isTraceEnabled()) {
-            int major = requestCode >> 16;
-            int minor = requestCode & 0x0000FFFF;
-            LOGGER.trace("requestCode {}.{}", major, minor);
-        }
     }
 
     @Nullable
@@ -269,13 +246,12 @@ public class PostgresWireProtocol {
 
     private Properties readStartupMessage(ByteBuf buffer) {
         Properties properties = new Properties();
-        ByteBuf byteBuf = buffer.readSlice(msgLength);
         while (true) {
-            String key = readCString(byteBuf);
+            String key = readCString(buffer);
             if (key == null) {
                 break;
             }
-            String value = readCString(byteBuf);
+            String value = readCString(buffer);
             LOGGER.trace("payload: key={} value={}", key, value);
             if (!"".equals(key) && !"".equals(value)) {
                 properties.setProperty(key, value);
@@ -334,35 +310,32 @@ public class PostgresWireProtocol {
         }
 
         private void dispatchState(ByteBuf buffer, DelayableWriteChannel channel) {
-            switch (state) {
-                case STARTUP_HEADER:
-                case MSG_HEADER:
-                    throw new IllegalStateException("Decoder should've processed the headers");
-                case CANCEL_BODY:
-                    state = PostgresWireProtocol.State.MSG_HEADER;
+            switch (decoder.state()) {
+                case STARTUP_PARAMETERS:
+                    handleStartupBody(buffer, channel);
+                    decoder.startupDone();
+                    return;
+
+                case CANCEL:
                     handleCancelRequestBody(buffer, channel);
                     return;
-                case STARTUP_BODY:
-                    state = PostgresWireProtocol.State.MSG_HEADER;
-                    handleStartupBody(buffer, channel);
-                    return;
-                case MSG_BODY:
-                    state = PostgresWireProtocol.State.MSG_HEADER;
-                    LOGGER.trace("msg={} msgLength={} readableBytes={}", ((char) msgType), msgLength, buffer.readableBytes());
 
-                    if (ignoreTillSync && msgType != 'S') {
-                        buffer.skipBytes(msgLength);
+                case MSG:
+                    LOGGER.trace("msg={} msgLength={} readableBytes={}", ((char) decoder.msgType()), decoder.payloadLength(), buffer.readableBytes());
+
+                    if (ignoreTillSync && decoder.msgType() != 'S') {
+                        buffer.skipBytes(decoder.payloadLength());
                         return;
                     }
                     dispatchMessage(buffer, channel);
                     return;
                 default:
-                    throw new IllegalStateException("Illegal state: " + state);
+                    throw new IllegalStateException("Illegal state: " + decoder.state());
             }
         }
 
         private void dispatchMessage(ByteBuf buffer, DelayableWriteChannel channel) {
-            switch (msgType) {
+            switch (decoder.msgType()) {
                 case 'Q': // Query (simple)
                     handleSimpleQuery(buffer, channel);
                     return;
@@ -400,7 +373,7 @@ public class PostgresWireProtocol {
                         session == null
                             ? AccessControl.DISABLED
                             : getAccessControl.apply(session.sessionContext()),
-                        new UnsupportedOperationException("Unsupported messageType: " + msgType));
+                        new UnsupportedOperationException("Unsupported messageType: " + decoder.msgType()));
             }
         }
 
@@ -834,94 +807,5 @@ public class PostgresWireProtocol {
         // This closes the new connection, not the one running the query.
         handler.closeSession();
         channel.close();
-    }
-
-
-    /**
-     * FrameDecoder that makes sure that a full message is in the buffer before delegating work to the MessageHandler
-     */
-    private class MessageDecoder extends ByteToMessageDecoder {
-
-        {
-            setCumulator(COMPOSITE_CUMULATOR);
-        }
-
-        @Override
-        protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-            ByteBuf decode = decode(in, ctx.pipeline());
-            if (decode != null) {
-                out.add(decode);
-            }
-        }
-
-        private ByteBuf decode(ByteBuf buffer, ChannelPipeline pipeline) {
-            switch (state) {
-                case PRE_STARTUP:
-                    if (sslReqHandler.process(buffer, pipeline) == SslReqHandler.State.DONE) {
-                        state = STARTUP_HEADER;
-                        // We need to call decode again in case there are additional bytes in the buffer
-                        return decode(buffer, pipeline);
-                    } else {
-                        return null;
-                    }
-                /*
-                 * StartupMessage:
-                 * | int32 length | int32 requestCode | [ string paramKey | string paramValue , ... ]
-                 */
-                case STARTUP_HEADER:
-                    if (buffer.readableBytes() < 8) {
-                        return null;
-                    }
-                    msgLength = buffer.readInt() - 8; // exclude length itself and requestCode
-                    LOGGER.trace("Header pkgLength: {}", msgLength);
-                    int requestCode = buffer.readInt();
-                    traceLogRequestCode(requestCode);
-                    return nullOrBuffer(buffer, nextState(requestCode));
-                /*
-                 * Regular Data Packet:
-                 * | char tag | int32 len | payload
-                 */
-                case MSG_HEADER:
-                    if (buffer.readableBytes() < 5) {
-                        return null;
-                    }
-                    buffer.markReaderIndex();
-                    msgType = buffer.readByte();
-                    msgLength = buffer.readInt() - 4; // exclude length itself
-                    return nullOrBuffer(buffer, State.MSG_BODY);
-                case MSG_BODY:
-                case STARTUP_BODY:
-                    return nullOrBuffer(buffer, state);
-                default:
-                    throw new IllegalStateException("Invalid state " + state);
-            }
-        }
-
-        /**
-         * return null if there aren't enough bytes to read the whole message. Otherwise returns the buffer.
-         * <p>
-         * If null is returned the decoder will be called again, otherwise the MessageHandler will be called next.
-         */
-        private ByteBuf nullOrBuffer(ByteBuf buffer, State nextState) {
-            if (buffer.readableBytes() < msgLength) {
-                buffer.resetReaderIndex();
-                return null;
-            }
-            state = nextState;
-            return buffer.readBytes(msgLength);
-        }
-
-        private State nextState(int requestCode) {
-            // more information on postgres requestCode:
-            // https://www.postgresql.org/docs/current/protocol-message-formats.html
-            switch (requestCode) {
-                case 80877102:
-                    return State.CANCEL_BODY;
-                case 196608:
-                    return State.STARTUP_BODY;
-                default:
-                    throw new IllegalStateException("The given request code is invalid or not yet supported: " + requestCode);
-            }
-        }
     }
 }

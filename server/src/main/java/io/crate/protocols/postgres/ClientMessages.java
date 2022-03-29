@@ -38,8 +38,8 @@ import java.util.Map;
 class ClientMessages {
 
     static ByteBuf writeSSLReqMessage(ByteBuf buffer) {
-        buffer.writeInt(SslReqHandler.SSL_REQUEST_BYTE_LENGTH);
-        buffer.writeInt(SslReqHandler.SSL_REQUEST_CODE);
+        buffer.writeInt(PgDecoder.MIN_STARTUP_LENGTH);
+        buffer.writeInt(PgDecoder.SSL_REQUEST_CODE);
         return buffer;
     }
 
