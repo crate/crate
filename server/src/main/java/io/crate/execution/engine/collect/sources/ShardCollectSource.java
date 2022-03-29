@@ -314,8 +314,15 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         Metadata metadata = clusterService.state().metadata();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
             String indexName = entry.getKey();
-            Index index = metadata.index(indexName).getIndex();
-
+            IndexMetadata indexMetadata = metadata.index(indexName);
+            if (indexMetadata == null) {
+                if (IndexParts.isPartitioned(indexName)) {
+                    continue;
+                } else {
+                    throw new IndexNotFoundException(indexName);
+                }
+            }
+            Index index = indexMetadata.getIndex();
             for (IntCursor shard : entry.getValue()) {
                 ShardId shardId = new ShardId(index, shard.value);
 
