@@ -111,6 +111,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed a race condition that could cause a ``blocked by: [FORBIDDEN/4/Table or
+  partition preparing to close`` error when inserting into a partitioned table
+  where a single partition got closed.
+
 - Fixed an issue that caused an ``Relation unknown`` error while trying to
   close an empty partitioned table using ``ALTER TABLE ... CLOSE``.
 
