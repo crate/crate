@@ -30,6 +30,7 @@ import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.ServerErrorMessage;
 
 import io.crate.protocols.postgres.PGError;
 import io.crate.protocols.postgres.PGErrorStatus;
@@ -99,7 +100,8 @@ public class SQLErrorMatcher {
     }
 
     private static PGError fromPSQLException(PSQLException e) {
-        var sqlState = e.getServerErrorMessage().getSQLState();
+        ServerErrorMessage serverErrorMessage = e.getServerErrorMessage();
+        var sqlState = serverErrorMessage.getSQLState();
         PGErrorStatus errorStatus = null;
         for (var status : PGErrorStatus.values()) {
             if (status.code().equals(sqlState)) {
@@ -108,6 +110,6 @@ public class SQLErrorMatcher {
             }
         }
         assert errorStatus != null : "Unknown psql error code: " + sqlState;
-        return new PGError(errorStatus, e.getMessage(), e);
+        return new PGError(errorStatus, serverErrorMessage.getMessage(), e);
     }
 }

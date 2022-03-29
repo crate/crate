@@ -185,26 +185,58 @@ public class Messages {
     }
 
     static ChannelFuture sendErrorResponse(Channel channel, AccessControl accessControl, Throwable throwable) {
-        var error = PGError.fromThrowable(SQLExceptions.prepareForClientTransmission(accessControl, throwable));
-        byte[] msg = error.message().getBytes(StandardCharsets.UTF_8);
-        byte[] errorCode = error.status().code().getBytes(StandardCharsets.UTF_8);
-        byte[] lineNumber = null;
-        byte[] fileName = null;
-        byte[] methodName = null;
+        final var error = PGError.fromThrowable(SQLExceptions.prepareForClientTransmission(accessControl, throwable));
+
+        ByteBuf buffer = channel.alloc().buffer();
+        buffer.writeByte('E');
+        buffer.writeInt(0); // length, updated later
+
+        buffer.writeByte('S');
+        writeCString(buffer, PGError.SEVERITY_ERROR);
+
+        buffer.writeByte('M');
+        writeCString(buffer, error.message().getBytes(StandardCharsets.UTF_8));
+
+        buffer.writeByte('C');
+        writeCString(buffer, error.status().code().getBytes(StandardCharsets.UTF_8));
 
         StackTraceElement[] stackTrace = error.throwable().getStackTrace();
-        if (stackTrace != null && stackTrace.length > 0) {
-            StackTraceElement stackTraceElement = stackTrace[0];
-            lineNumber = String.valueOf(stackTraceElement.getLineNumber()).getBytes(StandardCharsets.UTF_8);
-            if (stackTraceElement.getFileName() != null) {
-                fileName = stackTraceElement.getFileName().getBytes(StandardCharsets.UTF_8);
+        if (stackTrace.length > 0) {
+            StackTraceElement first = stackTrace[0];
+            String fileName = first.getFileName();
+            if (fileName != null) {
+                buffer.writeByte('F');
+                writeCString(buffer, fileName.getBytes(StandardCharsets.UTF_8));
             }
-            if (stackTraceElement.getMethodName() != null) {
-                methodName = stackTraceElement.getMethodName().getBytes(StandardCharsets.UTF_8);
+            String methodName = first.getMethodName();
+            if (methodName != null) {
+                buffer.writeByte('R');
+                writeCString(buffer, methodName.getBytes(StandardCharsets.UTF_8));
             }
-        }
 
-        return sendErrorResponse(channel, error.message(), msg, PGError.SEVERITY_ERROR, lineNumber, fileName, methodName, errorCode);
+            int lineNumber = first.getLineNumber();
+            if (lineNumber >= 0) {
+                buffer.writeByte('L');
+                writeCString(buffer, String.valueOf(lineNumber).getBytes(StandardCharsets.UTF_8));
+            }
+
+            buffer.writeByte('W');
+            StringBuilder sb = new StringBuilder();
+            int cap = Math.min(stackTrace.length, 20);
+            for (int i = 0; i < cap; i++) {
+                var stackTraceElement = stackTrace[i];
+                sb.append(stackTraceElement.toString());
+                sb.append("\n");
+            }
+            writeCString(buffer, sb.toString().getBytes(StandardCharsets.UTF_8));
+        }
+        buffer.writeByte(0);
+        buffer.setInt(1, buffer.writerIndex() - 1); // exclude msg type from length
+        ChannelFuture channelFuture = channel.writeAndFlush(buffer);
+        if (LOGGER.isTraceEnabled()) {
+            channelFuture.addListener(f -> LOGGER.trace("sentErrorResponse msg={}", error.message()));
+        }
+        return channelFuture;
     }
 
     /**
