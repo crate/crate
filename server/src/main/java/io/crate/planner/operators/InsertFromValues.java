@@ -734,9 +734,9 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     private static boolean partitionClosed(Throwable throwable, String index) {
-        if (throwable instanceof ClusterBlockException && IndexParts.isPartitioned(index)) {
-            for (ClusterBlock clusterBlock : ((ClusterBlockException) throwable).blocks()) {
-                if (clusterBlock.equals(INDEX_CLOSED_BLOCK)) {
+        if (throwable instanceof ClusterBlockException blockException && IndexParts.isPartitioned(index)) {
+            for (ClusterBlock clusterBlock : blockException.blocks()) {
+                if (clusterBlock.id() == INDEX_CLOSED_BLOCK.id()) {
                     return true;
                 }
             }
