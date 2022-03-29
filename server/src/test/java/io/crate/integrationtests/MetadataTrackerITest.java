@@ -30,6 +30,7 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -158,7 +159,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                                         " ORDER BY partition_ident");
             assertThat(printedTable(r.rows()), is("{p=1}\n"));
             ensureGreenOnSubscriber();
-        });
+        }, 30, TimeUnit.SECONDS);
     }
 
     @Test
@@ -243,7 +244,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
             assertThat(printedTable(r.rows()), is(
                 "2| 2\n" +
                     "11| 1\n"));        // <- this must contain the id of the re-created partition
-        });
+        }, 30, TimeUnit.SECONDS);
     }
 
     @Test
