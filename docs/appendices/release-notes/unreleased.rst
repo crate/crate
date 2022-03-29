@@ -56,6 +56,8 @@ None
 Changes
 =======
 
+- Updated the bundled JDK to 18+36
+
 - Implemented cancelling requests section of PostgreSQL wire protocol.
 
 - Added the :ref:`Logical Replication <administration-logical-replication>`
