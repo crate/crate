@@ -37,6 +37,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.KeyManager;
@@ -61,7 +62,7 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 
 @Singleton
-public class SslContextProvider {
+public class SslContextProvider implements Supplier<SslContext> {
 
     private static final String TLS_VERSION = "TLSv1.2";
     private static final Logger LOGGER = LogManager.getLogger(SslContextProvider.class);
@@ -278,5 +279,10 @@ public class SslContextProvider {
             }
         }
         throw new KeyStoreException("No fitting private key found in keyStore");
+    }
+
+    @Override
+    public SslContext get() {
+        return getServerContext(Protocol.POSTGRES);
     }
 }

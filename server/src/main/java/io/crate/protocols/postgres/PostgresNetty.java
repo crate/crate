@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -71,6 +72,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.handler.ssl.SslContext;
 
 @Singleton
 public class PostgresNetty extends AbstractLifecycleComponent {
@@ -100,8 +102,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final Logger namedLogger;
     private final Settings settings;
     private final UserManager userManager;
-    @Nullable
-    private final SslContextProvider sslContextProvider;
+    private final Supplier<SslContext> sslContextProvider;
 
     private ServerBootstrap bootstrap;
 
@@ -148,7 +149,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             this.sslContextProvider = sslContextProvider;
         } else {
             namedLogger.info("PSQL SSL support is disabled.");
-            this.sslContextProvider = null;
+            this.sslContextProvider = () -> null;
         }
 
         enabled = PSQL_ENABLED_SETTING.get(settings);
