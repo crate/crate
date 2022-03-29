@@ -114,7 +114,8 @@ Parameters supported in the ``pg_tunnel`` mode:
   a working SSL setup for the PostgreSQL wire protocol on both the subscriber
   and publisher cluster.
 
-  Allowed values are ``require`` or ``disable``. Defaults to ``disable``.
+  Allowed values are ``prefer``, ``require`` or ``disable``. Defaults to
+  ``prefer``.
 
 
 **PUBLICATION publication_name**

@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
@@ -83,6 +81,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 
 /**
@@ -224,7 +223,8 @@ public class PgClient extends AbstractClient {
                 }
 
                 ByteBuf buffer = channel.alloc().buffer();
-                if (connectionInfo.sslMode() == SSLMode.REQUIRE) {
+                SSLMode sslMode = connectionInfo.sslMode();
+                if (sslMode == SSLMode.REQUIRE || sslMode == SSLMode.PREFER) {
                     ClientMessages.writeSSLReqMessage(buffer);
                 } else {
                     String user = connectionInfo.user();
@@ -300,10 +300,16 @@ public class PgClient extends AbstractClient {
         @Override
         protected void initChannel(Channel ch) throws Exception {
             ChannelPipeline pipeline = ch.pipeline();
-            SslContext sslCtx = connectionInfo.sslMode() == SSLMode.REQUIRE
-                ? sslContextProvider.clientContext()
-                : null;
-            pipeline.addLast("decoder", new Decoder(connectionInfo.user(), sslCtx));
+            SSLMode sslMode = connectionInfo.sslMode();
+            SslContext sslCtx = null;
+            if (sslMode == SSLMode.REQUIRE || sslMode == SSLMode.PREFER) {
+                try {
+                    sslCtx = sslContextProvider.clientContext();
+                } catch (Exception e) {
+                    sslCtx = SslContextBuilder.forClient().build();
+                }
+            }
+            pipeline.addLast("decoder", new Decoder(connectionInfo.user(), sslMode, sslCtx));
             Handler handler = new Handler(
                 profile,
                 node,
@@ -475,13 +481,16 @@ public class PgClient extends AbstractClient {
 
         private final SslContext sslContext;
         private final String user;
+        private final SSLMode sslMode;
 
         private boolean expectSSLResponse;
 
-        public Decoder(String user, @Nullable SslContext sslContext) {
+
+        public Decoder(String user, SSLMode sslMode, SslContext sslContext) {
             this.user = user;
+            this.sslMode = sslMode;
             this.sslContext = sslContext;
-            this.expectSSLResponse = sslContext != null;
+            this.expectSSLResponse = sslMode == SSLMode.REQUIRE || sslMode == SSLMode.PREFER;
         }
 
         @Override
@@ -501,9 +510,15 @@ public class PgClient extends AbstractClient {
                 byte sslResponse = in.readByte();
                 if (sslResponse == 'S') {
                     injectSSLHandler(ctx);
+                    sendStartup(ctx);
                     // fall-through to handle the rest of the message
                 } else if (sslResponse == 'N') {
-                    throw new IllegalStateException("SSL required but not supported");
+                    if (sslMode == SSLMode.REQUIRE) {
+                        throw new IllegalStateException("SSL required but not supported");
+                    } else {
+                        sendStartup(ctx);
+                        // fall-through to handle the rest of the message
+                    }
                 } else {
                     throw new IllegalStateException("Unexpected SSL response: " + sslResponse);
                 }
@@ -543,7 +558,9 @@ public class PgClient extends AbstractClient {
             ChannelPipeline pipeline = ctx.pipeline();
             SslHandler sslHandler = sslContext.newHandler(ctx.alloc());
             pipeline.addFirst(sslHandler);
+        }
 
+        private void sendStartup(ChannelHandlerContext ctx) {
             ByteBuf buffer = ctx.alloc().buffer();
             Map<String, String> properties = Map.of("user", user, "CrateDBTransport", "true");
             ClientMessages.sendStartupMessage(buffer, "doc", properties);
