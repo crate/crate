@@ -21,7 +21,6 @@
 
 package io.crate.cluster.gracefulstop;
 
-import io.crate.action.FutureActionListener;
 import io.crate.action.sql.SQLOperations;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.MapBuilder;
@@ -252,11 +251,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
          */
         Settings settings = Settings.builder().put(
             DECOMMISSION_PREFIX + clusterService.localNode().getId(), true).build();
-        FutureActionListener<ClusterUpdateSettingsResponse, ClusterUpdateSettingsResponse> settingsResponseFutureListener
-            = FutureActionListener.newInstance();
-        updateSettingsAction.execute(
-            new ClusterUpdateSettingsRequest().transientSettings(settings), settingsResponseFutureListener);
-        return settingsResponseFutureListener;
+        return updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettings(settings));
     }
 
     private CompletableFuture<ClusterHealthResponse> clusterHealthGet() {
@@ -276,9 +271,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
             request = request.waitForYellowStatus();
         }
 
-        FutureActionListener<ClusterHealthResponse, ClusterHealthResponse> listener = FutureActionListener.newInstance();
-        healthAction.execute(request, listener);
-        return listener;
+        return healthAction.execute(request);
     }
 
     void exit() {

@@ -87,7 +87,7 @@ public class CreateAnalyzerPlan implements Plan {
         dependencies
             .transportActionProvider()
             .transportClusterUpdateSettingsAction()
-            .execute(request, new OneRowActionListener<>(consumer, r -> new Row1(1L)));
+            .execute(request).whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(1L)));
     }
 
     @VisibleForTesting

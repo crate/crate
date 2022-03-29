@@ -76,7 +76,7 @@ public class CreateFunctionPlan implements Plan {
         );
         CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metadata, createFunction.replace());
         OneRowActionListener<AcknowledgedResponse> listener = new OneRowActionListener<>(consumer, r -> new Row1(1L));
-        dependencies.createFunctionAction().execute(request, listener);
+        dependencies.createFunctionAction().execute(request).whenComplete(listener);
 
     }
 }

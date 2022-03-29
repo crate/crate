@@ -46,9 +46,9 @@ public final class GCDangingArtifactsPlan implements Plan {
         OneRowActionListener<AcknowledgedResponse> listener =
             new OneRowActionListener<>(consumer, r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L));
 
-        dependencies.transportActionProvider().transportDeleteIndexAction().execute(
-            new DeleteIndexRequest(IndexParts.DANGLING_INDICES_PREFIX_PATTERNS.toArray(new String[0])),
-            listener
-        );
+        DeleteIndexRequest deleteRequest = new DeleteIndexRequest(IndexParts.DANGLING_INDICES_PREFIX_PATTERNS.toArray(new String[0]));
+        dependencies.transportActionProvider()
+            .transportDeleteIndexAction()
+            .execute(deleteRequest).whenComplete(listener);
     }
 }

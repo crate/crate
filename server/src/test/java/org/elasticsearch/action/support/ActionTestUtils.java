@@ -28,13 +28,6 @@ public class ActionTestUtils {
 
     private ActionTestUtils() { /* no construction */ }
 
-    public static <T extends TransportRequest, U extends TransportResponse> U executeBlocking(TransportAction<T, U> action,
-                                                                                              T request) {
-        PlainActionFuture<U> future = PlainActionFuture.newFuture();
-        action.execute(request, future);
-        return future.actionGet();
-    }
-
     public static <T> ActionListener<T> assertNoFailureListener(CheckedConsumer<T, Exception> consumer) {
         return ActionListener.wrap(consumer, e -> {
             throw new AssertionError(e);

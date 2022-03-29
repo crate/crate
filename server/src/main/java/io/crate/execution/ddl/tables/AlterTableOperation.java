@@ -46,7 +46,6 @@ import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
-import org.elasticsearch.action.admin.indices.shrink.ResizeResponse;
 import org.elasticsearch.action.admin.indices.shrink.ResizeType;
 import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -152,7 +151,6 @@ public class AlterTableOperation {
         if (partitionName != null) {
             partitionIndexName = partitionName.asIndexName();
         }
-        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         if (openTable || clusterService.state().getNodes().getMinNodeVersion().before(Version.V_4_3_0)) {
             OpenCloseTableOrPartitionRequest request = new OpenCloseTableOrPartitionRequest(
                 tables,
@@ -160,14 +158,11 @@ public class AlterTableOperation {
                 openTable,
                 ignoreUnavailableIndices
             );
-            transportOpenCloseTableOrPartitionAction.execute(request, listener);
+            return transportOpenCloseTableOrPartitionAction.execute(request, r -> -1L);
         } else {
-            transportCloseTable.execute(
-                new CloseTableRequest(tables, partitionIndexName, ignoreUnavailableIndices),
-                listener
-            );
+            return transportCloseTable.execute(
+                new CloseTableRequest(tables, partitionIndexName, ignoreUnavailableIndices), r -> -1L);
         }
-        return listener;
     }
 
     public CompletableFuture<Long> executeAlterTable(BoundAlterTable analysis) {
@@ -200,9 +195,7 @@ public class AlterTableOperation {
                 analysis.tableParameter().settings(),
                 analysis.tableParameter().mappings()
             );
-            FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
-            transportAlterTableAction.execute(request, listener);
-            return listener;
+            return transportAlterTableAction.execute(request, r -> -1L);
         } catch (IOException e) {
             return FutureActionListener.failedFuture(e);
         }
@@ -357,32 +350,23 @@ public class AlterTableOperation {
         request.setResizeType(targetNumberOfShards > currentNumShards ? ResizeType.SPLIT : ResizeType.SHRINK);
         request.setCopySettings(Boolean.TRUE);
         request.setWaitForActiveShards(ActiveShardCount.ONE);
-        FutureActionListener<ResizeResponse, Long> listener =
-            new FutureActionListener<>(resp -> resp.isAcknowledged() ? 1L : 0L);
-
-        transportResizeAction.execute(request, listener);
-        return listener;
+        return transportResizeAction.execute(request, r -> r.isAcknowledged() ? 1L : 0L);
     }
 
     private CompletableFuture<Long> deleteIndex(String... indexNames) {
         DeleteIndexRequest request = new DeleteIndexRequest(indexNames);
-
-        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 0L);
-        transportDeleteIndexAction.execute(request, listener);
-        return listener;
+        return transportDeleteIndexAction.execute(request, r -> 0L);
     }
 
     private CompletableFuture<Long> swapAndDropIndex(String source, String target) {
         SwapAndDropIndexRequest request = new SwapAndDropIndexRequest(source, target);
-        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(response -> {
+        return transportSwapAndDropIndexNameAction.execute(request, response -> {
             if (!response.isAcknowledged()) {
                 throw new RuntimeException("Publishing new cluster state during Shrink operation (rename phase) " +
                                            "has timed out");
             }
             return 0L;
         });
-        transportSwapAndDropIndexNameAction.execute(request, listener);
-        return listener;
     }
 
     public CompletableFuture<Long> executeAlterTableRenameTable(AnalyzedAlterTableRename statement) {
@@ -397,9 +381,7 @@ public class AlterTableOperation {
                                                 RelationName targetRelationName,
                                                 boolean isPartitioned) {
         RenameTableRequest request = new RenameTableRequest(sourceRelationName, targetRelationName, isPartitioned);
-        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
-        transportRenameTableAction.execute(request, listener);
-        return listener;
+        return transportRenameTableAction.execute(request, r -> -1L);
     }
 
     private CompletableFuture<Long> addColumnToTable(BoundAddColumn analysis, final FutureActionListener<AcknowledgedResponse, Long> result) {

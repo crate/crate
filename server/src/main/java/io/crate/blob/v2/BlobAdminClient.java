@@ -21,21 +21,18 @@
 
 package io.crate.blob.v2;
 
-import io.crate.action.FutureActionListener;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
+import static io.crate.blob.v2.BlobIndex.fullIndexName;
+import static io.crate.blob.v2.BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED;
 
 import java.util.concurrent.CompletableFuture;
 
-import static io.crate.blob.v2.BlobIndex.fullIndexName;
-import static io.crate.blob.v2.BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 
 /**
  * DDL Client for blob tables - used to create, update or delete blob tables.
@@ -58,15 +55,11 @@ public class BlobAdminClient {
         builder.put(indexSettings);
         builder.put(SETTING_INDEX_BLOBS_ENABLED.getKey(), true);
 
-        FutureActionListener<CreateIndexResponse, Long> listener = new FutureActionListener<>(r -> 1L);
         CreateIndexRequest createIndexRequest = new CreateIndexRequest(fullIndexName(tableName), builder.build());
-        createIndexAction.execute(createIndexRequest, listener);
-        return listener;
+        return createIndexAction.execute(createIndexRequest, r -> 1L);
     }
 
     public CompletableFuture<Long> dropBlobTable(final String tableName) {
-        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 1L);
-        deleteIndexAction.execute(new DeleteIndexRequest(fullIndexName(tableName)), listener);
-        return listener;
+        return deleteIndexAction.execute(new DeleteIndexRequest(fullIndexName(tableName)), r -> 1L);
     }
 }
