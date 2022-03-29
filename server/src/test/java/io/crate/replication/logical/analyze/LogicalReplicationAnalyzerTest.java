@@ -21,14 +21,20 @@
 
 package io.crate.replication.logical.analyze;
 
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.ParamTypeHints;
+import io.crate.exceptions.InvalidArgumentException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
 import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
+import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.user.User;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -112,6 +118,23 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
+    public void test_drop_publication_as_non_superuser_and_non_owner_raises_error() {
+        var e = SQLExecutor.builder(clusterService)
+            .setUser(User.of("owner"))
+            .addPublication("pub1", true)
+            .build();
+        assertThrowsMatches(
+            () -> e.analyzer.analyze(
+                SqlParser.createStatement("DROP PUBLICATION pub1"),
+                new SessionContext(User.of("other_user")),
+                ParamTypeHints.EMPTY
+            ),
+            UnauthorizedException.class,
+            "A publication can only be dropped by the owner or a superuser"
+        );
+    }
+
+    @Test
     public void test_alter_unknown_publication_raises_error() {
         var e = SQLExecutor.builder(clusterService).build();
         assertThrows(
@@ -129,6 +152,36 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         assertThrows(
             RelationUnknown.class,
             () -> e.analyze("ALTER PUBLICATION pub1 ADD TABLE non_existing")
+        );
+    }
+
+    @Test
+    public void test_alter_publication_for_all_tables_raise_error() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table doc.t1 (x int)")
+            .addPublication("pub1", true)
+            .build();
+        assertThrowsMatches(
+            () -> e.analyze("ALTER PUBLICATION pub1 ADD TABLE doc.t1"),
+            InvalidArgumentException.class,
+            "Publication 'pub1' is defined as FOR ALL TABLES, adding or dropping tables is not supported"
+        );
+    }
+
+    @Test
+    public void test_alter_publication_as_non_superuser_and_non_owner_raises_error() {
+        var e = SQLExecutor.builder(clusterService)
+            .setUser(User.of("owner"))
+            .addPublication("pub1", false, new RelationName("doc", "t1"))
+            .build();
+        assertThrowsMatches(
+            () -> e.analyzer.analyze(
+                SqlParser.createStatement("ALTER PUBLICATION pub1 ADD TABLE doc.t2"),
+                new SessionContext(User.of("other_user")),
+                ParamTypeHints.EMPTY
+            ),
+            UnauthorizedException.class,
+            "A publication can only be altered by the owner or a superuser"
         );
     }
 
@@ -158,6 +211,40 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         AnalyzedDropSubscription stmt = e.analyze("DROP SUBSCRIPTION IF EXISTS sub1");
         assertThat(stmt.ifExists(), is(true));
         assertThat(stmt.name(), is("sub1"));
+    }
+
+    @Test
+    public void test_drop_subscription_as_non_superuser_and_non_owner_raises_error() {
+        var e = SQLExecutor.builder(clusterService)
+            .setUser(User.of("owner"))
+            .addSubscription("sub1", "pub1")
+            .build();
+        assertThrowsMatches(
+            () -> e.analyzer.analyze(
+                SqlParser.createStatement("DROP SUBSCRIPTION sub1"),
+                new SessionContext(User.of("other_user")),
+                ParamTypeHints.EMPTY
+            ),
+            UnauthorizedException.class,
+            "A subscription can only be dropped by the owner or a superuser"
+        );
+    }
+
+    @Test
+    public void test_alter_subscription_as_non_superuser_and_non_owner_raises_error() {
+        var e = SQLExecutor.builder(clusterService)
+            .setUser(User.of("owner"))
+            .addSubscription("sub1", "pub1")
+            .build();
+        assertThrowsMatches(
+            () -> e.analyzer.analyze(
+                SqlParser.createStatement("ALTER SUBSCRIPTION sub1 DISABLE"),
+                new SessionContext(User.of("other_user")),
+                ParamTypeHints.EMPTY
+            ),
+            UnauthorizedException.class,
+            "A subscription can only be altered by the owner or a superuser"
+        );
     }
 
     @Test

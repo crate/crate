@@ -110,7 +110,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         );
         publisherCluster.beforeTest(random());
         publisherCluster.ensureAtLeastNumDataNodes(getPublisherNumberOfNodes());
-        publisherSqlExecutor = sqlExecutor(publisherCluster);
+        publisherSqlExecutor = publisherCluster.createSQLTransportExecutor();
 
         subscriberCluster = new InternalTestCluster(
             randomLong(),
@@ -129,7 +129,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         );
         subscriberCluster.beforeTest(random());
         subscriberCluster.ensureAtLeastNumDataNodes(getSubscriberNumberOfNodes());
-        subscriberSqlExecutor = sqlExecutor(subscriberCluster);
+        subscriberSqlExecutor = subscriberCluster.createSQLTransportExecutor();
     }
 
     @After
@@ -228,46 +228,30 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         };
     }
 
-    SQLTransportExecutor sqlExecutor(InternalTestCluster cluster) {
-        return new SQLTransportExecutor(
-            new SQLTransportExecutor.ClientProvider() {
-                @Override
-                public Client client() {
-                    return ESIntegTestCase.client();
-                }
-
-                @Override
-                public String pgUrl() {
-                    PostgresNetty postgresNetty = cluster.getInstance(PostgresNetty.class);
-                    BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
-                    if (boundTransportAddress != null) {
-                        InetSocketAddress address = boundTransportAddress.publishAddress().address();
-                        return String.format(Locale.ENGLISH, "jdbc:postgresql://%s:%d/?ssl=%s&sslmode=%s",
-                                             address.getHostName(), address.getPort(), false, "disable");
-                    }
-                    return null;
-                }
-
-                @Override
-                public SQLOperations sqlOperations() {
-                    return cluster.getInstance(SQLOperations.class);
-                }
-            }
-        );
-    }
-
     public String publisherConnectionUrl() {
-        var transportService = publisherCluster.getInstance(TransportService.class);
-        InetSocketAddress address = transportService.boundAddress().publishAddress().address();
-        return String.format(
-            Locale.ENGLISH,
-            "crate://%s:%d?user=%s&seeds=%s:%d",
-            address.getHostName(),
-            address.getPort(),
-            SUBSCRIBING_USER,
-            address.getHostName(),
-            address.getPort()
-        );
+        if (randomBoolean()) {
+            var postgres = publisherCluster.getInstance(PostgresNetty.class);
+            InetSocketAddress address = postgres.boundAddress().publishAddress().address();
+            return String.format(
+                Locale.ENGLISH,
+                "crate://%s:%d?user=%s&mode=pg_tunnel",
+                address.getHostName(),
+                address.getPort(),
+                SUBSCRIBING_USER
+            );
+        } else {
+            var transportService = publisherCluster.getInstance(TransportService.class);
+            InetSocketAddress address = transportService.boundAddress().publishAddress().address();
+            return String.format(
+                Locale.ENGLISH,
+                "crate://%s:%d?user=%s&mode=sniff&seeds=%s:%d",
+                address.getHostName(),
+                address.getPort(),
+                SUBSCRIBING_USER,
+                address.getHostName(),
+                address.getPort()
+            );
+        }
     }
 
     protected void ensureGreenOnSubscriber() throws Exception {

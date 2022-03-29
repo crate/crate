@@ -198,4 +198,9 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
     public Map<String, Publication> publications() {
         return publicationByName;
     }
+
+    @Override
+    public String toString() {
+        return "PublicationsMetadata{" + publicationByName + "}";
+    }
 }
