@@ -46,14 +46,12 @@ import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.shard.ShardId;
 
-import io.crate.action.FutureActionListener;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.TypeGuessEstimateRowSize;
@@ -163,7 +161,7 @@ public class ShardingUpsertExecutor
             return execRequests(requests, upsertResults);
         }
         createPartitionsRequestOngoing = true;
-        return createPartitions(requests.itemsByMissingIndex)
+        return createPartitionsAction.execute(new CreatePartitionsRequest(requests.itemsByMissingIndex.keySet(), jobId))
             .thenCompose(resp -> {
                 grouper.reResolveShardLocations(requests);
                 createPartitionsRequestOngoing = false;
@@ -227,14 +225,6 @@ public class ShardingUpsertExecutor
         return resultFuture.whenComplete((r, err) -> requests.close());
     }
 
-
-    private CompletableFuture<AcknowledgedResponse> createPartitions(
-        Map<String, List<ShardedRequests.ItemAndRoutingAndSourceInfo<ShardUpsertRequest.Item>>> itemsByMissingIndex) {
-        FutureActionListener<AcknowledgedResponse, AcknowledgedResponse> listener = FutureActionListener.newInstance();
-        createPartitionsAction.execute(
-            new CreatePartitionsRequest(itemsByMissingIndex.keySet(), jobId), listener);
-        return listener;
-    }
 
     private boolean shouldPauseOnTargetNodeJobsCounter(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests) {
         for (ShardLocation shardLocation : requests.itemsByShard.keySet()) {

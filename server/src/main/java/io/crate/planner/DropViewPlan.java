@@ -59,6 +59,6 @@ public class DropViewPlan implements Plan {
             }
             throw new RelationsUnknown(resp.missing());
         };
-        dependencies.dropViewAction().execute(request, new OneRowActionListener<>(consumer, responseToRow));
+        dependencies.dropViewAction().execute(request).whenComplete(new OneRowActionListener<>(consumer, responseToRow));
     }
 }

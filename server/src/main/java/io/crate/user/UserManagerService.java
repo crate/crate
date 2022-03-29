@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import io.crate.action.FutureActionListener;
 import io.crate.action.sql.SessionContext;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AccessControlImpl;
@@ -105,20 +104,18 @@ public class UserManagerService implements UserManager {
 
     @Override
     public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw) {
-        FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
+        return transportCreateUserAction.execute(new CreateUserRequest(userName, hashedPw), r -> {
             if (r.doesUserExist()) {
                 throw new UserAlreadyExistsException(userName);
             }
             return 1L;
         });
-        transportCreateUserAction.execute(new CreateUserRequest(userName, hashedPw), listener);
-        return listener;
     }
 
     @Override
     public CompletableFuture<Long> dropUser(String userName, boolean suppressNotFoundError) {
         ENSURE_DROP_USER_NOT_SUPERUSER.accept(userLookup.findUser(userName));
-        FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
+        return transportDropUserAction.execute(new DropUserRequest(userName, suppressNotFoundError), r -> {
             if (r.doesUserExist() == false) {
                 if (suppressNotFoundError) {
                     return 0L;
@@ -127,34 +124,27 @@ public class UserManagerService implements UserManager {
             }
             return 1L;
         });
-        transportDropUserAction.execute(new DropUserRequest(userName, suppressNotFoundError), listener);
-        return listener;
     }
 
     @Override
     public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash newHashedPw) {
-        FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
+        return transportAlterUserAction.execute(new AlterUserRequest(userName, newHashedPw), r -> {
             if (r.doesUserExist() == false) {
                 throw new UserUnknownException(userName);
             }
             return 1L;
         });
-        transportAlterUserAction.execute(new AlterUserRequest(userName, newHashedPw), listener);
-        return listener;
     }
 
     @Override
     public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
         userNames.forEach(s -> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER.accept(userLookup.findUser(s)));
-        FutureActionListener<PrivilegesResponse, Long> listener = new FutureActionListener<>(r -> {
-            //noinspection PointlessBooleanExpression
-            if (r.unknownUserNames().isEmpty() == false) {
+        return transportPrivilegesAction.execute(new PrivilegesRequest(userNames, privileges), r -> {
+            if (!r.unknownUserNames().isEmpty()) {
                 throw new UserUnknownException(r.unknownUserNames());
             }
             return r.affectedRows();
         });
-        transportPrivilegesAction.execute(new PrivilegesRequest(userNames, privileges), listener);
-        return listener;
     }
 
 

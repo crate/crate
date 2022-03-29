@@ -42,10 +42,18 @@ public abstract class TransportAction<Request extends TransportRequest, Response
 
     public final <T> CompletableFuture<T> execute(Request request, Function<? super Response, ? extends T> mapper) {
         FutureActionListener<Response, T> listener = new FutureActionListener<>(mapper);
-        execute(request, listener);
+        try {
+            doExecute(request, listener);
+        } catch (Exception e) {
+            listener.onFailure(e);
+        }
         return listener;
     }
 
+    /**
+     * @deprecated use {@link #execute(Request)} instead
+     **/
+    @Deprecated
     public final void execute(Request request, ActionListener<Response> listener) {
         try {
             doExecute(request, listener);
