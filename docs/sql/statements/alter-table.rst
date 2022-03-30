@@ -208,8 +208,8 @@ acknowledged or rejected.
 
 .. NOTE::
 
-    Tables require a :ref:`sql-alter-table-partition` clause in order to
-    specify a unique ``shard_id``.
+    Partitioned tables require a :ref:`sql-alter-table-partition` clause in
+    order to specify a unique ``shard_id``.
 
 ::
 
