@@ -159,7 +159,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                                         " ORDER BY partition_ident");
             assertThat(printedTable(r.rows()), is("{p=1}\n"));
             ensureGreenOnSubscriber();
-        }, 30, TimeUnit.SECONDS);
+        }, 50, TimeUnit.SECONDS);
     }
 
     @Test
@@ -244,7 +244,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
             assertThat(printedTable(r.rows()), is(
                 "2| 2\n" +
                     "11| 1\n"));        // <- this must contain the id of the re-created partition
-        }, 30, TimeUnit.SECONDS);
+        }, 50, TimeUnit.SECONDS);
     }
 
     @Test
