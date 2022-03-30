@@ -37,6 +37,9 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.routing.IndexRoutingTable;
+import org.elasticsearch.cluster.routing.RoutingTable;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -58,6 +61,7 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 import static io.crate.replication.logical.MetadataTracker.retrieveSubscription;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
+import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
@@ -90,6 +94,11 @@ public class MetadataTrackerTest extends ESTestCase {
             clusterState = ClusterState.builder(clusterState)
                 .metadata(Metadata.builder(clusterState.metadata())
                               .put(indexMetadata, true))
+                .routingTable(RoutingTable.builder()
+                    .add(IndexRoutingTable.builder(indexMetadata.getIndex())
+                        .addShard(newShardRouting(name, 0, "dummy_node", true, ShardRoutingState.STARTED))
+                        .build())
+                    .build())
                 .incrementVersion()
                 .build();
             return this;
