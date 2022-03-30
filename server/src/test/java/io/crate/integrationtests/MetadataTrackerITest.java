@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
 import io.crate.testing.UseRandomizedSchema;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -32,22 +31,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
 @UseRandomizedSchema(random = false)
 public class MetadataTrackerITest extends LogicalReplicationITestCase {
-
-    @Override
-    Settings logicalReplicationSettings() {
-        Settings.Builder builder = Settings.builder();
-        builder.put(super.logicalReplicationSettings());
-        // Increase poll duration to 1s to make sure there is an out-of-sync situation
-        // when the mapping changes on the subscriber cluster
-        builder.put(REPLICATION_READ_POLL_DURATION.getKey(), "1s");
-        return builder.build();
-    }
 
     @Test
     public void test_schema_changes_of_subscribed_table_is_replicated() throws Exception {
