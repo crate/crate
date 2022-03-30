@@ -54,10 +54,10 @@ changes) are replicated.
 Every publication can have multiple subscribers.
 
 A publication is created using the
-:ref:`CREATE PUBLICATION <sql-create-publication>` command and may later be
-altered or dropped using corresponding commands. The individual tables can be
-added and removed dynamically using
-:ref:`ALTER PUBLICATION <sql-alter-publication>`
+:ref:`CREATE PUBLICATION <sql-create-publication>` command. The individual
+tables can be added or removed dynamically using
+:ref:`ALTER PUBLICATION <sql-alter-publication>`. Publication can be removed
+using :ref:`DROP PUBLICATION <sql-drop-publication>` command.
 
 .. CAUTION::
 
@@ -128,3 +128,16 @@ superuser is allowed to ALTER or DROP a subscription.
    A network setup that allows the two clusters to communicate is a
    pre-requisite for a working publication/subscription setup.
    See :ref:`HBA <admin_hba_node>`.
+
+Monitoring
+----------
+
+All publications are listed in the :ref:`pg_publication` table.
+More details for a publication are available in the
+:ref:`pg_publication_tables` table. It lists the replicated tables for a
+specific publication.
+
+All subscriptions are listed in the :ref:`pg_subscription` table.
+More details for a subscription are available in the:ref:`pg_subscription_rel`
+table. The table contains detailed information about the replication state per
+table, including error messages if there was an error.
