@@ -24,9 +24,9 @@ import static org.apache.lucene.util.LuceneTestCase.rarely;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_TYPE_SETTING;
 import static org.elasticsearch.discovery.DiscoveryModule.ZEN2_DISCOVERY_TYPE;
-import static org.elasticsearch.node.Node.INITIAL_STATE_TIMEOUT_SETTING;
 import static org.elasticsearch.discovery.FileBasedSeedHostsProvider.UNICAST_HOSTS_FILE;
 import static org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService.TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING;
+import static org.elasticsearch.node.Node.INITIAL_STATE_TIMEOUT_SETTING;
 import static org.elasticsearch.test.ESTestCase.assertBusy;
 import static org.elasticsearch.test.ESTestCase.randomFrom;
 import static org.hamcrest.Matchers.equalTo;
@@ -34,6 +34,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -87,6 +88,7 @@ import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclu
 import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsRequest;
 import org.elasticsearch.action.admin.cluster.configuration.ClearVotingConfigExclusionsAction;
 import org.elasticsearch.action.admin.cluster.configuration.ClearVotingConfigExclusionsRequest;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -118,7 +120,6 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLockObtainFailedException;
@@ -153,7 +154,6 @@ import io.crate.common.unit.TimeValue;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.SQLTransportExecutor;
 
-import static org.junit.Assert.assertEquals;
 
 /**
  * InternalTestCluster manages a set of JVM private nodes and allows convenient access to them.
@@ -469,6 +469,13 @@ public final class InternalTestCluster extends TestCluster {
 
         if (random.nextBoolean()) {
             builder.put(TransportSettings.PING_SCHEDULE.getKey(), RandomNumbers.randomIntBetween(random, 100, 2000) + "ms");
+        }
+
+        if (random.nextBoolean()) {
+            int initialMillisBound = RandomNumbers.randomIntBetween(random,10, 100);
+            builder.put(TransportReplicationAction.REPLICATION_INITIAL_RETRY_BACKOFF_BOUND.getKey(), TimeValue.timeValueMillis(initialMillisBound));
+            int retryTimeoutSeconds = RandomNumbers.randomIntBetween(random, 0, 60);
+            builder.put(TransportReplicationAction.REPLICATION_RETRY_TIMEOUT.getKey(), timeValueSeconds(retryTimeoutSeconds));
         }
 
         return builder.build();

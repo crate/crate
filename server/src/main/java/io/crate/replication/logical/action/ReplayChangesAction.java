@@ -21,7 +21,11 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.common.unit.TimeValue;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
@@ -40,6 +44,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.StrictDynamicMappingException;
 import org.elasticsearch.index.shard.IndexShard;
@@ -50,10 +55,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
+import io.crate.common.unit.TimeValue;
 
 public class ReplayChangesAction extends ActionType<ReplicationResponse> {
 
@@ -72,12 +74,14 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
         private static final Logger LOGGER = Loggers.getLogger(ReplayChangesAction.class);
 
         @Inject
-        public TransportAction(TransportService transportService,
+        public TransportAction(Settings settings,
+                               TransportService transportService,
                                ClusterService clusterService,
                                IndicesService indicesService,
                                ThreadPool threadPool,
                                ShardStateAction shardStateAction) {
-            super(NAME,
+            super(settings,
+                  NAME,
                   transportService,
                   clusterService,
                   indicesService,

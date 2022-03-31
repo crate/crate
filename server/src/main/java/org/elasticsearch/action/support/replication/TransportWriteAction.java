@@ -19,6 +19,12 @@
 
 package org.elasticsearch.action.support.replication;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
@@ -27,8 +33,8 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IndexShard;
@@ -38,10 +44,6 @@ import org.elasticsearch.index.translog.Translog.Location;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Base class for transport actions that modify data in some shard like index, delete, and shardBulk.
@@ -53,7 +55,8 @@ public abstract class TransportWriteAction<
             Response extends ReplicationResponse
         > extends TransportReplicationAction<Request, ReplicaRequest, Response> {
 
-    protected TransportWriteAction(String actionName,
+    protected TransportWriteAction(Settings settings,
+                                   String actionName,
                                    TransportService transportService,
                                    ClusterService clusterService,
                                    IndicesService indicesService,
@@ -64,6 +67,7 @@ public abstract class TransportWriteAction<
                                    String executor,
                                    boolean forceExecutionOnPrimary) {
         super(
+            settings,
             actionName,
             transportService,
             clusterService,

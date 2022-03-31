@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.resync;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
@@ -31,6 +33,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
@@ -42,20 +45,20 @@ import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-
 public class TransportResyncReplicationAction extends TransportWriteAction<ResyncReplicationRequest,
     ResyncReplicationRequest, ReplicationResponse> implements PrimaryReplicaSyncer.SyncAction {
 
     private static final String ACTION_NAME = "internal:index/seq_no/resync";
 
     @Inject
-    public TransportResyncReplicationAction(TransportService transportService,
+    public TransportResyncReplicationAction(Settings settings,
+                                            TransportService transportService,
                                             ClusterService clusterService,
                                             IndicesService indicesService,
                                             ThreadPool threadPool,
                                             ShardStateAction shardStateAction) {
         super(
+            settings,
             ACTION_NAME,
             transportService,
             clusterService,

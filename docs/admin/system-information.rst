@@ -190,6 +190,8 @@ information about the currently applied cluster settings.
     | settings['indices']['recovery']['recovery_activity_timeout']                      | text             |
     | settings['indices']['recovery']['retry_delay_network']                            | text             |
     | settings['indices']['recovery']['retry_delay_state_sync']                         | text             |
+    | settings['indices']['replication']                                                | object           |
+    | settings['indices']['replication']['retry_timeout']                               | text             |
     | settings['logger']                                                                | object_array     |
     | settings['logger']['level']                                                       | text_array       |
     | settings['logger']['name']                                                        | text_array       |

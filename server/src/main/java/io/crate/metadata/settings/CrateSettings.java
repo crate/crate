@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.InternalClusterInfoService;
@@ -179,7 +180,9 @@ public final class CrateSettings implements ClusterStateListener {
         LogicalReplicationSettings.REPLICATION_CHANGE_BATCH_SIZE,
         LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION,
         LogicalReplicationSettings.REPLICATION_RECOVERY_CHUNK_SIZE,
-        LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS
+        LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS,
+
+        TransportReplicationAction.REPLICATION_RETRY_TIMEOUT
     );
 
 

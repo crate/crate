@@ -72,6 +72,7 @@ public class RetentionLeaseSyncAction extends
             final ThreadPool threadPool,
             final ShardStateAction shardStateAction) {
         super(
+            settings,
             ACTION_NAME,
             transportService,
             clusterService,
