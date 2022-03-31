@@ -82,15 +82,35 @@ public class ConnectionInfoTest extends ESTestCase {
 
     @Test
     public void test_arguments() {
-        var connInfo = ConnectionInfo.fromURL("crate://example.com?user=my_user&password=1234&sslmode=disable&seeds=123.123.123.123,123.123.123.124");
+        var connInfo = ConnectionInfo.fromURL("crate://example.com?" +
+            "user=my_user&password=1234&" +
+            "sslmode=disable&" +
+            "seeds=123.123.123.123:4300,123.123.123.124:4300"
+        );
         assertThat(connInfo.settings(), is(
             Settings.builder()
                 .put("user", "my_user")
                 .put("password", "1234")
                 .put("sslmode", "disable")
-                .putList("seeds", List.of("123.123.123.123", "123.123.123.124"))
+                .putList("seeds", List.of("123.123.123.123:4300","123.123.123.124:4300"))
                 .build()
         ));
+    }
+
+    @Test
+    public void test_safe_connection_string() {
+        var connInfo= ConnectionInfo.fromURL("crate://example.com:4310,123.123.123.123?" +
+            "user=my_user&password=1234&" +
+            "sslmode=disable&" +
+            "seeds=123.123.123.123:4300,123.123.123.124:4300"
+        );
+        assertThat(connInfo.safeConnectionString(),
+            is("crate://example.com:4310,123.123.123.123:4300?" +
+                "user=*&password=*&" +
+                "sslmode=DISABLE&" +
+                "seeds=123.123.123.123:4300,123.123.123.124:4300"
+            )
+        );
     }
 
     @Test

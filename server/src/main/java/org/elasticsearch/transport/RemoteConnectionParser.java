@@ -44,7 +44,7 @@ public final class RemoteConnectionParser {
         return configuredAddress.substring(0, indexOfPortSeparator(configuredAddress));
     }
 
-    static int parsePort(String remoteHost) {
+    public static int parsePort(String remoteHost) {
         try {
             int port = Integer.parseInt(remoteHost.substring(indexOfPortSeparator(remoteHost) + 1));
             if (port <= 0) {
