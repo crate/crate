@@ -70,7 +70,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
                 return true; // This test case doesn't check privileges.
             }
         };
-        var s = SQLExecutor.builder(clusterService)
+        SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
             .addTable("CREATE TABLE doc.t2 (id int) with (\"soft_deletes.enabled\" = false)")
             .build();
@@ -87,7 +87,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         var resolvedRelations = PublicationsStateAction.TransportAction.resolveRelationsNames(
             publication,
-            s.schemas(),
+            clusterService.state(),
             user,
             user
         );
@@ -114,7 +114,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
         when(userLookup.findUser("subscriber")).thenReturn(subscriber);
 
-        var s = SQLExecutor.builder(clusterService)
+        SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
             .addTable("CREATE TABLE doc.t3 (id int)")
             .build();
@@ -122,7 +122,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         var resolvedRelations = PublicationsStateAction.TransportAction.resolveRelationsNames(
             publication,
-            s.schemas(),
+            clusterService.state(),
             publicationOwner,
             subscriber
         );
@@ -150,7 +150,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
         when(userLookup.findUser("subscriber")).thenReturn(subscriber);
 
-        var s = SQLExecutor.builder(clusterService)
+        SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
             .addTable("CREATE TABLE doc.t3 (id int)")
             .build();
@@ -158,7 +158,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         var resolvedRelations = PublicationsStateAction.TransportAction.resolveRelationsNames(
             publication,
-            s.schemas(),
+            clusterService.state(),
             publicationOwner,
             subscriber
         );
@@ -185,7 +185,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
         when(userLookup.findUser("subscriber")).thenReturn(subscriber);
 
-        var s = SQLExecutor.builder(clusterService)
+        SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
             .addTable("CREATE TABLE doc.t2 (id int)")
             .build();
@@ -198,7 +198,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         var resolvedRelations = PublicationsStateAction.TransportAction.resolveRelationsNames(
             publication,
-            s.schemas(),
+            clusterService.state(),
             publicationOwner,
             subscriber
         );

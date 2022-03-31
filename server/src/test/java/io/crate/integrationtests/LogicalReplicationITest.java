@@ -200,7 +200,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                 // If executing via sniff mode, the user is not found
                 MoreMatchers.exception(
                     IllegalStateException.class,
-                    "Cannot create a subscription, subscribing user '" + SUBSCRIBING_USER + "' was not found."),
+                    "Cannot build publication state, subscribing user '" + SUBSCRIBING_USER + "' was not found."),
 
                 // If executing via pg-tunneling the authentication will fail because of the missing user
                 MoreMatchers.exception(
