@@ -2338,30 +2338,30 @@ pg_publication
 The ``pg_publication`` table in the ``pg_catalog`` system schema contains all
 publications created in the cluster.
 
-+----------------- +------------------------------------------+-------------+
++------------------+------------------------------------------+-------------+
 | Column Name      | Description                              | Return Type |
 +==================+==========================================+=============+
-| ``oid``          | Row identifier                           | ``INTEGER`` |
+| ``oid``          | Row identifier.                          | ``INTEGER`` |
 +------------------+------------------------------------------+-------------+
 | ``pubname``      | Name of the publication.                 | ``TEXT``    |
 +------------------+------------------------------------------+-------------+
-| ``pubowner``     | oid of the owner of the publication.     | ``INTEGER`` |
+| ``pubowner``     | ``oid`` of the owner of the publication. | ``INTEGER`` |
 +------------------+------------------------------------------+-------------+
 | ``puballtables`` | Whether this publication includes all    | ``BOOLEAN`` |
 |                  | tables in the cluster, including         |             |
 |                  | tables created in the future.            |             |
 +------------------+------------------------------------------+-------------+
-| ``pubinsert``    | Whether INSERT operations are replicated | ``BOOLEAN`` |
-|                  | for tables in the publication. Always    |             |
-|                  | ``true``                                 |             |
+| ``pubinsert``    | Whether ``INSERT`` operations are        | ``BOOLEAN`` |
+|                  | replicated for tables in the publication.|             |
+|                  | Always ``true``.                         |             |
 +------------------+------------------------------------------+-------------+
-| ``pubupdate``    | Whether UPDATE operations are replicated | ``BOOLEAN`` |
-|                  | for tables in the publication. Always    |             |
-|                  | ``true``                                 |             |
+| ``pubupdate``    | Whether ``UPDATE`` operations are        | ``BOOLEAN`` |
+|                  | replicated for tables in the publication.|             |
+|                  | Always ``true``.                         |             |
 +------------------+------------------------------------------+-------------+
-| ``pubdelete``    | Whether DELETE operations are replicated | ``BOOLEAN`` |
-|                  | for tables in the publication. Always    |             |
-|                  | ``true``                                 |             |
+| ``pubdelete``    | Whether ``DELETE`` operations are        | ``BOOLEAN`` |
+|                  | replicated for tables in the publication.|             |
+|                  | Always ``true``.                         |             |
 +------------------+------------------------------------------+-------------+
 
 .. _pg_publication_tables:
@@ -2370,15 +2370,15 @@ pg_publication_tables
 =====================
 
 The ``pg_publication_tables`` table in the ``pg_catalog`` system schema
-contains tables replicated by the publication.
+contains tables replicated by a publication.
 
 +----------------+--------------------------------------+-------------+
 | Column Name    | Description                          | Return Type |
-+================+===+==================================+=============+
++================+======================================+=============+
 | ``pubname``    | Name of the publication.             | ``TEXT``    |
 +----------------+--------------------------------------+-------------+
 | ``schemaname`` | Name of the schema containing table. | ``TEXT``    |
-+----------------+---+---------------------+------------+-------------+
++----------------+--------------------------------------+-------------+
 | ``tablename``  | Name of the table.                   | ``TEXT``    |
 +----------------+--------------------------------------+-------------+
 
@@ -2399,10 +2399,10 @@ subscriptions created in the cluster.
 +---------------------+------------------------------------------+-------------+
 | ``subname``         | Name of the subscription.                | ``TEXT``    |
 +---------------------+------------------------------------------+-------------+
-| ``subowner``        | oid of the owner of the subscription.    | ``INTEGER`` |
+| ``subowner``        | ``oid`` of the owner of the subscription.| ``INTEGER`` |
 +---------------------+------------------------------------------+-------------+
-| ``subenabled``      | Whether subscription is enabled, always  | ``BOOLEAN`` |
-|                     | ``true``.                                |             |
+| ``subenabled``      | Whether the subscription is enabled,     | ``BOOLEAN`` |
+|                     | always ``true``.                         |             |
 +---------------------+------------------------------------------+-------------+
 | ``subbinary``       | Noop value, always ``true``.             | ``BOOLEAN`` |
 |                     |                                          |             |
@@ -2440,13 +2440,13 @@ contains the state for each replicated relation in each subscription.
 +-----------------------+--------------------------------------+--------------+
 | ``srsubstate``        | Replication state of the relation.   | ``TEXT``     |
 |                       | State code:                          |              |
-|                       | i - initializing;                    |              |
-|                       | d - restoring;                       |              |
-|                       | s - synchronized, i.e replication is |              |
-|                       | done;                                |              |
-|                       | r - monitoring, i.e. waiting for the |              |
+|                       | ``i`` - initializing;                |              |
+|                       | ``d`` - restoring;                   |              |
+|                       | ``s`` - synchronized, i.e replication|              |
+|                       | is done;                             |              |
+|                       | ``r`` - monitoring, i.e. waiting for |              |
 |                       | new changes;                         |              |
-|                       | e - error.                           |              |
+|                       | ``e`` - error.                       |              |
 +-----------------------+--------------------------------------+--------------+
 | ``srsubstate_reason`` | Error message if there was a         | ``TEXT``     |
 |                       | replication error for the relation   |              |
