@@ -41,7 +41,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -51,6 +50,7 @@ import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.replication.logical.metadata.ConnectionInfo.SSLMode;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLErrorMatcher;
 import io.crate.testing.SQLTransportExecutor;
@@ -259,11 +259,13 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
         subscriber = subscriberCluster.createSQLTransportExecutor(true, null);
         subscriber.exec(String.format(Locale.ENGLISH, """
             CREATE SUBSCRIPTION sub1
-                CONNECTION 'crate://%s:%d?user=marvin&password=secret&mode=pg_tunnel&sslmode=require'
+                CONNECTION 'crate://%s:%d?user=marvin&password=secret&mode=pg_tunnel&sslmode=%s'
                 PUBLICATION pub1
             """,
             postgresAddress.getHostName(),
-            postgresAddress.getPort()));
+            postgresAddress.getPort(),
+            random().nextBoolean() ? SSLMode.PREFER.name() : SSLMode.REQUIRE.name()
+        ));
 
         assertThat(TestingHelpers.printedTable(subscriber.exec("select subname from pg_subscription").rows()), is(
             "sub1\n"

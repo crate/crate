@@ -53,21 +53,19 @@ public class ConnectionInfo implements Writeable {
 
 
     public enum SSLMode {
+        PREFER,
         DISABLE,
         REQUIRE
     }
 
     public static final Setting<SSLMode> SSLMODE = new Setting<>(
         "sslmode",
-        SSLMode.DISABLE.name(),
-        input -> {
-            if (input.equalsIgnoreCase("disable")) {
-                return SSLMode.DISABLE;
-            } else if (input.equalsIgnoreCase("require")) {
-                return SSLMode.REQUIRE;
-            } else {
-                throw new InvalidArgumentException("Invalid value for sslmode: " + input);
-            }
+        SSLMode.PREFER.name(),
+        input -> switch (input.toLowerCase(Locale.ENGLISH)) {
+            case "prefer" -> SSLMode.PREFER;
+            case "disable" -> SSLMode.DISABLE;
+            case "require" -> SSLMode.REQUIRE;
+            default -> throw new InvalidArgumentException("Invalid value for sslmode: " + input + " expected one of: prefer, disable, require");
         },
         DataTypes.STRING
     );

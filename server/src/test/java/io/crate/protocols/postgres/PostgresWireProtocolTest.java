@@ -546,7 +546,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testHandleMultipleSimpleQueriesWithQueryFailure() {
         submitQueriesThroughSimpleQueryMode("select 'first'; select 'second';", new RuntimeException("fail"));
-        readErrorResponse(channel, (byte) 110);
+        readErrorResponse(channel);
         readReadyForQueryMessage(channel);
         assertThat(channel.outboundMessages().size() , is(0));
     }
@@ -554,7 +554,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testKillExceptionSendsReadyForQuery() {
         submitQueriesThroughSimpleQueryMode("select 1;", JobKilledException.of("with fire"));
-        readErrorResponse(channel, (byte) 75);
+        readErrorResponse(channel);
         readReadyForQueryMessage(channel);
     }
 
@@ -643,12 +643,15 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         assertThat(responseBytes, is(new byte[]{'Z', 0, 0, 0, 5, 'I'}));
     }
 
-    private static void readErrorResponse(EmbeddedChannel channel, byte len) {
+    private static ArrayList<String> readErrorResponse(EmbeddedChannel channel) {
         ByteBuf response = channel.readOutbound();
-        byte[] responseBytes = new byte[5];
-        response.readBytes(responseBytes);
+        ArrayList<String> errorFragments = new ArrayList<>();
+        // the byte would actually indicate the field type, but we don't care about that here
+        while (response.readByte() != 0) {
+            String error = PostgresWireProtocol.readCString(response);
+            errorFragments.add(error);
+        }
         response.release();
-        // ErrorResponse: 'E' | int32 len | ...
-        assertThat(responseBytes, is(new byte[]{'E', 0, 0, 0, len}));
+        return errorFragments;
     }
 }

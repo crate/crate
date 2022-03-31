@@ -56,17 +56,19 @@ Every publication can have multiple subscribers.
 A publication is created using the
 :ref:`CREATE PUBLICATION <sql-create-publication>` command and may later be
 altered or dropped using corresponding commands. The individual tables can be
-added and removed dynamically using ALTER PUBLICATION.
+added and removed dynamically using
+:ref:`ALTER PUBLICATION <sql-alter-publication>`
 
 .. CAUTION::
 
     Publishing cluster must have
-    :ref:`setting <sql-create-table-soft-deletes-enabled>`
+    :ref:`sql-create-table-soft-deletes-enabled` setting
     set to ``true`` so that subscribing cluster can catch up all changes made
     during replication pause caused by network issues or explicitly done by a user.
-    Also, :ref:`setting <sql-create-table-soft-deletes-retention-lease-period>`
+    Also, :ref:`sql-create-table-soft-deletes-retention-lease-period`
     should be greater than or equal to
-    ``replication.logical.reads_poll_duration``.
+    :ref:`replication.logical.reads_poll_duration <replication.logical.reads_poll_duration>`
+
 
 .. _logical-replication-subscription:
 
@@ -109,13 +111,17 @@ is not supported.
 Security
 --------
 
-To create a publication, a user must have the ``AL`` privilege on the cluster.
-To add tables to a publication, the user must have ``DQL``, ``DML``, ``DDL``
-privileges on the table. When user creates a publication that publishes all
-tables automatically, only those tables where user has ``DQL``, ``DML``,
-``DDL`` privileges will be published.
+To create, alter or drop a publication, a user must have the ``AL`` privilege
+on the cluster. Only the owner (the user who created the publication) or a
+superuser is allowed to ALTER or DROP a publication.
+To add tables to a publication, the user must have
+``DQL``, ``DML``, ``DDL`` privileges on the table. When a user creates a
+publication that publishes all tables automatically, only those tables where
+user has ``DQL``, ``DML``, ``DDL`` privileges will be published.
 
-To create a subscription, a user must have the ``AL`` privilege in the cluster.
+To create, alter or drop a subscription, a user must have the ``AL`` privilege
+on the cluster. Only the owner (the user who created the subscription) or a
+superuser is allowed to ALTER or DROP a subscription.
 
 .. CAUTION::
 

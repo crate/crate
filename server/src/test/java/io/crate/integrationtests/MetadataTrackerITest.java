@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
 import io.crate.testing.UseRandomizedSchema;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -32,22 +31,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
 @UseRandomizedSchema(random = false)
 public class MetadataTrackerITest extends LogicalReplicationITestCase {
-
-    @Override
-    Settings logicalReplicationSettings() {
-        Settings.Builder builder = Settings.builder();
-        builder.put(super.logicalReplicationSettings());
-        // Increase poll duration to 1s to make sure there is an out-of-sync situation
-        // when the mapping changes on the subscriber cluster
-        builder.put(REPLICATION_READ_POLL_DURATION.getKey(), "1s");
-        return builder.build();
-    }
 
     @Test
     public void test_schema_changes_of_subscribed_table_is_replicated() throws Exception {
@@ -159,7 +147,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                                         " ORDER BY partition_ident");
             assertThat(printedTable(r.rows()), is("{p=1}\n"));
             ensureGreenOnSubscriber();
-        }, 30, TimeUnit.SECONDS);
+        }, 50, TimeUnit.SECONDS);
     }
 
     @Test
@@ -244,7 +232,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
             assertThat(printedTable(r.rows()), is(
                 "2| 2\n" +
                     "11| 1\n"));        // <- this must contain the id of the re-created partition
-        }, 30, TimeUnit.SECONDS);
+        }, 50, TimeUnit.SECONDS);
     }
 
     @Test

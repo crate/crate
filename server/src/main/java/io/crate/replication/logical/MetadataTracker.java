@@ -416,6 +416,10 @@ public final class MetadataTracker implements Closeable {
                 if (skipIndexOrTemplate.test(indexName)) {
                     continue;
                 }
+                if (publisherClusterState.routingTable().index(indexName).allPrimaryShardsActive() == false) {
+                    // skip indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
+                    continue;
+                }
                 var indexParts = new IndexParts(indexName);
                 var relationName = indexParts.toRelationName();
                 if (subscribedRelations.get(relationName) == null) {
