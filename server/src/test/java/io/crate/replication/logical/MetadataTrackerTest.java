@@ -24,6 +24,7 @@ package io.crate.replication.logical;
 import io.crate.Constants;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
@@ -325,9 +326,8 @@ public class MetadataTrackerTest extends ESTestCase {
 
         MetadataTracker.subscribeToNewRelations(
             retrieveSubscription("sub1", SUBSCRIBER_CLUSTER_STATE),
-            publications(PUBLISHER_CLUSTER_STATE),
             SUBSCRIBER_CLUSTER_STATE,
-            PUBLISHER_CLUSTER_STATE,
+            new PublicationsStateAction.Response(List.of(RelationName.fromIndexName("test")), List.of("test"),List.of()),
             relationNames -> {
                 ref.compareAndSet(null, "update subscription state should not be called if no new relation to restore was detected");
                 return CompletableFuture.completedFuture(false);
@@ -348,16 +348,11 @@ public class MetadataTrackerTest extends ESTestCase {
         var subscriberClusterState = new Builder("subscriber")
             .addSubscription("sub1", List.of("pub1"), List.of())
             .build();
-        var publisherClusterState = new Builder("publisher")
-            .addTable("t2", Map.of(), Settings.EMPTY)
-            .addPublication("pub1", List.of())
-            .build();
 
         var future = MetadataTracker.subscribeToNewRelations(
             retrieveSubscription("sub1", subscriberClusterState),
-            publications(publisherClusterState),
             subscriberClusterState,
-            publisherClusterState,
+            new PublicationsStateAction.Response(List.of(RelationName.fromIndexName("t2")), List.of("t2"),List.of()),
             relationNames -> {
                 assertThat(relationNames, contains(RelationName.fromIndexName("t2")));
                 return CompletableFuture.completedFuture(true);
@@ -380,16 +375,11 @@ public class MetadataTrackerTest extends ESTestCase {
         var subscriberClusterState = new Builder("subscriber")
             .addSubscription("sub1", List.of("pub1"), List.of())
             .build();
-        var publisherClusterState = new Builder("publisher")
-            .addPartitionedTable(newRelation, List.of())
-            .addPublication("pub1", List.of())
-            .build();
 
         var future = MetadataTracker.subscribeToNewRelations(
             retrieveSubscription("sub1", subscriberClusterState),
-            publications(publisherClusterState),
             subscriberClusterState,
-            publisherClusterState,
+            new PublicationsStateAction.Response(List.of(newRelation), List.of(),List.of(templateName)),
             relationNames -> {
                 assertThat(relationNames, contains(RelationName.fromIndexName("p1")));
                 return CompletableFuture.completedFuture(true);
@@ -407,29 +397,24 @@ public class MetadataTrackerTest extends ESTestCase {
     @Test
     public void test_new_partitioned_table_with_partition_of_publication_for_all_tables_will_be_restored() throws Exception {
         var newRelation = RelationName.fromIndexName("p1");
-        var newPartitionName = new PartitionName(newRelation, "dummy");
+        var newPartitionName = new PartitionName(newRelation, "dummy").asIndexName();
         var templateName = PartitionName.templateName(newRelation.schema(), newRelation.name());
 
         var subscriberClusterState = new Builder("subscriber")
             .addSubscription("sub1", List.of("pub1"), List.of())
             .build();
-        var publisherClusterState = new Builder("publisher")
-            .addPartitionedTable(newRelation, List.of(newPartitionName))
-            .addPublication("pub1", List.of())
-            .build();
 
         var future = MetadataTracker.subscribeToNewRelations(
             retrieveSubscription("sub1", subscriberClusterState),
-            publications(publisherClusterState),
             subscriberClusterState,
-            publisherClusterState,
+            new PublicationsStateAction.Response(List.of(newRelation), List.of(newPartitionName), List.of(templateName)),
             relationNames -> {
                 assertThat(relationNames, contains(newRelation));
                 return CompletableFuture.completedFuture(true);
             },
             (relationNames, toRestoreIndices, toRestoreTemplates) -> {
                 assertThat(relationNames, contains(newRelation));
-                assertThat(toRestoreIndices, contains(newPartitionName.asIndexName()));
+                assertThat(toRestoreIndices, contains(newPartitionName));
                 assertThat(toRestoreTemplates, contains(templateName));
             }
         );
@@ -440,28 +425,24 @@ public class MetadataTrackerTest extends ESTestCase {
     @Test
     public void test_new_partition_of_already_replicating_partition_table_will_be_restored() throws Exception {
         var relationName = RelationName.fromIndexName("p1");
-        var newPartitionName = new PartitionName(relationName, "dummy");
+        var newPartitionName = new PartitionName(relationName, "dummy").asIndexName();
+        var templateName = PartitionName.templateName(relationName.schema(), relationName.name());
 
         var subscriberClusterState = new Builder("subscriber")
             .addPartitionedTable(relationName, List.of())
             .addSubscription("sub1", List.of("pub1"), List.of("p1"))
             .build();
-        var publisherClusterState = new Builder("publisher")
-            .addPartitionedTable(relationName, List.of(newPartitionName))
-            .addPublication("pub1", List.of())
-            .build();
 
         var future = MetadataTracker.subscribeToNewRelations(
             retrieveSubscription("sub1", subscriberClusterState),
-            publications(publisherClusterState),
             subscriberClusterState,
-            publisherClusterState,
+            new PublicationsStateAction.Response(List.of(relationName), List.of(newPartitionName), List.of(templateName)),
             relationNames -> {
                 throw new AssertionError("state of new partitions are not tracked so state update must not be called");
             },
             (relationNames, toRestoreIndices, toRestoreTemplates) -> {
                 assertThat(relationNames, empty());
-                assertThat(toRestoreIndices, contains(newPartitionName.asIndexName()));
+                assertThat(toRestoreIndices, contains(newPartitionName));
                 assertThat(toRestoreTemplates, empty());
             }
         );
@@ -472,31 +453,29 @@ public class MetadataTrackerTest extends ESTestCase {
     @Test
     public void test_new_partitioned_table_of_publication_with_concrete_tables_will_be_restored() throws Exception {
         var newRelationName = RelationName.fromIndexName("p1");
-        var newPartitionName = new PartitionName(newRelationName, "dummy");
+        var newPartitionName = new PartitionName(newRelationName, "dummy").asIndexName();
         var newTemplateName = PartitionName.templateName(newRelationName.schema(), newRelationName.name());
 
         var subscriberClusterState = new Builder("subscriber")
-            .addSubscription("sub1", List.of("pub1"), List.of())
+            .addSubscription("sub1", List.of("pub1"), List.of("t1"))
             .addReplicatingTable("sub1", "t1", Map.of(), Settings.EMPTY)
-            .build();
-        var publisherClusterState = new Builder("publisher")
-            .addTable("t1", Map.of(), Settings.EMPTY)
-            .addPartitionedTable(newRelationName, List.of(newPartitionName))
-            .addPublication("pub1", List.of("t1", "p1"))
             .build();
 
         var future = MetadataTracker.subscribeToNewRelations(
             retrieveSubscription("sub1", subscriberClusterState),
-            publications(publisherClusterState),
             subscriberClusterState,
-            publisherClusterState,
+            new PublicationsStateAction.Response(
+                List.of(RelationName.fromIndexName("t1"), newRelationName),
+                List.of("t1", newPartitionName),
+                List.of(newTemplateName)
+            ),
             relationNames -> {
                 assertThat(relationNames, contains(newRelationName));
                 return CompletableFuture.completedFuture(true);
             },
             (relationNames, toRestoreIndices, toRestoreTemplates) -> {
                 assertThat(relationNames, contains(newRelationName));
-                assertThat(toRestoreIndices, contains(newPartitionName.asIndexName()));
+                assertThat(toRestoreIndices, contains(newPartitionName));
                 assertThat(toRestoreTemplates, contains(newTemplateName));
             }
         );
@@ -508,6 +487,7 @@ public class MetadataTrackerTest extends ESTestCase {
     public void test_existing_partitioned_table_and_partition_must_not_be_restored() throws Exception {
         var existingRelation = RelationName.fromIndexName("p1");
         var existingPartition = new PartitionName(existingRelation, "dummy");
+        var existingTemplateName = PartitionName.templateName(existingRelation.schema(), existingRelation.name());
 
         var subscriberClusterState = new Builder("subscriber")
             .addSubscription("sub1", List.of("pub1"), List.of())
@@ -520,9 +500,12 @@ public class MetadataTrackerTest extends ESTestCase {
 
         var future = MetadataTracker.subscribeToNewRelations(
             retrieveSubscription("sub1", subscriberClusterState),
-            publications(publisherClusterState),
             subscriberClusterState,
-            publisherClusterState,
+            new PublicationsStateAction.Response(
+                List.of(existingRelation),
+                List.of(existingPartition.asIndexName()),
+                List.of(existingTemplateName)
+            ),
             relationNames -> {
                 throw new AssertionError("no new relation should be detected for state update");
             },
@@ -534,10 +517,5 @@ public class MetadataTrackerTest extends ESTestCase {
         );
 
         assertThat(future.get(5, TimeUnit.SECONDS), is(true));
-    }
-
-    private Map<String, Publication> publications(ClusterState state) {
-        PublicationsMetadata publicationsMetadata = state.metadata().custom(PublicationsMetadata.TYPE);
-        return publicationsMetadata.publications();
     }
 }
