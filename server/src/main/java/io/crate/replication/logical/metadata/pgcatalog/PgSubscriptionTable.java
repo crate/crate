@@ -45,7 +45,7 @@ public class PgSubscriptionTable {
             .add("subenabled", BOOLEAN, r -> true)
             .add("subbinary", BOOLEAN, r -> true)
             .add("substream", BOOLEAN, r -> false)
-            .add("subconninfo", STRING, r -> String.join(",", r.subscription.connectionInfo().hosts()))
+            .add("subconninfo", STRING, r -> r.subscription.connectionInfo().safeConnectionString())
             .add("subslotname", STRING, ignored -> null)
             .add("subsynccommit", STRING, ignored -> null)
             .add("subpublications", STRING_ARRAY, r -> r.subscription.publications())

@@ -43,6 +43,7 @@ import org.elasticsearch.transport.RemoteCluster;
 import io.crate.exceptions.InvalidArgumentException;
 import io.crate.types.DataTypes;
 import io.crate.user.User;
+import org.elasticsearch.transport.RemoteConnectionParser;
 
 
 public class ConnectionInfo implements Writeable {
@@ -158,7 +159,13 @@ public class ConnectionInfo implements Writeable {
                 );
             }
             if (settingName.equals(RemoteCluster.REMOTE_CLUSTER_SEEDS.getKey())) {
-                settingsBuilder.putList(settingName, settingValue.split(","));
+                String[] seeds = settingValue.split(",");
+                // Validating to make sure that RemoteCluster.REMOTE_CLUSTER_SEEDS.get(settings)
+                // wouldn't throw an Exception.
+                for (String seed: seeds) {
+                    RemoteConnectionParser.parsePort(seed);
+                }
+                settingsBuilder.putList(settingName, seeds);
             } else {
                 settingsBuilder.put(settingName, settingValue);
             }
@@ -183,6 +190,19 @@ public class ConnectionInfo implements Writeable {
 
     public List<String> hosts() {
         return hosts;
+    }
+
+    /**
+     * Returns connection string without sensitive information,
+     * i.e. without user name and password.
+     */
+    public String safeConnectionString() {
+        return String.format(Locale.ENGLISH,
+            "crate://%s?user=*&password=*&sslmode=%s&seeds=%s",
+            String.join(",", hosts),
+            sslMode(),
+            String.join(",", RemoteCluster.REMOTE_CLUSTER_SEEDS.get(settings))
+        );
     }
 
     public Settings settings() {
