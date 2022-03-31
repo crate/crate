@@ -31,6 +31,7 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
@@ -52,7 +53,8 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     private static final String ACTION_NAME = "internal:crate:sql/data/delete";
 
     @Inject
-    public TransportShardDeleteAction(TransportService transportService,
+    public TransportShardDeleteAction(Settings settings,
+                                      TransportService transportService,
                                       ClusterService clusterService,
                                       IndicesService indicesService,
                                       TasksService tasksService,
@@ -60,6 +62,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                                       ShardStateAction shardStateAction,
                                       SchemaUpdateClient schemaUpdateClient) {
         super(
+            settings,
             ACTION_NAME,
             transportService,
             clusterService,
