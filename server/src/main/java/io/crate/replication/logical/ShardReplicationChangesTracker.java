@@ -23,8 +23,8 @@ package io.crate.replication.logical;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
@@ -74,7 +74,7 @@ public class ShardReplicationChangesTracker implements Closeable {
     private final Client localClient;
     private final ShardReplicationService shardReplicationService;
     private final String clusterName;
-    private final List<SeqNoRange> missingBatches = Collections.synchronizedList(new ArrayList<>());
+    private final Deque<SeqNoRange> missingBatches = new ArrayDeque<>();
     private final AtomicLong observedSeqNoAtLeader;
     private final AtomicLong seqNoAlreadyRequested;
     private Scheduler.ScheduledCancellable cancellable;
@@ -206,7 +206,7 @@ public class ShardReplicationChangesTracker implements Closeable {
 
         // missing batch takes higher priority.
         if (missingBatches.isEmpty() == false) {
-            var missingBatch = missingBatches.remove(0);
+            var missingBatch = missingBatches.removeFirst();
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[{}] Fetching missing batch {}-{}", shardId, missingBatch.fromSeqNo(), missingBatch.toSeqNo());
             }
