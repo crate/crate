@@ -21,6 +21,11 @@
 
 package io.crate.common.collections;
 
+/**
+ * @deprecated Use a record instead. Not much more verbose and they allow for
+ *             named properties instead of a generic v1 and v2.
+ */
+@Deprecated
 public class Tuple<V1, V2> {
 
     public static <V1, V2> Tuple<V1, V2> tuple(V1 v1, V2 v2) {

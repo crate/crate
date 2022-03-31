@@ -21,14 +21,16 @@
 
 package io.crate.replication.logical;
 
-import io.crate.common.collections.Tuple;
-import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.RetryListener;
-import io.crate.execution.support.RetryRunnable;
-import io.crate.replication.logical.action.ReplayChangesAction;
-import io.crate.replication.logical.action.ShardChangesAction;
-import io.crate.replication.logical.seqno.RetentionLeaseHelper;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
@@ -49,15 +51,13 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.NodeDisconnectedException;
 import org.elasticsearch.transport.NodeNotConnectedException;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.support.RetryListener;
+import io.crate.execution.support.RetryRunnable;
+import io.crate.replication.logical.action.ReplayChangesAction;
+import io.crate.replication.logical.action.ShardChangesAction;
+import io.crate.replication.logical.seqno.RetentionLeaseHelper;
 
 /**
  * Replicates batches of {@link org.elasticsearch.index.translog.Translog.Operation}'s to the subscribers target shards.
@@ -74,7 +74,7 @@ public class ShardReplicationChangesTracker implements Closeable {
     private final Client localClient;
     private final ShardReplicationService shardReplicationService;
     private final String clusterName;
-    private final List<Tuple<Long, Long>> missingBatches = Collections.synchronizedList(new ArrayList<>());
+    private final Deque<SeqNoRange> missingBatches = new ArrayDeque<>();
     private final AtomicLong observedSeqNoAtLeader;
     private final AtomicLong seqNoAlreadyRequested;
     private Scheduler.ScheduledCancellable cancellable;
@@ -96,6 +96,9 @@ public class ShardReplicationChangesTracker implements Closeable {
         seqNoAlreadyRequested = new AtomicLong(seqNoStats.getMaxSeqNo());
     }
 
+    record SeqNoRange(long fromSeqNo, long toSeqNo) {
+    }
+
     public void start() {
         LOGGER.debug("[{}] Spawning the shard changes reader", shardId);
         var runnable = new RetryRunnable(
@@ -109,8 +112,8 @@ public class ShardReplicationChangesTracker implements Closeable {
 
     private void requestBatchToFetch() {
         requestBatchToFetch(batchToFetch -> {
-            var fromSeqNo = batchToFetch.v1();
-            var toSeqNo = batchToFetch.v2();
+            long fromSeqNo = batchToFetch.fromSeqNo();
+            long toSeqNo = batchToFetch.toSeqNo();
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[{}] Getting changes {}-{}", shardId, fromSeqNo, toSeqNo);
             }
@@ -157,8 +160,7 @@ public class ShardReplicationChangesTracker implements Closeable {
                     } else if (t instanceof NodeNotConnectedException
                         || t instanceof NodeDisconnectedException
                         || t instanceof NodeClosedException) {
-                        LOGGER.info("[{}] Node not connected. Retrying.. {}",
-                                    shardId, e.getStackTrace());
+                        LOGGER.info("[{}] Node not connected. Retrying.. {}", shardId, e);
                         updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
                     } else if (t instanceof IndexShardClosedException) {
                         if (LOGGER.isDebugEnabled()) {
@@ -184,7 +186,7 @@ public class ShardReplicationChangesTracker implements Closeable {
     /**
      * Provides a range of operations to be fetched next.
      */
-    private void requestBatchToFetch(Consumer<Tuple<Long, Long>> consumer) {
+    private void requestBatchToFetch(Consumer<SeqNoRange> consumer) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("[{}] Waiting to get batch. requested: {}, leader: {}",
                          shardId, seqNoAlreadyRequested.get(), observedSeqNoAtLeader.get());
@@ -204,9 +206,9 @@ public class ShardReplicationChangesTracker implements Closeable {
 
         // missing batch takes higher priority.
         if (missingBatches.isEmpty() == false) {
-            var missingBatch = missingBatches.remove(0);
+            var missingBatch = missingBatches.removeFirst();
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("[{}] Fetching missing batch {}-{}", shardId, missingBatch.v1(), missingBatch.v2());
+                LOGGER.debug("[{}] Fetching missing batch {}-{}", shardId, missingBatch.fromSeqNo(), missingBatch.toSeqNo());
             }
             consumer.accept(missingBatch);
         } else {
@@ -217,12 +219,12 @@ public class ShardReplicationChangesTracker implements Closeable {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[{}] Fetching the batch {}-{}", shardId, fromSeq, toSeq);
             }
-            consumer.accept(new Tuple<>(fromSeq, toSeq));
+            consumer.accept(new SeqNoRange(fromSeq, toSeq));
         }
     }
 
-    private void getChanges(Long fromSeqNo,
-                            Long toSeqNo,
+    private void getChanges(long fromSeqNo,
+                            long toSeqNo,
                             CheckedConsumer<ShardChangesAction.Response, ? extends Exception> onSuccess,
                             Consumer<Exception> onFailure) {
         var request = new ShardChangesAction.Request(shardId, fromSeqNo, toSeqNo);
@@ -274,7 +276,7 @@ public class ShardReplicationChangesTracker implements Closeable {
                                      toSeqNoRequested
                         );
                     }
-                    missingBatches.add(new Tuple<>(toSeqNoReceived + 1, toSeqNoRequested));
+                    missingBatches.add(new SeqNoRange(toSeqNoReceived + 1, toSeqNoRequested));
                 }
             }
 
@@ -293,7 +295,7 @@ public class ShardReplicationChangesTracker implements Closeable {
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug("[{}] Adding batch to missing {}-{}", shardId, fromSeqNoRequested, toSeqNoRequested);
                 }
-                missingBatches.add(new Tuple<>(fromSeqNoRequested, toSeqNoRequested));
+                missingBatches.add(new SeqNoRange(fromSeqNoRequested, toSeqNoRequested));
             }
         }
 
