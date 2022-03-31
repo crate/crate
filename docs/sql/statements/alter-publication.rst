@@ -37,7 +37,7 @@ Synopsis
 Description
 ===========
 
-Update the list of published table according to the command. If a table gets
+Update the list of published tables according to the command. If a table gets
 deleted from the publication and it has existing subscriptions, the replication
 of the table stops for all subscribers. Already replicated data remains on
 the subscribed clusters, therefore subscribers can not re-subscribe again to
@@ -50,7 +50,7 @@ Parameters
   The name of the publication to be updated.
 
 **ADD TABLE**
-  Add one or more tables into the list of existing publications.
+  Add one or more tables to the list of existing publications.
 
 **DROP TABLE**
    Remove one or more tables from the list of existing publications.
