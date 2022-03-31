@@ -783,7 +783,7 @@ public class Session implements AutoCloseable {
         for (var deferredExecutions : deferredExecutionsByStmt.values()) {
             for (DeferredExecution deferredExecution : deferredExecutions) {
                 deferredExecution.portal().closeActiveConsumer();
-                portals.remove(deferredExecution.portal().name());
+                deferredExecution.portal().setActiveConsumer(null);
             }
         }
         deferredExecutionsByStmt.clear();
