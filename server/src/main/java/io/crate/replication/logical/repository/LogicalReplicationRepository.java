@@ -154,7 +154,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             var indices = stateResponse.concreteIndices().toArray(new String[0]);
             var templates = stateResponse.concreteTemplates().toArray(new String[0]);
             StepListener<ClusterState> clusterStateStepListener = new StepListener<>();
-            getRemoteClusterState(false, false, clusterStateStepListener, indices, templates);
+            getRemoteClusterState(false, true, clusterStateStepListener, indices, templates);
             clusterStateStepListener.whenComplete(
                 remoteClusterState -> {
                     var metadataBuilder = Metadata.builder(remoteClusterState.metadata());
@@ -188,6 +188,10 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         stepListener.whenComplete(remoteClusterState -> {
             var result = new ArrayList<IndexMetadata>();
             for (var i : remoteClusterState.metadata().indices()) {
+                if (remoteClusterState.routingTable().index(i.key).allPrimaryShardsActive() == false) {
+                    // skip indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
+                    continue;
+                }
                 var indexMetadata = i.value;
                 // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
                 var builder = Settings.builder().put(indexMetadata.getSettings());
@@ -431,7 +435,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     private void getRemoteClusterState(ActionListener<ClusterState> listener, String... remoteIndices) {
-        getRemoteClusterState(false, false, listener, remoteIndices, Strings.EMPTY_ARRAY);
+        getRemoteClusterState(false, true, listener, remoteIndices, Strings.EMPTY_ARRAY);
     }
 
     private void getRemoteClusterState(boolean includeNodes,

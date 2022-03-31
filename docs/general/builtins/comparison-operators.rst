@@ -96,7 +96,7 @@ Operator                    Description
 ==========================  ===================================================
 ``~``                       Matches regular expression (case sensitive)
 --------------------------  ---------------------------------------------------
-``!~``                      Matches regular expression (case insensitive)
+``~*``                      Matches regular expression (case insensitive)
 --------------------------  ---------------------------------------------------
 ``!~``                      Does not match regular expression (case sensitive)
 --------------------------  ---------------------------------------------------
