@@ -22,15 +22,13 @@
 package io.crate.replication.logical.action;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.user.Privilege;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
@@ -85,8 +83,6 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
     @Singleton
     public static class TransportAction extends TransportMasterNodeReadAction<Request, Response> {
 
-        private final LogicalReplicationService logicalReplicationService;
-        private final Schemas schemas;
         private final UserLookup userLookup;
 
         @Inject
@@ -94,8 +90,6 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                                ClusterService clusterService,
                                ThreadPool threadPool,
                                IndexNameExpressionResolver indexNameExpressionResolver,
-                               LogicalReplicationService logicalReplicationService,
-                               Schemas schemas,
                                UserLookup userLookup) {
             super(Settings.EMPTY,
                   NAME,
@@ -105,8 +99,6 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                   threadPool,
                   indexNameExpressionResolver,
                   Request::new);
-            this.logicalReplicationService = logicalReplicationService;
-            this.schemas = schemas;
             this.userLookup = userLookup;
 
             TransportActionProxy.registerProxyAction(transportService, NAME, Response::new);
@@ -136,14 +128,20 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
             if (subscriber == null) {
                 throw new IllegalStateException(
                     String.format(
-                        Locale.ENGLISH, "Cannot create a subscription, subscribing user '%s' was not found.",
+                        Locale.ENGLISH, "Cannot build publication state, subscribing user '%s' was not found.",
                         request.subscribingUserName()
                     )
                 );
             }
 
+            PublicationsMetadata publicationsMetadata = state.metadata().custom(PublicationsMetadata.TYPE);
+            if (publicationsMetadata == null) {
+                LOGGER.trace("No publications found on remote cluster.");
+                throw new IllegalStateException("Cannot build publication state, no publications found");
+            }
+
             for (var publicationName : request.publications()) {
-                var publication = logicalReplicationService.publications().get(publicationName);
+                var publication = publicationsMetadata.publications().get(publicationName);
                 if (publication == null) {
                     listener.onFailure(new PublicationUnknownException(publicationName));
                     return;
@@ -153,7 +151,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 // Also, before creating publication or subscription we check that owner was not dropped right before creation.
                 User publicationOwner = userLookup.findUser(publication.owner());
 
-                List<RelationName> relationNamesOfPublication = resolveRelationsNames(publication, schemas, publicationOwner, subscriber);
+                List<RelationName> relationNamesOfPublication = resolveRelationsNames(publication, state, publicationOwner, subscriber);
                 for (var relationName : relationNamesOfPublication) {
 
                     var indexNameOrTemplateName = relationName.indexNameOrAlias();
@@ -189,42 +187,49 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
         @VisibleForTesting
         static List<RelationName> resolveRelationsNames(Publication publication,
-                                                        Schemas schemas,
+                                                        ClusterState clusterState,
                                                         User publicationOwner,
                                                         User subscribedUser) {
 
             List<RelationName> relationNames;
             if (publication.isForAllTables()) {
-                relationNames = InformationSchemaIterables.tablesStream(schemas)
-                    .filter(t -> {
-                        if (t instanceof DocTableInfo dt) {
-                            boolean softDeletes;
-                            if ((softDeletes = IndexSettings.INDEX_SOFT_DELETES_SETTING.get(dt.parameters())) == false) {
-                                LOGGER.warn(
-                                    "Table '{}' won't be replicated as the required table setting " +
-                                    "'soft_deletes.enabled' is set to: {}",
-                                    dt.ident(),
-                                    softDeletes
-                                );
-                                return false;
-                            }
-                            return true;
-                        }
-                        return false;
-                    })
-                    .filter(t -> userCanPublish(t.ident(), publicationOwner))
-                    .filter(t -> subscriberCanRead(t.ident(), subscribedUser))
-                    .map(RelationInfo::ident)
-                    .toList();
+                relationNames = new ArrayList<>();
+                var indicesIt = clusterState.metadata().indices().valuesIt();
+                while (indicesIt.hasNext()) {
+                    var indexMetadata = indicesIt.next();
+                    var indexName = indexMetadata.getIndex().getName();
+                    var indexParts = new IndexParts(indexName);
+                    if (indexParts.isPartitioned()) {
+                        continue;
+                    }
+                    var relationName = indexParts.toRelationName();
+                    boolean softDeletes = IndexSettings.INDEX_SOFT_DELETES_SETTING.get(indexMetadata.getSettings());
+                    if (softDeletes == false) {
+                        LOGGER.warn(
+                            "Table '{}' won't be replicated as the required table setting " +
+                                "'soft_deletes.enabled' is set to: {}",
+                            relationName,
+                            softDeletes
+                        );
+                        continue;
+                    }
+                    relationNames.add(relationName);
+                }
+                for (var cursor : clusterState.metadata().templates().keys()) {
+                    var indexParts = new IndexParts(cursor.value);
+                    if (indexParts.isPartitioned() == false) {
+                        continue;
+                    }
+                    relationNames.add(indexParts.toRelationName());
+                }
             } else {
-                // No need to call userCanPublish() since for the pre-defined tables case this check was already done on the publication creation.
                 // Soft deletes check for pre-defined tables was done in LogicalReplicationAnalyzer on the publication creation.
-                relationNames = publication.tables()
-                    .stream()
-                    .filter(t -> subscriberCanRead(t, subscribedUser))
-                    .toList();
+                relationNames = publication.tables();
             }
-            return relationNames;
+            return relationNames.stream()
+                .filter(relationName -> userCanPublish(relationName, publicationOwner))
+                .filter(relationName -> subscriberCanRead(relationName, subscribedUser))
+                .toList();
         }
 
         private static boolean subscriberCanRead(RelationName relationName, User subscriber) {
@@ -314,6 +319,15 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
         public List<String> concreteTemplates() {
             return concreteTemplates;
+        }
+
+        @Override
+        public String toString() {
+            return "Response{" +
+                "tables=" + tables +
+                ", concreteIndices=" + concreteIndices +
+                ", concreteTemplates=" + concreteTemplates +
+                '}';
         }
     }
 }
