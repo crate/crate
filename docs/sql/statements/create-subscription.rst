@@ -91,7 +91,8 @@ Parameters
   via the transport protocol, but within the connection established via the
   PostgreSQL protocol. All requests from the subscriber cluster to the
   publisher cluster will get routed through a single node. The connection is
-  only established to the first host listed in the connection string.
+  only established to the first host listed in the connection string. The ``port``
+  defaults to 5432.
 
 
   Parameters supported with both modes:

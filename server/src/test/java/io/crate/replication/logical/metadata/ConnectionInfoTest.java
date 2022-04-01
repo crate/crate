@@ -74,6 +74,12 @@ public class ConnectionInfoTest extends ESTestCase {
     }
 
     @Test
+    public void test_port_defaults_to_5432_in_pg_tunnel_mode() {
+        var connInfo = ConnectionInfo.fromURL("crate://123.123.123.123?mode=pg_tunnel");
+        assertThat(connInfo.hosts(), contains("123.123.123.123:5432"));
+    }
+
+    @Test
     public void test_multiple_hosts() {
         var connInfo = ConnectionInfo.fromURL("crate://example.com:4310,123.123.123.123");
         assertThat(connInfo.hosts(), contains("example.com:4310","123.123.123.123:4300"));
