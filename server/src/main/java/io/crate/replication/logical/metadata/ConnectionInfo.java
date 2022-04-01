@@ -43,7 +43,6 @@ import org.elasticsearch.transport.RemoteCluster;
 import io.crate.exceptions.InvalidArgumentException;
 import io.crate.types.DataTypes;
 import io.crate.user.User;
-import org.elasticsearch.transport.RemoteConnectionParser;
 
 
 public class ConnectionInfo implements Writeable {
@@ -80,6 +79,7 @@ public class ConnectionInfo implements Writeable {
     );
 
     private static final String DEFAULT_PORT = "4300";
+    private static final String DEFAULT_PG_PORT = "5432";
 
     public static ConnectionInfo fromURL(String url) {
         List<String> hosts = new ArrayList<>();
@@ -91,48 +91,6 @@ public class ConnectionInfo implements Writeable {
         if (qPos != -1) {
             urlServer = url.substring(0, qPos);
             urlArgs = url.substring(qPos + 1);
-        }
-
-        if (!urlServer.startsWith("crate://")) {
-            throw new InvalidArgumentException(
-                String.format(Locale.ENGLISH,
-                              "The connection string must start with \"crate://\" but was: \"%s\"", url)
-            );
-        }
-        urlServer = urlServer.substring("crate://".length());
-
-        int slash = urlServer.indexOf('/');
-        if (slash != -1 && slash != urlServer.length()) {
-            throw new InvalidArgumentException(
-                String.format(Locale.ENGLISH,
-                              "Database argument is not supported inside the connection string: %s", url)
-            );
-        }
-        slash = urlServer.length();
-
-        String[] addresses = urlServer.substring(0, slash).split(",");
-        for (String address : addresses) {
-            int portIdx = address.lastIndexOf(':');
-            if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
-                String portStr = address.substring(portIdx + 1);
-                try {
-                    int port = Integer.parseInt(portStr);
-                    if (port < 1 || port > 65535) {
-                        throw new InvalidArgumentException(
-                            String.format(Locale.ENGLISH,
-                                          "Invalid port number '%s' inside connection string (1:65535)", portStr)
-                        );
-                    }
-                } catch (NumberFormatException ignore) {
-                    throw new InvalidArgumentException(
-                        String.format(Locale.ENGLISH,
-                                      "Invalid port number '%s' inside connection string (1:65535)", portStr)
-                    );
-                }
-                hosts.add(address);
-            } else {
-                hosts.add(address + ":" + DEFAULT_PORT);
-            }
         }
 
         // parse the args part of the url
@@ -159,20 +117,62 @@ public class ConnectionInfo implements Writeable {
                 );
             }
             if (settingName.equals(RemoteCluster.REMOTE_CLUSTER_SEEDS.getKey())) {
-                String[] seeds = settingValue.split(",");
-                // Validating to make sure that RemoteCluster.REMOTE_CLUSTER_SEEDS.get(settings)
-                // wouldn't throw an Exception.
-                for (String seed: seeds) {
-                    RemoteConnectionParser.parsePort(seed);
-                }
-                settingsBuilder.putList(settingName, seeds);
+                settingsBuilder.putList(settingName, settingValue.split(","));
             } else {
                 settingsBuilder.put(settingName, settingValue);
             }
-
         }
 
-        return new ConnectionInfo(hosts, settingsBuilder.build());
+        if (!urlServer.startsWith("crate://")) {
+            throw new InvalidArgumentException(
+                String.format(Locale.ENGLISH,
+                              "The connection string must start with \"crate://\" but was: \"%s\"", url)
+            );
+        }
+        urlServer = urlServer.substring("crate://".length());
+
+        int slash = urlServer.indexOf('/');
+        if (slash != -1 && slash != urlServer.length()) {
+            throw new InvalidArgumentException(
+                String.format(Locale.ENGLISH,
+                              "Database argument is not supported inside the connection string: %s", url)
+            );
+        }
+        slash = urlServer.length();
+
+        Settings settings = settingsBuilder.build();
+        String[] addresses = urlServer.substring(0, slash).split(",");
+        for (String address : addresses) {
+            int portIdx = address.lastIndexOf(':');
+            if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
+                String portStr = address.substring(portIdx + 1);
+                try {
+                    int port = Integer.parseInt(portStr);
+                    if (port < 1 || port > 65535) {
+                        throw new InvalidArgumentException(
+                            String.format(Locale.ENGLISH,
+                                          "Invalid port number '%s' inside connection string (1:65535)", portStr)
+                        );
+                    }
+                } catch (NumberFormatException ignore) {
+                    throw new InvalidArgumentException(
+                        String.format(Locale.ENGLISH,
+                                      "Invalid port number '%s' inside connection string (1:65535)", portStr)
+                    );
+                }
+                hosts.add(address);
+            } else {
+                hosts.add(address + ":" + defaultPort(settings));
+            }
+        }
+        return new ConnectionInfo(hosts, settings);
+    }
+
+    private static String defaultPort(Settings settings) {
+        if (RemoteCluster.REMOTE_CONNECTION_MODE.get(settings) == (RemoteCluster.ConnectionStrategy.PG_TUNNEL)) {
+            return DEFAULT_PG_PORT;
+        }
+        return DEFAULT_PORT;
     }
 
     private final List<String> hosts;
