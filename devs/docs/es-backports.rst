@@ -100,7 +100,7 @@ should be crossed out as well.
 - [ ] 845ccc22646 [DOCS] Fix dup word in ShardRouting hashcode method. (#63452) (#63583)
 - [ ] 8499924e51e InternalSnapshotsInfoService should also removed failed snapshot shard size infos (#63492) (#63592)
 - [ ] 9e52513c7bf Add support for missing value fetchers. (#63585)
-- [ ] 56092b1a9fd Flush translog writer before adding new operation (#63505)
+- [x] 56092b1a9fd Flush translog writer before adding new operation (#63505)
 - [ ] ae2fc4118d2 Add factory methods for common value fetchers. (#63438)
 - [ ] c6b915c8e67 Make TextFieldMapper.FAST_PHRASE_SUFFIX private.
 - [ ] c4726a2cece Don't emit separate warnings for type filters (#63391)
