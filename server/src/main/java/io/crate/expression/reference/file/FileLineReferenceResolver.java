@@ -38,6 +38,7 @@ public final class FileLineReferenceResolver {
             SourceAsMapLineExpression.COLUMN_NAME, SourceAsMapLineExpression::new,
             SourceUriExpression.COLUMN_NAME, SourceUriExpression::new,
             SourceUriFailureExpression.COLUMN_NAME, SourceUriFailureExpression::new,
+            SourceParsingFailureExpression.COLUMN_NAME, SourceParsingFailureExpression::new,
             SourceLineNumberExpression.COLUMN_NAME, SourceLineNumberExpression::new);
 
     private FileLineReferenceResolver() {
