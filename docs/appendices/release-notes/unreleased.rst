@@ -83,3 +83,6 @@ Fixes
   in case of import from CSV containing invalid line(s).
 
 - Updated to Admin UI 1.20.2, which fixes duplicate entries in query history.
+
+- Fixed an issue that threw ``SQLParseException`` when a ``ILIKE`` operand
+  contained '{' or '}'.
