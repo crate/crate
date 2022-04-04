@@ -107,7 +107,7 @@ public class DiskDisruptionIT extends AbstractDisruptionTestCase {
         var numberOfShards = 1 + randomInt(2);
         var numberOfReplicas = randomInt(2);
 
-        execute("create table test (id int primary key, data string) "
+        execute("create table doc.test (id int primary key, data string) "
             + "clustered into " + numberOfShards + " shards "
             + "with ("
             + " number_of_replicas = ?, "
@@ -144,6 +144,7 @@ public class DiskDisruptionIT extends AbstractDisruptionTestCase {
 
         int numDocsToIndex = RandomizedTest.randomIntBetween(2, 50);
         try (BackgroundIndexer indexer = new BackgroundIndexer(
+                "doc",
                 "test",
                 "data",
                 sqlExecutor.jdbcUrl(),

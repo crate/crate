@@ -84,7 +84,8 @@ public class BackgroundIndexer implements AutoCloseable {
      * @param autoStart   set to true to start indexing as soon as all threads have been created.
      * @param random      random instance to use
      */
-    public BackgroundIndexer(String table,
+    public BackgroundIndexer(String schema,
+                             String table,
                              String column,
                              String pgUrl,
                              int numOfDocs,
@@ -110,6 +111,7 @@ public class BackgroundIndexer implements AutoCloseable {
                     Properties properties = new Properties();
                     properties.setProperty("user", "crate");
                     try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
+                        conn.setSchema(schema);
                         PreparedStatement insertValues = conn.prepareStatement(String.format(
                             Locale.ENGLISH,
                             "insert into %s (id, %s) values (?, ?) returning _id",
