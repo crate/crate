@@ -21,17 +21,14 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLOperations;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.user.User;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.ESTestCase;
@@ -244,12 +241,10 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             InetSocketAddress address = transportService.boundAddress().publishAddress().address();
             return String.format(
                 Locale.ENGLISH,
-                "crate://%s:%d?user=%s&mode=sniff&seeds=%s:%d",
+                "crate://%s:%d?user=%s&mode=sniff",
                 address.getHostName(),
                 address.getPort(),
-                SUBSCRIBING_USER,
-                address.getHostName(),
-                address.getPort()
+                SUBSCRIBING_USER
             );
         }
     }

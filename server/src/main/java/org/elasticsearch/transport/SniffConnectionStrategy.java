@@ -19,13 +19,10 @@
 
 package org.elasticsearch.transport;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-
+import io.crate.common.Booleans;
+import io.crate.common.collections.Lists2;
+import io.crate.common.io.IOUtils;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.Version;
@@ -41,9 +38,12 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.common.Booleans;
-import io.crate.common.collections.Lists2;
-import io.crate.common.io.IOUtils;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public class SniffConnectionStrategy extends RemoteConnectionStrategy {
 
@@ -62,13 +62,13 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
                             TransportService transportService,
                             RemoteConnectionManager connectionManager,
                             Settings nodeSettings,
-                            Settings connectionSettings) {
+                            ConnectionInfo connectionInfo) {
         this(
             clusterAlias,
             transportService,
             connectionManager,
             getNodePredicate(nodeSettings),
-            RemoteCluster.REMOTE_CLUSTER_SEEDS.get(connectionSettings)
+            connectionInfo.hosts()
         );
     }
 
