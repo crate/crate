@@ -104,11 +104,6 @@ public class PgClient extends AbstractClient {
     final SslContextProvider sslContextProvider;
 
     private CompletableFuture<Transport.Connection> connectionFuture;
-    private BorrowedItem<EventLoopGroup> eventLoopGroup;
-    private Bootstrap bootstrap;
-    private Channel channel;
-
-
 
     public PgClient(String name,
                     Settings nodeSettings,
@@ -190,13 +185,12 @@ public class PgClient extends AbstractClient {
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("Connecting to {}", host);
         }
-        bootstrap = new Bootstrap();
-        eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup(settings);
+        var bootstrap = new Bootstrap();
+        var eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup(settings);
         bootstrap.group(eventLoopGroup.item());
         bootstrap.channel(NettyBootstrap.clientChannel());
         bootstrap.option(ChannelOption.TCP_NODELAY, TransportSettings.TCP_NO_DELAY.get(settings));
         bootstrap.option(ChannelOption.SO_KEEPALIVE, TransportSettings.TCP_KEEP_ALIVE.get(settings));
-
         bootstrap.handler(new ClientChannelInitializer(
             profile,
             host,
@@ -204,11 +198,20 @@ public class PgClient extends AbstractClient {
             pageCacheRecycler,
             sslContextProvider,
             connectionInfo,
-            future
+            future,
+            eventLoopGroup
         ));
         bootstrap.remoteAddress(host.getAddress().address());
         ChannelFuture connectFuture = bootstrap.connect();
-        channel = connectFuture.channel();
+        var channel = connectFuture.channel();
+        future.exceptionally(err -> {
+            eventLoopGroup.close();
+            try {
+                Netty4Utils.closeChannels(List.of(channel));
+            } catch (IOException ignored) {
+            }
+            return null;
+        });
         Netty4TcpChannel nettyChannel = new Netty4TcpChannel(
             channel,
             false,
@@ -244,29 +247,13 @@ public class PgClient extends AbstractClient {
     @Override
     public void close() {
         if (isClosing.compareAndSet(false, true)) {
-            if (bootstrap != null) {
-                bootstrap = null;
+            CompletableFuture<Connection> future;
+            synchronized (this) {
+                future = connectionFuture;
+                connectionFuture = null;
             }
-            if (eventLoopGroup != null) {
-                eventLoopGroup.close();
-                eventLoopGroup = null;
-            }
-            if (channel != null) {
-                try {
-                    Netty4Utils.closeChannels(List.of(channel));
-                } catch (IOException ignored) {
-                }
-                channel = null;
-            }
-            var future = connectionFuture;
-            connectionFuture = null;
             if (future != null) {
-                if (!future.isDone()) {
-                    future.completeExceptionally(new AlreadyClosedException("PgClient is closed"));
-                } else if (!future.isCompletedExceptionally()) {
-                    Connection connection = future.join();
-                    connection.close();
-                }
+                future.thenAccept(conn -> conn.close());
             }
         }
     }
@@ -280,6 +267,7 @@ public class PgClient extends AbstractClient {
         private final ConnectionProfile profile;
         private final ConnectionInfo connectionInfo;
         private final SslContextProvider sslContextProvider;
+        private final BorrowedItem<EventLoopGroup> eventLoopGroup;
 
         public ClientChannelInitializer(ConnectionProfile profile,
                                         DiscoveryNode node,
@@ -287,7 +275,8 @@ public class PgClient extends AbstractClient {
                                         PageCacheRecycler pageCacheRecycler,
                                         SslContextProvider sslContextProvider,
                                         ConnectionInfo connectionInfo,
-                                        CompletableFuture<Transport.Connection> result) {
+                                        CompletableFuture<Transport.Connection> result,
+                                        BorrowedItem<EventLoopGroup> eventLoopGroup) {
             this.profile = profile;
             this.node = node;
             this.transport = transport;
@@ -295,6 +284,7 @@ public class PgClient extends AbstractClient {
             this.sslContextProvider = sslContextProvider;
             this.connectionInfo = connectionInfo;
             this.result = result;
+            this.eventLoopGroup = eventLoopGroup;
         }
 
         @Override
@@ -316,7 +306,8 @@ public class PgClient extends AbstractClient {
                 transport,
                 pageCacheRecycler,
                 connectionInfo,
-                result
+                result,
+                eventLoopGroup
             );
             ch.pipeline().addLast("dispatcher", handler);
         }
@@ -330,19 +321,22 @@ public class PgClient extends AbstractClient {
         private final Netty4Transport transport;
         private final ConnectionProfile profile;
         private final ConnectionInfo connectionInfo;
+        private final BorrowedItem<EventLoopGroup> eventLoopGroup;
 
         public Handler(ConnectionProfile profile,
                        DiscoveryNode node,
                        Netty4Transport transport,
                        PageCacheRecycler pageCacheRecycler,
                        ConnectionInfo connectionInfo,
-                       CompletableFuture<Transport.Connection> result) {
+                       CompletableFuture<Transport.Connection> result,
+                       BorrowedItem<EventLoopGroup> eventLoopGroup) {
             this.profile = profile;
             this.node = node;
             this.transport = transport;
             this.pageCacheRecycler = pageCacheRecycler;
             this.connectionInfo = connectionInfo;
             this.result = result;
+            this.eventLoopGroup = eventLoopGroup;
         }
 
         @Override
@@ -360,7 +354,8 @@ public class PgClient extends AbstractClient {
                 case 'S' -> handleParameterStatus(msg);
                 case 'Z' -> handleReadyForQuery(ctx.channel(), msg);
                 case 'E' -> handleErrorResponse(msg);
-                default -> throw new IllegalStateException("Unexpected message type: " + msgType);
+                default -> result.completeExceptionally(
+                    new IllegalStateException("Unexpected message type: " + msgType));
             }
         }
 
@@ -398,7 +393,8 @@ public class PgClient extends AbstractClient {
                         node,
                         tcpChannel,
                         profile,
-                        version
+                        version,
+                        eventLoopGroup
                     );
                     long relativeMillisTime = this.transport.getThreadPool().relativeTimeInMillis();
                     tcpChannel.getChannelStats().markAccessed(relativeMillisTime);
@@ -584,17 +580,20 @@ public class PgClient extends AbstractClient {
         private final Version version;
         private final OutboundHandler outboundHandler;
         private final AtomicBoolean isClosing = new AtomicBoolean(false);
+        private final BorrowedItem<EventLoopGroup> eventLoopGroup;
 
         public TunneledConnection(OutboundHandler outboundHandler,
                                   DiscoveryNode node,
                                   Netty4TcpChannel channel,
                                   ConnectionProfile connectionProfile,
-                                  Version version) {
+                                  Version version,
+                                  BorrowedItem<EventLoopGroup> eventLoopGroup) {
             this.outboundHandler = outboundHandler;
             this.node = node;
             this.channel = channel;
             this.connectionProfile = connectionProfile;
             this.version = version;
+            this.eventLoopGroup = eventLoopGroup;
         }
 
         @Override
@@ -628,6 +627,7 @@ public class PgClient extends AbstractClient {
         public void close() {
             if (isClosing.compareAndSet(false, true)) {
                 try {
+                    eventLoopGroup.close();
                     CloseableChannel.closeChannels(List.of(channel), false);
                 } finally {
                     super.close();
