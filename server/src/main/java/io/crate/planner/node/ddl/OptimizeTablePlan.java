@@ -102,7 +102,7 @@ public class OptimizeTablePlan implements Plan {
             var request = new UpgradeRequest(toOptimize.toArray(new String[0]));
 
             var transportUpgradeAction = dependencies.transportActionProvider().transportUpgradeAction();
-            transportUpgradeAction.execute(request, new OneRowActionListener<>(
+            transportUpgradeAction.execute(request).whenComplete(new OneRowActionListener<>(
                 consumer,
                 response -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size()))
             );

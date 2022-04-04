@@ -87,7 +87,7 @@ public final class CreateViewPlan implements Plan {
             createViewStmt.replaceExisting(),
             owner == null ? null : owner.name()
         );
-        dependencies.createViewAction().execute(request, new OneRowActionListener<>(consumer, resp -> {
+        dependencies.createViewAction().execute(request).whenComplete(new OneRowActionListener<>(consumer, resp -> {
             if (resp.alreadyExistsFailure()) {
                 throw new RelationAlreadyExists(createViewStmt.name());
             }
