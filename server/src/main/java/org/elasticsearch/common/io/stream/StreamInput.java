@@ -1055,7 +1055,16 @@ public abstract class StreamInput extends InputStream {
      * Reads a set of objects
      */
     public <T> Set<T> readSet(Writeable.Reader<T> reader) throws IOException {
-        return readCollection(reader, HashSet::new);
+        int size = readVInt();
+        if (size > ArrayUtil.MAX_ARRAY_LENGTH) {
+            throw new IllegalStateException("array length must be <= to " + ArrayUtil.MAX_ARRAY_LENGTH + " but was: " + size);
+        }
+        ensureCanReadBytes(size);
+        HashSet<T> set = new HashSet<>((int) (size / 0.75 + 1.0));
+        for (int i = 0; i < size; i++) {
+            set.add(reader.read(this));
+        }
+        return set;
     }
 
     /**
