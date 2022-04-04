@@ -29,6 +29,7 @@ import io.crate.expression.InputFactory;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -38,7 +39,7 @@ public class UpsertResultContext {
 
     public static UpsertResultContext forRowCount() {
         return new UpsertResultContext(
-            () -> null, () -> null, () -> null, Collections.emptyList(), UpsertResultCollectors.newRowCountCollector()) {
+            () -> null, () -> null, () -> null, () -> null, Collections.emptyList(), UpsertResultCollectors.newRowCountCollector()) {
 
             @Override
             BiConsumer<ShardedRequests, String> getItemFailureRecorder() {
@@ -46,7 +47,7 @@ public class UpsertResultContext {
             }
 
             @Override
-            Predicate<ShardedRequests> getHasSourceUriFailureChecker() {
+            Predicate<ShardedRequests> getHasSourceFailureChecker() {
                 return (ignored) -> false;
             }
         };
@@ -54,7 +55,7 @@ public class UpsertResultContext {
 
     public static UpsertResultContext forResultRows() {
         return new UpsertResultContext(
-            () -> null, () -> null, () -> null, Collections.emptyList(), UpsertResultCollectors.newResultRowCollector()) {
+            () -> null, () -> null, () -> null, () -> null, Collections.emptyList(), UpsertResultCollectors.newResultRowCollector()) {
 
             @Override
             BiConsumer<ShardedRequests, String> getItemFailureRecorder() {
@@ -62,7 +63,7 @@ public class UpsertResultContext {
             }
 
             @Override
-            Predicate<ShardedRequests> getHasSourceUriFailureChecker() {
+            Predicate<ShardedRequests> getHasSourceFailureChecker() {
                 return (ignored) -> false;
             }
         };
@@ -79,11 +80,16 @@ public class UpsertResultContext {
         Input<String> sourceUriFailureInput = (Input<String>) ctxSourceInfo.add(projection.sourceUriFailure());
         //noinspection unchecked
         Input<Long> lineNumberInput = (Input<Long>) ctxSourceInfo.add(projection.lineNumber());
+        //noinspection unchecked
+        Input<String> sourceParsingFailureInput = projection.sourceParsingFailure() == null
+            ? null
+            : (Input<String>) ctxSourceInfo.add(projection.sourceParsingFailure());
 
         return new UpsertResultContext(
             sourceUriInput,
             sourceUriFailureInput,
             lineNumberInput,
+            sourceParsingFailureInput,
             ctxSourceInfo.expressions(),
             projection.returnSummaryOnFailOnly() ?
                 UpsertResultCollectors.newSummaryOnFailOrRowCountOnSuccessCollector(discoveryNode) :
@@ -95,17 +101,20 @@ public class UpsertResultContext {
     private final Input<String> sourceUriInput;
     private final Input<String> sourceUriFailureInput;
     private final Input<Long> lineNumberInput;
+    private final Input<String> sourceParsingFailureInput;
     private final List<? extends CollectExpression<Row, ?>> sourceInfoExpressions;
     private final UpsertResultCollector resultCollector;
 
     private UpsertResultContext(Input<String> sourceUriInput,
                                 Input<String> sourceUriFailureInput,
                                 Input<Long> lineNumberInput,
+                                @Nullable Input<String> sourceParsingFailureInput,
                                 List<? extends CollectExpression<Row, ?>> sourceInfoExpressions,
                                 UpsertResultCollector resultCollector) {
         this.sourceUriInput = sourceUriInput;
         this.sourceUriFailureInput = sourceUriFailureInput;
         this.lineNumberInput = lineNumberInput;
+        this.sourceParsingFailureInput = sourceParsingFailureInput;
         this.sourceInfoExpressions = sourceInfoExpressions;
         this.resultCollector = resultCollector;
     }
@@ -130,14 +139,25 @@ public class UpsertResultContext {
         return (s, f) -> s.addFailedItem(sourceUriInput.value(), f, lineNumberInput.value());
     }
 
-    Predicate<ShardedRequests> getHasSourceUriFailureChecker() {
+    Predicate<ShardedRequests> getHasSourceFailureChecker() {
         return s -> {
+            String uriInputValue = sourceUriInput.value();
+            boolean lineHasFailure = false;
+
+            // There can be a parsing failure - which should be treated as a regular failed item.
+            // It will be later nullified in the summary if there is at least one sourceUriFailure.
+            String sourceParsingFailure = sourceParsingFailureInput == null ? null : sourceParsingFailureInput.value();
+            if (sourceParsingFailure != null) {
+                lineHasFailure = true;
+                s.addFailedItem(uriInputValue, sourceParsingFailure, lineNumberInput.value());
+            }
+
             String sourceUriFailure = sourceUriFailureInput.value();
             if (sourceUriFailure != null) {
-                s.addFailedUri(sourceUriInput.value(), sourceUriFailureInput.value());
-                return true;
+                s.addFailedUri(uriInputValue, sourceUriFailure);
+                lineHasFailure = true;
             }
-            return false;
+            return lineHasFailure;
         };
     }
 }
