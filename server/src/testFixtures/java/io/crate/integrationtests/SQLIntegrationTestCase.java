@@ -165,10 +165,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
     public static final String RUN_SLOW_TESTS_PROP = "tests.crate.slow";
 
     @Rule
-    public Timeout globalTimeout = Timeout.builder()
-        .withLookingForStuckThread(true)
-        .withTimeout(5, TimeUnit.MINUTES)
-        .build();
+    public Timeout globalTimeout = new Timeout(5, TimeUnit.MINUTES);
 
     @Rule
     public TestName testName = new TestName();
