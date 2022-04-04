@@ -7,7 +7,7 @@
 =======================
 
 You can use the ``CREATE SUBSCRIPTION`` :ref:`statement <gloss-statement>` to
-add a new subscription into the current cluster.
+add a new subscription to the current cluster.
 
 .. SEEALSO::
 
@@ -43,7 +43,7 @@ more :ref:`publications <logical-replication-publication>` on a publisher. The
 subscription name must be distinct from the name of any existing subscription
 in the cluster. The subscription represents a replication connection to the
 publisher. A logical replication will be started on a publisher once
-subscription is enabled, which is by default on creation.
+the subscription is enabled, which is by default on creation.
 
 .. _sql-create-subscription-params:
 
@@ -56,8 +56,7 @@ Parameters
 .. _sql-create-subscription-conn-info:
 
 **CONNECTION 'conninfo'**
-
-  The connection string to the publisher, which is URL in the following format:
+  The connection string to the publisher, which is a URL in the following format:
   ::
 
       crate://host:[port]?params
@@ -79,8 +78,8 @@ Parameters
   connections to each node of the publisher cluster. The ``port`` defaults to
   4300.
 
-  In ``sniff`` mode there can be multiple ``host:port`` pairs, separated by a
-  comma. Parameters will be same for all hosts. Example:
+  In the ``sniff`` mode, there can be multiple ``host:port`` pairs, separated by a
+  comma. Parameters will be the same for all hosts. Example:
 
   ::
 
@@ -95,20 +94,20 @@ Parameters
   only established to the first host listed in the connection string.
 
 
-Parameters supported with both modes:
+  Parameters supported with both modes:
 
   ``user``: name of the user who connects to a publishing cluster. Required.
 
   ``password``: user password.
 
 
-Parameters supported in the ``sniff`` mode:
+  Parameters supported in the ``sniff`` mode:
 
-  ``seeds``:  A comma separated list of initial seed nodes to discover eligible
+  ``seeds``:  A comma-separated list of initial seed nodes to discover eligible
   nodes from the remote cluster.
 
 
-Parameters supported in the ``pg_tunnel`` mode:
+  Parameters supported in the ``pg_tunnel`` mode:
 
   ``sslmode``: Configures whether the connection should use SSL. You must have
   a working SSL setup for the PostgreSQL wire protocol on both the subscriber
@@ -142,6 +141,4 @@ parameters are supported:
 
 **enabled**
   Specifies whether the subscription should be actively replicating, or whether
-  it should be just setup but not started yet. The default is true.
-
-
+  it should be just setup but not started yet. The default is ``true``.

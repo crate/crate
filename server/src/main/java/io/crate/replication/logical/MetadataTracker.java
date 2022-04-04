@@ -215,10 +215,16 @@ public final class MetadataTracker implements Closeable {
                 continue;
             }
 
-            // Block new relation processing until dropped relations are processed
-            CompletableFuture<Boolean> droppedRelationsReplicationDone = new CompletableFuture<>();
+            Client client;
+            try {
+                client = remoteClient.apply(subscriptionName);
+            } catch (Exception e) {
+                onError.accept(e);
+                continue;
+            }
+
             ActionListener<AcknowledgedResponse> listener = ActionListener.wrap(r -> countDown.onSuccess(), onError);
-            getRemoteClusterState(subscriptionName).whenComplete(
+            getRemoteClusterState(client).whenComplete(
                 (remoteClusterState, err) -> {
                     if (err == null) {
                         PublicationsMetadata publicationsMetadata = remoteClusterState.metadata().custom(PublicationsMetadata.TYPE);
@@ -226,6 +232,9 @@ public final class MetadataTracker implements Closeable {
                             LOGGER.trace("No publications found on remote cluster.");
                             return;
                         }
+
+                        // Block new relation processing until dropped relations are processed
+                        CompletableFuture<Boolean> droppedRelationsReplicationDone = new CompletableFuture<>();
 
                         clusterService.submitStateUpdateTask("track-metadata", new AckedClusterStateUpdateTask<>(
                             new AckMetadataUpdateRequest(),
@@ -264,9 +273,15 @@ public final class MetadataTracker implements Closeable {
                                 super.onAllNodesAcked(e);
                                 droppedRelationsReplicationDone.complete(e == null);
                             }
+
+                            @Override
+                            public void onFailure(String source, Exception e) {
+                                droppedRelationsReplicationDone.complete(false);
+                                super.onFailure(source, e);
+                            }
                         });
 
-                        var stateFuture = getPublicationsState(subscriptionName, subscription);
+                        var stateFuture = getPublicationsState(subscription, client);
                         stateFuture.whenComplete(((response, e) -> {
                             if (e == null) {
                                 subscribeToNewRelations(
@@ -285,7 +300,6 @@ public final class MetadataTracker implements Closeable {
                             }
                         }));
                     } else {
-                        droppedRelationsReplicationDone.complete(true);
                         onError.accept(Exceptions.toRuntimeException(err));
                     }
                 }
@@ -558,14 +572,7 @@ public final class MetadataTracker implements Closeable {
                !NON_REPLICATED_SETTINGS.contains(setting);
     }
 
-    private CompletableFuture<ClusterState> getRemoteClusterState(String subscriptionName) {
-        Client client;
-        try {
-            client = remoteClient.apply(subscriptionName);
-        } catch (Exception e) {
-            return CompletableFuture.failedFuture(e);
-        }
-
+    private CompletableFuture<ClusterState> getRemoteClusterState(Client client) {
         var clusterStateRequest = client.admin().cluster().prepareState()
             .setWaitForTimeOut(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC))
             .request();
@@ -575,14 +582,8 @@ public final class MetadataTracker implements Closeable {
         return future;
     }
 
-    private CompletableFuture<PublicationsStateAction.Response> getPublicationsState(String subscriptionName,
-                                                                                     Subscription subscription) {
-        Client client;
-        try {
-            client = remoteClient.apply(subscriptionName);
-        } catch (Exception e) {
-            return CompletableFuture.failedFuture(e);
-        }
+    private CompletableFuture<PublicationsStateAction.Response> getPublicationsState(Subscription subscription,
+                                                                                     Client client) {
         FutureActionListener<PublicationsStateAction.Response, PublicationsStateAction.Response> future =
             FutureActionListener.newInstance();
         client.execute(
