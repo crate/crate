@@ -27,6 +27,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -40,6 +41,7 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
 
     private final InputColumn sourceUri;
     private final InputColumn sourceUriFailure;
+    private final InputColumn sourceParsingFailure;
     private final InputColumn lineNumber;
 
     public SourceIndexWriterReturnSummaryProjection(RelationName relationName,
@@ -58,11 +60,13 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
                                                     boolean autoCreateIndices,
                                                     InputColumn sourceUri,
                                                     InputColumn sourceUriFailure,
+                                                    InputColumn sourceParsingFailure,
                                                     InputColumn lineNumber) {
         super(relationName,partitionIdent, rawSourceReference, rawSourcePtr, primaryKeys, partitionedBySymbols,
             clusteredByColumn, settings, includes, excludes, idSymbols, clusteredBySymbol, outputs, autoCreateIndices);
         this.sourceUri = sourceUri;
         this.sourceUriFailure = sourceUriFailure;
+        this.sourceParsingFailure = sourceParsingFailure;
         this.lineNumber = lineNumber;
     }
 
@@ -71,6 +75,9 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
         sourceUri = (InputColumn) Symbols.fromStream(in);
         sourceUriFailure = (InputColumn) Symbols.fromStream(in);
         lineNumber = (InputColumn) Symbols.fromStream(in);
+        // From 4.7.2 we differentiate IO and non-io failure
+        // as the former is supposed to happen only once and the latter can happen multiple times per URI.
+        sourceParsingFailure = in.getVersion().before(Version.V_4_7_1) ? null : (InputColumn) Symbols.fromStream(in);
     }
 
     public InputColumn sourceUri() {
@@ -79,6 +86,11 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
 
     public InputColumn sourceUriFailure() {
         return sourceUriFailure;
+    }
+
+    @Nullable
+    public InputColumn sourceParsingFailure() {
+        return sourceParsingFailure;
     }
 
     public InputColumn lineNumber() {
@@ -100,6 +112,9 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
         Symbols.toStream(sourceUri, out);
         Symbols.toStream(sourceUriFailure, out);
         Symbols.toStream(lineNumber, out);
+        if (out.getVersion().after(Version.V_4_7_1)) {
+            Symbols.toStream(sourceParsingFailure, out);
+        }
     }
 
     @Override
@@ -110,11 +125,12 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
         SourceIndexWriterReturnSummaryProjection that = (SourceIndexWriterReturnSummaryProjection) o;
         return Objects.equals(sourceUri, that.sourceUri) &&
                Objects.equals(sourceUriFailure, that.sourceUriFailure) &&
+               Objects.equals(sourceParsingFailure, that.sourceParsingFailure) &&
                Objects.equals(lineNumber, that.lineNumber);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), sourceUri, sourceUriFailure, lineNumber);
+        return Objects.hash(super.hashCode(), sourceUri, sourceUriFailure, sourceParsingFailure, lineNumber);
     }
 }
