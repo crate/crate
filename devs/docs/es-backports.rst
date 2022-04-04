@@ -107,7 +107,7 @@ should be crossed out as well.
 - [ ] 88b45dfa611 Convert TextFieldMapper to parametrized form (#63269) (#63392)
 - [ ] 244f1a60f92 Selectively Add ClusterState Listeners Depending on Node Roles (#63223) (#63396)
 - [ ] eac99dd594a SnapshotShardSizeInfo should prefer default value when provided (#63390) (#63394)
-- [ ] dd4b0d85fe0 Write translog operation bytes to byte stream (#63298)
+- [x] dd4b0d85fe0 Write translog operation bytes to byte stream (#63298)
 - [x] 64bbbaeef1a Do not block Translog add on file write (#63374)
 - [ ] f17ca18dfa8 Make array value parsing flag more robust. (#63371)
 - [ ] 87076c32e21 Determine shard size before allocating shards recovering from snapshots (#61906) (#63337)
