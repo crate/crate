@@ -21,9 +21,9 @@
 
 package org.elasticsearch.transport;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.io.IOUtils;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.test.ESTestCase;
@@ -72,7 +71,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 
-@Repeat(iterations = 20)
 public class RemoteClusterConnectionTests extends ESTestCase {
 
     private final ThreadPool threadPool = new TestThreadPool(getClass().getName());
@@ -153,8 +151,8 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 CountDownLatch listenerCalled = new CountDownLatch(1);
                 AtomicReference<Exception> exceptionReference = new AtomicReference<>();
                 String clusterAlias = "test-cluster";
-                Settings connectionSettings = buildSniffSettings(addresses(seedNode));
-                try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionSettings, clusterAlias, service)) {
+                var connectionInfo = buildSniffConnectionInfo(addresses(seedNode));
+                try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionInfo, clusterAlias, service)) {
                     ActionListener<Void> listener = ActionListener.wrap(x -> {
                         listenerCalled.countDown();
                         fail("expected exception");
@@ -201,8 +199,8 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 service.start();
                 service.acceptIncomingRequests();
                 String clusterAlias = "test-cluster";
-                Settings connectionSettings = buildSniffSettings(seedNodes);
-                try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionSettings, clusterAlias, service)) {
+                var connectionInfo = buildSniffConnectionInfo(seedNodes);
+                try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionInfo, clusterAlias, service)) {
                     int numThreads = randomIntBetween(4, 10);
                     Thread[] threads = new Thread[numThreads];
                     CyclicBarrier barrier = new CyclicBarrier(numThreads + 1);
@@ -286,9 +284,9 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 service.start();
                 service.acceptIncomingRequests();
                 String clusterAlias = "test-cluster";
-                Settings connectionSettings = buildSniffSettings(addresses(seedNode));
+                var connectionInfo = buildSniffConnectionInfo(addresses(seedNode));
 
-                try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionSettings, clusterAlias, service)) {
+                try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionInfo, clusterAlias, service)) {
                     CountDownLatch responseLatch = new CountDownLatch(1);
                     AtomicReference<Function<String, DiscoveryNode>> reference = new AtomicReference<>();
                     AtomicReference<Exception> failReference = new AtomicReference<>();
@@ -323,9 +321,9 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 service.start();
                 service.acceptIncomingRequests();
                 String clusterAlias = "test-cluster";
-                Settings connectionSettings = buildSniffSettings(addresses(seedNode));
+                var connectionInfo = buildSniffConnectionInfo(addresses(seedNode));
 
-                try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionSettings, clusterAlias, service)) {
+                try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionInfo, clusterAlias, service)) {
                     PlainActionFuture<Void> plainActionFuture = new PlainActionFuture<>();
                     connection.ensureConnected(plainActionFuture);
                     plainActionFuture.get(10, TimeUnit.SECONDS);
@@ -365,8 +363,8 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 service.acceptIncomingRequests();
 
                 String clusterAlias = "test-cluster";
-                Settings connectionSettings = buildSniffSettings(seedNodes);
-                try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionSettings, clusterAlias, service)) {
+                var connectionInfo = buildSniffConnectionInfo(seedNodes);
+                try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionInfo, clusterAlias, service)) {
                     final int numGetThreads = randomIntBetween(4, 10);
                     final Thread[] getThreads = new Thread[numGetThreads];
                     final int numModifyingThreads = randomIntBetween(4, 10);
@@ -439,8 +437,8 @@ public class RemoteClusterConnectionTests extends ESTestCase {
                 service.start();
                 service.acceptIncomingRequests();
                 String clusterAlias = "test-cluster";
-                Settings connectionSettings = buildSniffSettings(addresses(seedNode));
-                try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionSettings, clusterAlias, service)) {
+                var connectionInfo = buildSniffConnectionInfo(addresses(seedNode));
+                try (RemoteClusterConnection connection = new RemoteClusterConnection(Settings.EMPTY, connectionInfo, clusterAlias, service)) {
                     PlainActionFuture.get(fut -> connection.ensureConnected(ActionListener.map(fut, x -> null)));
                     for (int i = 0; i < 10; i++) {
                         //always a direct connection as the remote node is already connected
@@ -464,11 +462,9 @@ public class RemoteClusterConnectionTests extends ESTestCase {
         }
     }
 
-    private static Settings buildSniffSettings(List<String> seedNodes) {
+    private static ConnectionInfo buildSniffConnectionInfo(List<String> seedNodes) {
         Settings.Builder builder = Settings.builder();
         builder.put(RemoteCluster.REMOTE_CONNECTION_MODE.getKey(), "sniff");
-        builder.put(RemoteCluster.REMOTE_CLUSTER_SEEDS.getKey(),
-                    Strings.collectionToCommaDelimitedString(seedNodes));
-        return builder.build();
+        return new ConnectionInfo(seedNodes, builder.build());
     }
 }
