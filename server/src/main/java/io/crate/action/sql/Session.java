@@ -33,9 +33,6 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationInfo;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
@@ -53,7 +50,6 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.Relations;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.auth.AccessControl;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -66,6 +62,8 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -122,7 +120,6 @@ public class Session implements AutoCloseable {
 
     public static final String UNNAMED = "";
     private final DependencyCarrier executor;
-    private final AccessControl accessControl;
     private final SessionContext sessionContext;
 
     @VisibleForTesting
@@ -154,7 +151,6 @@ public class Session implements AutoCloseable {
                    JobsLogs jobsLogs,
                    boolean isReadOnly,
                    DependencyCarrier executor,
-                   AccessControl accessControl,
                    SessionContext sessionContext) {
         this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
@@ -162,7 +158,6 @@ public class Session implements AutoCloseable {
         this.jobsLogs = jobsLogs;
         this.isReadOnly = isReadOnly;
         this.executor = executor;
-        this.accessControl = accessControl;
         this.sessionContext = sessionContext;
         this.parameterTypeExtractor = new ParameterTypeExtractor();
     }
