@@ -164,7 +164,7 @@ public class ReplicaShardAllocatorIT extends SQLIntegrationTestCase {
         });
         assertBusy(() -> {
             SyncedFlushResponse syncedFlushResponse = client()
-                .execute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName))
+                .legacyExecute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName))
                 .actionGet(5, TimeUnit.SECONDS);
             assertThat(syncedFlushResponse.successfulShards(), equalTo(2));
         });
