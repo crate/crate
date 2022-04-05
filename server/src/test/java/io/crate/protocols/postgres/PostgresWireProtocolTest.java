@@ -90,8 +90,6 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final Provider<UserManager> USER_MANAGER_PROVIDER = StubUserManager::new;
-
     private SQLOperations sqlOperations;
     private List<Session> sessions = new ArrayList<>();
     private EmbeddedChannel channel;
@@ -118,8 +116,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             () -> mock(DependencyCarrier.class),
             new JobsLogs(() -> true),
             Settings.EMPTY,
-            clusterService,
-            USER_MANAGER_PROVIDER
+            clusterService
         ) {
             @Override
             public Session createSession(@Nullable String defaultSchema, @Nullable User user) {
