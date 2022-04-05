@@ -26,9 +26,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequestBuilder;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
@@ -156,29 +153,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Explicitly refresh one or more indices (making the content indexed since the last refresh searchable).
      */
     RefreshRequestBuilder prepareRefresh(String... indices);
-
-    /**
-     * Explicitly force merge one or more indices into a the number of segments.
-     *
-     * @param request The optimize request
-     * @return A result future
-     * @see org.elasticsearch.client.Requests#forceMergeRequest(String...)
-     */
-    ActionFuture<ForceMergeResponse> forceMerge(ForceMergeRequest request);
-
-    /**
-     * Explicitly force merge one or more indices into a the number of segments.
-     *
-     * @param request  The force merge request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#forceMergeRequest(String...)
-     */
-    void forceMerge(ForceMergeRequest request, ActionListener<ForceMergeResponse> listener);
-
-    /**
-     * Explicitly force merge one or more indices into a the number of segments.
-     */
-    ForceMergeRequestBuilder prepareForceMerge(String... indices);
 
     /**
      * Explicitly upgrade one or more indices

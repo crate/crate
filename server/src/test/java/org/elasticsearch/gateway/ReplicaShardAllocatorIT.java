@@ -258,7 +258,7 @@ public class ReplicaShardAllocatorIT extends SQLIntegrationTestCase {
         execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(0, 80)});
 
         if (randomBoolean()) {
-            client().admin().indices().prepareForceMerge(indexName).get();
+            execute("optimize table doc.test with (max_num_segments = 1)");
         }
         ensureActivePeerRecoveryRetentionLeasesAdvanced(indexName);
         if (randomBoolean()) {

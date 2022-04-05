@@ -25,7 +25,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
@@ -110,17 +109,6 @@ public class Requests {
      */
     public static SyncedFlushRequest syncedFlushRequest(String... indices) {
         return new SyncedFlushRequest(indices);
-    }
-
-    /**
-     * Creates a force merge request.
-     *
-     * @param indices The indices to force merge. Use {@code null} or {@code _all} to execute against all indices
-     * @return The force merge request
-     * @see org.elasticsearch.client.IndicesAdminClient#forceMerge(org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest)
-     */
-    public static ForceMergeRequest forceMergeRequest(String... indices) {
-        return new ForceMergeRequest(indices);
     }
 
     /**

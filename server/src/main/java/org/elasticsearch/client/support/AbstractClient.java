@@ -56,10 +56,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequestBuilder;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
@@ -312,21 +308,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public PutMappingRequestBuilder preparePutMapping(String... indices) {
             return new PutMappingRequestBuilder(this, PutMappingAction.INSTANCE).setIndices(indices);
-        }
-
-        @Override
-        public ActionFuture<ForceMergeResponse> forceMerge(final ForceMergeRequest request) {
-            return legacyExecute(ForceMergeAction.INSTANCE, request);
-        }
-
-        @Override
-        public void forceMerge(final ForceMergeRequest request, final ActionListener<ForceMergeResponse> listener) {
-            execute(ForceMergeAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ForceMergeRequestBuilder prepareForceMerge(String... indices) {
-            return new ForceMergeRequestBuilder(this, ForceMergeAction.INSTANCE).setIndices(indices);
         }
 
         @Override
