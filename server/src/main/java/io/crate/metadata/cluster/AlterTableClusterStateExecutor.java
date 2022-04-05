@@ -289,6 +289,16 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     }
                 );
             }
+
+            if (metaDelta.containsKey("routing")) {
+                throw new IllegalArgumentException("Requested to change the routing column to " +
+                                                   metaDelta.get("routing") +
+                                                   ", but routing columns cannot be changed");
+            }
+            var curRouting = currentMeta.get("routing");
+            if (curRouting != null) {
+                metaDelta.put("routing", curRouting);
+            }
         }
         var builder = XContentFactory.contentBuilder(XContentType.JSON);
         builder.map(mappingDeltaAsMap);
