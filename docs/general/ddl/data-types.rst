@@ -9,8 +9,8 @@ Data types
 Data can be stored in different formats. CrateDB has different types that can
 be specified if a table is created using the :ref:`sql-create-table` statement.
 
-Data types play a central role as they limit what kind of data can be inserted,
-how it is stored and they also influence the behaviour when the records are
+Data types play a central role as they limit what kind of data can be inserted
+and how it is stored. They also influence the behaviour when the records are
 queried.
 
 Data type names are reserved words and need to be escaped when used as column
@@ -265,11 +265,12 @@ A ``NULL`` represents a missing value.
 
 
 You can use ``NULL`` values when inserting records to indicate the absence of a
-data point (i.e., the value for a specific column is not known).
+data point when the value for a specific column is not known.
 
 Similarly, CrateDB will produce ``NULL`` values when, for example, data is
-missing from a :ref:`outer left-join <join-types-outer>` operation (i.e., when
-a row from one relation has no corresponding row in the joined relation).
+missing from an :ref:`outer left-join <join-types-outer>` operation. This
+happens when a row from one relation has no corresponding row in the joined
+relation.
 
 If you insert a record without specifying the value for a particular column,
 CrateDB will insert a ``NULL`` value for that column.
@@ -510,7 +511,7 @@ see also :ref:`type aliases <data-types-postgres-aliases>`.
 A text-based basic type containing one or more characters. All Unicode
 characters are allowed.
 
-Create table
+Create table::
 
     cr> CREATE TABLE users (
     ...     name TEXT
@@ -565,9 +566,9 @@ A type representing a JSON string.
 This type only exists for compatibility and interoperability with PostgreSQL. It cannot to be
 used in data definition statements and it is not possible to use it to store data.
 To store JSON data use the existing :ref:`OBJECT <data-types-objects>` type. It is a more powerful
-alternative that offers more flexibility and delivering the same benefits.
+alternative that offers more flexibility but delivers the same benefits.
 
-The JSON types primary use is in :ref:`type casting <data-types-casting>` for
+The primary use of the JSON type is in :ref:`type casting <data-types-casting>` for
 interoperability with PostgreSQL clients which may use the ``JSON`` type.
 The following type casts are example of supported usage of the ``JSON`` data type:
 
@@ -1088,7 +1089,7 @@ CrateDB supports the following types for dates and times:
    :local:
    :depth: 2
 
-With a few exceptions (noted below) the ``+`` and ``-`` :ref:`operators
+With a few exceptions (noted below), the ``+`` and ``-`` :ref:`operators
 <gloss-operator>` can be used to create :ref:`arithmetic expressions
 <arithmetic>` with temporal operands:
 
@@ -1285,7 +1286,7 @@ timestamp into UTC prior to insertion. Contrast this with the behavior of
     This behaviour does not comply with standard SQL and is incompatible with
     PostgreSQL. CrateDB 4.0 :ref:`deprecated this alias <v4.0.0-deprecations>`
     and behavior may change in a future version of CrateDB (see `tracking issue
-    #11491`_). To avoid issued, we recommend that you always specify ``WITH
+    #11491`_). To avoid issues, we recommend that you always specify ``WITH
     TIME ZONE`` or ``WITHOUT TIME ZONE``.
 
 
@@ -1356,7 +1357,7 @@ literal. Contrast this with the behavior of :ref:`WITH TIME ZONE
     This behaviour does not comply with standard SQL and is incompatible with
     PostgreSQL. CrateDB 4.0 :ref:`deprecated this alias <v4.0.0-deprecations>`
     and behavior may change in a future version of CrateDB (see `tracking issue
-    #11491`_). To avoid issued, we recommend that you always specify ``WITH
+    #11491`_). To avoid issues, we recommend that you always specify ``WITH
     TIME ZONE`` or ``WITHOUT TIME ZONE``.
 
 
@@ -1388,7 +1389,7 @@ Convert a timestamp time zone
 `````````````````````````````
 
 If you use ``AT TIME ZONE tz`` with a ``TIMESTAMP WITH TIME ZONE``, CrateDB
-will convert timestamp to time zone ``tz`` and cast the return value as a
+will convert the timestamp to time zone ``tz`` and cast the return value as a
 :ref:`TIMESTAMP WITHOUT TIME ZONE <type-timestamp-without-tz>` (which discards
 the time zone information). This process effectively allows you to correct
 the offset used to calculate UTC.

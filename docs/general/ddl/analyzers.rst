@@ -1356,8 +1356,8 @@ Built-in char filter
 .. rubric:: Parameters
 
 mappings
-    A list of mappings as strings of the form ``[<source>=><replacement>] e.g.
-    "ph=>f"``
+    A list of mappings as strings of the form ``[<source>=><replacement>]``, e.g.
+    ``"ph=>f"``.
 
 mappings_path
     A path to a file with one mapping per line, like above.
@@ -1427,9 +1427,9 @@ hash_set_size
 
 with_rotation
     Whether or not to fill empty buckets with the value of the first non-empty
-    bucket to its circular right. Only takes effect if hash_set_size is equal
-    to one. Defaults to ``true`` if bucket_count is greater than ``1``, else
-    ``false``.
+    bucket to its circular right. Only takes effect if ``hash_set_size`` is
+    equal to one. Defaults to ``true`` if ``bucket_count`` is greater than
+    ``1``, else ``false``.
 
 .. _fingerprint-tokenfilter:
 
@@ -1438,9 +1438,9 @@ with_rotation
 
 ``type='fingerprint'``
 
- Emits a single token which is useful for fingerprinting a body of text, and/or
- providing a token that can be clustered on. It does this by sorting the
- tokens, de-duplicating and then concatenating them back into a single token.
+Emits a single token which is useful for fingerprinting a body of text, and/or
+providing a token that can be clustered on. It does this by sorting the
+tokens, de-duplicating and then concatenating them back into a single token.
 
 .. rubric:: Parameters
 
@@ -1448,7 +1448,7 @@ separator
     Separator which is used for concatenating the tokens. Defaults to a space.
 
 max_output_size
-    If the concatenated fingerprint grows larger than max_output_size, the
+    If the concatenated fingerprint grows larger than ``max_output_size``, the
     token filter will exit and will not emit a token. Defaults to ``255``.
 
 .. _Java Pattern Api: https://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html#field_summary

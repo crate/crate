@@ -323,7 +323,7 @@ is implemented::
 
 For compatibility with clients that use the PostgresSQL wire protocol (e.g.,
 the Golang lib/pq and pgx drivers), CrateDB will accept the :ref:`BEGIN
-<ref-begin>`, :ref:`COMMIT <ref-commit>`, and :ref:`START TRASNACTION
+<ref-begin>`, :ref:`COMMIT <ref-commit>`, and :ref:`START TRANSACTION
 <sql-start-transaction>` statements. For example::
 
     cr> BEGIN TRANSACTION ISOLATION LEVEL READ UNCOMMITTED,
@@ -381,9 +381,8 @@ Limitations
   Literals <data-types-object-literals>` in case an object key's starting
   character clashes with a JDBC escape keyword (see also `JDBC escape syntax
   <https://docs.oracle.com/javadb/10.10.1.2/ref/rrefjdbc1020262.html>`_).
-  Currently, disabling ``escape processing`` will remedy this, but prevent the
-  `Extended Query`_ API from working due to a `bug
-  <https://github.com/pgjdbc/pgjdbc/issues/653>`_ at `pgjdbc`_.
+  Disabling ``escape processing`` will remedy this appropriately for `pgjdbc`_
+  version >= ``9.4.1212``.
 
 
 .. _postgres-client-jdbc-conn:
@@ -415,12 +414,12 @@ CrateDB's SQL query engine enables real-time search & aggregations for online
 analytic processing (OLAP) and business intelligence (BI) with the benefit of
 the ability to scale horizontally. The use-cases of CrateDB are different than
 those of PostgreSQL, as CrateDB's specialized storage schema and query
-execution engine address different requirements (see :ref:`Clustering
+execution engine addresses different needs (see :ref:`Clustering
 <concept-clustering>`).
 
-The listed features below cover the main differences in implementation and
+The features listed below cover the main differences in implementation and
 dialect between CrateDB and PostgreSQL. A detailed comparison between CrateDB's
-SQL dialect and standard SQL is defined in :ref:`appendix-compatibility`.
+SQL dialect and standard SQL is outlined in :ref:`appendix-compatibility`.
 
 
 .. _postgres-copy:
@@ -439,8 +438,8 @@ Expressions
 -----------
 
 Unlike PostgreSQL, :ref:`expressions <gloss-expression>` are not
-:ref:`evaluated <gloss-evaluation>` if the query results in 0 rows either
-because of the table is empty or by not matching the ``WHERE`` clause.
+:ref:`evaluated <gloss-evaluation>` if the query results in 0 rows, either
+because the table is empty or by not matching the ``WHERE`` clause.
 
 
 .. _postgres-types:
