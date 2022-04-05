@@ -87,16 +87,16 @@ clusters by defining its own publications.
 A cluster can have multiple subscriptions. It is also possible for a cluster to
 have both subscriptions and publications. A cluster cannot subscribe to locally
 already existing tables, therefore it is not possible to setup a bi-directional
-replication (both sides subscribing to ``ALL TABLES`` leads to a cluster trying to
-replicate its own tables from another cluster). However, two clusters still can
-cross-subscribe to each other if one cluster subscribes to locally non-existing
-tables of another cluster and vice versa.
+replication (both sides subscribing to ``ALL TABLES`` leads to a cluster trying
+to replicate its own tables from another cluster). However, two clusters still
+can cross-subscribe to each other if one cluster subscribes to locally
+non-existing tables of another cluster and vice versa.
 
 A subscription is added using the
 :ref:`CREATE SUBSCRIPTION <sql-create-subscription>` command and can be
-stopped/resumed at any time using the
-:ref:`ALTER SUBSCRIPTION <sql-alter-subscription>` command and removed using the
-:ref:`DROP SUBSCRIPTION <sql-drop-subscription>` command.
+removed using the :ref:`DROP SUBSCRIPTION <sql-drop-subscription>` command.
+A subscription starts replicating on its creation and stops on its removal
+(if no failure happen in-between).
 
 Published tables must not exist on the subscriber. A cluster cannot subscribe
 to a table on another cluster if it exists already on its side, therefore it's
@@ -121,9 +121,9 @@ To add tables to a publication, the user must have
 publication that publishes all tables automatically, only those tables where the
 user has ``DQL``, ``DML``, and ``DDL`` privileges will be published.
 
-To create, alter or drop a subscription, a user must have the ``AL`` privilege
+To create or drop a subscription, a user must have the ``AL`` privilege
 on the cluster. Only the owner (the user who created the subscription) or a
-superuser is allowed to ``ALTER`` or ``DROP`` a subscription.
+superuser is allowed to ``DROP`` a subscription.
 
 .. CAUTION::
 

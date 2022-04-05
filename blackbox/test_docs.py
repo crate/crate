@@ -36,6 +36,7 @@ from testutils.paths import crate_path, project_path
 from crate.crash.command import CrateShell
 from crate.crash.printer import PrintWrapper, ColorPrinter
 from crate.client import connect
+from crate.client.exceptions import ConnectionError
 
 
 ITEST_FILE_NAME_FILTER = os.environ.get('ITEST_FILE_NAME_FILTER')
@@ -139,7 +140,14 @@ def _execute_sql(stmt):
     """
     with connect(crate.http_url) as conn:
         c = conn.cursor()
-        c.execute(stmt)
+        try:
+            c.execute(stmt)
+        except ConnectionError as e:
+            logfile = os.path.join(crate.logs_path, crate.cluster_name + '.log')
+            with open(logfile, 'r') as f:
+                logs = f.read()
+            msg = str(e) + '\n' + logs
+            raise ConnectionError(msg, e.error_trace)
 
 
 def wait_for_schema_update(schema, table, column):
