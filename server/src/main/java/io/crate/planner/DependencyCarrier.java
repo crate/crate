@@ -21,6 +21,18 @@
 
 package io.crate.planner;
 
+import java.util.concurrent.ScheduledExecutorService;
+
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.TransportActionProvider;
@@ -44,15 +56,6 @@ import io.crate.replication.logical.action.TransportCreateSubscriptionAction;
 import io.crate.replication.logical.action.TransportDropPublicationAction;
 import io.crate.replication.logical.action.TransportDropSubscriptionAction;
 import io.crate.statistics.TransportAnalyzeAction;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * AKA Godzilla
@@ -87,9 +90,11 @@ public class DependencyCarrier {
     private final TransportCreateSubscriptionAction createSubscriptionAction;
     private final TransportDropSubscriptionAction dropSubscriptionAction;
     private final LogicalReplicationService logicalReplicationService;
+    private final ElasticsearchClient client;
 
     @Inject
     public DependencyCarrier(Settings settings,
+                             Node node,
                              TransportActionProvider transportActionProvider,
                              PhasesTaskFactory phasesTaskFactory,
                              ThreadPool threadPool,
@@ -116,6 +121,7 @@ public class DependencyCarrier {
                              TransportDropSubscriptionAction dropSubscriptionAction,
                              LogicalReplicationService logicalReplicationService) {
         this.settings = settings;
+        this.client = node.client();
         this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
         this.threadPool = threadPool;
@@ -258,5 +264,9 @@ public class DependencyCarrier {
 
     public LogicalReplicationService logicalReplicationService() {
         return logicalReplicationService;
+    }
+
+    public ElasticsearchClient client() {
+        return client;
     }
 }
