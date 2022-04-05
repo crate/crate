@@ -20,6 +20,7 @@
 package org.elasticsearch.transport;
 
 import io.crate.common.io.IOUtils;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -62,11 +63,11 @@ public final class RemoteClusterConnection implements Closeable {
      * @param transportService the local nodes transport service
      */
     public RemoteClusterConnection(Settings nodeSettings,
-                                   Settings connectionSettings,
+                                   ConnectionInfo connectionInfo,
                                    String clusterAlias,
                                    TransportService transportService) {
         this.transportService = transportService;
-        ConnectionProfile profile = RemoteConnectionStrategy.buildConnectionProfile(nodeSettings, connectionSettings);
+        ConnectionProfile profile = RemoteConnectionStrategy.buildConnectionProfile(nodeSettings, connectionInfo.settings());
         this.remoteConnectionManager = new RemoteConnectionManager(
             clusterAlias,
             new ClusterConnectionManager(profile, transportService.transport)
@@ -76,7 +77,7 @@ public final class RemoteClusterConnection implements Closeable {
             transportService,
             remoteConnectionManager,
             nodeSettings,
-            connectionSettings
+            connectionInfo
         );
         // we register the transport service here as a listener to make sure we notify handlers on disconnect etc.
         this.remoteConnectionManager.addListener(transportService);
