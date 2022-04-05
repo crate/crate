@@ -1045,4 +1045,34 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                    // NOT contains the validation error
                    not(containsString("CHECK (\"a\" = true) and values {a=false}={count=1, line_numbers=[1]}")));
     }
+
+    @Test
+    public void test_copy_from_fail_gracefully_in_case_of_invalid_data() throws Exception {
+        execute("create table t (obj object(dynamic) as (x int))");
+
+        // Checking out all variants from https://github.com/crate/crate/issues/12201#issuecomment-1072472337
+
+        // Intentionally "sandwiching" valid line between 2 invalids as there used to be test failure depending on the valid/invalid order.
+        List<String> lines = List.of(
+            "obj\n",
+            "1,2\n",
+            "\"{\"\"x\"\":1}\"\n",   // "{""x"":1}" - works
+            "3,4\n",
+            "\"{\"x\":1}\"\n",       // "{"x":1}"
+            "\"'{\"\"x\"\":1}'\"\n", // "'{""x"":1}'"
+            "\"{\"x\" = 1}\"\n",     // "{"x" = 1}"
+            "\"{\"\"x\"\" = 1}\"\n", // "{""x"" = 1}"
+            "{\"\"x\"\":1}\n",       // {""x"":1}
+            "{\"x\":1}\n",           // {"x":1} - works
+            "{\"x\" = 1}\n",         // {"x" = 1}
+            "{x = 1}\n"              // {x = 1}
+        );
+
+        File file = folder.newFile(UUID.randomUUID() + ".csv");
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        execute("copy t from ? with (shared = true) return summary", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        assertThat(response.rows()[0][2], is(2L));
+        assertThat(response.rows()[0][3], is(9L));
+
+    }
 }

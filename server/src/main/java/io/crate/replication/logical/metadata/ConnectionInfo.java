@@ -21,6 +21,17 @@
 
 package io.crate.replication.logical.metadata;
 
+import io.crate.exceptions.InvalidArgumentException;
+import io.crate.types.DataTypes;
+import io.crate.user.User;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.RemoteCluster;
+
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -30,19 +41,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Nullable;
-
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.transport.RemoteCluster;
-
-import io.crate.exceptions.InvalidArgumentException;
-import io.crate.types.DataTypes;
-import io.crate.user.User;
 
 
 public class ConnectionInfo implements Writeable {
@@ -74,8 +72,7 @@ public class ConnectionInfo implements Writeable {
         USERNAME.getKey(),
         PASSWORD.getKey(),
         SSLMODE.getKey(),
-        RemoteCluster.REMOTE_CONNECTION_MODE.getKey(),
-        RemoteCluster.REMOTE_CLUSTER_SEEDS.getKey()
+        RemoteCluster.REMOTE_CONNECTION_MODE.getKey()
     );
 
     private static final String DEFAULT_PORT = "4300";
@@ -116,11 +113,7 @@ public class ConnectionInfo implements Writeable {
                                   "Connection string argument '%s' is not supported", settingName)
                 );
             }
-            if (settingName.equals(RemoteCluster.REMOTE_CLUSTER_SEEDS.getKey())) {
-                settingsBuilder.putList(settingName, settingValue.split(","));
-            } else {
-                settingsBuilder.put(settingName, settingValue);
-            }
+            settingsBuilder.put(settingName, settingValue);
         }
 
         if (!urlServer.startsWith("crate://")) {
@@ -197,12 +190,16 @@ public class ConnectionInfo implements Writeable {
      * i.e. without user name and password.
      */
     public String safeConnectionString() {
-        return String.format(Locale.ENGLISH,
-            "crate://%s?user=*&password=*&sslmode=%s&seeds=%s",
+        var mode = RemoteCluster.REMOTE_CONNECTION_MODE.get(settings);
+        var str = String.format(Locale.ENGLISH,
+            "crate://%s?user=*&password=*&mode=%s",
             String.join(",", hosts),
-            sslMode(),
-            String.join(",", RemoteCluster.REMOTE_CLUSTER_SEEDS.get(settings))
+            mode.toString().toLowerCase(Locale.ENGLISH)
         );
+        if (mode == RemoteCluster.ConnectionStrategy.PG_TUNNEL) {
+            str = str + "&sslmode=" + sslMode().toString().toLowerCase(Locale.ENGLISH);
+        }
+        return str;
     }
 
     public Settings settings() {

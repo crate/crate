@@ -33,6 +33,7 @@ import org.elasticsearch.transport.TransportException;
 import io.crate.concurrent.CompletableContext;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPromise;
 
 public class Netty4TcpChannel implements TcpChannel {
@@ -43,6 +44,7 @@ public class Netty4TcpChannel implements TcpChannel {
     private final CompletableContext<Void> connectContext;
     private final CompletableFuture<Void> closeContext = new CompletableFuture<>();
     private final ChannelStats stats = new ChannelStats();
+    private final boolean rstOnClose = System.getProperty("cr8.transport.rst_on_close", "false").equals("true");
 
     public Netty4TcpChannel(Channel channel, boolean isServer, String profile, @Nullable ChannelFuture connectFuture) {
         this.channel = channel;
@@ -80,6 +82,12 @@ public class Netty4TcpChannel implements TcpChannel {
 
     @Override
     public void close() {
+        if (channel.isOpen() && rstOnClose) {
+            try {
+                channel.config().setOption(ChannelOption.SO_LINGER, 0);
+            } catch (Exception ignored) {
+            }
+        }
         channel.close();
     }
 

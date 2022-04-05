@@ -11,7 +11,6 @@ SQL Statements
 
     alter-cluster
     alter-publication
-    alter-subscription
     alter-table
     alter-user
     analyze

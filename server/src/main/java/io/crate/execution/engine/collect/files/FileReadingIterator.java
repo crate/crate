@@ -179,7 +179,10 @@ public class FileReadingIterator implements BatchIterator<Row> {
                 return false;
             }
         } catch (IOException e) {
-            lineProcessor.setFailure(e.getMessage());
+            lineProcessor.setUriFailure(e.getMessage());
+            return true;
+        } catch (Exception e) {
+            lineProcessor.setParsingFailure(e.getMessage());
             return true;
         }
     }

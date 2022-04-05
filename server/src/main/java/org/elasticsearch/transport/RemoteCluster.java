@@ -21,25 +21,23 @@
 
 package org.elasticsearch.transport;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
-
 import io.crate.action.FutureActionListener;
 import io.crate.common.io.IOUtils;
 import io.crate.protocols.postgres.PgClient;
 import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.types.DataTypes;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 
 public class RemoteCluster implements Closeable {
@@ -55,28 +53,6 @@ public class RemoteCluster implements Closeable {
         value -> ConnectionStrategy.valueOf(value.toUpperCase(Locale.ROOT)),
         DataTypes.STRING,
         Setting.Property.Dynamic
-    );
-
-    /**
-     * A list of initial seed nodes to discover eligible nodes from the remote cluster
-     */
-    public static final Setting<List<String>> REMOTE_CLUSTER_SEEDS = Setting.listSetting(
-        "seeds",
-        null,
-        s -> {
-            // validate seed address
-            RemoteConnectionParser.parsePort(s);
-            return s;
-        },
-        s -> List.of(),
-        value -> {},
-        DataTypes.STRING_ARRAY,
-        Setting.Property.Dynamic
-    );
-
-    public static Set<String> SETTING_NAMES = Set.of(
-        REMOTE_CONNECTION_MODE.getKey(),
-        REMOTE_CLUSTER_SEEDS.getKey()
     );
 
     private final String clusterName;
@@ -144,7 +120,7 @@ public class RemoteCluster implements Closeable {
     private CompletableFuture<Client> connectSniff() {
         var remoteConnection = new RemoteClusterConnection(
             settings,
-            connectionInfo.settings(),
+            connectionInfo,
             clusterName,
             transportService
         );
