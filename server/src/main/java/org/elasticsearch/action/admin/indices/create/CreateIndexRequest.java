@@ -59,12 +59,11 @@ import org.elasticsearch.common.xcontent.XContentType;
 import io.crate.common.collections.MapBuilder;
 
 /**
- * A request to create an index. Best created with {@link org.elasticsearch.client.Requests#createIndexRequest(String)}.
+ * A request to create an index.
  * <p>
  * The index created can optionally be created with {@link #settings(org.elasticsearch.common.settings.Settings)}.
  *
  * @see org.elasticsearch.client.IndicesAdminClient#create(CreateIndexRequest)
- * @see org.elasticsearch.client.Requests#createIndexRequest(String)
  * @see CreateIndexResponse
  */
 public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> implements IndicesRequest {

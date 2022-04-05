@@ -86,7 +86,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      *
      * @param request The create index request
      * @return The result future
-     * @see org.elasticsearch.client.Requests#createIndexRequest(String)
      */
     ActionFuture<CreateIndexResponse> create(CreateIndexRequest request);
 
@@ -95,7 +94,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      *
      * @param request  The create index request
      * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#createIndexRequest(String)
      */
     void create(CreateIndexRequest request, ActionListener<CreateIndexResponse> listener);
 
@@ -111,7 +109,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      *
      * @param request The delete index request
      * @return The result future
-     * @see org.elasticsearch.client.Requests#deleteIndexRequest(String)
      */
     ActionFuture<AcknowledgedResponse> delete(DeleteIndexRequest request);
 
@@ -120,7 +117,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      *
      * @param request  The delete index request
      * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#deleteIndexRequest(String)
      */
     void delete(DeleteIndexRequest request, ActionListener<AcknowledgedResponse> listener);
 
@@ -136,7 +132,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      *
      * @param request The refresh request
      * @return The result future
-     * @see org.elasticsearch.client.Requests#refreshRequest(String...)
      */
     ActionFuture<RefreshResponse> refresh(RefreshRequest request);
 
@@ -145,7 +140,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      *
      * @param request  The refresh request
      * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#refreshRequest(String...)
      */
     void refresh(RefreshRequest request, ActionListener<RefreshResponse> listener);
 
@@ -159,7 +153,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      *
      * @param request The upgrade request
      * @return A result future
-     * @see org.elasticsearch.client.Requests#upgradeRequest(String...)
      */
     ActionFuture<UpgradeResponse> upgrade(UpgradeRequest request);
 
@@ -168,7 +161,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      *
      * @param request  The upgrade request
      * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#upgradeRequest(String...)
      */
     void upgrade(UpgradeRequest request, ActionListener<UpgradeResponse> listener);
 
@@ -177,7 +169,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      *
      * @param request The create mapping request
      * @return A result future
-     * @see org.elasticsearch.client.Requests#putMappingRequest(String...)
      */
     ActionFuture<AcknowledgedResponse> putMapping(PutMappingRequest request);
 
@@ -186,7 +177,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      *
      * @param request  The create mapping request
      * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#putMappingRequest(String...)
      */
     void putMapping(PutMappingRequest request, ActionListener<AcknowledgedResponse> listener);
 

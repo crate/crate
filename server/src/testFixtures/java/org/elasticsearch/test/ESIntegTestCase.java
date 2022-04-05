@@ -40,7 +40,6 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
@@ -677,7 +676,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
         String color = clusterHealthStatus.name().toLowerCase(Locale.ROOT);
         String method = "ensure" + Strings.capitalize(color);
 
-        ClusterHealthRequest healthRequest = Requests.clusterHealthRequest(indices)
+        ClusterHealthRequest healthRequest = new ClusterHealthRequest(indices)
             .timeout(timeout)
             .waitForStatus(clusterHealthStatus)
             .waitForEvents(Priority.LANGUID)
@@ -748,7 +747,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
      * using the cluster health API.
      */
     public ClusterHealthStatus waitForRelocation(ClusterHealthStatus status) {
-        ClusterHealthRequest request = Requests.clusterHealthRequest().waitForNoRelocatingShards(true).waitForEvents(Priority.LANGUID);
+        ClusterHealthRequest request = new ClusterHealthRequest().waitForNoRelocatingShards(true).waitForEvents(Priority.LANGUID);
         if (status != null) {
             request.waitForStatus(status);
         }
