@@ -354,6 +354,7 @@ public class PgClient extends AbstractClient {
                 case 'S' -> handleParameterStatus(msg);
                 case 'Z' -> handleReadyForQuery(ctx.channel(), msg);
                 case 'E' -> handleErrorResponse(msg);
+                case 'K' -> handleKeyData(msg);
                 default -> result.completeExceptionally(
                     new IllegalStateException("Unexpected message type: " + msgType));
             }
@@ -366,6 +367,11 @@ public class PgClient extends AbstractClient {
                 errorMessages.add(error);
             }
             result.completeExceptionally(new IllegalStateException("Error response: " + String.join(", ", errorMessages)));
+        }
+
+        private void handleKeyData(ByteBuf msg) {
+            // do nothing until there is a use for KeyData
+            KeyData.of(msg);
         }
 
         private void handleReadyForQuery(Channel channel, ByteBuf msg) {

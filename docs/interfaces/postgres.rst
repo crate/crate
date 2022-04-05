@@ -144,9 +144,7 @@ since it's a legacy feature.
 Canceling requests
 ------------------
 
-Operations can be cancelled using the ``KILL`` statement, hence the
-``CancelRequest`` message is unsupported. Consequently, the server won't send a
-``BackendKeyData`` message during connection initialization.
+`PostgreSQL cancelling requests`_ is fully implemented.
 
 
 .. _postgres-pg_catalog:
@@ -574,3 +572,4 @@ CrateDB and we love to hear feedback.
 .. _PostgreSQL simple query: https://www.postgresql.org/docs/current/static/protocol-flow.html#id-1.10.5.7.4
 .. _PostgreSQL value expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
+.. _PostgreSQL cancelling requests: https://www.postgresql.org/docs/current/protocol-flow.html#id-1.10.5.7.9
