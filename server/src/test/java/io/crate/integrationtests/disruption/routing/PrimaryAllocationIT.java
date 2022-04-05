@@ -271,7 +271,9 @@ public class PrimaryAllocationIT extends SQLIntegrationTestCase {
         final ShardId shardId = new ShardId(clusterService().state().metadata().index(indexName).getIndex(), 0);
         final Set<String> replicaNodes = new HashSet<>(internalCluster().startDataOnlyNodes(numberOfReplicas));
         ensureGreen();
+        String timeout = randomFrom("0s", "1s", "2s");
         execute("SET GLOBAL cluster.routing.allocation.enable = 'none'");
+        execute("SET GLOBAL PERSISTENT indices.replication.retry_timeout = ?", new Object[] { timeout });
 
         logger.info("--> Indexing with gap in seqno to ensure that some operations will be replayed in resync");
         long numDocs = scaledRandomIntBetween(5, 50);

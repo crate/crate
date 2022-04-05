@@ -19,6 +19,12 @@
 
 package org.elasticsearch.repositories;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import io.crate.replication.logical.LogicalReplicationSettings;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -28,14 +34,12 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import io.crate.analyze.repositories.TypeSettings;
+import org.elasticsearch.transport.RemoteClusters;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import io.crate.analyze.repositories.TypeSettings;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.repository.LogicalReplicationRepository;
 
 /**
  * Sets up classes for Snapshot/Restore.
@@ -48,8 +52,11 @@ public class RepositoriesModule extends AbstractModule {
                               List<RepositoryPlugin> repoPlugins,
                               TransportService transportService,
                               ClusterService clusterService,
+                              LogicalReplicationService logicalReplicationService,
+                              RemoteClusters remoteClusters,
                               ThreadPool threadPool,
-                              NamedXContentRegistry namedXContentRegistry) {
+                              NamedXContentRegistry namedXContentRegistry,
+                              LogicalReplicationSettings replicationSettings) {
         Map<String, Repository.Factory> factories = new HashMap<>();
         factories.put(FsRepository.TYPE, new Repository.Factory() {
 
@@ -63,6 +70,26 @@ public class RepositoriesModule extends AbstractModule {
                 return new FsRepository(metadata, env, namedXContentRegistry, clusterService);
             }
         });
+        factories.put(
+            LogicalReplicationRepository.TYPE,
+            new Repository.Factory() {
+                @Override
+                public Repository create(RepositoryMetadata metadata) throws Exception {
+                    return new LogicalReplicationRepository(
+                        clusterService,
+                        logicalReplicationService,
+                        remoteClusters,
+                        metadata,
+                        threadPool,
+                        replicationSettings);
+                }
+
+                @Override
+                public TypeSettings settings() {
+                    return new TypeSettings(List.of(), List.of());
+                }
+            }
+        );
 
         for (RepositoryPlugin repoPlugin : repoPlugins) {
             Map<String, Repository.Factory> newRepoTypes = repoPlugin.getRepositories(env, namedXContentRegistry, clusterService);

@@ -22,16 +22,15 @@
 package io.crate.execution.ddl;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -77,63 +76,37 @@ public class RepositoryService {
     }
 
     public CompletableFuture<Long> execute(DeleteRepositoryRequest request) {
-        final CompletableFuture<Long> future = new CompletableFuture<>();
-        deleteRepositoryAction.execute(
-            request,
-            new ActionListener<>() {
-                @Override
-                public void onResponse(AcknowledgedResponse deleteRepositoryResponse) {
-                    if (!deleteRepositoryResponse.isAcknowledged()) {
-                        LOGGER.info("delete repository '{}' not acknowledged", request.name());
-                    }
-                    future.complete(1L);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    future.completeExceptionally(e);
-                }
+        return deleteRepositoryAction.execute(request).thenApply(response -> {
+            if (!response.isAcknowledged()) {
+                LOGGER.info("delete repository '{}' not acknowledged", request.name());
             }
-        );
-        return future;
+            return 1L;
+        });
     }
 
     public CompletableFuture<Long> execute(PutRepositoryRequest request) {
-        final CompletableFuture<Long> result = new CompletableFuture<>();
-
-        putRepositoryAction.execute(request, new ActionListener<>() {
-            @Override
-            public void onResponse(AcknowledgedResponse putRepositoryResponse) {
-                result.complete(1L);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                final Throwable t = convertRepositoryException(e);
-
+        return putRepositoryAction.execute(request, r -> 1L)
+            .exceptionallyCompose(err -> {
+                final Throwable t = convertRepositoryException(err);
                 // in case the put repo action fails in the verificationPhase the repository got already created
                 // but an exception is raised anyway.
                 // --> remove the repo and then return the exception to the user
-                dropIfExists(request.name(), () -> result.completeExceptionally(t));
-            }
-        });
-        return result;
+                return dropIfExists(request.name()).thenApply(ignored -> {
+                    throw Exceptions.toRuntimeException(t);
+                });
+            });
     }
 
-    private void dropIfExists(String repoName, Runnable callback) {
+    private CompletableFuture<Long> dropIfExists(String repoName) {
         RepositoryMetadata repository = getRepository(repoName);
         if (repository == null) {
-            callback.run();
-        } else {
-            execute(new DeleteRepositoryRequest(repoName)).whenComplete(
-                (Long result, Throwable t) -> {
-                    if (t != null) {
-                        LOGGER.error("Error occurred whilst trying to delete repository", t);
-                    }
-                    callback.run();
-                }
-            );
+            return CompletableFuture.completedFuture(1L);
         }
+        return execute(new DeleteRepositoryRequest(repoName))
+            .exceptionally(err -> {
+                LOGGER.error("Error occurred whilst trying to delete repository", err);
+                return -1L;
+            });
     }
 
     @VisibleForTesting

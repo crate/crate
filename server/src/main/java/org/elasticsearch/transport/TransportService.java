@@ -146,7 +146,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             threadPool,
             localNodeFactory,
             clusterSettings,
-            new ConnectionManager(settings, transport)
+            new ClusterConnectionManager(settings, transport)
         );
     }
 
@@ -302,23 +302,11 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      * @param listener the action listener to notify
      */
     public void connectToNode(DiscoveryNode node, ActionListener<Void> listener) throws ConnectTransportException {
-        connectToNode(node, null, listener);
-    }
-
-    /**
-     * Connect to the specified node with the given connection profile.
-     * The ActionListener will be called on the calling thread or the generic thread pool.
-     *
-     * @param node the node to connect to
-     * @param connectionProfile the connection profile to use when connecting to this node
-     * @param listener the action listener to notify
-     */
-    public void connectToNode(final DiscoveryNode node, ConnectionProfile connectionProfile, ActionListener<Void> listener) {
         if (isLocalNode(node)) {
             listener.onResponse(null);
             return;
         }
-        connectionManager.connectToNode(node, connectionProfile, connectionValidator(node), listener);
+        connectionManager.connectToNode(node, connectionValidator(node), listener);
     }
 
     public ConnectionManager.ConnectionValidator connectionValidator(DiscoveryNode node) {

@@ -82,7 +82,7 @@ public class MetadataDeleteIndexService {
 
                 @Override
                 public ClusterState execute(final ClusterState currentState) {
-                    return deleteIndices(currentState, Set.of(request.indices()));
+                    return deleteIndices(currentState, settings, allocationService, Set.of(request.indices()));
                 }
             }
         );
@@ -92,6 +92,13 @@ public class MetadataDeleteIndexService {
      * Delete some indices from the cluster state.
      */
     public ClusterState deleteIndices(ClusterState currentState, Set<Index> indices) {
+        return deleteIndices(currentState, settings, allocationService, indices);
+    }
+
+    public static ClusterState deleteIndices(ClusterState currentState,
+                                             Settings settings,
+                                             AllocationService allocationService,
+                                             Set<Index> indices) {
         final Metadata meta = currentState.metadata();
         final Set<Index> indicesToDelete = indices.stream().map(i -> meta.getIndexSafe(i).getIndex()).collect(toSet());
 

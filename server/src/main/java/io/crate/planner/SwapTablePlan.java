@@ -77,6 +77,6 @@ public class SwapTablePlan implements Plan {
             consumer,
             r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L)
         );
-        dependencies.swapRelationsAction().execute(request, listener);
+        dependencies.swapRelationsAction().execute(request).whenComplete(listener);
     }
 }

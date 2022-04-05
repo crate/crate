@@ -29,17 +29,23 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.crate.metadata.information.InformationSchemaInfo;
 import org.elasticsearch.common.inject.Inject;
 
-import io.crate.user.Privilege;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.settings.session.NamedSessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTable;
+import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTablesTable;
+import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionRelTable;
+import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
 import io.crate.statistics.TableStats;
+import io.crate.user.Privilege;
 
 public class PgCatalogTableDefinitions {
 
@@ -49,7 +55,9 @@ public class PgCatalogTableDefinitions {
     public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables,
                                      TableStats tableStats,
                                      PgCatalogSchemaInfo pgCatalogSchemaInfo,
-                                     SessionSettingRegistry sessionSettingRegistry) {
+                                     SessionSettingRegistry sessionSettingRegistry,
+                                     Schemas schemas,
+                                     LogicalReplicationService logicalReplicationService) {
         tableDefinitions = new HashMap<>(17);
         tableDefinitions.put(PgStatsTable.NAME, new StaticTableDefinition<>(
                 tableStats::statsEntries,
@@ -155,6 +163,39 @@ public class PgCatalogTableDefinitions {
             () -> completedFuture(emptyList()),
             PgLocksTable.create().expressions(),
             false
+        ));
+        Iterable<PgPublicationTable.PublicationRow> publicationRows =
+            () -> logicalReplicationService.publications().entrySet().stream()
+                .map(e -> new PgPublicationTable.PublicationRow(e.getKey(), e.getValue()))
+                .iterator();
+        tableDefinitions.put(PgPublicationTable.IDENT, new StaticTableDefinition<>(
+            () -> publicationRows,
+            (user, p) -> p.owner().equals(user.name()),
+            PgPublicationTable.create().expressions()
+        ));
+
+        tableDefinitions.put(PgPublicationTablesTable.IDENT, new StaticTableDefinition<>(
+            () -> PgPublicationTablesTable.rows(logicalReplicationService, schemas),
+            (user, p) -> p.owner().equals(user.name()),
+            PgPublicationTablesTable.create().expressions()
+        ));
+
+        // pg_subscription
+        Iterable<PgSubscriptionTable.SubscriptionRow> subscriptionRows =
+            () -> logicalReplicationService.subscriptions().entrySet().stream()
+                .map(e -> new PgSubscriptionTable.SubscriptionRow(e.getKey(), e.getValue()))
+                .iterator();
+        tableDefinitions.put(PgSubscriptionTable.IDENT, new StaticTableDefinition<>(
+            () -> subscriptionRows,
+            (user, s) -> s.subscription().owner().equals(user.name()),
+            PgSubscriptionTable.create().expressions()
+        ));
+
+        // pg_subscription_rel
+        tableDefinitions.put(PgSubscriptionRelTable.IDENT, new StaticTableDefinition<>(
+            () -> PgSubscriptionRelTable.rows(logicalReplicationService),
+            (user, p) -> p.owner().equals(user.name()),
+            PgSubscriptionRelTable.create().expressions()
         ));
     }
 

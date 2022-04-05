@@ -77,8 +77,6 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
-import io.crate.user.Privilege;
-import io.crate.user.Privileges;
 import io.crate.exceptions.ClusterScopeException;
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.CrateExceptionVisitor;
@@ -90,11 +88,21 @@ import io.crate.exceptions.UnscopedException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.replication.logical.analyze.AnalyzedAlterPublication;
+import io.crate.replication.logical.analyze.AnalyzedAlterSubscription;
+import io.crate.replication.logical.analyze.AnalyzedCreatePublication;
+import io.crate.replication.logical.analyze.AnalyzedCreateSubscription;
+import io.crate.replication.logical.analyze.AnalyzedDropPublication;
+import io.crate.replication.logical.analyze.AnalyzedDropSubscription;
 import io.crate.sql.tree.SetStatement;
+import io.crate.user.Privilege;
+import io.crate.user.Privileges;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
 
 import java.util.Locale;
+
+import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
 
 public final class AccessControlImpl implements AccessControl {
 
@@ -739,6 +747,102 @@ public final class AccessControlImpl implements AccessControl {
                     defaultSchema
                 );
             }
+            return null;
+        }
+
+        @Override
+        public Void visitCreatePublication(AnalyzedCreatePublication createPublication, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema
+            );
+            // All tables cannot be checked on publication creation - they are checked before actual replication starts
+            // and a table gets published only if publication owner has DQL, DML and DDL privileges on that table.
+            for (RelationName relationName: createPublication.tables()) {
+                for (Privilege.Type type: READ_WRITE_DEFINE) {
+                    Privileges.ensureUserHasPrivilege(
+                        type,
+                        Privilege.Clazz.TABLE,
+                        relationName.fqn(),
+                        user,
+                        defaultSchema
+                    );
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitDropPublication(AnalyzedDropPublication dropPublication, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema
+            );
+            return null;
+        }
+
+        @Override
+        public Void visitAlterPublication(AnalyzedAlterPublication alterPublication, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema
+            );
+            for (RelationName relationName: alterPublication.tables()) {
+                for (Privilege.Type type: READ_WRITE_DEFINE) {
+                    Privileges.ensureUserHasPrivilege(
+                        type,
+                        Privilege.Clazz.TABLE,
+                        relationName.fqn(),
+                        user,
+                        defaultSchema
+                    );
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitCreateSubscription(AnalyzedCreateSubscription createSubscription, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema
+            );
+            return null;
+        }
+
+        @Override
+        public Void visitDropSubscription(AnalyzedDropSubscription dropSubscription, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema
+            );
+            return null;
+        }
+
+        @Override
+        public Void visitAlterSubscription(AnalyzedAlterSubscription alterSubscription, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema
+            );
             return null;
         }
     }

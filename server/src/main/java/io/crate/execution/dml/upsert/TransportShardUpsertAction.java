@@ -43,6 +43,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -96,7 +97,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
 
     @Inject
-    public TransportShardUpsertAction(ThreadPool threadPool,
+    public TransportShardUpsertAction(Settings settings,
+                                      ThreadPool threadPool,
                                       ClusterService clusterService,
                                       TransportService transportService,
                                       SchemaUpdateClient schemaUpdateClient,
@@ -106,6 +108,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       NodeContext nodeCtx,
                                       Schemas schemas) {
         super(
+            settings,
             ACTION_NAME,
             transportService,
             clusterService,

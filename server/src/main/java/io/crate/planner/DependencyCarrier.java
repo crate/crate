@@ -25,8 +25,6 @@ import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.RepositoryService;
-import io.crate.metadata.NodeContext;
-import io.crate.statistics.TransportAnalyzeAction;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
@@ -38,7 +36,14 @@ import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.action.TransportCreatePublicationAction;
+import io.crate.replication.logical.action.TransportCreateSubscriptionAction;
+import io.crate.replication.logical.action.TransportDropPublicationAction;
+import io.crate.replication.logical.action.TransportDropSubscriptionAction;
+import io.crate.statistics.TransportAnalyzeAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -77,6 +82,11 @@ public class DependencyCarrier {
     private final RepositoryService repositoryService;
     private final RepositoryParamValidator repositoryParamValidator;
     private final NodeLimits nodeLimits;
+    private final TransportCreatePublicationAction createPublicationAction;
+    private final TransportDropPublicationAction dropPublicationAction;
+    private final TransportCreateSubscriptionAction createSubscriptionAction;
+    private final TransportDropSubscriptionAction dropSubscriptionAction;
+    private final LogicalReplicationService logicalReplicationService;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -99,7 +109,12 @@ public class DependencyCarrier {
                              AlterTableOperation alterTableOperation,
                              FulltextAnalyzerResolver fulltextAnalyzerResolver,
                              RepositoryService repositoryService,
-                             RepositoryParamValidator repositoryParamValidator) {
+                             RepositoryParamValidator repositoryParamValidator,
+                             TransportCreatePublicationAction createPublicationAction,
+                             TransportDropPublicationAction dropPublicationAction,
+                             TransportCreateSubscriptionAction createSubscriptionAction,
+                             TransportDropSubscriptionAction dropSubscriptionAction,
+                             LogicalReplicationService logicalReplicationService) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
@@ -122,6 +137,11 @@ public class DependencyCarrier {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.repositoryService = repositoryService;
         this.repositoryParamValidator = repositoryParamValidator;
+        this.createPublicationAction = createPublicationAction;
+        this.dropPublicationAction = dropPublicationAction;
+        this.createSubscriptionAction = createSubscriptionAction;
+        this.dropSubscriptionAction = dropSubscriptionAction;
+        this.logicalReplicationService = logicalReplicationService;
     }
 
     public Schemas schemas() {
@@ -218,5 +238,25 @@ public class DependencyCarrier {
 
     public NodeLimits nodeLimits() {
         return nodeLimits;
+    }
+
+    public TransportCreatePublicationAction createPublicationAction() {
+        return createPublicationAction;
+    }
+
+    public TransportDropPublicationAction dropPublicationAction() {
+        return dropPublicationAction;
+    }
+
+    public TransportCreateSubscriptionAction createSubscriptionAction() {
+        return createSubscriptionAction;
+    }
+
+    public TransportDropSubscriptionAction dropSubscriptionAction() {
+        return dropSubscriptionAction;
+    }
+
+    public LogicalReplicationService logicalReplicationService() {
+        return logicalReplicationService;
     }
 }

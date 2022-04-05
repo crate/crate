@@ -190,6 +190,8 @@ information about the currently applied cluster settings.
     | settings['indices']['recovery']['recovery_activity_timeout']                      | text             |
     | settings['indices']['recovery']['retry_delay_network']                            | text             |
     | settings['indices']['recovery']['retry_delay_state_sync']                         | text             |
+    | settings['indices']['replication']                                                | object           |
+    | settings['indices']['replication']['retry_timeout']                               | text             |
     | settings['logger']                                                                | object_array     |
     | settings['logger']['level']                                                       | text_array       |
     | settings['logger']['name']                                                        | text_array       |
@@ -202,6 +204,13 @@ information about the currently applied cluster settings.
     | settings['overload_protection']['dml']['max_concurrency']                         | integer          |
     | settings['overload_protection']['dml']['min_concurrency']                         | integer          |
     | settings['overload_protection']['dml']['queue_size']                              | integer          |
+    | settings['replication']                                                           | object           |
+    | settings['replication']['logical']                                                | object           |
+    | settings['replication']['logical']['ops_batch_size']                              | integer          |
+    | settings['replication']['logical']['reads_poll_duration']                         | text             |
+    | settings['replication']['logical']['recovery']                                    | object           |
+    | settings['replication']['logical']['recovery']['chunk_size']                      | text             |
+    | settings['replication']['logical']['recovery']['max_concurrent_file_chunks']      | integer          |
     | settings['stats']                                                                 | object           |
     | settings['stats']['breaker']                                                      | object           |
     | settings['stats']['breaker']['log']                                               | object           |
@@ -2316,13 +2325,136 @@ been analyzed.
       - real[]
       - Always null. Exists for PostgreSQL compatibility.
 
-.. vale on
-
-
 .. note::
 
     Not all data types support creating statistics. So some columns may not
     show up in the table.
 
+.. _pg_publication:
+
+pg_publication
+==============
+
+The ``pg_publication`` table in the ``pg_catalog`` system schema contains all
+publications created in the cluster.
+
++------------------+------------------------------------------+-------------+
+| Column Name      | Description                              | Return Type |
++==================+==========================================+=============+
+| ``oid``          | Row identifier.                          | ``INTEGER`` |
++------------------+------------------------------------------+-------------+
+| ``pubname``      | Name of the publication.                 | ``TEXT``    |
++------------------+------------------------------------------+-------------+
+| ``pubowner``     | ``oid`` of the owner of the publication. | ``INTEGER`` |
++------------------+------------------------------------------+-------------+
+| ``puballtables`` | Whether this publication includes all    | ``BOOLEAN`` |
+|                  | tables in the cluster, including         |             |
+|                  | tables created in the future.            |             |
++------------------+------------------------------------------+-------------+
+| ``pubinsert``    | Whether ``INSERT`` operations are        | ``BOOLEAN`` |
+|                  | replicated for tables in the publication.|             |
+|                  | Always ``true``.                         |             |
++------------------+------------------------------------------+-------------+
+| ``pubupdate``    | Whether ``UPDATE`` operations are        | ``BOOLEAN`` |
+|                  | replicated for tables in the publication.|             |
+|                  | Always ``true``.                         |             |
++------------------+------------------------------------------+-------------+
+| ``pubdelete``    | Whether ``DELETE`` operations are        | ``BOOLEAN`` |
+|                  | replicated for tables in the publication.|             |
+|                  | Always ``true``.                         |             |
++------------------+------------------------------------------+-------------+
+
+.. _pg_publication_tables:
+
+pg_publication_tables
+=====================
+
+The ``pg_publication_tables`` table in the ``pg_catalog`` system schema
+contains tables replicated by a publication.
+
++----------------+--------------------------------------+-------------+
+| Column Name    | Description                          | Return Type |
++================+======================================+=============+
+| ``pubname``    | Name of the publication.             | ``TEXT``    |
++----------------+--------------------------------------+-------------+
+| ``schemaname`` | Name of the schema containing table. | ``TEXT``    |
++----------------+--------------------------------------+-------------+
+| ``tablename``  | Name of the table.                   | ``TEXT``    |
++----------------+--------------------------------------+-------------+
+
+.. _pg_subscription:
+
+pg_subscription
+===============
+
+The ``pg_subscription`` table in the ``pg_catalog`` system schema contains all
+subscriptions created in the cluster.
+
++---------------------+------------------------------------------+-------------+
+| Column Name         | Description                              | Return Type |
++=====================+==========================================+=============+
+| ``oid``             | Row identifier.                          | ``INTEGER`` |
++---------------------+------------------------------------------+-------------+
+| ``subdbid``         | noop value, always ``0``.                | ``INTEGER`` |
++---------------------+------------------------------------------+-------------+
+| ``subname``         | Name of the subscription.                | ``TEXT``    |
++---------------------+------------------------------------------+-------------+
+| ``subowner``        | ``oid`` of the owner of the subscription.| ``INTEGER`` |
++---------------------+------------------------------------------+-------------+
+| ``subenabled``      | Whether the subscription is enabled,     | ``BOOLEAN`` |
+|                     | always ``true``.                         |             |
++---------------------+------------------------------------------+-------------+
+| ``subbinary``       | Noop value, always ``true``.             | ``BOOLEAN`` |
+|                     |                                          |             |
++---------------------+------------------------------------------+-------------+
+| ``substream``       | Noop value, always ``true``.             | ``BOOLEAN`` |
+|                     |                                          |             |
++---------------------+------------------------------------------+-------------+
+| ``subconninfo``     | Connection string to the publishing      | ``TEXT``    |
+|                     | cluster.                                 |             |
++---------------------+------------------------------------------+-------------+
+| ``subslotname``     | Noop value, always ``NULL``.             | ``TEXT``    |
+|                     |                                          |             |
++---------------------+------------------------------------------+-------------+
+| ``subsynccommit``   | Noop value, always ``NULL``.             | ``TEXT``    |
++---------------------+------------------------------------------+-------------+
+| ``subpublications`` | Array of subscribed publication names.   | ``ARRAY``   |
+|                     | These publications are defined in the    |             |
+|                     | publishing cluster.                      |             |
++---------------------+------------------------------------------+-------------+
+
+.. _pg_subscription_rel:
+
+pg_subscription_rel
+===================
+
+The ``pg_subscription_rel`` table in the ``pg_catalog`` system schema
+contains the state for each replicated relation in each subscription.
+
++-----------------------+--------------------------------------+--------------+
+| Column Name           | Description                          | Return Type  |
++=======================+======================================+==============+
+| ``srsubid``           | Reference to subscription.           | ``INTEGER``  |
++-----------------------+--------------------------------------+--------------+
+| ``srrelid``           | Reference to relation.               | ``REGCLASS`` |
++-----------------------+--------------------------------------+--------------+
+| ``srsubstate``        | Replication state of the relation.   | ``TEXT``     |
+|                       | State code:                          |              |
+|                       | ``i`` - initializing;                |              |
+|                       | ``d`` - restoring;                   |              |
+|                       | ``s`` - synchronized, i.e replication|              |
+|                       | is done;                             |              |
+|                       | ``r`` - monitoring, i.e. waiting for |              |
+|                       | new changes;                         |              |
+|                       | ``e`` - error.                       |              |
++-----------------------+--------------------------------------+--------------+
+| ``srsubstate_reason`` | Error message if there was a         | ``TEXT``     |
+|                       | replication error for the relation   |              |
+|                       | or ``NULL``.                         |              |
++-----------------------+--------------------------------------+--------------+
+| ``srsublsn``          | Noop value, always ``NULL``.         | ``LONG``     |
++-----------------------+--------------------------------------+--------------+
+
+.. vale on
 
 .. _Farewell to the CrateDB Enterprise License: https://crate.io/blog/farewell-to-the-cratedb-enterprise-license-faq

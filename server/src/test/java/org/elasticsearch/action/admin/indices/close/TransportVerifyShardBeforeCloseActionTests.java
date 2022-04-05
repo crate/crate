@@ -20,10 +20,34 @@
  */
 package org.elasticsearch.action.admin.indices.close;
 
+import static io.crate.execution.ddl.tables.TransportCloseTable.INDEX_CLOSED_BLOCK_ID;
+import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.state;
+import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
+import static org.elasticsearch.test.ClusterServiceUtils.setState;
+import static org.hamcrest.Matchers.arrayWithSize;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.replication.PendingReplicationActions;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
@@ -60,28 +84,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-
-import static io.crate.execution.ddl.tables.TransportCloseTable.INDEX_CLOSED_BLOCK_ID;
-import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.state;
-import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
-import static org.elasticsearch.test.ClusterServiceUtils.setState;
-import static org.hamcrest.Matchers.arrayWithSize;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import io.crate.common.unit.TimeValue;
 
 public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
 
@@ -282,7 +285,8 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         ReplicationGroup replicationGroup = new ReplicationGroup(
             shardRoutingTable,
             inSyncAllocationIds,
-            trackedShards);
+            trackedShards,
+            0);
         assertThat(replicationGroup.getUnavailableInSyncShards().size(), greaterThan(0));
 
         PlainActionFuture<PrimaryResult> listener = new PlainActionFuture<>();
@@ -290,15 +294,17 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             new TransportVerifyShardBeforeCloseAction.ShardRequest(shardId, false, clusterBlock);
         ReplicationOperation.Replicas<TransportVerifyShardBeforeCloseAction.ShardRequest> proxy =
             action.newReplicasProxy();
-        ReplicationOperation<TransportVerifyShardBeforeCloseAction.ShardRequest,
-            TransportVerifyShardBeforeCloseAction.ShardRequest, PrimaryResult> operation = new ReplicationOperation<>(
+        ReplicationOperation<TransportVerifyShardBeforeCloseAction.ShardRequest, TransportVerifyShardBeforeCloseAction.ShardRequest, PrimaryResult> operation = new ReplicationOperation<>(
             request,
             createPrimary(primaryRouting, replicationGroup),
             listener,
             proxy,
             logger,
+            threadPool,
             "test",
-            primaryTerm
+            primaryTerm,
+            TimeValue.timeValueMillis(20),
+            TimeValue.timeValueSeconds(60)
         );
         operation.execute();
 
@@ -341,10 +347,19 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         TransportVerifyShardBeforeCloseAction.ShardRequest,
         PrimaryResult>
     createPrimary(final ShardRouting primary, final ReplicationGroup replicationGroup) {
+
+        final PendingReplicationActions replicationActions = new PendingReplicationActions(primary.shardId(), threadPool);
+        replicationActions.accept(replicationGroup);
+
         return new ReplicationOperation.Primary<>() {
             @Override
             public ShardRouting routingEntry() {
                 return primary;
+            }
+
+            @Override
+            public PendingReplicationActions getPendingReplicationActions() {
+                return replicationActions;
             }
 
             @Override

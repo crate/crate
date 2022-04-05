@@ -207,7 +207,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             emptySet(),
             handleB.discoveryNode.getVersion());
         ConnectTransportException ex = expectThrows(ConnectTransportException.class, () -> {
-            AbstractSimpleTransportTestCase.connectToNode(handleA.transportService, discoveryNode, TestProfiles.LIGHT_PROFILE);
+            AbstractSimpleTransportTestCase.connectToNode(handleA.transportService, discoveryNode);
         });
         assertThat(ex.getMessage(), containsString("unexpected remote node"));
         assertFalse(handleA.transportService.nodeConnected(discoveryNode));

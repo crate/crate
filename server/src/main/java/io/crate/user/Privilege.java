@@ -52,6 +52,8 @@ public class Privilege implements Writeable {
         AL;
 
         public static final List<Type> VALUES = List.of(values());
+
+        public static final List<Type> READ_WRITE_DEFINE = List.of(DQL, DML, DDL);
     }
 
     public enum Clazz {

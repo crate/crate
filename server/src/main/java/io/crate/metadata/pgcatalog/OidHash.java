@@ -28,6 +28,8 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.functions.Signature;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.Subscription;
 import io.crate.types.TypeSignature;
 
 import java.nio.charset.StandardCharsets;
@@ -44,7 +46,11 @@ public final class OidHash {
         CONSTRAINT,
         PRIMARY_KEY,
         PROC,
-        INDEX;
+        INDEX,
+        USER,
+        PUBLICATION,
+        SUBSCRIPTION,
+        HOST;
 
         public static Type fromRelationType(RelationInfo.RelationType type) {
             return switch (type) {
@@ -84,6 +90,20 @@ public final class OidHash {
     public static int functionOid(Signature sig) {
         FunctionName name = sig.getName();
         return oid(Type.PROC.toString() + name.schema() + name.name() + argTypesToStr(sig.getArgumentTypes()));
+    }
+
+    public static int publicationOid(String name, Publication publication) {
+        var tables = Lists2.joinOn(" ", publication.tables(), RelationName::fqn);
+        return oid(Type.PUBLICATION + name + publication.owner() + tables);
+    }
+
+    public static int subscriptionOid(String name, Subscription subscription) {
+        var publications = String.join(", ", subscription.publications());
+        return oid(Type.SUBSCRIPTION + name + subscription.owner() + publications);
+    }
+
+    public static int userOid(String name) {
+        return oid(Type.USER + name);
     }
 
     @VisibleForTesting

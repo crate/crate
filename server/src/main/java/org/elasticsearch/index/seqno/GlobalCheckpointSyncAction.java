@@ -30,6 +30,7 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -52,12 +53,14 @@ public class GlobalCheckpointSyncAction extends TransportReplicationAction<
 
     @Inject
     public GlobalCheckpointSyncAction(
+            final Settings settings,
             final TransportService transportService,
             final ClusterService clusterService,
             final IndicesService indicesService,
             final ThreadPool threadPool,
             final ShardStateAction shardStateAction) {
         super(
+                settings,
                 ACTION_NAME,
                 transportService,
                 clusterService,

@@ -21,13 +21,41 @@
 
 package io.crate.integrationtests;
 
-import io.crate.metadata.IndexMappings;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseRandomizedSchema;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
+import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNIQUE_VIOLATION;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
+import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.isOneOf;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
@@ -49,38 +77,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.protocols.postgres.PGErrorStatus.UNIQUE_VIOLATION;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.crate.testing.TestingHelpers.printedTable;
-import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
-import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.isOneOf;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
+import io.crate.metadata.IndexMappings;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedSchema;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
 public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
@@ -194,10 +197,11 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
 
         execute("alter table t partition (n = 1) close");
+
         execute("insert into t (n) values (1)");
         assertThat(response.rowCount(), is(0L));
-        refresh();
 
+        waitNoPendingTasksOnAll(); // ensure close got processed on all shard copies
         execute("select count(*) from t");
         assertEquals(0L, response.rows()[0][0]);
     }

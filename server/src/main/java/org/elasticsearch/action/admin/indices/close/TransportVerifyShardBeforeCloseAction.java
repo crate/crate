@@ -57,6 +57,7 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
                                                  final ThreadPool threadPool,
                                                  final ShardStateAction stateAction) {
         super(
+            settings,
             NAME,
             transportService,
             clusterService,

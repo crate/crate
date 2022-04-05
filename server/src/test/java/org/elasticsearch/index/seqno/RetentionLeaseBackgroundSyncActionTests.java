@@ -32,6 +32,7 @@ import org.elasticsearch.action.support.ActionTestUtils;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -98,6 +99,7 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
         when(indexShard.shardId()).thenReturn(shardId);
 
         final RetentionLeaseBackgroundSyncAction action = new RetentionLeaseBackgroundSyncAction(
+            Settings.EMPTY,
             transportService,
             clusterService,
             indicesService,
@@ -134,6 +136,7 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
         when(indexShard.shardId()).thenReturn(shardId);
 
         final RetentionLeaseBackgroundSyncAction action = new RetentionLeaseBackgroundSyncAction(
+            Settings.EMPTY,
             transportService,
             clusterService,
             indicesService,
@@ -171,6 +174,7 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
         when(indexShard.shardId()).thenReturn(shardId);
 
         final RetentionLeaseBackgroundSyncAction action = new RetentionLeaseBackgroundSyncAction(
+            Settings.EMPTY,
             transportService,
             clusterService,
             indicesService,

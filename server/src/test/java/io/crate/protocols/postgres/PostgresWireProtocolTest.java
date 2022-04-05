@@ -25,10 +25,12 @@ import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
-import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.execution.jobs.kill.KillJobsRequest;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.testing.Asserts;
 import io.crate.user.User;
 import io.crate.user.UserManager;
 import io.crate.exceptions.JobKilledException;
@@ -45,12 +47,14 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import javax.annotation.Nullable;
@@ -60,6 +64,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -81,6 +86,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     private SQLOperations sqlOperations;
     private List<Session> sessions = new ArrayList<>();
     private EmbeddedChannel channel;
+    private KeyData keyData;
 
     @Before
     public void prepare() throws Exception {
@@ -104,6 +110,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 return session;
             }
         };
+        keyData = KeyData.generate(1);
     }
 
     @After
@@ -121,8 +128,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 mock(SQLOperations.class),
                 sessionContext -> AccessControl.DISABLED,
+                chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> null),
-                null);
+                null,
+                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                keyData);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
@@ -163,8 +173,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 sessionContext -> AccessControl.DISABLED,
+                chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
-                null);
+                null,
+                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                keyData);
         AtomicBoolean flushed = new AtomicBoolean(false);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler) {
             @Override
@@ -191,8 +204,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 sessionContext -> AccessControl.DISABLED,
+                chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
-                null);
+                null,
+                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                keyData);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
@@ -216,8 +232,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 sessionContext -> AccessControl.DISABLED,
+                chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
-                null);
+                null,
+                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                keyData);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
         {
@@ -274,8 +293,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 sessionContext -> AccessControl.DISABLED,
+                chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
-                null);
+                null,
+                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                keyData);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
         {
@@ -336,8 +358,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 sessionContext -> AccessControl.DISABLED,
+                chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
-                null);
+                null,
+                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                keyData);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
         {
@@ -392,13 +417,16 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 mock(SQLOperations.class),
                 sessionContext -> AccessControl.DISABLED,
+                chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> null),
-                null);
+                null,
+                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                keyData);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
-        ClientMessages.sendSslReqMessage(buffer);
+        ClientMessages.writeSSLReqMessage(buffer);
         channel.writeInbound(buffer);
 
         // We should get back an 'N'...
@@ -419,7 +447,12 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCrateServerVersionIsReceivedOnStartup() throws Exception {
         PostgresWireProtocol ctx = new PostgresWireProtocol(
-            sqlOperations, sessionContext -> AccessControl.DISABLED, new AlwaysOKAuthentication(userName -> User.CRATE_USER), null);
+            sqlOperations, sessionContext -> AccessControl.DISABLED,
+            chPipeline -> {},
+            new AlwaysOKAuthentication(userName -> User.CRATE_USER),
+            null,
+            new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                keyData);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buf = Unpooled.buffer();
@@ -451,29 +484,27 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPasswordMessageAuthenticationProcess() throws Exception {
+        var sqlOperations = mock(SQLOperations.class);
+        when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(mock(Session.class));
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
-                mock(SQLOperations.class),
+                sqlOperations,
                 sessionContext -> AccessControl.DISABLED,
-                new Authentication() {
+                chPipeline -> {},
+                (user, connectionProperties) -> new AuthenticationMethod() {
+                    @Override
+                    public User authenticate(String userName, @Nullable SecureString passwd, ConnectionProperties connProperties) {
+                        return User.of("dummy");
+                    }
 
                     @Override
-                    public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
-                        return new AuthenticationMethod() {
-                            @Nullable
-                            @Override
-                            public User authenticate(String userName, @Nullable SecureString passwd, ConnectionProperties connProperties) {
-                                return null;
-                            }
-
-                            @Override
-                            public String name() {
-                                return "password";
-                            }
-                        };
+                    public String name() {
+                        return "password";
                     }
                 },
-                null);
+                null,
+                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                keyData);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf respBuf;
@@ -509,8 +540,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 sessionContext -> AccessControl.DISABLED,
+                chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
-                null);
+                null,
+                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                keyData);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
@@ -532,7 +566,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testHandleMultipleSimpleQueriesWithQueryFailure() {
         submitQueriesThroughSimpleQueryMode("select 'first'; select 'second';", new RuntimeException("fail"));
-        readErrorResponse(channel, (byte) 110);
+        readErrorResponse(channel);
         readReadyForQueryMessage(channel);
         assertThat(channel.outboundMessages().size() , is(0));
     }
@@ -540,8 +574,70 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testKillExceptionSendsReadyForQuery() {
         submitQueriesThroughSimpleQueryMode("select 1;", JobKilledException.of("with fire"));
-        readErrorResponse(channel, (byte) 75);
+        readErrorResponse(channel);
         readReadyForQueryMessage(channel);
+    }
+
+    @Test
+    public void testKeyDataSentDuringStartUp() {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sqlOperations,
+                sessionContext -> AccessControl.DISABLED,
+                chPipeline -> {},
+                new AlwaysOKAuthentication(userName -> User.CRATE_USER),
+                null,
+                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                keyData);
+
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        sendStartupMessage(channel);
+        readAuthenticationOK(channel);
+        skipParameterMessages(channel);
+        assertThat(readKeyData(channel), is(ctx.keyData));
+    }
+
+    @Test
+    public void testHandleCancelRequestBody() {
+        TransportKillJobsNodeAction mockedKillAction = mock(TransportKillJobsNodeAction.class);
+
+        UUID targetJobID = UUIDs.dirtyUUID();
+        Session targetSession = mock(Session.class);
+        when(targetSession.getMostRecentJobID()).thenReturn(targetJobID);
+        SessionContext sessionContext = new SessionContext(User.CRATE_USER);
+        when(targetSession.sessionContext()).thenReturn(sessionContext);
+
+        var pgSessions = new PgSessions(mockedKillAction);
+        pgSessions.add(keyData, targetSession);
+
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sqlOperations,
+                context -> AccessControl.DISABLED,
+                chPipeline -> {},
+                new AlwaysOKAuthentication(userName -> User.CRATE_USER),
+                null,
+                pgSessions,
+                keyData);
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        sendCancelRequest(channel, keyData);
+
+        // kill invoked with the target jobID
+        ArgumentCaptor<KillJobsRequest> arg = ArgumentCaptor.forClass(KillJobsRequest.class);
+        verify(mockedKillAction).broadcast(arg.capture());
+        KillJobsRequest capturedKillJobRequest = arg.getValue();
+        assertThat(capturedKillJobRequest.toKill(), is(List.of(targetJobID)));
+
+        assertThat(channel.isOpen(), is(false));
+        Asserts.assertThrowsMatches( // implicitly verifies that cancelling did not affect the internal map hence the original session
+            () -> pgSessions.add(keyData, targetSession),
+            AssertionError.class,
+            "The given KeyData already has an associated active Session"
+        );
+
+        verify(targetSession).resetDeferredExecutions();
+        verify(targetSession, times(0)).close();
     }
 
     private void submitQueriesThroughSimpleQueryMode(String statements, @Nullable Throwable failure) {
@@ -559,8 +655,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 sessionCtx -> AccessControl.DISABLED,
+                chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
-                null);
+                null,
+                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                keyData);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         if (failure != null) {
@@ -575,6 +674,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         sendStartupMessage(channel);
         readAuthenticationOK(channel);
         skipParameterMessages(channel);
+        readKeyData(channel);
         readReadyForQueryMessage(channel);
 
         ByteBuf query = Unpooled.buffer();
@@ -591,6 +691,13 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ByteBuf startupMsg = Unpooled.buffer();
         ClientMessages.sendStartupMessage(startupMsg, "db");
         channel.writeInbound(startupMsg);
+        channel.releaseInbound();
+    }
+
+    private static void sendCancelRequest(EmbeddedChannel channel, KeyData keyData) {
+        ByteBuf cancelRequest = Unpooled.buffer();
+        ClientMessages.sendCancelRequest(cancelRequest, keyData);
+        channel.writeInbound(cancelRequest);
         channel.releaseInbound();
     }
 
@@ -619,6 +726,18 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         }
     }
 
+    private static KeyData readKeyData(EmbeddedChannel channel) {
+        ByteBuf response = channel.readOutbound();
+        // KeyData: 'K' | int32 request code | int32 process id | int32 secret key
+        assertThat((char)response.readByte(), is('K'));
+        assertThat(response.readInt(), is(12));
+
+        int pid = response.readInt();
+        int secretKey = response.readInt();
+        response.release();
+        return new KeyData(pid, secretKey);
+    };
+
     private static void readReadyForQueryMessage(EmbeddedChannel channel) {
         ByteBuf response = channel.readOutbound();
         byte[] responseBytes = new byte[6];
@@ -628,12 +747,15 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         assertThat(responseBytes, is(new byte[]{'Z', 0, 0, 0, 5, 'I'}));
     }
 
-    private static void readErrorResponse(EmbeddedChannel channel, byte len) {
+    private static ArrayList<String> readErrorResponse(EmbeddedChannel channel) {
         ByteBuf response = channel.readOutbound();
-        byte[] responseBytes = new byte[5];
-        response.readBytes(responseBytes);
+        ArrayList<String> errorFragments = new ArrayList<>();
+        // the byte would actually indicate the field type, but we don't care about that here
+        while (response.readByte() != 0) {
+            String error = PostgresWireProtocol.readCString(response);
+            errorFragments.add(error);
+        }
         response.release();
-        // ErrorResponse: 'E' | int32 len | ...
-        assertThat(responseBytes, is(new byte[]{'E', 0, 0, 0, len}));
+        return errorFragments;
     }
 }

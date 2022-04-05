@@ -19,9 +19,6 @@
 
 package org.elasticsearch.node;
 
-import static java.util.stream.Collectors.toList;
-import static org.elasticsearch.cluster.node.DiscoveryNode.getRolesFromSettings;
-
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.IOException;
@@ -163,6 +160,7 @@ import org.elasticsearch.snapshots.SnapshotShardsService;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.RemoteClusters;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
@@ -209,9 +207,13 @@ import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.netty.NettyBootstrap;
 import io.crate.plugin.CopyPlugin;
+import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslContextProviderService;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.replication.logical.ShardReplicationService;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
 import io.crate.user.UserLookupService;
@@ -459,7 +461,7 @@ public class Node implements Closeable {
                     .flatMap(p -> p.getNamedXContent().stream()),
                 ClusterModule.getNamedXWriteables().stream(),
                 MetadataModule.getNamedXContents().stream())
-                .flatMap(Function.identity()).collect(toList()));
+                .flatMap(Function.identity()).collect(Collectors.toList()));
             final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, xContentRegistry);
             final PersistedClusterStateService persistedClusterStateService
                 = new PersistedClusterStateService(nodeEnvironment, xContentRegistry, bigArrays, clusterService.getClusterSettings(),
@@ -572,7 +574,7 @@ public class Node implements Closeable {
                                                                                                             settingsModule.getIndexScopedSettings(),
                                                                                                             indexMetadataUpgraders);
             new TemplateUpgradeService(client, clusterService, threadPool, indexTemplateMetadataUpgraders);
-            final Transport transport = new Netty4Transport(
+            final Netty4Transport transport = new Netty4Transport(
                 settings,
                 Version.CURRENT,
                 threadPool,
@@ -594,22 +596,55 @@ public class Node implements Closeable {
             final GatewayMetaState gatewayMetaState = new GatewayMetaState();
             final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
 
+            PgClientFactory pgClientFactory = newPgClientFactory(
+                settings,
+                transportService,
+                transport,
+                sslContextProvider,
+                pageCacheRecycler,
+                nettyBootstrap
+            );
+            RemoteClusters remoteClusters = new RemoteClusters(settings, threadPool, pgClientFactory, transportService);
+            resourcesToClose.add(remoteClusters);
+
+            final LogicalReplicationSettings logicalReplicationSettings = new LogicalReplicationSettings(
+                settings,
+                clusterService
+            );
+            final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
+                settings,
+                settingsModule.getIndexScopedSettings(),
+                clusterService,
+                remoteClusters,
+                threadPool,
+                client,
+                clusterModule.getAllocationService(),
+                logicalReplicationSettings
+            );
+            resourcesToClose.add(logicalReplicationService);
+
+
+            LogicalReplicationSettings replicationSettings = new LogicalReplicationSettings(settings, clusterService);
+
             RepositoriesModule repositoriesModule = new RepositoriesModule(
                 this.environment,
                 pluginsService.filterPlugins(RepositoryPlugin.class),
                 transportService,
                 clusterService,
+                logicalReplicationService,
+                remoteClusters,
                 threadPool,
-                xContentRegistry
-            );
+                xContentRegistry,
+                replicationSettings);
             modules.add(repositoriesModule);
 
             CopyModule copyModule = new CopyModule(pluginsService.filterPlugins(CopyPlugin.class));
             modules.add(copyModule);
 
             RepositoriesService repositoryService = repositoriesModule.repositoryService();
+            logicalReplicationService.repositoriesService(repositoryService);
 
-            SnapshotsService snapshotsService = new SnapshotsService(
+            final SnapshotsService snapshotsService = new SnapshotsService(
                 settings,
                 clusterService,
                 clusterModule.getIndexNameExpressionResolver(),
@@ -617,7 +652,7 @@ public class Node implements Closeable {
                 threadPool
             );
 
-            SnapshotShardsService snapshotShardsService = new SnapshotShardsService(
+            final SnapshotShardsService snapshotShardsService = new SnapshotShardsService(
                 settings,
                 clusterService,
                 repositoryService,
@@ -636,6 +671,7 @@ public class Node implements Closeable {
                 clusterService.getClusterSettings(),
                 shardLimitValidator
             );
+            logicalReplicationService.restoreService(restoreService);
 
             final RerouteService rerouteService = new BatchedRerouteService(
                 clusterService,
@@ -680,6 +716,7 @@ public class Node implements Closeable {
                     b.bind(AliasValidator.class).toInstance(aliasValidator);
                     b.bind(MetadataCreateIndexService.class).toInstance(metadataCreateIndexService);
                     b.bind(Transport.class).toInstance(transport);
+                    b.bind(Netty4Transport.class).toInstance(transport);
                     b.bind(TransportService.class).toInstance(transportService);
                     b.bind(NetworkService.class).toInstance(networkService);
                     b.bind(MetadataIndexUpgradeService.class).toInstance(metadataIndexUpgradeService);
@@ -709,6 +746,9 @@ public class Node implements Closeable {
                     b.bind(RerouteService.class).toInstance(rerouteService);
                     b.bind(UserLookup.class).toInstance(userLookup);
                     b.bind(Authentication.class).toInstance(authentication);
+                    b.bind(LogicalReplicationService.class).toInstance(logicalReplicationService);
+                    b.bind(LogicalReplicationSettings.class).toInstance(logicalReplicationSettings);
+                    b.bind(RemoteClusters.class).toInstance(remoteClusters);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                 }
             );
@@ -739,6 +779,23 @@ public class Node implements Closeable {
         }
     }
 
+
+    // Overridable for testing
+    protected PgClientFactory newPgClientFactory(Settings settings,
+                                                 TransportService transportService,
+                                                 Netty4Transport transport,
+                                                 SslContextProvider sslContextProvider,
+                                                 PageCacheRecycler pageCacheRecycler,
+                                                 NettyBootstrap nettyBootstrap) {
+        return new PgClientFactory(
+            settings,
+            transportService,
+            transport,
+            sslContextProvider,
+            pageCacheRecycler,
+            nettyBootstrap
+        );
+    }
 
     private void logVersion(Logger logger, JvmInfo jvmInfo) {
         logger.info(
@@ -1022,6 +1079,12 @@ public class Node implements Closeable {
         toClose.add(nodeService);
         toClose.add(() -> stopWatch.stop().start("http"));
         toClose.add(injector.getInstance(HttpServerTransport.class));
+
+        toClose.add(() -> stopWatch.stop().start("logical_replication_service"));
+        toClose.add(injector.getInstance(LogicalReplicationService.class));
+        toClose.add(() -> stopWatch.stop().start("logical_replication_shard_service"));
+        toClose.add(injector.getInstance(ShardReplicationService.class));
+
         toClose.add(() -> stopWatch.stop().start("snapshot_service"));
         toClose.add(injector.getInstance(SnapshotsService.class));
         toClose.add(injector.getInstance(SnapshotShardsService.class));
@@ -1034,6 +1097,10 @@ public class Node implements Closeable {
         // close filter/fielddata caches after indices
         toClose.add(injector.getInstance(IndicesStore.class));
         toClose.add(injector.getInstance(PeerRecoverySourceService.class));
+
+        toClose.add(() -> stopWatch.stop().start("remote_clusters"));
+        toClose.add(injector.getInstance(RemoteClusters.class));
+
         toClose.add(() -> stopWatch.stop().start("routing"));
         toClose.add(() -> stopWatch.stop().start("cluster"));
         toClose.add(injector.getInstance(ClusterService.class));
@@ -1237,7 +1304,7 @@ public class Node implements Closeable {
         public DiscoveryNode apply(BoundTransportAddress boundTransportAddress) {
             // CRATE_PATCH: use existing node attributes to pass and stream http_address between the nodes
             Map<String, String> attributes = new HashMap<>(NODE_ATTRIBUTES.getAsMap(settings));
-            Set<DiscoveryNodeRole> roles = getRolesFromSettings(settings);
+            Set<DiscoveryNodeRole> roles = DiscoveryNode.getRolesFromSettings(settings);
             if (httpPublishAddress != null) {
                 attributes.put("http_address", httpPublishAddress);
             }

@@ -28,6 +28,7 @@ import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusionsAction;
 import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.bootstrap.BootstrapSettings;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterName;
@@ -108,6 +109,7 @@ import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslSettings;
+import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.statistics.TableStatsService;
 import io.crate.udc.service.UDCService;
 
@@ -301,6 +303,8 @@ public final class ClusterSettings extends AbstractScopedSettings {
         NodeConnectionsService.CLUSTER_NODE_RECONNECT_INTERVAL_SETTING,
         HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_TYPE_SETTING,
         HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_TYPE_SETTING,
+        TransportReplicationAction.REPLICATION_INITIAL_RETRY_BACKOFF_BOUND,
+        TransportReplicationAction.REPLICATION_RETRY_TIMEOUT,
         TransportSettings.HOST,
         TransportSettings.PUBLISH_HOST,
         TransportSettings.PUBLISH_HOST_PROFILE,
@@ -467,6 +471,10 @@ public final class ClusterSettings extends AbstractScopedSettings {
         SslSettings.SSL_KEYSTORE_PASSWORD,
         SslSettings.SSL_KEYSTORE_KEY_PASSWORD,
         SslSettings.SSL_RESOURCE_POLL_INTERVAL,
-        BlobIndicesService.SETTING_BLOBS_PATH
+        BlobIndicesService.SETTING_BLOBS_PATH,
+        LogicalReplicationSettings.REPLICATION_CHANGE_BATCH_SIZE,
+        LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION,
+        LogicalReplicationSettings.REPLICATION_RECOVERY_CHUNK_SIZE,
+        LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS
     );
 }

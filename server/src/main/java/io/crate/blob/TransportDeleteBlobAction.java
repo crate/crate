@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -41,13 +42,15 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
     private final BlobIndicesService blobIndicesService;
 
     @Inject
-    public TransportDeleteBlobAction(TransportService transportService,
+    public TransportDeleteBlobAction(Settings settings,
+                                     TransportService transportService,
                                      ClusterService clusterService,
                                      IndicesService indicesService,
                                      ThreadPool threadPool,
                                      ShardStateAction shardStateAction,
                                      BlobIndicesService blobIndicesService) {
         super(
+            settings,
             DeleteBlobAction.NAME,
             transportService,
             clusterService,

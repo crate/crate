@@ -66,10 +66,12 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.crate.protocols.SSL.getSession;
 import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
+import static io.crate.protocols.postgres.Messages.sendReadyForQuery;
 import static io.crate.protocols.postgres.PostgresWireProtocol.State.PRE_STARTUP;
 import static io.crate.protocols.postgres.PostgresWireProtocol.State.STARTUP_HEADER;
 
@@ -196,7 +198,10 @@ public class PostgresWireProtocol {
     private final Function<SessionContext, AccessControl> getAccessControl;
     private final Authentication authService;
     private final SslReqHandler sslReqHandler;
-
+    private final Consumer<ChannelPipeline> addTransportHandler;
+    private final PgSessions activeSessions;
+    @VisibleForTesting
+    final KeyData keyData;
     private DelayableWriteChannel channel;
     private int msgLength;
     private byte msgType;
@@ -210,28 +215,35 @@ public class PostgresWireProtocol {
         STARTUP_HEADER,
         STARTUP_BODY,
         MSG_HEADER,
-        MSG_BODY
+        MSG_BODY,
+        CANCEL_BODY
     }
 
     private State state = PRE_STARTUP;
 
     PostgresWireProtocol(SQLOperations sqlOperations,
                          Function<SessionContext, AccessControl> getAcessControl,
+                         Consumer<ChannelPipeline> addTransportHandler,
                          Authentication authService,
-                         @Nullable SslContextProvider sslContextProvider) {
+                         @Nullable SslContextProvider sslContextProvider,
+                         PgSessions activeSessions,
+                         KeyData keyData) {
         this.sqlOperations = sqlOperations;
         this.getAccessControl = getAcessControl;
+        this.addTransportHandler = addTransportHandler;
         this.authService = authService;
         this.sslReqHandler = new SslReqHandler(sslContextProvider);
         this.decoder = new MessageDecoder();
         this.handler = new MessageHandler();
+        this.keyData = keyData;
+        this.activeSessions = activeSessions;
     }
 
-    private static void traceLogProtocol(int protocol) {
+    private static void traceLogRequestCode(int requestCode) {
         if (LOGGER.isTraceEnabled()) {
-            int major = protocol >> 16;
-            int minor = protocol & 0x0000FFFF;
-            LOGGER.trace("protocol {}.{}", major, minor);
+            int major = requestCode >> 16;
+            int minor = requestCode & 0x0000FFFF;
+            LOGGER.trace("requestCode {}.{}", major, minor);
         }
     }
 
@@ -286,7 +298,7 @@ public class PostgresWireProtocol {
             boolean clientInterrupted = t instanceof ClientInterrupted
                                         || (t != null && t.getCause() instanceof ClientInterrupted);
             if (!clientInterrupted) {
-                Messages.sendReadyForQuery(channel, transactionState);
+                sendReadyForQuery(channel, transactionState);
             }
         }
     }
@@ -326,7 +338,10 @@ public class PostgresWireProtocol {
                 case STARTUP_HEADER:
                 case MSG_HEADER:
                     throw new IllegalStateException("Decoder should've processed the headers");
-
+                case CANCEL_BODY:
+                    state = PostgresWireProtocol.State.MSG_HEADER;
+                    handleCancelRequestBody(buffer, channel);
+                    return;
                 case STARTUP_BODY:
                     state = PostgresWireProtocol.State.MSG_HEADER;
                     handleStartupBody(buffer, channel);
@@ -391,6 +406,7 @@ public class PostgresWireProtocol {
 
         private void closeSession() {
             if (session != null) {
+                activeSessions.remove(keyData);
                 session.close();
                 session = null;
             }
@@ -451,8 +467,16 @@ public class PostgresWireProtocol {
             User authenticatedUser = authContext.authenticate();
             String database = properties.getProperty("database");
             session = sqlOperations.createSession(database, authenticatedUser);
+            activeSessions.add(this.keyData, session);
             Messages.sendAuthenticationOK(channel)
-                .addListener(f -> sendParamsAndRdyForQuery(channel));
+                .addListener(f -> sendParams(channel))
+                .addListener(f -> Messages.sendKeyData(channel, keyData.pid(), keyData.secretKey()))
+                .addListener(f -> {
+                    sendReadyForQuery(channel, TransactionState.IDLE);
+                    if (properties.containsKey("CrateDBTransport")) {
+                        switchToTransportProtocol(channel);
+                    }
+                });
         } catch (Exception e) {
             Messages.sendAuthenticationError(channel, e.getMessage());
         } finally {
@@ -461,7 +485,16 @@ public class PostgresWireProtocol {
         }
     }
 
-    private void sendParamsAndRdyForQuery(Channel channel) {
+    private void switchToTransportProtocol(Channel channel) {
+        var pipeline = channel.pipeline();
+        pipeline.remove("frame-decoder");
+        pipeline.remove("handler");
+
+        // SSL is already done via PostgreSQL handshake/auth
+        addTransportHandler.accept(pipeline);
+    }
+
+    private void sendParams(Channel channel) {
         Messages.sendParameterStatus(channel, "crate_version", Version.CURRENT.externalNumber());
         Messages.sendParameterStatus(channel, "server_version", PG_SERVER_VERSION);
         Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
@@ -469,7 +502,6 @@ public class PostgresWireProtocol {
         Messages.sendParameterStatus(channel, "datestyle", "ISO");
         Messages.sendParameterStatus(channel, "TimeZone", "UTC");
         Messages.sendParameterStatus(channel, "integer_datetimes", "on");
-        Messages.sendReadyForQuery(channel, TransactionState.IDLE);
     }
 
     /**
@@ -701,7 +733,7 @@ public class PostgresWireProtocol {
             //  5) `sync`     -> We must execute the query from 4, but not 1)
             session.resetDeferredExecutions();
             channel.writePendingMessages();
-            Messages.sendReadyForQuery(channel, TransactionState.FAILED_TRANSACTION);
+            sendReadyForQuery(channel, TransactionState.FAILED_TRANSACTION);
             return;
         }
         try {
@@ -710,7 +742,7 @@ public class PostgresWireProtocol {
         } catch (Throwable t) {
             channel.discardDelayedWrites();
             Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionContext()), t);
-            Messages.sendReadyForQuery(channel, TransactionState.FAILED_TRANSACTION);
+            sendReadyForQuery(channel, TransactionState.FAILED_TRANSACTION);
         }
     }
 
@@ -720,6 +752,7 @@ public class PostgresWireProtocol {
     private void handleClose(ByteBuf buffer, Channel channel) {
         byte b = buffer.readByte();
         String portalOrStatementName = readCString(buffer);
+        activeSessions.remove(this.keyData);
         session.close(b, portalOrStatementName);
         Messages.sendCloseComplete(channel);
     }
@@ -731,7 +764,7 @@ public class PostgresWireProtocol {
 
         if (queryString.isEmpty() || ";".equals(queryString)) {
             Messages.sendEmptyQueryResponse(channel);
-            Messages.sendReadyForQuery(channel, TransactionState.IDLE);
+            sendReadyForQuery(channel, TransactionState.IDLE);
             return;
         }
 
@@ -740,7 +773,7 @@ public class PostgresWireProtocol {
             statements = SqlParser.createStatements(queryString);
         } catch (Exception ex) {
             Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionContext()), ex);
-            Messages.sendReadyForQuery(channel, TransactionState.IDLE);
+            sendReadyForQuery(channel, TransactionState.IDLE);
             return;
         }
         CompletableFuture<?> composedFuture = CompletableFuture.completedFuture(null);
@@ -793,6 +826,16 @@ public class PostgresWireProtocol {
         }
     }
 
+    private void handleCancelRequestBody(ByteBuf buffer, Channel channel) {
+        var keyData = KeyData.of(buffer);
+        activeSessions.cancel(keyData);
+
+        // Cancel request is sent by the client over a new connection.
+        // This closes the new connection, not the one running the query.
+        handler.closeSession();
+        channel.close();
+    }
+
 
     /**
      * FrameDecoder that makes sure that a full message is in the buffer before delegating work to the MessageHandler
@@ -823,17 +866,17 @@ public class PostgresWireProtocol {
                     }
                 /*
                  * StartupMessage:
-                 * | int32 length | int32 protocol | [ string paramKey | string paramValue , ... ]
+                 * | int32 length | int32 requestCode | [ string paramKey | string paramValue , ... ]
                  */
                 case STARTUP_HEADER:
                     if (buffer.readableBytes() < 8) {
                         return null;
                     }
-                    msgLength = buffer.readInt() - 8; // exclude length itself and protocol
+                    msgLength = buffer.readInt() - 8; // exclude length itself and requestCode
                     LOGGER.trace("Header pkgLength: {}", msgLength);
-                    int protocol = buffer.readInt();
-                    traceLogProtocol(protocol);
-                    return nullOrBuffer(buffer, State.STARTUP_BODY);
+                    int requestCode = buffer.readInt();
+                    traceLogRequestCode(requestCode);
+                    return nullOrBuffer(buffer, nextState(requestCode));
                 /*
                  * Regular Data Packet:
                  * | char tag | int32 len | payload
@@ -867,6 +910,18 @@ public class PostgresWireProtocol {
             state = nextState;
             return buffer.readBytes(msgLength);
         }
-    }
 
+        private State nextState(int requestCode) {
+            // more information on postgres requestCode:
+            // https://www.postgresql.org/docs/current/protocol-message-formats.html
+            switch (requestCode) {
+                case 80877102:
+                    return State.CANCEL_BODY;
+                case 196608:
+                    return State.STARTUP_BODY;
+                default:
+                    throw new IllegalStateException("The given request code is invalid or not yet supported: " + requestCode);
+            }
+        }
+    }
 }
