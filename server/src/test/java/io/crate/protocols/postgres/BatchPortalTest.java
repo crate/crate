@@ -104,7 +104,6 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
-            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "insert into t1(x) values(1)", Collections.emptyList());

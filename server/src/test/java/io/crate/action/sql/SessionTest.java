@@ -133,7 +133,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             mock(DependencyCarrier.class),
-            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
@@ -155,7 +154,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
-            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
@@ -179,7 +177,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             mock(DependencyCarrier.class),
-            AccessControl.DISABLED,
             SessionContext.systemSessionContext())
         );
 
@@ -221,7 +218,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             dependencies,
-            AccessControl.DISABLED,
             SessionContext.systemSessionContext())
         );
         session.parse("", "insert into users (name) values (?)", List.of());
@@ -381,7 +377,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
-            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "select name from sys.cluster;", Collections.emptyList());
@@ -417,7 +412,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
-            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "select * from sys.cluster;", Collections.emptyList());
@@ -445,7 +439,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
-            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("test_prep_stmt", "select * from sys.cluster;", Collections.emptyList());
@@ -472,7 +465,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
-            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "SELECT 1", List.of());
@@ -497,7 +489,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
-            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "SELECT 1", List.of());
@@ -547,7 +538,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             jobsLogs,
             false,
             executor,
-            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "INSERT INTO t1 (x) VALUES (1)", List.of());
