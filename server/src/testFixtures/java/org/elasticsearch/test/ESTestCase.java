@@ -243,6 +243,8 @@ public abstract class ESTestCase extends LuceneTestCase {
 
         // Enable Netty leak detection and monitor logger for logged leak errors
         System.setProperty("io.netty.leakDetection.level", "paranoid");
+
+        System.setProperty("cr8.transport.rst_on_close", "true");
     }
 
     protected final Logger logger = LogManager.getLogger(getClass());
