@@ -29,9 +29,6 @@ import java.util.Arrays;
  * A synced flush request to sync flush one or more indices. The synced flush process of an index performs a flush
  * and writes the same sync id to primary and all copies.
  *
- * <p>Best created with {@link org.elasticsearch.client.Requests#syncedFlushRequest(String...)}. </p>
- *
- * @see org.elasticsearch.client.Requests#flushRequest(String...)
  * @see org.elasticsearch.client.IndicesAdminClient#syncedFlush(SyncedFlushRequest)
  * @see SyncedFlushResponse
  */

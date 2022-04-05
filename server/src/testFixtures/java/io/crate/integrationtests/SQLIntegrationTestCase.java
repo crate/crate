@@ -55,7 +55,6 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -638,7 +637,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
      * @throws IOException
      */
     protected String getIndexMapping(String index) throws IOException {
-        ClusterStateRequest request = Requests.clusterStateRequest()
+        ClusterStateRequest request = new ClusterStateRequest()
             .routingTable(false)
             .nodes(false)
             .metadata(true)
@@ -721,7 +720,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
      * @throws IOException
      */
     protected String getIndexSettings(String index) throws IOException {
-        ClusterStateRequest request = Requests.clusterStateRequest()
+        ClusterStateRequest request = new ClusterStateRequest()
             .routingTable(false)
             .nodes(false)
             .metadata(true)
