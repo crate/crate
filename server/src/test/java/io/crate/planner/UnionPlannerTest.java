@@ -25,6 +25,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.Distinct;
 import io.crate.planner.operators.LogicalPlannerTest;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -144,6 +145,20 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
             "      │  └ Collect[doc.users | [1 AS x] | true]\n" +
             "      └ OrderBy[2 ASC]\n" +
             "        └ Collect[doc.users | [2] | true]";
+        assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(expectedPlan)));
+    }
+
+    @Test
+    public void testUnionDistinct() {
+        var logicalPlan = e.logicalPlan(
+            "select id from users " +
+            "union distinct " +
+            "select id from locations ");
+        String expectedPlan =
+            "GroupHashAggregate[id]\n" +
+            "  └ Union[id]\n" +
+            "    ├ Collect[doc.users | [id] | true]\n" +
+            "    └ Collect[doc.locations | [id] | true]";
         assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(expectedPlan)));
     }
 }

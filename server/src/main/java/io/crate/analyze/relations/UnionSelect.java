@@ -43,8 +43,9 @@ public class UnionSelect implements AnalyzedRelation {
     private final AnalyzedRelation right;
     private final List<ScopedSymbol> outputs;
     private final RelationName name;
+    private final boolean isDistinct;
 
-    public UnionSelect(AnalyzedRelation left, AnalyzedRelation right) {
+    public UnionSelect(AnalyzedRelation left, AnalyzedRelation right, boolean isDistinct) {
         assert left.outputs().size() == right.outputs().size()
             : "Both the left side and the right side of UNION must have the same number of outputs";
         this.left = left;
@@ -57,6 +58,7 @@ public class UnionSelect implements AnalyzedRelation {
             outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(field), field.valueType()));
         }
         this.outputs = List.copyOf(outputs);
+        this.isDistinct = isDistinct;
     }
 
     public AnalyzedRelation left() {
@@ -95,6 +97,10 @@ public class UnionSelect implements AnalyzedRelation {
 
     @Override
     public String toString() {
-        return left + " UNION ALL " + right;
+        return left + " UNION " + (isDistinct ? "DISTINCT " : "ALL ") + right;
+    }
+
+    public boolean isDistinct() {
+        return isDistinct;
     }
 }

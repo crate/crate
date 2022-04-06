@@ -26,7 +26,7 @@ Synopsis
       [ FROM relation ]
       [ WHERE condition ]
       [ GROUP BY expression [, ...] [HAVING condition] ]
-      [ UNION ALL query_specification ]
+      [ UNION [ ALL | DISTINCT ] query_specification ]
       [ WINDOW window_name AS ( window_definition ) [, ...] ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
       [ LIMIT num_results ]
@@ -331,21 +331,22 @@ within a resulting row of a ``GROUP BY`` clause.
     :ref:`Fulltext indices : Disable indexing <sql_ddl_index_off>`
 
 
-.. _sql-select-union-all:
+.. _sql-select-union:
 
-UNION ALL
-.........
+UNION
+.....
 
 The ``UNION ALL`` :ref:`operator <gloss-operator>` combines the result sets of
 two or more ``SELECT`` statements. The two ``SELECT`` statements that represent
 the direct :ref:`operands <gloss-operand>` of the ``UNION ALL`` must produce
 the same number of columns, and corresponding columns must be of the same data
-types. The result of ``UNION ALL`` may contain duplicate rows. You can find
-:ref:`here <sql_union>` sample usage of ``UNION ALL``.
+types. The result of ``UNION ALL`` may contain duplicate rows. Use
+``UNION DISTINCT`` or ``UNION`` to remove duplicates. You can find
+:ref:`here <sql-union>` sample usages of the variations of ``UNION``.
 
 ::
 
-    UNION ALL query_specification
+    UNION [ ALL | DISTINCT ] query_specification
 
 :query_specification:
   Can be any ``SELECT`` statement.

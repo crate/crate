@@ -56,6 +56,10 @@ None
 Changes
 =======
 
+- Added support for :ref:`UNION DISTINCT or UNION <sql-union>` statement to be
+  able to retrieve unique rows from multiple relations without using
+  sub-queries with extra ``GROUP BY`` clauses.
+
 - Implemented cancelling requests section of PostgreSQL wire protocol.
 
 - Added the :ref:`Logical Replication <administration-logical-replication>`
