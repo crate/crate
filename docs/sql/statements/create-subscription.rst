@@ -11,7 +11,6 @@ add a new subscription to the current cluster.
 
 .. SEEALSO::
 
-    :ref:`ALTER SUBSCRIPTION <sql-alter-subscription>`
     :ref:`DROP SUBSCRIPTION <sql-drop-subscription>`
 
 .. rubric:: Table of contents

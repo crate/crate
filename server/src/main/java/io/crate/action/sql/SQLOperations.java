@@ -21,13 +21,8 @@
 
 package io.crate.action.sql;
 
-import io.crate.analyze.Analyzer;
-import io.crate.user.User;
-import io.crate.user.UserManager;
-import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.metadata.NodeContext;
-import io.crate.planner.DependencyCarrier;
-import io.crate.planner.Planner;
+import javax.annotation.Nullable;
+
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -36,7 +31,12 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.NodeDisconnectedException;
 
-import javax.annotation.Nullable;
+import io.crate.analyze.Analyzer;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.metadata.NodeContext;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Planner;
+import io.crate.user.User;
 
 
 @Singleton
@@ -53,7 +53,6 @@ public class SQLOperations {
     private final Provider<DependencyCarrier> executorProvider;
     private final JobsLogs jobsLogs;
     private final ClusterService clusterService;
-    private final UserManager userManager;
     private final boolean isReadOnly;
     private volatile boolean disabled;
 
@@ -64,15 +63,13 @@ public class SQLOperations {
                          Provider<DependencyCarrier> executorProvider,
                          JobsLogs jobsLogs,
                          Settings settings,
-                         ClusterService clusterService,
-                         Provider<UserManager> userManagerProvider) {
+                         ClusterService clusterService) {
         this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
         this.jobsLogs = jobsLogs;
         this.clusterService = clusterService;
-        this.userManager = userManagerProvider.get();
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
     }
 
@@ -87,7 +84,6 @@ public class SQLOperations {
             jobsLogs,
             isReadOnly,
             executorProvider.get(),
-            userManager.getAccessControl(sessionContext),
             sessionContext);
     }
 

@@ -56,6 +56,8 @@ None
 Changes
 =======
 
+- Updated the bundled JDK to 18+36
+
 - Implemented cancelling requests section of PostgreSQL wire protocol.
 
 - Added the :ref:`Logical Replication <administration-logical-replication>`
@@ -127,3 +129,6 @@ Fixes
   JNA library warnings on M1 chip based MacOS systems.
 
 - Updated to Admin UI 1.20.2, which fixes duplicate entries in query history.
+
+- Fixed an issue that threw ``SQLParseException`` when a ``ILIKE`` operand
+  contained '{' or '}'.

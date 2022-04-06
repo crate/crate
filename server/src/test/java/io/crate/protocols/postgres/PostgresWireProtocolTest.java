@@ -21,31 +21,31 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.DescribeResult;
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.SessionContext;
-import io.crate.auth.AuthenticationMethod;
-import io.crate.auth.AccessControl;
-import io.crate.auth.AlwaysOKAuthentication;
-import io.crate.execution.jobs.kill.KillJobsRequest;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
-import io.crate.testing.Asserts;
-import io.crate.user.User;
-import io.crate.user.UserManager;
-import io.crate.exceptions.JobKilledException;
-import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.planner.DependencyCarrier;
-import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import io.crate.types.DataTypes;
-import io.crate.user.StubUserManager;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.embedded.EmbeddedChannel;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isOneOf;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyChar;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.inject.Provider;
@@ -53,40 +53,56 @@ import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import javax.annotation.Nullable;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isOneOf;
-import static org.mockito.ArgumentMatchers.anyChar;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import io.crate.action.sql.DescribeResult;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
+import io.crate.action.sql.SessionContext;
+import io.crate.auth.AccessControl;
+import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.auth.AuthenticationMethod;
+import io.crate.exceptions.JobKilledException;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.kill.KillJobsRequest;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.planner.DependencyCarrier;
+import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
+import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
+import io.crate.user.StubUserManager;
+import io.crate.user.User;
+import io.crate.user.UserManager;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
-
-    private static final Provider<UserManager> USER_MANAGER_PROVIDER = StubUserManager::new;
 
     private SQLOperations sqlOperations;
     private List<Session> sessions = new ArrayList<>();
     private EmbeddedChannel channel;
     private KeyData keyData;
+
+    @BeforeClass
+    public static void forceEnglishLocale() {
+        // BouncyCastle is parsing date objects with the system locale while creating self-signed SSL certs
+        // This fails for certain locales, e.g. 'ks'.
+        // Until this is fixed, we force the english locale.
+        // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
+        Locale.setDefault(Locale.ENGLISH);
+    }
 
     @Before
     public void prepare() throws Exception {
@@ -100,8 +116,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             () -> mock(DependencyCarrier.class),
             new JobsLogs(() -> true),
             Settings.EMPTY,
-            clusterService,
-            USER_MANAGER_PROVIDER
+            clusterService
         ) {
             @Override
             public Session createSession(@Nullable String defaultSchema, @Nullable User user) {
@@ -419,7 +434,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 sessionContext -> AccessControl.DISABLED,
                 chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> null),
-                null,
+                () -> null,
                 new PgSessions(mock(TransportKillJobsNodeAction.class)),
                 keyData);
 
@@ -442,6 +457,46 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         for (Map.Entry<String, ChannelHandler> entry : channel.pipeline()) {
             assertThat(entry.getValue(), isOneOf(ctx.decoder, ctx.handler));
         }
+    }
+
+    @Test
+    public void test_ssl_accepted() {
+        PostgresWireProtocol ctx = new PostgresWireProtocol(
+            mock(SQLOperations.class),
+            sessionContext -> AccessControl.DISABLED,
+            chPipeline -> {},
+            new AlwaysOKAuthentication(userName -> null),
+            () -> {
+                try {
+                    var cert = new SelfSignedCertificate();
+                    return SslContextBuilder
+                        .forServer(cert.certificate(), cert.privateKey())
+                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                        .startTls(false)
+                        .build();
+                } catch (Exception e) {
+                    return null;
+                }
+            },
+            new PgSessions(mock(TransportKillJobsNodeAction.class)),
+            keyData
+        );
+
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        ByteBuf buffer = Unpooled.buffer();
+        ClientMessages.writeSSLReqMessage(buffer);
+        channel.writeInbound(buffer);
+
+        ByteBuf responseBuffer = channel.readOutbound();
+        try {
+            byte response = responseBuffer.readByte();
+            assertEquals(response, 'S');
+        } finally {
+            responseBuffer.release();
+        }
+
+        assertThat(channel.pipeline().first(), instanceOf(SslHandler.class));
     }
 
     @Test

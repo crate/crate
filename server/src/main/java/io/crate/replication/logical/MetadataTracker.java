@@ -27,6 +27,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -38,7 +39,6 @@ import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.bulk.BackoffPolicy;
@@ -190,10 +190,11 @@ public final class MetadataTracker implements Closeable {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Poll metadata for subscription {}", subscriptionName);
             }
-            Consumer<Exception> onError = e -> {
+            Consumer<Throwable> onError = e -> {
+                e = SQLExceptions.unwrap(e);
                 if (shouldRetry(e) == false) {
                     var msg = "Tracking of metadata failed for subscription '" + subscriptionName + "'" +
-                              " with unrecoverable error, stop tracking";
+                        " with unrecoverable error, stop tracking";
                     LOGGER.error(msg, e);
                     replicationService.updateSubscriptionState(
                         subscriptionName,
@@ -223,7 +224,50 @@ public final class MetadataTracker implements Closeable {
                 continue;
             }
 
-            ActionListener<AcknowledgedResponse> listener = ActionListener.wrap(r -> countDown.onSuccess(), onError);
+            var clusterStateListener = new FutureActionListener<>(AcknowledgedResponse::isAcknowledged);
+            clusterStateListener
+                .thenCompose(
+                    acked -> {
+                        if (acked) {
+                            // Only check for new relations and partitions if deleted relations and partitions are processed
+                            var future = getPublicationsState(subscription, client)
+                                .thenCompose(
+                                    response -> subscribeToNewRelations(
+                                        subscriptionName,
+                                        subscription,
+                                        clusterService.state(),
+                                        response,
+                                        replicationService
+                                    )
+                                );
+                            if (LOGGER.isTraceEnabled()) {
+                                return future.exceptionallyCompose(
+                                    err -> {
+                                        LOGGER.trace(
+                                            "Error while trying to retrieve the publications state for" +
+                                                " subscription=" + subscriptionName,
+                                            err
+                                        );
+                                        return CompletableFuture.failedFuture(err);
+                                    }
+                                );
+                            }
+                            return future;
+                        } else {
+                            return CompletableFuture.completedFuture(acked);
+                        }
+                    }
+                )
+                .whenComplete(
+                    (r, e) -> {
+                        // Finally, release and re-schedule
+                        if (e == null) {
+                            countDown.onSuccess();
+                        } else {
+                            onError.accept(e);
+                        }
+                    }
+                );
             getRemoteClusterState(client).whenComplete(
                 (remoteClusterState, err) -> {
                     if (err == null) {
@@ -233,12 +277,9 @@ public final class MetadataTracker implements Closeable {
                             return;
                         }
 
-                        // Block new relation processing until dropped relations are processed
-                        CompletableFuture<Boolean> droppedRelationsReplicationDone = new CompletableFuture<>();
-
                         clusterService.submitStateUpdateTask("track-metadata", new AckedClusterStateUpdateTask<>(
                             new AckMetadataUpdateRequest(),
-                            listener
+                            clusterStateListener
                         ) {
 
                             @Override
@@ -269,36 +310,11 @@ public final class MetadataTracker implements Closeable {
                             }
 
                             @Override
-                            public void onAllNodesAcked(@Nullable Exception e) {
-                                super.onAllNodesAcked(e);
-                                droppedRelationsReplicationDone.complete(e == null);
-                            }
-
-                            @Override
                             public void onFailure(String source, Exception e) {
-                                droppedRelationsReplicationDone.complete(false);
                                 super.onFailure(source, e);
                             }
                         });
 
-                        var stateFuture = getPublicationsState(subscription, client);
-                        stateFuture.whenComplete(((response, e) -> {
-                            if (e == null) {
-                                subscribeToNewRelations(
-                                    subscriptionName,
-                                    subscription,
-                                    clusterService.state(),
-                                    response,
-                                    replicationService,
-                                    droppedRelationsReplicationDone
-                                );
-                            } else {
-                                LOGGER.trace(
-                                    "Error while trying to retrieve the publications state for subscription=" + subscriptionName,
-                                    err
-                                );
-                            }
-                        }));
                     } else {
                         onError.accept(Exceptions.toRuntimeException(err));
                     }
@@ -307,10 +323,10 @@ public final class MetadataTracker implements Closeable {
         }
     }
 
-    private static boolean shouldRetry(Exception e) {
+    private static boolean shouldRetry(Throwable e) {
         return e instanceof ConnectTransportException ||
-               e instanceof ElasticsearchTimeoutException ||
-               e instanceof NoSuchRemoteClusterException;
+            e instanceof ElasticsearchTimeoutException ||
+            e instanceof NoSuchRemoteClusterException;
     }
 
     private static class AckMetadataUpdateRequest extends AcknowledgedRequest<AckMetadataUpdateRequest> {
@@ -376,13 +392,12 @@ public final class MetadataTracker implements Closeable {
      * and initiate a restore of these.
      * See also {@link LogicalReplicationService#restore}.
      */
-    private static void subscribeToNewRelations(String subscriptionName,
-                                                Subscription subscription,
-                                                ClusterState subscriberClusterState,
-                                                PublicationsStateAction.Response stateResponse,
-                                                LogicalReplicationService replicationService,
-                                                CompletableFuture<Boolean> localStateAckedOnAllNodes) {
-        subscribeToNewRelations(
+    private static CompletableFuture<Boolean> subscribeToNewRelations(String subscriptionName,
+                                                                      Subscription subscription,
+                                                                      ClusterState subscriberClusterState,
+                                                                      PublicationsStateAction.Response stateResponse,
+                                                                      LogicalReplicationService replicationService) {
+        return subscribeToNewRelations(
             subscription,
             subscriberClusterState,
             stateResponse,
@@ -393,17 +408,13 @@ public final class MetadataTracker implements Closeable {
                 null
             ),
             (relationNames, toRestoreIndices, toRestoreTemplates) ->
-                localStateAckedOnAllNodes.whenComplete((acked, e) -> {
-                    if (acked && e == null) {
-                        replicationService.restore(
-                            subscriptionName,
-                            subscription.settings(),
-                            relationNames,
-                            toRestoreIndices,
-                            toRestoreTemplates
-                        );
-                    }
-                })
+                replicationService.restore(
+                    subscriptionName,
+                    subscription.settings(),
+                    relationNames,
+                    toRestoreIndices,
+                    toRestoreTemplates
+                )
         );
     }
 
@@ -448,9 +459,9 @@ public final class MetadataTracker implements Closeable {
 
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("Restoring newly subscribed relations={}, indices={}, templates={}",
-                         relationNamesForStateUpdate,
-                         toRestoreIndices,
-                         toRestoreTemplates
+                relationNamesForStateUpdate,
+                toRestoreIndices,
+                toRestoreTemplates
             );
         }
 
@@ -555,7 +566,7 @@ public final class MetadataTracker implements Closeable {
         var newSettingsBuilder = Settings.builder().put(subscriberMetadataSettings);
         var updatedSettings = publisherMetadataSettings.filter(
             key -> isReplicatableSetting(key, indexScopedSettings) &&
-                   !Objects.equals(subscriberMetadataSettings.get(key), publisherMetadataSettings.get(key)));
+                !Objects.equals(subscriberMetadataSettings.get(key), publisherMetadataSettings.get(key)));
         if (updatedSettings.isEmpty()) {
             return null;
         }
@@ -565,11 +576,11 @@ public final class MetadataTracker implements Closeable {
     private static boolean isReplicatableSetting(String key, IndexScopedSettings indexScopedSettings) {
         var setting = indexScopedSettings.get(key);
         return setting != null &&
-               !setting.isInternalIndex() &&
-               !setting.isPrivateIndex() &&
-               indexScopedSettings.isDynamicSetting(key) &&
-               !indexScopedSettings.isPrivateSetting(key) &&
-               !NON_REPLICATED_SETTINGS.contains(setting);
+            !setting.isInternalIndex() &&
+            !setting.isPrivateIndex() &&
+            indexScopedSettings.isDynamicSetting(key) &&
+            !indexScopedSettings.isPrivateSetting(key) &&
+            !NON_REPLICATED_SETTINGS.contains(setting);
     }
 
     private CompletableFuture<ClusterState> getRemoteClusterState(Client client) {
