@@ -28,6 +28,7 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.snapshots.mockstore.MockRepository;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,6 +60,7 @@ public class MinThreadsSnapshotRestoreIT extends AbstractSnapshotIntegTestCase {
         return plugins;
     }
 
+    @Test
     public void testConcurrentSnapshotDeletionsNotAllowed() throws Exception {
         logger.info("--> creating repository");
 
@@ -87,8 +89,8 @@ public class MinThreadsSnapshotRestoreIT extends AbstractSnapshotIntegTestCase {
         String blockedNode = internalCluster().getMasterName();
         ((MockRepository)internalCluster().getInstance(RepositoriesService.class, blockedNode).repository("repo")).blockOnDataFiles(true);
         logger.info("--> start deletion of second snapshot");
-        ActionFuture<AcknowledgedResponse> future =
-            client().admin().cluster().prepareDeleteSnapshot("repo", "snapshot2").execute();
+
+        var future = sqlExecutor.execute("drop snapshot repo.snapshot2", new Object[0]);
         logger.info("--> waiting for block to kick in on node [{}]", blockedNode);
         waitForBlock(blockedNode, "repo", TimeValue.timeValueSeconds(10));
 
@@ -104,7 +106,7 @@ public class MinThreadsSnapshotRestoreIT extends AbstractSnapshotIntegTestCase {
         unblockNode("repo", blockedNode);
 
         logger.info("--> wait until second snapshot deletion is finished");
-        assertAcked(future.actionGet());
+        future.get();
 
         logger.info("--> try delete first snapshot again, which should now work");
         execute("drop snapshot repo.snapshot1");
