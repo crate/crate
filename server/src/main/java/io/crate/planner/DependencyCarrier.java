@@ -51,6 +51,7 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.action.TransportAlterPublicationAction;
 import io.crate.replication.logical.action.TransportCreatePublicationAction;
 import io.crate.replication.logical.action.TransportCreateSubscriptionAction;
 import io.crate.replication.logical.action.TransportDropPublicationAction;
@@ -87,6 +88,7 @@ public class DependencyCarrier {
     private final NodeLimits nodeLimits;
     private final TransportCreatePublicationAction createPublicationAction;
     private final TransportDropPublicationAction dropPublicationAction;
+    private final TransportAlterPublicationAction alterPublicationAction;
     private final TransportCreateSubscriptionAction createSubscriptionAction;
     private final TransportDropSubscriptionAction dropSubscriptionAction;
     private final LogicalReplicationService logicalReplicationService;
@@ -117,6 +119,7 @@ public class DependencyCarrier {
                              RepositoryParamValidator repositoryParamValidator,
                              TransportCreatePublicationAction createPublicationAction,
                              TransportDropPublicationAction dropPublicationAction,
+                             TransportAlterPublicationAction alterPublicationAction,
                              TransportCreateSubscriptionAction createSubscriptionAction,
                              TransportDropSubscriptionAction dropSubscriptionAction,
                              LogicalReplicationService logicalReplicationService) {
@@ -145,6 +148,7 @@ public class DependencyCarrier {
         this.repositoryParamValidator = repositoryParamValidator;
         this.createPublicationAction = createPublicationAction;
         this.dropPublicationAction = dropPublicationAction;
+        this.alterPublicationAction = alterPublicationAction;
         this.createSubscriptionAction = createSubscriptionAction;
         this.dropSubscriptionAction = dropSubscriptionAction;
         this.logicalReplicationService = logicalReplicationService;
@@ -252,6 +256,10 @@ public class DependencyCarrier {
 
     public TransportDropPublicationAction dropPublicationAction() {
         return dropPublicationAction;
+    }
+
+    public TransportAlterPublicationAction alterPublicationAction() {
+        return alterPublicationAction;
     }
 
     public TransportCreateSubscriptionAction createSubscriptionAction() {
