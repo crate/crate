@@ -321,10 +321,14 @@ public class LogicalPlanner {
         public LogicalPlan visitUnionSelect(UnionSelect union, List<Symbol> outputs) {
             var lhsRel = union.left();
             var rhsRel = union.right();
-            return new Union(
-                lhsRel.accept(this, lhsRel.outputs()),
-                rhsRel.accept(this, rhsRel.outputs()),
-                union.outputs()
+            return Distinct.create(
+                new Union(
+                    lhsRel.accept(this, lhsRel.outputs()),
+                    rhsRel.accept(this, rhsRel.outputs()),
+                    union.outputs()),
+                union.isDistinct(),
+                union.outputs(),
+                tableStats
             );
         }
 

@@ -315,4 +315,16 @@ public class UnionIntegrationTest extends SQLIntegrationTestCase {
             is("{b=3, c=4}\n{a=1, c=2}\n")
         ));
     }
+
+    @Test
+    public void testSimpleUnionDistinct() {
+        execute("create table x (a int)");
+        execute("create table y (a int)");
+        execute("insert into x values (1), (1), (2), (3)");
+        execute("insert into y values (1), (3), (3), (5)");
+        execute("refresh table x, y");
+
+        execute("select a from x union distinct select a from y order by a");
+        assertThat(printedTable(response.rows()), is("1\n2\n3\n5\n"));
+    }
 }
