@@ -21,16 +21,14 @@
 
 package io.crate.replication.logical;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.support.RetryListener;
+import io.crate.execution.support.RetryRunnable;
+import io.crate.replication.logical.action.ReplayChangesAction;
+import io.crate.replication.logical.action.ShardChangesAction;
+import io.crate.replication.logical.seqno.RetentionLeaseHelper;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
@@ -38,6 +36,7 @@ import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -51,13 +50,16 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.NodeDisconnectedException;
 import org.elasticsearch.transport.NodeNotConnectedException;
 
-import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.RetryListener;
-import io.crate.execution.support.RetryRunnable;
-import io.crate.replication.logical.action.ReplayChangesAction;
-import io.crate.replication.logical.action.ShardChangesAction;
-import io.crate.replication.logical.seqno.RetentionLeaseHelper;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Replicates batches of {@link org.elasticsearch.index.translog.Translog.Operation}'s to the subscribers target shards.
@@ -364,7 +366,7 @@ public class ShardReplicationChangesTracker implements Closeable {
                 (req, l) -> localClient.execute(ReplayChangesAction.INSTANCE, req, l);
             operation.accept(
                 replayRequest,
-                new RetryListener<>(
+                new ReplayChangesRetryListener<>(
                     threadPool.scheduler(),
                     l -> operation.accept(replayRequest, l),
                     listener,
@@ -389,5 +391,19 @@ public class ShardReplicationChangesTracker implements Closeable {
                     ActionListener.wrap(() -> {})
                 );
             });
+    }
+
+    private static class ReplayChangesRetryListener<TResp> extends RetryListener<TResp> {
+
+        public ReplayChangesRetryListener(ScheduledExecutorService scheduler,
+                                          Consumer<ActionListener<TResp>> command, ActionListener<TResp> delegate,
+                                          Iterable<TimeValue> backOffPolicy) {
+            super(scheduler, command, delegate, backOffPolicy);
+        }
+
+        @Override
+        protected boolean shouldRetry(Throwable throwable) {
+            return super.shouldRetry(throwable) || throwable instanceof ClusterBlockException;
+        }
     }
 }
