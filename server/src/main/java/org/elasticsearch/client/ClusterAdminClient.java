@@ -26,7 +26,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
@@ -85,11 +84,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Registers a snapshot repository.
      */
     PutRepositoryRequestBuilder preparePutRepository(String name);
-
-    /**
-     * Unregisters a repository.
-     */
-    DeleteRepositoryRequestBuilder prepareDeleteRepository(String name);
 
     /**
      * Creates a new snapshot.
