@@ -30,7 +30,6 @@ import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequ
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequestBuilder;
-import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequestBuilder;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
@@ -94,11 +93,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Get snapshot.
      */
     GetSnapshotsRequestBuilder prepareGetSnapshots(String repository);
-
-    /**
-     * Delete snapshot.
-     */
-    DeleteSnapshotRequestBuilder prepareDeleteSnapshot(String repository, String snapshot);
 
     /**
      * Returns a list of the pending cluster tasks, that are scheduled to be executed. This includes operations
