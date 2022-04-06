@@ -66,6 +66,7 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -269,8 +270,13 @@ public class RestoreService implements ClusterStateApplier {
                                                 String index = indexEntry.getValue();
                                                 boolean partial = checkPartial(index);
                                                 SnapshotRecoverySource recoverySource = new SnapshotRecoverySource(restoreUUID, snapshot, snapshotInfo.version(), index);
-                                                String renamedIndexName = indexEntry.getKey();
                                                 IndexMetadata snapshotIndexMetadata = metadata.index(index);
+                                                if (snapshotIndexMetadata == null) {
+                                                    throw new IndexNotFoundException(
+                                                        "Failed to find index at the metadata of the current snapshot'" + snapshot + "'",
+                                                        index
+                                                    );
+                                                }
                                                 snapshotIndexMetadata = updateIndexSettings(snapshotIndexMetadata,
                                                                                             request.indexSettings(), request.ignoreIndexSettings());
                                                 try {
@@ -281,6 +287,7 @@ public class RestoreService implements ClusterStateApplier {
                                                                                                  "] because it cannot be upgraded", ex);
                                                 }
                                                 // Check that the index is closed or doesn't exist
+                                                String renamedIndexName = indexEntry.getKey();
                                                 IndexMetadata currentIndexMetadata = currentState.metadata().index(renamedIndexName);
                                                 IntSet ignoreShards = new IntHashSet();
                                                 final Index renamedIndex;
