@@ -28,6 +28,7 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.testing.MoreMatchers;
+import io.crate.testing.UseRandomizedSchema;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -45,7 +46,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 
-
+@UseRandomizedSchema(random = false)
 public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
@@ -482,5 +483,21 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         response = executeOnSubscriber("INSERT INTO doc.t2 (id, p) VALUES(3, 3)");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void test_alter_publication_add_table() {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("CREATE TABLE t2 (id INT) WITH(" + defaultTableSettings() + ")");
+        createPublication("pub1", false, List.of("t1"));
+        executeOnPublisher("ALTER PUBLICATION pub1 ADD TABLE t2");
+        var response = executeOnPublisher(
+            "SELECT oid, p.pubname, pubowner, puballtables, schemaname, tablename, pubinsert, pubupdate, pubdelete" +
+                " FROM pg_publication p" +
+                " JOIN pg_publication_tables t ON p.pubname = t.pubname" +
+                " ORDER BY p.pubname, schemaname, tablename");
+        assertThat(printedTable(response.rows()),
+            is("14768324| pub1| -450373579| false| doc| t1| true| true| true\n" +
+                "14768324| pub1| -450373579| false| doc| t2| true| true| true\n"));
     }
 }

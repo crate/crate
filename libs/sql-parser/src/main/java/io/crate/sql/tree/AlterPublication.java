@@ -29,7 +29,9 @@ public class AlterPublication extends Statement {
     public enum Operation {
         ADD,
         SET,
-        DROP
+        DROP;
+
+        public static final Operation[] VALUES = Operation.values();
     }
 
     private final String name;
