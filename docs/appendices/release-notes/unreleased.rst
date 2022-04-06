@@ -98,6 +98,9 @@ Changes
 - Added the option to run ``COPY FROM`` and ``COPY TO`` operations in the
   background without waiting for them to complete.
 
+- Updated to Admin UI 1.21.0, which improves console highlighting by adding
+  various keywords and data types.
+
 Fixes
 =====
 
