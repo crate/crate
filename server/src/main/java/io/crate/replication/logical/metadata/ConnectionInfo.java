@@ -30,6 +30,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.RemoteCluster;
+import org.elasticsearch.transport.RemoteCluster.ConnectionStrategy;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -162,7 +163,7 @@ public class ConnectionInfo implements Writeable {
     }
 
     private static String defaultPort(Settings settings) {
-        if (RemoteCluster.REMOTE_CONNECTION_MODE.get(settings) == (RemoteCluster.ConnectionStrategy.PG_TUNNEL)) {
+        if (RemoteCluster.REMOTE_CONNECTION_MODE.get(settings) == RemoteCluster.ConnectionStrategy.PG_TUNNEL) {
             return DEFAULT_PG_PORT;
         }
         return DEFAULT_PORT;
@@ -170,15 +171,18 @@ public class ConnectionInfo implements Writeable {
 
     private final List<String> hosts;
     private final Settings settings;
+    private final ConnectionStrategy mode;
 
     public ConnectionInfo(List<String> hosts, Settings settings) {
         this.hosts = hosts;
         this.settings = settings;
+        this.mode = RemoteCluster.REMOTE_CONNECTION_MODE.get(settings);
     }
 
     public ConnectionInfo(StreamInput in) throws IOException {
         hosts = Arrays.stream(in.readStringArray()).toList();
         settings = Settings.readSettingsFromStream(in);
+        mode = RemoteCluster.REMOTE_CONNECTION_MODE.get(settings);
     }
 
     public List<String> hosts() {
@@ -190,7 +194,6 @@ public class ConnectionInfo implements Writeable {
      * i.e. without user name and password.
      */
     public String safeConnectionString() {
-        var mode = RemoteCluster.REMOTE_CONNECTION_MODE.get(settings);
         var str = String.format(Locale.ENGLISH,
             "crate://%s?user=*&password=*&mode=%s",
             String.join(",", hosts),
@@ -221,6 +224,10 @@ public class ConnectionInfo implements Writeable {
 
     public SSLMode sslMode() {
         return SSLMODE.get(settings);
+    }
+
+    public ConnectionStrategy mode() {
+        return mode;
     }
 
     @Override
