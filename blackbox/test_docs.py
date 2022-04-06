@@ -97,6 +97,7 @@ crate = ConnectingCrateLayer(
     env={
         'JAVA_HOME': os.environ.get('JAVA_HOME', ''),
         'CRATE_JAVA_OPTS': '-Dio.netty.leakDetection.level=paranoid',
+        'CRATE_HEAP_SIZE': '640M'
     },
     settings=CRATE_SETTINGS,
     version=(4, 0, 0)
