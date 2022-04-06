@@ -65,15 +65,6 @@ public class SysRepositoriesServiceTest extends SQLIntegrationTestCase {
         createRepository("test-repo");
     }
 
-    @After
-    public void cleanUp() throws Exception {
-        Iterator<String> it = repositories.iterator();
-        while (it.hasNext()) {
-            deleteRepository(it.next());
-            it.remove();
-        }
-    }
-
     private void createRepository(String name) {
         AcknowledgedResponse putRepositoryResponse = client().admin().cluster().preparePutRepository(name)
             .setType("fs")
@@ -84,11 +75,6 @@ public class SysRepositoriesServiceTest extends SQLIntegrationTestCase {
             ).get();
         assertThat(putRepositoryResponse.isAcknowledged(), equalTo(true));
         repositories.add(name);
-    }
-
-    private void deleteRepository(String name) {
-        AcknowledgedResponse deleteRepositoryResponse = client().admin().cluster().prepareDeleteRepository(name).get();
-        assertThat(deleteRepositoryResponse.isAcknowledged(), equalTo(true));
     }
 
     @Test

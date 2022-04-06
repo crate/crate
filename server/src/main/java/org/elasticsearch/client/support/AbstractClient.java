@@ -29,8 +29,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsAction;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
@@ -232,11 +230,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public DeleteSnapshotRequestBuilder prepareDeleteSnapshot(String repository, String name) {
             return new DeleteSnapshotRequestBuilder(this, DeleteSnapshotAction.INSTANCE, repository, name);
-        }
-
-        @Override
-        public DeleteRepositoryRequestBuilder prepareDeleteRepository(String name) {
-            return new DeleteRepositoryRequestBuilder(this, DeleteRepositoryAction.INSTANCE, name);
         }
 
         @Override
