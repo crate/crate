@@ -58,11 +58,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.support.AdapterActionFuture;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
@@ -556,7 +556,7 @@ public class SQLTransportExecutor {
     private ClusterHealthStatus ensureState(ClusterHealthStatus state) {
         Client client = clientProvider.client();
         ClusterHealthResponse actionGet = client.admin().cluster().health(
-            Requests.clusterHealthRequest()
+            new ClusterHealthRequest()
                 .waitForStatus(state)
                 .waitForEvents(Priority.LANGUID).waitForNoRelocatingShards(false)
         ).actionGet();

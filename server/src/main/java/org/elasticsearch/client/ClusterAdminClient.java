@@ -117,7 +117,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      *
      * @param request  The nodes info request
      * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#nodesStatsRequest(String...)
      */
     void nodesStats(NodesStatsRequest request, ActionListener<NodesStatsResponse> listener);
 
