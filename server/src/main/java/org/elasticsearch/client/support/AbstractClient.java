@@ -265,11 +265,6 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public void create(final CreateIndexRequest request, final ActionListener<CreateIndexResponse> listener) {
-            execute(CreateIndexAction.INSTANCE, request, listener);
-        }
-
-        @Override
         public CreateIndexRequestBuilder prepareCreate(String index) {
             return new CreateIndexRequestBuilder(this, CreateIndexAction.INSTANCE, index);
         }
@@ -277,11 +272,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public ActionFuture<AcknowledgedResponse> delete(final DeleteIndexRequest request) {
             return legacyExecute(DeleteIndexAction.INSTANCE, request);
-        }
-
-        @Override
-        public void delete(final DeleteIndexRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(DeleteIndexAction.INSTANCE, request, listener);
         }
 
         @Override
@@ -295,11 +285,6 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public void putMapping(final PutMappingRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(PutMappingAction.INSTANCE, request, listener);
-        }
-
-        @Override
         public PutMappingRequestBuilder preparePutMapping(String... indices) {
             return new PutMappingRequestBuilder(this, PutMappingAction.INSTANCE).setIndices(indices);
         }
@@ -307,11 +292,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public ActionFuture<UpgradeResponse> upgrade(final UpgradeRequest request) {
             return legacyExecute(UpgradeAction.INSTANCE, request);
-        }
-
-        @Override
-        public void upgrade(final UpgradeRequest request, final ActionListener<UpgradeResponse> listener) {
-            execute(UpgradeAction.INSTANCE, request, listener);
         }
 
         @Override
@@ -339,19 +319,10 @@ public abstract class AbstractClient implements Client {
             return legacyExecute(RecoveryAction.INSTANCE, request);
         }
 
-        @Override
-        public void recoveries(final RecoveryRequest request, final ActionListener<RecoveryResponse> listener) {
-            execute(RecoveryAction.INSTANCE, request, listener);
-        }
 
         @Override
         public ActionFuture<AcknowledgedResponse> updateSettings(final UpdateSettingsRequest request) {
             return legacyExecute(UpdateSettingsAction.INSTANCE, request);
-        }
-
-        @Override
-        public void updateSettings(final UpdateSettingsRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(UpdateSettingsAction.INSTANCE, request, listener);
         }
 
         @Override
@@ -377,11 +348,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public ActionFuture<GetIndexTemplatesResponse> getTemplates(final GetIndexTemplatesRequest request) {
             return legacyExecute(GetIndexTemplatesAction.INSTANCE, request);
-        }
-
-        @Override
-        public void getTemplates(final GetIndexTemplatesRequest request, final ActionListener<GetIndexTemplatesResponse> listener) {
-            execute(GetIndexTemplatesAction.INSTANCE, request, listener);
         }
 
         @Override
