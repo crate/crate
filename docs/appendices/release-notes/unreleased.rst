@@ -56,8 +56,6 @@ None
 Changes
 =======
 
-- Updated the bundled JDK to 18+36
-
 - Implemented cancelling requests section of PostgreSQL wire protocol.
 
 - Added the :ref:`Logical Replication <administration-logical-replication>`
@@ -69,10 +67,6 @@ Changes
 
 - Optimized the casting from string to arrays by avoiding an unnecessary string
   to byte conversion.
-
-- Fixed an issue with the handling of intervals in generated columns. The table
-  creation failed when an interval is included in a function call as part of a
-  generated column.
 
 - Write blocks added due to low disk space are now automatically removed if a
   node again drops below the high watermark.
@@ -87,10 +81,6 @@ Changes
 
 - Improved the evaluation performance of implicit casts by utilize the compile
   step of the function to determine the return type.
-
-- Fixed an issue with the handling of quoted identifiers in column names where
-  certain characters break the processing. This makes sure any special characters
-  can be used as column name.
 
 - Added a ``flush_stats`` column to the :ref:`sys.shards <sys-shards>` table.
 
@@ -114,6 +104,14 @@ Fixes
 .. If you add an entry here, the fix needs to be backported to the latest
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
+
+- Fixed an issue with the handling of quoted identifiers in column names where
+  certain characters break the processing. This makes sure any special characters
+  can be used as column name.
+
+- Fixed an issue with the handling of intervals in generated columns. The table
+  creation failed when an interval is included in a function call as part of a
+  generated column.
 
 - Fixed a race condition that could cause a ``blocked by: [FORBIDDEN/4/Table or
   partition preparing to close`` error when inserting into a partitioned table

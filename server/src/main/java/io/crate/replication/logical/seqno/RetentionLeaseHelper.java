@@ -21,6 +21,7 @@
 
 package io.crate.replication.logical.seqno;
 
+import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
@@ -64,9 +65,15 @@ public class RetentionLeaseHelper {
             ActionListener.wrap(
                 listener::onResponse,
                 e -> {
-                    if (e instanceof RetentionLeaseAlreadyExistsException) {
-                        LOGGER.error(e.getMessage());
-                        LOGGER.info("Renew retention lease as it already exists {} with {}", retentionLeaseId, seqNo);
+                    var t = SQLExceptions.unwrap(e);
+                    if (t instanceof RetentionLeaseAlreadyExistsException) {
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                "Renew retention lease as it already exists {} with {}",
+                                retentionLeaseId,
+                                seqNo
+                            );
+                        }
                         // Only one retention lease should exists for the follower shard
                         // Ideally, this should have got cleaned-up
                         renewRetentionLease(shardId, seqNo, subscriberClusterName, client, listener);
