@@ -500,4 +500,28 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             is("14768324| pub1| -450373579| false| doc| t1| true| true| true\n" +
                 "14768324| pub1| -450373579| false| doc| t2| true| true| true\n"));
     }
+
+    /**
+     * Ensures a dropped subscription can be immediately re-created.
+     * Specially, that all existing retention leases at the publisher shards are dropped when the subscription is dropped.
+     */
+    @Test
+    public void test_recreate_dropped_subscription() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2), (3), (4)");
+
+        createPublication("pub1", false, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        executeOnSubscriber("DROP SUBSCRIPTION sub1 ");
+        executeOnSubscriber("DROP TABLE t1");
+
+        createSubscription("sub1", "pub1");
+        assertBusy(
+            () -> {
+                var res = executeOnSubscriber("SELECT id FROM t1 ORDER BY id");
+                assertThat(res.rowCount(), is(4L));
+            }
+        );
+    }
 }
