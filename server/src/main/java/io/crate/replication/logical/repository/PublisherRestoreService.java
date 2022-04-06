@@ -40,7 +40,6 @@ import org.elasticsearch.indices.IndicesService;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -218,11 +217,8 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
 
     public static class RestoreContext implements Closeable {
 
-        private static final int INITIAL_FILE_CACHE_CAPACITY = 20;
-
         private final Engine.IndexCommitRef indexCommitRef;
         private final Store.MetadataSnapshot metadataSnapshot;
-        private final HashMap<String, IndexInput> currentFiles = new HashMap<>(INITIAL_FILE_CACHE_CAPACITY);
 
         public RestoreContext(Engine.IndexCommitRef indexCommitRef,
                               Store.MetadataSnapshot metadataSnapshot) {
@@ -231,11 +227,7 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
         }
 
         public IndexInput openInput(String fileName) {
-            var currentIndexInput = currentFiles.getOrDefault(fileName, null);
-            if (currentIndexInput != null) {
-                return currentIndexInput.clone();
-            }
-
+            IndexInput currentIndexInput;
             try {
                 currentIndexInput = indexCommitRef.getIndexCommit().getDirectory().openInput(fileName,
                                                                                              IOContext.READONCE);
@@ -243,13 +235,11 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
                 throw new UncheckedIOException(e);
             }
 
-            currentFiles.put(fileName, currentIndexInput);
             return currentIndexInput;
         }
 
         @Override
         public void close() {
-            IOUtils.closeWhileHandlingException(currentFiles.values());
             IOUtils.closeWhileHandlingException(indexCommitRef);
         }
 

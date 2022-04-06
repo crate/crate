@@ -21,16 +21,7 @@
 
 package io.crate.replication.logical;
 
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-
-import javax.annotation.Nullable;
-
+import io.crate.replication.logical.exceptions.NoSubscriptionForIndexException;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
@@ -41,6 +32,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -48,7 +40,14 @@ import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedInd
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
-import io.crate.replication.logical.exceptions.NoSubscriptionForIndexException;
+import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 
 public class ShardReplicationService implements Closeable, IndexEventListener {
 
@@ -107,11 +106,11 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
     }
 
     @Override
-    public void beforeIndexRemoved(IndexService indexService, IndexRemovalReason reason) {
-        var settings = indexService.getIndexSettings().getSettings();
+    public void afterIndexRemoved(Index index, IndexSettings indexSettings, IndexRemovalReason reason) {
+        var settings = indexSettings.getSettings();
         var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(settings);
         if (subscriptionName != null) {
-            subscribedIndices.remove(indexService.indexUUID());
+            subscribedIndices.remove(index.getUUID());
         }
     }
 
