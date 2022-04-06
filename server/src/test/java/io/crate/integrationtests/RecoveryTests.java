@@ -94,7 +94,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         logger.trace("Uploading {} digest {}", content, digestString);
         BytesArray bytes = new BytesArray(new byte[]{contentBytes[0]});
         if (content.length() == 1) {
-            client.execute(StartBlobAction.INSTANCE,
+            client.legacyExecute(StartBlobAction.INSTANCE,
                 new StartBlobRequest(
                     resolveShardId(BlobIndex.fullIndexName("test"), digestString),
                     digest,
@@ -109,7 +109,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                 bytes,
                 false
             );
-            client.execute(StartBlobAction.INSTANCE, startBlobRequest).actionGet();
+            client.legacyExecute(StartBlobAction.INSTANCE, startBlobRequest).actionGet();
             for (int i = 1; i < contentBytes.length; i++) {
                 try {
                     Thread.sleep(timeBetweenChunks.get());
@@ -118,7 +118,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                 }
                 bytes = new BytesArray(new byte[]{contentBytes[i]});
                 try {
-                    client.execute(PutChunkAction.INSTANCE,
+                    client.legacyExecute(PutChunkAction.INSTANCE,
                         new PutChunkRequest(
                             resolveShardId(BlobIndex.fullIndexName("test"), digestString),
                             digest,

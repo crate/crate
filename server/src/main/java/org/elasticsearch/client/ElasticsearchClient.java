@@ -20,12 +20,17 @@
 package org.elasticsearch.client;
 
 
-import org.elasticsearch.action.ActionType;
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
+
+import io.crate.action.FutureActionListener;
 
 public interface ElasticsearchClient {
 
@@ -34,12 +39,23 @@ public interface ElasticsearchClient {
      *
      * @param action           The action type to execute.
      * @param request          The action request.
-     * @param <Request>        The request type.
-     * @param <Response>       the response type.
+     * @param <Req>        The request type.
+     * @param <Resp>       the response type.
      * @return A future allowing to get back the response.
+     * @deprecated Use {@link #execute(ActionType, TransportRequest) instead.
      */
-    <Request extends TransportRequest, Response extends TransportResponse> ActionFuture<Response> execute(
-            ActionType<Response> action, Request request);
+    default <Req extends TransportRequest, Resp extends TransportResponse> ActionFuture<Resp> legacyExecute(ActionType<Resp> action, Req request) {
+        PlainActionFuture<Resp> actionFuture = PlainActionFuture.newFuture();
+        execute(action, request, actionFuture);
+        return actionFuture;
+    }
+
+
+    default <Req extends TransportRequest, Resp extends TransportResponse> CompletableFuture<Resp> execute(ActionType<Resp> action, Req request) {
+        FutureActionListener<Resp, Resp> listener = FutureActionListener.newInstance();
+        execute(action, request, listener);
+        return listener;
+    }
 
     /**
      * Executes a generic action, denoted by an {@link ActionType}.

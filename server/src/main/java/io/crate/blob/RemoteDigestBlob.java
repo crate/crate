@@ -103,7 +103,7 @@ public class RemoteDigestBlob {
             Hex.decodeHex(digest)
         );
 
-        return client.execute(DeleteBlobAction.INSTANCE, request).actionGet().deleted;
+        return client.legacyExecute(DeleteBlobAction.INSTANCE, request).actionGet().deleted;
     }
 
     private Status start(ByteBuf buffer, boolean last) {
@@ -118,7 +118,7 @@ public class RemoteDigestBlob {
         transferId = request.transferId();
         size += buffer.readableBytes();
 
-        startResponse = client.execute(StartBlobAction.INSTANCE, request).actionGet();
+        startResponse = client.legacyExecute(StartBlobAction.INSTANCE, request).actionGet();
         status = startResponse.status();
         return status;
     }
@@ -134,7 +134,7 @@ public class RemoteDigestBlob {
             last
         );
         size += buffer.readableBytes();
-        PutChunkResponse putChunkResponse = client.execute(PutChunkAction.INSTANCE, request).actionGet();
+        PutChunkResponse putChunkResponse = client.legacyExecute(PutChunkAction.INSTANCE, request).actionGet();
         return putChunkResponse.status();
     }
 

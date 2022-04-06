@@ -21,18 +21,17 @@
 
 package io.crate.execution.support;
 
-import java.util.Iterator;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.SQLExceptions;
+import java.util.Iterator;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class RetryListener<TResp> implements ActionListener<TResp> {
 
@@ -61,14 +60,18 @@ public class RetryListener<TResp> implements ActionListener<TResp> {
     @Override
     public void onFailure(Exception e) {
         Throwable throwable = SQLExceptions.unwrap(e);
-        if (throwable instanceof EsRejectedExecutionException && delay.hasNext()) {
+        if (shouldRetry(throwable) && delay.hasNext()) {
             long currentDelay = delay.next().millis();
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Received RejectedExecutionException, will retry again in {}ms", currentDelay);
+                LOGGER.debug("Received " + throwable.getClass() + ", will retry again in {}ms", currentDelay);
             }
             scheduler.schedule(retryCommand, currentDelay, TimeUnit.MILLISECONDS);
         } else {
             delegate.onFailure(e);
         }
+    }
+
+    protected boolean shouldRetry(Throwable throwable) {
+        return throwable instanceof EsRejectedExecutionException;
     }
 }

@@ -37,8 +37,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
  * to force merge down to. Defaults to simply checking if a merge needs
  * to execute, and if so, executes it
  *
- * @see org.elasticsearch.client.Requests#forceMergeRequest(String...)
- * @see org.elasticsearch.client.IndicesAdminClient#forceMerge(ForceMergeRequest)
  * @see ForceMergeResponse
  */
 public class ForceMergeRequest extends BroadcastRequest<ForceMergeRequest> {
