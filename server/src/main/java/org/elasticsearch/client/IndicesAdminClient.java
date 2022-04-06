@@ -19,6 +19,8 @@
 
 package org.elasticsearch.client;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -31,7 +33,6 @@ import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuild
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
@@ -133,20 +134,7 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @param request The refresh request
      * @return The result future
      */
-    ActionFuture<RefreshResponse> refresh(RefreshRequest request);
-
-    /**
-     * Explicitly refresh one or more indices (making the content indexed since the last refresh searchable).
-     *
-     * @param request  The refresh request
-     * @param listener A listener to be notified with a result
-     */
-    void refresh(RefreshRequest request, ActionListener<RefreshResponse> listener);
-
-    /**
-     * Explicitly refresh one or more indices (making the content indexed since the last refresh searchable).
-     */
-    RefreshRequestBuilder prepareRefresh(String... indices);
+    CompletableFuture<RefreshResponse> refresh(RefreshRequest request);
 
     /**
      * Explicitly upgrade one or more indices

@@ -19,6 +19,8 @@
 
 package org.elasticsearch.client.support;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
@@ -62,7 +64,6 @@ import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
@@ -314,18 +315,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<RefreshResponse> refresh(final RefreshRequest request) {
-            return legacyExecute(RefreshAction.INSTANCE, request);
-        }
-
-        @Override
-        public void refresh(final RefreshRequest request, final ActionListener<RefreshResponse> listener) {
-            execute(RefreshAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public RefreshRequestBuilder prepareRefresh(String... indices) {
-            return new RefreshRequestBuilder(this, RefreshAction.INSTANCE).setIndices(indices);
+        public CompletableFuture<RefreshResponse> refresh(final RefreshRequest request) {
+            return execute(RefreshAction.INSTANCE, request);
         }
 
         @Override
