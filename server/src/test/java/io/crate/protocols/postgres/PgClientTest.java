@@ -22,7 +22,9 @@
 package io.crate.protocols.postgres;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -30,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
+import io.crate.action.sql.Session;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -96,11 +99,14 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             authentication,
             sslContextProvider
         );
+        var sqlOperations = mock(SQLOperations.class);
+        when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(mock(Session.class));
         PostgresNetty postgresNetty = new PostgresNetty(
             serverNodeSettings,
-            mock(SQLOperations.class),
+            sqlOperations,
             new StubUserManager(),
             networkService,
+            null,
             authentication,
             nettyBootstrap,
             serverTransport,

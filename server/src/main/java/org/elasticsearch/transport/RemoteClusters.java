@@ -21,19 +21,18 @@
 
 package org.elasticsearch.transport;
 
+import io.crate.common.io.IOUtils;
+import io.crate.protocols.postgres.PgClientFactory;
+import io.crate.replication.logical.metadata.ConnectionInfo;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import io.crate.common.io.IOUtils;
-import io.crate.protocols.postgres.PgClientFactory;
-import io.crate.replication.logical.metadata.ConnectionInfo;
 
 
 public class RemoteClusters implements Closeable {
@@ -87,10 +86,8 @@ public class RemoteClusters implements Closeable {
                 transportService
             );
             remoteClusters.put(name, remoteCluster);
-            return remoteCluster.connectAndGetClient();
-        } else {
-            return CompletableFuture.completedFuture(remoteCluster.client());
         }
+        return remoteCluster.connectAndGetClient();
     }
 
     public synchronized void remove(String subscriptionName) {

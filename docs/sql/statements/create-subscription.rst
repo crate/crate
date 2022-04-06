@@ -11,7 +11,6 @@ add a new subscription to the current cluster.
 
 .. SEEALSO::
 
-    :ref:`ALTER SUBSCRIPTION <sql-alter-subscription>`
     :ref:`DROP SUBSCRIPTION <sql-drop-subscription>`
 
 .. rubric:: Table of contents
@@ -78,8 +77,10 @@ Parameters
   connections to each node of the publisher cluster. The ``port`` defaults to
   4300.
 
-  In the ``sniff`` mode, there can be multiple ``host:port`` pairs, separated by a
-  comma. Parameters will be the same for all hosts. Example:
+  In the ``sniff`` mode, there can be multiple ``host:port`` pairs, separated
+  by a comma. Parameters will be the same for all hosts. These hosts are used
+  as initial seed nodes to discover all eligible nodes from the remote cluster.
+  Example:
 
   ::
 
@@ -100,12 +101,6 @@ Parameters
   ``user``: name of the user who connects to a publishing cluster. Required.
 
   ``password``: user password.
-
-
-  Parameters supported in the ``sniff`` mode:
-
-  ``seeds``:  A comma-separated list of initial seed nodes to discover eligible
-  nodes from the remote cluster.
 
 
   Parameters supported in the ``pg_tunnel`` mode:

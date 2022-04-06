@@ -25,6 +25,7 @@ import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
 
 import static io.crate.expression.operator.LikeOperators.DEFAULT_ESCAPE;
+import static io.crate.expression.operator.LikeOperators.patternToRegex;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class LikeOperatorTest extends ScalarTestCase {
@@ -101,7 +102,7 @@ public class LikeOperatorTest extends ScalarTestCase {
     @Test
     public void testExpressionToRegexExactlyOne() {
         String expression = "fo_bar";
-        assertEquals("^fo.bar$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo.bar$", patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
@@ -120,37 +121,37 @@ public class LikeOperatorTest extends ScalarTestCase {
     @Test
     public void testExpressionToRegexZeroOrMore() {
         String expression = "fo%bar";
-        assertEquals("^fo.*bar$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo.*bar$", patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexEscapingPercent() {
         String expression = "fo\\%bar";
-        assertEquals("^fo%bar$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo%bar$", patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexEscapingUnderline() {
         String expression = "fo\\_bar";
-        assertEquals("^fo_bar$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo_bar$", patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexEscaping() {
         String expression = "fo\\\\_bar";
-        assertEquals("^fo\\\\.bar$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo\\\\.bar$", patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexEscapingMutli() {
         String expression = "%%\\%sum%%";
-        assertEquals("^.*.*%sum.*.*$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^.*.*%sum.*.*$", patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexMaliciousPatterns() {
         String expression = "fo(ooo)o[asdf]o\\bar^$.*";
-        assertEquals("^fo\\(ooo\\)o\\[asdf\\]obar\\^\\$\\.\\*$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo\\(ooo\\)o\\[asdf\\]obar\\^\\$\\.\\*$", patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
@@ -171,5 +172,12 @@ public class LikeOperatorTest extends ScalarTestCase {
 
         assertEvaluate("'foobarbaz' ilike name", null, Literal.NULL);
         assertEvaluate("name ilike 'foobarbaz'", null, Literal.NULL);
+    }
+
+    @Test
+    public void testPatternToRegexPrependsBackSlashBeforeCurlyBraces() {
+        String expression = "{}";
+        var re = patternToRegex(expression, DEFAULT_ESCAPE, true);
+        assertEquals("^\\{\\}$", re);
     }
 }

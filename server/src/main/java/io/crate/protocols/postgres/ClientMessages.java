@@ -38,8 +38,8 @@ import java.util.Map;
 class ClientMessages {
 
     static ByteBuf writeSSLReqMessage(ByteBuf buffer) {
-        buffer.writeInt(SslReqHandler.SSL_REQUEST_BYTE_LENGTH);
-        buffer.writeInt(SslReqHandler.SSL_REQUEST_CODE);
+        buffer.writeInt(PgDecoder.MIN_STARTUP_LENGTH);
+        buffer.writeInt(PgDecoder.SSL_REQUEST_CODE);
         return buffer;
     }
 
@@ -60,7 +60,7 @@ class ClientMessages {
         // length itself and protocol version number
         // updated later to include the body
         int length = 8;
-        int protocolVersion = 3;
+        int protocolVersion = 3 << 16;
         final int lengthIndex = buffer.writerIndex();
         buffer.writeInt(length);
         buffer.writeInt(protocolVersion);
@@ -187,5 +187,12 @@ class ClientMessages {
     static void sendTermination(ByteBuf buffer) {
         buffer.writeByte('X');
         buffer.writeInt(4);
+    }
+
+    static void sendCancelRequest(ByteBuf buffer, KeyData keyData) {
+        buffer.writeInt(16);
+        buffer.writeInt(1234 << 16 | 5678); // == 80877102
+        buffer.writeInt(keyData.pid());
+        buffer.writeInt(keyData.secretKey());
     }
 }
