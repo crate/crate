@@ -22,6 +22,9 @@ package org.elasticsearch.test;
 import com.carrotsearch.hppc.ObjectArrayList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
+import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
+import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.client.Client;
@@ -37,6 +40,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 
@@ -203,8 +207,8 @@ public abstract class TestCluster implements Closeable {
             }
             for (String repository : repositories) {
                 try {
-                    client().admin().cluster().prepareDeleteRepository(repository).execute().actionGet();
-                } catch (RepositoryMissingException ex) {
+                    client().admin().cluster().execute(DeleteRepositoryAction.INSTANCE, new DeleteRepositoryRequest().name(repository)).get();
+                } catch (InterruptedException | ExecutionException | RepositoryMissingException ex) {
                     // ignore
                 }
             }

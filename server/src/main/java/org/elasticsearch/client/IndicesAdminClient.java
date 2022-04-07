@@ -19,6 +19,8 @@
 
 package org.elasticsearch.client;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -31,7 +33,6 @@ import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuild
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
@@ -77,25 +78,12 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     ActionFuture<RecoveryResponse> recoveries(RecoveryRequest request);
 
     /**
-     *Indices recoveries
-     */
-    void recoveries(RecoveryRequest request, ActionListener<RecoveryResponse> listener);
-
-    /**
      * Creates an index using an explicit request allowing to specify the settings of the index.
      *
      * @param request The create index request
      * @return The result future
      */
     ActionFuture<CreateIndexResponse> create(CreateIndexRequest request);
-
-    /**
-     * Creates an index using an explicit request allowing to specify the settings of the index.
-     *
-     * @param request  The create index request
-     * @param listener A listener to be notified with a result
-     */
-    void create(CreateIndexRequest request, ActionListener<CreateIndexResponse> listener);
 
     /**
      * Creates an index using an explicit request allowing to specify the settings of the index.
@@ -115,14 +103,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     /**
      * Deletes an index based on the index name.
      *
-     * @param request  The delete index request
-     * @param listener A listener to be notified with a result
-     */
-    void delete(DeleteIndexRequest request, ActionListener<AcknowledgedResponse> listener);
-
-    /**
-     * Deletes an index based on the index name.
-     *
      * @param indices The indices to delete. Use "_all" to delete all indices.
      */
     DeleteIndexRequestBuilder prepareDelete(String... indices);
@@ -133,20 +113,7 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @param request The refresh request
      * @return The result future
      */
-    ActionFuture<RefreshResponse> refresh(RefreshRequest request);
-
-    /**
-     * Explicitly refresh one or more indices (making the content indexed since the last refresh searchable).
-     *
-     * @param request  The refresh request
-     * @param listener A listener to be notified with a result
-     */
-    void refresh(RefreshRequest request, ActionListener<RefreshResponse> listener);
-
-    /**
-     * Explicitly refresh one or more indices (making the content indexed since the last refresh searchable).
-     */
-    RefreshRequestBuilder prepareRefresh(String... indices);
+    CompletableFuture<RefreshResponse> refresh(RefreshRequest request);
 
     /**
      * Explicitly upgrade one or more indices
@@ -157,28 +124,12 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     ActionFuture<UpgradeResponse> upgrade(UpgradeRequest request);
 
     /**
-     * Explicitly upgrade one or more indices
-     *
-     * @param request  The upgrade request
-     * @param listener A listener to be notified with a result
-     */
-    void upgrade(UpgradeRequest request, ActionListener<UpgradeResponse> listener);
-
-    /**
      * Add mapping definition for a type into one or more indices.
      *
      * @param request The create mapping request
      * @return A result future
      */
     ActionFuture<AcknowledgedResponse> putMapping(PutMappingRequest request);
-
-    /**
-     * Add mapping definition for a type into one or more indices.
-     *
-     * @param request  The create mapping request
-     * @param listener A listener to be notified with a result
-     */
-    void putMapping(PutMappingRequest request, ActionListener<AcknowledgedResponse> listener);
 
     /**
      * Add mapping definition for a type into one or more indices.
@@ -192,14 +143,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @return The result future
      */
     ActionFuture<AcknowledgedResponse> updateSettings(UpdateSettingsRequest request);
-
-    /**
-     * Updates settings of one or more indices.
-     *
-     * @param request  the update settings request
-     * @param listener A listener to be notified with the response
-     */
-    void updateSettings(UpdateSettingsRequest request, ActionListener<AcknowledgedResponse> listener);
 
     /**
      * Update indices settings.
@@ -239,11 +182,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Gets index template.
      */
     ActionFuture<GetIndexTemplatesResponse> getTemplates(GetIndexTemplatesRequest request);
-
-    /**
-     * Gets an index template.
-     */
-    void getTemplates(GetIndexTemplatesRequest request, ActionListener<GetIndexTemplatesResponse> listener);
 
     /**
      * Gets an index template (optional).
