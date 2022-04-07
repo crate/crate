@@ -264,7 +264,7 @@ public class SQLTransportExecutor {
             }
             session.sync();
         } catch (Throwable t) {
-            listener.onFailure(Exceptions.toRuntimeException(t));
+            listener.onFailure(Exceptions.toException(t));
         }
     }
 
@@ -295,13 +295,13 @@ public class SQLTransportExecutor {
                 if (t == null) {
                     listener.onResponse(rowCounts);
                 } else {
-                    listener.onFailure(Exceptions.toRuntimeException(t));
+                    listener.onFailure(Exceptions.toException(t));
                 }
                 session.close();
             });
         } catch (Throwable t) {
             session.close();
-            listener.onFailure(Exceptions.toRuntimeException(t));
+            listener.onFailure(Exceptions.toException(t));
         }
     }
 
@@ -622,7 +622,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(Exceptions.toRuntimeException(t));
+            listener.onFailure(Exceptions.toException(t));
             super.fail(t);
         }
 
