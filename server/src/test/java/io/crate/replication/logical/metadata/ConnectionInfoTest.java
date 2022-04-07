@@ -133,4 +133,19 @@ public class ConnectionInfoTest extends ESTestCase {
             "Connection string argument 'foo' is not supported"
         );
     }
+
+    @Test
+    public void test_setting_invalid_mode_raises_error_including_valid_options() {
+        assertThrowsMatches(
+            () -> ConnectionInfo.fromURL("crate://example.com?mode=foo"),
+            IllegalArgumentException.class,
+            "Invalid connection mode `foo`, supported modes are: `sniff`, `pg_tunnel`"
+        );
+
+        assertThrowsMatches(
+            () -> ConnectionInfo.fromURL("crate://example.com:5432?mode=foo"),
+            IllegalArgumentException.class,
+            "Invalid connection mode `foo`, supported modes are: `sniff`, `pg_tunnel`"
+        );
+    }
 }

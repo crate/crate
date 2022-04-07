@@ -50,7 +50,12 @@ public class RemoteCluster implements Closeable {
     public static final Setting<ConnectionStrategy> REMOTE_CONNECTION_MODE = new Setting<>(
         "mode",
         ConnectionStrategy.SNIFF.name(),
-        value -> ConnectionStrategy.valueOf(value.toUpperCase(Locale.ROOT)),
+        value -> switch (value.toLowerCase(Locale.ENGLISH)) {
+            case "sniff" -> ConnectionStrategy.SNIFF;
+            case "pg_tunnel" -> ConnectionStrategy.PG_TUNNEL;
+            default -> throw new IllegalArgumentException(
+                "Invalid connection mode `" + value + "`, supported modes are: `sniff`, `pg_tunnel`");
+        },
         DataTypes.STRING,
         Setting.Property.Dynamic
     );
@@ -79,7 +84,7 @@ public class RemoteCluster implements Closeable {
         this.connectionInfo = connectionInfo;
         this.pgClientFactory = pgClientFactory;
         this.transportService = transportService;
-        this.connectionStrategy = REMOTE_CONNECTION_MODE.get(connectionInfo.settings());
+        this.connectionStrategy = connectionInfo.mode();
     }
 
     public Client client() {

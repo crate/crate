@@ -133,3 +133,6 @@ Fixes
 
 - Fixed an issue that threw ``SQLParseException`` when a ``ILIKE`` operand
   contained '{' or '}'.
+
+- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` to lose an optional
+  ``routing_column`` information provided at table creation.
