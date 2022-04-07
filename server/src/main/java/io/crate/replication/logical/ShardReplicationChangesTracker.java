@@ -341,6 +341,7 @@ public class ShardReplicationChangesTracker implements Closeable {
         );
     }
 
+
     @Override
     public void close() throws IOException {
         if (cancellable != null) {
