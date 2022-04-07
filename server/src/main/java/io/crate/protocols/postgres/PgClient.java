@@ -159,15 +159,10 @@ public class PgClient extends AbstractClient {
                 future = connectionFuture;
                 // fall-through to connect
             } else {
-                if (connectionFuture.isDone()) {
-                    Connection connection = connectionFuture.join();
-                    if (connection.isClosed() || connectionFuture.isCompletedExceptionally()) {
-                        connectionFuture = new CompletableFuture<>();
-                        future = connectionFuture;
-                        // fall-through to connect
-                    } else {
-                        return connectionFuture;
-                    }
+                if (connectionFuture.isCompletedExceptionally() || (connectionFuture.isDone() && connectionFuture.join().isClosed())) {
+                    connectionFuture = new CompletableFuture<>();
+                    future = connectionFuture;
+                    // fall-through to connect
                 } else {
                     return connectionFuture;
                 }
