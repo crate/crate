@@ -106,6 +106,9 @@ public enum Operation {
             if (tableInfo.supportedOperations().equals(CLOSED_OPERATIONS)) {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is currently " +
                                    "closed.";
+            } else if (tableInfo.supportedOperations().equals(LOGICAL_REPLICATED)) {
+                exceptionMessage = "The relation \"%s\" doesn't allow %s operations, because it is included in a " +
+                                   "logical replication.";
             } else if (tableInfo.supportedOperations().equals(SYS_READ_ONLY) ||
                        tableInfo.supportedOperations().equals(READ_ONLY)) {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is read-only.";
