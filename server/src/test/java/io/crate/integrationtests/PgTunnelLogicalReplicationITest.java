@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.is;
 
 import java.net.InetSocketAddress;
@@ -31,6 +32,7 @@ import java.security.cert.Certificate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -39,6 +41,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.SettingsBasedSeedHostsProvider;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.InternalTestCluster.RestartCallback;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.transport.Netty4Plugin;
@@ -54,7 +57,7 @@ import io.crate.replication.logical.metadata.ConnectionInfo.SSLMode;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLErrorMatcher;
 import io.crate.testing.SQLTransportExecutor;
-import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
@@ -166,7 +169,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             postgresAddress.getPort()
         ));
 
-        assertThat(TestingHelpers.printedTable(subscriber.exec("select subname from pg_subscription").rows()), is(
+        assertThat(printedTable(subscriber.exec("select subname from pg_subscription").rows()), is(
             "sub1\n"
         ));
 
@@ -214,6 +217,66 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
                 PGErrorStatus.EXCLUSION_VIOLATION,
                 HttpResponseStatus.INTERNAL_SERVER_ERROR,
                 5000));
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_replication_continues_after_publisher_restart() throws Exception {
+        publisherCluster = newCluster("publisher", Settings.EMPTY);
+        subscriberCluster = newCluster("subscriber", Settings.EMPTY);
+
+        publisher = publisherCluster.createSQLTransportExecutor();
+        publisher.exec("create table tbl (x int) with (number_of_replicas = 0)");
+        publisher.exec("insert into tbl values (1)");
+        publisher.ensureGreen();
+        publisher.exec("create publication pub1 FOR TABLE tbl");
+
+        PostgresNetty postgres = publisherCluster.getInstance(PostgresNetty.class);
+        InetSocketAddress postgresAddress = postgres.boundAddress().publishAddress().address();
+        subscriber = subscriberCluster.createSQLTransportExecutor();
+
+        subscriber.exec(String.format(Locale.ENGLISH, """
+            CREATE SUBSCRIPTION sub1
+            CONNECTION 'crate://%s:%d?user=crate&mode=pg_tunnel'
+            PUBLICATION pub1
+            """,
+            postgresAddress.getHostName(),
+            postgresAddress.getPort()
+        ));
+        assertBusy(() -> {
+            try {
+                assertThat(printedTable(subscriber.exec("select * from tbl order by x").rows()), is(
+                    "1\n"
+                ));
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        }, 50, TimeUnit.SECONDS);
+
+        CountDownLatch stopped = new CountDownLatch(1);
+        publisherCluster.fullRestart(new RestartCallback() {
+
+            @Override
+            public void onAllNodesStopped() throws Exception {
+                stopped.countDown();
+            }
+        });
+        stopped.await();
+        publisher = publisherCluster.createSQLTransportExecutor();
+        assertBusy(() -> {
+            try {
+                publisher.exec("insert into tbl values (2)");
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
+
+        assertBusy(() -> {
+            assertThat(printedTable(subscriber.exec("select * from tbl order by x").rows()), is(
+                "1\n" +
+                "2\n"
+            ));
+        }, 50, TimeUnit.SECONDS);
     }
 
     @Test
@@ -267,7 +330,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             random().nextBoolean() ? SSLMode.PREFER.name() : SSLMode.REQUIRE.name()
         ));
 
-        assertThat(TestingHelpers.printedTable(subscriber.exec("select subname from pg_subscription").rows()), is(
+        assertThat(printedTable(subscriber.exec("select subname from pg_subscription").rows()), is(
             "sub1\n"
         ));
         assertBusy(() -> {
