@@ -62,6 +62,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -291,6 +292,7 @@ public final class MetadataTracker implements Closeable {
         return e instanceof ConnectTransportException ||
             e instanceof ElasticsearchTimeoutException ||
             e instanceof NoSuchRemoteClusterException ||
+            e instanceof NodeClosedException ||
             e instanceof ConnectException;
     }
 
