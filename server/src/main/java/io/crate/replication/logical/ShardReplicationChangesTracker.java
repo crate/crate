@@ -58,7 +58,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -362,13 +361,12 @@ public class ShardReplicationChangesTracker implements Closeable {
                     onFailure.accept(new RuntimeException(msg));
                 }
             };
-            BiConsumer<ReplayChangesAction.Request, ActionListener<ReplicationResponse>> operation =
-                (req, l) -> localClient.execute(ReplayChangesAction.INSTANCE, req, l);
-            operation.accept(
+            localClient.execute(
+                ReplayChangesAction.INSTANCE,
                 replayRequest,
                 new ReplayChangesRetryListener<>(
                     threadPool.scheduler(),
-                    l -> operation.accept(replayRequest, l),
+                    l -> localClient.execute(ReplayChangesAction.INSTANCE, replayRequest, l),
                     listener,
                     BackoffPolicy.exponentialBackoff()
                 ));
