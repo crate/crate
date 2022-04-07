@@ -648,7 +648,7 @@ public class PgClient extends AbstractClient {
                                                                                                     ActionListener<Response> listener) {
         ensureConnected().whenComplete((connection, e) -> {
             if (e != null) {
-                listener.onFailure(Exceptions.toRuntimeException(e));
+                listener.onFailure(Exceptions.toException(e));
             } else {
                 if (request instanceof RemoteClusterAwareRequest remoteClusterAware) {
                     DiscoveryNode targetNode = remoteClusterAware.getPreferredTargetNode();
