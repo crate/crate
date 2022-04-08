@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.KeyManager;
@@ -45,6 +46,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -121,7 +123,7 @@ public class SslContextProvider implements Supplier<SslContext> {
             var trustStore = Optionals.of(() -> loadKeyStore(trustStorePath, trustStorePass));
             var trustManagers = trustStore
                 .map(SslContextProvider::createTrustManagers)
-                .orElseGet(() -> new TrustManager[0]);
+                .orElseGet(() -> SslContextProvider.createTrustManagers(null));
 
             SSLContext sslContext = SSLContext.getInstance(TLS_VERSION);
             sslContext.init(keyManagers, trustManagers, null);
@@ -129,7 +131,7 @@ public class SslContextProvider implements Supplier<SslContext> {
             var keyStoreRootCerts = getRootCertificates(keyStore);
             var trustStoreRootCerts = trustStore
                 .map(SslContextProvider::getRootCertificates)
-                .orElseGet(() -> new X509Certificate[0]);
+                .orElseGet(() -> SslContextProvider.getDefaultCertificates(trustManagers));
             return SslContextBuilder
                 .forClient()
                 .keyManager(getKey(keyStore, keystoreKeyPass), getCertificateChain(keyStore))
@@ -211,7 +213,8 @@ public class SslContextProvider implements Supplier<SslContext> {
         return keyFactory.getKeyManagers();
     }
 
-    private static TrustManager[] createTrustManagers(KeyStore keyStore) {
+    static TrustManager[] createTrustManagers(@Nullable KeyStore keyStore) {
+        // If trust store is not specified, default trust store will be used by calling init(null)
         TrustManagerFactory trustFactory;
         try {
             trustFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
@@ -226,6 +229,12 @@ public class SslContextProvider implements Supplier<SslContext> {
         T[] result = Arrays.copyOf(xs, xs.length + ys.length);
         System.arraycopy(ys, 0, result, xs.length, ys.length);
         return result;
+    }
+
+    static X509Certificate[] getDefaultCertificates(TrustManager[] trustManagers) {
+        return Arrays.stream(trustManagers)
+            .flatMap(tm -> Arrays.stream(((X509TrustManager) tm).getAcceptedIssuers()))
+            .collect(Collectors.toList()).toArray(X509Certificate[]::new);
     }
 
     static X509Certificate[] getRootCertificates(KeyStore keyStore) {
