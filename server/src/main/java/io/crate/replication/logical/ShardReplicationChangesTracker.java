@@ -61,6 +61,8 @@ import io.crate.replication.logical.action.ReplayChangesAction;
 import io.crate.replication.logical.action.ShardChangesAction;
 import io.crate.replication.logical.seqno.RetentionLeaseHelper;
 
+import javax.annotation.Nullable;
+
 /**
  * Replicates batches of {@link org.elasticsearch.index.translog.Translog.Operation}'s to the subscribers target shards.
  * <p>
@@ -117,82 +119,90 @@ public class ShardReplicationChangesTracker implements Closeable {
     }
 
     private void pollAndProcessPendingChanges() {
-        requestBatchToFetch(batchToFetch -> {
-            long fromSeqNo = batchToFetch.fromSeqNo();
-            long toSeqNo = batchToFetch.toSeqNo();
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("[{}] Getting changes {}-{}", shardId, fromSeqNo, toSeqNo);
-            }
-            getChanges(
-                fromSeqNo,
-                toSeqNo,
-                response -> {
-                    List<Translog.Operation> translogOps = response.changes();
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("[{}] Got {} changes starting from seqNo: {}",
-                                     shardId, translogOps.size(), fromSeqNo);
-                    }
-                    replayChanges(
-                        translogOps,
-                        response.maxSeqNoOfUpdatesOrDeletes(),
-                        ignored -> {
-                            if (LOGGER.isDebugEnabled()) {
-                                LOGGER.debug("[{}] Replayed changes {}-{}", shardId, fromSeqNo, toSeqNo);
-                            }
-                            long lastSeqNo = fromSeqNo - 1;
-                            if (translogOps.isEmpty() == false) {
-                                lastSeqNo = translogOps.get(translogOps.size() - 1).seqNo();
-                            }
-                            updateBatchFetched(
-                                true,
-                                fromSeqNo,
-                                toSeqNo,
-                                lastSeqNo,
-                                response.lastSyncedGlobalCheckpoint()
-                            );
-                        },
-                        e -> {}
-                    );
-                },
-                e -> {
-                    var t = SQLExceptions.unwrap(e);
-                    if (t instanceof ElasticsearchTimeoutException) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("[{}] Timed out waiting for new changes. Current seqNo: {}",
-                                         shardId,
-                                         fromSeqNo);
-                        }
-                        updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
-                    } else if (t instanceof NodeNotConnectedException
-                        || t instanceof NodeDisconnectedException
-                        || t instanceof NodeClosedException) {
-                        LOGGER.info("[{}] Node not connected. Retrying.. {}", shardId, e);
-                        updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
-                    } else if (t instanceof IndexShardClosedException) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("[{}] Remote shard closed (table closed?), will stop tracking changes", shardId);
-                        }
-                    } else if (t instanceof IndexNotFoundException || t instanceof NoShardAvailableActionException) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("[{}] Remote shard not found (dropped table?), will stop tracking changes", shardId);
-                        }
-                    } else {
-                        LOGGER.warn(
-                            String.format(Locale.ENGLISH,
-                                          "[%s] Unable to get changes from seqNo: %d, will stop tracking",
-                                          shardId, fromSeqNo),
-                            t);
-                    }
-
-                }
+        SeqNoRange rangeToFetch = getNextSeqNoRange();
+        if (rangeToFetch == null) {
+            cancellable = threadPool.schedule(
+                newRunnable(),
+                replicationSettings.pollDelay(),
+                ThreadPool.Names.LOGICAL_REPLICATION
             );
-        });
+            return;
+        }
+        long fromSeqNo = rangeToFetch.fromSeqNo();
+        long toSeqNo = rangeToFetch.toSeqNo();
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("[{}] Getting changes {}-{}", shardId, fromSeqNo, toSeqNo);
+        }
+        getChanges(
+            fromSeqNo,
+            toSeqNo,
+            response -> {
+                List<Translog.Operation> translogOps = response.changes();
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("[{}] Got {} changes starting from seqNo: {}",
+                                    shardId, translogOps.size(), fromSeqNo);
+                }
+                replayChanges(
+                    translogOps,
+                    response.maxSeqNoOfUpdatesOrDeletes(),
+                    ignored -> {
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("[{}] Replayed changes {}-{}", shardId, fromSeqNo, toSeqNo);
+                        }
+                        long lastSeqNo = fromSeqNo - 1;
+                        if (translogOps.isEmpty() == false) {
+                            lastSeqNo = translogOps.get(translogOps.size() - 1).seqNo();
+                        }
+                        updateBatchFetched(
+                            true,
+                            fromSeqNo,
+                            toSeqNo,
+                            lastSeqNo,
+                            response.lastSyncedGlobalCheckpoint()
+                        );
+                    },
+                    e -> {}
+                );
+            },
+            e -> {
+                var t = SQLExceptions.unwrap(e);
+                if (t instanceof ElasticsearchTimeoutException) {
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("[{}] Timed out waiting for new changes. Current seqNo: {}",
+                                        shardId,
+                                        fromSeqNo);
+                    }
+                    updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
+                } else if (t instanceof NodeNotConnectedException
+                    || t instanceof NodeDisconnectedException
+                    || t instanceof NodeClosedException) {
+                    LOGGER.info("[{}] Node not connected. Retrying.. {}", shardId, e);
+                    updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
+                } else if (t instanceof IndexShardClosedException) {
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("[{}] Remote shard closed (table closed?), will stop tracking changes", shardId);
+                    }
+                } else if (t instanceof IndexNotFoundException || t instanceof NoShardAvailableActionException) {
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("[{}] Remote shard not found (dropped table?), will stop tracking changes", shardId);
+                    }
+                } else {
+                    LOGGER.warn(
+                        String.format(Locale.ENGLISH,
+                                        "[%s] Unable to get changes from seqNo: %d, will stop tracking",
+                                        shardId, fromSeqNo),
+                        t);
+                }
+
+            }
+        );
     }
 
     /**
      * Provides a range of operations to be fetched next.
      */
-    private void requestBatchToFetch(Consumer<SeqNoRange> consumer) {
+    @Nullable
+    private SeqNoRange getNextSeqNoRange() {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("[{}] Waiting to get batch. requested: {}, leader: {}",
                          shardId, seqNoAlreadyRequested.get(), observedSeqNoAtLeader.get());
@@ -202,12 +212,7 @@ public class ShardReplicationChangesTracker implements Closeable {
         // we still should be sending one more request to fetch which will just do a poll and eventually timeout
         // if no new operations are there on the leader (configured via TransportGetChangesAction.WAIT_FOR_NEW_OPS_TIMEOUT)
         if (seqNoAlreadyRequested.get() > observedSeqNoAtLeader.get() && missingBatches.isEmpty()) {
-            cancellable = threadPool.schedule(
-                () -> requestBatchToFetch(consumer),
-                replicationSettings.pollDelay(),
-                ThreadPool.Names.LOGICAL_REPLICATION
-            );
-            return;
+            return null;
         }
 
         // missing batch takes higher priority.
@@ -216,7 +221,7 @@ public class ShardReplicationChangesTracker implements Closeable {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[{}] Fetching missing batch {}-{}", shardId, missingBatch.fromSeqNo(), missingBatch.toSeqNo());
             }
-            consumer.accept(missingBatch);
+            return missingBatch;
         } else {
             // return the next batch to fetch and update seqNoAlreadyRequested.
             var batchSize = replicationSettings.batchSize();
@@ -225,7 +230,7 @@ public class ShardReplicationChangesTracker implements Closeable {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[{}] Fetching the batch {}-{}", shardId, fromSeq, toSeq);
             }
-            consumer.accept(new SeqNoRange(fromSeq, toSeq));
+            return new SeqNoRange(fromSeq, toSeq);
         }
     }
 
