@@ -25,8 +25,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
+import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
@@ -35,9 +36,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo;
@@ -46,15 +45,12 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.Translog.Operation;
-import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.NodeDisconnectedException;
-import org.elasticsearch.transport.NodeNotConnectedException;
+import org.elasticsearch.transport.RemoteClusters;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
@@ -63,6 +59,7 @@ import io.crate.execution.support.RetryListener;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.replication.logical.action.ReplayChangesAction;
 import io.crate.replication.logical.action.ShardChangesAction;
+import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.seqno.RetentionLeaseHelper;
 
 /**
@@ -78,25 +75,31 @@ public class ShardReplicationChangesTracker implements Closeable {
     private final LogicalReplicationSettings replicationSettings;
     private final ThreadPool threadPool;
     private final Client localClient;
-    private final ShardReplicationService shardReplicationService;
     private final String clusterName;
     private final Deque<SeqNoRange> missingBatches = new ArrayDeque<>();
     private final AtomicLong observedSeqNoAtLeader;
     private final AtomicLong seqNoAlreadyRequested;
+    private final String subscriptionName;
+    private final Subscription subscription;
+    private final RemoteClusters remoteClusters;
     private Scheduler.ScheduledCancellable cancellable;
 
 
-    public ShardReplicationChangesTracker(IndexShard indexShard,
+    public ShardReplicationChangesTracker(String subscriptionName,
+                                          Subscription subscription,
+                                          IndexShard indexShard,
                                           ThreadPool threadPool,
                                           LogicalReplicationSettings replicationSettings,
-                                          ShardReplicationService shardReplicationService,
+                                          RemoteClusters remoteClusters,
                                           String clusterName,
                                           Client client) {
+        this.subscriptionName = subscriptionName;
+        this.subscription = subscription;
+        this.remoteClusters = remoteClusters;
         this.shardId = indexShard.shardId();
         this.replicationSettings = replicationSettings;
         this.threadPool = threadPool;
         this.localClient = client;
-        this.shardReplicationService = shardReplicationService;
         this.clusterName = clusterName;
         var seqNoStats = indexShard.seqNoStats();
         this.observedSeqNoAtLeader = new AtomicLong(seqNoStats.getGlobalCheckpoint());
@@ -133,7 +136,7 @@ public class ShardReplicationChangesTracker implements Closeable {
         long fromSeqNo = rangeToFetch.fromSeqNo();
         long toSeqNo = rangeToFetch.toSeqNo();
 
-        var futureClient = shardReplicationService.getRemoteClusterClient(shardId.getIndex());
+        var futureClient = remoteClusters.connect(subscriptionName, subscription.connectionInfo());
         var getPendingChangesRequest = new ShardChangesAction.Request(shardId, fromSeqNo, toSeqNo);
         var futurePendingChanges = futureClient.thenCompose(remoteClient -> {
             if (LOGGER.isDebugEnabled()) {
@@ -155,30 +158,14 @@ public class ShardReplicationChangesTracker implements Closeable {
                 updateBatchFetched(true, fromSeqNo, toSeqNo, lastSeqNo, pendingChanges.lastSyncedGlobalCheckpoint());
             } else {
                 var t = SQLExceptions.unwrap(e);
-                if (t instanceof ElasticsearchTimeoutException) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("[{}] Timed out waiting for new changes. Current seqNo: {}", shardId, fromSeqNo);
-                    }
+                if (LogicalReplicationRetry.failureIsTemporary(t)) {
                     updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
-                } else if (t instanceof NodeNotConnectedException
-                    || t instanceof NodeDisconnectedException
-                    || t instanceof NodeClosedException) {
-                    LOGGER.info("[{}] Node not connected. Retrying.. {}", shardId, e);
-                    updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
-                } else if (t instanceof IndexShardClosedException) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("[{}] Remote shard closed (table closed?), will stop tracking changes", shardId);
-                    }
-                } else if (t instanceof IndexNotFoundException || t instanceof NoShardAvailableActionException) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("[{}] Remote shard not found (dropped table?), will stop tracking changes", shardId);
-                    }
                 } else {
                     LOGGER.warn(
-                        String.format(Locale.ENGLISH,
-                                        "[%s] Unable to get changes from seqNo: %d, will stop tracking",
-                                        shardId, fromSeqNo),
-                        t);
+                        "Unrecoverable error during processing of upstream changes for subscription '{}'. Tracking stopped with failure: {}",
+                        subscriptionName,
+                        t
+                    );
                 }
             }
         });
@@ -310,35 +297,53 @@ public class ShardReplicationChangesTracker implements Closeable {
             }
         }
 
+        renewRetentionLease(toSeqNoReceived, null);
+    }
+
+    private void renewRetentionLease(long toSeqNoReceived, @Nullable Iterator<TimeValue> backOff) {
         // Renew retention lease with global checkpoint so that any shard that picks up shard replication task
         // has data until then.
         // Method is called inside a transport thread (response listener), so dispatch away
-        threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION).execute(
-            () -> {
-                shardReplicationService.getRemoteClusterClient(shardId.getIndex())
-                    .thenAccept(client -> {
-                        RetentionLeaseHelper.renewRetentionLease(
-                            shardId,
-                            toSeqNoReceived,
-                            clusterName,
-                            client,
-                            ActionListener.wrap(
-                                r -> {
-                                    // schedule next poll
-                                    cancellable = threadPool.schedule(
-                                        newRunnable(),
-                                        replicationSettings.pollDelay(),
-                                        ThreadPool.Names.LOGICAL_REPLICATION
-                                    );
-                                },
-                                e -> {
-                                    LOGGER.warn("Exception renewing retention lease.", e);
-                                }
-                            )
-                        );
-                    });
-            }
-        );
+        threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION).execute(() -> {
+            remoteClusters.connect(subscriptionName, subscription.connectionInfo()).thenAccept(client -> {
+                RetentionLeaseHelper.renewRetentionLease(
+                    shardId,
+                    toSeqNoReceived,
+                    clusterName,
+                    client,
+                    ActionListener.wrap(
+                        r -> {
+                            cancellable = threadPool.schedule(
+                                newRunnable(),
+                                replicationSettings.pollDelay(),
+                                ThreadPool.Names.LOGICAL_REPLICATION
+                            );
+                        },
+                        e -> {
+                            var err = SQLExceptions.unwrap(e);
+                            if (!LogicalReplicationRetry.failureIsTemporary(err)) {
+                                LOGGER.warn("Exception renewing retention lease. Stopping tracking changes.", err);
+                                return;
+                            }
+
+                            Iterator<TimeValue> backOffIt =
+                                backOff == null ? BackoffPolicy.exponentialBackoff().iterator() : backOff;
+
+                            try {
+                                TimeValue delay = backOffIt.next();
+                                cancellable = threadPool.schedule(
+                                    () -> renewRetentionLease(toSeqNoReceived, backOffIt),
+                                    TimeValue.timeValueNanos(delay.nanos() + replicationSettings.pollDelay().nanos()),
+                                    ThreadPool.Names.LOGICAL_REPLICATION
+                                );
+                            } catch (NoSuchElementException ignored) {
+                                LOGGER.warn("Exception renewing retention lease. Stopping tracking changes.", err);
+                            }
+                        }
+                    )
+                );
+            });
+        });
     }
 
 
@@ -347,7 +352,7 @@ public class ShardReplicationChangesTracker implements Closeable {
         if (cancellable != null) {
             cancellable.cancel();
         }
-        shardReplicationService.getRemoteClusterClient(shardId.getIndex())
+        remoteClusters.connect(subscriptionName, subscription.connectionInfo())
             .thenAccept(client -> {
                 RetentionLeaseHelper.attemptRetentionLeaseRemoval(
                     shardId,
@@ -368,7 +373,9 @@ public class ShardReplicationChangesTracker implements Closeable {
 
         @Override
         protected boolean shouldRetry(Throwable throwable) {
-            return super.shouldRetry(throwable) || throwable instanceof ClusterBlockException;
+            return super.shouldRetry(throwable)
+                || throwable instanceof ClusterBlockException
+                || throwable instanceof IndexNotFoundException;
         }
     }
 }

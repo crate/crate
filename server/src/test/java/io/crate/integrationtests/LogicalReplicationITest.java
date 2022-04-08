@@ -21,9 +21,32 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.contains;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.InternalTestCluster.RestartCallback;
+import org.elasticsearch.test.junit.annotations.TestLogging;
+import org.elasticsearch.transport.TransportService;
+import org.elasticsearch.transport.TransportSettings;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
+import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
@@ -31,20 +54,6 @@ import io.crate.testing.MoreMatchers;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.contains;
 
 @UseRandomizedSchema(random = false)
 public class LogicalReplicationITest extends LogicalReplicationITestCase {
@@ -529,5 +538,93 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                 assertThat(res.rowCount(), is(4L));
             }
         );
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    @TestLogging("io.crate.replication.logical.MetadataTracker:TRACE,io.crate.replication.logical.ShardReplicationChangesTracker:TRACE")
+    public void test_replication_continues_after_publisher_restart() throws Exception {
+        executeOnPublisher("create table tbl (x int) with (number_of_replicas = 0)");
+        executeOnPublisher("insert into tbl values (1)");
+        createPublication("pub1", false, List.of("tbl"));
+        createSubscription("sub1", "pub1");
+
+        assertBusy(() -> {
+            try {
+                assertThat(printedTable(executeOnSubscriber("select * from tbl order by x").rows()), is(
+                    "1\n"
+                ));
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        }, 50, TimeUnit.SECONDS);
+
+        logger.info("--> Restarting publisher");
+
+        record PortsAndURL(int transportPort, int pgPort, String url) {};
+
+        Map<String, PortsAndURL> publisherPorts = new HashMap<>();
+        for (String nodeName : publisherCluster.getNodeNames()) {
+            int transportPort = publisherCluster
+                .getInstance(TransportService.class, nodeName)
+                .boundAddress()
+                .publishAddress()
+                .getPort();
+            int pgPort = publisherCluster
+                .getInstance(PostgresNetty.class, nodeName)
+                .boundAddress()
+                .publishAddress()
+                .getPort();
+            String url = publisherConnectionUrl(nodeName);
+            publisherPorts.put(nodeName, new PortsAndURL(transportPort, pgPort, url));
+        }
+
+        publisherCluster.fullRestart(new RestartCallback() {
+
+            @Override
+            public Settings onNodeStopped(String nodeName) throws Exception {
+                // Ensure same port is re-used to ensure subscriber connectioninfo is still correct
+                Settings.Builder builder = Settings.builder();
+                builder.put(super.onNodeStopped(nodeName));
+                PortsAndURL portsAndURL = publisherPorts.get(nodeName);
+                logger.info("--> Reusing port {} and {} for node {}", portsAndURL.transportPort, portsAndURL.pgPort, nodeName);
+                builder.put(TransportSettings.PORT.getKey(), portsAndURL.transportPort);
+                builder.put(PostgresNetty.PSQL_PORT_SETTING.getKey(), portsAndURL.pgPort);
+                return builder.build();
+            }
+        });
+
+        publisherCluster.ensureAtLeastNumDataNodes(1);
+        for (var entry : publisherPorts.entrySet()) {
+            String nodeName = entry.getKey();
+            var portTuple = entry.getValue();
+            assertThat(portTuple.url, is(publisherConnectionUrl(nodeName)));
+        }
+        assertBusy(() -> {
+            try {
+                executeOnPublisher("insert into tbl values (2)");
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
+        executeOnPublisher("refresh table tbl");
+        assertThat(printedTable(executeOnPublisher("select * from tbl order by x").rows()), is(
+            "1\n" +
+            "2\n"
+        ));
+
+        logger.info("--> Publisher back up and ready");
+
+        try {
+            assertBusy(() -> {
+                assertThat(printedTable(executeOnSubscriber("select * from tbl order by x").rows()), is(
+                    "1\n" +
+                    "2\n"
+                ));
+            }, 50, TimeUnit.SECONDS);
+        } catch (Throwable e) {
+            logger.info("--> Subscriber didn't catch up. Tearing down clusters");
+            throw e;
+        }
     }
 }

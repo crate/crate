@@ -220,68 +220,6 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
     }
 
     @Test
-    @UseRandomizedSchema(random = false)
-    @TestLogging("_root:DEBUG")
-    public void test_replication_continues_after_publisher_restart() throws Exception {
-        publisherCluster = newCluster("publisher", Settings.EMPTY);
-        subscriberCluster = newCluster("subscriber", Settings.EMPTY);
-
-        publisher = publisherCluster.createSQLTransportExecutor();
-        publisher.exec("create table tbl (x int) with (number_of_replicas = 0)");
-        publisher.exec("insert into tbl values (1)");
-        publisher.ensureGreen();
-        publisher.exec("create publication pub1 FOR TABLE tbl");
-
-        PostgresNetty postgres = publisherCluster.getInstance(PostgresNetty.class);
-        InetSocketAddress postgresAddress = postgres.boundAddress().publishAddress().address();
-        subscriber = subscriberCluster.createSQLTransportExecutor();
-
-        subscriber.exec(String.format(Locale.ENGLISH, """
-            CREATE SUBSCRIPTION sub1
-            CONNECTION 'crate://%s:%d?user=crate&mode=pg_tunnel'
-            PUBLICATION pub1
-            """,
-            postgresAddress.getHostName(),
-            postgresAddress.getPort()
-        ));
-        assertBusy(() -> {
-            try {
-                assertThat(printedTable(subscriber.exec("select * from tbl order by x").rows()), is(
-                    "1\n"
-                ));
-            } catch (Exception e) {
-                throw new AssertionError(e);
-            }
-        }, 50, TimeUnit.SECONDS);
-
-        logger.info("--> Restarting publisher");
-        publisherCluster.fullRestart(new RestartCallback() {});
-        publisherCluster.ensureAtLeastNumDataNodes(1);
-        publisher = publisherCluster.createSQLTransportExecutor();
-        assertBusy(() -> {
-            try {
-                publisher.exec("insert into tbl values (2)");
-            } catch (Exception e) {
-                throw new AssertionError(e);
-            }
-        });
-        publisher.exec("refresh table tbl");
-        assertThat(printedTable(publisher.exec("select * from tbl order by x").rows()), is(
-            "1\n" +
-            "2\n"
-        ));
-
-        logger.info("--> Publisher back up and ready");
-
-        assertBusy(() -> {
-            assertThat(printedTable(subscriber.exec("select * from tbl order by x").rows()), is(
-                "1\n" +
-                "2\n"
-            ));
-        }, 50, TimeUnit.SECONDS);
-    }
-
-    @Test
     public void test_can_use_ssl_in_pg_tunnel_subscription() throws Exception {
         // self signed certificate doesn't work with randomized locales
         Locale.setDefault(Locale.ENGLISH);

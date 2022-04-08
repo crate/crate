@@ -39,6 +39,7 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
@@ -127,8 +128,6 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
                         return;
                     }
                 }
-                logger.warn(new ParameterizedMessage("fetching nodes from external cluster [{}] failed", clusterAlias),
-                            e);
                 listener.onFailure(e);
             };
 
@@ -274,7 +273,7 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
             IOUtils.closeWhileHandlingException(connection);
             int openConnections = connectionManager.size();
             if (openConnections == 0) {
-                listener.onFailure(new IllegalStateException(
+                listener.onFailure(new ConnectException(
                     "Unable to open any connections to remote cluster [" + clusterAlias + "]"));
             } else {
                 listener.onResponse(null);

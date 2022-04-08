@@ -27,11 +27,11 @@ import static io.crate.replication.logical.repository.LogicalReplicationReposito
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -41,7 +41,6 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.bulk.BackoffPolicy;
@@ -62,17 +61,14 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.node.NodeClosedException;
+import org.elasticsearch.threadpool.CompletableFutureCancellable;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.ConnectTransportException;
-import org.elasticsearch.transport.NoSuchRemoteClusterException;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.TriConsumer;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
-import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.IndexParts;
@@ -100,9 +96,11 @@ public final class MetadataTracker implements Closeable {
     private final IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver();
 
     // Using a copy-on-write approach. The assumption is that subscription changes are rare and reads happen more frequently
-    private volatile Set<String> subscriptionsToTrack = Set.of();
+    private volatile Set<TrackedSubscription> subscriptionsToTrack = Set.of();
     private volatile Scheduler.Cancellable cancellable;
     private volatile boolean isActive = false;
+
+    private final BackoffPolicy pollDelayPolicy;
 
     public MetadataTracker(Settings settings,
                            IndexScopedSettings indexScopedSettings,
@@ -121,6 +119,23 @@ public final class MetadataTracker implements Closeable {
         this.clusterService = clusterService;
         this.indexScopedSettings = indexScopedSettings;
         this.allocationService = allocationService;
+
+        this.pollDelayPolicy = BackoffPolicy.exponentialBackoff(replicationSettings.pollDelay(), 8);
+    }
+
+    static class TrackedSubscription {
+
+        private final String name;
+        private Iterator<TimeValue> backoffIterator;
+
+        TrackedSubscription(String name) {
+            this.name = name;
+            this.backoffIterator = LogicalReplicationRetry.FAILURE_BACKOFF_POLICY.iterator();
+        }
+
+        public void resetBackoffIterator() {
+            this.backoffIterator = LogicalReplicationRetry.FAILURE_BACKOFF_POLICY.iterator();
+        }
     }
 
     private void start() {
@@ -130,7 +145,7 @@ public final class MetadataTracker implements Closeable {
             threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
             threadPool.scheduler(),
             this::run,
-            BackoffPolicy.exponentialBackoff(replicationSettings.pollDelay(), 8)
+            pollDelayPolicy
         );
         runnable.run();
         isActive = true;
@@ -144,12 +159,11 @@ public final class MetadataTracker implements Closeable {
     }
 
     private void schedule() {
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Reschedule tracking metadata (isActive={})", isActive);
+        }
         if (!isActive) {
             return;
-        }
-
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("Reschedule tracking metadata");
         }
         cancellable = threadPool.schedule(
             this::run,
@@ -161,7 +175,7 @@ public final class MetadataTracker implements Closeable {
     public boolean startTracking(String subscriptionName) {
         synchronized (this) {
             var copy = new HashSet<>(subscriptionsToTrack);
-            var updated = copy.add(subscriptionName);
+            var updated = copy.add(new TrackedSubscription(subscriptionName));
             if (updated && !isActive) {
                 start();
             }
@@ -173,7 +187,7 @@ public final class MetadataTracker implements Closeable {
     public boolean stopTracking(String subscriptionName) {
         synchronized (this) {
             var copy = new HashSet<>(subscriptionsToTrack);
-            var updated = copy.remove(subscriptionName);
+            var updated = copy.removeIf(trackedSubscription -> trackedSubscription.name.equals(subscriptionName));
             if (isActive && copy.isEmpty()) {
                 stop();
             }
@@ -185,19 +199,22 @@ public final class MetadataTracker implements Closeable {
     private void run() {
         // single volatile read
         var currentSubscriptionsToTrack = subscriptionsToTrack;
-
-        var countDown = new CountdownFutureCallback(currentSubscriptionsToTrack.size());
-        countDown.thenRun(this::schedule);
-
-        for (String subscriptionName : currentSubscriptionsToTrack) {
+        ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
+        for (var subscription : currentSubscriptionsToTrack) {
             if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("Poll metadata for subscription {}", subscriptionName);
+                LOGGER.trace("Poll metadata for subscription {}", subscription.name);
             }
-            processSubscription(subscriptionName).whenComplete(countDown);
+            futures.add(processSubscription(subscription));
         }
+        CompletableFuture<Void> processCompletedAndReschedule = CompletableFuture
+            .allOf(futures.toArray(new CompletableFuture[0]))
+            .thenRun(this::schedule);
+
+        cancellable = new CompletableFutureCancellable(processCompletedAndReschedule, true);
     }
 
-    private CompletableFuture<?> processSubscription(String subscriptionName) {
+    private CompletableFuture<?> processSubscription(TrackedSubscription trackedSubscription) {
+        String subscriptionName = trackedSubscription.name;
         final ClusterState subscriberState = clusterService.state();
         var subscription = retrieveSubscription(subscriptionName, subscriberState);
         if (subscription == null) {
@@ -222,6 +239,7 @@ public final class MetadataTracker implements Closeable {
                 return updateClusterState(subscriptionName, subscription, remoteState);
             }).thenCompose(acked -> {
                 if (!acked) {
+                    LOGGER.trace("Cluster state update not acked for subscription {}", subscriptionName);
                     return CompletableFuture.completedFuture(false);
                 }
                 var request = new PublicationsStateAction.Request(
@@ -235,19 +253,40 @@ public final class MetadataTracker implements Closeable {
                         subscriberState,
                         publicationsStateResp,
                         replicationService));
-            }).exceptionallyCompose(err -> {
-                var e = SQLExceptions.unwrap(err);
-                if (shouldRetry(e)) {
-                    LOGGER.warn("Retrieving remote metadata failed for subscription '" + subscriptionName + "', will retry", e);
-                    return CompletableFuture.completedFuture(null);
-                }
-                var msg = "Tracking of metadata failed for subscription '" + subscriptionName + "'" + " with unrecoverable error, stop tracking";
-                LOGGER.error(msg, e);
-                return replicationService.updateSubscriptionState(subscriptionName, Subscription.State.FAILED, msg)
-                    .handle((ignoredAck, ignoredErr) -> {
-                        stopTracking(subscriptionName);
-                        return null;
-                    });
+            }).thenAccept(ignored -> {
+                trackedSubscription.resetBackoffIterator();
+            }).exceptionallyCompose(err -> stopTrackingOrDelayRetry(trackedSubscription, err));
+    }
+
+    private CompletableFuture<Void> stopTrackingOrDelayRetry(TrackedSubscription subscription, Throwable err) {
+        var e = SQLExceptions.unwrap(err);
+        String subscriptionName = subscription.name;
+        String msg;
+        if (LogicalReplicationRetry.failureIsTemporary(e)) {
+            Iterator<TimeValue> backoffIt = subscription.backoffIterator;
+            if (backoffIt.hasNext()) {
+                TimeValue delay = backoffIt.next();
+                LOGGER.warn(
+                    "Tracking remote metadata for subscription '{}', failed with temporary error ({}:{}), retry in {}",
+                    subscriptionName,
+                    e.getClass().getSimpleName(),
+                    e.getMessage(),
+                    delay
+                );
+                var delayFuture = new CompletableFuture<Void>();
+                threadPool.scheduleUnlessShuttingDown(delay, ThreadPool.Names.SAME, () -> delayFuture.complete(null));
+                return delayFuture;
+            } else {
+                msg = "Tracking remote metadata for subscription '" + subscriptionName + "'" + " failed with temporary error, but retry duration is exhausted";
+            }
+        } else {
+            msg = "Tracking of metadata failed for subscription '" + subscriptionName + "'" + " with unrecoverable error, stop tracking";
+        }
+        LOGGER.error(msg, e);
+        return replicationService.updateSubscriptionState(subscriptionName, Subscription.State.FAILED, msg)
+            .handle((ignoredAck, ignoredErr) -> {
+                stopTracking(subscriptionName);
+                return null;
             });
     }
 
@@ -286,14 +325,6 @@ public final class MetadataTracker implements Closeable {
         };
         clusterService.submitStateUpdateTask("track-metadata", updateTask);
         return listener;
-    }
-
-    private static boolean shouldRetry(Throwable e) {
-        return e instanceof ConnectTransportException ||
-            e instanceof ElasticsearchTimeoutException ||
-            e instanceof NoSuchRemoteClusterException ||
-            e instanceof NodeClosedException ||
-            e instanceof ConnectException;
     }
 
     private static class AckMetadataUpdateRequest extends AcknowledgedRequest<AckMetadataUpdateRequest> {
@@ -420,16 +451,16 @@ public final class MetadataTracker implements Closeable {
             }
         }
 
-        if (toRestoreIndices.isEmpty() && toRestoreTemplates.isEmpty()) {
-            return CompletableFuture.completedFuture(true);
-        }
-
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("Restoring newly subscribed relations={}, indices={}, templates={}",
                 relationNamesForStateUpdate,
                 toRestoreIndices,
                 toRestoreTemplates
             );
+        }
+
+        if (toRestoreIndices.isEmpty() && toRestoreTemplates.isEmpty()) {
+            return CompletableFuture.completedFuture(true);
         }
 
         var stateFuture = CompletableFuture.completedFuture(true);

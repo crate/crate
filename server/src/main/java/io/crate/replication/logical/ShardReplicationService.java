@@ -84,18 +84,6 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
         }
     }
 
-    CompletableFuture<Client> getRemoteClusterClient(Index index) {
-        String subscriptionName = subscribedIndices.get(index.getUUID());
-        if (subscriptionName == null) {
-            return CompletableFuture.failedFuture(new NoSubscriptionForIndexException(index));
-        }
-        var subscription = logicalReplicationService.subscriptions().get(subscriptionName);
-        if (subscription == null) {
-            return CompletableFuture.failedFuture(new NoSubscriptionForIndexException(index));
-        }
-        return remoteClusters.connect(subscriptionName, subscription.connectionInfo());
-    }
-
     @Override
     public void afterIndexCreated(IndexService indexService) {
         var settings = indexService.getIndexSettings().getSettings();
@@ -124,10 +112,12 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
             var subscription = logicalReplicationService.subscriptions().get(subscriptionName);
             if (subscription != null) {
                 var tracker = new ShardReplicationChangesTracker(
+                    subscriptionName,
+                    subscription,
                     indexShard,
                     threadPool,
                     replicationSettings,
-                    ShardReplicationService.this,
+                    remoteClusters,
                     clusterName.value(),
                     client
                 );

@@ -226,8 +226,12 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
     }
 
     public String publisherConnectionUrl() {
-        if (randomBoolean()) {
-            var postgres = publisherCluster.getInstance(PostgresNetty.class);
+        return publisherConnectionUrl(null);
+    }
+
+    public String publisherConnectionUrl(String nodeName) {
+        if (false && randomBoolean()) {
+            var postgres = publisherCluster.getInstance(PostgresNetty.class, nodeName);
             InetSocketAddress address = postgres.boundAddress().publishAddress().address();
             return String.format(
                 Locale.ENGLISH,
@@ -237,7 +241,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
                 SUBSCRIBING_USER
             );
         } else {
-            var transportService = publisherCluster.getInstance(TransportService.class);
+            var transportService = publisherCluster.getInstance(TransportService.class, nodeName);
             InetSocketAddress address = transportService.boundAddress().publishAddress().address();
             return String.format(
                 Locale.ENGLISH,
