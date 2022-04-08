@@ -80,9 +80,11 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.UpdateSubscriptionAction;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.Subscription.RelationState;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 
 public final class MetadataTracker implements Closeable {
@@ -485,33 +487,34 @@ public final class MetadataTracker implements Closeable {
                                                          Subscription subscription,
                                                          ClusterState subscriberClusterState,
                                                          ClusterState publisherClusterState) {
-        HashSet<RelationName> relationsToUpdate = new HashSet<>();
+        HashSet<RelationName> changedRelations = new HashSet<>();
         HashSet<Index> indicesToRemove = new HashSet<>();
         ArrayList<String> templatesToRemove = new ArrayList<>();
+        Metadata publisherMetadata = publisherClusterState.metadata();
+        Metadata subscriberMetadata = subscriberClusterState.metadata();
         for (var relationName : subscription.relations().keySet()) {
             var possibleTemplateName = PartitionName.templateName(relationName.schema(), relationName.name());
-            var isPartitioned = subscriberClusterState.metadata().templates().get(possibleTemplateName) != null;
-            if (isPartitioned
-                && publisherClusterState.metadata().templates().get(possibleTemplateName) == null) {
+            var isPartitioned = subscriberMetadata.templates().get(possibleTemplateName) != null;
+            boolean partitionDisappeared = isPartitioned && !publisherMetadata.templates().containsKey(possibleTemplateName);
+            if (partitionDisappeared) {
                 templatesToRemove.add(possibleTemplateName);
-                relationsToUpdate.add(relationName);
+                changedRelations.add(relationName);
             }
-
             var concreteIndices = indexNameExpressionResolver.concreteIndices(
                 subscriberClusterState,
                 IndicesOptions.lenientExpand(),
                 relationName.indexNameOrAlias()
             );
             for (var concreteIndex : concreteIndices) {
-                var subscriberIndexMetadata = subscriberClusterState.metadata().index(concreteIndex);
+                var subscriberIndexMetadata = subscriberMetadata.index(concreteIndex);
                 var publisherIndex = new Index(
                     concreteIndex.getName(),
                     PUBLISHER_INDEX_UUID.get(subscriberIndexMetadata.getSettings())
                 );
-                if (publisherClusterState.metadata().hasIndex(publisherIndex) == false) {
+                if (publisherMetadata.hasIndex(publisherIndex) == false) {
                     indicesToRemove.add(concreteIndex);
                     if (isPartitioned == false) {
-                        relationsToUpdate.add(relationName);
+                        changedRelations.add(relationName);
                     }
                 }
             }
@@ -519,7 +522,7 @@ public final class MetadataTracker implements Closeable {
 
         var updatedClusterState = subscriberClusterState;
         if (templatesToRemove.isEmpty() == false) {
-            var newMetadataBuilder = Metadata.builder(subscriberClusterState.metadata());
+            var newMetadataBuilder = Metadata.builder(subscriberMetadata);
             for (var templateName : templatesToRemove) {
                 newMetadataBuilder.removeTemplate(templateName);
             }
@@ -534,16 +537,27 @@ public final class MetadataTracker implements Closeable {
                 indicesToRemove
             );
         }
-        if (relationsToUpdate.isEmpty() == false) {
+        if (changedRelations.isEmpty() == false) {
             HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
             for (var entry : subscription.relations().entrySet()) {
-                if (relationsToUpdate.contains(entry.getKey()) == false) {
-                    relations.put(entry.getKey(), entry.getValue());
+                var relationName = entry.getKey();
+                if (changedRelations.contains(relationName) == false) {
+                    RelationState state = entry.getValue();
+                    relations.put(relationName, state);
                 }
             }
-            replicationService.updateSubscriptionState(subscriptionName, subscription, relations);
+            updatedClusterState = UpdateSubscriptionAction.update(
+                updatedClusterState,
+                subscriptionName,
+                new Subscription(
+                    subscription.owner(),
+                    subscription.connectionInfo(),
+                    subscription.publications(),
+                    subscription.settings(),
+                    relations
+                )
+            );
         }
-
         return updatedClusterState;
     }
 
