@@ -26,6 +26,7 @@ import io.crate.metadata.RelationName;
 import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -86,6 +87,32 @@ public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
         );
     }
 
+    public static ClusterState update(ClusterState clusterState,
+                                      String subscriptionName,
+                                      Subscription subscription) {
+        Metadata currentMetadata = clusterState.metadata();
+        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
+
+        var oldMetadata = (SubscriptionsMetadata) mdBuilder.getCustom(SubscriptionsMetadata.TYPE);
+        if (oldMetadata == null || oldMetadata.subscription().containsKey(subscriptionName) == false) {
+            throw new SubscriptionUnknownException(subscriptionName);
+        }
+
+        var oldSubscription = oldMetadata.subscription().get(subscriptionName);
+        var newSubscription = updateSubscription(oldSubscription, subscription);
+
+        if (oldSubscription.equals(newSubscription)) {
+            return clusterState;
+        }
+
+        var newMetadata = SubscriptionsMetadata.newInstance(oldMetadata);
+        newMetadata.subscription().put(subscriptionName, newSubscription);
+        assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
+        mdBuilder.putCustom(SubscriptionsMetadata.TYPE, newMetadata);
+
+        return ClusterState.builder(clusterState).metadata(mdBuilder).build();
+    }
+
     @Singleton
     public static class TransportAction extends TransportMasterNodeAction<Request, AcknowledgedResponse> {
 
@@ -122,29 +149,7 @@ public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
                 new ClusterStateUpdateTask() {
                     @Override
                     public ClusterState execute(ClusterState currentState) throws Exception {
-                        final String subscriptionName = request.subscriptionName;
-
-                        Metadata currentMetadata = currentState.metadata();
-                        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-
-                        var oldMetadata = (SubscriptionsMetadata) mdBuilder.getCustom(SubscriptionsMetadata.TYPE);
-                        if (oldMetadata == null || oldMetadata.subscription().containsKey(subscriptionName) == false) {
-                            throw new SubscriptionUnknownException(subscriptionName);
-                        }
-
-                        var oldSubscription = oldMetadata.subscription().get(subscriptionName);
-                        var newSubscription = updateSubscription(oldSubscription, request.subscription);
-
-                        if (oldSubscription.equals(newSubscription)) {
-                            return currentState;
-                        }
-
-                        var newMetadata = SubscriptionsMetadata.newInstance(oldMetadata);
-                        newMetadata.subscription().put(subscriptionName, newSubscription);
-                        assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
-                        mdBuilder.putCustom(SubscriptionsMetadata.TYPE, newMetadata);
-
-                        return ClusterState.builder(currentState).metadata(mdBuilder).build();
+                        return update(currentState, request.subscriptionName, request.subscription);
                     }
 
                     @Override
