@@ -21,14 +21,16 @@
 
 package io.crate.replication.logical;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.RetryListener;
-import io.crate.execution.support.RetryRunnable;
-import io.crate.replication.logical.action.ReplayChangesAction;
-import io.crate.replication.logical.action.ShardChangesAction;
-import io.crate.replication.logical.seqno.RetentionLeaseHelper;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
@@ -50,15 +52,14 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.NodeDisconnectedException;
 import org.elasticsearch.transport.NodeNotConnectedException;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.support.RetryListener;
+import io.crate.execution.support.RetryRunnable;
+import io.crate.replication.logical.action.ReplayChangesAction;
+import io.crate.replication.logical.action.ShardChangesAction;
+import io.crate.replication.logical.seqno.RetentionLeaseHelper;
 
 /**
  * Replicates batches of {@link org.elasticsearch.index.translog.Translog.Operation}'s to the subscribers target shards.
@@ -80,6 +81,7 @@ public class ShardReplicationChangesTracker implements Closeable {
     private final AtomicLong seqNoAlreadyRequested;
     private Scheduler.ScheduledCancellable cancellable;
 
+
     public ShardReplicationChangesTracker(IndexShard indexShard,
                                           ThreadPool threadPool,
                                           LogicalReplicationSettings replicationSettings,
@@ -93,8 +95,8 @@ public class ShardReplicationChangesTracker implements Closeable {
         this.shardReplicationService = shardReplicationService;
         this.clusterName = clusterName;
         var seqNoStats = indexShard.seqNoStats();
-        observedSeqNoAtLeader = new AtomicLong(seqNoStats.getGlobalCheckpoint());
-        seqNoAlreadyRequested = new AtomicLong(seqNoStats.getMaxSeqNo());
+        this.observedSeqNoAtLeader = new AtomicLong(seqNoStats.getGlobalCheckpoint());
+        this.seqNoAlreadyRequested = new AtomicLong(seqNoStats.getMaxSeqNo());
     }
 
     record SeqNoRange(long fromSeqNo, long toSeqNo) {
@@ -102,16 +104,19 @@ public class ShardReplicationChangesTracker implements Closeable {
 
     public void start() {
         LOGGER.debug("[{}] Spawning the shard changes reader", shardId);
-        var runnable = new RetryRunnable(
-            threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
-            threadPool.scheduler(),
-            this::requestBatchToFetch,
-            BackoffPolicy.exponentialBackoff()
-        );
-        runnable.run();
+        newRunnable().run();
     }
 
-    private void requestBatchToFetch() {
+    private RetryRunnable newRunnable() {
+        return new RetryRunnable(
+            threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
+            threadPool.scheduler(),
+            this::pollAndProcessPendingChanges,
+            BackoffPolicy.exponentialBackoff()
+        );
+    }
+
+    private void pollAndProcessPendingChanges() {
         requestBatchToFetch(batchToFetch -> {
             long fromSeqNo = batchToFetch.fromSeqNo();
             long toSeqNo = batchToFetch.toSeqNo();
@@ -316,7 +321,7 @@ public class ShardReplicationChangesTracker implements Closeable {
                                 r -> {
                                     // schedule next poll
                                     cancellable = threadPool.schedule(
-                                        this::requestBatchToFetch,
+                                        newRunnable(),
                                         replicationSettings.pollDelay(),
                                         ThreadPool.Names.LOGICAL_REPLICATION
                                     );
