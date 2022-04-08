@@ -67,7 +67,7 @@ public class Transports {
         try {
             transportService.sendRequest(discoveryNode, action, request, options, handler);
         } catch (Throwable t) {
-            listener.onFailure(Exceptions.toRuntimeException(t));
+            listener.onFailure(Exceptions.toException(t));
         }
     }
 

@@ -21,13 +21,11 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.exceptions.Exceptions;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
-import io.crate.replication.logical.metadata.Subscription;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.user.UserLookup;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -43,10 +41,13 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
+import io.crate.exceptions.Exceptions;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.user.UserLookup;
 
 public class TransportCreateSubscriptionAction extends TransportMasterNodeAction<CreateSubscriptionRequest, AcknowledgedResponse> {
 
@@ -116,7 +117,7 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                     if (err == null) {
                         listener.onResponse(new AcknowledgedResponse(true));
                     } else {
-                        listener.onFailure(Exceptions.toRuntimeException(err));
+                        listener.onFailure(Exceptions.toException(err));
                     }
                 }
             );
