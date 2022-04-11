@@ -21,22 +21,25 @@
 
 package io.crate.replication.logical;
 
-import io.crate.action.FutureActionListener;
-import io.crate.common.TriConsumer;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.unit.TimeValue;
-import io.crate.concurrent.CountdownFutureCallback;
-import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.RetryRunnable;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.action.PublicationsStateAction;
-import io.crate.replication.logical.metadata.ConnectionInfo;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.replication.logical.metadata.Subscription;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
+import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.net.ConnectException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
@@ -64,23 +67,22 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.NoSuchRemoteClusterException;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
-import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC;
+import io.crate.action.FutureActionListener;
+import io.crate.common.TriConsumer;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.CountdownFutureCallback;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.support.RetryRunnable;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.UpdateSubscriptionAction;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.Subscription.RelationState;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 
 public final class MetadataTracker implements Closeable {
 
@@ -190,143 +192,106 @@ public final class MetadataTracker implements Closeable {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Poll metadata for subscription {}", subscriptionName);
             }
-            Consumer<Throwable> onError = e -> {
-                e = SQLExceptions.unwrap(e);
-                if (shouldRetry(e) == false) {
-                    var msg = "Tracking of metadata failed for subscription '" + subscriptionName + "'" +
-                        " with unrecoverable error, stop tracking";
-                    LOGGER.error(msg, e);
-                    replicationService.updateSubscriptionState(
-                        subscriptionName,
-                        Subscription.State.FAILED,
-                        msg
-                    ).whenComplete((ignored, ignoredErr) -> {
-                        stopTracking(subscriptionName);
-                        countDown.onSuccess();
-                    });
-                } else {
-                    LOGGER.warn("Retrieving remote metadata failed for subscription '" + subscriptionName + "', will retry", e);
-                    countDown.onSuccess();
-                }
-            };
-            var subscription = retrieveSubscription(subscriptionName, clusterService.state());
-            if (subscription == null) {
-                LOGGER.trace("Subscription '" + subscriptionName +
-                    "' not found inside current local cluster state");
-                continue;
-            }
-
-            Client client;
-            try {
-                client = remoteClient.apply(subscriptionName);
-            } catch (Exception e) {
-                onError.accept(e);
-                continue;
-            }
-
-            var clusterStateListener = new FutureActionListener<>(AcknowledgedResponse::isAcknowledged);
-            clusterStateListener
-                .thenCompose(
-                    acked -> {
-                        if (acked) {
-                            // Only check for new relations and partitions if deleted relations and partitions are processed
-                            var future = getPublicationsState(subscription, client)
-                                .thenCompose(
-                                    response -> subscribeToNewRelations(
-                                        subscriptionName,
-                                        subscription,
-                                        clusterService.state(),
-                                        response,
-                                        replicationService
-                                    )
-                                );
-                            if (LOGGER.isTraceEnabled()) {
-                                return future.exceptionallyCompose(
-                                    err -> {
-                                        LOGGER.trace(
-                                            "Error while trying to retrieve the publications state for" +
-                                                " subscription=" + subscriptionName,
-                                            err
-                                        );
-                                        return CompletableFuture.failedFuture(err);
-                                    }
-                                );
-                            }
-                            return future;
-                        } else {
-                            return CompletableFuture.completedFuture(acked);
-                        }
-                    }
-                )
-                .whenComplete(
-                    (r, e) -> {
-                        // Finally, release and re-schedule
-                        if (e == null) {
-                            countDown.onSuccess();
-                        } else {
-                            onError.accept(e);
-                        }
-                    }
-                );
-            getRemoteClusterState(client).whenComplete(
-                (remoteClusterState, err) -> {
-                    if (err == null) {
-                        PublicationsMetadata publicationsMetadata = remoteClusterState.metadata().custom(PublicationsMetadata.TYPE);
-                        if (publicationsMetadata == null) {
-                            LOGGER.trace("No publications found on remote cluster.");
-                            return;
-                        }
-
-                        clusterService.submitStateUpdateTask("track-metadata", new AckedClusterStateUpdateTask<>(
-                            new AckMetadataUpdateRequest(),
-                            clusterStateListener
-                        ) {
-
-                            @Override
-                            public ClusterState execute(ClusterState localClusterState) throws Exception {
-                                if (LOGGER.isTraceEnabled()) {
-                                    LOGGER.trace("Process cluster state for subscription {}", subscriptionName);
-                                }
-
-                                localClusterState = removeDroppedTablesOrPartitions(
-                                    subscriptionName,
-                                    subscription,
-                                    localClusterState,
-                                    remoteClusterState
-                                );
-
-                                return updateIndexMetadata(
-                                    subscriptionName,
-                                    subscription,
-                                    localClusterState,
-                                    remoteClusterState,
-                                    indexScopedSettings
-                                );
-                            }
-
-                            @Override
-                            protected AcknowledgedResponse newResponse(boolean acknowledged) {
-                                return new AcknowledgedResponse(acknowledged);
-                            }
-
-                            @Override
-                            public void onFailure(String source, Exception e) {
-                                super.onFailure(source, e);
-                            }
-                        });
-
-                    } else {
-                        onError.accept(Exceptions.toRuntimeException(err));
-                    }
-                }
-            );
+            processSubscription(subscriptionName).whenComplete(countDown);
         }
+    }
+
+    private CompletableFuture<?> processSubscription(String subscriptionName) {
+        final ClusterState subscriberState = clusterService.state();
+        var subscription = retrieveSubscription(subscriptionName, subscriberState);
+        if (subscription == null) {
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Subscription {} not found inside current local cluster state", subscriptionName);
+            }
+            return CompletableFuture.completedFuture(null);
+        }
+        Client client;
+        try {
+            client = remoteClient.apply(subscriptionName);
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
+        return getRemoteClusterState(client)
+            .thenCompose(remoteState -> {
+                PublicationsMetadata publicationsMetadata = remoteState.metadata().custom(PublicationsMetadata.TYPE);
+                if (publicationsMetadata == null) {
+                    LOGGER.trace("No publications found on remote cluster.");
+                    return CompletableFuture.completedFuture(false);
+                }
+                return updateClusterState(subscriptionName, subscription, remoteState);
+            }).thenCompose(acked -> {
+                if (!acked) {
+                    return CompletableFuture.completedFuture(false);
+                }
+                var request = new PublicationsStateAction.Request(
+                    subscription.publications(),
+                    subscription.connectionInfo().user()
+                );
+                return client.execute(PublicationsStateAction.INSTANCE, request)
+                    .thenCompose(publicationsStateResp -> subscribeToNewRelations(
+                        subscriptionName,
+                        subscription,
+                        subscriberState,
+                        publicationsStateResp,
+                        replicationService));
+            }).exceptionallyCompose(err -> {
+                var e = SQLExceptions.unwrap(err);
+                if (shouldRetry(e)) {
+                    LOGGER.warn("Retrieving remote metadata failed for subscription '" + subscriptionName + "', will retry", e);
+                    return CompletableFuture.completedFuture(null);
+                }
+                var msg = "Tracking of metadata failed for subscription '" + subscriptionName + "'" + " with unrecoverable error, stop tracking";
+                LOGGER.error(msg, e);
+                return replicationService.updateSubscriptionState(subscriptionName, Subscription.State.FAILED, msg)
+                    .handle((ignoredAck, ignoredErr) -> {
+                        stopTracking(subscriptionName);
+                        return null;
+                    });
+            });
+    }
+
+    private CompletableFuture<Boolean> updateClusterState(String subscriptionName,
+                                                          Subscription subscription,
+                                                          ClusterState remoteClusterState) {
+        var listener = new FutureActionListener<>(AcknowledgedResponse::isAcknowledged);
+        var updateTask = new AckedClusterStateUpdateTask<>(new AckMetadataUpdateRequest(), listener) {
+
+            @Override
+            public ClusterState execute(ClusterState localClusterState) throws Exception {
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("Process cluster state for subscription {}", subscriptionName);
+                }
+
+                localClusterState = removeDroppedTablesOrPartitions(
+                    subscriptionName,
+                    subscription,
+                    localClusterState,
+                    remoteClusterState
+                );
+
+                return updateIndexMetadata(
+                    subscriptionName,
+                    subscription,
+                    localClusterState,
+                    remoteClusterState,
+                    indexScopedSettings
+                );
+            }
+
+            @Override
+            protected AcknowledgedResponse newResponse(boolean acknowledged) {
+                return new AcknowledgedResponse(acknowledged);
+            }
+        };
+        clusterService.submitStateUpdateTask("track-metadata", updateTask);
+        return listener;
     }
 
     private static boolean shouldRetry(Throwable e) {
         return e instanceof ConnectTransportException ||
             e instanceof ElasticsearchTimeoutException ||
-            e instanceof NoSuchRemoteClusterException;
+            e instanceof NoSuchRemoteClusterException ||
+            e instanceof ConnectException;
     }
 
     private static class AckMetadataUpdateRequest extends AcknowledgedRequest<AckMetadataUpdateRequest> {
@@ -481,33 +446,34 @@ public final class MetadataTracker implements Closeable {
                                                          Subscription subscription,
                                                          ClusterState subscriberClusterState,
                                                          ClusterState publisherClusterState) {
-        HashSet<RelationName> relationsToUpdate = new HashSet<>();
+        HashSet<RelationName> changedRelations = new HashSet<>();
         HashSet<Index> indicesToRemove = new HashSet<>();
         ArrayList<String> templatesToRemove = new ArrayList<>();
+        Metadata publisherMetadata = publisherClusterState.metadata();
+        Metadata subscriberMetadata = subscriberClusterState.metadata();
         for (var relationName : subscription.relations().keySet()) {
             var possibleTemplateName = PartitionName.templateName(relationName.schema(), relationName.name());
-            var isPartitioned = subscriberClusterState.metadata().templates().get(possibleTemplateName) != null;
-            if (isPartitioned
-                && publisherClusterState.metadata().templates().get(possibleTemplateName) == null) {
+            var isPartitioned = subscriberMetadata.templates().get(possibleTemplateName) != null;
+            boolean partitionDisappeared = isPartitioned && !publisherMetadata.templates().containsKey(possibleTemplateName);
+            if (partitionDisappeared) {
                 templatesToRemove.add(possibleTemplateName);
-                relationsToUpdate.add(relationName);
+                changedRelations.add(relationName);
             }
-
             var concreteIndices = indexNameExpressionResolver.concreteIndices(
                 subscriberClusterState,
                 IndicesOptions.lenientExpand(),
                 relationName.indexNameOrAlias()
             );
             for (var concreteIndex : concreteIndices) {
-                var subscriberIndexMetadata = subscriberClusterState.metadata().index(concreteIndex);
+                var subscriberIndexMetadata = subscriberMetadata.index(concreteIndex);
                 var publisherIndex = new Index(
                     concreteIndex.getName(),
                     PUBLISHER_INDEX_UUID.get(subscriberIndexMetadata.getSettings())
                 );
-                if (publisherClusterState.metadata().hasIndex(publisherIndex) == false) {
+                if (publisherMetadata.hasIndex(publisherIndex) == false) {
                     indicesToRemove.add(concreteIndex);
                     if (isPartitioned == false) {
-                        relationsToUpdate.add(relationName);
+                        changedRelations.add(relationName);
                     }
                 }
             }
@@ -515,7 +481,7 @@ public final class MetadataTracker implements Closeable {
 
         var updatedClusterState = subscriberClusterState;
         if (templatesToRemove.isEmpty() == false) {
-            var newMetadataBuilder = Metadata.builder(subscriberClusterState.metadata());
+            var newMetadataBuilder = Metadata.builder(subscriberMetadata);
             for (var templateName : templatesToRemove) {
                 newMetadataBuilder.removeTemplate(templateName);
             }
@@ -530,16 +496,27 @@ public final class MetadataTracker implements Closeable {
                 indicesToRemove
             );
         }
-        if (relationsToUpdate.isEmpty() == false) {
+        if (changedRelations.isEmpty() == false) {
             HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
             for (var entry : subscription.relations().entrySet()) {
-                if (relationsToUpdate.contains(entry.getKey()) == false) {
-                    relations.put(entry.getKey(), entry.getValue());
+                var relationName = entry.getKey();
+                if (changedRelations.contains(relationName) == false) {
+                    RelationState state = entry.getValue();
+                    relations.put(relationName, state);
                 }
             }
-            replicationService.updateSubscriptionState(subscriptionName, subscription, relations);
+            updatedClusterState = UpdateSubscriptionAction.update(
+                updatedClusterState,
+                subscriptionName,
+                new Subscription(
+                    subscription.owner(),
+                    subscription.connectionInfo(),
+                    subscription.publications(),
+                    subscription.settings(),
+                    relations
+                )
+            );
         }
-
         return updatedClusterState;
     }
 
@@ -590,21 +567,6 @@ public final class MetadataTracker implements Closeable {
 
         var future = new FutureActionListener<>(ClusterStateResponse::getState);
         client.admin().cluster().execute(ClusterStateAction.INSTANCE, clusterStateRequest, future);
-        return future;
-    }
-
-    private CompletableFuture<PublicationsStateAction.Response> getPublicationsState(Subscription subscription,
-                                                                                     Client client) {
-        FutureActionListener<PublicationsStateAction.Response, PublicationsStateAction.Response> future =
-            FutureActionListener.newInstance();
-        client.execute(
-            PublicationsStateAction.INSTANCE,
-            new PublicationsStateAction.Request(
-                subscription.publications(),
-                subscription.connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
-            ),
-            future
-        );
         return future;
     }
 

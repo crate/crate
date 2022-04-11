@@ -416,7 +416,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     @Test
     public void test_subscription_state_order() throws Exception {
         String subscriptionName = "sub1";
-        ArrayList<Subscription.State> subscriptionStates = new ArrayList<>();
+        final ArrayList<Subscription.State> subscriptionStates = new ArrayList<>();
         ClusterService clusterService = subscriberCluster.getMasterNodeInstance(ClusterService.class);
         clusterService.addListener(
             event -> {
@@ -429,9 +429,11 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                     var subscription = metadata.subscription().get(subscriptionName);
                     if (subscription != null) {
                         var currentState = subscription.relations().get(RelationName.fromIndexName("doc.t1")).state();
-                        var size = subscriptionStates.size();
-                        if (size == 0 || subscriptionStates.get(size -1).equals(currentState) == false) {
-                            subscriptionStates.add(currentState);
+                        synchronized (subscriptionStates) {
+                            var size = subscriptionStates.size();
+                            if (size == 0 || subscriptionStates.get(size -1).equals(currentState) == false) {
+                                subscriptionStates.add(currentState);
+                            }
                         }
                     }
                 }
@@ -445,13 +447,17 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         // Tracking (MONITORING state) may not have started even if table is green, so lets use a busy loop
         assertBusy(
-            () -> assertThat(
-                subscriptionStates,
-                contains(Subscription.State.INITIALIZING,
-                         Subscription.State.RESTORING,
-                         Subscription.State.SYNCHRONIZED,
-                         Subscription.State.MONITORING)
-            )
+            () -> {
+                synchronized (subscriptionStates) {
+                    assertThat(
+                        subscriptionStates,
+                        contains(Subscription.State.INITIALIZING,
+                                Subscription.State.RESTORING,
+                                Subscription.State.SYNCHRONIZED,
+                                Subscription.State.MONITORING)
+                    );
+                }
+            }
         );
 
         // check final exposed `r`(MONITORING) state
