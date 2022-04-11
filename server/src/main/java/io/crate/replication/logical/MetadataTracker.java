@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -213,9 +214,33 @@ public final class MetadataTracker implements Closeable {
             subscription.connectionInfo().user()
         );
         CompletableFuture<Response> publicationsState = client.execute(PublicationsStateAction.INSTANCE, request);
-        CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response ->
-            updateClusterState(subscriptionName, subscription, response)
-        );
+        CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response -> {
+            // We cannot use replicationService.verifyTablesDoNotExist(subscriptionName, stateResponse)
+            // as it uses cluster metadata for comparison and will fail on the second round of every replication.
+            Set<RelationName> existingTables = getExistingLocallyTables(subscription, subscriberState, response);
+            if (!existingTables.isEmpty()) {
+                var msg = String.format(
+                    Locale.ENGLISH,
+                    "Tracking of metadata failed for subscription '" + subscriptionName + "'" + ", stopping tracking. Some relation(s) already exist. " +
+                        "Check table pg_subscription_rel to see existing tables.",
+                    subscriptionName
+                );
+                LOGGER.error(msg);
+                return replicationService.updateSubscriptionState(
+                    subscriptionName,
+                    existingTables,
+                    Subscription.State.FAILED,
+                    // Table name is not included, as this message included for every row of pg_subscriptions_rel which already has table name.
+                    "Relation already exists"
+                ).handle((ignoredAck, ignoredErr) -> {
+                    stopTracking(subscriptionName);
+                    return false;
+                });
+            } else {
+                return updateClusterState(subscriptionName, subscription, response);
+            }
+        });
+
         return updatedClusterState.thenCompose(acked -> {
             if (!acked) {
                 return CompletableFuture.completedFuture(false);
@@ -343,6 +368,37 @@ public final class MetadataTracker implements Closeable {
         } else {
             return subscriberClusterState;
         }
+    }
+
+    /**
+     * @return empty list if there is no validation error and all tables don't exist locally
+     * or list of existing tables otherwise.
+     * These tables will be reported
+     * and will be visible in pg_subscriptions_rel table.
+     */
+    private static Set<RelationName> getExistingLocallyTables(Subscription subscription,
+                                                               ClusterState subscriberClusterState,
+                                                               Response publisherStateResponse) {
+        // Table existence check is done on a subscription creation but
+        // there are cases when attempt to subscribe to existing table happens later during the replication.
+        var metadata = subscriberClusterState.metadata();
+        Set<RelationName> currentlyReplicatedTables = subscription.relations().keySet();
+
+        Set<RelationName> existingRelations = publisherStateResponse.concreteIndices().stream()
+            .filter(index -> metadata.hasIndex(index))
+            .map(index -> RelationName.fromIndexName(index))
+            .filter(relationName -> currentlyReplicatedTables.contains(relationName) == false)
+            .collect(Collectors.toCollection(() -> new HashSet<>()));
+
+        for (String t: publisherStateResponse.concreteTemplates()) {
+            if (metadata.templates().containsKey(t)) {
+                var relationName = PartitionName.fromIndexOrTemplate(t).relationName();
+                if (currentlyReplicatedTables.contains(relationName) == false) {
+                    existingRelations.add(relationName);
+                }
+            }
+        }
+        return existingRelations;
     }
 
     /**
