@@ -47,11 +47,13 @@ import javax.annotation.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.execution.dml.upsert.ShardUpsertAction;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.create.CreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
-import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -83,7 +85,6 @@ import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.InsertSourceFromCells;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -274,7 +275,7 @@ public class InsertFromValues implements LogicalPlan {
 
         var actionProvider = dependencies.transportActionProvider();
         createIndices(
-            actionProvider.transportBulkCreateIndicesAction(),
+            dependencies.client(),
             shardedRequests.itemsByMissingIndex().keySet(),
             dependencies.clusterService(),
             plannerContext.jobId()
@@ -286,7 +287,7 @@ public class InsertFromValues implements LogicalPlan {
                 dependencies.nodeLimits(),
                 dependencies.clusterService().state(),
                 shardUpsertRequests,
-                actionProvider.transportShardUpsertAction(),
+                dependencies.client(),
                 dependencies.scheduler());
         }).whenComplete((response, t) -> {
             if (t == null) {
@@ -426,7 +427,7 @@ public class InsertFromValues implements LogicalPlan {
 
         var actionProvider = dependencies.transportActionProvider();
         createIndices(
-            actionProvider.transportBulkCreateIndicesAction(),
+            dependencies.client(),
             shardedRequests.itemsByMissingIndex().keySet(),
             dependencies.clusterService(), plannerContext.jobId()
         ).thenCompose(acknowledgedResponse -> {
@@ -437,7 +438,7 @@ public class InsertFromValues implements LogicalPlan {
                 dependencies.nodeLimits(),
                 dependencies.clusterService().state(),
                 shardUpsertRequests,
-                actionProvider.transportShardUpsertAction(),
+                dependencies.client(),
                 dependencies.scheduler());
         }).whenComplete((response, t) -> {
             if (t == null) {
@@ -631,7 +632,7 @@ public class InsertFromValues implements LogicalPlan {
     private CompletableFuture<ShardResponse.CompressedResult> execute(NodeLimits nodeLimits,
                                                                       ClusterState state,
                                                                       Collection<ShardUpsertRequest> shardUpsertRequests,
-                                                                      TransportShardUpsertAction shardUpsertAction,
+                                                                      ElasticsearchClient elasticsearchClient,
                                                                       ScheduledExecutorService scheduler) {
         ShardResponse.CompressedResult compressedResult = new ShardResponse.CompressedResult();
         if (shardUpsertRequests.isEmpty()) {
@@ -711,11 +712,12 @@ public class InsertFromValues implements LogicalPlan {
                 }
             };
 
-            shardUpsertAction.execute(
+            elasticsearchClient.execute(
+                ShardUpsertAction.INSTANCE,
                 request,
                 new RetryListener<>(
                     scheduler,
-                    l -> shardUpsertAction.execute(request, l),
+                    l -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, request, l),
                     listener,
                     BackoffPolicy.limitedDynamic(nodeLimit)
                 )
@@ -744,7 +746,7 @@ public class InsertFromValues implements LogicalPlan {
         return false;
     }
 
-    private static CompletableFuture<AcknowledgedResponse> createIndices(TransportCreatePartitionsAction createPartitionsAction,
+    private static CompletableFuture<AcknowledgedResponse> createIndices(ElasticsearchClient elasticsearchClient,
                                                                          Set<String> indices,
                                                                          ClusterService clusterService,
                                                                          UUID jobId) {
@@ -759,7 +761,8 @@ public class InsertFromValues implements LogicalPlan {
             return CompletableFuture.completedFuture(new AcknowledgedResponse(true));
         }
         FutureActionListener<AcknowledgedResponse, AcknowledgedResponse> listener = new FutureActionListener<>(r -> r);
-        createPartitionsAction.execute(new CreatePartitionsRequest(indicesToCreate, jobId), listener);
+        elasticsearchClient.execute(CreatePartitionsAction.INSTANCE,
+            new CreatePartitionsRequest(indicesToCreate, jobId), listener);
         return listener;
     }
 

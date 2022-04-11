@@ -38,6 +38,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
@@ -73,6 +74,7 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
             nodeCtx,
             THREAD_POOL,
             Settings.EMPTY,
+            mock(ElasticsearchClient.class),
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS),
             new InputFactory(nodeCtx),
             new EvaluatingNormalizer(

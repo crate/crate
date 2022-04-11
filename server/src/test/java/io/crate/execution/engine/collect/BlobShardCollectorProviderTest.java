@@ -33,6 +33,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.CheckedRunnable;
@@ -50,6 +51,7 @@ import java.util.UUID;
 import java.util.stream.StreamSupport;
 
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
@@ -117,6 +119,7 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                     null,
                     null,
                     Settings.EMPTY,
+                    mock(ElasticsearchClient.class),
                     null,
                     Map.of()
                 );

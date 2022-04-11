@@ -32,7 +32,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -48,7 +47,6 @@ import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.pipeline.TableSettingsResolver;
@@ -97,8 +95,7 @@ public class IndexWriterProjectorTest extends SQLIntegrationTestCase {
             Settings.EMPTY,
             IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
             NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize()),
-            internalCluster().getInstance(TransportCreatePartitionsAction.class),
-            internalCluster().getInstance(TransportShardUpsertAction.class)::execute,
+            internalCluster().client(),
             IndexNameResolver.forTable(bulkImportIdent),
             new Reference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
                           RowGranularity.DOC,

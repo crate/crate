@@ -55,6 +55,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.common.settings.Settings;
@@ -98,7 +99,11 @@ public final class ResetSettingsPlan implements Plan {
         OneRowActionListener<ClusterUpdateSettingsResponse> actionListener = new OneRowActionListener<>(
             consumer,
             r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L));
-        dependencies.transportActionProvider().transportClusterUpdateSettingsAction().execute(request, actionListener);
+        dependencies.client().execute(
+            ClusterUpdateSettingsAction.INSTANCE,
+            request,
+            actionListener
+        );
     }
 
     @VisibleForTesting

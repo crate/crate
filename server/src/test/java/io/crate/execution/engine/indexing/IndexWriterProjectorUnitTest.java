@@ -35,7 +35,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -97,7 +97,6 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
         InputCollectExpression sourceInput = new InputCollectExpression(0);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
-        TransportCreatePartitionsAction transportCreatePartitionsAction = mock(TransportCreatePartitionsAction.class);
         IndexWriterProjector indexWriter = new IndexWriterProjector(
             clusterService,
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
@@ -110,8 +109,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             Settings.EMPTY,
             5,
             1,
-            transportCreatePartitionsAction,
-            (request, listener) -> {},
+            mock(ElasticsearchClient.class),
             IndexNameResolver.forTable(BULK_IMPORT_IDENT),
             RAW_SOURCE_REFERENCE,
             Collections.singletonList(ID_IDENT),

@@ -64,6 +64,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 
@@ -143,8 +144,10 @@ public final class DeletePlanner {
                 && (!where.hasQuery() || Literal.BOOLEAN_TRUE.equals(where.query()))) {
                 DeleteIndexRequest request = new DeleteIndexRequest(where.partitions().toArray(new String[0]));
                 request.indicesOptions(IndicesOptions.lenientExpandOpen());
-                executor.transportActionProvider().transportDeleteIndexAction()
-                    .execute(request, new OneRowActionListener<>(consumer, o -> new Row1(-1L)));
+                executor.client().execute(
+                    DeleteIndexAction.INSTANCE,
+                    request,
+                    new OneRowActionListener<>(consumer, o -> new Row1(-1L)));
                 return;
             }
 

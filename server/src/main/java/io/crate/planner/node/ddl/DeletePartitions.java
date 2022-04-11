@@ -39,6 +39,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 
@@ -75,8 +76,11 @@ public class DeletePartitions implements Plan {
             plannerContext.transactionContext(), dependencies.nodeContext(), params, subQueryResults);
         DeleteIndexRequest request = new DeleteIndexRequest(indexNames.toArray(new String[0]));
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
-        dependencies.transportActionProvider().transportDeleteIndexAction()
-            .execute(request, new OneRowActionListener<>(consumer, r -> Row1.ROW_COUNT_UNKNOWN));
+        dependencies.client().execute(
+            DeleteIndexAction.INSTANCE,
+            request,
+            new OneRowActionListener<>(consumer, r -> Row1.ROW_COUNT_UNKNOWN)
+        );
     }
 
     @VisibleForTesting

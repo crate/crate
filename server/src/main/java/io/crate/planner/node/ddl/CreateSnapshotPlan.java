@@ -50,6 +50,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Table;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.settings.Settings;
@@ -94,8 +95,8 @@ public class CreateSnapshotPlan implements Plan {
             subQueryResults,
             dependencies.schemas());
 
-        var transportCreateSnapshotAction = dependencies.transportActionProvider().transportCreateSnapshotAction();
-        transportCreateSnapshotAction.execute(
+        dependencies.client().execute(
+            CreateSnapshotAction.INSTANCE,
             request,
             new OneRowActionListener<>(
                 consumer,

@@ -89,7 +89,6 @@ import io.crate.metadata.table.Operation;
 @Singleton
 public class TransportShardUpsertAction extends TransportShardAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
-    private static final String ACTION_NAME = "internal:crate:sql/data/write";
     private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
 
     private final Schemas schemas;
@@ -109,7 +108,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       Schemas schemas) {
         super(
             settings,
-            ACTION_NAME,
+            ShardUpsertAction.NAME,
             transportService,
             clusterService,
             indicesService,

@@ -32,6 +32,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.common.settings.Settings;
 
@@ -63,10 +64,11 @@ public class DropAnalyzerPlan implements Plan {
             dropAnalyzer.name(),
             dependencies.fulltextAnalyzerResolver());
 
-        dependencies
-            .transportActionProvider()
-            .transportClusterUpdateSettingsAction()
-            .execute(request, new OneRowActionListener<>(consumer, r -> new Row1(1L)));
+        dependencies.client().execute(
+            ClusterUpdateSettingsAction.INSTANCE,
+            request,
+            new OneRowActionListener<>(consumer, r -> new Row1(1L))
+        );
     }
 
     @VisibleForTesting
