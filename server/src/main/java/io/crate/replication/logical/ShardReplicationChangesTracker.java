@@ -166,12 +166,12 @@ public class ShardReplicationChangesTracker implements Closeable {
                     LOGGER.info("[{}] Node not connected. Retrying.. {}", shardId, e);
                     updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
                 } else if (t instanceof IndexShardClosedException) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("[{}] Remote shard closed (table closed?), will stop tracking changes", shardId);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info("[{}] Remote shard closed (table closed?), will stop tracking changes", shardId);
                     }
                 } else if (t instanceof IndexNotFoundException || t instanceof NoShardAvailableActionException) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("[{}] Remote shard not found (dropped table?), will stop tracking changes", shardId);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info("[{}] Remote shard not found (dropped table?), will stop tracking changes", shardId);
                     }
                 } else {
                     LOGGER.warn(
