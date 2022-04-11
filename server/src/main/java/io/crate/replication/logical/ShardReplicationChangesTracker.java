@@ -310,35 +310,23 @@ public class ShardReplicationChangesTracker implements Closeable {
             }
         }
 
-        // Renew retention lease with global checkpoint so that any shard that picks up shard replication task
-        // has data until then.
-        // Method is called inside a transport thread (response listener), so dispatch away
-        threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION).execute(
-            () -> {
-                shardReplicationService.getRemoteClusterClient(shardId.getIndex())
-                    .thenAccept(client -> {
-                        RetentionLeaseHelper.renewRetentionLease(
-                            shardId,
-                            toSeqNoReceived,
-                            clusterName,
-                            client,
-                            ActionListener.wrap(
-                                r -> {
-                                    // schedule next poll
-                                    cancellable = threadPool.schedule(
-                                        newRunnable(),
-                                        replicationSettings.pollDelay(),
-                                        ThreadPool.Names.LOGICAL_REPLICATION
-                                    );
-                                },
-                                e -> {
-                                    LOGGER.warn("Exception renewing retention lease.", e);
-                                }
-                            )
-                        );
-                    });
-            }
-        );
+        shardReplicationService.getRemoteClusterClient(shardId.getIndex())
+            .thenCompose(client -> RetentionLeaseHelper.renewRetentionLease(
+                shardId,
+                toSeqNoReceived,
+                clusterName,
+                client
+            )).whenComplete((resp, err) -> {
+                if (err == null) {
+                    cancellable = threadPool.schedule(
+                        newRunnable(),
+                        replicationSettings.pollDelay(),
+                        ThreadPool.Names.LOGICAL_REPLICATION
+                    );
+                } else {
+                    LOGGER.warn("Exception renewing retention lease. Stopping tracking changes", err);
+                }
+            });
     }
 
     @Override
