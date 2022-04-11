@@ -120,7 +120,8 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED,
         BlobIndicesService.SETTING_INDEX_BLOBS_PATH,
         LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME,
-        LogicalReplicationSettings.PUBLISHER_INDEX_UUID
+        LogicalReplicationSettings.PUBLISHER_INDEX_UUID,
+        LogicalReplicationSettings.REPLICATION_PUBLICATION_NAMES
     );
 
     public static final IndexScopedSettings DEFAULT_SCOPED_SETTINGS = new IndexScopedSettings(Settings.EMPTY, BUILT_IN_INDEX_SETTINGS);

@@ -74,6 +74,7 @@ import java.util.Collection;
 import java.util.List;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_PUBLICATION_NAMES;
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 
 /**
@@ -198,6 +199,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 builder.put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
                 // Store publishers original index UUID to be able to resolve the original index later on
                 builder.put(PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
+                // Do not add the information if the table is published
+                builder.remove(REPLICATION_PUBLICATION_NAMES.getKey());
 
                 var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
                 indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));
@@ -218,6 +221,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             builder.put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
             // Store publishers original index UUID to be able to resolve the original index later on
             builder.put(PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
+            // Do not add the information if the table is published
+            builder.remove(REPLICATION_PUBLICATION_NAMES.getKey());
 
             var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
             indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));

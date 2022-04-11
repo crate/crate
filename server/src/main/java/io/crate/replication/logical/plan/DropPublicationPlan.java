@@ -50,7 +50,11 @@ public class DropPublicationPlan implements Plan {
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
-        var request = new DropPublicationRequest(analyzedDropPublication.name(), analyzedDropPublication.ifExists());
+        var request = new DropPublicationRequest(
+            plannerContext.transactionContext().sessionContext().sessionUser().name(),
+            analyzedDropPublication.name(),
+            analyzedDropPublication.ifExists()
+        );
         dependencies.dropPublicationAction()
             .execute(request, new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : 1L)));
     }

@@ -21,6 +21,9 @@
 
 package io.crate.replication.logical.action;
 
+import static io.crate.replication.logical.action.TransportCreatePublicationAction.addPublicationInSetting;
+import static io.crate.replication.logical.action.TransportDropPublicationAction.removePublicationInSetting;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
@@ -111,6 +114,7 @@ public class TransportAlterPublicationAction extends TransportMasterNodeAction<T
                         newMetadata.publications().put(request.name, newPublication);
                         assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
                         mdBuilder.putCustom(PublicationsMetadata.TYPE, newMetadata);
+                        updatePublicationInSettings(request.name, publication, newPublication, currentState, mdBuilder);
 
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     } else {
@@ -134,6 +138,20 @@ public class TransportAlterPublicationAction extends TransportMasterNodeAction<T
         };
 
         clusterService.submitStateUpdateTask("alter-publication", updateTask);
+    }
+
+    void updatePublicationInSettings(String publicationName,
+                                     Publication oldPublication,
+                                     Publication newPublication,
+                                     ClusterState currentState,
+                                     Metadata.Builder mdBuilder) {
+        var removedTables = new ArrayList<>(oldPublication.tables());
+        removedTables.removeAll(newPublication.tables());
+        removePublicationInSetting(indexNameExpressionResolver, publicationName, removedTables, currentState, mdBuilder);
+
+        var newTables = new ArrayList<>(newPublication.tables());
+        newTables.removeAll(oldPublication.tables());
+        addPublicationInSetting(indexNameExpressionResolver, publicationName, newTables, currentState, mdBuilder);
     }
 
     @VisibleForTesting

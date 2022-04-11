@@ -64,6 +64,7 @@ import java.util.Locale;
 
 import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
 
+
 public class PublicationsStateAction extends ActionType<PublicationsStateAction.Response> {
 
     public static final String NAME = "internal:crate:replication/logical/publication/state";
@@ -190,6 +191,21 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                                                         ClusterState clusterState,
                                                         User publicationOwner,
                                                         User subscribedUser) {
+            return resolveRelationsNames(publication, clusterState).stream()
+                .filter(relationName -> userCanPublish(relationName, publicationOwner))
+                .filter(relationName -> subscriberCanRead(relationName, subscribedUser))
+                .toList();
+        }
+
+        static List<RelationName> resolveRelationsNames(Publication publication,
+                                                        ClusterState clusterState,
+                                                        User publicationOwner) {
+            return resolveRelationsNames(publication, clusterState).stream()
+                .filter(relationName -> userCanPublish(relationName, publicationOwner))
+                .toList();
+        }
+
+        private static List<RelationName> resolveRelationsNames(Publication publication, ClusterState clusterState) {
 
             List<RelationName> relationNames;
             if (publication.isForAllTables()) {
@@ -226,10 +242,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 // Soft deletes check for pre-defined tables was done in LogicalReplicationAnalyzer on the publication creation.
                 relationNames = publication.tables();
             }
-            return relationNames.stream()
-                .filter(relationName -> userCanPublish(relationName, publicationOwner))
-                .filter(relationName -> subscriberCanRead(relationName, subscribedUser))
-                .toList();
+            return relationNames;
         }
 
         private static boolean subscriberCanRead(RelationName relationName, User subscriber) {

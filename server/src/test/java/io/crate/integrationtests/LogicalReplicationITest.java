@@ -385,7 +385,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThrowsMatches(
             () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication."
+            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription."
         );
     }
 
@@ -409,7 +409,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThrowsMatches(
             () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication."
+            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription."
         );
     }
 
@@ -536,12 +536,69 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
 
         createPublication("pub1", false, List.of("t1"));
+
+        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE t1" );
+
         createSubscription("sub1", "pub1");
 
         assertThrowsMatches(
             () ->  executeOnSubscriber("DROP TABLE t1"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't allow DROP operations, because it is included in a logical replication."
+            "The relation \"doc.t1\" doesn't allow DROP operations, because it is included in a logical replication subscription."
         );
+    }
+
+    @Test
+    public void test_alter_published_tables() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE TABLE t2 (id INT) WITH(" + defaultTableSettings() +")");
+
+        createPublication("pub1", false, List.of("t1"));
+
+        assertThrowsMatches(
+            () ->  executeOnPublisher("ALTER TABLE t1 rename to t2"),
+            OperationOnInaccessibleRelationException.class,
+            "The relation \"doc.t1\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication."
+        );
+
+        executeOnPublisher("ALTER TABLE t2 RENAME TO t3");
+        executeOnPublisher("ALTER PUBLICATION pub1 ADD TABLE t3");
+
+        assertThrowsMatches(
+            () ->  executeOnPublisher("ALTER TABLE t3 rename to t4"),
+            OperationOnInaccessibleRelationException.class,
+            "The relation \"doc.t3\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication."
+        );
+
+        executeOnPublisher("ALTER PUBLICATION pub1 DROP TABLE t3");
+        executeOnPublisher("ALTER TABLE t3 RENAME TO t4");
+        executeOnPublisher("DROP PUBLICATION pub1");
+
+        executeOnPublisher("ALTER TABLE t1 RENAME TO t5");
+    }
+
+    @Test
+    public void test_alter_tables_when_all_tables_are_published() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE TABLE t2 (id INT) WITH(" + defaultTableSettings() +")");
+
+        createPublication("pub1", true, List.of("t1", "t2"));
+
+        assertThrowsMatches(
+            () ->  executeOnPublisher("ALTER TABLE t1 rename to t2"),
+            OperationOnInaccessibleRelationException.class,
+            "The relation \"doc.t1\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication."
+        );
+
+        assertThrowsMatches(
+            () ->  executeOnPublisher("ALTER TABLE t2 rename to t3"),
+            OperationOnInaccessibleRelationException.class,
+            "The relation \"doc.t2\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication."
+        );
+
+        executeOnPublisher("DROP PUBLICATION pub1");
+
+        executeOnPublisher("ALTER TABLE t1 RENAME TO t3");
+        executeOnPublisher("ALTER TABLE t2 RENAME TO t4");
     }
 }

@@ -32,6 +32,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_PUBLICATION_NAMES;
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 
 public enum Operation {
@@ -66,6 +67,9 @@ public enum Operation {
         ALTER_BLOCKS, ALTER_OPEN, ALTER_CLOSE, ALTER_REROUTE, REFRESH, SHOW_CREATE, OPTIMIZE);
     public static final EnumSet<Operation> LOGICAL_REPLICATED = EnumSet.of(
         READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE, ALTER_OPEN);
+    public static final EnumSet<Operation> PUBLISHED_IN_LOGICAL_REPLICATION_OPERATIONS = EnumSet.of(
+        READ, UPDATE, INSERT, DELETE, DROP, ALTER, ALTER_BLOCKS, ALTER_OPEN, ALTER_CLOSE, ALTER_REROUTE, REFRESH,
+        SHOW_CREATE, COPY_TO, OPTIMIZE, CREATE_SNAPSHOT);
 
     private final String representation;
 
@@ -86,10 +90,20 @@ public enum Operation {
             return CLOSED_OPERATIONS;
         }
         Set<Operation> operations = ALL;
+
         var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(settings);
-        if (subscriptionName != null && subscriptionName.isEmpty() == false) {
+        var publicationNames = REPLICATION_PUBLICATION_NAMES.get(settings);
+        var isPublished = publicationNames != null && publicationNames.isEmpty() == false;
+        var isSubscribed = subscriptionName != null && subscriptionName.isEmpty() == false;
+
+        assert (isPublished && isSubscribed) == false : "A table must not published and subscribed at the same time";
+
+        if (isPublished) {
+            operations = PUBLISHED_IN_LOGICAL_REPLICATION_OPERATIONS;
+        } else if (isSubscribed) {
             operations = LOGICAL_REPLICATED;
         }
+
         for (Map.Entry<String, EnumSet<Operation>> entry : BLOCK_SETTING_TO_OPERATIONS_MAP.entrySet()) {
             if (!settings.getAsBoolean(entry.getKey(), false)) {
                 continue;
@@ -108,7 +122,9 @@ public enum Operation {
                                    "closed.";
             } else if (tableInfo.supportedOperations().equals(LOGICAL_REPLICATED)) {
                 exceptionMessage = "The relation \"%s\" doesn't allow %s operations, because it is included in a " +
-                                   "logical replication.";
+                                   "logical replication subscription.";
+            } else if (tableInfo.supportedOperations().equals(PUBLISHED_IN_LOGICAL_REPLICATION_OPERATIONS)) {
+                exceptionMessage = "The relation \"%s\" doesn't allow %s operations, because it is included in a logical replication publication.";
             } else if (tableInfo.supportedOperations().equals(SYS_READ_ONLY) ||
                        tableInfo.supportedOperations().equals(READ_ONLY)) {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is read-only.";

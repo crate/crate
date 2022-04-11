@@ -29,18 +29,25 @@ import java.io.IOException;
 
 public class DropPublicationRequest extends AcknowledgedRequest<DropPublicationRequest> {
 
+    private final String owner;
     private final String name;
     private final boolean ifExists;
 
-    public DropPublicationRequest(String name, boolean ifExists) {
+    public DropPublicationRequest(String owner, String name, boolean ifExists) {
+        this.owner = owner;
         this.name = name;
         this.ifExists = ifExists;
     }
 
     public DropPublicationRequest(StreamInput in) throws IOException {
         super(in);
+        this.owner = in.readString();
         this.name = in.readString();
         this.ifExists = in.readBoolean();
+    }
+
+    public String owner() {
+        return owner;
     }
 
     public String name() {
@@ -54,6 +61,7 @@ public class DropPublicationRequest extends AcknowledgedRequest<DropPublicationR
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeString(owner);
         out.writeString(name);
         out.writeBoolean(ifExists);
     }

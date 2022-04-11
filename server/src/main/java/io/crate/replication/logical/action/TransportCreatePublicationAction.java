@@ -21,27 +21,36 @@
 
 package io.crate.replication.logical.action;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_PUBLICATION_NAMES;
+import static io.crate.replication.logical.action.PublicationsStateAction.TransportAction.resolveRelationsNames;
+
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.user.UserLookup;
+
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.List;
 import java.util.Locale;
 
 @Singleton
@@ -83,7 +92,8 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
                 }
 
                 // Ensure publication owner exists
-                if (userLookup.findUser(request.owner()) == null) {
+                var user = userLookup.findUser(request.owner());
+                if (user == null) {
                     throw new IllegalStateException(
                         String.format(
                             Locale.ENGLISH, "Publication '%s' cannot be created as the user '%s' owning the publication has been dropped.",
@@ -103,16 +113,61 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
 
                 // create a new instance of the metadata, to guarantee the cluster changed action.
                 var newMetadata = PublicationsMetadata.newInstance(oldMetadata);
+                var publication = new Publication(request.owner(), request.isForAllTables(), request.tables());
                 newMetadata.publications().put(
                     request.name(),
-                    new Publication(request.owner(), request.isForAllTables(), request.tables())
+                    publication
                 );
                 assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
                 mdBuilder.putCustom(PublicationsMetadata.TYPE, newMetadata);
+                List<RelationName> tablesToUpdate;
+                if (request.isForAllTables()) {
+                    tablesToUpdate = resolveRelationsNames(publication, currentState, user);
+                } else {
+                    tablesToUpdate = request.tables();
+                }
+                addPublicationInSetting(indexNameExpressionResolver,
+                                        request.name(),
+                                        tablesToUpdate,
+                                        currentState,
+                                        mdBuilder);
 
                 return ClusterState.builder(currentState).metadata(mdBuilder).build();
             }
         };
+    }
+
+    static void addPublicationInSetting(IndexNameExpressionResolver indexNameExpressionResolver,
+                                        String publicationName,
+                                        List<RelationName> tables,
+                                        ClusterState currentState,
+                                        Metadata.Builder mdBuilder) {
+        for (var relationName : tables) {
+            var concreteIndices = indexNameExpressionResolver.concreteIndexNames(
+                currentState,
+                IndicesOptions.lenientExpandOpen(),
+                relationName.indexNameOrAlias()
+            );
+            for (var indexName : concreteIndices) {
+                IndexMetadata indexMetadata = currentState.metadata().index(indexName);
+                assert indexMetadata != null : "Cannot resolve indexMetadata for relation=" + relationName;
+                var settings = indexMetadata.getSettings();
+                var publicationNames = REPLICATION_PUBLICATION_NAMES.get(settings);
+                if (publicationNames == null) {
+                    publicationNames = List.of(publicationName);
+                } else {
+                    publicationNames.add(publicationName);
+                }
+                var settingsBuilder = Settings.builder().put(settings);
+                settingsBuilder.putList(REPLICATION_PUBLICATION_NAMES.getKey(), publicationNames);
+                mdBuilder.put(
+                    IndexMetadata
+                        .builder(indexMetadata)
+                        .settingsVersion(1 + indexMetadata.getSettingsVersion())
+                        .settings(settingsBuilder)
+                );
+            }
+        }
     }
 
     @Override

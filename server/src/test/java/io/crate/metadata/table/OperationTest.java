@@ -43,6 +43,7 @@ import static io.crate.metadata.table.Operation.READ_ONLY;
 import static io.crate.metadata.table.Operation.REFRESH;
 import static io.crate.metadata.table.Operation.SHOW_CREATE;
 import static io.crate.metadata.table.Operation.UPDATE;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_PUBLICATION_NAMES;
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
@@ -106,6 +107,17 @@ public class OperationTest extends ESTestCase {
         assertThat(
             Operation.buildFromIndexSettingsAndState(replicatedIndexSettings, IndexMetadata.State.OPEN),
             containsInAnyOrder(READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE, ALTER_OPEN)
+        );
+    }
+
+    @Test
+    public void test_allowed_operations_for_published_table() {
+        var replicatedIndexSettings = Settings.builder()
+            .put(REPLICATION_PUBLICATION_NAMES.getKey(), "pub1")
+            .build();
+        assertThat(
+            Operation.buildFromIndexSettingsAndState(replicatedIndexSettings, IndexMetadata.State.OPEN),
+            is(Operation.PUBLISHED_IN_LOGICAL_REPLICATION_OPERATIONS)
         );
     }
 }

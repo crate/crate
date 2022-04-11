@@ -21,7 +21,10 @@
 
 package io.crate.replication.logical;
 
+import static io.crate.types.DataTypes.STRING_ARRAY;
+
 import io.crate.common.unit.TimeValue;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
@@ -37,6 +40,7 @@ import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.engine.EngineConfig;
 
+import java.util.List;
 import java.util.Set;
 
 public class LogicalReplicationSettings {
@@ -79,6 +83,15 @@ public class LogicalReplicationSettings {
      */
     public static final Setting<String> REPLICATION_SUBSCRIPTION_NAME = Setting.simpleString(
         "index.replication.logical.subscription_name",
+        Setting.Property.InternalIndex,
+        Setting.Property.IndexScope
+    );
+
+    public static final Setting<List<String>> REPLICATION_PUBLICATION_NAMES = Setting.listSetting(
+        "index.replication.logical.publication_names",
+        List.of(),
+        s -> s,
+        STRING_ARRAY,
         Setting.Property.InternalIndex,
         Setting.Property.IndexScope
     );
@@ -141,7 +154,8 @@ public class LogicalReplicationSettings {
         MergeSchedulerConfig.AUTO_THROTTLE_SETTING,
         MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING,
         MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
-        EngineConfig.INDEX_CODEC_SETTING
+        EngineConfig.INDEX_CODEC_SETTING,
+        LogicalReplicationSettings.REPLICATION_PUBLICATION_NAMES
     );
 
     private int batchSize;

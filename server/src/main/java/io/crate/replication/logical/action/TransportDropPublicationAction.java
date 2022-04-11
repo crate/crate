@@ -21,20 +21,31 @@
 
 package io.crate.replication.logical.action;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_PUBLICATION_NAMES;
+import static io.crate.replication.logical.action.PublicationsStateAction.TransportAction.resolveRelationsNames;
+
+import java.util.List;
+
 import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.user.UserLookup;
+
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -42,13 +53,14 @@ import org.elasticsearch.transport.TransportService;
 public class TransportDropPublicationAction extends AbstractDDLTransportAction<DropPublicationRequest, AcknowledgedResponse> {
 
     public static final String ACTION_NAME = "internal:crate:replication/logical/publication/drop";
-
+    private final UserLookup userLookup;
 
     @Inject
     public TransportDropPublicationAction(TransportService transportService,
                                           ClusterService clusterService,
                                           ThreadPool threadPool,
-                                          IndexNameExpressionResolver indexNameExpressionResolver) {
+                                          IndexNameExpressionResolver indexNameExpressionResolver,
+                                          UserLookup userLookup) {
         super(ACTION_NAME,
               transportService,
               clusterService,
@@ -58,6 +70,7 @@ public class TransportDropPublicationAction extends AbstractDDLTransportAction<D
               AcknowledgedResponse::new,
               AcknowledgedResponse::new,
               "drop-publication");
+        this.userLookup = userLookup;
     }
 
     @Override
@@ -75,10 +88,17 @@ public class TransportDropPublicationAction extends AbstractDDLTransportAction<D
                     if (oldMetadata.publications().containsKey(request.name())) {
 
                         PublicationsMetadata newMetadata = PublicationsMetadata.newInstance(oldMetadata);
-                        newMetadata.publications().remove(request.name());
+                        var publication = newMetadata.publications().remove(request.name());
                         assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
                         mdBuilder.putCustom(PublicationsMetadata.TYPE, newMetadata);
-
+                        var user = userLookup.findUser(request.owner());
+                        List<RelationName> tablesToUpdate;
+                        if (publication.isForAllTables()) {
+                            tablesToUpdate = resolveRelationsNames(publication, currentState, user);
+                        } else {
+                            tablesToUpdate = publication.tables();
+                        }
+                        removePublicationInSetting(indexNameExpressionResolver, request.name(), tablesToUpdate, currentState, mdBuilder);
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     } else if (request.ifExists() == false) {
                         throw new PublicationUnknownException(request.name());
@@ -88,6 +108,37 @@ public class TransportDropPublicationAction extends AbstractDDLTransportAction<D
                 return currentState;
             }
         };
+    }
+
+    static void removePublicationInSetting(IndexNameExpressionResolver indexNameExpressionResolver,
+                                           String publicationName,
+                                           List<RelationName> tables,
+                                           ClusterState currentState,
+                                           Metadata.Builder mdBuilder) {
+        for (var relationName : tables) {
+            var concreteIndices = indexNameExpressionResolver.concreteIndexNames(
+                currentState,
+                IndicesOptions.lenientExpandOpen(),
+                relationName.indexNameOrAlias()
+            );
+            for (var indexName : concreteIndices) {
+                IndexMetadata indexMetadata = currentState.metadata().index(indexName);
+                assert indexMetadata != null : "Cannot resolve indexMetadata for relation=" + relationName;
+                var settings = indexMetadata.getSettings();
+                var publicationNames = REPLICATION_PUBLICATION_NAMES.get(settings);
+                if (publicationNames != null && !publicationNames.isEmpty()) {
+                    publicationNames.remove(publicationName);
+                }
+                var settingsBuilder = Settings.builder().put(indexMetadata.getSettings());
+                settingsBuilder.putList(REPLICATION_PUBLICATION_NAMES.getKey(), publicationNames);
+                mdBuilder.put(
+                    IndexMetadata
+                        .builder(indexMetadata)
+                        .settingsVersion(1 + indexMetadata.getSettingsVersion())
+                        .settings(settingsBuilder)
+                );
+            }
+        }
     }
 
     @Override
