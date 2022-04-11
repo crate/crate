@@ -89,7 +89,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             expectedLogMessage
         ));
 
-        Map<RelationName, RelationMetadata> resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), user, user);
+        Map<RelationName, RelationMetadata> resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), user, user, "dummy");
         assertThat(resolvedRelations.keySet(), contains(new RelationName("doc", "t1")));
         appender.assertAllExpectationsMatched();
     }
@@ -122,7 +122,8 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var resolvedRelations = publication.resolveCurrentRelations(
             clusterService.state(),
             publicationOwner,
-            subscriber
+            subscriber,
+            "dummy"
         );
 
         assertThat(resolvedRelations.keySet(), contains(new RelationName("doc", "t1")));
@@ -154,7 +155,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .build();
         var publication = new Publication("publisher", true, List.of());
 
-        var resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), publicationOwner, subscriber);
+        var resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), publicationOwner, subscriber, "dummy");
         assertThat(resolvedRelations.keySet(), contains(new RelationName("doc", "t1")));
     }
 
@@ -192,7 +193,8 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var resolvedRelations = publication.resolveCurrentRelations(
             clusterService.state(),
             publicationOwner,
-            subscriber
+            subscriber,
+            "dummy"
         );
         assertThat(resolvedRelations.keySet(), contains(new RelationName("doc", "t1")));
     }
