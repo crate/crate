@@ -25,6 +25,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.ShardRequestExecutor;
+import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.metadata.doc.DocTableInfo;
@@ -93,7 +94,7 @@ public class DeleteById implements Plan {
             dependencies.nodeContext(),
             table,
             new DeleteRequests(plannerContext.jobId(), requestTimeout),
-            dependencies.transportActionProvider().transportShardDeleteAction()::execute,
+            (request, listener) -> dependencies.client().execute(ShardDeleteAction.INSTANCE, request, listener),
             docKeys
         );
     }

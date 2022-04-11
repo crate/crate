@@ -26,6 +26,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.ShardRequestExecutor;
+import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.expression.symbol.Assignments;
@@ -128,7 +129,7 @@ public final class UpdateById implements Plan {
             dependencies.nodeContext(),
             table,
             updateRequests,
-            dependencies.transportActionProvider().transportShardUpsertAction()::execute,
+            (request, listener) -> dependencies.client().execute(ShardUpsertAction.INSTANCE, request, listener),
             docKeys
         );
     }

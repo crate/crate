@@ -27,6 +27,7 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.metadata.IndexParts;
 import io.crate.planner.operators.SubQueryResults;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
@@ -47,8 +48,10 @@ public final class GCDangingArtifactsPlan implements Plan {
             new OneRowActionListener<>(consumer, r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L));
 
         DeleteIndexRequest deleteRequest = new DeleteIndexRequest(IndexParts.DANGLING_INDICES_PREFIX_PATTERNS.toArray(new String[0]));
-        dependencies.transportActionProvider()
-            .transportDeleteIndexAction()
-            .execute(deleteRequest).whenComplete(listener);
+        dependencies.client().execute(
+            DeleteIndexAction.INSTANCE,
+            deleteRequest,
+            listener
+        );
     }
 }

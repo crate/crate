@@ -32,6 +32,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
 
 public class DropSnapshotPlan implements Plan {
@@ -58,8 +59,8 @@ public class DropSnapshotPlan implements Plan {
         DeleteSnapshotRequest request = new DeleteSnapshotRequest(
             dropSnapshot.repository(), dropSnapshot.snapshot());
 
-        var transportDeleteSnapshotAction = dependencies.transportActionProvider().transportDeleteSnapshotAction();
-        transportDeleteSnapshotAction.execute(
+        dependencies.client().execute(
+            DeleteSnapshotAction.INSTANCE,
             request,
             new OneRowActionListener<>(
                 consumer,

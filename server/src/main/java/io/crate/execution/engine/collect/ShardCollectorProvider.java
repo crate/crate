@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 
 import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.metadata.NodeContext;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
@@ -69,6 +70,7 @@ public abstract class ShardCollectorProvider {
                            NodeContext nodeCtx,
                            ThreadPool threadPool,
                            Settings settings,
+                           ElasticsearchClient elasticsearchClient,
                            TransportActionProvider transportActionProvider,
                            IndexShard indexShard,
                            ShardRowContext shardRowContext,
@@ -88,6 +90,7 @@ public abstract class ShardCollectorProvider {
             nodeCtx,
             threadPool,
             settings,
+            elasticsearchClient,
             transportActionProvider,
             new InputFactory(nodeCtx),
             shardNormalizer,

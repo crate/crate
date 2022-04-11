@@ -27,7 +27,6 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -40,6 +39,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
@@ -69,7 +69,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                       int targetTableNumShards,
                                       int targetTableNumReplicas,
                                       Supplier<String> indexNameResolver,
-                                      TransportActionProvider transportActionProvider,
+                                      ElasticsearchClient elasticsearchClient,
                                       List<ColumnIdent> primaryKeyIdents,
                                       List<? extends Symbol> primaryKeySymbols,
                                       @Nullable Symbol routingSymbol,
@@ -138,8 +138,7 @@ public class ColumnIndexWriterProjector implements Projector {
             collectExpressions,
             indexNameResolver,
             autoCreateIndices,
-            transportActionProvider.transportShardUpsertAction()::execute,
-            transportActionProvider.transportBulkCreateIndicesAction(),
+            elasticsearchClient,
             targetTableNumShards,
             targetTableNumReplicas,
             upsertResultContext,

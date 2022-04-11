@@ -53,6 +53,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.HashMap;
@@ -78,6 +79,7 @@ public class CollectSourceResolver {
                                  NodeContext nodeCtx,
                                  Settings settings,
                                  ThreadPool threadPool,
+                                 Node node,
                                  TransportActionProvider transportActionProvider,
                                  InformationSchemaInfo informationSchemaInfo,
                                  SysSchemaInfo sysSchemaInfo,
@@ -97,6 +99,7 @@ public class CollectSourceResolver {
             nodeCtx,
             threadPool,
             settings,
+            node.client(),
             transportActionProvider,
             new InputFactory(nodeCtx),
             normalizer,
