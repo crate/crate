@@ -124,6 +124,7 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
             var subscription = logicalReplicationService.subscriptions().get(subscriptionName);
             if (subscription != null) {
                 var tracker = new ShardReplicationChangesTracker(
+                    subscriptionName,
                     indexShard,
                     threadPool,
                     replicationSettings,

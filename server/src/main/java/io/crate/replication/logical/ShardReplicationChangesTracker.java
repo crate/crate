@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
@@ -35,26 +34,19 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.Translog.Operation;
-import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.NodeDisconnectedException;
-import org.elasticsearch.transport.NodeNotConnectedException;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
@@ -74,6 +66,7 @@ public class ShardReplicationChangesTracker implements Closeable {
 
     private static final Logger LOGGER = Loggers.getLogger(ShardReplicationChangesTracker.class);
 
+    private final String subscriptionName;
     private final ShardId shardId;
     private final LogicalReplicationSettings replicationSettings;
     private final ThreadPool threadPool;
@@ -86,12 +79,15 @@ public class ShardReplicationChangesTracker implements Closeable {
     private Scheduler.Cancellable cancellable;
 
 
-    public ShardReplicationChangesTracker(IndexShard indexShard,
+
+    public ShardReplicationChangesTracker(String subscriptionName,
+                                          IndexShard indexShard,
                                           ThreadPool threadPool,
                                           LogicalReplicationSettings replicationSettings,
                                           ShardReplicationService shardReplicationService,
                                           String clusterName,
                                           Client client) {
+        this.subscriptionName = subscriptionName;
         this.shardId = indexShard.shardId();
         this.replicationSettings = replicationSettings;
         this.threadPool = threadPool;
@@ -155,30 +151,24 @@ public class ShardReplicationChangesTracker implements Closeable {
                 updateBatchFetched(true, fromSeqNo, toSeqNo, lastSeqNo, pendingChanges.lastSyncedGlobalCheckpoint());
             } else {
                 var t = SQLExceptions.unwrap(e);
-                if (t instanceof ElasticsearchTimeoutException) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("[{}] Timed out waiting for new changes. Current seqNo: {}", shardId, fromSeqNo);
+                if (SQLExceptions.isPotentiallyTemporary(t)) {
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                            "[{}] Temporary error during tracking of upstream shard changes for subscription '{}'. Retrying: {}:{}",
+                            shardId,
+                            subscriptionName,
+                            t.getClass().getSimpleName(),
+                            t.getMessage()
+                        );
                     }
                     updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
-                } else if (t instanceof NodeNotConnectedException
-                    || t instanceof NodeDisconnectedException
-                    || t instanceof NodeClosedException) {
-                    LOGGER.info("[{}] Node not connected. Retrying.. {}", shardId, e);
-                    updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
-                } else if (t instanceof IndexShardClosedException) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("[{}] Remote shard closed (table closed?), will stop tracking changes", shardId);
-                    }
-                } else if (t instanceof IndexNotFoundException || t instanceof NoShardAvailableActionException) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("[{}] Remote shard not found (dropped table?), will stop tracking changes", shardId);
-                    }
                 } else {
                     LOGGER.warn(
-                        String.format(Locale.ENGLISH,
-                                        "[%s] Unable to get changes from seqNo: %d, will stop tracking",
-                                        shardId, fromSeqNo),
-                        t);
+                        "[{}] Error during tracking of upstream shard changes for subscription '{}'. Tracking stopped: {}",
+                        shardId,
+                        subscriptionName,
+                        t
+                    );
                 }
             }
         });
