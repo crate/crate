@@ -132,7 +132,7 @@ public class SQLExceptions {
     /***
      * @return true if the error may be temporary; E.g. a network error, a shard initializing or a node booting up
      */
-    public static boolean isPotentiallyTemporary(Throwable t) {
+    public static boolean maybeTemporary(Throwable t) {
         return t instanceof NodeNotConnectedException
             || t instanceof NodeClosedException
             || t instanceof NodeDisconnectedException

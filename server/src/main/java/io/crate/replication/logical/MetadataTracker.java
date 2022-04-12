@@ -232,7 +232,7 @@ public final class MetadataTracker implements Closeable {
                         replicationService));
             }).exceptionallyCompose(err -> {
                 var e = SQLExceptions.unwrap(err);
-                if (SQLExceptions.isPotentiallyTemporary(e)) {
+                if (SQLExceptions.maybeTemporary(e)) {
                     LOGGER.warn("Retrieving remote metadata failed for subscription '" + subscriptionName + "', will retry", e);
                     return CompletableFuture.completedFuture(null);
                 }

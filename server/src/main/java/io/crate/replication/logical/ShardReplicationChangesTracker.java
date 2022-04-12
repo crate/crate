@@ -151,7 +151,7 @@ public class ShardReplicationChangesTracker implements Closeable {
                 updateBatchFetched(true, fromSeqNo, toSeqNo, lastSeqNo, pendingChanges.lastSyncedGlobalCheckpoint());
             } else {
                 var t = SQLExceptions.unwrap(e);
-                if (SQLExceptions.isPotentiallyTemporary(t)) {
+                if (SQLExceptions.maybeTemporary(t)) {
                     if (LOGGER.isInfoEnabled()) {
                         LOGGER.info(
                             "[{}] Temporary error during tracking of upstream shard changes for subscription '{}'. Retrying: {}:{}",
@@ -299,17 +299,20 @@ public class ShardReplicationChangesTracker implements Closeable {
                 missingBatches.add(new SeqNoRange(fromSeqNoRequested, toSeqNoRequested));
             }
         }
+        renewLeasesThenReschedule(toSeqNoReceived);
+    }
 
+    private void renewLeasesThenReschedule(long toSeqNoReceived) {
         // Renew retention lease with global checkpoint so that any shard that picks up shard replication task
         // has data until then.
         // Method is called inside a transport thread (response listener), so dispatch away
         threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION).execute(() -> {
-            shardReplicationService.getRemoteClusterClient(shardId.getIndex()).thenAccept(client -> {
+            shardReplicationService.getRemoteClusterClient(shardId.getIndex()).thenAccept(remoteClient -> {
                 RetentionLeaseHelper.renewRetentionLease(
                     shardId,
                     toSeqNoReceived,
                     clusterName,
-                    client,
+                    remoteClient,
                     ActionListener.wrap(
                         r -> {
                             cancellable = threadPool.scheduleUnlessShuttingDown(
@@ -319,7 +322,23 @@ public class ShardReplicationChangesTracker implements Closeable {
                             );
                         },
                         e -> {
-                            LOGGER.warn("Exception renewing retention lease.", e);
+                            var t = SQLExceptions.unwrap(e);
+                            if (SQLExceptions.maybeTemporary(t)) {
+                                LOGGER.info(
+                                    "[{}] Temporary error during renewal of retention leases for subscription '{}'. Retrying: {}:{}",
+                                    shardId,
+                                    subscriptionName,
+                                    t.getClass().getSimpleName(),
+                                    t.getMessage()
+                                );
+                                cancellable = threadPool.scheduleUnlessShuttingDown(
+                                    replicationSettings.pollDelay(),
+                                    ThreadPool.Names.LOGICAL_REPLICATION,
+                                    () -> renewLeasesThenReschedule(toSeqNoReceived)
+                                );
+                            } else {
+                                LOGGER.warn("Exception renewing retention lease. Stopping tracking", e);
+                            }
                         }
                     )
                 );
