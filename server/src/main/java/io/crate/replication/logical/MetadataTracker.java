@@ -27,7 +27,6 @@ import static io.crate.replication.logical.repository.LogicalReplicationReposito
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -41,7 +40,6 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.bulk.BackoffPolicy;
@@ -64,8 +62,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.ConnectTransportException;
-import org.elasticsearch.transport.NoSuchRemoteClusterException;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.TriConsumer;
@@ -236,7 +232,7 @@ public final class MetadataTracker implements Closeable {
                         replicationService));
             }).exceptionallyCompose(err -> {
                 var e = SQLExceptions.unwrap(err);
-                if (shouldRetry(e)) {
+                if (SQLExceptions.isPotentiallyTemporary(e)) {
                     LOGGER.warn("Retrieving remote metadata failed for subscription '" + subscriptionName + "', will retry", e);
                     return CompletableFuture.completedFuture(null);
                 }
@@ -287,15 +283,7 @@ public final class MetadataTracker implements Closeable {
         return listener;
     }
 
-    private static boolean shouldRetry(Throwable e) {
-        return e instanceof ConnectTransportException ||
-            e instanceof ElasticsearchTimeoutException ||
-            e instanceof NoSuchRemoteClusterException ||
-            e instanceof ConnectException;
-    }
-
     private static class AckMetadataUpdateRequest extends AcknowledgedRequest<AckMetadataUpdateRequest> {
-
     }
 
     @Nullable
