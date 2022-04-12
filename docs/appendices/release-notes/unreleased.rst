@@ -56,6 +56,9 @@ None
 Changes
 =======
 
+- Added an optimization to push down constant join conditions to the relation
+  in an inner join, which results in a more efficient execution plan.
+
 - Added support for :ref:`UNION DISTINCT or UNION <sql-union>` statement to be
   able to retrieve unique rows from multiple relations without using
   sub-queries with extra ``GROUP BY`` clauses.
