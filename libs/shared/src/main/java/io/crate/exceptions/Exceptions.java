@@ -61,7 +61,7 @@ public final class Exceptions {
     }
 
     public static RuntimeException toRuntimeException(Throwable t) {
-        if (t instanceof CompletionException) {
+        if (t instanceof CompletionException | t instanceof ExecutionException) {
             t = t.getCause();
         }
         if (t instanceof RuntimeException) {
