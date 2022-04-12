@@ -150,10 +150,10 @@ public final class MetadataTracker implements Closeable {
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("Reschedule tracking metadata");
         }
-        cancellable = threadPool.schedule(
-            this::run,
+        cancellable = threadPool.scheduleUnlessShuttingDown(
             replicationSettings.pollDelay(),
-            ThreadPool.Names.LOGICAL_REPLICATION
+            ThreadPool.Names.LOGICAL_REPLICATION,
+            this::run
         );
     }
 

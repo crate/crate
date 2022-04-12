@@ -300,13 +300,14 @@ public class ThreadPool implements Scheduler {
         return new ScheduledCancellableAdapter(scheduler.schedule(command, delay.millis(), TimeUnit.MILLISECONDS));
     }
 
-    public void scheduleUnlessShuttingDown(TimeValue delay, String executor, Runnable command) {
+    public Cancellable scheduleUnlessShuttingDown(TimeValue delay, String executor, Runnable command) {
         try {
-            schedule(command, delay, executor);
+            return schedule(command, delay, executor);
         } catch (EsRejectedExecutionException e) {
             if (e.isExecutorShutdown()) {
                 LOGGER.debug(new ParameterizedMessage("could not schedule execution of [{}] after [{}] on [{}] as executor is shut down",
                     command, delay, executor), e);
+                return Cancellable.CANCELLED_NOOP;
             } else {
                 throw e;
             }

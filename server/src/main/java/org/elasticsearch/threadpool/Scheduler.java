@@ -136,6 +136,22 @@ public interface Scheduler {
          * @return true if cancelled
          */
         boolean isCancelled();
+
+        /**
+         * A cancellable instance that is already cancelled and does nothing on cancel.
+         **/
+        Cancellable CANCELLED_NOOP = new Scheduler.Cancellable() {
+
+            @Override
+            public boolean cancel() {
+                return true;
+            }
+
+            @Override
+            public boolean isCancelled() {
+                return true;
+            }
+        };
     }
 
     /**
