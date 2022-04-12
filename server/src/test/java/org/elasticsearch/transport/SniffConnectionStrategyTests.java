@@ -21,11 +21,13 @@
 
 package org.elasticsearch.transport;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 
+import java.net.ConnectException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -55,6 +57,7 @@ import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.Test;
 
 public class SniffConnectionStrategyTests extends ESTestCase {
 
@@ -319,6 +322,7 @@ public class SniffConnectionStrategyTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testConnectFailsIfNoConnectionsOpened() {
         List<DiscoveryNode> knownNodes = new CopyOnWriteArrayList<>();
         try (MockTransportService seedTransport = startTransport("seed_node", knownNodes, Version.CURRENT);
@@ -339,8 +343,9 @@ public class SniffConnectionStrategyTests extends ESTestCase {
                          clusterAlias, localService, remoteConnectionManager, n -> n.equals(seedNode) == false, seedNodes(seedNode))) {
                     PlainActionFuture<Void> connectFuture = PlainActionFuture.newFuture();
                     strategy.connect(connectFuture);
-                    final IllegalStateException ise = expectThrows(IllegalStateException.class, connectFuture::actionGet);
-                    assertEquals("Unable to open any connections to remote cluster [cluster-alias]", ise.getMessage());
+                    final RuntimeException ise = expectThrows(RuntimeException.class, connectFuture::actionGet);
+                    assertThat(ise.getCause(), instanceOf(ConnectException.class));
+                    assertEquals("Unable to open any connections to remote cluster [cluster-alias]", ise.getCause().getMessage());
                     assertTrue(strategy.assertNoRunningConnections());
                 }
             }
