@@ -72,6 +72,6 @@ public class RetryListener<TResp> implements ActionListener<TResp> {
     }
 
     protected boolean shouldRetry(Throwable throwable) {
-        return throwable instanceof EsRejectedExecutionException;
+        return throwable instanceof EsRejectedExecutionException rejected && !rejected.isExecutorShutdown();
     }
 }

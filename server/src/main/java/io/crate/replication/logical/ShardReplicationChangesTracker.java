@@ -83,7 +83,7 @@ public class ShardReplicationChangesTracker implements Closeable {
     private final Deque<SeqNoRange> missingBatches = new ArrayDeque<>();
     private final AtomicLong observedSeqNoAtLeader;
     private final AtomicLong seqNoAlreadyRequested;
-    private Scheduler.ScheduledCancellable cancellable;
+    private Scheduler.Cancellable cancellable;
 
 
     public ShardReplicationChangesTracker(IndexShard indexShard,
@@ -123,10 +123,10 @@ public class ShardReplicationChangesTracker implements Closeable {
     private void pollAndProcessPendingChanges() {
         SeqNoRange rangeToFetch = getNextSeqNoRange();
         if (rangeToFetch == null) {
-            cancellable = threadPool.schedule(
-                newRunnable(),
+            cancellable = threadPool.scheduleUnlessShuttingDown(
                 replicationSettings.pollDelay(),
-                ThreadPool.Names.LOGICAL_REPLICATION
+                ThreadPool.Names.LOGICAL_REPLICATION,
+                newRunnable()
             );
             return;
         }
@@ -324,11 +324,10 @@ public class ShardReplicationChangesTracker implements Closeable {
                             client,
                             ActionListener.wrap(
                                 r -> {
-                                    // schedule next poll
-                                    cancellable = threadPool.schedule(
-                                        newRunnable(),
+                                    cancellable = threadPool.scheduleUnlessShuttingDown(
                                         replicationSettings.pollDelay(),
-                                        ThreadPool.Names.LOGICAL_REPLICATION
+                                        ThreadPool.Names.LOGICAL_REPLICATION,
+                                        newRunnable()
                                     );
                                 },
                                 e -> {
