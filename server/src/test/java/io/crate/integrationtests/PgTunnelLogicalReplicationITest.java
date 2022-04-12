@@ -40,10 +40,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.SettingsBasedSeedHostsProvider;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.InternalTestCluster;
-import org.elasticsearch.test.InternalTestCluster.RestartCallback;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -57,7 +55,6 @@ import io.crate.replication.logical.metadata.ConnectionInfo.SSLMode;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLErrorMatcher;
 import io.crate.testing.SQLTransportExecutor;
-import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 

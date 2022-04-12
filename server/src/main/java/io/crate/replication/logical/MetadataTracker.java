@@ -165,10 +165,10 @@ public final class MetadataTracker implements Closeable {
         if (!isActive) {
             return;
         }
-        cancellable = threadPool.schedule(
-            this::run,
+        cancellable = threadPool.scheduleUnlessShuttingDown(
             replicationSettings.pollDelay(),
-            ThreadPool.Names.LOGICAL_REPLICATION
+            ThreadPool.Names.LOGICAL_REPLICATION,
+            this::run
         );
     }
 
@@ -267,7 +267,7 @@ public final class MetadataTracker implements Closeable {
             if (backoffIt.hasNext()) {
                 TimeValue delay = backoffIt.next();
                 LOGGER.warn(
-                    "Tracking remote metadata for subscription '{}', failed with temporary error ({}:{}), retry in {}",
+                    "Tracking remote metadata for subscription '{}' failed with temporary error ({}:{}), retry in {}",
                     subscriptionName,
                     e.getClass().getSimpleName(),
                     e.getMessage(),

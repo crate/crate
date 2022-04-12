@@ -104,7 +104,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
         // Ensure tracker started
         assertBusy(() -> assertThat(isMetadataTrackerActive(), is(true)));
 
-        var expectedLogMessage = "Retrieving remote metadata failed for subscription 'sub1', will retry";
+        var expectedLogMessage = "Tracking remote metadata for subscription 'sub1' failed with temporary error";
         var mockAppender = appendLogger(expectedLogMessage, MetadataTracker.class, Level.WARN);
 
         startDisrupting(MockTransportService::addFailToSendNoConnectRule);

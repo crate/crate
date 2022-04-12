@@ -126,6 +126,25 @@ public interface Scheduler {
      */
     interface Cancellable {
 
+        static Cancellable noop() {
+            return new Cancellable() {
+
+                boolean cancelled = false;
+
+                @Override
+                public boolean cancel() {
+                    cancelled = true;
+                    return true;
+                }
+
+                @Override
+                public boolean isCancelled() {
+                    return cancelled;
+                }
+            };
+        }
+
+
         /**
          * Cancel the execution of this object. This method is idempotent.
          */

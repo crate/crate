@@ -54,7 +54,7 @@ public class RemoteClusters implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public synchronized void close() throws IOException {
         IOUtils.close(remoteClusters.values());
         remoteClusters.clear();
     }

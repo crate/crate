@@ -82,7 +82,7 @@ public class ShardReplicationChangesTracker implements Closeable {
     private final String subscriptionName;
     private final Subscription subscription;
     private final RemoteClusters remoteClusters;
-    private Scheduler.ScheduledCancellable cancellable;
+    private Scheduler.Cancellable cancellable;
 
 
     public ShardReplicationChangesTracker(String subscriptionName,
@@ -126,10 +126,10 @@ public class ShardReplicationChangesTracker implements Closeable {
     private void pollAndProcessPendingChanges() {
         SeqNoRange rangeToFetch = getNextSeqNoRange();
         if (rangeToFetch == null) {
-            cancellable = threadPool.schedule(
-                newRunnable(),
+            cancellable = threadPool.scheduleUnlessShuttingDown(
                 replicationSettings.pollDelay(),
-                ThreadPool.Names.LOGICAL_REPLICATION
+                ThreadPool.Names.LOGICAL_REPLICATION,
+                newRunnable()
             );
             return;
         }
@@ -313,10 +313,10 @@ public class ShardReplicationChangesTracker implements Closeable {
                     client,
                     ActionListener.wrap(
                         r -> {
-                            cancellable = threadPool.schedule(
-                                newRunnable(),
+                            cancellable = threadPool.scheduleUnlessShuttingDown(
                                 replicationSettings.pollDelay(),
-                                ThreadPool.Names.LOGICAL_REPLICATION
+                                ThreadPool.Names.LOGICAL_REPLICATION,
+                                newRunnable()
                             );
                         },
                         e -> {
@@ -331,10 +331,10 @@ public class ShardReplicationChangesTracker implements Closeable {
 
                             try {
                                 TimeValue delay = backOffIt.next();
-                                cancellable = threadPool.schedule(
-                                    () -> renewRetentionLease(toSeqNoReceived, backOffIt),
+                                cancellable = threadPool.scheduleUnlessShuttingDown(
                                     TimeValue.timeValueNanos(delay.nanos() + replicationSettings.pollDelay().nanos()),
-                                    ThreadPool.Names.LOGICAL_REPLICATION
+                                    ThreadPool.Names.LOGICAL_REPLICATION,
+                                    () -> renewRetentionLease(toSeqNoReceived, backOffIt)
                                 );
                             } catch (NoSuchElementException ignored) {
                                 LOGGER.warn("Exception renewing retention lease. Stopping tracking changes.", err);

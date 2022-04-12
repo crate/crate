@@ -200,11 +200,11 @@ public class PgClient extends AbstractClient {
         ChannelFuture connectFuture = bootstrap.connect();
         var channel = connectFuture.channel();
         future.exceptionally(err -> {
-            eventLoopGroup.close();
             try {
                 Netty4Utils.closeChannels(List.of(channel));
             } catch (IOException ignored) {
             }
+            eventLoopGroup.close();
             return null;
         });
         Netty4TcpChannel nettyChannel = new Netty4TcpChannel(

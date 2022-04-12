@@ -18,10 +18,11 @@ import io.crate.common.unit.TimeValue;
 public class LogicalReplicationRetry {
 
     /**
-     * Exponential policy up to roughly 30 minutes. This should be enough to survive
+     * Exponential backoff that should be long enough to survive
      * publisher unavailability due to a node restart or intermediate failures.
      **/
-    public static final BackoffPolicy FAILURE_BACKOFF_POLICY = BackoffPolicy.exponentialBackoff(TimeValue.timeValueMillis(50), 16);
+    public static final BackoffPolicy FAILURE_BACKOFF_POLICY =
+        BackoffPolicy.exponentialBackoff(TimeValue.timeValueMillis(20), 16);
 
     public static boolean failureIsTemporary(Throwable t) {
         // - handle only? blocked by: [SERVICE_UNAVAILABLE/1/state not recovered / initialized]; instead of all clusterBlockExceptions
