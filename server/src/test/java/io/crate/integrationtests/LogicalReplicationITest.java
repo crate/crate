@@ -385,7 +385,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThrowsMatches(
             () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't support or allow INSERT operations."
+            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication."
         );
     }
 
@@ -409,7 +409,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThrowsMatches(
             () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't support or allow INSERT operations."
+            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication."
         );
     }
 
@@ -528,6 +528,20 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                 var res = executeOnSubscriber("SELECT id FROM t1 ORDER BY id");
                 assertThat(res.rowCount(), is(4L));
             }
+        );
+    }
+
+    @Test
+    public void test_drop_subscribed_table_is_not_allowed() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+
+        createPublication("pub1", false, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        assertThrowsMatches(
+            () ->  executeOnSubscriber("DROP TABLE t1"),
+            OperationOnInaccessibleRelationException.class,
+            "The relation \"doc.t1\" doesn't allow DROP operations, because it is included in a logical replication."
         );
     }
 }
