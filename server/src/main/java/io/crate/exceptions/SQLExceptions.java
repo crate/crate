@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
+import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.ElasticsearchWrapperException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.NoShardAvailableActionException;
@@ -141,7 +142,8 @@ public class SQLExceptions {
             || t instanceof ClusterBlockException
             || t instanceof NoSeedNodeLeftException
             || t instanceof NoShardAvailableActionException
-            || t instanceof AlreadyClosedException;
+            || t instanceof AlreadyClosedException
+            || t instanceof ElasticsearchTimeoutException;
     }
 
     public static RuntimeException prepareForClientTransmission(AccessControl accessControl, Throwable e) {
