@@ -21,23 +21,23 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.action.FutureActionListener;
-import io.crate.common.io.IOUtils;
-import io.crate.protocols.postgres.PgClient;
-import io.crate.protocols.postgres.PgClientFactory;
-import io.crate.replication.logical.metadata.ConnectionInfo;
-import io.crate.types.DataTypes;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.common.io.IOUtils;
+import io.crate.protocols.postgres.PgClient;
+import io.crate.protocols.postgres.PgClientFactory;
+import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.types.DataTypes;
 
 
 public class RemoteCluster implements Closeable {
@@ -123,18 +123,18 @@ public class RemoteCluster implements Closeable {
     }
 
     private CompletableFuture<Client> connectSniff() {
-        var remoteConnection = new RemoteClusterConnection(
+        var sniffClient = new SniffRemoteClient(
             settings,
+            threadPool,
             connectionInfo,
             clusterName,
             transportService
         );
-        toClose.add(remoteConnection);
-        var remoteClient = new RemoteClusterClient(settings, threadPool, transportService, remoteConnection);
-        FutureActionListener<Void, Client> listener = new FutureActionListener<>(ignored -> {
-            return remoteClient;
-        });
-        remoteConnection.ensureConnected(listener);
-        return listener;
+        toClose.add(sniffClient);
+        try {
+            return sniffClient.ensureConnected(null).thenApply(ignored -> sniffClient);
+        } catch (Throwable e) {
+            return CompletableFuture.failedFuture(e);
+        }
     }
 }

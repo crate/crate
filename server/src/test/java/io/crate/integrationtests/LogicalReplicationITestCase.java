@@ -21,12 +21,31 @@
 
 package io.crate.integrationtests;
 
-import io.crate.protocols.postgres.PostgresNetty;
-import io.crate.replication.logical.LogicalReplicationSettings;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.SQLTransportExecutor;
-import io.crate.user.User;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
+import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
+import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
+import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.net.InetSocketAddress;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.StringJoiner;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
@@ -42,28 +61,12 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.net.InetSocketAddress;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.StringJoiner;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
-import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
-import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
-import static org.hamcrest.Matchers.is;
+import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.SQLTransportExecutor;
+import io.crate.user.User;
 
 public abstract class LogicalReplicationITestCase extends ESTestCase {
 
@@ -237,13 +240,16 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
                 SUBSCRIBING_USER
             );
         } else {
-            var transportService = publisherCluster.getInstance(TransportService.class);
-            InetSocketAddress address = transportService.boundAddress().publishAddress().address();
+            // Sniff mode expects to talk to data nodes; Include all nodes so it can choose the data node
+            ArrayList<String> nodes = new ArrayList<>();
+            for (var transportService : publisherCluster.getInstances(TransportService.class)) {
+                InetSocketAddress address = transportService.boundAddress().publishAddress().address();
+                nodes.add(address.getHostName() + ":" + address.getPort());
+            }
             return String.format(
                 Locale.ENGLISH,
-                "crate://%s:%d?user=%s&mode=sniff",
-                address.getHostName(),
-                address.getPort(),
+                "crate://%s?user=%s&mode=sniff",
+                String.join(",", nodes),
                 SUBSCRIBING_USER
             );
         }
