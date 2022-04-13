@@ -48,35 +48,34 @@ public class RerouteRetryFailedPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        dependencies.client().execute(
-            ClusterRerouteAction.INSTANCE,
-            new ClusterRerouteRequest().setRetryFailed(true),
-            new OneRowActionListener<>(
-                consumer,
-                response -> {
-                    if (response.isAcknowledged()) {
-                        long rowCount = 0L;
-                        for (RoutingNode routingNode : response.getState().getRoutingNodes()) {
-                            // filter shards with failed allocation attempts
-                            // failed allocation attempts can appear for shards
-                            // with state UNASSIGNED and INITIALIZING
-                            rowCount += routingNode.shardsWithState(
+        dependencies.client().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest().setRetryFailed(true))
+            .whenComplete(
+                new OneRowActionListener<>(
+                    consumer,
+                    response -> {
+                        if (response.isAcknowledged()) {
+                            long rowCount = 0L;
+                            for (RoutingNode routingNode : response.getState().getRoutingNodes()) {
+                                // filter shards with failed allocation attempts
+                                // failed allocation attempts can appear for shards
+                                // with state UNASSIGNED and INITIALIZING
+                                rowCount += routingNode.shardsWithState(
                                     ShardRoutingState.UNASSIGNED,
                                     ShardRoutingState.INITIALIZING)
-                                .stream()
-                                .filter(s -> {
-                                    if (s.unassignedInfo() != null) {
-                                        return s.unassignedInfo().getReason()
-                                            .equals(UnassignedInfo.Reason.ALLOCATION_FAILED);
-                                    }
-                                    return false;
-                                })
-                                .count();
+                                    .stream()
+                                    .filter(s -> {
+                                        if (s.unassignedInfo() != null) {
+                                            return s.unassignedInfo().getReason()
+                                                .equals(UnassignedInfo.Reason.ALLOCATION_FAILED);
+                                        }
+                                        return false;
+                                    })
+                                    .count();
+                            }
+                            return new Row1(rowCount);
+                        } else {
+                            return new Row1(-1L);
                         }
-                        return new Row1(rowCount);
-                    } else {
-                        return new Row1(-1L);
-                    }
-                }));
+                    }));
     }
 }

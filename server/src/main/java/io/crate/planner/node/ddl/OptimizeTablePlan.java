@@ -104,13 +104,11 @@ public class OptimizeTablePlan implements Plan {
         if (UPGRADE_SEGMENTS.get(settings)) {
             var request = new UpgradeRequest(toOptimize.toArray(new String[0]));
 
-            dependencies.client().execute(
-                UpgradeAction.INSTANCE,
-                request,
-                new OneRowActionListener<>(
-                    consumer,
-                    response -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size()))
-            );
+            dependencies.client().execute(UpgradeAction.INSTANCE, request)
+                .whenComplete(
+                    new OneRowActionListener<>(
+                        consumer,
+                        response -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size())));
         } else {
             var request = new ForceMergeRequest(toOptimize.toArray(new String[0]));
             request.maxNumSegments(MAX_NUM_SEGMENTS.get(settings));

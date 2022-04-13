@@ -48,10 +48,6 @@ public final class GCDangingArtifactsPlan implements Plan {
             new OneRowActionListener<>(consumer, r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L));
 
         DeleteIndexRequest deleteRequest = new DeleteIndexRequest(IndexParts.DANGLING_INDICES_PREFIX_PATTERNS.toArray(new String[0]));
-        dependencies.client().execute(
-            DeleteIndexAction.INSTANCE,
-            deleteRequest,
-            listener
-        );
+        dependencies.client().execute(DeleteIndexAction.INSTANCE, deleteRequest).whenComplete(listener);
     }
 }

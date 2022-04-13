@@ -102,6 +102,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -568,7 +569,8 @@ public class ProjectionToProjectorVisitor
                                               projection.requiredVersion(),
                                               null,
                                               null),
-            (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req, resp),
+            (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req)
+                .whenComplete(ActionListener.toBiConsumer(resp)),
             collector);
     }
 
@@ -587,7 +589,8 @@ public class ProjectionToProjectorVisitor
             nodeJobsCounter,
             () -> new ShardDeleteRequest(shardId, context.jobId).timeout(reqTimeout),
             ShardDeleteRequest.Item::new,
-            (req, resp) -> elasticsearchClient.execute(ShardDeleteAction.INSTANCE, req, resp),
+            (req, resp) -> elasticsearchClient.execute(ShardDeleteAction.INSTANCE, req)
+                .whenComplete(ActionListener.toBiConsumer(resp)),
             ShardDMLExecutor.ROW_COUNT_COLLECTOR
         );
         return new DMLProjector(shardDMLExecutor);

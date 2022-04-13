@@ -95,25 +95,24 @@ public class CreateSnapshotPlan implements Plan {
             subQueryResults,
             dependencies.schemas());
 
-        dependencies.client().execute(
-            CreateSnapshotAction.INSTANCE,
-            request,
-            new OneRowActionListener<>(
-                consumer,
-                response -> {
-                    SnapshotInfo snapshotInfo = response.getSnapshotInfo();
-                    if (snapshotInfo != null &&  // if wait_for_completion is false, the snapshotInfo is null
-                        snapshotInfo.state() == SnapshotState.FAILED) {
-                        // fail request if snapshot creation failed
-                        String reason = response.getSnapshotInfo().reason()
-                            .replaceAll("Index", "Table")
-                            .replaceAll("Indices", "Tables");
-                        consumer.accept(null, new CreateSnapshotException(createSnapshot.snapshot(), reason));
-                        return new Row1(-1L);
-                    } else {
-                        return new Row1(1L);
-                    }
-                }));
+        dependencies.client().execute(CreateSnapshotAction.INSTANCE, request)
+            .whenComplete(
+                new OneRowActionListener<>(
+                    consumer,
+                    response -> {
+                        SnapshotInfo snapshotInfo = response.getSnapshotInfo();
+                        if (snapshotInfo != null &&  // if wait_for_completion is false, the snapshotInfo is null
+                            snapshotInfo.state() == SnapshotState.FAILED) {
+                            // fail request if snapshot creation failed
+                            String reason = response.getSnapshotInfo().reason()
+                                .replaceAll("Index", "Table")
+                                .replaceAll("Indices", "Tables");
+                            consumer.accept(null, new CreateSnapshotException(createSnapshot.snapshot(), reason));
+                            return new Row1(-1L);
+                        } else {
+                            return new Row1(1L);
+                        }
+                    }));
     }
 
     @VisibleForTesting

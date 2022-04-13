@@ -87,11 +87,8 @@ public final class UpdateSettingsPlan implements Plan {
         OneRowActionListener<ClusterUpdateSettingsResponse> actionListener = new OneRowActionListener<>(
             consumer,
             r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L));
-        dependencies.client().execute(
-            ClusterUpdateSettingsAction.INSTANCE,
-            request,
-            actionListener
-        );
+        dependencies.client().execute(ClusterUpdateSettingsAction.INSTANCE, request)
+            .whenComplete(actionListener);
     }
 
     @VisibleForTesting

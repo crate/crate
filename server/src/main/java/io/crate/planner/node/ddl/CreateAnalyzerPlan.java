@@ -85,11 +85,8 @@ public class CreateAnalyzerPlan implements Plan {
             subQueryResults,
             dependencies.fulltextAnalyzerResolver());
 
-        dependencies.client().execute(
-            ClusterUpdateSettingsAction.INSTANCE,
-            request,
-            new OneRowActionListener<>(consumer, r -> new Row1(1L))
-        );
+        dependencies.client().execute(ClusterUpdateSettingsAction.INSTANCE, request)
+            .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(1L)));
     }
 
     @VisibleForTesting

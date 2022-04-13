@@ -40,6 +40,7 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.bulk.BackoffPolicy;
@@ -554,7 +555,8 @@ public final class MetadataTracker implements Closeable {
             .request();
 
         var future = new FutureActionListener<>(ClusterStateResponse::getState);
-        client.admin().cluster().execute(ClusterStateAction.INSTANCE, clusterStateRequest, future);
+        client.admin().cluster().execute(ClusterStateAction.INSTANCE, clusterStateRequest)
+            .whenComplete(ActionListener.toBiConsumer(future));
         return future;
     }
 

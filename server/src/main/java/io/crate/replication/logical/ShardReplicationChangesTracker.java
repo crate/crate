@@ -197,11 +197,13 @@ public class ShardReplicationChangesTracker implements Closeable {
         });
         var retryListener = new ReplayChangesRetryListener<>(
             threadPool.scheduler(),
-            l -> localClient.execute(ReplayChangesAction.INSTANCE, replayRequest, l),
+            l -> localClient.execute(ReplayChangesAction.INSTANCE, replayRequest)
+                .whenComplete(ActionListener.toBiConsumer(l)),
             listener,
             BackoffPolicy.exponentialBackoff()
         );
-        localClient.execute(ReplayChangesAction.INSTANCE, replayRequest, retryListener);
+        localClient.execute(ReplayChangesAction.INSTANCE, replayRequest)
+            .whenComplete(ActionListener.toBiConsumer(retryListener));
         return listener;
     }
 
