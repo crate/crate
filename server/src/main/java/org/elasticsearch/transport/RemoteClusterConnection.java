@@ -53,7 +53,7 @@ public final class RemoteClusterConnection implements Closeable {
 
     private final TransportService transportService;
     private final RemoteConnectionManager remoteConnectionManager;
-    private final RemoteConnectionStrategy connectionStrategy;
+    private final SniffConnectionStrategy connectionStrategy;
 
     /**
      * Creates a new {@link RemoteClusterConnection}
@@ -67,7 +67,7 @@ public final class RemoteClusterConnection implements Closeable {
                                    String clusterAlias,
                                    TransportService transportService) {
         this.transportService = transportService;
-        ConnectionProfile profile = RemoteConnectionStrategy.buildConnectionProfile(nodeSettings, connectionInfo.settings());
+        ConnectionProfile profile = SniffConnectionStrategy.buildConnectionProfile(nodeSettings, connectionInfo.settings());
         this.remoteConnectionManager = new RemoteConnectionManager(
             clusterAlias,
             new ClusterConnectionManager(profile, transportService.transport)

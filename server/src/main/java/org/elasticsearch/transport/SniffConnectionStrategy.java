@@ -19,12 +19,25 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.Booleans;
-import io.crate.common.collections.Lists2;
-import io.crate.common.io.IOUtils;
-import io.crate.replication.logical.metadata.ConnectionInfo;
+import java.io.Closeable;
+import java.io.IOException;
+import java.net.ConnectException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.SetOnce;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.StepListener;
@@ -34,19 +47,19 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
-import java.net.ConnectException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import io.crate.common.Booleans;
+import io.crate.common.collections.Lists2;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 
-public class SniffConnectionStrategy extends RemoteConnectionStrategy {
+public class SniffConnectionStrategy implements TransportConnectionListener, Closeable {
 
     static final int CHANNELS_PER_CONNECTION = 6;
 
@@ -54,6 +67,34 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
         Version.CURRENT.isCompatible(node.getVersion())
         && (node.isMasterEligibleNode() == false || node.isDataNode());
 
+    /**
+     * The name of a node attribute to select nodes that should be connected to in the remote cluster.
+     * For instance a node can be configured with {@code node.attr.gateway: true} in order to be eligible as a gateway node between
+     * clusters. In that case {@code search.remote.node.attr: gateway} can be used to filter out other nodes in the remote cluster.
+     * The value of the setting is expected to be a boolean, {@code true} for nodes that can become gateways, {@code false} otherwise.
+     */
+    public static final Setting<String> REMOTE_NODE_ATTRIBUTE =
+        Setting.simpleString("cluster.remote.node.attr", Setting.Property.NodeScope);
+
+    public static final Setting<Boolean> REMOTE_CONNECTION_COMPRESS = Setting.boolSetting(
+        "transport.compress",
+        TransportSettings.TRANSPORT_COMPRESS.getDefault(Settings.EMPTY),
+        Setting.Property.Dynamic);
+
+    public static final Setting<TimeValue> REMOTE_CONNECTION_PING_SCHEDULE = Setting.timeSetting(
+        "transport.ping_schedule",
+        TransportSettings.PING_SCHEDULE.getDefault(Settings.EMPTY),
+        Setting.Property.Dynamic);
+
+    protected final Logger logger = LogManager.getLogger(getClass());
+
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final Object mutex = new Object();
+    private ActionListener<Void> listener;
+
+    protected final TransportService transportService;
+    protected final RemoteConnectionManager connectionManager;
+    protected final String clusterAlias;
 
     private final List<Supplier<DiscoveryNode>> seedNodes;
     private final Predicate<DiscoveryNode> nodePredicate;
@@ -93,19 +134,142 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
                             Predicate<DiscoveryNode> nodePredicate,
                             List<String> configuredSeedNodes,
                             List<Supplier<DiscoveryNode>> seedNodes) {
-        super(clusterAlias, transportService, connectionManager);
+        this.clusterAlias = clusterAlias;
+        this.transportService = transportService;
+        this.connectionManager = connectionManager;
         this.nodePredicate = nodePredicate;
         this.seedNodes = seedNodes;
+        connectionManager.addListener(this);
+    }
+
+    static ConnectionProfile buildConnectionProfile(Settings nodeSettings,
+                                                    Settings connectionSettings) {
+        boolean compress = REMOTE_CONNECTION_COMPRESS.exists(connectionSettings)
+            ? REMOTE_CONNECTION_COMPRESS.get(connectionSettings)
+            : TransportSettings.TRANSPORT_COMPRESS.get(nodeSettings);
+        TimeValue pingInterval = REMOTE_CONNECTION_PING_SCHEDULE.exists(connectionSettings)
+            ? REMOTE_CONNECTION_PING_SCHEDULE.get(connectionSettings)
+            : TransportSettings.PING_SCHEDULE.get(nodeSettings);
+        ConnectionProfile.Builder builder = new ConnectionProfile.Builder()
+            .setConnectTimeout(TransportSettings.CONNECT_TIMEOUT.get(nodeSettings))
+            .setHandshakeTimeout(TransportSettings.CONNECT_TIMEOUT.get(nodeSettings))
+            .setCompressionEnabled(compress)
+            .setPingInterval(pingInterval)
+            .addConnections(0, TransportRequestOptions.Type.BULK, TransportRequestOptions.Type.STATE,
+                            TransportRequestOptions.Type.RECOVERY, TransportRequestOptions.Type.PING)
+            .addConnections(SniffConnectionStrategy.CHANNELS_PER_CONNECTION, TransportRequestOptions.Type.REG);
+        return builder.build();
+    }
+
+
+    /**
+     * Triggers a connect round unless there is one running already. If there is a connect round running, the listener will either
+     * be queued or rejected and failed.
+     */
+    void connect(ActionListener<Void> listener) {
+        boolean runConnect;
+        boolean closed;
+        synchronized (mutex) {
+            closed = this.closed.get();
+            runConnect = this.listener == null;
+            if (closed == false) {
+                this.listener = listener;
+            }
+        }
+        if (closed) {
+            listener.onFailure(new AlreadyClosedException("connect handler is already closed"));
+            return;
+        }
+        if (runConnect) {
+            Executor executor = transportService.getThreadPool().executor(ThreadPool.Names.MANAGEMENT);
+            executor.execute(new AbstractRunnable() {
+                @Override
+                public void onFailure(Exception e) {
+                    var listener = getAndClearListeners();
+                    if (listener != null) {
+                        listener.onFailure(e);
+                    }
+                }
+
+                @Override
+                protected void doRun() {
+                    collectRemoteNodes(seedNodes.iterator(), new ActionListener<>() {
+                        @Override
+                        public void onResponse(Void aVoid) {
+                            var listener = getAndClearListeners();
+                            if (listener != null) {
+                                listener.onResponse(aVoid);
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            var listener = getAndClearListeners();
+                            if (listener != null) {
+                                listener.onFailure(e);
+                            }
+                        }
+                    });
+                }
+            });
+        }
     }
 
     @Override
+    public void onNodeDisconnected(DiscoveryNode node, Transport.Connection connection) {
+        if (shouldOpenMoreConnections()) {
+            // try to reconnect and fill up the slot of the disconnected node
+            connect(ActionListener.wrap(
+                ignore -> logger.trace("[{}] successfully connected after disconnect of {}", clusterAlias, node),
+                e -> logger.debug(() -> new ParameterizedMessage("[{}] failed to connect after disconnect of {}", clusterAlias, node), e)));
+        }
+    }
+
+    @Override
+    public void close() {
+        ActionListener<Void> toNotify = null;
+        synchronized (mutex) {
+            if (closed.compareAndSet(false, true)) {
+                connectionManager.removeListener(this);
+                toNotify = listener;
+                listener = null;
+            }
+        }
+        if (toNotify != null) {
+            try {
+                toNotify.onFailure(new AlreadyClosedException("connect handler is already closed"));
+            } catch (Exception e) {
+                throw new ElasticsearchException(e);
+            }
+        }
+    }
+
+    public boolean isClosed() {
+        return closed.get();
+    }
+
+    // for testing only
+    boolean assertNoRunningConnections() {
+        synchronized (mutex) {
+            assert listener == null : "Expecting connection listener to be NULL";
+        }
+        return true;
+    }
+
+    @Nullable
+    private ActionListener<Void> getAndClearListeners() {
+        ActionListener<Void> result = null;
+        synchronized (mutex) {
+            if (listener != null) {
+                result = listener;
+                listener = null;
+            }
+        }
+        return result;
+    }
+
     protected boolean shouldOpenMoreConnections() {
         return connectionManager.size() < CHANNELS_PER_CONNECTION;
-    }
-
-    @Override
-    protected void connectImpl(ActionListener<Void> listener) {
-        collectRemoteNodes(seedNodes.iterator(), listener);
     }
 
     private void collectRemoteNodes(Iterator<Supplier<DiscoveryNode>> seedNodes, ActionListener<Void> listener) {
@@ -325,9 +489,9 @@ public class SniffConnectionStrategy extends RemoteConnectionStrategy {
 
     // Default visibility for tests
     static Predicate<DiscoveryNode> getNodePredicate(Settings settings) {
-        if (RemoteConnectionStrategy.REMOTE_NODE_ATTRIBUTE.exists(settings)) {
+        if (REMOTE_NODE_ATTRIBUTE.exists(settings)) {
             // nodes can be tagged with node.attr.remote_gateway: true to allow a node to be a gateway node for cross cluster search
-            String attribute = RemoteConnectionStrategy.REMOTE_NODE_ATTRIBUTE.get(settings);
+            String attribute = REMOTE_NODE_ATTRIBUTE.get(settings);
             return DEFAULT_NODE_PREDICATE.and((node) -> Booleans.parseBoolean(node.getAttributes().getOrDefault(
                 attribute,
                 "false")));
