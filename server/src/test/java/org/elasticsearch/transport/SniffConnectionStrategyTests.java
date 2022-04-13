@@ -64,7 +64,7 @@ public class SniffConnectionStrategyTests extends ESTestCase {
     private final String clusterAlias = "cluster-alias";
     private final String modeKey = RemoteCluster.REMOTE_CONNECTION_MODE.getKey();
     private final Settings settings = Settings.builder().put(modeKey, "sniff").build();
-    private final ConnectionProfile profile = RemoteConnectionStrategy.buildConnectionProfile(Settings.EMPTY, settings);
+    private final ConnectionProfile profile = SniffConnectionStrategy.buildConnectionProfile(Settings.EMPTY, settings);
     private final ThreadPool threadPool = new TestThreadPool(getClass().getName());
 
     @Override
