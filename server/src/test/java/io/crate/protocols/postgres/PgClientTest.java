@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
-import io.crate.action.sql.Session;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -44,9 +43,11 @@ import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.netty.NettyBootstrap;
@@ -146,6 +147,13 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
 
         conn2.get(120, TimeUnit.SECONDS);
         conn3.get(120, TimeUnit.SECONDS);
+
+        // if a connection failed, calling ensureConnected again should return a new connection
+        connection.close();
+        connect.obtrudeException(new IllegalStateException("test"));
+        CompletableFuture<Connection> conn4 = pgClient.ensureConnected();
+        assertThat(conn4, Matchers.is(Matchers.not(conn3)));
+        connection = conn4.get(120, TimeUnit.SECONDS);
 
         postgresNetty.close();
         pgClient.close();

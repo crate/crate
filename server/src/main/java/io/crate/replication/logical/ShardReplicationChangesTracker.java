@@ -26,32 +26,30 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
-import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
+import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.CheckedConsumer;
+import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.node.NodeClosedException;
+import org.elasticsearch.index.translog.Translog.Operation;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.NodeDisconnectedException;
-import org.elasticsearch.transport.NodeNotConnectedException;
 
-import io.crate.exceptions.Exceptions;
+import io.crate.action.FutureActionListener;
+import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryListener;
 import io.crate.execution.support.RetryRunnable;
@@ -68,6 +66,7 @@ public class ShardReplicationChangesTracker implements Closeable {
 
     private static final Logger LOGGER = Loggers.getLogger(ShardReplicationChangesTracker.class);
 
+    private final String subscriptionName;
     private final ShardId shardId;
     private final LogicalReplicationSettings replicationSettings;
     private final ThreadPool threadPool;
@@ -77,14 +76,18 @@ public class ShardReplicationChangesTracker implements Closeable {
     private final Deque<SeqNoRange> missingBatches = new ArrayDeque<>();
     private final AtomicLong observedSeqNoAtLeader;
     private final AtomicLong seqNoAlreadyRequested;
-    private Scheduler.ScheduledCancellable cancellable;
+    private Scheduler.Cancellable cancellable;
 
-    public ShardReplicationChangesTracker(IndexShard indexShard,
+
+
+    public ShardReplicationChangesTracker(String subscriptionName,
+                                          IndexShard indexShard,
                                           ThreadPool threadPool,
                                           LogicalReplicationSettings replicationSettings,
                                           ShardReplicationService shardReplicationService,
                                           String clusterName,
                                           Client client) {
+        this.subscriptionName = subscriptionName;
         this.shardId = indexShard.shardId();
         this.replicationSettings = replicationSettings;
         this.threadPool = threadPool;
@@ -92,8 +95,8 @@ public class ShardReplicationChangesTracker implements Closeable {
         this.shardReplicationService = shardReplicationService;
         this.clusterName = clusterName;
         var seqNoStats = indexShard.seqNoStats();
-        observedSeqNoAtLeader = new AtomicLong(seqNoStats.getGlobalCheckpoint());
-        seqNoAlreadyRequested = new AtomicLong(seqNoStats.getMaxSeqNo());
+        this.observedSeqNoAtLeader = new AtomicLong(seqNoStats.getGlobalCheckpoint());
+        this.seqNoAlreadyRequested = new AtomicLong(seqNoStats.getMaxSeqNo());
     }
 
     record SeqNoRange(long fromSeqNo, long toSeqNo) {
@@ -101,92 +104,112 @@ public class ShardReplicationChangesTracker implements Closeable {
 
     public void start() {
         LOGGER.debug("[{}] Spawning the shard changes reader", shardId);
-        var runnable = new RetryRunnable(
-            threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
-            threadPool.scheduler(),
-            this::requestBatchToFetch,
-            BackoffPolicy.exponentialBackoff()
-        );
-        runnable.run();
+        newRunnable().run();
     }
 
-    private void requestBatchToFetch() {
-        requestBatchToFetch(batchToFetch -> {
-            long fromSeqNo = batchToFetch.fromSeqNo();
-            long toSeqNo = batchToFetch.toSeqNo();
+    private RetryRunnable newRunnable() {
+        return new RetryRunnable(
+            threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
+            threadPool.scheduler(),
+            this::pollAndProcessPendingChanges,
+            BackoffPolicy.exponentialBackoff()
+        );
+    }
+
+    private void pollAndProcessPendingChanges() {
+        SeqNoRange rangeToFetch = getNextSeqNoRange();
+        if (rangeToFetch == null) {
+            cancellable = threadPool.scheduleUnlessShuttingDown(
+                replicationSettings.pollDelay(),
+                ThreadPool.Names.LOGICAL_REPLICATION,
+                newRunnable()
+            );
+            return;
+        }
+        long fromSeqNo = rangeToFetch.fromSeqNo();
+        long toSeqNo = rangeToFetch.toSeqNo();
+
+        var futureClient = shardReplicationService.getRemoteClusterClient(shardId.getIndex());
+        var getPendingChangesRequest = new ShardChangesAction.Request(shardId, fromSeqNo, toSeqNo);
+        var futurePendingChanges = futureClient.thenCompose(remoteClient -> {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[{}] Getting changes {}-{}", shardId, fromSeqNo, toSeqNo);
             }
-            getChanges(
-                fromSeqNo,
-                toSeqNo,
-                response -> {
-                    List<Translog.Operation> translogOps = response.changes();
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("[{}] Got {} changes starting from seqNo: {}",
-                                     shardId, translogOps.size(), fromSeqNo);
-                    }
-                    replayChanges(
-                        translogOps,
-                        response.maxSeqNoOfUpdatesOrDeletes(),
-                        ignored -> {
-                            if (LOGGER.isDebugEnabled()) {
-                                LOGGER.debug("[{}] Replayed changes {}-{}", shardId, fromSeqNo, toSeqNo);
-                            }
-                            long lastSeqNo = fromSeqNo - 1;
-                            if (translogOps.isEmpty() == false) {
-                                lastSeqNo = translogOps.get(translogOps.size() - 1).seqNo();
-                            }
-                            updateBatchFetched(
-                                true,
-                                fromSeqNo,
-                                toSeqNo,
-                                lastSeqNo,
-                                response.lastSyncedGlobalCheckpoint()
-                            );
-                        },
-                        e -> {}
-                    );
-                },
-                e -> {
-                    var t = SQLExceptions.unwrap(e);
-                    if (t instanceof ElasticsearchTimeoutException) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("[{}] Timed out waiting for new changes. Current seqNo: {}",
-                                         shardId,
-                                         fromSeqNo);
-                        }
-                        updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
-                    } else if (t instanceof NodeNotConnectedException
-                        || t instanceof NodeDisconnectedException
-                        || t instanceof NodeClosedException) {
-                        LOGGER.info("[{}] Node not connected. Retrying.. {}", shardId, e);
-                        updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
-                    } else if (t instanceof IndexShardClosedException) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("[{}] Remote shard closed (table closed?), will stop tracking changes", shardId);
-                        }
-                    } else if (t instanceof IndexNotFoundException || t instanceof NoShardAvailableActionException) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("[{}] Remote shard not found (dropped table?), will stop tracking changes", shardId);
-                        }
-                    } else {
-                        LOGGER.warn(
-                            String.format(Locale.ENGLISH,
-                                          "[%s] Unable to get changes from seqNo: %d, will stop tracking",
-                                          shardId, fromSeqNo),
-                            t);
-                    }
-
-                }
-            );
+            return remoteClient.execute(ShardChangesAction.INSTANCE, getPendingChangesRequest);
         });
+        var futureReplicationResponse = futurePendingChanges.thenCompose(this::replayChanges);
+        futureReplicationResponse.whenComplete((replicationResp, e) -> {
+            if (e == null) {
+                var pendingChanges = futurePendingChanges.join();
+                long lastSeqNo;
+                List<Operation> translogOps = pendingChanges.changes();
+                if (translogOps.isEmpty()) {
+                    lastSeqNo = fromSeqNo - 1;
+                } else {
+                    lastSeqNo = translogOps.get(translogOps.size() - 1).seqNo();
+                }
+                updateBatchFetched(true, fromSeqNo, toSeqNo, lastSeqNo, pendingChanges.lastSyncedGlobalCheckpoint());
+            } else {
+                var t = SQLExceptions.unwrap(e);
+                if (SQLExceptions.maybeTemporary(t)) {
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                            "[{}] Temporary error during tracking of upstream shard changes for subscription '{}'. Retrying: {}:{}",
+                            shardId,
+                            subscriptionName,
+                            t.getClass().getSimpleName(),
+                            t.getMessage()
+                        );
+                    }
+                    updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
+                } else {
+                    LOGGER.warn(
+                        "[{}] Error during tracking of upstream shard changes for subscription '{}'. Tracking stopped: {}",
+                        shardId,
+                        subscriptionName,
+                        t
+                    );
+                }
+            }
+        });
+    }
+
+
+    private CompletableFuture<ReplicationResponse> replayChanges(ShardChangesAction.Response response) {
+        List<Translog.Operation> translogOps = response.changes();
+        if (translogOps.isEmpty()) {
+            return CompletableFuture.completedFuture(new ReplicationResponse());
+        }
+        var replayRequest = new ReplayChangesAction.Request(
+            shardId,
+            translogOps,
+            response.maxSeqNoOfUpdatesOrDeletes()
+        );
+        FutureActionListener<ReplicationResponse, ReplicationResponse> listener = new FutureActionListener<>(resp -> {
+            ShardInfo shardInfo = resp.getShardInfo();
+            if (shardInfo.getFailed() > 0) {
+                for (ReplicationResponse.ShardInfo.Failure failure : shardInfo.getFailures()) {
+                    LOGGER.error("[{}] Failed replaying changes. Failure: {}", shardId, failure);
+                }
+                throw new RuntimeException("Some changes failed while replaying");
+            }
+            return resp;
+        });
+        var retryListener = new ReplayChangesRetryListener<>(
+            threadPool.scheduler(),
+            l -> localClient.execute(ReplayChangesAction.INSTANCE, replayRequest, l),
+            listener,
+            BackoffPolicy.exponentialBackoff()
+        );
+        localClient.execute(ReplayChangesAction.INSTANCE, replayRequest, retryListener);
+        return listener;
     }
 
     /**
      * Provides a range of operations to be fetched next.
      */
-    private void requestBatchToFetch(Consumer<SeqNoRange> consumer) {
+    @Nullable
+    private SeqNoRange getNextSeqNoRange() {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("[{}] Waiting to get batch. requested: {}, leader: {}",
                          shardId, seqNoAlreadyRequested.get(), observedSeqNoAtLeader.get());
@@ -196,12 +219,7 @@ public class ShardReplicationChangesTracker implements Closeable {
         // we still should be sending one more request to fetch which will just do a poll and eventually timeout
         // if no new operations are there on the leader (configured via TransportGetChangesAction.WAIT_FOR_NEW_OPS_TIMEOUT)
         if (seqNoAlreadyRequested.get() > observedSeqNoAtLeader.get() && missingBatches.isEmpty()) {
-            cancellable = threadPool.schedule(
-                () -> requestBatchToFetch(consumer),
-                replicationSettings.pollDelay(),
-                ThreadPool.Names.LOGICAL_REPLICATION
-            );
-            return;
+            return null;
         }
 
         // missing batch takes higher priority.
@@ -210,7 +228,7 @@ public class ShardReplicationChangesTracker implements Closeable {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[{}] Fetching missing batch {}-{}", shardId, missingBatch.fromSeqNo(), missingBatch.toSeqNo());
             }
-            consumer.accept(missingBatch);
+            return missingBatch;
         } else {
             // return the next batch to fetch and update seqNoAlreadyRequested.
             var batchSize = replicationSettings.batchSize();
@@ -219,23 +237,8 @@ public class ShardReplicationChangesTracker implements Closeable {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("[{}] Fetching the batch {}-{}", shardId, fromSeq, toSeq);
             }
-            consumer.accept(new SeqNoRange(fromSeq, toSeq));
+            return new SeqNoRange(fromSeq, toSeq);
         }
-    }
-
-    private void getChanges(long fromSeqNo,
-                            long toSeqNo,
-                            CheckedConsumer<ShardChangesAction.Response, ? extends Exception> onSuccess,
-                            Consumer<Exception> onFailure) {
-        var request = new ShardChangesAction.Request(shardId, fromSeqNo, toSeqNo);
-        shardReplicationService.getRemoteClusterClient(shardId.getIndex())
-            .whenComplete((client, err) -> {
-                if (err == null) {
-                    client.execute(ShardChangesAction.INSTANCE, request, ActionListener.wrap(onSuccess, onFailure));
-                } else {
-                    onFailure.accept(Exceptions.toException(err));
-                }
-            });
     }
 
     /**
@@ -265,9 +268,7 @@ public class ShardReplicationChangesTracker implements Closeable {
             // If we didn't get the complete batch that we had requested.
             if (toSeqNoRequested > toSeqNoReceived) {
                 // If this is the last batch being fetched, update the seqNoAlreadyRequested.
-                if (seqNoAlreadyRequested.get() == toSeqNoRequested) {
-                    seqNoAlreadyRequested.set(toSeqNoReceived);
-                } else {
+                if (!seqNoAlreadyRequested.compareAndSet(toSeqNoRequested, toSeqNoReceived)) {
                     // Else, add to the missing operations to missing batch
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug("[{}] Didn't get the complete batch. Adding the missing operations {}-{}",
@@ -283,7 +284,7 @@ public class ShardReplicationChangesTracker implements Closeable {
             // Update the sequence number observed at leader.
             var currentSeqNoAtLeader = observedSeqNoAtLeader.getAndUpdate(value -> Math.max(seqNoAtLeader, value));
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("[{}] observedSeqNoAtLeader: {}", shardId, observedSeqNoAtLeader.get());
+                LOGGER.debug("[{}] observedSeqNoAtLeader: {}", shardId, currentSeqNoAtLeader);
             }
         } else {
             // If this is the last batch being fetched, update the seqNoAlreadyRequested.
@@ -298,81 +299,51 @@ public class ShardReplicationChangesTracker implements Closeable {
                 missingBatches.add(new SeqNoRange(fromSeqNoRequested, toSeqNoRequested));
             }
         }
+        renewLeasesThenReschedule(toSeqNoReceived);
+    }
 
+    private void renewLeasesThenReschedule(long toSeqNoReceived) {
         // Renew retention lease with global checkpoint so that any shard that picks up shard replication task
         // has data until then.
         // Method is called inside a transport thread (response listener), so dispatch away
-        threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION).execute(
-            () -> {
-                shardReplicationService.getRemoteClusterClient(shardId.getIndex())
-                    .thenAccept(client -> {
-                        RetentionLeaseHelper.renewRetentionLease(
-                            shardId,
-                            toSeqNoReceived,
-                            clusterName,
-                            client,
-                            ActionListener.wrap(
-                                r -> {
-                                    // schedule next poll
-                                    cancellable = threadPool.schedule(
-                                        this::requestBatchToFetch,
-                                        replicationSettings.pollDelay(),
-                                        ThreadPool.Names.LOGICAL_REPLICATION
-                                    );
-                                },
-                                e -> {
-                                    LOGGER.warn("Exception renewing retention lease.", e);
-                                }
-                            )
-                        );
-                    });
-            }
-        );
-    }
-
-    private void replayChanges(List<Translog.Operation> translogOps,
-                               long maxSeqNoOfUpdatesOrDeletes,
-                               Consumer<Void> onSuccess,
-                               Consumer<Exception> onFailure) {
-        if (translogOps.size() > 0) {
-            var replayRequest = new ReplayChangesAction.Request(
-                shardId,
-                translogOps,
-                maxSeqNoOfUpdatesOrDeletes
-            );
-            var listener = new ActionListener<ReplicationResponse>() {
-                @Override
-                public void onResponse(ReplicationResponse replayResponse) {
-                    var shardInfo = replayResponse.getShardInfo();
-                    if (shardInfo.getFailed() > 0) {
-                        for (ReplicationResponse.ShardInfo.Failure failure : shardInfo.getFailures()) {
-                            LOGGER.error("[{}] Failed replaying changes. Failure: {}", shardId, failure);
+        threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION).execute(() -> {
+            shardReplicationService.getRemoteClusterClient(shardId.getIndex()).thenAccept(remoteClient -> {
+                RetentionLeaseHelper.renewRetentionLease(
+                    shardId,
+                    toSeqNoReceived,
+                    clusterName,
+                    remoteClient,
+                    ActionListener.wrap(
+                        r -> {
+                            cancellable = threadPool.scheduleUnlessShuttingDown(
+                                replicationSettings.pollDelay(),
+                                ThreadPool.Names.LOGICAL_REPLICATION,
+                                newRunnable()
+                            );
+                        },
+                        e -> {
+                            var t = SQLExceptions.unwrap(e);
+                            if (SQLExceptions.maybeTemporary(t)) {
+                                LOGGER.info(
+                                    "[{}] Temporary error during renewal of retention leases for subscription '{}'. Retrying: {}:{}",
+                                    shardId,
+                                    subscriptionName,
+                                    t.getClass().getSimpleName(),
+                                    t.getMessage()
+                                );
+                                cancellable = threadPool.scheduleUnlessShuttingDown(
+                                    replicationSettings.pollDelay(),
+                                    ThreadPool.Names.LOGICAL_REPLICATION,
+                                    () -> renewLeasesThenReschedule(toSeqNoReceived)
+                                );
+                            } else {
+                                LOGGER.warn("Exception renewing retention lease. Stopping tracking", e);
+                            }
                         }
-                        onFailure.accept(new RuntimeException("Some changes failed while replaying"));
-                    }
-                    onSuccess.accept(null);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    var msg = String.format(Locale.ENGLISH, "[%s] Changes cannot be replayed, tracking will stop", shardId);
-                    LOGGER.error(msg, e);
-                    onFailure.accept(new RuntimeException(msg));
-                }
-            };
-            BiConsumer<ReplayChangesAction.Request, ActionListener<ReplicationResponse>> operation =
-                (req, l) -> localClient.execute(ReplayChangesAction.INSTANCE, req, l);
-            operation.accept(
-                replayRequest,
-                new RetryListener<>(
-                    threadPool.scheduler(),
-                    l -> operation.accept(replayRequest, l),
-                    listener,
-                    BackoffPolicy.exponentialBackoff()
-                ));
-        } else {
-            onSuccess.accept(null);
-        }
+                    )
+                );
+            });
+        });
     }
 
     @Override
@@ -389,5 +360,19 @@ public class ShardReplicationChangesTracker implements Closeable {
                     ActionListener.wrap(() -> {})
                 );
             });
+    }
+
+    private static class ReplayChangesRetryListener<TResp> extends RetryListener<TResp> {
+
+        public ReplayChangesRetryListener(ScheduledExecutorService scheduler,
+                                          Consumer<ActionListener<TResp>> command, ActionListener<TResp> delegate,
+                                          Iterable<TimeValue> backOffPolicy) {
+            super(scheduler, command, delegate, backOffPolicy);
+        }
+
+        @Override
+        protected boolean shouldRetry(Throwable throwable) {
+            return super.shouldRetry(throwable) || throwable instanceof ClusterBlockException;
+        }
     }
 }

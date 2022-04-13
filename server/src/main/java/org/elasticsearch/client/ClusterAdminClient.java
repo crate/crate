@@ -26,12 +26,10 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequestBuilder;
-import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequestBuilder;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
@@ -87,11 +85,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
     PutRepositoryRequestBuilder preparePutRepository(String name);
 
     /**
-     * Unregisters a repository.
-     */
-    DeleteRepositoryRequestBuilder prepareDeleteRepository(String name);
-
-    /**
      * Creates a new snapshot.
      */
     CreateSnapshotRequestBuilder prepareCreateSnapshot(String repository, String name);
@@ -100,11 +93,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Get snapshot.
      */
     GetSnapshotsRequestBuilder prepareGetSnapshots(String repository);
-
-    /**
-     * Delete snapshot.
-     */
-    DeleteSnapshotRequestBuilder prepareDeleteSnapshot(String repository, String snapshot);
 
     /**
      * Returns a list of the pending cluster tasks, that are scheduled to be executed. This includes operations
@@ -117,7 +105,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      *
      * @param request  The nodes info request
      * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#nodesStatsRequest(String...)
      */
     void nodesStats(NodesStatsRequest request, ActionListener<NodesStatsResponse> listener);
 

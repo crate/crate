@@ -36,6 +36,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -63,6 +64,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.orderBy().orderBySymbols(), contains(isField("id"), isField("text")));
         assertThat(relation.limit(), isLiteral(10L));
         assertThat(relation.offset(), isLiteral(20L));
+        assertThat(relation.isDistinct(), is(false));
 
         UnionSelect tableUnion = ((UnionSelect) relation.from().get(0));
         assertThat(tableUnion.left(), instanceOf(QueriedSelectRelation.class));
@@ -86,6 +88,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.orderBy().orderBySymbols(), contains(isField("text")));
         assertThat(relation.limit(), isLiteral(10L));
         assertThat(relation.offset(), isLiteral(20L));
+        assertThat(relation.isDistinct(), is(false));
 
         UnionSelect tableUnion1 = ((UnionSelect) relation.from().get(0));
         assertThat(tableUnion1.left(), instanceOf(UnionSelect.class));
@@ -101,6 +104,20 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(tableUnion2.right(), instanceOf(QueriedSelectRelation.class));
         assertThat(tableUnion2.right().outputs(), contains(isReference("id"), isReference("name")));
+    }
+
+    @Test
+    public void testUnionDistinct() throws Exception{
+        SQLExecutor.builder(clusterService)
+            .addTable(
+                "create table x (a text)"
+            ).build();
+
+        UnionSelect unionSelect = analyze("select a from x union select a from x");
+        assertThat(unionSelect.isDistinct(), is(true));
+
+        unionSelect = analyze("select a from x union distinct select a from x");
+        assertThat(unionSelect.isDistinct(), is(true));
     }
 
     @Test

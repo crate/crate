@@ -21,14 +21,6 @@
 
 package io.crate.execution;
 
-import io.crate.cluster.decommission.TransportDecommissionNodeAction;
-import io.crate.execution.dml.delete.TransportShardDeleteAction;
-import io.crate.execution.dml.upsert.TransportShardUpsertAction;
-import io.crate.execution.engine.fetch.TransportFetchNodeAction;
-import io.crate.execution.engine.profile.TransportCollectProfileNodeAction;
-import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
-import io.crate.execution.jobs.transport.TransportJobAction;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshotAction;
@@ -37,12 +29,27 @@ import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshot
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshotAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
 import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.TransportUpgradeAction;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 
+import io.crate.cluster.decommission.TransportDecommissionNodeAction;
+import io.crate.execution.dml.delete.TransportShardDeleteAction;
+import io.crate.execution.dml.upsert.TransportShardUpsertAction;
+import io.crate.execution.engine.fetch.TransportFetchNodeAction;
+import io.crate.execution.engine.profile.TransportCollectProfileNodeAction;
+import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.planner.DependencyCarrier;
+
+/**
+ * @deprecated Prefer using {@link DependencyCarrier#client()} and
+ *             {@link ElasticsearchClient#execute(org.elasticsearch.action.ActionType, org.elasticsearch.transport.TransportRequest)}
+ **/
+@Deprecated
 public class TransportActionProvider {
 
     private final Provider<TransportFetchNodeAction> transportFetchNodeActionProvider;
@@ -68,7 +75,6 @@ public class TransportActionProvider {
     private final Provider<TransportRefreshAction> transportRefreshActionProvider;
 
     private final Provider<TransportUpgradeAction> transportUpgradeActionProvider;
-    private final Provider<TransportForceMergeAction> transportForceMergeActionProvider;
     private final Provider<TransportClusterRerouteAction> transportClusterRerouteActionProvider;
 
     @Inject
@@ -89,7 +95,6 @@ public class TransportActionProvider {
                                    Provider<TransportDecommissionNodeAction> transportDecommissionNodeActionProvider,
                                    Provider<TransportRefreshAction> transportRefreshActionProvider,
                                    Provider<TransportUpgradeAction> transportUpgradeActionProvider,
-                                   Provider<TransportForceMergeAction> transportForceMergeActionProvider,
                                    Provider<TransportClusterRerouteAction> transportClusterRerouteActionProvider) {
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportClusterUpdateSettingsActionProvider = transportClusterUpdateSettingsActionProvider;
@@ -108,7 +113,6 @@ public class TransportActionProvider {
         this.transportDecommissionNodeActionProvider = transportDecommissionNodeActionProvider;
         this.transportRefreshActionProvider = transportRefreshActionProvider;
         this.transportUpgradeActionProvider = transportUpgradeActionProvider;
-        this.transportForceMergeActionProvider = transportForceMergeActionProvider;
         this.transportClusterRerouteActionProvider = transportClusterRerouteActionProvider;
     }
 
@@ -178,10 +182,6 @@ public class TransportActionProvider {
 
     public TransportUpgradeAction transportUpgradeAction() {
         return transportUpgradeActionProvider.get();
-    }
-
-    public TransportForceMergeAction transportForceMergeAction() {
-        return transportForceMergeActionProvider.get();
     }
 
     public TransportClusterRerouteAction transportClusterRerouteAction() {

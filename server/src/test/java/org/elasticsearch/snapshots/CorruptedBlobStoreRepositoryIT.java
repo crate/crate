@@ -52,6 +52,11 @@ import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.testing.Asserts;
+import io.crate.testing.SQLErrorMatcher;
+import io.netty.handler.codec.http.HttpResponseStatus;
+
 public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCase {
 
     @Test
@@ -262,23 +267,22 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
     @Test
     public void testCorruptedSnapshotIsIgnored() throws Exception {
         Path repo = randomRepoPath();
-        final String repoName = "test";
         logger.info("-->  creating repository at {}", repo.toAbsolutePath());
 
-        execute("CREATE REPOSITORY test TYPE fs with (location=?, compress=false, chunk_size=?)",
+        execute("CREATE REPOSITORY repo1 TYPE fs with (location=?, compress=false, chunk_size=?)",
                 new Object[]{repo.toAbsolutePath().toString(), randomIntBetween(100, 1000) + ByteSizeUnit.BYTES.getSuffix()});
 
         final String snapshotPrefix = "test-snap-";
         final int snapshots = randomIntBetween(2, 2);
         logger.info("--> creating [{}] snapshots", snapshots);
         for (int i = 0; i < snapshots; ++i) {
-            CreateSnapshotResponse createSnapshotResponse = client().admin().cluster().prepareCreateSnapshot(repoName, snapshotPrefix + i)
+            CreateSnapshotResponse createSnapshotResponse = client().admin().cluster().prepareCreateSnapshot("repo1", snapshotPrefix + i)
                 .setIndices().setWaitForCompletion(true).get();
             assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), is(0));
             assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
                        equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
         }
-        final Repository repository = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
+        final Repository repository = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository("repo1");
         final RepositoryData repositoryData = getRepositoryData(repository);
 
         final SnapshotId snapshotToCorrupt = randomFrom(repositoryData.getSnapshotIds());
@@ -286,10 +290,10 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         Files.delete(repo.resolve(String.format(Locale.ROOT, BlobStoreRepository.SNAPSHOT_NAME_FORMAT, snapshotToCorrupt.getUUID())));
 
         logger.info("--> ensure snapshot list can be retrieved without any error if ignoreUnavailable is set");
-        var resp = client().admin().cluster().prepareGetSnapshots(repoName).setIgnoreUnavailable(true).get();
+        var resp = client().admin().cluster().prepareGetSnapshots("repo1").setIgnoreUnavailable(true).get();
         assertThat(resp.getSnapshots().size(), is(snapshots - 1));
 
-        client().admin().cluster().prepareDeleteSnapshot(repoName, snapshotToCorrupt.getName()).get();
+        execute("drop snapshot repo1.\"" + snapshotToCorrupt.getName() + "\"");
     }
 
     @Test
@@ -329,10 +333,15 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
     private void assertRepositoryBlocked(Client client, String repo, String existingSnapshot) {
         logger.info("--> try to delete snapshot");
-        final RepositoryException repositoryException3 = expectThrows(RepositoryException.class,
-                                                                      () -> client.admin().cluster().prepareDeleteSnapshot(repo, existingSnapshot).execute().actionGet());
-        assertThat(repositoryException3.getMessage(),
-                   containsString("Could not read repository data because the contents of the repository do not match its expected state."));
+        Asserts.assertThrowsMatches(
+            () -> execute("drop snapshot \"" + repo + "\".\"" + existingSnapshot + "\""),
+            SQLErrorMatcher.isSQLError(
+                containsString("Could not read repository data because the contents of the repository do not match its expected state."),
+                PGErrorStatus.INTERNAL_ERROR,
+                HttpResponseStatus.INTERNAL_SERVER_ERROR,
+                5000
+            )
+        );
 
         logger.info("--> try to create snapshot");
         final RepositoryException repositoryException4 = expectThrows(RepositoryException.class,

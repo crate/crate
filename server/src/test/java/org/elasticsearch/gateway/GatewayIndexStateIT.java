@@ -27,10 +27,10 @@ import io.crate.testing.SQLTransportExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexGraveyard;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -369,7 +369,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         });
 
         logger.info("--> wait until all nodes are back online");
-        client().admin().cluster().health(Requests.clusterHealthRequest().waitForEvents(Priority.LANGUID)
+        client().admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)
                                               .waitForNodes(Integer.toString(numNodes))).actionGet(REQUEST_TIMEOUT);
 
         logger.info("--> waiting for green status");
@@ -414,7 +414,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         } else {
             internalCluster().startNode();
             client().admin().cluster()
-                .health(Requests.clusterHealthRequest()
+                .health(new ClusterHealthRequest()
                     .waitForGreenStatus()
                     .waitForEvents(Priority.LANGUID)
                     .waitForNoRelocatingShards(true).waitForNodes("2")).actionGet(REQUEST_TIMEOUT);
@@ -491,7 +491,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         } else {
             internalCluster().startNode();
             client().admin().cluster()
-                .health(Requests.clusterHealthRequest()
+                .health(new ClusterHealthRequest()
                     .waitForGreenStatus()
                     .waitForEvents(Priority.LANGUID)
                     .waitForNoRelocatingShards(true).waitForNodes("2")).actionGet(REQUEST_TIMEOUT);
@@ -542,7 +542,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         } else {
             internalCluster().startNode();
             client().admin().cluster()
-                .health(Requests.clusterHealthRequest()
+                .health(new ClusterHealthRequest()
                     .waitForGreenStatus()
                     .waitForEvents(Priority.LANGUID)
                     .waitForNoRelocatingShards(true).waitForNodes("2")).actionGet(REQUEST_TIMEOUT);

@@ -25,9 +25,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -42,6 +40,7 @@ import java.security.cert.X509Certificate;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
 
 import io.crate.auth.Protocol;
 import org.elasticsearch.common.settings.Settings;
@@ -98,6 +97,12 @@ public class SslContextProviderTest extends ESTestCase {
         assertThat(sslContext, instanceOf(SslContext.class));
         assertThat(sslContext.isServer(), is(true));
         assertThat(sslContext.cipherSuites(), not(empty()));
+    }
+
+    @Test
+    public void test_no_truststore_gets_defaults_certs() {
+        TrustManager[] trustManagers = SslContextProvider.createTrustManagers(null);
+        assertThat(SslContextProvider.getDefaultCertificates(trustManagers).length, greaterThan(0));
     }
 
     @Test
