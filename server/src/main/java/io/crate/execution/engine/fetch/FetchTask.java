@@ -46,6 +46,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.common.collections.BorrowedItem;
@@ -264,7 +265,7 @@ public class FetchTask implements Task {
                                 if (tablesWithFetchRefs.contains(ident)) {
                                     searchers.put(readerId, shardContext.acquireSearcher(source));
                                 }
-                            } catch (IndexNotFoundException e) {
+                            } catch (IllegalIndexShardStateException | IndexNotFoundException e) {
                                 if (!IndexParts.isPartitioned(indexName)) {
                                     throw e;
                                 }
