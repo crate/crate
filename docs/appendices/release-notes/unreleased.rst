@@ -61,6 +61,13 @@ Changes
 
 - Users with AL privileges can now run ``ANALYZE``
 
+.. vale off
+
+- Added ``concat_ws`` scalar function which allows concatenation with a custom
+  separator.
+
+.. vale on
+
 Fixes
 =====
 
