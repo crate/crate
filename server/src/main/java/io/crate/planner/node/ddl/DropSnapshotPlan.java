@@ -59,10 +59,8 @@ public class DropSnapshotPlan implements Plan {
         DeleteSnapshotRequest request = new DeleteSnapshotRequest(
             dropSnapshot.repository(), dropSnapshot.snapshot());
 
-        dependencies.client().execute(
-            DeleteSnapshotAction.INSTANCE,
-            request,
-            new OneRowActionListener<>(
+        dependencies.client().execute(DeleteSnapshotAction.INSTANCE, request)
+            .whenComplete(new OneRowActionListener<>(
                 consumer,
                 response -> {
                     if (!response.isAcknowledged()) {
@@ -71,7 +69,6 @@ public class DropSnapshotPlan implements Plan {
                             request.repository(), request.snapshot());
                     }
                     return new Row1(1L);
-                })
-        );
+                }));
     }
 }

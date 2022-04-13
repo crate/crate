@@ -96,14 +96,12 @@ public class RefreshTablePlan implements Plan {
         RefreshRequest request = new RefreshRequest(toRefresh.toArray(String[]::new));
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
-        dependencies.client().execute(
-            RefreshAction.INSTANCE,
-            request,
-            new OneRowActionListener<>(
-                consumer,
-                response -> new Row1(toRefresh.isEmpty() ? -1L : (long) toRefresh.size())
-            )
-        );
+        dependencies.client().execute(RefreshAction.INSTANCE, request)
+            .whenComplete(
+                new OneRowActionListener<>(
+                    consumer,
+                    response -> new Row1(toRefresh.isEmpty() ? -1L : (long) toRefresh.size())
+                ));
     }
 
     @Override

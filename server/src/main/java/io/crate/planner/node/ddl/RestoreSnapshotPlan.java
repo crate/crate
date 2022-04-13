@@ -51,6 +51,8 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Table;
+
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
@@ -137,10 +139,8 @@ public class RestoreSnapshotPlan implements Plan {
                         .customMetadataTypes(stmt.customMetadataTypes())
                         .includeGlobalSettings(stmt.includeGlobalSettings())
                         .globalSettings(stmt.globalSettings());
-                    dependencies.client().execute(
-                        RestoreSnapshotAction.INSTANCE,
-                        request,
-                        new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
+                    dependencies.client().execute(RestoreSnapshotAction.INSTANCE, request)
+                        .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
                 }
             });
     }
@@ -245,7 +245,8 @@ public class RestoreSnapshotPlan implements Plan {
                         return context;
                     }
                 );
-            elasticsearchClient.execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repositoryName), listener);
+            elasticsearchClient.execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repositoryName))
+                .whenComplete(ActionListener.toBiConsumer(listener));
             return listener;
         }
     }

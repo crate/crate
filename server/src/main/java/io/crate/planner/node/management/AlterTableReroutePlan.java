@@ -48,6 +48,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
+
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -91,11 +92,8 @@ public class AlterTableReroutePlan implements Plan {
             subQueryResults,
             dependencies.clusterService().state().nodes());
 
-        dependencies.client().execute(
-            ClusterRerouteAction.INSTANCE,
-            new ClusterRerouteRequest().add(rerouteCommand),
-            new OneRowActionListener<>(
-                consumer, r -> new Row1(r == null ? -1L : 1L)));
+        dependencies.client().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest().add(rerouteCommand))
+            .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
     }
 
     @VisibleForTesting

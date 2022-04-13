@@ -130,7 +130,8 @@ public class ShardingUpsertExecutor
         this.bulkSize = bulkSize;
         this.jobId = jobId;
         this.requestFactory = requestFactory;
-        this.requestExecutor = (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req, resp);
+        this.requestExecutor = (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req)
+            .whenComplete(ActionListener.toBiConsumer(resp));
         this.elasticsearchClient = elasticsearchClient;
         ToLongFunction<Row> estimateRowSize = new TypeGuessEstimateRowSize();
         this.ramAccounting = new BlockBasedRamAccounting(ramAccounting::addBytes, (int) ByteSizeUnit.MB.toBytes(2));

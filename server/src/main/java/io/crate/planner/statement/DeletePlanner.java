@@ -144,10 +144,8 @@ public final class DeletePlanner {
                 && (!where.hasQuery() || Literal.BOOLEAN_TRUE.equals(where.query()))) {
                 DeleteIndexRequest request = new DeleteIndexRequest(where.partitions().toArray(new String[0]));
                 request.indicesOptions(IndicesOptions.lenientExpandOpen());
-                executor.client().execute(
-                    DeleteIndexAction.INSTANCE,
-                    request,
-                    new OneRowActionListener<>(consumer, o -> new Row1(-1L)));
+                executor.client().execute(DeleteIndexAction.INSTANCE, request)
+                    .whenComplete(new OneRowActionListener<>(consumer, o -> new Row1(-1L)));
                 return;
             }
 

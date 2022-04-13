@@ -365,7 +365,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
 
             // Gets the remote store metadata
             StepListener<GetStoreMetadataAction.Response> responseStepListener = new StepListener<>();
-            remoteClient.execute(GetStoreMetadataAction.INSTANCE, getStoreMetadataRequest, responseStepListener);
+            remoteClient.execute(GetStoreMetadataAction.INSTANCE, getStoreMetadataRequest)
+                .whenComplete(ActionListener.toBiConsumer(responseStepListener));
             responseStepListener.whenComplete(metadataResponse -> {
                 var metadataSnapshot = metadataResponse.metadataSnapshot();
 
@@ -453,19 +454,23 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .setWaitForTimeOut(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC))
             .request();
         getRemoteClient().admin().cluster().execute(
-            ClusterStateAction.INSTANCE, clusterStateRequest, new ActionListener<>() {
-                @Override
-                public void onResponse(ClusterStateResponse clusterStateResponse) {
-                    ClusterState remoteState = clusterStateResponse.getState();
-                    LOGGER.trace("Successfully fetched the cluster state from remote repository {}", remoteState);
-                    listener.onResponse(remoteState);
-                }
+            ClusterStateAction.INSTANCE, clusterStateRequest)
+            .whenComplete(
+                ActionListener.toBiConsumer(
+                    new ActionListener<>() {
+                        @Override
+                        public void onResponse(ClusterStateResponse clusterStateResponse) {
+                            ClusterState remoteState = clusterStateResponse.getState();
+                            LOGGER.trace("Successfully fetched the cluster state from remote repository {}", remoteState);
+                            listener.onResponse(remoteState);
+                        }
 
-                @Override
-                public void onFailure(Exception e) {
-                    listener.onFailure(e);
-                }
-            });
+                        @Override
+                        public void onFailure(Exception e) {
+                            listener.onFailure(e);
+                        }
+                    }
+                ));
     }
 
     private void getPublicationsState(ActionListener<PublicationsStateAction.Response> listener) {
@@ -474,9 +479,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             new PublicationsStateAction.Request(
                 logicalReplicationService.subscriptions().get(subscriptionName).publications(),
                 logicalReplicationService.subscriptions().get(subscriptionName).connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
-            ),
-            listener
-        );
+            )).whenComplete(ActionListener.toBiConsumer(listener));
     }
 
     private void releasePublisherResources(String restoreUUID,
@@ -488,28 +491,28 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             shardId,
             clusterService.getClusterName().value()
         );
-        getRemoteClient().execute(
-            ReleasePublisherResourcesAction.INSTANCE,
-            releaseResourcesReq,
-            new ActionListener<>() {
-                @Override
-                public void onResponse(AcknowledgedResponse acknowledgedResponse) {
-                    if (acknowledgedResponse.isAcknowledged()) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("Successfully released resources at the publisher cluster for {} at {}",
-                                shardId,
-                                publisherShardNode
-                            );
+        getRemoteClient().execute(ReleasePublisherResourcesAction.INSTANCE, releaseResourcesReq)
+            .whenComplete(
+                ActionListener.toBiConsumer(
+                    new ActionListener<>() {
+                        @Override
+                        public void onResponse(AcknowledgedResponse acknowledgedResponse) {
+                            if (acknowledgedResponse.isAcknowledged()) {
+                                if (LOGGER.isDebugEnabled()) {
+                                    LOGGER.debug("Successfully released resources at the publisher cluster for {} at {}",
+                                                 shardId,
+                                                 publisherShardNode
+                                    );
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            LOGGER.error("Releasing publisher resource failed due to ", e);
                         }
                     }
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.error("Releasing publisher resource failed due to ", e);
-                }
-            }
-        );
+                ));
     }
 
 }

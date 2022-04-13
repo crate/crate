@@ -33,6 +33,8 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
@@ -94,7 +96,8 @@ public class DeleteById implements Plan {
             dependencies.nodeContext(),
             table,
             new DeleteRequests(plannerContext.jobId(), requestTimeout),
-            (request, listener) -> dependencies.client().execute(ShardDeleteAction.INSTANCE, request, listener),
+            (request, listener) -> dependencies.client().execute(ShardDeleteAction.INSTANCE, request)
+                .whenComplete(ActionListener.toBiConsumer(listener)),
             docKeys
         );
     }

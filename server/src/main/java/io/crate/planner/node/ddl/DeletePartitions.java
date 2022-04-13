@@ -76,11 +76,8 @@ public class DeletePartitions implements Plan {
             plannerContext.transactionContext(), dependencies.nodeContext(), params, subQueryResults);
         DeleteIndexRequest request = new DeleteIndexRequest(indexNames.toArray(new String[0]));
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
-        dependencies.client().execute(
-            DeleteIndexAction.INSTANCE,
-            request,
-            new OneRowActionListener<>(consumer, r -> Row1.ROW_COUNT_UNKNOWN)
-        );
+        dependencies.client().execute(DeleteIndexAction.INSTANCE, request)
+            .whenComplete(new OneRowActionListener<>(consumer, r -> Row1.ROW_COUNT_UNKNOWN));
     }
 
     @VisibleForTesting
