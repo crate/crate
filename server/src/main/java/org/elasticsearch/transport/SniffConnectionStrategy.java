@@ -53,7 +53,6 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.common.Booleans;
 import io.crate.common.collections.Lists2;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -62,19 +61,6 @@ import io.crate.replication.logical.metadata.ConnectionInfo;
 public class SniffConnectionStrategy implements TransportConnectionListener, Closeable {
 
     static final int CHANNELS_PER_CONNECTION = 6;
-
-    private static final Predicate<DiscoveryNode> DEFAULT_NODE_PREDICATE = (node) ->
-        Version.CURRENT.isCompatible(node.getVersion())
-        && (node.isMasterEligibleNode() == false || node.isDataNode());
-
-    /**
-     * The name of a node attribute to select nodes that should be connected to in the remote cluster.
-     * For instance a node can be configured with {@code node.attr.gateway: true} in order to be eligible as a gateway node between
-     * clusters. In that case {@code search.remote.node.attr: gateway} can be used to filter out other nodes in the remote cluster.
-     * The value of the setting is expected to be a boolean, {@code true} for nodes that can become gateways, {@code false} otherwise.
-     */
-    public static final Setting<String> REMOTE_NODE_ATTRIBUTE =
-        Setting.simpleString("cluster.remote.node.attr", Setting.Property.NodeScope);
 
     public static final Setting<Boolean> REMOTE_CONNECTION_COMPRESS = Setting.boolSetting(
         "transport.compress",
@@ -97,7 +83,6 @@ public class SniffConnectionStrategy implements TransportConnectionListener, Clo
     protected final String clusterAlias;
 
     private final List<Supplier<DiscoveryNode>> seedNodes;
-    private final Predicate<DiscoveryNode> nodePredicate;
     private final SetOnce<ClusterName> remoteClusterName = new SetOnce<>();
 
     SniffConnectionStrategy(String clusterAlias,
@@ -109,7 +94,6 @@ public class SniffConnectionStrategy implements TransportConnectionListener, Clo
             clusterAlias,
             transportService,
             connectionManager,
-            getNodePredicate(nodeSettings),
             connectionInfo.hosts()
         );
     }
@@ -117,12 +101,10 @@ public class SniffConnectionStrategy implements TransportConnectionListener, Clo
     SniffConnectionStrategy(String clusterAlias,
                             TransportService transportService,
                             RemoteConnectionManager connectionManager,
-                            Predicate<DiscoveryNode> nodePredicate,
                             List<String> configuredSeedNodes) {
         this(clusterAlias,
              transportService,
              connectionManager,
-             nodePredicate,
              configuredSeedNodes,
              Lists2.map(configuredSeedNodes, seedNode -> () -> resolveSeedNode(clusterAlias, seedNode))
         );
@@ -131,13 +113,11 @@ public class SniffConnectionStrategy implements TransportConnectionListener, Clo
     SniffConnectionStrategy(String clusterAlias,
                             TransportService transportService,
                             RemoteConnectionManager connectionManager,
-                            Predicate<DiscoveryNode> nodePredicate,
                             List<String> configuredSeedNodes,
                             List<Supplier<DiscoveryNode>> seedNodes) {
         this.clusterAlias = clusterAlias;
         this.transportService = transportService;
         this.connectionManager = connectionManager;
-        this.nodePredicate = nodePredicate;
         this.seedNodes = seedNodes;
         connectionManager.addListener(this);
     }
@@ -159,6 +139,11 @@ public class SniffConnectionStrategy implements TransportConnectionListener, Clo
                             TransportRequestOptions.Type.RECOVERY, TransportRequestOptions.Type.PING)
             .addConnections(SniffConnectionStrategy.CHANNELS_PER_CONNECTION, TransportRequestOptions.Type.REG);
         return builder.build();
+    }
+
+    private static boolean nodeIsCompatible(DiscoveryNode node) {
+        return Version.CURRENT.isCompatible(node.getVersion())
+            && (node.isMasterEligibleNode() == false || node.isDataNode());
     }
 
 
@@ -316,7 +301,7 @@ public class SniffConnectionStrategy implements TransportConnectionListener, Clo
             handshakeStep.whenComplete(handshakeResponse -> {
                 final DiscoveryNode handshakeNode = handshakeResponse.getDiscoveryNode();
 
-                if (nodePredicate.test(handshakeNode) && shouldOpenMoreConnections()) {
+                if (nodeIsCompatible(handshakeNode) && shouldOpenMoreConnections()) {
                     logger.trace("[{}] opening managed connection to seed node: [{}]", clusterAlias, handshakeNode);
                     connectionManager.connectToNode(
                         handshakeNode,
@@ -397,7 +382,7 @@ public class SniffConnectionStrategy implements TransportConnectionListener, Clo
         private void handleNodes(Iterator<DiscoveryNode> nodesIter) {
             while (nodesIter.hasNext()) {
                 final DiscoveryNode node = nodesIter.next();
-                if (nodePredicate.test(node) && shouldOpenMoreConnections()) {
+                if (nodeIsCompatible(node) && shouldOpenMoreConnections()) {
                     logger.trace("[{}] opening managed connection to node: [{}]", clusterAlias, node);
                     connectionManager.connectToNode(
                         node,
@@ -485,17 +470,5 @@ public class SniffConnectionStrategy implements TransportConnectionListener, Clo
             transportAddress,
             Version.CURRENT.minimumCompatibilityVersion()
         );
-    }
-
-    // Default visibility for tests
-    static Predicate<DiscoveryNode> getNodePredicate(Settings settings) {
-        if (REMOTE_NODE_ATTRIBUTE.exists(settings)) {
-            // nodes can be tagged with node.attr.remote_gateway: true to allow a node to be a gateway node for cross cluster search
-            String attribute = REMOTE_NODE_ATTRIBUTE.get(settings);
-            return DEFAULT_NODE_PREDICATE.and((node) -> Booleans.parseBoolean(node.getAttributes().getOrDefault(
-                attribute,
-                "false")));
-        }
-        return DEFAULT_NODE_PREDICATE;
     }
 }
