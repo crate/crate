@@ -53,6 +53,27 @@ You can also use the ``||`` :ref:`operator <gloss-operator>`::
     SELECT 1 row in set (... sec)
 
 
+. _scalar-concat_ws:
+
+``concat_ws('delimiter_text', 'second_arg', 'third_arg',[ parameter , ... ])``
+------------------------------------------------------------------------------
+
+Concatenates a variable number of arguments into a single string using a delimiter defined by the first argument.
+The delimiter cannot be ``NULL``. It ignores ``NULL`` values for the remaining arguments.
+
+Returns: ``text``
+
+::
+
+    cr> select concat_ws(',','foo', null, 'bar') AS col;
+    +---------+
+    | col     |
+    +---------+
+    | foo,bar |
+    +---------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-format:
 
 ``format('format_string', parameter, [ parameter , ... ])``
