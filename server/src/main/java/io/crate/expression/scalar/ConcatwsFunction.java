@@ -31,7 +31,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-public abstract class Concat_wsFunction extends Scalar<String, String> {
+public abstract class ConcatwsFunction extends Scalar<String, String> {
 
     public static final String NAME = "concat_ws";
 
@@ -42,7 +42,7 @@ public abstract class Concat_wsFunction extends Scalar<String, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ).withVariableArity(),
-            StringConcat_wsFunction::new
+            StringConcatwsFunction::new
         );
 
     }
@@ -50,7 +50,7 @@ public abstract class Concat_wsFunction extends Scalar<String, String> {
     private final Signature signature;
     private final Signature boundSignature;
 
-    Concat_wsFunction(Signature signature, Signature boundSignature) {
+    ConcatwsFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -78,18 +78,18 @@ public abstract class Concat_wsFunction extends Scalar<String, String> {
         return Literal.ofUnchecked(boundSignature.getReturnType().createType(), evaluate(txnCtx, nodeCtx, inputs));
     }
 
-    static class StringConcat_wsFunction extends Concat_wsFunction{
+    static class StringConcatwsFunction extends Concat_wsFunction {
 
-        StringConcat_wsFunction(Signature signature, Signature boundSignature) {
+        StringConcatwsFunction(Signature signature, Signature boundSignature) {
             super(signature, boundSignature);
         }
 
         @Override
         public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
 
-            if(args[0].value() == null) {
+            if (args[0].value() == null) {
                 throw new NullPointerException("Delimiting argument of the 'concat_ws' function cannot be null.");
-          }
+            }
 
             String delimitArg = (String) args[0].value();
 
@@ -99,14 +99,14 @@ public abstract class Concat_wsFunction extends Scalar<String, String> {
                 String value = (String) args[i].value();
                 if (value != null) {
                     sb.append(value);
-                    if(i != args.length-1 && delimitArg != null) {
+                    if (i != args.length - 1 && delimitArg != null) {
                         sb.append(delimitArg);
                     }
                 }
             }
             //In the case the last argument is NULL
-            if(sb.toString().endsWith(",")) {
-                return sb.substring(0,sb.length()-1);
+            if (sb.toString().endsWith(",")) {
+                return sb.substring(0,sb.length() - 1);
             }
             return sb.toString();
         }
