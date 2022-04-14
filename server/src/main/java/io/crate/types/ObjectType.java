@@ -188,7 +188,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             );
             return parser.map();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ClassCastException(e.getMessage());
         }
     }
 

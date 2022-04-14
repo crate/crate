@@ -38,6 +38,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Tuple;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -344,8 +345,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
 
         boolean isDistinct = node.getSelect().isDistinct();
-        Symbol where = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
-        WhereClauseValidator.validate(where);
+
+        Symbol where;
+        try {
+            where = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
+            WhereClauseValidator.validate(where);
+        } catch (ConversionException e) {
+            where = Literal.of(false);
+        }
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             nodeCtx,
