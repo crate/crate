@@ -108,6 +108,9 @@ Changes
 - Updated to Admin UI 1.21.0, which improves console highlighting by adding
   various keywords and data types.
 
+- Added `concat_ws` function to the scalar functions library which allows
+  concatenation a delimiter.
+
 Fixes
 =====
 
