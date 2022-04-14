@@ -20,12 +20,9 @@
  */
 
 package io.crate.expression.scalar;
-import org.apache.commons.math3.exception.NullArgumentException;
-import org.junit.Test;
-import io.crate.types.DataTypes;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.instanceOf;
 
+import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class Concat_wsFunctionTest extends ScalarTestCase {
 
@@ -98,5 +95,4 @@ public class Concat_wsFunctionTest extends ScalarTestCase {
         assertNormalize("concat_ws(',' , 'foo', [])"
             ,null);
     }
-
 }
