@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 
 import io.crate.execution.engine.export.LocalFsFileOutputFactory;
 import org.elasticsearch.Version;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
@@ -89,6 +90,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             nodeCtx,
             THREAD_POOL,
             Settings.EMPTY,
+            mock(ElasticsearchClient.class),
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS),
             new InputFactory(nodeCtx),
             new EvaluatingNormalizer(

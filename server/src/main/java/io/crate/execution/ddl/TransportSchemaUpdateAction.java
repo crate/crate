@@ -140,7 +140,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             .source(mappingSource, XContentType.JSON)
             .timeout(timeout)
             .masterNodeTimeout(timeout);
-        nodeClient.execute(PutMappingAction.INSTANCE, putMappingRequest, putMappingListener);
+        nodeClient.execute(PutMappingAction.INSTANCE, putMappingRequest).whenComplete(ActionListener.toBiConsumer(putMappingListener));
         return putMappingListener;
     }
 

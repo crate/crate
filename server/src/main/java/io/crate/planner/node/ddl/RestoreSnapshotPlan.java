@@ -51,11 +51,15 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Table;
+
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
-import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshotsAction;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotInfo;
 
@@ -102,11 +106,10 @@ public class RestoreSnapshotPlan implements Plan {
         var settings = stmt.settings();
         boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(settings);
 
-        var transportActionProvider = dependencies.transportActionProvider();
         resolveIndexNames(restoreSnapshot.repository(),
                           stmt.restoreTables(),
                           ignoreUnavailable,
-                          transportActionProvider.transportGetSnapshotsAction())
+                          dependencies.client())
             .whenComplete((ResolveIndicesAndTemplatesContext ctx, Throwable t) -> {
                 if (t == null) {
                     String[] indexNames = ctx.resolvedIndices().toArray(new String[0]);
@@ -136,9 +139,8 @@ public class RestoreSnapshotPlan implements Plan {
                         .customMetadataTypes(stmt.customMetadataTypes())
                         .includeGlobalSettings(stmt.includeGlobalSettings())
                         .globalSettings(stmt.globalSettings());
-                    transportActionProvider.transportRestoreSnapshotAction().execute(
-                        request,
-                        new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
+                    dependencies.client().execute(RestoreSnapshotAction.INSTANCE, request)
+                        .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
                 }
             });
     }
@@ -211,7 +213,7 @@ public class RestoreSnapshotPlan implements Plan {
     static CompletableFuture<ResolveIndicesAndTemplatesContext> resolveIndexNames(String repositoryName,
                                                                                   Set<BoundRestoreSnapshot.RestoreTableInfo> restoreTables,
                                                                                   boolean ignoreUnavailable,
-                                                                                  TransportGetSnapshotsAction transportGetSnapshotsAction) {
+                                                                                  ElasticsearchClient elasticsearchClient) {
         ResolveIndicesAndTemplatesContext context = new ResolveIndicesAndTemplatesContext();
         ArrayList<BoundRestoreSnapshot.RestoreTableInfo> toResolveFromSnapshot = new ArrayList<>();
         for (var table : restoreTables) {
@@ -243,7 +245,8 @@ public class RestoreSnapshotPlan implements Plan {
                         return context;
                     }
                 );
-            transportGetSnapshotsAction.execute(new GetSnapshotsRequest(repositoryName), listener);
+            elasticsearchClient.execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repositoryName))
+                .whenComplete(ActionListener.toBiConsumer(listener));
             return listener;
         }
     }

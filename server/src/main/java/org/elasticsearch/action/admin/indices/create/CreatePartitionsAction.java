@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,14 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.elasticsearch.action.bulk;
+package org.elasticsearch.action.admin.indices.create;
 
-import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
-import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
-public class BulkModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(TransportCreatePartitionsAction.class).asEagerSingleton();
+public class CreatePartitionsAction extends ActionType<AcknowledgedResponse> {
+
+    public static final CreatePartitionsAction INSTANCE = new CreatePartitionsAction();
+    public static final String NAME = "indices:admin/bulk_create";
+
+    private CreatePartitionsAction() {
+        super(NAME);
     }
 }

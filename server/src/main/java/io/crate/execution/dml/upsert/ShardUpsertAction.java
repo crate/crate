@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,20 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.blob;
+package io.crate.execution.dml.upsert;
 
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.replication.ReplicationRequestBuilder;
-import org.elasticsearch.client.ElasticsearchClient;
+import io.crate.execution.dml.ShardResponse;
+import org.elasticsearch.action.ActionType;
 
-public class PutChunkRequestBuilder extends ReplicationRequestBuilder<PutChunkRequest, PutChunkResponse, PutChunkRequestBuilder> {
+public class ShardUpsertAction extends ActionType<ShardResponse> {
 
-    protected PutChunkRequestBuilder(ElasticsearchClient client, PutChunkAction action) {
-        super(client, action, new PutChunkRequest());
-    }
+    public static final ShardUpsertAction INSTANCE = new ShardUpsertAction();
+    public static final String NAME = "internal:crate:sql/data/write";
 
-    @Override
-    public void execute(ActionListener<PutChunkResponse> listener) {
-        client.execute(PutChunkAction.INSTANCE, request).whenComplete(ActionListener.toBiConsumer(listener));
+    private ShardUpsertAction() {
+        super(NAME);
     }
 }

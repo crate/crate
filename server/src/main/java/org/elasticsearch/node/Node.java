@@ -60,7 +60,6 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.client.Client;
@@ -412,7 +411,6 @@ public class Node implements Closeable {
             modules.add(new OperatorModule());
             modules.add(new PredicateModule());
             modules.add(new MonitorModule());
-            modules.add(new BulkModule());
             modules.add(new SysChecksModule());
             modules.add(new SysNodeChecksModule());
             modules.add(new UserManagementModule());

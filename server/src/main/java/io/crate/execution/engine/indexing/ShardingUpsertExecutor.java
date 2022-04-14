@@ -39,13 +39,15 @@ import java.util.function.ToLongFunction;
 
 import javax.annotation.Nullable;
 
+import io.crate.execution.dml.upsert.ShardUpsertAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.create.CreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
-import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.Setting;
@@ -89,7 +91,7 @@ public class ShardingUpsertExecutor
     private final UUID jobId;
     private final Function<ShardId, ShardUpsertRequest> requestFactory;
     private final BulkRequestExecutor<ShardUpsertRequest> requestExecutor;
-    private final TransportCreatePartitionsAction createPartitionsAction;
+    private final ElasticsearchClient elasticsearchClient;
     private final BulkShardCreationLimiter bulkShardCreationLimiter;
     private final UpsertResultCollector resultCollector;
     private final boolean isDebugEnabled;
@@ -114,8 +116,7 @@ public class ShardingUpsertExecutor
                            List<? extends CollectExpression<Row, ?>> expressions,
                            Supplier<String> indexNameResolver,
                            boolean autoCreateIndices,
-                           BulkRequestExecutor<ShardUpsertRequest> requestExecutor,
-                           TransportCreatePartitionsAction createPartitionsAction,
+                           ElasticsearchClient elasticsearchClient,
                            int targetTableNumShards,
                            int targetTableNumReplicas,
                            UpsertResultContext upsertResultContext,
@@ -129,8 +130,9 @@ public class ShardingUpsertExecutor
         this.bulkSize = bulkSize;
         this.jobId = jobId;
         this.requestFactory = requestFactory;
-        this.requestExecutor = requestExecutor;
-        this.createPartitionsAction = createPartitionsAction;
+        this.requestExecutor = (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req)
+            .whenComplete(ActionListener.toBiConsumer(resp));
+        this.elasticsearchClient = elasticsearchClient;
         ToLongFunction<Row> estimateRowSize = new TypeGuessEstimateRowSize();
         this.ramAccounting = new BlockBasedRamAccounting(ramAccounting::addBytes, (int) ByteSizeUnit.MB.toBytes(2));
         this.grouper = new GroupRowsByShard<>(
@@ -161,7 +163,9 @@ public class ShardingUpsertExecutor
             return execRequests(requests, upsertResults);
         }
         createPartitionsRequestOngoing = true;
-        return createPartitionsAction.execute(new CreatePartitionsRequest(requests.itemsByMissingIndex.keySet(), jobId))
+        return elasticsearchClient.execute(
+            CreatePartitionsAction.INSTANCE,
+            new CreatePartitionsRequest(requests.itemsByMissingIndex.keySet(), jobId))
             .thenCompose(resp -> {
                 grouper.reResolveShardLocations(requests);
                 createPartitionsRequestOngoing = false;

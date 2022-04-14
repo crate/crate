@@ -26,6 +26,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.ShardRequestExecutor;
+import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.expression.symbol.Assignments;
@@ -38,10 +39,13 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -128,7 +132,8 @@ public final class UpdateById implements Plan {
             dependencies.nodeContext(),
             table,
             updateRequests,
-            dependencies.transportActionProvider().transportShardUpsertAction()::execute,
+            (request, listener) -> dependencies.client().execute(ShardUpsertAction.INSTANCE, request)
+                .whenComplete(ActionListener.toBiConsumer(listener)),
             docKeys
         );
     }

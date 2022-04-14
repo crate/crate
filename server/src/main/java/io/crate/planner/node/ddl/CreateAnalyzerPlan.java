@@ -41,6 +41,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.common.settings.Settings;
 
@@ -84,10 +85,8 @@ public class CreateAnalyzerPlan implements Plan {
             subQueryResults,
             dependencies.fulltextAnalyzerResolver());
 
-        dependencies
-            .transportActionProvider()
-            .transportClusterUpdateSettingsAction()
-            .execute(request).whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(1L)));
+        dependencies.client().execute(ClusterUpdateSettingsAction.INSTANCE, request)
+            .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(1L)));
     }
 
     @VisibleForTesting
