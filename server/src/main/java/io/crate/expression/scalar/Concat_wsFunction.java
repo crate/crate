@@ -9,6 +9,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
+import org.apache.commons.math3.exception.NullArgumentException;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
@@ -21,7 +22,6 @@ public abstract class Concat_wsFunction extends Scalar<String, String> {
         module.register(
             Signature.scalar(
                 NAME,
-                DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ).withVariableArity(),
@@ -69,9 +69,15 @@ public abstract class Concat_wsFunction extends Scalar<String, String> {
 
         @Override
         public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
+
+            if(args[0].value() == null) {
+                throw new NullPointerException("Delimiting argument of the 'concat_ws' function cannot be null.");
+          }
+
             String delimitArg = (String) args[0].value();
 
             StringBuilder sb = new StringBuilder();
+
             for (int i = 1; i < args.length; i++) {
                 String value = (String) args[i].value();
                 if (value != null) {
@@ -80,6 +86,10 @@ public abstract class Concat_wsFunction extends Scalar<String, String> {
                         sb.append(delimitArg);
                     }
                 }
+            }
+            //In the case the last argument is NULL
+            if(sb.toString().endsWith(",")) {
+                return sb.substring(0,sb.length()-1);
             }
             return sb.toString();
         }

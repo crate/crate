@@ -26,6 +26,7 @@ import io.crate.types.DataTypes;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.instanceOf;
 
+
 public class Concat_wsFunctionTest extends ScalarTestCase {
 
     @Test
@@ -59,6 +60,12 @@ public class Concat_wsFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void testWithNullLast() {
+        assertNormalize("concat_ws(',', NULL,'abcde', 2, NULL)",
+            isLiteral("abcde,2"));
+    }
+
+    @Test
     public void testStringAndNumber() {
         assertNormalize("concat_ws('|','foo', 3)",
             isLiteral("foo|3"));
@@ -70,13 +77,26 @@ public class Concat_wsFunctionTest extends ScalarTestCase {
             isLiteral("3;2;foo"));
     }
 
+    @Test
     public void testInvalidNullDelimiter(){
-        expectedException.expect(NullArgumentException.class);
+        expectedException.expect(NullPointerException.class);
         expectedException.expectMessage(
-            "Delimiting argument of the 'concat_ws' function can not be undefined"
+            "Delimiting argument of the 'concat_ws' function cannot be null."
         );
-        assertNormalize("concat_ws(NULL, NULL,'abcde', 2, NULL, 22)",
-            null);
+        assertNormalize("concat_ws(NULL, 'abcde','2')"
+            ,null);
+    }
+
+    @Test
+    public void testInvalidArrayArgument(){
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(
+            "Unknown function: concat_ws(',', 'foo', []), " +
+                "no overload found for matching argument types: (text, text, undefined_array). " +
+                "Possible candidates: concat_ws(text):text"
+        );
+        assertNormalize("concat_ws(',' , 'foo', [])"
+            ,null);
     }
 
 }
