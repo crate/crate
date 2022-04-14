@@ -39,6 +39,7 @@ import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.CollectionUtils;
@@ -62,6 +63,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       NodeContext nodeCtx,
                                       ThreadPool threadPool,
                                       Settings settings,
+                                      ElasticsearchClient elasticsearchClient,
                                       TransportActionProvider transportActionProvider,
                                       Map<String, FileOutputFactory> fileOutputFactoryMap) {
         super(
@@ -72,6 +74,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
             nodeCtx,
             threadPool,
             settings,
+            elasticsearchClient,
             transportActionProvider,
             blobShard.indexShard(),
             new ShardRowContext(blobShard, clusterService),

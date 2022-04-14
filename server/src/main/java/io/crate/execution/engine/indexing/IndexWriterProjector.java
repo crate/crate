@@ -39,8 +39,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
-import org.elasticsearch.action.bulk.BulkRequestExecutor;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -77,8 +76,7 @@ public class IndexWriterProjector implements Projector {
                                 Settings settings,
                                 int targetTableNumShards,
                                 int targetTableNumReplicas,
-                                TransportCreatePartitionsAction transportCreatePartitionsAction,
-                                BulkRequestExecutor<ShardUpsertRequest> shardUpsertAction,
+                                ElasticsearchClient elasticsearchClient,
                                 Supplier<String> indexNameResolver,
                                 Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
@@ -139,8 +137,7 @@ public class IndexWriterProjector implements Projector {
             collectExpressions,
             indexNameResolver,
             autoCreateIndices,
-            shardUpsertAction,
-            transportCreatePartitionsAction,
+            elasticsearchClient,
             targetTableNumShards,
             targetTableNumReplicas,
             upsertResultContext,

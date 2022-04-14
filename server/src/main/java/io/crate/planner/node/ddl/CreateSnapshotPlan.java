@@ -50,6 +50,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Table;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.settings.Settings;
@@ -94,25 +95,24 @@ public class CreateSnapshotPlan implements Plan {
             subQueryResults,
             dependencies.schemas());
 
-        var transportCreateSnapshotAction = dependencies.transportActionProvider().transportCreateSnapshotAction();
-        transportCreateSnapshotAction.execute(
-            request,
-            new OneRowActionListener<>(
-                consumer,
-                response -> {
-                    SnapshotInfo snapshotInfo = response.getSnapshotInfo();
-                    if (snapshotInfo != null &&  // if wait_for_completion is false, the snapshotInfo is null
-                        snapshotInfo.state() == SnapshotState.FAILED) {
-                        // fail request if snapshot creation failed
-                        String reason = response.getSnapshotInfo().reason()
-                            .replaceAll("Index", "Table")
-                            .replaceAll("Indices", "Tables");
-                        consumer.accept(null, new CreateSnapshotException(createSnapshot.snapshot(), reason));
-                        return new Row1(-1L);
-                    } else {
-                        return new Row1(1L);
-                    }
-                }));
+        dependencies.client().execute(CreateSnapshotAction.INSTANCE, request)
+            .whenComplete(
+                new OneRowActionListener<>(
+                    consumer,
+                    response -> {
+                        SnapshotInfo snapshotInfo = response.getSnapshotInfo();
+                        if (snapshotInfo != null &&  // if wait_for_completion is false, the snapshotInfo is null
+                            snapshotInfo.state() == SnapshotState.FAILED) {
+                            // fail request if snapshot creation failed
+                            String reason = response.getSnapshotInfo().reason()
+                                .replaceAll("Index", "Table")
+                                .replaceAll("Indices", "Tables");
+                            consumer.accept(null, new CreateSnapshotException(createSnapshot.snapshot(), reason));
+                            return new Row1(-1L);
+                        } else {
+                            return new Row1(1L);
+                        }
+                    }));
     }
 
     @VisibleForTesting

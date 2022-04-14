@@ -111,50 +111,51 @@ public class RemoteClusterMultiChunkTransfer extends MultiChunkTransfer<StoreFil
         );
 
 
-        client.execute(
-            GetFileChunkAction.INSTANCE,
-            getFileChunkRequest,
-            new ActionListener<>() {
-                @Override
-                public void onResponse(GetFileChunkAction.Response response) {
-                    LOGGER.debug("Filename: {}, response_size: {}, response_offset: {}",
-                                 request.storeFileMetadata().name(),
-                                 response.data().length(),
-                                 response.offset()
-                    );
-                    try {
-                        threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
-                            () -> {
-                                synchronized (lock) {
-                                    try {
-                                        multiFileWriter.writeFileChunk(
-                                            response.storeFileMetadata(),
-                                            response.offset(),
-                                            response.data(),
-                                            request.lastChunk()
-                                        );
-                                        listener.onResponse(null);
-                                    } catch (IOException e) {
-                                        listener.onFailure(new UncheckedIOException(e));
+        client.execute(GetFileChunkAction.INSTANCE, getFileChunkRequest)
+            .whenComplete(
+                ActionListener.toBiConsumer(
+                    new ActionListener<>() {
+                        @Override
+                        public void onResponse(GetFileChunkAction.Response response) {
+                            LOGGER.debug("Filename: {}, response_size: {}, response_offset: {}",
+                                         request.storeFileMetadata().name(),
+                                         response.data().length(),
+                                         response.offset()
+                            );
+                            try {
+                                threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
+                                    () -> {
+                                        synchronized (lock) {
+                                            try {
+                                                multiFileWriter.writeFileChunk(
+                                                    response.storeFileMetadata(),
+                                                    response.offset(),
+                                                    response.data(),
+                                                    request.lastChunk()
+                                                );
+                                                listener.onResponse(null);
+                                            } catch (IOException e) {
+                                                listener.onFailure(new UncheckedIOException(e));
+                                            }
+                                        }
                                     }
-                                }
+                                );
+                            } catch (EsRejectedExecutionException e) {
+                                onFailure(e);
                             }
-                        );
-                    } catch (EsRejectedExecutionException e) {
-                        onFailure(e);
-                    }
-                }
+                        }
 
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.error("Failed to fetch file chunk for " + request.storeFileMetadata().name() +
-                                 " with offset " + request.offset() + ": ",
-                                 e
-                    );
-                    listener.onFailure(e);
-                }
-            }
-        );
+                        @Override
+                        public void onFailure(Exception e) {
+                            LOGGER.error("Failed to fetch file chunk for " + request.storeFileMetadata().name() +
+                                         " with offset " + request.offset() + ": ",
+                                         e
+                            );
+                            listener.onFailure(e);
+                        }
+                    }
+                )
+            );
     }
 
     @Override

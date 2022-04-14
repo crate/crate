@@ -34,6 +34,6 @@ public class DeleteBlobRequestBuilder extends ReplicationRequestBuilder<DeleteBl
 
     @Override
     public void execute(ActionListener<DeleteBlobResponse> listener) {
-        client.execute(DeleteBlobAction.INSTANCE, request, listener);
+        client.execute(DeleteBlobAction.INSTANCE, request).whenComplete(ActionListener.toBiConsumer(listener));
     }
 }

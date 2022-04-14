@@ -57,6 +57,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
@@ -162,6 +163,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                               ClusterService clusterService,
                               NodeLimits nodeJobsCounter,
                               ThreadPool threadPool,
+                              Node node,
                               TransportActionProvider transportActionProvider,
                               RemoteCollectorFactory remoteCollectorFactory,
                               SystemCollectSource systemCollectSource,
@@ -191,6 +193,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             nodeCtx,
             threadPool,
             settings,
+            node.client(),
             transportActionProvider,
             inputFactory,
             nodeNormalizer,

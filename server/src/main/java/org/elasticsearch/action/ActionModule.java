@@ -24,6 +24,10 @@ import static java.util.Collections.unmodifiableMap;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.execution.dml.delete.ShardDeleteAction;
+import io.crate.execution.dml.delete.TransportShardDeleteAction;
+import io.crate.execution.dml.upsert.ShardUpsertAction;
+import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsAction;
 import org.elasticsearch.action.admin.cluster.configuration.ClearVotingConfigExclusionsAction;
 import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusionsAction;
@@ -54,7 +58,9 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.TransportPendingClusterTasksAction;
 import org.elasticsearch.action.admin.indices.close.TransportVerifyShardBeforeCloseAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
+import org.elasticsearch.action.admin.indices.create.CreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushAction;
@@ -181,6 +187,9 @@ public class ActionModule extends AbstractModule {
         actions.register(AddVotingConfigExclusionsAction.INSTANCE, TransportAddVotingConfigExclusionsAction.class);
         actions.register(ClearVotingConfigExclusionsAction.INSTANCE, TransportClearVotingConfigExclusionsAction.class);
         actions.register(NodesStatsAction.INSTANCE, TransportNodesStatsAction.class);
+        actions.register(ShardDeleteAction.INSTANCE, TransportShardDeleteAction.class);
+        actions.register(ShardUpsertAction.INSTANCE, TransportShardUpsertAction.class);
+        actions.register(CreatePartitionsAction.INSTANCE, TransportCreatePartitionsAction.class);
 
         actionPlugins.stream().flatMap(p -> p.getActions().stream()).forEach(actions::register);
 

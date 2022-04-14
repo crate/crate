@@ -59,30 +59,31 @@ public class RetentionLeaseHelper {
             seqNo,
             retentionLeaseSource(subscriberClusterName)
         );
-        client.execute(
-            RetentionLeaseActions.Add.INSTANCE,
-            request,
-            ActionListener.wrap(
-                listener::onResponse,
-                e -> {
-                    var t = SQLExceptions.unwrap(e);
-                    if (t instanceof RetentionLeaseAlreadyExistsException) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug(
-                                "Renew retention lease as it already exists {} with {}",
-                                retentionLeaseId,
-                                seqNo
-                            );
+        client.execute(RetentionLeaseActions.Add.INSTANCE, request)
+            .whenComplete(
+                ActionListener.toBiConsumer(
+                    ActionListener.wrap(
+                        listener::onResponse,
+                        e -> {
+                            var t = SQLExceptions.unwrap(e);
+                            if (t instanceof RetentionLeaseAlreadyExistsException) {
+                                if (LOGGER.isDebugEnabled()) {
+                                    LOGGER.debug(
+                                        "Renew retention lease as it already exists {} with {}",
+                                        retentionLeaseId,
+                                        seqNo
+                                    );
+                                }
+                                // Only one retention lease should exists for the follower shard
+                                // Ideally, this should have got cleaned-up
+                                renewRetentionLease(shardId, seqNo, subscriberClusterName, client, listener);
+                            } else {
+                                listener.onFailure(e);
+                            }
                         }
-                        // Only one retention lease should exists for the follower shard
-                        // Ideally, this should have got cleaned-up
-                        renewRetentionLease(shardId, seqNo, subscriberClusterName, client, listener);
-                    } else {
-                        listener.onFailure(e);
-                    }
-                }
-            )
-        );
+                    )
+                )
+            );
     }
 
     public static void renewRetentionLease(ShardId shardId,
@@ -97,7 +98,7 @@ public class RetentionLeaseHelper {
             seqNo,
             retentionLeaseSource(subscriberClusterName)
         );
-        client.execute(RetentionLeaseActions.Renew.INSTANCE, request, listener);
+        client.execute(RetentionLeaseActions.Renew.INSTANCE, request).whenComplete(ActionListener.toBiConsumer(listener));
     }
 
     public static void attemptRetentionLeaseRemoval(ShardId shardId,
@@ -106,19 +107,20 @@ public class RetentionLeaseHelper {
                                                     ActionListener<RetentionLeaseActions.Response> listener) {
         var retentionLeaseId = retentionLeaseIdForShard(subscriberClusterName, shardId);
         var request = new RetentionLeaseActions.RemoveRequest(shardId, retentionLeaseId);
-        client.execute(
-            RetentionLeaseActions.Remove.INSTANCE,
-            request,
-            ActionListener.wrap(
-                response -> {
-                    LOGGER.info("Removed retention lease with id - {}", retentionLeaseId);
-                    listener.onResponse(response);
-                },
-                e -> {
-                    LOGGER.error("Exception in removing retention lease", e);
-                    listener.onFailure(e);
-                }
-            )
-        );
+        client.execute(RetentionLeaseActions.Remove.INSTANCE, request)
+            .whenComplete(
+                ActionListener.toBiConsumer(
+                    ActionListener.wrap(
+                        response -> {
+                            LOGGER.info("Removed retention lease with id - {}", retentionLeaseId);
+                            listener.onResponse(response);
+                        },
+                        e -> {
+                            LOGGER.error("Exception in removing retention lease", e);
+                            listener.onFailure(e);
+                        }
+                    )
+                )
+            );
     }
 }

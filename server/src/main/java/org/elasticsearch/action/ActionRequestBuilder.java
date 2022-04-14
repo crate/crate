@@ -64,6 +64,6 @@ public abstract class ActionRequestBuilder<Request extends TransportRequest, Res
     }
 
     public void execute(ActionListener<Response> listener) {
-        client.execute(action, request, listener);
+        client.execute(action, request).whenComplete(ActionListener.toBiConsumer(listener));
     }
 }

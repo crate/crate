@@ -46,6 +46,7 @@ import io.crate.sql.tree.Table;
 
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
+import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.settings.Settings;
@@ -103,11 +104,11 @@ public class OptimizeTablePlan implements Plan {
         if (UPGRADE_SEGMENTS.get(settings)) {
             var request = new UpgradeRequest(toOptimize.toArray(new String[0]));
 
-            var transportUpgradeAction = dependencies.transportActionProvider().transportUpgradeAction();
-            transportUpgradeAction.execute(request).whenComplete(new OneRowActionListener<>(
-                consumer,
-                response -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size()))
-            );
+            dependencies.client().execute(UpgradeAction.INSTANCE, request)
+                .whenComplete(
+                    new OneRowActionListener<>(
+                        consumer,
+                        response -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size())));
         } else {
             var request = new ForceMergeRequest(toOptimize.toArray(new String[0]));
             request.maxNumSegments(MAX_NUM_SEGMENTS.get(settings));

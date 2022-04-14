@@ -105,8 +105,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_
 @Singleton
 public class TransportCreatePartitionsAction extends TransportMasterNodeAction<CreatePartitionsRequest, AcknowledgedResponse> {
 
-    public static final String NAME = "indices:admin/bulk_create";
-
     private final IndicesService indicesService;
     private final AllocationService allocationService;
     private final NamedXContentRegistry xContentRegistry;
@@ -134,7 +132,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                                            NamedXContentRegistry xContentRegistry,
                                            IndexNameExpressionResolver indexNameExpressionResolver,
                                            ShardLimitValidator shardLimitValidator) {
-        super(NAME, transportService, clusterService, threadPool, CreatePartitionsRequest::new, indexNameExpressionResolver);
+        super(CreatePartitionsAction.NAME, transportService, clusterService, threadPool, CreatePartitionsRequest::new, indexNameExpressionResolver);
         this.indicesService = indicesService;
         this.allocationService = allocationService;
         this.xContentRegistry = xContentRegistry;
