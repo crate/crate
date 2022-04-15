@@ -23,6 +23,7 @@ package io.crate.replication.logical.action;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_PUBLICATION_NAMES;
 import static io.crate.replication.logical.action.PublicationsStateAction.TransportAction.resolveRelationsNames;
+import static io.crate.replication.logical.action.TransportCreatePublicationAction.applyPublicationSetting;
 
 import java.util.List;
 
@@ -98,7 +99,7 @@ public class TransportDropPublicationAction extends AbstractDDLTransportAction<D
                         } else {
                             tablesToUpdate = publication.tables();
                         }
-                        removePublicationInSetting(indexNameExpressionResolver, request.name(), tablesToUpdate, currentState, mdBuilder);
+                        removePublicationSetting(indexNameExpressionResolver, request.name(), tablesToUpdate, currentState, mdBuilder);
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     } else if (request.ifExists() == false) {
                         throw new PublicationUnknownException(request.name());
@@ -110,35 +111,15 @@ public class TransportDropPublicationAction extends AbstractDDLTransportAction<D
         };
     }
 
-    static void removePublicationInSetting(IndexNameExpressionResolver indexNameExpressionResolver,
-                                           String publicationName,
-                                           List<RelationName> tables,
-                                           ClusterState currentState,
-                                           Metadata.Builder mdBuilder) {
-        for (var relationName : tables) {
-            var concreteIndices = indexNameExpressionResolver.concreteIndexNames(
-                currentState,
-                IndicesOptions.lenientExpandOpen(),
-                relationName.indexNameOrAlias()
-            );
-            for (var indexName : concreteIndices) {
-                IndexMetadata indexMetadata = currentState.metadata().index(indexName);
-                assert indexMetadata != null : "Cannot resolve indexMetadata for relation=" + relationName;
-                var settings = indexMetadata.getSettings();
-                var publicationNames = REPLICATION_PUBLICATION_NAMES.get(settings);
-                if (publicationNames != null && !publicationNames.isEmpty()) {
-                    publicationNames.remove(publicationName);
-                }
-                var settingsBuilder = Settings.builder().put(indexMetadata.getSettings());
-                settingsBuilder.putList(REPLICATION_PUBLICATION_NAMES.getKey(), publicationNames);
-                mdBuilder.put(
-                    IndexMetadata
-                        .builder(indexMetadata)
-                        .settingsVersion(1 + indexMetadata.getSettingsVersion())
-                        .settings(settingsBuilder)
-                );
-            }
-        }
+    static void removePublicationSetting(IndexNameExpressionResolver indexNameExpressionResolver,
+                                         String publicationName,
+                                         List<RelationName> tables,
+                                         ClusterState currentState,
+                                         Metadata.Builder mdBuilder) {
+        applyPublicationSetting(indexNameExpressionResolver, tables, currentState, mdBuilder, x -> {
+            x.remove(publicationName);
+            return x;
+        });
     }
 
     @Override

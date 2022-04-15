@@ -50,8 +50,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 
 @Singleton
 public class TransportCreatePublicationAction extends AbstractDDLTransportAction<CreatePublicationRequest, AcknowledgedResponse> {
@@ -126,22 +128,33 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
                 } else {
                     tablesToUpdate = request.tables();
                 }
-                addPublicationInSetting(indexNameExpressionResolver,
-                                        request.name(),
-                                        tablesToUpdate,
-                                        currentState,
-                                        mdBuilder);
+                addPublicationSetting(indexNameExpressionResolver,
+                                      request.name(),
+                                      tablesToUpdate,
+                                      currentState,
+                                      mdBuilder);
 
                 return ClusterState.builder(currentState).metadata(mdBuilder).build();
             }
         };
     }
 
-    static void addPublicationInSetting(IndexNameExpressionResolver indexNameExpressionResolver,
-                                        String publicationName,
-                                        List<RelationName> tables,
-                                        ClusterState currentState,
-                                        Metadata.Builder mdBuilder) {
+    static void addPublicationSetting(IndexNameExpressionResolver indexNameExpressionResolver,
+                                      String publicationName,
+                                      List<RelationName> tables,
+                                      ClusterState currentState,
+                                      Metadata.Builder mdBuilder) {
+        applyPublicationSetting(indexNameExpressionResolver, tables, currentState, mdBuilder, x -> {
+            x.add(publicationName);
+            return x;
+        });
+    }
+
+    static void applyPublicationSetting(IndexNameExpressionResolver indexNameExpressionResolver,
+                                      List<RelationName> tables,
+                                      ClusterState currentState,
+                                      Metadata.Builder mdBuilder,
+                                      Function<List<String>, List<String>> f) {
         for (var relationName : tables) {
             var concreteIndices = indexNameExpressionResolver.concreteIndexNames(
                 currentState,
@@ -154,12 +167,11 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
                 var settings = indexMetadata.getSettings();
                 var publicationNames = REPLICATION_PUBLICATION_NAMES.get(settings);
                 if (publicationNames == null) {
-                    publicationNames = List.of(publicationName);
-                } else {
-                    publicationNames.add(publicationName);
+                    publicationNames = new ArrayList<>();
                 }
+                var updatedPublicationNames = f.apply(publicationNames);
                 var settingsBuilder = Settings.builder().put(settings);
-                settingsBuilder.putList(REPLICATION_PUBLICATION_NAMES.getKey(), publicationNames);
+                settingsBuilder.putList(REPLICATION_PUBLICATION_NAMES.getKey(), updatedPublicationNames);
                 mdBuilder.put(
                     IndexMetadata
                         .builder(indexMetadata)
