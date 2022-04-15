@@ -21,7 +21,6 @@
 
 package io.crate.replication.logical.action;
 
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_PUBLICATION_NAMES;
 import static io.crate.replication.logical.action.PublicationsStateAction.TransportAction.resolveRelationsNames;
 import static io.crate.replication.logical.action.TransportCreatePublicationAction.applyPublicationSetting;
 
@@ -34,19 +33,16 @@ import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.user.UserLookup;
 
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -99,7 +95,7 @@ public class TransportDropPublicationAction extends AbstractDDLTransportAction<D
                         } else {
                             tablesToUpdate = publication.tables();
                         }
-                        removePublicationSetting(indexNameExpressionResolver, request.name(), tablesToUpdate, currentState, mdBuilder);
+                        removePublicationFromSetting(indexNameExpressionResolver, request.name(), tablesToUpdate, currentState, mdBuilder);
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     } else if (request.ifExists() == false) {
                         throw new PublicationUnknownException(request.name());
@@ -111,11 +107,11 @@ public class TransportDropPublicationAction extends AbstractDDLTransportAction<D
         };
     }
 
-    static void removePublicationSetting(IndexNameExpressionResolver indexNameExpressionResolver,
-                                         String publicationName,
-                                         List<RelationName> tables,
-                                         ClusterState currentState,
-                                         Metadata.Builder mdBuilder) {
+    static void removePublicationFromSetting(IndexNameExpressionResolver indexNameExpressionResolver,
+                                             String publicationName,
+                                             List<RelationName> tables,
+                                             ClusterState currentState,
+                                             Metadata.Builder mdBuilder) {
         applyPublicationSetting(indexNameExpressionResolver, tables, currentState, mdBuilder, x -> {
             x.remove(publicationName);
             return x;

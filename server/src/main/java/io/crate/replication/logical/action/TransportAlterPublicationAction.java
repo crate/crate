@@ -21,8 +21,8 @@
 
 package io.crate.replication.logical.action;
 
-import static io.crate.replication.logical.action.TransportCreatePublicationAction.addPublicationSetting;
-import static io.crate.replication.logical.action.TransportDropPublicationAction.removePublicationSetting;
+import static io.crate.replication.logical.action.TransportCreatePublicationAction.addPublicationToSetting;
+import static io.crate.replication.logical.action.TransportDropPublicationAction.removePublicationFromSetting;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.RelationUnknown;
@@ -148,11 +148,11 @@ public class TransportAlterPublicationAction extends TransportMasterNodeAction<T
                                        Metadata.Builder mdBuilder) {
         var removedTables = new ArrayList<>(oldPublication.tables());
         removedTables.removeAll(newPublication.tables());
-        removePublicationSetting(indexNameExpressionResolver, publicationName, removedTables, currentState, mdBuilder);
+        removePublicationFromSetting(indexNameExpressionResolver, publicationName, removedTables, currentState, mdBuilder);
 
         var newTables = new ArrayList<>(newPublication.tables());
         newTables.removeAll(oldPublication.tables());
-        addPublicationSetting(indexNameExpressionResolver, publicationName, newTables, currentState, mdBuilder);
+        addPublicationToSetting(indexNameExpressionResolver, publicationName, newTables, currentState, mdBuilder);
     }
 
     @VisibleForTesting

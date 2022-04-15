@@ -128,22 +128,22 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
                 } else {
                     tablesToUpdate = request.tables();
                 }
-                addPublicationSetting(indexNameExpressionResolver,
-                                      request.name(),
-                                      tablesToUpdate,
-                                      currentState,
-                                      mdBuilder);
+                addPublicationToSetting(indexNameExpressionResolver,
+                                        request.name(),
+                                        tablesToUpdate,
+                                        currentState,
+                                        mdBuilder);
 
                 return ClusterState.builder(currentState).metadata(mdBuilder).build();
             }
         };
     }
 
-    static void addPublicationSetting(IndexNameExpressionResolver indexNameExpressionResolver,
-                                      String publicationName,
-                                      List<RelationName> tables,
-                                      ClusterState currentState,
-                                      Metadata.Builder mdBuilder) {
+    static void addPublicationToSetting(IndexNameExpressionResolver indexNameExpressionResolver,
+                                        String publicationName,
+                                        List<RelationName> tables,
+                                        ClusterState currentState,
+                                        Metadata.Builder mdBuilder) {
         applyPublicationSetting(indexNameExpressionResolver, tables, currentState, mdBuilder, x -> {
             x.add(publicationName);
             return x;
