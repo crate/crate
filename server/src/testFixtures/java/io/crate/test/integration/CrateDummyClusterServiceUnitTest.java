@@ -25,6 +25,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -74,7 +75,9 @@ public class CrateDummyClusterServiceUnitTest extends ESTestCase {
 
     @Before
     public void setupDummyClusterService() {
-        clusterService = createClusterService(additionalClusterSettings().stream().filter(Setting::hasNodeScope).toList(), Version.CURRENT);
+        clusterService = createClusterService(additionalClusterSettings().stream().filter(Setting::hasNodeScope).toList(),
+                                              Metadata.EMPTY_METADATA,
+                                              Version.CURRENT);
     }
 
     @After
@@ -97,7 +100,10 @@ public class CrateDummyClusterServiceUnitTest extends ESTestCase {
         return EMPTY_CLUSTER_SETTINGS;
     }
 
-    protected ClusterService createClusterService(Collection<Setting<?>> additionalClusterSettings, Version version) {
+    protected ClusterService createClusterService(
+        Collection<Setting<?>> additionalClusterSettings,
+        Metadata metaData,
+        Version version) {
         Set<Setting<?>> clusterSettingsSet = new HashSet<>(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         clusterSettingsSet.addAll(additionalClusterSettings);
         ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, clusterSettingsSet);
@@ -124,7 +130,7 @@ public class CrateDummyClusterServiceUnitTest extends ESTestCase {
             .masterNodeId(NODE_ID)
             .build();
         ClusterState clusterState = ClusterState.builder(new ClusterName(this.getClass().getSimpleName()))
-            .nodes(nodes).blocks(ClusterBlocks.EMPTY_CLUSTER_BLOCK).build();
+            .nodes(nodes).metadata(metaData).blocks(ClusterBlocks.EMPTY_CLUSTER_BLOCK).build();
 
         ClusterApplierService clusterApplierService = clusterService.getClusterApplierService();
         clusterApplierService.setInitialState(clusterState);

@@ -44,6 +44,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.metadata.table.Operation;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
@@ -136,7 +137,7 @@ public class DocIndexMetadata {
      */
     private final ExpressionAnalyzer expressionAnalyzer;
 
-    DocIndexMetadata(NodeContext nodeCtx, IndexMetadata metadata, RelationName ident) throws IOException {
+    DocIndexMetadata(NodeContext nodeCtx, IndexMetadata metadata, RelationName ident, @Nullable PublicationsMetadata publicationsMetadata) throws IOException {
         this.nodeCtx = nodeCtx;
         this.ident = ident;
         this.numberOfShards = metadata.getNumberOfShards();
@@ -152,7 +153,8 @@ public class DocIndexMetadata {
         generatedColumns = Maps.getOrDefault(metaMap, "generated_columns", Map.of());
         IndexMetadata.State state = isClosed(metadata, mappingMap, !partitionedByList.isEmpty()) ?
             IndexMetadata.State.CLOSE : IndexMetadata.State.OPEN;
-        supportedOperations = Operation.buildFromIndexSettingsAndState(metadata.getSettings(), state);
+        var isPublished = isPublished(ident, publicationsMetadata);
+        supportedOperations = Operation.buildFromIndexSettingsAndState(metadata.getSettings(), state, isPublished);
         versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings);
         versionUpgraded = settings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
         closed = state == IndexMetadata.State.CLOSE;
@@ -171,6 +173,17 @@ public class DocIndexMetadata {
             return Map.of();
         }
         return mappingMetadata.sourceAsMap();
+    }
+
+    static boolean isPublished(RelationName ident, PublicationsMetadata publicationsMetadata) {
+        if (publicationsMetadata != null) {
+            for (var publication : publicationsMetadata.publications().values()) {
+                if (publication.isForAllTables() || publication.tables().contains(ident)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public static boolean isClosed(IndexMetadata indexMetadata, Map<String, Object> mappingMap, boolean isPartitioned) {
