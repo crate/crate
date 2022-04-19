@@ -329,7 +329,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         assertThrowsMatches(
             () -> executeOnSubscriber("INSERT INTO t1 (id) VALUES(3)"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication."
+            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription."
         );
 
         executeOnSubscriber("DROP SUBSCRIPTION sub1");

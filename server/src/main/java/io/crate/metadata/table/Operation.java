@@ -64,8 +64,11 @@ public enum Operation {
         ALTER_BLOCKS, ALTER_REROUTE, SHOW_CREATE, REFRESH, OPTIMIZE, COPY_TO, CREATE_SNAPSHOT);
     public static final EnumSet<Operation> METADATA_DISABLED_OPERATIONS = EnumSet.of(READ, UPDATE, INSERT, DELETE,
         ALTER_BLOCKS, ALTER_OPEN, ALTER_CLOSE, ALTER_REROUTE, REFRESH, SHOW_CREATE, OPTIMIZE);
-    public static final EnumSet<Operation> LOGICAL_REPLICATED = EnumSet.of(
+    public static final EnumSet<Operation> SUBSCRIBED_IN_LOGICAL_REPLICATION = EnumSet.of(
         READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE, ALTER_OPEN);
+    public static final EnumSet<Operation> PUBLISHED_IN_LOGICAL_REPLICATION = EnumSet.of(
+        READ, UPDATE, INSERT, DELETE, DROP, ALTER, ALTER_BLOCKS, ALTER_OPEN, ALTER_CLOSE, ALTER_REROUTE, REFRESH,
+        SHOW_CREATE, COPY_TO, OPTIMIZE, RESTORE_SNAPSHOT, CREATE_SNAPSHOT);
 
     private final String representation;
 
@@ -81,15 +84,26 @@ public enum Operation {
             .put(IndexMetadata.SETTING_BLOCKS_METADATA, METADATA_DISABLED_OPERATIONS)
             .map();
 
-    public static EnumSet<Operation> buildFromIndexSettingsAndState(Settings settings, IndexMetadata.State state) {
+    public static EnumSet<Operation> buildFromIndexSettingsAndState(Settings settings,
+                                                                    IndexMetadata.State state,
+                                                                    boolean isPublished) {
         if (state == IndexMetadata.State.CLOSE) {
             return CLOSED_OPERATIONS;
         }
         Set<Operation> operations = ALL;
+
         var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(settings);
-        if (subscriptionName != null && subscriptionName.isEmpty() == false) {
-            operations = LOGICAL_REPLICATED;
+        var isSubscribed = subscriptionName != null && subscriptionName.isEmpty() == false;
+
+        if (isSubscribed && isPublished) {
+            // if the table is subscribed and published use the more restrictive operation set
+            operations = SUBSCRIBED_IN_LOGICAL_REPLICATION;
+        } else if (isSubscribed) {
+            operations = SUBSCRIBED_IN_LOGICAL_REPLICATION;
+        } else if (isPublished) {
+            operations = PUBLISHED_IN_LOGICAL_REPLICATION;
         }
+
         for (Map.Entry<String, EnumSet<Operation>> entry : BLOCK_SETTING_TO_OPERATIONS_MAP.entrySet()) {
             if (!settings.getAsBoolean(entry.getKey(), false)) {
                 continue;
@@ -106,9 +120,12 @@ public enum Operation {
             if (tableInfo.supportedOperations().equals(CLOSED_OPERATIONS)) {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is currently " +
                                    "closed.";
-            } else if (tableInfo.supportedOperations().equals(LOGICAL_REPLICATED)) {
+            } else if (tableInfo.supportedOperations().equals(SUBSCRIBED_IN_LOGICAL_REPLICATION)) {
                 exceptionMessage = "The relation \"%s\" doesn't allow %s operations, because it is included in a " +
-                                   "logical replication.";
+                                   "logical replication subscription.";
+            } else if (tableInfo.supportedOperations().equals(PUBLISHED_IN_LOGICAL_REPLICATION)) {
+                exceptionMessage = "The relation \"%s\" doesn't allow %s operations, because it is included in a " +
+                                   "logical replication publication.";
             } else if (tableInfo.supportedOperations().equals(SYS_READ_ONLY) ||
                        tableInfo.supportedOperations().equals(READ_ONLY)) {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is read-only.";

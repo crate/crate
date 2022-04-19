@@ -56,8 +56,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
@@ -120,7 +120,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private DocIndexMetadata newMeta(IndexMetadata metadata, String name) throws IOException {
-        return new DocIndexMetadata(nodeCtx, metadata, new RelationName(Schemas.DOC_SCHEMA_NAME, name)).build();
+        return new DocIndexMetadata(nodeCtx, metadata, new RelationName(Schemas.DOC_SCHEMA_NAME, name), null).build();
     }
 
     @Before
