@@ -50,7 +50,10 @@ public class DistributedResultRequestTest extends ESTestCase {
         builder.add(new RowN(new Object[] {"ab"}));
         builder.add(new RowN(new Object[] {null}));
         builder.add(new RowN(new Object[] {"cd"}));
-        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, (byte) 3, 1, builder.build(), false);
+        DistributedResultRequest r1 =
+            DistributedResultRequest.of(
+                "dummyNodeId", uuid, 1, (byte) 3, 1, builder.build(), false
+            ).innerRequest();
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
@@ -69,7 +72,10 @@ public class DistributedResultRequestTest extends ESTestCase {
         UUID uuid = UUID.randomUUID();
         Throwable throwable = new IllegalStateException("dummy");
 
-        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, (byte) 3, 1, throwable, true);
+        DistributedResultRequest r1 =
+            new DistributedResultRequest.Builder(uuid, 1, (byte) 3, 1, throwable, true)
+                .build("dummyNodeId")
+                .innerRequest();
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);

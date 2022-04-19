@@ -21,16 +21,15 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.expression.reference.sys.node.NodeStatsContextFieldResolver;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportService;
@@ -38,10 +37,7 @@ import org.elasticsearch.transport.TransportService;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
-public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, NodeStatsResponse> {
-
-    private static final String ACTION_NAME = "internal:crate:sql/sys/nodes";
-    private static final String EXECUTOR = ThreadPool.Names.MANAGEMENT;
+public class TransportNodeStatsAction extends TransportAction<NodeStatsRequest, NodeStatsResponse> {
 
     private final NodeStatsContextFieldResolver nodeContextFieldsResolver;
     private final Transports transports;
@@ -50,36 +46,34 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
     public TransportNodeStatsAction(TransportService transportService,
                                     NodeStatsContextFieldResolver nodeContextFieldsResolver,
                                     Transports transports) {
+        super(NodeStatsAction.NAME);
         this.nodeContextFieldsResolver = nodeContextFieldsResolver;
         this.transports = transports;
         transportService.registerRequestHandler(
-            ACTION_NAME,
-            EXECUTOR,
-            NodeStatsRequest::new,
-            new NodeActionRequestHandler<>(this)
+            NodeStatsAction.NAME,
+            ThreadPool.Names.MANAGEMENT,
+            NodeStatsRequest.StatsRequest::new,
+            new NodeActionRequestHandler<>(this::nodeOperation)
         );
     }
 
-    public void execute(final String nodeName,
-                        final NodeStatsRequest request,
-                        final ActionListener<NodeStatsResponse> listener,
-                        final TimeValue timeout) {
+    @Override
+    public void doExecute(NodeStatsRequest request, ActionListener<NodeStatsResponse> listener) {
         TransportRequestOptions options = TransportRequestOptions.builder()
-            .withTimeout(timeout)
+            .withTimeout(request.timeout())
             .build();
 
         transports.sendRequest(
-            ACTION_NAME,
-            nodeName,
-            request,
+            NodeStatsAction.NAME,
+            request.nodeId(),
+            request.innerRequest(),
             listener,
             new ActionListenerResponseHandler<>(listener, NodeStatsResponse::new),
             options
         );
     }
 
-    @Override
-    public CompletableFuture<NodeStatsResponse> nodeOperation(NodeStatsRequest request) {
+    public CompletableFuture<NodeStatsResponse> nodeOperation(NodeStatsRequest.StatsRequest request) {
         try {
             NodeStatsContext context = nodeContextFieldsResolver.forTopColumnIdents(request.columnIdents());
             return CompletableFuture.completedFuture(new NodeStatsResponse(context));

@@ -34,8 +34,12 @@ import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.NodeOperationGrouper;
 import io.crate.execution.dsl.phases.NodeOperationTree;
-import io.crate.execution.engine.profile.TransportCollectProfileNodeAction;
+import io.crate.execution.engine.profile.CollectProfileNodeAction;
+import io.crate.execution.engine.profile.CollectProfileRequest;
+import io.crate.execution.engine.profile.NodeCollectProfileResponse;
 import io.crate.execution.engine.profile.TransportCollectProfileOperation;
+import io.crate.execution.support.ActionExecutor;
+import io.crate.execution.support.NodeRequest;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -55,6 +59,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -179,9 +184,9 @@ public class ExplainPlan implements Plan {
         };
     }
 
-    private TransportCollectProfileOperation getRemoteCollectOperation(DependencyCarrier executor, UUID jobId) {
-        TransportCollectProfileNodeAction nodeAction = executor.transportActionProvider()
-            .transportCollectProfileNodeAction();
+    private TransportCollectProfileOperation getCollectOperation(DependencyCarrier executor, UUID jobId) {
+        ActionExecutor<NodeRequest<CollectProfileRequest>, NodeCollectProfileResponse> nodeAction =
+            req -> executor.client().execute(CollectProfileNodeAction.INSTANCE, req);
         return new TransportCollectProfileOperation(nodeAction, jobId);
     }
 
@@ -286,31 +291,21 @@ public class ExplainPlan implements Plan {
     private CompletableFuture<Map<String, Map<String, Object>>> collectTimingResults(UUID jobId,
                                                                                      DependencyCarrier executor,
                                                                                      Collection<NodeOperation> nodeOperations) {
-        Set<String> nodeIds = NodeOperationGrouper.groupByServer(nodeOperations).keySet();
+        Set<String> nodeIds = new HashSet<>(NodeOperationGrouper.groupByServer(nodeOperations).keySet());
+        nodeIds.add(executor.localNodeId());
 
         CompletableFuture<Map<String, Map<String, Object>>> resultFuture = new CompletableFuture<>();
-        TransportCollectProfileOperation remoteCollectOperation = getRemoteCollectOperation(executor, jobId);
+        TransportCollectProfileOperation collectOperation = getCollectOperation(executor, jobId);
 
         ConcurrentHashMap<String, Map<String, Object>> timingsByNodeId = new ConcurrentHashMap<>(nodeIds.size());
-        boolean needsCollectLocal = !nodeIds.contains(executor.localNodeId());
 
         AtomicInteger remainingCollectOps = new AtomicInteger(nodeIds.size());
-        if (needsCollectLocal) {
-            remainingCollectOps.incrementAndGet();
-        }
 
         for (String nodeId : nodeIds) {
-            remoteCollectOperation.collect(nodeId)
+            collectOperation.collect(nodeId)
                 .whenComplete(mergeResultsAndCompleteFuture(resultFuture, timingsByNodeId, remainingCollectOps, nodeId));
         }
 
-        if (needsCollectLocal) {
-            executor
-                .transportActionProvider()
-                .transportCollectProfileNodeAction()
-                .collectExecutionTimesAndFinishContext(jobId)
-                .whenComplete(mergeResultsAndCompleteFuture(resultFuture, timingsByNodeId, remainingCollectOps, executor.localNodeId()));
-        }
         return resultFuture;
     }
 

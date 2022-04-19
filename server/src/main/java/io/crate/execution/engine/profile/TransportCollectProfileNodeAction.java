@@ -21,13 +21,15 @@
 
 package io.crate.execution.engine.profile;
 
-import io.crate.action.FutureActionListener;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
-import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.execution.support.NodeRequest;
 import io.crate.execution.support.Transports;
+
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -50,10 +52,7 @@ import java.util.concurrent.CompletableFuture;
  *
  */
 @Singleton
-public class TransportCollectProfileNodeAction implements NodeAction<NodeCollectProfileRequest, NodeCollectProfileResponse> {
-
-    private static final String TRANSPORT_ACTION = "internal:crate:sql/node/profile/collect";
-    private static final String EXECUTOR = ThreadPool.Names.SEARCH;
+public class TransportCollectProfileNodeAction extends TransportAction<NodeRequest<CollectProfileRequest>, NodeCollectProfileResponse> {
 
     private final Transports transports;
     private final TasksService tasksService;
@@ -62,21 +61,21 @@ public class TransportCollectProfileNodeAction implements NodeAction<NodeCollect
     public TransportCollectProfileNodeAction(TransportService transportService,
                                              Transports transports,
                                              TasksService tasksService) {
+        super(CollectProfileNodeAction.NAME);
         this.transports = transports;
         this.tasksService = tasksService;
 
         transportService.registerRequestHandler(
-            TRANSPORT_ACTION,
-            EXECUTOR,
+            CollectProfileNodeAction.NAME,
+            ThreadPool.Names.SEARCH,
             true,
             false,
-            NodeCollectProfileRequest::new,
-            new NodeActionRequestHandler<>(this)
+            CollectProfileRequest::new,
+            new NodeActionRequestHandler<>(this::nodeOperation)
         );
     }
 
-    @Override
-    public CompletableFuture<NodeCollectProfileResponse> nodeOperation(NodeCollectProfileRequest request) {
+    private CompletableFuture<NodeCollectProfileResponse> nodeOperation(CollectProfileRequest request) {
         return collectExecutionTimesAndFinishContext(request.jobId()).thenApply(NodeCollectProfileResponse::new);
     }
 
@@ -92,10 +91,14 @@ public class TransportCollectProfileNodeAction implements NodeAction<NodeCollect
         }
     }
 
-    public void execute(String nodeId,
-                        NodeCollectProfileRequest request,
-                        FutureActionListener<NodeCollectProfileResponse, Map<String, Object>> listener) {
-        transports.sendRequest(TRANSPORT_ACTION, nodeId, request, listener,
-            new ActionListenerResponseHandler<>(listener, NodeCollectProfileResponse::new));
+    @Override
+    public void doExecute(NodeRequest<CollectProfileRequest> request, ActionListener<NodeCollectProfileResponse> listener) {
+        transports.sendRequest(
+            CollectProfileNodeAction.NAME,
+            request.nodeId(),
+            request.innerRequest(),
+            listener,
+            new ActionListenerResponseHandler<>(listener, NodeCollectProfileResponse::new)
+        );
     }
 }

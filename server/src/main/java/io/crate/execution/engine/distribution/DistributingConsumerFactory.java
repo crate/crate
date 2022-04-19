@@ -29,6 +29,7 @@ import java.util.concurrent.Executor;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.Streamer;
@@ -37,6 +38,8 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.jobs.PageBucketReceiver;
+import io.crate.execution.support.ActionExecutor;
+import io.crate.execution.support.NodeRequest;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.StreamerVisitor;
 
@@ -47,15 +50,15 @@ public class DistributingConsumerFactory {
 
     private final ClusterService clusterService;
     private final Executor responseExecutor;
-    private final TransportDistributedResultAction transportDistributedResultAction;
+    private final ActionExecutor<NodeRequest<DistributedResultRequest>, DistributedResultResponse> distributedResultAction;
 
     @Inject
     public DistributingConsumerFactory(ClusterService clusterService,
                                        ThreadPool threadPool,
-                                       TransportDistributedResultAction transportDistributedResultAction) {
+                                       Node node) {
         this.clusterService = clusterService;
         this.responseExecutor = threadPool.executor(RESPONSE_EXECUTOR_NAME);
-        this.transportDistributedResultAction = transportDistributedResultAction;
+        this.distributedResultAction = req -> node.client().execute(DistributedResultAction.INSTANCE, req);
     }
 
     public RowConsumer create(NodeOperation nodeOperation,
@@ -108,7 +111,7 @@ public class DistributingConsumerFactory {
             phaseInputId,
             bucketIdx,
             nodeOperation.downstreamNodes(),
-            transportDistributedResultAction,
+            distributedResultAction,
             pageSize
         );
     }

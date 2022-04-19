@@ -30,7 +30,10 @@ import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.collectors.NodeStats;
-import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
+import io.crate.execution.engine.collect.stats.NodeStatsAction;
+import io.crate.execution.engine.collect.stats.NodeStatsRequest;
+import io.crate.execution.engine.collect.stats.NodeStatsResponse;
+import io.crate.execution.support.ActionExecutor;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
@@ -41,11 +44,13 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodesTableInfo;
+
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.CollectionUtils;
+import org.elasticsearch.node.Node;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
@@ -58,16 +63,16 @@ import java.util.concurrent.CompletableFuture;
 @Singleton
 public class NodeStatsCollectSource implements CollectSource {
 
-    private final TransportNodeStatsAction nodeStatsAction;
+    private final ActionExecutor<NodeStatsRequest, NodeStatsResponse> nodeStatsAction;
     private final ClusterService clusterService;
     private final NodeContext nodeCtx;
     private final InputFactory inputFactory;
 
     @Inject
-    public NodeStatsCollectSource(TransportNodeStatsAction nodeStatsAction,
+    public NodeStatsCollectSource(Node node,
                                   ClusterService clusterService,
                                   NodeContext nodeCtx) {
-        this.nodeStatsAction = nodeStatsAction;
+        this.nodeStatsAction = req -> node.client().execute(NodeStatsAction.INSTANCE, req);
         this.clusterService = clusterService;
         this.inputFactory = new InputFactory(nodeCtx);
         this.nodeCtx = nodeCtx;
