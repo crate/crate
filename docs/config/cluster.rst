@@ -1462,7 +1462,7 @@ Chunk size to transfer files during the initial recovery of a replicating table.
 Controls the number of file chunk requests that can be sent in parallel between
 clusters during the recovery.
 
-.. _`Active Directory application`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/
+.. _`Active Directory application`: https://docs.microsoft.com/en-us/azure/active-directory/develop/app-objects-and-service-principals
 .. _`Azure Portal`: https://portal.azure.com
 .. _bootstrap checks: https://crate.io/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
 .. _multi-zone setup how-to guide: https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html
