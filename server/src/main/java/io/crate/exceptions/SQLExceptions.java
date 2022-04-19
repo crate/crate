@@ -141,6 +141,7 @@ public class SQLExceptions {
             || t instanceof ConnectException
             || t instanceof ClusterBlockException
             || t instanceof NoSeedNodeLeftException
+            || t instanceof IndexNotFoundException
             || t instanceof NoShardAvailableActionException
             || t instanceof AlreadyClosedException
             || t instanceof ElasticsearchTimeoutException;
