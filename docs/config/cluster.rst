@@ -1415,7 +1415,7 @@ The following settings can be used to configure the behavior of the
   of the expected number of data nodes in the cluster.
 
 
-.. _`Active Directory application`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/
+.. _`Active Directory application`: https://docs.microsoft.com/en-us/azure/active-directory/develop/app-objects-and-service-principals
 .. _`Azure Portal`: https://portal.azure.com
 .. _bootstrap checks: https://crate.io/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
 .. _multi-zone setup how-to guide: https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html
