@@ -143,4 +143,4 @@ The configuration settings for authentication are as follows:
 For a complete list of settings please refer to :ref:`conf_azure_discovery`.
 
 .. _`Microsoft Azure`: https://azure.microsoft.com
-.. _`AD Application Guide`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/
+.. _`AD Application Guide`: https://docs.microsoft.com/en-us/azure/active-directory/develop/app-objects-and-service-principals
