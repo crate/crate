@@ -21,15 +21,22 @@
 
 package io.crate.planner.node.management;
 
+import java.util.List;
+import java.util.UUID;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.jobs.kill.KillAllNodeAction;
 import io.crate.execution.jobs.kill.KillAllRequest;
-import io.crate.execution.jobs.kill.KillJobsRequest;
-import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
+import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -39,10 +46,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
-
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.UUID;
 
 public class KillPlan implements Plan {
 
@@ -72,8 +75,8 @@ public class KillPlan implements Plan {
                 params,
                 subQueryResults),
             plannerContext.transactionContext().sessionSettings().userName(),
-            dependencies.transportActionProvider().transportKillAllNodeAction(),
-            dependencies.transportActionProvider().transportKillJobsNodeAction(),
+            req -> dependencies.client().execute(KillJobsNodeAction.INSTANCE, req),
+            req -> dependencies.client().execute(KillAllNodeAction.INSTANCE, req),
             consumer
         );
     }
@@ -106,17 +109,31 @@ public class KillPlan implements Plan {
     @VisibleForTesting
     void execute(@Nullable UUID jobId,
                  String userName,
-                 TransportKillAllNodeAction killAllNodeAction,
-                 TransportKillJobsNodeAction killJobsNodeAction,
+                 ActionExecutor<KillJobsNodeRequest, KillResponse> killJobsNodeAction,
+                 ActionExecutor<KillAllRequest, KillResponse> killAllNodeAction,
                  RowConsumer consumer) {
         if (jobId != null) {
-            killJobsNodeAction.broadcast(
-                new KillJobsRequest(List.of(jobId), userName, "KILL invoked by user: " + userName),
-                new OneRowActionListener<>(consumer, Row1::new));
+            killJobsNodeAction
+                .execute(
+                    new KillJobsNodeRequest(
+                        List.of(),
+                        List.of(jobId),
+                        userName,
+                        "KILL invoked by user: " + userName))
+                .whenComplete(
+                    new OneRowActionListener<>(
+                        consumer,
+                        killResponse -> new Row1(killResponse.numKilled()))
+                );
         } else {
-            killAllNodeAction.broadcast(
-                new KillAllRequest(userName),
-                new OneRowActionListener<>(consumer, Row1::new));
+            killAllNodeAction
+                .execute(
+                    new KillAllRequest(userName))
+                .whenComplete(
+                    new OneRowActionListener<>(
+                        consumer,
+                        killResponse -> new Row1(killResponse.numKilled()))
+                );
         }
     }
 }

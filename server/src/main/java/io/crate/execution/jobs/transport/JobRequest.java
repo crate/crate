@@ -21,18 +21,32 @@
 
 package io.crate.execution.jobs.transport;
 
-import io.crate.execution.dsl.phases.NodeOperation;
-import io.crate.metadata.settings.SessionSettings;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportRequest;
+
+import io.crate.execution.dsl.phases.NodeOperation;
+import io.crate.execution.support.NodeRequest;
+import io.crate.metadata.settings.SessionSettings;
+
 public class JobRequest extends TransportRequest {
+
+    public static NodeRequest<JobRequest> of(String nodeId,
+                                             UUID jobId,
+                                             SessionSettings sessionSettings,
+                                             String coordinatorNodeId,
+                                             Collection<? extends NodeOperation> nodeOperations,
+                                             boolean enableProfiling) {
+        return new NodeRequest<>(
+            nodeId,
+            new JobRequest(jobId, sessionSettings, coordinatorNodeId, nodeOperations, enableProfiling)
+        );
+    }
 
     private final UUID jobId;
     private final SessionSettings sessionSettings;
@@ -40,11 +54,11 @@ public class JobRequest extends TransportRequest {
     private final Collection<? extends NodeOperation> nodeOperations;
     private final boolean enableProfiling;
 
-    public JobRequest(UUID jobId,
-                      SessionSettings sessionSettings,
-                      String coordinatorNodeId,
-                      Collection<? extends NodeOperation> nodeOperations,
-                      boolean enableProfiling) {
+    private JobRequest(UUID jobId,
+                       SessionSettings sessionSettings,
+                       String coordinatorNodeId,
+                       Collection<? extends NodeOperation> nodeOperations,
+                       boolean enableProfiling) {
         this.jobId = jobId;
         this.coordinatorNodeId = coordinatorNodeId;
         this.sessionSettings = sessionSettings;
@@ -72,7 +86,7 @@ public class JobRequest extends TransportRequest {
         return sessionSettings;
     }
 
-    public JobRequest(StreamInput in) throws IOException {
+    JobRequest(StreamInput in) throws IOException {
         super(in);
 
         jobId = new UUID(in.readLong(), in.readLong());
@@ -107,3 +121,4 @@ public class JobRequest extends TransportRequest {
         sessionSettings.writeTo(out);
     }
 }
+

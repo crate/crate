@@ -73,7 +73,6 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SentinelRow;
 import io.crate.exceptions.Exceptions;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
@@ -164,7 +163,6 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                               NodeLimits nodeJobsCounter,
                               ThreadPool threadPool,
                               Node node,
-                              TransportActionProvider transportActionProvider,
                               RemoteCollectorFactory remoteCollectorFactory,
                               SystemCollectSource systemCollectSource,
                               CircuitBreakerService circuitBreakerService,
@@ -194,7 +192,6 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             threadPool,
             settings,
             node.client(),
-            transportActionProvider,
             inputFactory,
             nodeNormalizer,
             systemCollectSource::getRowUpdater,

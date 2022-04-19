@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,14 +39,17 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
+import io.crate.action.FutureActionListener;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.DummyTask;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
-import io.crate.execution.jobs.kill.KillJobsRequest;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.support.ActionExecutor;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServiceUnitTest {
@@ -67,7 +69,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
             tasksService,
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             mock(TransportService.class),
-            mock(TransportKillJobsNodeAction.class));
+            mock(ActionExecutor.class));
 
         monitorService.onNodeDisconnected(
             new DiscoveryNode(NODE_ID, buildNewFakeTransportAddress(), Version.CURRENT),
@@ -103,7 +105,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
             mock(TransportService.class)
         ) {
             @Override
-            public void broadcast(KillJobsRequest request, ActionListener<Long> listener, Collection<String> excludedNodeIds) {
+            public void doExecute(KillJobsNodeRequest request, ActionListener<KillResponse> listener) {
                 broadcasts.incrementAndGet();
             }
         };
@@ -111,7 +113,11 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
             tasksService,
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             mock(TransportService.class),
-            killAction);
+            req -> {
+                FutureActionListener listener = FutureActionListener.newInstance();
+                killAction.doExecute(req, listener);
+                return listener;
+            });
 
         monitorService.onNodeDisconnected(dataNode, mock(Transport.Connection.class));
 

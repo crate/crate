@@ -29,7 +29,7 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.RowsTransformer;
 import io.crate.execution.engine.collect.stats.NodeStatsRequest;
 import io.crate.execution.engine.collect.stats.NodeStatsResponse;
-import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
+import io.crate.execution.support.ActionExecutor;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
@@ -40,7 +40,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.Reference;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -63,7 +62,7 @@ import java.util.function.Supplier;
  */
 public final class NodeStats {
 
-    public static BatchIterator<Row> newInstance(TransportNodeStatsAction transportStatTablesAction,
+    public static BatchIterator<Row> newInstance(ActionExecutor<NodeStatsRequest, NodeStatsResponse> nodeStatesAction,
                                                  RoutedCollectPhase collectPhase,
                                                  Collection<DiscoveryNode> nodes,
                                                  TransactionContext txnCtx,
@@ -73,7 +72,7 @@ public final class NodeStats {
             () -> {},
             t -> {},
             new LoadNodeStats(
-                transportStatTablesAction,
+                nodeStatesAction,
                 collectPhase,
                 nodes,
                 txnCtx,
@@ -86,14 +85,14 @@ public final class NodeStats {
     private static final class LoadNodeStats implements Supplier<CompletableFuture<? extends Iterable<? extends Row>>> {
 
         private static final TimeValue REQUEST_TIMEOUT = TimeValue.timeValueMillis(3000L);
-        private final TransportNodeStatsAction nodeStatsAction;
+        private final ActionExecutor<NodeStatsRequest, NodeStatsResponse> nodeStatsAction;
         private final RoutedCollectPhase collectPhase;
         private final Collection<DiscoveryNode> nodes;
         private final TransactionContext txnCtx;
         private final InputFactory inputFactory;
         private final Map<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>> expressions;
 
-        LoadNodeStats(TransportNodeStatsAction nodeStatsAction,
+        LoadNodeStats(ActionExecutor<NodeStatsRequest, NodeStatsResponse> nodeStatsAction,
                       RoutedCollectPhase collectPhase,
                       Collection<DiscoveryNode> nodes,
                       TransactionContext txnCtx,
@@ -136,34 +135,34 @@ public final class NodeStats {
             final AtomicInteger remainingNodesToCollect = new AtomicInteger(nodes.size());
             for (final DiscoveryNode node : nodes) {
                 final String nodeId = node.getId();
-                NodeStatsRequest request = new NodeStatsRequest(toCollect);
-                nodeStatsAction.execute(nodeId, request, new ActionListener<NodeStatsResponse>() {
-                    @Override
-                    public void onResponse(NodeStatsResponse response) {
-                        synchronized (rows) {
-                            rows.add(response.nodeStatsContext());
-                        }
-                        if (remainingNodesToCollect.decrementAndGet() == 0) {
-                            nodeStatsContextsFuture.complete(rows);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        Throwable t = SQLExceptions.unwrap(e);
-                        if (isTimeoutOrNodeNotReachable(t)) {
-                            NodeStatsContext statsContext = new NodeStatsContext(nodeId, node.getName());
-                            synchronized (rows) {
-                                rows.add(statsContext);
+                NodeStatsRequest request = new NodeStatsRequest(nodeId, REQUEST_TIMEOUT, toCollect);
+                nodeStatsAction
+                    .execute(request)
+                    .whenComplete(
+                        (resp, t) -> {
+                            if (t == null) {
+                                synchronized (rows) {
+                                    rows.add(resp.nodeStatsContext());
+                                }
+                                if (remainingNodesToCollect.decrementAndGet() == 0) {
+                                    nodeStatsContextsFuture.complete(rows);
+                                }
+                            } else {
+                                Throwable ut = SQLExceptions.unwrap(t);
+                                if (isTimeoutOrNodeNotReachable(ut)) {
+                                    NodeStatsContext statsContext = new NodeStatsContext(nodeId, node.getName());
+                                    synchronized (rows) {
+                                        rows.add(statsContext);
+                                    }
+                                    if (remainingNodesToCollect.decrementAndGet() == 0) {
+                                        nodeStatsContextsFuture.complete(rows);
+                                    }
+                                } else {
+                                    nodeStatsContextsFuture.completeExceptionally(ut);
+                                }
                             }
-                            if (remainingNodesToCollect.decrementAndGet() == 0) {
-                                nodeStatsContextsFuture.complete(rows);
-                            }
-                        } else {
-                            nodeStatsContextsFuture.completeExceptionally(t);
                         }
-                    }
-                }, REQUEST_TIMEOUT);
+                    );
             }
             return nodeStatsContextsFuture;
         }
