@@ -21,9 +21,11 @@
 
 package io.crate.integrationtests;
 
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
 import io.crate.testing.UseRandomizedSchema;
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -31,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
@@ -295,6 +298,43 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 " ORDER BY ordinal_position");
             assertThat(r.rowCount(), is(0L));
         });
+    }
+
+    @Test
+    public void test_drop_publication_stops_the_replication_on_subscriber() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT)");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
+        createPublication("pub1", true, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+        var response = executeOnPublisher("SELECT * FROM pg_publication WHERE pubname = 'pub1'");
+        assertThat(response.rowCount(), CoreMatchers.is(1L));
+
+        executeOnPublisher("DROP PUBLICATION pub1");
+        assertBusy(() -> assertThat(isTrackerActive(), is(false)));
+        assertBusy(
+            () -> {
+                var res = executeOnSubscriber(
+                    "SELECT s.subname, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
+                        " FROM pg_subscription s" +
+                        " LEFT JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                        " ORDER BY s.subname");
+                assertThat(printedTable(res.rows()), CoreMatchers.is("sub1| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking.\n" +
+                    "Reason: Publication 'pub1' unknown\n"));
+            }, 20, TimeUnit.SECONDS
+        );
+
+        assertThrowsMatches(
+            () -> executeOnSubscriber("INSERT INTO t1 (id) VALUES(3)"),
+            OperationOnInaccessibleRelationException.class,
+            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication."
+        );
+
+        executeOnSubscriber("DROP SUBSCRIPTION sub1");
+
+        response = executeOnSubscriber("INSERT INTO t1 (id) VALUES(3)");
+        assertThat(response.rowCount(), CoreMatchers.is(1L));
     }
 
     private boolean isTrackerActive() throws Exception {
