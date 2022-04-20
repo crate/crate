@@ -26,6 +26,7 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
 import io.crate.testing.UseRandomizedSchema;
 import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -336,6 +337,67 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         response = executeOnSubscriber("INSERT INTO t1 (id) VALUES(3)");
         assertThat(response.rowCount(), CoreMatchers.is(1L));
     }
+
+    @Test
+    public void test_alter_publication_drop_table_tracking_is_alive_new_records_are_invisible_on_subscriber() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("CREATE TABLE t2 (id INT, p INT) PARTITIONED BY (p) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
+        executeOnPublisher("INSERT INTO t2 (id, p) VALUES (1, 1), (2, 2)");
+        createPublication("pub1", false, List.of("t1", "t2"));
+        createSubscription("sub1", "pub1");
+
+        // t2 will be dropped from the publication but current state is visible
+        assertBusy(
+            () -> {
+                var res = executeOnSubscriber(
+                    "SELECT s.subname, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
+                        " FROM pg_subscription s" +
+                        " LEFT JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                        " ORDER BY s.subname");
+                assertThat(res.rowCount(), Matchers.is(2L));
+
+                var r = executeOnSubscriber("SELECT id FROM t2 ORDER BY id");
+                assertThat(printedTable(r.rows()), Matchers.is(
+                    "1\n" +
+                        "2\n"));
+            }, 20, TimeUnit.SECONDS
+        );
+
+        executeOnPublisher("ALTER PUBLICATION pub1 DROP TABLE t1, t2");
+
+        // adding new records on the publisher to the tables excluded from the publication.
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (3)");
+        executeOnPublisher("INSERT INTO t2 (id, p) VALUES (3, 3)");
+
+        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+
+        assertBusy(
+            () -> {
+                var res = executeOnSubscriber("SELECT id FROM t1 ORDER BY id");
+                assertThat(printedTable(res.rows()), Matchers.is(
+                    "1\n" +
+                        "2\n")); // Subscriber doesn't see new record (3).
+
+                res = executeOnSubscriber("SELECT id, p FROM t2 ORDER BY id");
+                assertThat(printedTable(res.rows()), Matchers.is(
+                    "1| 1\n" +
+                        "2| 2\n"));  // Subscriber doesn't see new record (3,3).
+            }, 20, TimeUnit.SECONDS
+        );
+
+//        assertThrowsMatches(
+//            () -> executeOnSubscriber("INSERT INTO t1 (id) VALUES(3)"),
+//            OperationOnInaccessibleRelationException.class,
+//            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication."
+//        );
+//
+//        executeOnSubscriber("DROP SUBSCRIPTION sub1");
+//
+//        response = executeOnSubscriber("INSERT INTO t1 (id) VALUES(3)");
+//        assertThat(response.rowCount(), CoreMatchers.is(1L));
+    }
+
 
     private boolean isTrackerActive() throws Exception {
         var replicationService = subscriberCluster.getInstance(LogicalReplicationService.class, subscriberCluster.getMasterName());
