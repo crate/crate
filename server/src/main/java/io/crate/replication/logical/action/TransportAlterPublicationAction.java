@@ -38,7 +38,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -62,15 +61,13 @@ public class TransportAlterPublicationAction extends TransportMasterNodeAction<T
     @Inject
     public TransportAlterPublicationAction(TransportService transportService,
                                            ClusterService clusterService,
-                                           ThreadPool threadPool,
-                                           IndexNameExpressionResolver indexNameExpressionResolver) {
+                                           ThreadPool threadPool) {
         super(
             NAME,
             transportService,
             clusterService,
             threadPool,
-            Request::new,
-            indexNameExpressionResolver
+            Request::new
         );
     }
 

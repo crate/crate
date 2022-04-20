@@ -28,7 +28,6 @@ import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -48,15 +47,13 @@ public class TransportCreateUserDefinedFunctionAction
     public TransportCreateUserDefinedFunctionAction(TransportService transportService,
                                                     ClusterService clusterService,
                                                     ThreadPool threadPool,
-                                                    UserDefinedFunctionService udfService,
-                                                    IndexNameExpressionResolver indexNameExpressionResolver) {
+                                                    UserDefinedFunctionService udfService) {
         super(
             "internal:crate:sql/udf/create",
             transportService,
             clusterService,
             threadPool,
-            CreateUserDefinedFunctionRequest::new,
-            indexNameExpressionResolver
+            CreateUserDefinedFunctionRequest::new
         );
         this.udfService = udfService;
     }

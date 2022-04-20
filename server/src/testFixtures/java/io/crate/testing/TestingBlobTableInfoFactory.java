@@ -44,12 +44,10 @@ class TestingBlobTableInfoFactory implements BlobTableInfoFactory {
         this.internalFactory = null;
     }
 
-    TestingBlobTableInfoFactory(Map<RelationName, BlobTableInfo> blobTables,
-                                IndexNameExpressionResolver indexNameExpressionResolver,
-                                File dataPath) {
+    TestingBlobTableInfoFactory(Map<RelationName, BlobTableInfo> blobTables, File dataPath) {
         this.tables = blobTables;
         internalFactory = new InternalBlobTableInfoFactory(
-            Settings.EMPTY, indexNameExpressionResolver, new Path[]{Path.of(dataPath.toURI())});
+            Settings.EMPTY, new Path[]{Path.of(dataPath.toURI())});
     }
 
 

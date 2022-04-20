@@ -19,7 +19,10 @@
 
 package org.elasticsearch.action.admin.cluster.health;
 
-import io.crate.common.unit.TimeValue;
+import java.io.IOException;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -46,9 +49,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
+import io.crate.common.unit.TimeValue;
 
 public class TransportClusterHealthAction extends TransportMasterNodeReadAction<ClusterHealthRequest, ClusterHealthResponse> {
 
@@ -59,9 +60,9 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
     @Inject
     public TransportClusterHealthAction(Settings settings, TransportService transportService, ClusterService clusterService,
                                         ThreadPool threadPool,
-                                        IndexNameExpressionResolver indexNameExpressionResolver, GatewayAllocator gatewayAllocator) {
+                                        GatewayAllocator gatewayAllocator) {
         super(settings, ClusterHealthAction.NAME, false, transportService, clusterService, threadPool,
-            indexNameExpressionResolver, ClusterHealthRequest::new);
+            ClusterHealthRequest::new);
         this.gatewayAllocator = gatewayAllocator;
     }
 
@@ -226,13 +227,13 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
     private boolean validateRequest(final ClusterHealthRequest request, ClusterState clusterState, final int waitCount) {
         ClusterHealthResponse response = clusterHealth(request, clusterState, clusterService.getMasterService().numberOfPendingTasks(),
                 gatewayAllocator.getNumberOfInFlightFetch(), clusterService.getMasterService().getMaxTaskWaitTime());
-        return prepareResponse(request, response, clusterState, indexNameExpressionResolver) == waitCount;
+        return prepareResponse(request, response, clusterState) == waitCount;
     }
 
     private ClusterHealthResponse getResponse(final ClusterHealthRequest request, ClusterState clusterState, final int waitFor, boolean timedOut) {
         ClusterHealthResponse response = clusterHealth(request, clusterState, clusterService.getMasterService().numberOfPendingTasks(),
                 gatewayAllocator.getNumberOfInFlightFetch(), clusterService.getMasterService().getMaxTaskWaitTime());
-        int readyCounter = prepareResponse(request, response, clusterState, indexNameExpressionResolver);
+        int readyCounter = prepareResponse(request, response, clusterState);
         boolean valid = (readyCounter == waitFor);
         assert valid || timedOut;
         // we check for a timeout here since this method might be called from the wait_for_events
@@ -245,7 +246,7 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
     }
 
     static int prepareResponse(final ClusterHealthRequest request, final ClusterHealthResponse response,
-                               final ClusterState clusterState, final IndexNameExpressionResolver indexNameExpressionResolver) {
+                               final ClusterState clusterState) {
         int waitForCounter = 0;
         if (request.waitForStatus() != null && response.getStatus().value() <= request.waitForStatus().value()) {
             waitForCounter++;
@@ -272,7 +273,7 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
         }
         if (request.indices() != null && request.indices().length > 0) {
             try {
-                indexNameExpressionResolver.concreteIndexNames(clusterState, IndicesOptions.strictExpand(), request.indices());
+                IndexNameExpressionResolver.concreteIndexNames(clusterState, IndicesOptions.strictExpand(), request.indices());
                 waitForCounter++;
             } catch (IndexNotFoundException e) {
                 response.setStatus(ClusterHealthStatus.RED); // no indices, make sure its RED
@@ -339,7 +340,7 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
 
         String[] concreteIndices;
         try {
-            concreteIndices = indexNameExpressionResolver.concreteIndexNames(clusterState, request);
+            concreteIndices = IndexNameExpressionResolver.concreteIndexNames(clusterState, request);
         } catch (IndexNotFoundException e) {
             // one of the specified indices is not there - treat it as RED.
             ClusterHealthResponse response = new ClusterHealthResponse(clusterState.getClusterName().value(), Strings.EMPTY_ARRAY, clusterState,

@@ -54,13 +54,11 @@ public class TransportDropSubscriptionAction extends AbstractDDLTransportAction<
     @Inject
     public TransportDropSubscriptionAction(TransportService transportService,
                                            ClusterService clusterService,
-                                           ThreadPool threadPool,
-                                           IndexNameExpressionResolver indexNameExpressionResolver) {
+                                           ThreadPool threadPool) {
         super(ACTION_NAME,
             transportService,
             clusterService,
             threadPool,
-            indexNameExpressionResolver,
             DropSubscriptionRequest::new,
             AcknowledgedResponse::new,
             AcknowledgedResponse::new,
@@ -109,7 +107,7 @@ public class TransportDropSubscriptionAction extends AbstractDDLTransportAction<
                                            ClusterState currentState,
                                            Metadata.Builder mdBuilder) {
         for (var relationName : subscription.relations().keySet()) {
-            var concreteIndices = indexNameExpressionResolver.concreteIndexNames(
+            var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
                 currentState,
                 IndicesOptions.lenientExpandOpen(),
                 relationName.indexNameOrAlias()

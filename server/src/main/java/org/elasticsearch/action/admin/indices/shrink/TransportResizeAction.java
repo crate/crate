@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -63,7 +62,6 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                                  ClusterService clusterService,
                                  ThreadPool threadPool,
                                  MetadataCreateIndexService createIndexService,
-                                 IndexNameExpressionResolver indexNameExpressionResolver,
                                  NodeContext nodeContext,
                                  Client client) {
         this(
@@ -72,7 +70,6 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
             clusterService,
             threadPool,
             createIndexService,
-            indexNameExpressionResolver,
             nodeContext,
             client
         );
@@ -83,10 +80,9 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                                     ClusterService clusterService,
                                     ThreadPool threadPool,
                                     MetadataCreateIndexService createIndexService,
-                                    IndexNameExpressionResolver indexNameExpressionResolver,
                                     NodeContext nodeContext,
                                     Client client) {
-        super(actionName, transportService, clusterService, threadPool, ResizeRequest::new, indexNameExpressionResolver);
+        super(actionName, transportService, clusterService, threadPool, ResizeRequest::new);
         this.createIndexService = createIndexService;
         this.client = client;
         this.nodeContext = nodeContext;

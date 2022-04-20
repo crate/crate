@@ -26,7 +26,6 @@ import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -49,9 +48,8 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
                                       MetadataCreateIndexService createIndexService,
-                                      NodeContext nodeContext,
-                                      IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(CreateIndexAction.NAME, transportService, clusterService, threadPool, CreateIndexRequest::new, indexNameExpressionResolver);
+                                      NodeContext nodeContext) {
+        super(CreateIndexAction.NAME, transportService, clusterService, threadPool, CreateIndexRequest::new);
         this.createIndexService = createIndexService;
         this.nodeContext = nodeContext;
     }

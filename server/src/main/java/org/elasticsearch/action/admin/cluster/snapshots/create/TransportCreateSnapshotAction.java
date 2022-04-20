@@ -42,10 +42,9 @@ public class TransportCreateSnapshotAction extends TransportMasterNodeAction<Cre
 
     @Inject
     public TransportCreateSnapshotAction(TransportService transportService, ClusterService clusterService,
-                                         ThreadPool threadPool, SnapshotsService snapshotsService,
-                                         IndexNameExpressionResolver indexNameExpressionResolver) {
+                                         ThreadPool threadPool, SnapshotsService snapshotsService) {
         super(CreateSnapshotAction.NAME, transportService, clusterService, threadPool,
-            CreateSnapshotRequest::new, indexNameExpressionResolver);
+            CreateSnapshotRequest::new);
         this.snapshotsService = snapshotsService;
     }
 
@@ -69,7 +68,7 @@ public class TransportCreateSnapshotAction extends TransportMasterNodeAction<Cre
             return clusterBlockException;
         }
         return state.blocks()
-            .indicesBlockedException(ClusterBlockLevel.READ, indexNameExpressionResolver.concreteIndexNames(state, request));
+            .indicesBlockedException(ClusterBlockLevel.READ, IndexNameExpressionResolver.concreteIndexNames(state, request));
     }
 
     @Override

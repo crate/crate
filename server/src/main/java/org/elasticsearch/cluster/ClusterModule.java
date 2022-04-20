@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.index.NodeMappingRefreshAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexGraveyard;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.cluster.metadata.MetadataIndexTemplateService;
@@ -91,7 +90,6 @@ public class ClusterModule extends AbstractModule {
         new Setting<>("cluster.routing.allocation.type", BALANCED_ALLOCATOR, Function.identity(), DataTypes.STRING, Property.NodeScope);
 
     private final ClusterService clusterService;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final AllocationDeciders allocationDeciders;
     private final AllocationService allocationService;
     private final Collection<AllocationDecider> deciderList;
@@ -103,7 +101,6 @@ public class ClusterModule extends AbstractModule {
         this.allocationDeciders = new AllocationDeciders(deciderList);
         this.shardsAllocator = createShardsAllocator(settings, clusterService.getClusterSettings(), clusterPlugins);
         this.clusterService = clusterService;
-        this.indexNameExpressionResolver = new IndexNameExpressionResolver();
         this.allocationService = new AllocationService(allocationDeciders, shardsAllocator, clusterInfoService);
     }
 
@@ -173,10 +170,6 @@ public class ClusterModule extends AbstractModule {
                                                                   Reader<? extends T> reader, Reader<NamedDiff> diffReader) {
         entries.add(new Entry(category, name, reader));
         entries.add(new Entry(NamedDiff.class, name, diffReader));
-    }
-
-    public IndexNameExpressionResolver getIndexNameExpressionResolver() {
-        return indexNameExpressionResolver;
     }
 
     // TODO: this is public so allocation benchmark can access the default deciders...can we do that in another way?
@@ -252,7 +245,6 @@ public class ClusterModule extends AbstractModule {
         bind(MetadataMappingService.class).asEagerSingleton();
         bind(MetadataUpdateSettingsService.class).asEagerSingleton();
         bind(MetadataIndexTemplateService.class).asEagerSingleton();
-        bind(IndexNameExpressionResolver.class).toInstance(indexNameExpressionResolver);
         bind(DelayedAllocationService.class).asEagerSingleton();
         bind(ShardStateAction.class).asEagerSingleton();
         bind(NodeMappingRefreshAction.class).asEagerSingleton();

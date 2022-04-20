@@ -19,6 +19,9 @@
 
 package org.elasticsearch.action.support.master;
 
+import java.io.IOException;
+import java.util.function.Predicate;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
@@ -32,13 +35,11 @@ import org.elasticsearch.cluster.MasterNodeChangePredicate;
 import org.elasticsearch.cluster.NotMasterException;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.coordination.FailedToCommitClusterStateException;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.discovery.MasterNotDiscoveredException;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -48,8 +49,7 @@ import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.function.Predicate;
+import io.crate.common.unit.TimeValue;
 
 /**
  * A base class for operations that needs to be performed on the master node.
@@ -60,7 +60,6 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
     protected final ThreadPool threadPool;
     protected final TransportService transportService;
     protected final ClusterService clusterService;
-    protected final IndexNameExpressionResolver indexNameExpressionResolver;
 
     private final String executor;
 
@@ -68,9 +67,8 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
                                         TransportService transportService,
                                         ClusterService clusterService,
                                         ThreadPool threadPool,
-                                        Writeable.Reader<Request> request,
-                                        IndexNameExpressionResolver indexNameExpressionResolver) {
-        this(actionName, true, transportService, clusterService, threadPool, request, indexNameExpressionResolver);
+                                        Writeable.Reader<Request> request) {
+        this(actionName, true, transportService, clusterService, threadPool, request);
     }
 
     protected TransportMasterNodeAction(String actionName,
@@ -78,13 +76,11 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
                                         TransportService transportService,
                                         ClusterService clusterService,
                                         ThreadPool threadPool,
-                                        Writeable.Reader<Request> request,
-                                        IndexNameExpressionResolver indexNameExpressionResolver) {
+                                        Writeable.Reader<Request> request) {
         super(actionName, canTripCircuitBreaker, transportService, request);
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.executor = executor();
     }
 

@@ -50,9 +50,8 @@ public class TransportUpdateSettingsAction extends TransportMasterNodeAction<Upd
     public TransportUpdateSettingsAction(TransportService transportService,
                                          ClusterService clusterService,
                                          ThreadPool threadPool,
-                                         MetadataUpdateSettingsService updateSettingsService,
-                                         IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(UpdateSettingsAction.NAME, transportService, clusterService, threadPool, UpdateSettingsRequest::new, indexNameExpressionResolver);
+                                         MetadataUpdateSettingsService updateSettingsService) {
+        super(UpdateSettingsAction.NAME, transportService, clusterService, threadPool, UpdateSettingsRequest::new);
         this.updateSettingsService = updateSettingsService;
     }
 
@@ -79,7 +78,7 @@ public class TransportUpdateSettingsAction extends TransportMasterNodeAction<Upd
             || IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING.exists(settings)) {
             return null;
         }
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNameExpressionResolver.concreteIndexNames(state, request));
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, IndexNameExpressionResolver.concreteIndexNames(state, request));
     }
 
     @Override
@@ -91,7 +90,7 @@ public class TransportUpdateSettingsAction extends TransportMasterNodeAction<Upd
     protected void masterOperation(final UpdateSettingsRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
-        final Index[] concreteIndices = indexNameExpressionResolver.concreteIndices(state, request);
+        final Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(state, request);
         UpdateSettingsClusterStateUpdateRequest clusterStateUpdateRequest = new UpdateSettingsClusterStateUpdateRequest()
                 .indices(concreteIndices)
                 .settings(request.settings())

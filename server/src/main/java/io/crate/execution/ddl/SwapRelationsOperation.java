@@ -46,14 +46,10 @@ public class SwapRelationsOperation {
 
     private final AllocationService allocationService;
     private final DDLClusterStateService ddlClusterStateService;
-    private final IndexNameExpressionResolver indexNameResolver;
 
-    public SwapRelationsOperation(AllocationService allocationService,
-                                  DDLClusterStateService ddlClusterStateService,
-                                  IndexNameExpressionResolver indexNameResolver) {
+    public SwapRelationsOperation(AllocationService allocationService, DDLClusterStateService ddlClusterStateService) {
         this.allocationService = allocationService;
         this.ddlClusterStateService = ddlClusterStateService;
-        this.indexNameResolver = indexNameResolver;
     }
 
     static class UpdatedState {
@@ -82,7 +78,7 @@ public class SwapRelationsOperation {
         RoutingTable.Builder routingBuilder = RoutingTable.builder(stateAfterRename.routingTable());
 
         for (RelationName dropRelation : dropRelations) {
-            for (Index index : indexNameResolver.concreteIndices(
+            for (Index index : IndexNameExpressionResolver.concreteIndices(
                 state, IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())) {
 
                 String indexName = index.getName();
@@ -162,7 +158,7 @@ public class SwapRelationsOperation {
                                    RelationName name) {
         String aliasOrIndexName = name.indexNameOrAlias();
         String templateName = PartitionName.templateName(name.schema(), name.name());
-        for (Index index : indexNameResolver.concreteIndices(
+        for (Index index : IndexNameExpressionResolver.concreteIndices(
             state, IndicesOptions.LENIENT_EXPAND_OPEN, aliasOrIndexName)) {
 
             String indexName = index.getName();
@@ -184,7 +180,7 @@ public class SwapRelationsOperation {
         String sourceTemplateName = PartitionName.templateName(source.schema(), source.name());
         IndexTemplateMetadata sourceTemplate = metadata.templates().get(sourceTemplateName);
 
-        for (Index sourceIndex : indexNameResolver.concreteIndices(
+        for (Index sourceIndex : IndexNameExpressionResolver.concreteIndices(
             state, IndicesOptions.LENIENT_EXPAND_OPEN, source.indexNameOrAlias())) {
 
             String sourceIndexName = sourceIndex.getName();

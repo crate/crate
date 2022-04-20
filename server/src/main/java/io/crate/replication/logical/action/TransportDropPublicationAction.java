@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -47,13 +46,11 @@ public class TransportDropPublicationAction extends AbstractDDLTransportAction<D
     @Inject
     public TransportDropPublicationAction(TransportService transportService,
                                           ClusterService clusterService,
-                                          ThreadPool threadPool,
-                                          IndexNameExpressionResolver indexNameExpressionResolver) {
+                                          ThreadPool threadPool) {
         super(ACTION_NAME,
               transportService,
               clusterService,
               threadPool,
-              indexNameExpressionResolver,
               DropPublicationRequest::new,
               AcknowledgedResponse::new,
               AcknowledgedResponse::new,

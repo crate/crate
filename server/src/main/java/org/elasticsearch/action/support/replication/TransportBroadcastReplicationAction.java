@@ -55,20 +55,17 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
     private final ActionType<ShardResponse> replicatedBroadcastShardAction;
     private final ClusterService clusterService;
     private final NodeClient client;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     public TransportBroadcastReplicationAction(String name,
                                                Writeable.Reader<Request> reader,
                                                ClusterService clusterService,
                                                TransportService transportService,
                                                NodeClient client,
-                                               IndexNameExpressionResolver indexNameExpressionResolver,
                                                ActionType<ShardResponse> replicatedBroadcastShardAction) {
         super(name, transportService, reader);
         this.client = client;
         this.replicatedBroadcastShardAction = replicatedBroadcastShardAction;
         this.clusterService = clusterService;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
     }
 
     @Override
@@ -125,7 +122,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
      */
     protected List<ShardId> shards(Request request, ClusterState clusterState) {
         List<ShardId> shardIds = new ArrayList<>();
-        String[] concreteIndices = indexNameExpressionResolver.concreteIndexNames(clusterState, request);
+        String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(clusterState, request);
         for (String index : concreteIndices) {
             IndexMetadata indexMetadata = clusterState.metadata().getIndices().get(index);
             if (indexMetadata != null) {

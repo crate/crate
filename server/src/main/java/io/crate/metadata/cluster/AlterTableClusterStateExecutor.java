@@ -86,7 +86,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     private final MetadataMappingService metadataMappingService;
     private final IndicesService indicesService;
     private final AllocationService allocationService;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final IndexScopedSettings indexScopedSettings;
     private final MetadataCreateIndexService metadataCreateIndexService;
     private final ShardLimitValidator shardLimitValidator;
@@ -96,7 +95,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                                           IndicesService indicesService,
                                           AllocationService allocationService,
                                           IndexScopedSettings indexScopedSettings,
-                                          IndexNameExpressionResolver indexNameExpressionResolver,
                                           MetadataCreateIndexService metadataCreateIndexService,
                                           ShardLimitValidator shardLimitValidator,
                                           NodeContext nodeContext) {
@@ -104,7 +102,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         this.indicesService = indicesService;
         this.indexScopedSettings = indexScopedSettings;
         this.allocationService = allocationService;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.metadataCreateIndexService = metadataCreateIndexService;
         this.shardLimitValidator = shardLimitValidator;
         this.nodeContext = nodeContext;
@@ -155,8 +152,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         }
 
         // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-        var builder = new DocTableInfoBuilder(
-            nodeContext, request.tableIdent(), currentState, indexNameExpressionResolver);
+        var builder = new DocTableInfoBuilder(nodeContext, request.tableIdent(), currentState);
         builder.build();
 
         return currentState;
@@ -532,8 +528,10 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     }
 
     private Index[] resolveIndices(ClusterState currentState, String indexExpressions) {
-        return indexNameExpressionResolver.concreteIndices(currentState,
-                                                           FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING, indexExpressions);
+        return IndexNameExpressionResolver.concreteIndices(
+            currentState,
+            FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING,
+            indexExpressions);
     }
 
     /**

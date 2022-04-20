@@ -130,8 +130,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
 
     private final ClusterService clusterService;
 
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
-
     private final RepositoriesService repositoriesService;
 
     private final ThreadPool threadPool;
@@ -144,10 +142,9 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
     // Set of snapshots that are currently being ended by this node
     private final Set<Snapshot> endingSnapshots = Collections.synchronizedSet(new HashSet<>());
 
-    public SnapshotsService(Settings settings, ClusterService clusterService, IndexNameExpressionResolver indexNameExpressionResolver,
+    public SnapshotsService(Settings settings, ClusterService clusterService,
                             RepositoriesService repositoriesService, ThreadPool threadPool) {
         this.clusterService = clusterService;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.repositoriesService = repositoriesService;
         this.threadPool = threadPool;
 
@@ -294,7 +291,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     throw new ConcurrentSnapshotExecutionException(repositoryName, snapshotName, " a snapshot is already running");
                 }
                 // Store newSnapshot here to be processed in clusterStateProcessed
-                indices = Arrays.asList(indexNameExpressionResolver.concreteIndexNames(currentState,
+                indices = Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(currentState,
                     request.indicesOptions(), request.indices()));
                 LOGGER.trace("[{}][{}] creating snapshot for indices [{}]", repositoryName, snapshotName, indices);
                 newSnapshot = new SnapshotsInProgress.Entry(

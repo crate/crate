@@ -78,7 +78,6 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         ClusterState state = ClusterState.builder(new ClusterName("dummy")).metadata(
                 Metadata.builder().putCustom(RepositoriesMetadata.TYPE, repos)).build();
         ClusterServiceUtils.setState(clusterService, state);
-        IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver();
 
 
         final AtomicBoolean deleteRepoCalled = new AtomicBoolean(false);
@@ -88,8 +87,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             transportService,
             clusterService,
             mock(RepositoriesService.class),
-            THREAD_POOL,
-            indexNameExpressionResolver) {
+            THREAD_POOL) {
             @Override
             protected void doExecute(DeleteRepositoryRequest request, ActionListener<AcknowledgedResponse> listener) {
                 deleteRepoCalled.set(true);
@@ -101,8 +99,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             transportService,
             clusterService,
             mock(RepositoriesService.class),
-            THREAD_POOL,
-            indexNameExpressionResolver) {
+            THREAD_POOL) {
             @Override
             protected void doExecute(PutRepositoryRequest request, ActionListener<AcknowledgedResponse> listener) {
                 listener.onFailure(new RepositoryException(request.name(), "failure"));

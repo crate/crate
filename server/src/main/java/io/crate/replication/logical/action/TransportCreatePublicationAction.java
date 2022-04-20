@@ -34,7 +34,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -54,13 +53,11 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
     public TransportCreatePublicationAction(TransportService transportService,
                                             ClusterService clusterService,
                                             ThreadPool threadPool,
-                                            IndexNameExpressionResolver indexNameExpressionResolver,
                                             UserLookup userLookup) {
         super(ACTION_NAME,
               transportService,
               clusterService,
               threadPool,
-              indexNameExpressionResolver,
               CreatePublicationRequest::new,
               AcknowledgedResponse::new,
               AcknowledgedResponse::new,

@@ -29,7 +29,6 @@ import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -47,15 +46,13 @@ public class TransportSetLicenseAction extends TransportMasterNodeAction<SetLice
     @Inject
     public TransportSetLicenseAction(TransportService transportService,
                                      ClusterService clusterService,
-                                     ThreadPool threadPool,
-                                     IndexNameExpressionResolver indexNameExpressionResolver) {
+                                     ThreadPool threadPool) {
         super(
             "internal:crate:sql/set_license",
             transportService,
             clusterService,
             threadPool,
-            SetLicenseRequest::new,
-            indexNameExpressionResolver
+            SetLicenseRequest::new
         );
     }
 

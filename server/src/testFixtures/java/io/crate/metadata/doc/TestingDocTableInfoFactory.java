@@ -21,13 +21,13 @@
 
 package io.crate.metadata.doc;
 
+import java.util.Map;
+
+import org.elasticsearch.cluster.ClusterState;
+
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-
-import java.util.Map;
 
 public class TestingDocTableInfoFactory implements DocTableInfoFactory {
 
@@ -39,11 +39,9 @@ public class TestingDocTableInfoFactory implements DocTableInfoFactory {
         this.internalFactory = null;
     }
 
-    public TestingDocTableInfoFactory(Map<RelationName, DocTableInfo> tables,
-                                      NodeContext nodeCtx,
-                                      IndexNameExpressionResolver indexNameExpressionResolver) {
+    public TestingDocTableInfoFactory(Map<RelationName, DocTableInfo> tables, NodeContext nodeCtx) {
         this.tables = tables;
-        this.internalFactory = new InternalDocTableInfoFactory(nodeCtx, indexNameExpressionResolver);
+        this.internalFactory = new InternalDocTableInfoFactory(nodeCtx);
     }
 
     @Override

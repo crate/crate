@@ -645,7 +645,6 @@ public class Node implements Closeable {
             final SnapshotsService snapshotsService = new SnapshotsService(
                 settings,
                 clusterService,
-                clusterModule.getIndexNameExpressionResolver(),
                 repositoryService,
                 threadPool
             );
@@ -656,8 +655,7 @@ public class Node implements Closeable {
                 repositoryService,
                 threadPool,
                 transportService,
-                indicesService,
-                clusterModule.getIndexNameExpressionResolver()
+                indicesService
             );
 
             RestoreService restoreService = new RestoreService(

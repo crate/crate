@@ -26,7 +26,6 @@ import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -45,10 +44,9 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOC
 
 public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableClusterStateTaskExecutor {
 
-    public CloseTableClusterStateTaskExecutor(IndexNameExpressionResolver indexNameExpressionResolver,
-                                       AllocationService allocationService,
-                                       DDLClusterStateService ddlClusterStateService) {
-        super(indexNameExpressionResolver, allocationService, ddlClusterStateService);
+    public CloseTableClusterStateTaskExecutor(AllocationService allocationService,
+                                              DDLClusterStateService ddlClusterStateService) {
+        super(allocationService, ddlClusterStateService);
     }
 
     @Override

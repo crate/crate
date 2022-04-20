@@ -41,17 +41,16 @@ import io.crate.metadata.RelationName;
  */
 public final class AlterTableTarget {
 
-    public static AlterTableTarget resolve(IndexNameExpressionResolver indexNameResolver,
-                                           ClusterState state,
+    public static AlterTableTarget resolve(ClusterState state,
                                            RelationName table,
                                            @Nullable String partition) {
         if (partition == null) {
-            Index[] indices = indexNameResolver.concreteIndices(state, IndicesOptions.lenientExpandOpen(), table.indexNameOrAlias());
+            Index[] indices = IndexNameExpressionResolver.concreteIndices(state, IndicesOptions.lenientExpandOpen(), table.indexNameOrAlias());
             String templateName = PartitionName.templateName(table.schema(), table.name());
             IndexTemplateMetadata indexTemplateMetadata = state.metadata().getTemplates().get(templateName);
             return new AlterTableTarget(table, partition, indices, indexTemplateMetadata);
         } else {
-            Index[] indices = indexNameResolver.concreteIndices(state, IndicesOptions.lenientExpandOpen(), partition);
+            Index[] indices = IndexNameExpressionResolver.concreteIndices(state, IndicesOptions.lenientExpandOpen(), partition);
             return new AlterTableTarget(table, partition, indices);
         }
     }

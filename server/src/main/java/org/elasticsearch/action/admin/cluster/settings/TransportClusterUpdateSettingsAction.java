@@ -27,7 +27,6 @@ import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -53,7 +52,6 @@ public class TransportClusterUpdateSettingsAction extends TransportMasterNodeAct
                                                 ClusterService clusterService,
                                                 ThreadPool threadPool,
                                                 AllocationService allocationService,
-                                                IndexNameExpressionResolver indexNameExpressionResolver,
                                                 ClusterSettings clusterSettings) {
         super(
             ClusterUpdateSettingsAction.NAME,
@@ -61,8 +59,7 @@ public class TransportClusterUpdateSettingsAction extends TransportMasterNodeAct
             transportService,
             clusterService,
             threadPool,
-            ClusterUpdateSettingsRequest::new,
-            indexNameExpressionResolver
+            ClusterUpdateSettingsRequest::new
         );
         this.allocationService = allocationService;
         this.clusterSettings = clusterSettings;
