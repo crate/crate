@@ -120,7 +120,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
         );
 
         new TransportAddVotingConfigExclusionsAction(
-            transportService, clusterService, threadPool, new IndexNameExpressionResolver()); // registers action
+            transportService, clusterService, threadPool); // registers action
 
         transportService.start();
         transportService.acceptIncomingRequests();

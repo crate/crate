@@ -49,7 +49,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -290,14 +289,11 @@ public class UserDefinedFunctionService {
             }
         }
 
-        var indexNameExpressionResolver = new IndexNameExpressionResolver();
-
         for (var indexParts : indices) {
             var tableInfo = new DocTableInfoBuilder(
                 nodeCtx,
                 indexParts.toRelationName(),
-                currentState,
-                indexNameExpressionResolver
+                currentState
             ).build();
 
             TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());

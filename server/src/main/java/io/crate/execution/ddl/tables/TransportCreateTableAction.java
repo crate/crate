@@ -34,7 +34,6 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -65,15 +64,13 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     public TransportCreateTableAction(TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
-                                      IndexNameExpressionResolver indexNameExpressionResolver,
                                       TransportCreateIndexAction transportCreateIndexAction,
                                       TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
         super(
             NAME,
             transportService,
             clusterService, threadPool,
-            CreateTableRequest::new,
-            indexNameExpressionResolver
+            CreateTableRequest::new
         );
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;

@@ -54,9 +54,8 @@ public class TransportDeleteIndexAction extends TransportMasterNodeAction<Delete
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
                                       MetadataDeleteIndexService deleteIndexService,
-                                      IndexNameExpressionResolver indexNameExpressionResolver,
                                       DestructiveOperations destructiveOperations) {
-        super(DeleteIndexAction.NAME, transportService, clusterService, threadPool, DeleteIndexRequest::new, indexNameExpressionResolver);
+        super(DeleteIndexAction.NAME, transportService, clusterService, threadPool, DeleteIndexRequest::new);
         this.deleteIndexService = deleteIndexService;
         this.destructiveOperations = destructiveOperations;
     }
@@ -79,14 +78,14 @@ public class TransportDeleteIndexAction extends TransportMasterNodeAction<Delete
 
     @Override
     protected ClusterBlockException checkBlock(DeleteIndexRequest request, ClusterState state) {
-        return state.blocks().indicesAllowReleaseResources(indexNameExpressionResolver.concreteIndexNames(state, request));
+        return state.blocks().indicesAllowReleaseResources(IndexNameExpressionResolver.concreteIndexNames(state, request));
     }
 
     @Override
     protected void masterOperation(final DeleteIndexRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
-        final Set<Index> concreteIndices = new HashSet<>(Arrays.asList(indexNameExpressionResolver.concreteIndices(state, request)));
+        final Set<Index> concreteIndices = new HashSet<>(Arrays.asList(IndexNameExpressionResolver.concreteIndices(state, request)));
         if (concreteIndices.isEmpty()) {
             listener.onResponse(new AcknowledgedResponse(true));
             return;

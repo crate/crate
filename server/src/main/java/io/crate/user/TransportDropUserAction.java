@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
@@ -52,15 +51,13 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
     public TransportDropUserAction(TransportService transportService,
                                    ClusterService clusterService,
                                    ThreadPool threadPool,
-                                   IndexNameExpressionResolver indexNameExpressionResolver,
                                    LogicalReplicationService logicalReplicationService) {
         super(
             "internal:crate:sql/user/drop",
             transportService,
             clusterService,
             threadPool,
-            DropUserRequest::new,
-            indexNameExpressionResolver
+            DropUserRequest::new
         );
         this.logicalReplicationService = logicalReplicationService;
     }

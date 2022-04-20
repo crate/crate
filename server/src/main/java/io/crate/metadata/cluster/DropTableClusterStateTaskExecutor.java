@@ -37,14 +37,11 @@ import java.util.Set;
 
 public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecutor<DropTableRequest> {
 
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final MetadataDeleteIndexService deleteIndexService;
     private final DDLClusterStateService ddlClusterStateService;
 
-    public DropTableClusterStateTaskExecutor(IndexNameExpressionResolver indexNameExpressionResolver,
-                                             MetadataDeleteIndexService deleteIndexService,
+    public DropTableClusterStateTaskExecutor(MetadataDeleteIndexService deleteIndexService,
                                              DDLClusterStateService ddlClusterStateService) {
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.deleteIndexService = deleteIndexService;
         this.ddlClusterStateService = ddlClusterStateService;
     }
@@ -52,7 +49,7 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
     @Override
     protected ClusterState execute(ClusterState currentState, DropTableRequest request) throws Exception {
         RelationName relationName = request.tableIdent();
-        final Set<Index> concreteIndices = new HashSet<>(Arrays.asList(indexNameExpressionResolver.concreteIndices(
+        final Set<Index> concreteIndices = new HashSet<>(Arrays.asList(IndexNameExpressionResolver.concreteIndices(
             currentState, IndicesOptions.lenientExpandOpen(), relationName.indexNameOrAlias())));
         currentState = deleteIndexService.deleteIndices(currentState, concreteIndices);
 

@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigExclusion;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
@@ -51,10 +50,9 @@ public class TransportClearVotingConfigExclusionsAction
     @Inject
     public TransportClearVotingConfigExclusionsAction(TransportService transportService,
                                                       ClusterService clusterService,
-                                                      ThreadPool threadPool,
-                                                      IndexNameExpressionResolver indexNameExpressionResolver) {
+                                                      ThreadPool threadPool) {
         super(ClearVotingConfigExclusionsAction.NAME, transportService, clusterService, threadPool,
-            ClearVotingConfigExclusionsRequest::new, indexNameExpressionResolver);
+            ClearVotingConfigExclusionsRequest::new);
     }
 
     @Override

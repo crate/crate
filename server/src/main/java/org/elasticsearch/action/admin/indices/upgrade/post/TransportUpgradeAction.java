@@ -27,7 +27,6 @@ import org.elasticsearch.action.support.broadcast.node.TransportBroadcastByNodeA
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -62,9 +61,8 @@ public class TransportUpgradeAction extends TransportBroadcastByNodeAction<Upgra
     public TransportUpgradeAction(ClusterService clusterService,
                                   TransportService transportService,
                                   IndicesService indicesService,
-                                  IndexNameExpressionResolver indexNameExpressionResolver,
                                   TransportUpgradeSettingsAction upgradeSettingsAction) {
-        super(UpgradeAction.NAME, clusterService, transportService, indexNameExpressionResolver, UpgradeRequest::new, ThreadPool.Names.FORCE_MERGE, true);
+        super(UpgradeAction.NAME, clusterService, transportService, UpgradeRequest::new, ThreadPool.Names.FORCE_MERGE, true);
         this.indicesService = indicesService;
         this.upgradeSettingsAction = upgradeSettingsAction;
     }

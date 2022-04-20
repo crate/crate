@@ -93,7 +93,6 @@ public final class MetadataTracker implements Closeable {
     private final ClusterService clusterService;
     private final IndexScopedSettings indexScopedSettings;
     private final AllocationService allocationService;
-    private final IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver();
 
     // Using a copy-on-write approach. The assumption is that subscription changes are rare and reads happen more frequently
     private volatile Set<String> subscriptionsToTrack = Set.of();
@@ -448,7 +447,7 @@ public final class MetadataTracker implements Closeable {
                 templatesToRemove.add(possibleTemplateName);
                 changedRelations.add(relationName);
             }
-            var concreteIndices = indexNameExpressionResolver.concreteIndices(
+            var concreteIndices = IndexNameExpressionResolver.concreteIndices(
                 subscriberClusterState,
                 IndicesOptions.lenientExpand(),
                 relationName.indexNameOrAlias()

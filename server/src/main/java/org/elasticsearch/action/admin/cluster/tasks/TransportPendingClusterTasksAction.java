@@ -24,7 +24,6 @@ import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.service.PendingClusterTask;
 import org.elasticsearch.common.inject.Inject;
@@ -42,8 +41,8 @@ public class TransportPendingClusterTasksAction extends TransportMasterNodeReadA
 
     @Inject
     public TransportPendingClusterTasksAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                              ThreadPool threadPool, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, PendingClusterTasksAction.NAME, true, transportService, clusterService, threadPool, indexNameExpressionResolver, PendingClusterTasksRequest::new);
+                                              ThreadPool threadPool) {
+        super(settings, PendingClusterTasksAction.NAME, true, transportService, clusterService, threadPool, PendingClusterTasksRequest::new);
         this.clusterService = clusterService;
     }
 

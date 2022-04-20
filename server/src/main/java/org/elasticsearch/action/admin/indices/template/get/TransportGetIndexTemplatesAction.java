@@ -25,7 +25,6 @@ import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -46,8 +45,7 @@ public class TransportGetIndexTemplatesAction extends TransportMasterNodeReadAct
     public TransportGetIndexTemplatesAction(Settings settings,
                                             TransportService transportService,
                                             ClusterService clusterService,
-                                            ThreadPool threadPool,
-                                            IndexNameExpressionResolver indexNameExpressionResolver) {
+                                            ThreadPool threadPool) {
         super(
             settings,
             GetIndexTemplatesAction.NAME,
@@ -55,7 +53,6 @@ public class TransportGetIndexTemplatesAction extends TransportMasterNodeReadAct
             transportService,
             clusterService,
             threadPool,
-            indexNameExpressionResolver,
             GetIndexTemplatesRequest::new
         );
     }

@@ -29,7 +29,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataMappingService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -53,7 +52,6 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
     public TransportAlterTableAction(TransportService transportService,
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
-                                     IndexNameExpressionResolver indexNameExpressionResolver,
                                      MetadataMappingService metadataMappingService,
                                      IndicesService indicesService,
                                      AllocationService allocationService,
@@ -65,7 +63,6 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
               transportService,
               clusterService,
               threadPool,
-              indexNameExpressionResolver,
               AlterTableRequest::new,
               AcknowledgedResponse::new,
               AcknowledgedResponse::new,
@@ -75,7 +72,6 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
             indicesService,
             allocationService,
             indexScopedSettings,
-            indexNameExpressionResolver,
             metadataCreateIndexService,
             shardLimitValidator,
             nodeContext

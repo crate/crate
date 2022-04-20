@@ -77,7 +77,6 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
 
     private final ClusterService clusterService;
     private final TransportService transportService;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     private final String transportNodeBroadcastAction;
 
@@ -85,7 +84,6 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
             String actionName,
             ClusterService clusterService,
             TransportService transportService,
-            IndexNameExpressionResolver indexNameExpressionResolver,
             Writeable.Reader<Request> reader,
             String executor,
             boolean canTripCircuitBreaker) {
@@ -93,7 +91,6 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
 
         this.clusterService = clusterService;
         this.transportService = transportService;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
 
         transportNodeBroadcastAction = actionName + "[n]";
 
@@ -236,7 +233,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
                 throw globalBlockException;
             }
 
-            String[] concreteIndices = indexNameExpressionResolver.concreteIndexNames(clusterState, request);
+            String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(clusterState, request);
             ClusterBlockException requestBlockException = checkRequestBlock(clusterState, request, concreteIndices);
             if (requestBlockException != null) {
                 throw requestBlockException;

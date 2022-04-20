@@ -59,7 +59,6 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
                                         TransportService transportService,
                                         ClusterService clusterService,
                                         ThreadPool threadPool,
-                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         DDLClusterStateService ddlClusterStateService,
                                         AllocationService allocationService) {
         super(
@@ -67,12 +66,11 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
             transportService,
             clusterService,
             threadPool,
-            SwapRelationsRequest::new,
-            indexNameExpressionResolver
+            SwapRelationsRequest::new
         );
         this.activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
         this.swapRelationsOperation = new SwapRelationsOperation(
-            allocationService, ddlClusterStateService, indexNameExpressionResolver);
+            allocationService, ddlClusterStateService);
     }
 
     @Override
@@ -125,13 +123,13 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
     protected ClusterBlockException checkBlock(SwapRelationsRequest request, ClusterState state) {
         Set<String> affectedIndices = new HashSet<>();
         for (RelationNameSwap swapAction : request.swapActions()) {
-            affectedIndices.addAll(Arrays.asList(indexNameExpressionResolver.concreteIndexNames(
+            affectedIndices.addAll(Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(
                 state, IndicesOptions.LENIENT_EXPAND_OPEN, swapAction.source().indexNameOrAlias())));
-            affectedIndices.addAll(Arrays.asList(indexNameExpressionResolver.concreteIndexNames(
+            affectedIndices.addAll(Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(
                 state, IndicesOptions.LENIENT_EXPAND_OPEN, swapAction.target().indexNameOrAlias())));
         }
         for (RelationName dropRelation : request.dropRelations()) {
-            affectedIndices.addAll(Arrays.asList(indexNameExpressionResolver.concreteIndexNames(
+            affectedIndices.addAll(Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(
                 state, IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())));
         }
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_READ, affectedIndices.toArray(new String[0]));

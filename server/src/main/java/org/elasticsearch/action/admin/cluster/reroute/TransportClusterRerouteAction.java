@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.cluster.reroute;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
@@ -27,7 +29,6 @@ import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.RoutingExplanations;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -37,8 +38,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-
 public class TransportClusterRerouteAction extends TransportMasterNodeAction<ClusterRerouteRequest, ClusterRerouteResponse> {
 
     private final AllocationService allocationService;
@@ -47,9 +46,8 @@ public class TransportClusterRerouteAction extends TransportMasterNodeAction<Clu
     public TransportClusterRerouteAction(TransportService transportService,
                                          ClusterService clusterService,
                                          ThreadPool threadPool,
-                                         AllocationService allocationService,
-                                         IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(ClusterRerouteAction.NAME, transportService, clusterService, threadPool, ClusterRerouteRequest::new, indexNameExpressionResolver);
+                                         AllocationService allocationService) {
+        super(ClusterRerouteAction.NAME, transportService, clusterService, threadPool, ClusterRerouteRequest::new);
         this.allocationService = allocationService;
     }
 

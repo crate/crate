@@ -27,7 +27,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -45,15 +44,13 @@ public class TransportUpgradeSettingsAction extends TransportMasterNodeAction<Up
     public TransportUpgradeSettingsAction(TransportService transportService,
                                           ClusterService clusterService,
                                           ThreadPool threadPool,
-                                          MetadataUpdateSettingsService updateSettingsService,
-                                          IndexNameExpressionResolver indexNameExpressionResolver) {
+                                          MetadataUpdateSettingsService updateSettingsService) {
         super(
             UpgradeSettingsAction.NAME,
             transportService,
             clusterService,
             threadPool,
-            UpgradeSettingsRequest::new,
-            indexNameExpressionResolver
+            UpgradeSettingsRequest::new
         );
         this.updateSettingsService = updateSettingsService;
     }

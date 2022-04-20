@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.support.master;
 
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Setting;
@@ -47,9 +46,8 @@ public abstract class TransportMasterNodeReadAction<Request extends MasterNodeRe
                                             TransportService transportService,
                                             ClusterService clusterService,
                                             ThreadPool threadPool,
-                                            IndexNameExpressionResolver indexNameExpressionResolver,
                                             Writeable.Reader<Request> request) {
-        super(actionName, checkSizeLimit, transportService, clusterService, threadPool, request, indexNameExpressionResolver);
+        super(actionName, checkSizeLimit, transportService, clusterService, threadPool, request);
         this.forceLocal = FORCE_LOCAL_SETTING.get(settings);
     }
 

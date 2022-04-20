@@ -27,7 +27,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetadataIndexTemplateService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -52,9 +51,8 @@ public class TransportPutIndexTemplateAction extends TransportMasterNodeAction<P
                                            ClusterService clusterService,
                                            ThreadPool threadPool,
                                            MetadataIndexTemplateService indexTemplateService,
-                                           IndexNameExpressionResolver indexNameExpressionResolver,
                                            IndexScopedSettings indexScopedSettings) {
-        super(PutIndexTemplateAction.NAME, transportService, clusterService, threadPool, PutIndexTemplateRequest::new, indexNameExpressionResolver);
+        super(PutIndexTemplateAction.NAME, transportService, clusterService, threadPool, PutIndexTemplateRequest::new);
         this.indexTemplateService = indexTemplateService;
         this.indexScopedSettings = indexScopedSettings;
     }

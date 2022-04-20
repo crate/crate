@@ -21,6 +21,11 @@
 
 package io.crate.execution.ddl;
 
+import java.io.IOException;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -29,20 +34,15 @@ import org.elasticsearch.cluster.AckedClusterStateTaskListener;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskConfig;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
-
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.function.Function;
+import io.crate.common.unit.TimeValue;
 
 public abstract class AbstractDDLTransportAction<Request extends AcknowledgedRequest<Request>, Response extends AcknowledgedResponse> extends TransportMasterNodeAction<Request, Response> {
 
@@ -54,12 +54,11 @@ public abstract class AbstractDDLTransportAction<Request extends AcknowledgedReq
                                       TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
-                                      IndexNameExpressionResolver indexNameExpressionResolver,
                                       Writeable.Reader<Request> requestReader,
                                       Writeable.Reader<Response> responseReader,
                                       Function<Boolean, Response> ackedResponseFunction,
                                       String source) {
-        super(actionName, transportService, clusterService, threadPool, requestReader, indexNameExpressionResolver);
+        super(actionName, transportService, clusterService, threadPool, requestReader);
         this.reader = responseReader;
         this.ackedResponseFunction = ackedResponseFunction;
         this.source = source;

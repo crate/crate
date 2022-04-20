@@ -21,11 +21,8 @@
 
 package io.crate.metadata.blob;
 
-import io.crate.analyze.NumberOfReplicas;
-import io.crate.blob.v2.BlobIndex;
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.RelationName;
+import java.nio.file.Path;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -39,26 +36,26 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 
-import java.nio.file.Path;
+import io.crate.analyze.NumberOfReplicas;
+import io.crate.blob.v2.BlobIndex;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.RelationName;
 
 public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
 
     private static final Logger LOGGER = LogManager.getLogger(InternalBlobTableInfoFactory.class);
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Path[] dataFiles;
     private final Path globalBlobPath;
 
     @Inject
     public InternalBlobTableInfoFactory(Settings settings,
-                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         Environment environment) {
-        this(settings, indexNameExpressionResolver, environment.dataFiles());
+        this(settings, environment.dataFiles());
     }
 
     public InternalBlobTableInfoFactory(Settings settings,
-                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         Path[] dataFiles) {
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.dataFiles = dataFiles;
         this.globalBlobPath = BlobIndicesService.getGlobalBlobPath(settings);;
     }
@@ -67,7 +64,7 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
         String indexName = BlobIndex.fullIndexName(tableName);
         Index index;
         try {
-            index = indexNameExpressionResolver.concreteIndices(state, IndicesOptions.strictExpandOpen(), indexName)[0];
+            index = IndexNameExpressionResolver.concreteIndices(state, IndicesOptions.strictExpandOpen(), indexName)[0];
         } catch (IndexNotFoundException ex) {
             throw new RelationUnknown(indexName, ex);
         }

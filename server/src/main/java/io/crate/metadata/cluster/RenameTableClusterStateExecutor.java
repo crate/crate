@@ -47,16 +47,14 @@ public class RenameTableClusterStateExecutor {
     private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
 
     private final Logger logger;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final DDLClusterStateService ddlClusterStateService;
     private final AllocationService allocationService;
 
-    public RenameTableClusterStateExecutor(IndexNameExpressionResolver indexNameExpressionResolver,
+    public RenameTableClusterStateExecutor(
                                            AllocationService allocationService,
                                            DDLClusterStateService ddlClusterStateService) {
         this.allocationService = allocationService;
         logger = LogManager.getLogger(getClass());
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.ddlClusterStateService = ddlClusterStateService;
     }
 
@@ -82,7 +80,7 @@ public class RenameTableClusterStateExecutor {
         logger.info("renaming table '{}' to '{}'", source.fqn(), target.fqn());
 
         try {
-            Index[] sourceIndices = indexNameExpressionResolver.concreteIndices(
+            Index[] sourceIndices = IndexNameExpressionResolver.concreteIndices(
                 currentState, STRICT_INDICES_OPTIONS, source.indexNameOrAlias());
 
             for (Index sourceIndex : sourceIndices) {

@@ -36,7 +36,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -119,14 +118,12 @@ public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
         @Inject
         public TransportAction(TransportService transportService,
                                ClusterService clusterService,
-                               ThreadPool threadPool,
-                               IndexNameExpressionResolver indexNameExpressionResolver) {
+                               ThreadPool threadPool) {
             super(NAME,
                   transportService,
                   clusterService,
                   threadPool,
-                  Request::new,
-                  indexNameExpressionResolver);
+                  Request::new);
             TransportActionProxy.registerProxyAction(transportService, NAME, AcknowledgedResponse::new);
         }
 

@@ -89,7 +89,6 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
         public TransportAction(TransportService transportService,
                                ClusterService clusterService,
                                ThreadPool threadPool,
-                               IndexNameExpressionResolver indexNameExpressionResolver,
                                UserLookup userLookup) {
             super(Settings.EMPTY,
                   NAME,
@@ -97,7 +96,6 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                   transportService,
                   clusterService,
                   threadPool,
-                  indexNameExpressionResolver,
                   Request::new);
             this.userLookup = userLookup;
 
@@ -164,7 +162,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                             continue;
                         }
                         concreteTemplates.add(templateName);
-                        var partitionIndices = Arrays.asList(indexNameExpressionResolver.concreteIndices(
+                        var partitionIndices = Arrays.asList(IndexNameExpressionResolver.concreteIndices(
                             state, IndicesOptions.lenientExpandOpen(), indexNameOrTemplateName));
                         partitionIndices.forEach(i -> concreteIndices.add(i.getName()));
                     }

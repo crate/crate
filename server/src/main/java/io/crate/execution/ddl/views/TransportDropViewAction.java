@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
@@ -50,15 +49,13 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
     public TransportDropViewAction(TransportService transportService,
                                    ClusterService clusterService,
                                    ThreadPool threadPool,
-                                   IndexNameExpressionResolver indexNameExpressionResolver,
                                    DDLClusterStateService ddlClusterStateService) {
         super(
             "internal:crate:sql/views/drop",
             transportService,
             clusterService,
             threadPool,
-            DropViewRequest::new,
-            indexNameExpressionResolver
+            DropViewRequest::new
         );
         this.ddlClusterStateService = ddlClusterStateService;
     }
