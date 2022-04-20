@@ -146,7 +146,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
 
         startDisrupting((subscriberTransport, publisherAddress) -> {
             subscriberTransport.addSendBehavior(publisherAddress, (connection, requestId, action, request, options) -> {
-                if (action.equals(ClusterStateAction.NAME)) {
+                if (action.equals(PublicationsStateAction.NAME)) {
                     throw new ElasticsearchException("rejected");
                 }
                 connection.sendRequest(requestId, action, request, options);

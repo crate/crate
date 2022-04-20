@@ -21,27 +21,22 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.replication.logical.exceptions.PublicationUnknownException;
-import io.crate.replication.logical.metadata.Publication;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.user.Privilege;
-import io.crate.user.User;
-import io.crate.user.UserLookup;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeReadRequest;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -50,19 +45,17 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-
-import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.exceptions.PublicationUnknownException;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.RelationMetadata;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
 
 public class PublicationsStateAction extends ActionType<PublicationsStateAction.Response> {
 
@@ -116,10 +109,6 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
         protected void masterOperation(Request request,
                                        ClusterState state,
                                        ActionListener<Response> listener) throws Exception {
-            ArrayList<RelationName> relationNames = new ArrayList<>();
-            ArrayList<String> concreteIndices = new ArrayList<>();
-            ArrayList<String> concreteTemplates = new ArrayList<>();
-
             // Ensure subscribing user was not dropped after remote connection was established on another side.
             // Subscribing users must be checked on a publisher side as they belong to the publishing cluster.
             User subscriber = userLookup.findUser(request.subscribingUserName());
@@ -138,6 +127,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 throw new IllegalStateException("Cannot build publication state, no publications found");
             }
 
+            Map<RelationName, RelationMetadata> allRelationsInPublications = new HashMap<>();
             for (var publicationName : request.publications()) {
                 var publication = publicationsMetadata.publications().get(publicationName);
                 if (publication == null) {
@@ -148,103 +138,15 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 // Publication owner cannot be null as we ensure that users who owns publication cannot be dropped.
                 // Also, before creating publication or subscription we check that owner was not dropped right before creation.
                 User publicationOwner = userLookup.findUser(publication.owner());
-
-                List<RelationName> relationNamesOfPublication = resolveRelationsNames(publication, state, publicationOwner, subscriber);
-                for (var relationName : relationNamesOfPublication) {
-
-                    var indexNameOrTemplateName = relationName.indexNameOrAlias();
-                    if (state.metadata().hasIndex(indexNameOrTemplateName)) {
-                        concreteIndices.add(indexNameOrTemplateName);
-                    } else {
-                        var templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-                        var indexTemplate = state.metadata().templates().get(templateName);
-                        if (indexTemplate == null) {
-                            continue;
-                        }
-                        concreteTemplates.add(templateName);
-                        var partitionIndices = Arrays.asList(IndexNameExpressionResolver.concreteIndices(
-                            state, IndicesOptions.lenientExpandOpen(), indexNameOrTemplateName));
-                        partitionIndices.forEach(i -> concreteIndices.add(i.getName()));
-                    }
-                    relationNames.add(relationName);
-                }
+                allRelationsInPublications.putAll(publication.resolveCurrentRelations(state, publicationOwner, subscriber));
             }
-            var response = new Response(
-                relationNames,
-                concreteIndices,
-                concreteTemplates
-            );
-            listener.onResponse(response);
+            listener.onResponse(new Response(allRelationsInPublications));
         }
 
         @Override
         protected ClusterBlockException checkBlock(Request request,
                                                    ClusterState state) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
-        }
-
-        @VisibleForTesting
-        static List<RelationName> resolveRelationsNames(Publication publication,
-                                                        ClusterState clusterState,
-                                                        User publicationOwner,
-                                                        User subscribedUser) {
-
-            List<RelationName> relationNames;
-            if (publication.isForAllTables()) {
-                relationNames = new ArrayList<>();
-                var indicesIt = clusterState.metadata().indices().valuesIt();
-                while (indicesIt.hasNext()) {
-                    var indexMetadata = indicesIt.next();
-                    var indexName = indexMetadata.getIndex().getName();
-                    var indexParts = new IndexParts(indexName);
-                    if (indexParts.isPartitioned()) {
-                        continue;
-                    }
-                    var relationName = indexParts.toRelationName();
-                    boolean softDeletes = IndexSettings.INDEX_SOFT_DELETES_SETTING.get(indexMetadata.getSettings());
-                    if (softDeletes == false) {
-                        LOGGER.warn(
-                            "Table '{}' won't be replicated as the required table setting " +
-                                "'soft_deletes.enabled' is set to: {}",
-                            relationName,
-                            softDeletes
-                        );
-                        continue;
-                    }
-                    relationNames.add(relationName);
-                }
-                for (var cursor : clusterState.metadata().templates().keys()) {
-                    var indexParts = new IndexParts(cursor.value);
-                    if (indexParts.isPartitioned() == false) {
-                        continue;
-                    }
-                    relationNames.add(indexParts.toRelationName());
-                }
-            } else {
-                // Soft deletes check for pre-defined tables was done in LogicalReplicationAnalyzer on the publication creation.
-                relationNames = publication.tables();
-            }
-            return relationNames.stream()
-                .filter(relationName -> userCanPublish(relationName, publicationOwner))
-                .filter(relationName -> subscriberCanRead(relationName, subscribedUser))
-                .toList();
-        }
-
-        private static boolean subscriberCanRead(RelationName relationName, User subscriber) {
-            return subscriber.hasPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, relationName.fqn(), Schemas.DOC_SCHEMA_NAME);
-        }
-
-        private static boolean userCanPublish(RelationName relationName, User publicationOwner) {
-            for (Privilege.Type type: READ_WRITE_DEFINE) {
-                // This check is triggered only on ALL TABLES case.
-                // Required privileges correspond to those we check for the pre-defined tables case in AccessControlImpl.visitCreatePublication.
-
-                // Schemas.DOC_SCHEMA_NAME is a dummy parameter since we are passing fqn as ident.
-                if (!publicationOwner.hasPrivilege(type, Privilege.Clazz.TABLE, relationName.fqn(), Schemas.DOC_SCHEMA_NAME)) {
-                    return false;
-                }
-            }
-            return true;
         }
     }
 
@@ -282,50 +184,47 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
     public static class Response extends TransportResponse {
 
-        private final List<RelationName> tables;
-        private final List<String> concreteIndices;
-        private final List<String> concreteTemplates;
+        private Map<RelationName, RelationMetadata> relationsInPublications;
 
-        public Response(List<RelationName> tables,
-                        List<String> concreteIndices,
-                        List<String> concreteTemplates) {
-            this.tables = tables;
-            this.concreteIndices = concreteIndices;
-            this.concreteTemplates = concreteTemplates;
+        public Response(Map<RelationName, RelationMetadata> relationsInPublications) {
+            this.relationsInPublications = relationsInPublications;
         }
 
         public Response(StreamInput in) throws IOException {
-            tables = in.readList(RelationName::new);
-            concreteIndices = in.readList(StreamInput::readString);
-            concreteTemplates = in.readList(StreamInput::readString);
+            relationsInPublications = in.readMap(RelationName::new, RelationMetadata::new);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            out.writeCollection(tables);
-            out.writeStringCollection(concreteIndices);
-            out.writeStringCollection(concreteTemplates);
+            out.writeMap(relationsInPublications, (o, v) -> v.writeTo(out), (o, v) -> v.writeTo(out));
         }
 
-        public List<RelationName> tables() {
-            return tables;
-        }
-
-        public List<String> concreteIndices() {
-            return concreteIndices;
-        }
-
-        public List<String> concreteTemplates() {
-            return concreteTemplates;
+        public Map<RelationName, RelationMetadata> relationsInPublications() {
+            return relationsInPublications;
         }
 
         @Override
         public String toString() {
-            return "Response{" +
-                "tables=" + tables +
-                ", concreteIndices=" + concreteIndices +
-                ", concreteTemplates=" + concreteTemplates +
-                '}';
+            return "Response{" + relationsInPublications + '}';
+        }
+
+        public List<String> concreteIndices() {
+            return relationsInPublications.values().stream()
+                .flatMap(x -> x.indices().stream())
+                .map(x -> x.getIndex().getName())
+                .toList();
+        }
+
+        public List<String> concreteTemplates() {
+            return relationsInPublications.values().stream()
+                .map(x -> x.template())
+                .filter(Objects::nonNull)
+                .map(x -> x.getName())
+                .toList();
+        }
+
+        public Collection<RelationName> tables() {
+            return relationsInPublications.keySet();
         }
     }
 }
