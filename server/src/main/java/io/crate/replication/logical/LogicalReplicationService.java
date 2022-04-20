@@ -519,8 +519,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     }
 
     public CompletableFuture<Boolean> updateSubscriptionState(String subscriptionName,
-                                                               Subscription subscription,
-                                                               Map<RelationName, Subscription.RelationState> relations) {
+                                                              Subscription subscription,
+                                                              Map<RelationName, Subscription.RelationState> relations) {
         var newSubscription = new Subscription(
             subscription.owner(),
             subscription.connectionInfo(),

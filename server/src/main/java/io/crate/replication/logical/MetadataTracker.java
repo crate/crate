@@ -23,7 +23,6 @@ package io.crate.replication.logical;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
 import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -31,17 +30,16 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
@@ -66,7 +64,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import io.crate.action.FutureActionListener;
 import io.crate.common.TriConsumer;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;
@@ -74,8 +71,9 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.PublicationsStateAction.Response;
 import io.crate.replication.logical.action.UpdateSubscriptionAction;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.Subscription.RelationState;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
@@ -209,48 +207,47 @@ public final class MetadataTracker implements Closeable {
         } catch (Exception e) {
             return CompletableFuture.failedFuture(e);
         }
-        return getRemoteClusterState(client)
-            .thenCompose(remoteState -> {
-                PublicationsMetadata publicationsMetadata = remoteState.metadata().custom(PublicationsMetadata.TYPE);
-                if (publicationsMetadata == null) {
-                    LOGGER.trace("No publications found on remote cluster.");
-                    return CompletableFuture.completedFuture(false);
-                }
-                return updateClusterState(subscriptionName, subscription, remoteState);
-            }).thenCompose(acked -> {
-                if (!acked) {
-                    return CompletableFuture.completedFuture(false);
-                }
-                var request = new PublicationsStateAction.Request(
-                    subscription.publications(),
-                    subscription.connectionInfo().user()
-                );
-                return client.execute(PublicationsStateAction.INSTANCE, request)
-                    .thenCompose(publicationsStateResp -> subscribeToNewRelations(
-                        subscriptionName,
-                        subscription,
-                        subscriberState,
-                        publicationsStateResp,
-                        replicationService));
-            }).exceptionallyCompose(err -> {
-                var e = SQLExceptions.unwrap(err);
-                if (SQLExceptions.maybeTemporary(e)) {
-                    LOGGER.warn("Retrieving remote metadata failed for subscription '" + subscriptionName + "', will retry", e);
-                    return CompletableFuture.completedFuture(null);
-                }
-                var msg = "Tracking of metadata failed for subscription '" + subscriptionName + "'" + " with unrecoverable error, stop tracking";
-                LOGGER.error(msg, e);
-                return replicationService.updateSubscriptionState(subscriptionName, Subscription.State.FAILED, msg + ".\nReason: " + e.getMessage())
-                    .handle((ignoredAck, ignoredErr) -> {
-                        stopTracking(subscriptionName);
-                        return null;
-                    });
-            });
+
+        var request = new PublicationsStateAction.Request(
+            subscription.publications(),
+            subscription.connectionInfo().user()
+        );
+        CompletableFuture<Response> publicationsState = client.execute(PublicationsStateAction.INSTANCE, request);
+        CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response ->
+            updateClusterState(subscriptionName, subscription, response)
+        );
+        return updatedClusterState.thenCompose(acked -> {
+            if (!acked) {
+                return CompletableFuture.completedFuture(false);
+            }
+            assert publicationsState.isDone() : "If thenCompose triggers, publicationsState must be done";
+            var publicationResponse = publicationsState.join();
+            return subscribeToNewRelations(
+                subscriptionName,
+                subscription,
+                subscriberState,
+                publicationResponse,
+                replicationService
+            );
+        }).exceptionallyCompose(err -> {
+            var e = SQLExceptions.unwrap(err);
+            if (SQLExceptions.maybeTemporary(e)) {
+                LOGGER.warn("Retrieving remote metadata failed for subscription '" + subscriptionName + "', will retry", e);
+                return CompletableFuture.completedFuture(null);
+            }
+            var msg = "Tracking of metadata failed for subscription '" + subscriptionName + "'" + " with unrecoverable error, stop tracking";
+            LOGGER.error(msg, e);
+            return replicationService.updateSubscriptionState(subscriptionName, Subscription.State.FAILED, msg + ".\nReason: " + e.getMessage())
+                .handle((ignoredAck, ignoredErr) -> {
+                    stopTracking(subscriptionName);
+                    return null;
+                });
+        });
     }
 
     private CompletableFuture<Boolean> updateClusterState(String subscriptionName,
                                                           Subscription subscription,
-                                                          ClusterState remoteClusterState) {
+                                                          Response response) {
         var listener = new FutureActionListener<>(AcknowledgedResponse::isAcknowledged);
         var updateTask = new AckedClusterStateUpdateTask<>(new AckMetadataUpdateRequest(), listener) {
 
@@ -264,14 +261,14 @@ public final class MetadataTracker implements Closeable {
                     subscriptionName,
                     subscription,
                     localClusterState,
-                    remoteClusterState
+                    response
                 );
 
                 return updateIndexMetadata(
                     subscriptionName,
                     subscription,
                     localClusterState,
-                    remoteClusterState,
+                    response,
                     indexScopedSettings
                 );
             }
@@ -302,14 +299,20 @@ public final class MetadataTracker implements Closeable {
     static ClusterState updateIndexMetadata(String subscriptionName,
                                             Subscription subscription,
                                             ClusterState subscriberClusterState,
-                                            ClusterState publisherClusterState,
+                                            Response publicationsState,
                                             IndexScopedSettings indexScopedSettings) {
         // Check for all the subscribed tables if the index metadata and settings changed and if so apply
         // the changes from the publisher cluster state to the subscriber cluster state
         var updatedMetadataBuilder = Metadata.builder(subscriberClusterState.metadata());
         var updateClusterState = false;
         for (var followedTable : subscription.relations().keySet()) {
-            var publisherIndexMetadata = publisherClusterState.metadata().index(followedTable.indexNameOrAlias());
+            RelationMetadata relationMetadata = publicationsState.relationsInPublications().get(followedTable);
+            Map<String, IndexMetadata> publisherIndices = relationMetadata == null
+                ? Map.of()
+                : relationMetadata.indices()
+                    .stream()
+                    .collect(Collectors.toMap(x -> x.getIndex().getName(), x -> x));
+            var publisherIndexMetadata = publisherIndices.get(followedTable.indexNameOrAlias());
             var subscriberIndexMetadata = subscriberClusterState.metadata().index(followedTable.indexNameOrAlias());
             if (publisherIndexMetadata != null && subscriberIndexMetadata != null) {
                 var updatedIndexMetadataBuilder = IndexMetadata.builder(subscriberIndexMetadata);
@@ -435,16 +438,16 @@ public final class MetadataTracker implements Closeable {
     private ClusterState removeDroppedTablesOrPartitions(String subscriptionName,
                                                          Subscription subscription,
                                                          ClusterState subscriberClusterState,
-                                                         ClusterState publisherClusterState) {
+                                                         Response response) {
         HashSet<RelationName> changedRelations = new HashSet<>();
         HashSet<Index> indicesToRemove = new HashSet<>();
         ArrayList<String> templatesToRemove = new ArrayList<>();
-        Metadata publisherMetadata = publisherClusterState.metadata();
         Metadata subscriberMetadata = subscriberClusterState.metadata();
         for (var relationName : subscription.relations().keySet()) {
+            var publisherRelationMetadata = response.relationsInPublications().get(relationName);
             var possibleTemplateName = PartitionName.templateName(relationName.schema(), relationName.name());
             var isPartitioned = subscriberMetadata.templates().get(possibleTemplateName) != null;
-            boolean partitionDisappeared = isPartitioned && !publisherMetadata.templates().containsKey(possibleTemplateName);
+            boolean partitionDisappeared = isPartitioned && (publisherRelationMetadata == null || publisherRelationMetadata.template() == null);
             if (partitionDisappeared) {
                 templatesToRemove.add(possibleTemplateName);
                 changedRelations.add(relationName);
@@ -456,11 +459,10 @@ public final class MetadataTracker implements Closeable {
             );
             for (var concreteIndex : concreteIndices) {
                 var subscriberIndexMetadata = subscriberMetadata.index(concreteIndex);
-                var publisherIndex = new Index(
-                    concreteIndex.getName(),
-                    PUBLISHER_INDEX_UUID.get(subscriberIndexMetadata.getSettings())
-                );
-                if (publisherMetadata.hasIndex(publisherIndex) == false) {
+                String indexUUID = PUBLISHER_INDEX_UUID.get(subscriberIndexMetadata.getSettings());
+                boolean publisherContainsIndex = publisherRelationMetadata != null
+                    && publisherRelationMetadata.indices().stream().anyMatch(x -> x.getIndexUUID().equals(indexUUID));
+                if (!publisherContainsIndex) {
                     indicesToRemove.add(concreteIndex);
                     if (isPartitioned == false) {
                         changedRelations.add(relationName);
@@ -548,17 +550,6 @@ public final class MetadataTracker implements Closeable {
             indexScopedSettings.isDynamicSetting(key) &&
             !indexScopedSettings.isPrivateSetting(key) &&
             !NON_REPLICATED_SETTINGS.contains(setting);
-    }
-
-    private CompletableFuture<ClusterState> getRemoteClusterState(Client client) {
-        var clusterStateRequest = client.admin().cluster().prepareState()
-            .setWaitForTimeOut(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC))
-            .request();
-
-        var future = new FutureActionListener<>(ClusterStateResponse::getState);
-        client.admin().cluster().execute(ClusterStateAction.INSTANCE, clusterStateRequest)
-            .whenComplete(ActionListener.toBiConsumer(future));
-        return future;
     }
 
     @Override
