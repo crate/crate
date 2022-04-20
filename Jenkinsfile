@@ -54,7 +54,7 @@ pipeline {
           }
         }
         stage('itest') {
-          agent { label 'small' }
+          agent { label 'medium' }
           steps {
             sh 'git clean -xdff'
             checkout scm
