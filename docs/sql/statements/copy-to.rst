@@ -201,8 +201,8 @@ CrateDB supports the following URI schemes:
 ``file``
 ''''''''
 
-You can use the ``file://`` scheme to specify an absolute path to a file
-on the local file system.
+You can use the ``file://`` scheme to specify an absolute path to an output
+location on the local file system.
 
 For example:
 
@@ -212,9 +212,9 @@ For example:
 
 .. TIP::
 
-    If you are running CrateDB inside a container, the file must be inside the
-    container. If you are using *Docker*, you may have to configure a `Docker
-    volume`_ to accomplish this.
+    If you are running CrateDB inside a container, the location must be inside
+    the container. If you are using *Docker*, you may have to configure a
+    `Docker volume`_ to accomplish this.
 
 .. TIP::
 
@@ -251,7 +251,7 @@ Here is a more concrete example:
 
 .. code-block:: text
 
-    COPY t TO DIRECTORY 's3://myAccessKey:mySecretKey@s3.amazonaws.com:80/myBucket/key1*/*' with (protocol = 'http')
+    COPY t TO DIRECTORY 's3://myAccessKey:mySecretKey@s3.amazonaws.com:80/myBucket/key1' with (protocol = 'http')
 
 If no credentials are set the s3 client will operate in anonymous mode.
 See `AWS Java Documentation`_.
