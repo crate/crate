@@ -238,7 +238,7 @@ public final class MetadataTracker implements Closeable {
                 }
                 var msg = "Tracking of metadata failed for subscription '" + subscriptionName + "'" + " with unrecoverable error, stop tracking";
                 LOGGER.error(msg, e);
-                return replicationService.updateSubscriptionState(subscriptionName, Subscription.State.FAILED, msg)
+                return replicationService.updateSubscriptionState(subscriptionName, Subscription.State.FAILED, msg + ".\nReason: " + e.getMessage())
                     .handle((ignoredAck, ignoredErr) -> {
                         stopTracking(subscriptionName);
                         return null;
