@@ -31,6 +31,13 @@ Description
 Removes an existing publication from the cluster. Stops the replication for all
 existing subscriptions.
 
+.. NOTE::
+
+  Replicated tables on a subscriber cluster will stay read-only after dropping
+  a publication on a publishing cluster. To make them writable, use
+  :ref:`DROP SUBSCRIPTION <sql-drop-subscription>`.
+
+
 .. _sql-drop-publication-params:
 
 Parameters
