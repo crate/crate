@@ -46,6 +46,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.Translog.Operation;
 import org.elasticsearch.threadpool.Scheduler;
+import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.action.FutureActionListener;
@@ -76,8 +77,9 @@ public class ShardReplicationChangesTracker implements Closeable {
     private final Deque<SeqNoRange> missingBatches = new ArrayDeque<>();
     private final AtomicLong observedSeqNoAtLeader;
     private final AtomicLong seqNoAlreadyRequested;
-    private Scheduler.Cancellable cancellable;
 
+    private volatile Scheduler.Cancellable cancellable;
+    private volatile boolean closed = false;
 
 
     public ShardReplicationChangesTracker(String subscriptionName,
@@ -117,6 +119,12 @@ public class ShardReplicationChangesTracker implements Closeable {
     }
 
     private void pollAndProcessPendingChanges() {
+        if (closed) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("[{}] ShardReplicationChangesTracker closed. Stopping tracking", shardId);
+            }
+            return;
+        }
         SeqNoRange rangeToFetch = getNextSeqNoRange();
         if (rangeToFetch == null) {
             cancellable = threadPool.scheduleUnlessShuttingDown(
@@ -325,7 +333,7 @@ public class ShardReplicationChangesTracker implements Closeable {
                         },
                         e -> {
                             var t = SQLExceptions.unwrap(e);
-                            if (SQLExceptions.maybeTemporary(t)) {
+                            if (SQLExceptions.maybeTemporary(t) && !closed) {
                                 LOGGER.info(
                                     "[{}] Temporary error during renewal of retention leases for subscription '{}'. Retrying: {}:{}",
                                     shardId,
@@ -339,7 +347,7 @@ public class ShardReplicationChangesTracker implements Closeable {
                                     () -> renewLeasesThenReschedule(toSeqNoReceived)
                                 );
                             } else {
-                                LOGGER.warn("Exception renewing retention lease. Stopping tracking", e);
+                                LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed={})", e, closed);
                             }
                         }
                     )
@@ -350,9 +358,12 @@ public class ShardReplicationChangesTracker implements Closeable {
 
     @Override
     public void close() throws IOException {
-        if (cancellable != null) {
-            cancellable.cancel();
+        Cancellable currentCancellable = cancellable;
+        if (currentCancellable != null) {
+            currentCancellable.cancel();
+            cancellable = null;
         }
+        closed = true;
         shardReplicationService.getRemoteClusterClient(shardId.getIndex())
             .thenAccept(client -> {
                 RetentionLeaseHelper.attemptRetentionLeaseRemoval(
