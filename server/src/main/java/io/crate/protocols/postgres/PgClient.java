@@ -47,8 +47,8 @@ import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.ConnectionProfile;
 import org.elasticsearch.transport.NodeNotConnectedException;
 import org.elasticsearch.transport.OutboundHandler;
+import org.elasticsearch.transport.ProxyConnection;
 import org.elasticsearch.transport.RemoteClusterAwareRequest;
-import org.elasticsearch.transport.RemoteConnectionManager.ProxyConnection;
 import org.elasticsearch.transport.RemoteConnectionParser;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.Transport.Connection;
@@ -142,7 +142,7 @@ public class PgClient extends AbstractClient {
         String host = hosts.get(0);
         var transportAddress = new TransportAddress(RemoteConnectionParser.parseConfiguredAddress(host));
         return new DiscoveryNode(
-            "RemoteCluster=" + name + "#" + transportAddress.toString(),
+            "pg_tunnel_to=" + name + "#" + transportAddress.toString(),
             transportAddress,
             Version.CURRENT.minimumCompatibilityVersion()
         );
