@@ -159,6 +159,9 @@ bugs.
 The plugin is run by Gradle after compiling the main sources. Only main sources
 are analyzed and not the test sources.
 
+After setting up code style, it can be checked by running::
+
+    ./gradlew checkstyleMain
 
 Test Coverage
 --------------
