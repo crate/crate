@@ -144,6 +144,14 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             || (prevPublicationsMetadata != null && prevPublicationsMetadata.equals(newPublicationsMetadata) == false)) {
             currentPublicationsMetadata = newPublicationsMetadata;
         }
+
+        if (event.nodesDelta().masterNodeChanged()) {
+            if (event.state().nodes().isLocalNodeElectedMaster()) {
+                metadataTracker.maybeStart();
+            } else {
+                metadataTracker.close();
+            }
+        }
     }
 
     /**
