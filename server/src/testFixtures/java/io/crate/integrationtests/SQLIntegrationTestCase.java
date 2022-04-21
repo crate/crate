@@ -100,6 +100,8 @@ import io.crate.data.Row;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
@@ -320,6 +322,14 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             }, 10L, TimeUnit.SECONDS);
         } catch (AssertionError e) {
             StringBuilder errorMessageBuilder = new StringBuilder();
+            errorMessageBuilder.append("Open jobs:\n");
+            for (var jobsLogService : internalCluster().getInstances(JobsLogService.class)) {
+                JobsLogs jobsLogs = jobsLogService.get();
+                for (var jobContent : jobsLogs.activeJobs()) {
+                    errorMessageBuilder.append(jobContent.toString()).append("\n");
+                }
+            }
+            errorMessageBuilder.append("Active tasks:\n");
             String[] nodeNames = internalCluster().getNodeNames();
             for (String nodeName : nodeNames) {
                 TasksService tasksService = internalCluster().getInstance(TasksService.class, nodeName);
