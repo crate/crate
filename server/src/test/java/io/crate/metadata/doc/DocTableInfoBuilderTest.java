@@ -83,8 +83,7 @@ public class DocTableInfoBuilderTest extends ESTestCase {
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
             nodeCtx,
             new RelationName(schemaName, "test"),
-            state,
-            new IndexNameExpressionResolver()
+            state
         );
 
         expectedException.expect(RelationUnknown.class);

@@ -19,11 +19,15 @@
 
 package org.elasticsearch.action;
 
+import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
-import java.util.Objects;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 
 public abstract class ActionRequestBuilder<Request extends TransportRequest, Response extends TransportResponse> {
 
@@ -43,17 +47,23 @@ public abstract class ActionRequestBuilder<Request extends TransportRequest, Res
     }
 
     public ActionFuture<Response> execute() {
-        return client.execute(action, request);
+        return client.legacyExecute(action, request);
     }
 
     /**
      * Short version of execute().actionGet().
      */
     public Response get() {
-        return execute().actionGet();
+        try {
+            return execute().get();
+        } catch (ExecutionException e) {
+            throw Exceptions.toRuntimeException(SQLExceptions.unwrap(e));
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void execute(ActionListener<Response> listener) {
-        client.execute(action, request, listener);
+        client.execute(action, request).whenComplete(ActionListener.toBiConsumer(listener));
     }
 }

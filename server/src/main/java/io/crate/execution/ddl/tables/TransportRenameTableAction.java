@@ -60,19 +60,16 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
     public TransportRenameTableAction(TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
-                                      IndexNameExpressionResolver indexNameExpressionResolver,
                                       AllocationService allocationService,
                                       DDLClusterStateService ddlClusterStateService) {
         super(ACTION_NAME,
               transportService,
               clusterService,
               threadPool,
-              RenameTableRequest::new,
-              indexNameExpressionResolver
+              RenameTableRequest::new
         );
         activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
         executor = new RenameTableClusterStateExecutor(
-            indexNameExpressionResolver,
             allocationService,
             ddlClusterStateService
         );
@@ -116,7 +113,7 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
                         true,
                         false
                     );
-                    newIndexNames.set(indexNameExpressionResolver.concreteIndexNames(
+                    newIndexNames.set(IndexNameExpressionResolver.concreteIndexNames(
                             updatedState, openIndices, request.targetTableIdent().indexNameOrAlias()));
                     return updatedState;
                 }
@@ -132,7 +129,7 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
     protected ClusterBlockException checkBlock(RenameTableRequest request, ClusterState state) {
         try {
             return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE,
-                indexNameExpressionResolver.concreteIndexNames(state, STRICT_INDICES_OPTIONS, request.sourceTableIdent().indexNameOrAlias()));
+                IndexNameExpressionResolver.concreteIndexNames(state, STRICT_INDICES_OPTIONS, request.sourceTableIdent().indexNameOrAlias()));
         } catch (IndexNotFoundException e) {
             if (request.isPartitioned() == false) {
                 throw e;

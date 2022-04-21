@@ -28,7 +28,6 @@ import org.elasticsearch.action.support.broadcast.node.TransportBroadcastByNodeA
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -51,13 +50,11 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
     @Inject
     public TransportIndicesStatsAction(ClusterService clusterService,
                                        TransportService transportService,
-                                       IndicesService indicesService,
-                                       IndexNameExpressionResolver indexNameExpressionResolver) {
+                                       IndicesService indicesService) {
         super(
             IndicesStatsAction.NAME,
             clusterService,
             transportService,
-            indexNameExpressionResolver,
             IndicesStatsRequest::new,
             ThreadPool.Names.MANAGEMENT,
             true

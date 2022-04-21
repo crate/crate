@@ -951,17 +951,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testUnionDistinct() throws Exception {
-        var executor = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable(TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION)
-            .build();
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("UNION [DISTINCT] is not supported");
-        executor.analyze("select * from users union select * from users_multi_pk");
-    }
-
-    @Test
     public void testIntersect() throws Exception {
         var executor = SQLExecutor.builder(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)

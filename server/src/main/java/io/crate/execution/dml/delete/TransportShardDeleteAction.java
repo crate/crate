@@ -50,8 +50,6 @@ import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
 @Singleton
 public class TransportShardDeleteAction extends TransportShardAction<ShardDeleteRequest, ShardDeleteRequest.Item> {
 
-    private static final String ACTION_NAME = "internal:crate:sql/data/delete";
-
     @Inject
     public TransportShardDeleteAction(Settings settings,
                                       TransportService transportService,
@@ -63,7 +61,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                                       SchemaUpdateClient schemaUpdateClient) {
         super(
             settings,
-            ACTION_NAME,
+            ShardDeleteAction.NAME,
             transportService,
             clusterService,
             indicesService,

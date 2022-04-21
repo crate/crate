@@ -30,7 +30,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
@@ -47,12 +46,11 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
     private final MetadataIndexUpgradeService metadataIndexUpgradeService;
     private final IndicesService indicesService;
 
-    public OpenTableClusterStateTaskExecutor(IndexNameExpressionResolver indexNameExpressionResolver,
-                                      AllocationService allocationService,
-                                      DDLClusterStateService ddlClusterStateService,
-                                      MetadataIndexUpgradeService metadataIndexUpgradeService,
-                                      IndicesService indexServices) {
-        super(indexNameExpressionResolver, allocationService, ddlClusterStateService);
+    public OpenTableClusterStateTaskExecutor(AllocationService allocationService,
+                                             DDLClusterStateService ddlClusterStateService,
+                                             MetadataIndexUpgradeService metadataIndexUpgradeService,
+                                             IndicesService indexServices) {
+        super(allocationService, ddlClusterStateService);
         this.metadataIndexUpgradeService = metadataIndexUpgradeService;
         this.indicesService = indexServices;
     }

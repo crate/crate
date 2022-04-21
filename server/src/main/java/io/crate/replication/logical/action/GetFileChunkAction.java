@@ -25,7 +25,6 @@ import io.crate.replication.logical.repository.PublisherRestoreService;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.single.shard.TransportSingleShardAction;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -72,14 +71,12 @@ public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> 
                                ClusterService clusterService,
                                TransportService transportService,
                                IndicesService indicesService,
-                               PublisherRestoreService publisherRestoreService,
-                               IndexNameExpressionResolver indexNameExpressionResolver) {
+                               PublisherRestoreService publisherRestoreService) {
             super(
                 NAME,
                 threadPool,
                 clusterService,
                 transportService,
-                indexNameExpressionResolver,
                 Request::new,
                 ThreadPool.Names.GET
             );

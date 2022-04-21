@@ -21,23 +21,38 @@
 
 package io.crate.replication.logical.metadata;
 
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.index.IndexSettings;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.user.Privilege;
+import io.crate.user.User;
 
 public class Publication implements Writeable {
 
+    private static final Logger LOGGER = LogManager.getLogger(Publication.class);
     private final String owner;
     private final boolean forAllTables;
     private final List<RelationName> tables;
 
     public Publication(String owner, boolean forAllTables, List<RelationName> tables) {
+        assert !forAllTables || (forAllTables && tables.isEmpty()) : "If forAllTables is true, tables must be empty";
         this.owner = owner;
         this.forAllTables = forAllTables;
         this.tables = tables;
@@ -95,5 +110,68 @@ public class Publication implements Writeable {
     @Override
     public String toString() {
         return "Publication{forAllTables=" + forAllTables + ", owner=" + owner + ", tables=" + tables + "}";
+    }
+
+
+    public Map<RelationName, RelationMetadata> resolveCurrentRelations(ClusterState state, User publicationOwner, User subscriber) {
+        if (isForAllTables()) {
+            Map<RelationName, RelationMetadata> relations = new HashMap<>();
+            Metadata metadata = state.metadata();
+            for (var cursor : metadata.templates().keys()) {
+                String templateName = cursor.value;
+                IndexParts indexParts = new IndexParts(templateName);
+                RelationName relationName = indexParts.toRelationName();
+                if (indexParts.isPartitioned()
+                        && userCanPublish(relationName, publicationOwner)
+                        && subscriberCanRead(relationName, subscriber)) {
+                    relations.put(relationName, RelationMetadata.fromMetadata(relationName, state));
+                }
+            }
+            for (var cursor : metadata.indices().values()) {
+                var indexMetadata = cursor.value;
+                var indexParts = new IndexParts(indexMetadata.getIndex().getName());
+                if (indexParts.isPartitioned()) {
+                    continue;
+                }
+                RelationName relationName = indexParts.toRelationName();
+                boolean softDeletes = IndexSettings.INDEX_SOFT_DELETES_SETTING.get(indexMetadata.getSettings());
+                if (softDeletes == false) {
+                    LOGGER.warn(
+                        "Table '{}' won't be replicated as the required table setting " +
+                            "'soft_deletes.enabled' is set to: {}",
+                        relationName,
+                        softDeletes
+                    );
+                    continue;
+                }
+                if (userCanPublish(relationName, publicationOwner) && subscriberCanRead(relationName, subscriber)) {
+                    relations.put(relationName, RelationMetadata.fromMetadata(relationName, state));
+                }
+            }
+            return relations;
+        } else {
+            return tables.stream()
+                .filter(relationName -> userCanPublish(relationName, publicationOwner))
+                .filter(relationName -> subscriberCanRead(relationName, subscriber))
+                .map(relationName -> RelationMetadata.fromMetadata(relationName, state))
+                .collect(Collectors.toMap(x -> x.name(), x -> x));
+        }
+    }
+
+    private static boolean subscriberCanRead(RelationName relationName, User subscriber) {
+        return subscriber.hasPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, relationName.fqn(), Schemas.DOC_SCHEMA_NAME);
+    }
+
+    private static boolean userCanPublish(RelationName relationName, User publicationOwner) {
+        for (Privilege.Type type: Privilege.Type.READ_WRITE_DEFINE) {
+            // This check is triggered only on ALL TABLES case.
+            // Required privileges correspond to those we check for the pre-defined tables case in AccessControlImpl.visitCreatePublication.
+
+            // Schemas.DOC_SCHEMA_NAME is a dummy parameter since we are passing fqn as ident.
+            if (!publicationOwner.hasPrivilege(type, Privilege.Clazz.TABLE, relationName.fqn(), Schemas.DOC_SCHEMA_NAME)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

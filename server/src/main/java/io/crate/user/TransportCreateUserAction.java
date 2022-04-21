@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import javax.annotation.Nullable;
@@ -48,15 +47,13 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
     @Inject
     public TransportCreateUserAction(TransportService transportService,
                                      ClusterService clusterService,
-                                     ThreadPool threadPool,
-                                     IndexNameExpressionResolver indexNameExpressionResolver) {
+                                     ThreadPool threadPool) {
         super(
             "internal:crate:sql/user/create",
             transportService,
             clusterService,
             threadPool,
-            CreateUserRequest::new,
-            indexNameExpressionResolver
+            CreateUserRequest::new
         );
     }
 

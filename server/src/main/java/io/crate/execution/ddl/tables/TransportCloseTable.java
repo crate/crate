@@ -103,7 +103,6 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     public TransportCloseTable(TransportService transportService,
                                ClusterService clusterService,
                                ThreadPool threadPool,
-                               IndexNameExpressionResolver indexNameExpressionResolver,
                                AllocationService allocationService,
                                DDLClusterStateService ddlClusterStateService,
                                TransportVerifyShardBeforeCloseAction verifyShardBeforeClose) {
@@ -112,8 +111,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             transportService,
             clusterService,
             threadPool,
-            CloseTableRequest::new,
-            indexNameExpressionResolver
+            CloseTableRequest::new
         );
         this.allocationService = allocationService;
         this.ddlClusterStateService = ddlClusterStateService;
@@ -261,7 +259,6 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     protected ClusterBlockException checkBlock(CloseTableRequest request, ClusterState state) {
         return checkBlock(
             state,
-            indexNameExpressionResolver,
             request.ignoreUnavailableIndices(),
             request.tables(),
             request.partition()
@@ -269,13 +266,12 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     }
 
     public static ClusterBlockException checkBlock(ClusterState state,
-                                                   IndexNameExpressionResolver indexNameExpressionResolver,
                                                    boolean ignoreUnavailableIndices,
                                                    List<RelationName> relationNames,
                                                    @Nullable String partition) {
         var relationsToCheck = new ArrayList<>(relationNames);
         if (partition == null) {
-            var emptyPartitionedTables = collectEmptyPartitionedTables(relationNames, state, indexNameExpressionResolver);
+            var emptyPartitionedTables = collectEmptyPartitionedTables(relationNames, state);
             if (emptyPartitionedTables.size() > 0) {
                 var globalBlock = state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
                 relationsToCheck.removeAll(emptyPartitionedTables);
@@ -287,7 +283,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         return state.blocks().indicesBlockedException(
             ClusterBlockLevel.METADATA_WRITE,
-            indexNameExpressionResolver.concreteIndexNames(
+            IndexNameExpressionResolver.concreteIndexNames(
                 state,
                 ignoreUnavailableIndices ? IndicesOptions.lenientExpandOpen() : IndicesOptions.strictExpandOpen(),
                 getIndices(relationsToCheck, partition)
@@ -296,11 +292,10 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     }
 
     public static List<RelationName> collectEmptyPartitionedTables(List<RelationName> relationNames,
-                                                                   ClusterState clusterState,
-                                                                   IndexNameExpressionResolver indexNameExpressionResolver) {
+                                                                   ClusterState clusterState) {
         ArrayList<RelationName> emptyPartitionedTables = new ArrayList<>();
         for (var relationName : relationNames) {
-            var concreteIndices = indexNameExpressionResolver.concreteIndexNames(
+            var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
                 clusterState,
                 IndicesOptions.lenientExpandOpen(),
                 getIndices(List.of(relationName), null)
@@ -410,7 +405,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
-            Index[] indices = indexNameExpressionResolver.concreteIndices(currentState, IndicesOptions.lenientExpandOpen(), getIndices(request.tables(), request.partition()));
+            Index[] indices = IndexNameExpressionResolver.concreteIndices(currentState, IndicesOptions.lenientExpandOpen(), getIndices(request.tables(), request.partition()));
             if (indices.length == 0) {
                 return currentState;
             }
@@ -425,7 +420,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         @Override
         public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
             if (blockedIndices.isEmpty()
-                && collectEmptyPartitionedTables(request.tables(), newState, indexNameExpressionResolver).isEmpty() == false) {
+                && collectEmptyPartitionedTables(request.tables(), newState).isEmpty() == false) {
                 clusterService.submitStateUpdateTask(
                     "close-indices",
                     new CloseRoutingTableTask(
@@ -489,7 +484,6 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         @Override
         public ClusterState execute(final ClusterState currentState) throws Exception {
             List<AlterTableTarget> targets = request.tables().stream().map(table -> AlterTableTarget.resolve(
-                indexNameExpressionResolver,
                 currentState,
                 table,
                 request.partition())

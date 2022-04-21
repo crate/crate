@@ -21,6 +21,7 @@
 
 package io.crate.exceptions;
 
+import java.net.ConnectException;
 import java.util.Locale;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -29,11 +30,14 @@ import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.store.AlreadyClosedException;
+import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.ElasticsearchWrapperException;
 import org.elasticsearch.ResourceAlreadyExistsException;
+import org.elasticsearch.action.NoShardAvailableActionException;
+import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.EngineException;
@@ -42,10 +46,15 @@ import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
+import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.snapshots.InvalidSnapshotNameException;
 import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
+import org.elasticsearch.transport.ConnectTransportException;
+import org.elasticsearch.transport.NoSeedNodeLeftException;
+import org.elasticsearch.transport.NodeDisconnectedException;
+import org.elasticsearch.transport.NodeNotConnectedException;
 import org.elasticsearch.transport.RemoteTransportException;
 
 import io.crate.auth.AccessControl;
@@ -119,6 +128,23 @@ public class SQLExceptions {
     public static boolean isShardFailure(Throwable e) {
         e = SQLExceptions.unwrap(e);
         return e instanceof ShardNotFoundException || e instanceof IllegalIndexShardStateException;
+    }
+
+    /***
+     * @return true if the error may be temporary; E.g. a network error, a shard initializing or a node booting up
+     */
+    public static boolean maybeTemporary(Throwable t) {
+        return t instanceof NodeNotConnectedException
+            || t instanceof NodeClosedException
+            || t instanceof NodeDisconnectedException
+            || t instanceof ConnectTransportException
+            || t instanceof ConnectException
+            || t instanceof ClusterBlockException
+            || t instanceof NoSeedNodeLeftException
+            || t instanceof IndexNotFoundException
+            || t instanceof NoShardAvailableActionException
+            || t instanceof AlreadyClosedException
+            || t instanceof ElasticsearchTimeoutException;
     }
 
     public static RuntimeException prepareForClientTransmission(AccessControl accessControl, Throwable e) {

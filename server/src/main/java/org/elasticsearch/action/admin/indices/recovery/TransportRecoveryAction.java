@@ -24,7 +24,6 @@ import org.elasticsearch.action.support.broadcast.node.TransportBroadcastByNodeA
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -54,13 +53,11 @@ public class TransportRecoveryAction extends TransportBroadcastByNodeAction<Reco
     @Inject
     public TransportRecoveryAction(ClusterService clusterService,
                                    TransportService transportService,
-                                   IndicesService indicesService,
-                                   IndexNameExpressionResolver indexNameExpressionResolver) {
+                                   IndicesService indicesService) {
         super(
             RecoveryAction.NAME,
             clusterService,
             transportService,
-            indexNameExpressionResolver,
             RecoveryRequest::new,
             ThreadPool.Names.MANAGEMENT,
             true

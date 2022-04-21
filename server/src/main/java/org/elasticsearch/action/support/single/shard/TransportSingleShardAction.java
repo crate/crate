@@ -65,7 +65,6 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
     protected final ThreadPool threadPool;
     protected final ClusterService clusterService;
     protected final TransportService transportService;
-    protected final IndexNameExpressionResolver indexNameExpressionResolver;
 
     private final String transportShardAction;
     private final String executor;
@@ -76,14 +75,12 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
                                          ThreadPool threadPool,
                                          ClusterService clusterService,
                                          TransportService transportService,
-                                         IndexNameExpressionResolver indexNameExpressionResolver,
                                          Writeable.Reader<Request> request,
                                          String executor) {
         super(actionName);
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.transportService = transportService;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
 
         this.transportShardAction = actionName + "[s]";
         this.executor = executor;
@@ -161,7 +158,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
 
             String concreteSingleIndex;
             if (resolveIndex(request)) {
-                concreteSingleIndex = indexNameExpressionResolver.concreteSingleIndex(clusterState, request).getName();
+                concreteSingleIndex = IndexNameExpressionResolver.concreteSingleIndex(clusterState, request).getName();
             } else {
                 concreteSingleIndex = request.index();
             }

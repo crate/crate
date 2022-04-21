@@ -19,19 +19,18 @@
 
 package org.elasticsearch.action.admin.indices.refresh;
 
+import java.util.List;
+
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.replication.BasicReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportBroadcastReplicationAction;
 import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.TransportService;
-
-import java.util.List;
 
 /**
  * Refresh action.
@@ -41,7 +40,6 @@ public class TransportRefreshAction extends TransportBroadcastReplicationAction<
     @Inject
     public TransportRefreshAction(ClusterService clusterService,
                                   TransportService transportService,
-                                  IndexNameExpressionResolver indexNameExpressionResolver,
                                   NodeClient client) {
         super(
             RefreshAction.NAME,
@@ -49,7 +47,6 @@ public class TransportRefreshAction extends TransportBroadcastReplicationAction<
             clusterService,
             transportService,
             client,
-            indexNameExpressionResolver,
             TransportShardRefreshAction.TYPE);
     }
 

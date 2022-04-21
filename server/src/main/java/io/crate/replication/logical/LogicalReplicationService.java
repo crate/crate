@@ -144,6 +144,14 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             || (prevPublicationsMetadata != null && prevPublicationsMetadata.equals(newPublicationsMetadata) == false)) {
             currentPublicationsMetadata = newPublicationsMetadata;
         }
+
+        if (event.nodesDelta().masterNodeChanged()) {
+            if (event.state().nodes().isLocalNodeElectedMaster()) {
+                metadataTracker.maybeStart();
+            } else {
+                metadataTracker.close();
+            }
+        }
     }
 
     /**
@@ -290,11 +298,14 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                             new PublicationsStateAction.Request(
                                 publications,
                                 connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey())
-                            ),
-                            ActionListener.delegateResponse(
-                                finalFuture,
-                                (d, stateError) -> onError.accept("Failed to request the publications state",
-                                                                  stateError)
+                            )
+                        ).whenComplete(
+                            ActionListener.toBiConsumer(
+                                ActionListener.delegateResponse(
+                                    finalFuture,
+                                    (d, stateError) -> onError.accept("Failed to request the publications state",
+                                                                      stateError)
+                                )
                             )
                         );
                     } else {
@@ -508,8 +519,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     }
 
     public CompletableFuture<Boolean> updateSubscriptionState(String subscriptionName,
-                                                               Subscription subscription,
-                                                               Map<RelationName, Subscription.RelationState> relations) {
+                                                              Subscription subscription,
+                                                              Map<RelationName, Subscription.RelationState> relations) {
         var newSubscription = new Subscription(
             subscription.owner(),
             subscription.connectionInfo(),
@@ -519,7 +530,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         );
         var request = new UpdateSubscriptionAction.Request(subscriptionName, newSubscription);
         var future = new FutureActionListener<>(AcknowledgedResponse::isAcknowledged);
-        client.execute(UpdateSubscriptionAction.INSTANCE, request, future);
+        client.execute(UpdateSubscriptionAction.INSTANCE, request)
+            .whenComplete(ActionListener.toBiConsumer(future));
         return future;
     }
 }

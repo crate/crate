@@ -34,6 +34,6 @@ public class StartBlobRequestBuilder extends ReplicationRequestBuilder<StartBlob
 
     @Override
     public void execute(ActionListener<StartBlobResponse> listener) {
-        client.execute(StartBlobAction.INSTANCE, request, listener);
+        client.execute(StartBlobAction.INSTANCE, request).whenComplete(ActionListener.toBiConsumer(listener));
     }
 }

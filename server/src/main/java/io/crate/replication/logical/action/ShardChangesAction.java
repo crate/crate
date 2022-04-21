@@ -31,7 +31,6 @@ import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.single.shard.SingleShardRequest;
 import org.elasticsearch.action.support.single.shard.TransportSingleShardAction;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -89,13 +88,11 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
         public TransportAction(ThreadPool threadPool,
                                ClusterService clusterService,
                                TransportService transportService,
-                               IndicesService indicesService,
-                               IndexNameExpressionResolver indexNameExpressionResolver) {
+                               IndicesService indicesService) {
             super(NAME,
                   threadPool,
                   clusterService,
                   transportService,
-                  indexNameExpressionResolver,
                   Request::new,
                   ThreadPool.Names.SEARCH);
             this.indicesService = indicesService;

@@ -32,6 +32,7 @@ import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.metadata.NodeContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -86,6 +87,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
+                                        ElasticsearchClient elasticsearchClient,
                                         TransportActionProvider transportActionProvider,
                                         IndexShard indexShard,
                                         BigArrays bigArrays,
@@ -98,6 +100,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             nodeCtx,
             threadPool,
             settings,
+            elasticsearchClient,
             transportActionProvider,
             indexShard,
             new ShardRowContext(indexShard, clusterService),

@@ -1,4 +1,4 @@
-.. image:: docs/_static/crate-logo.png
+.. image:: docs/_static/crate-logo.svg
     :alt: CrateDB
     :target: https://crate.io/
 

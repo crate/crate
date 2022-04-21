@@ -208,16 +208,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitUnion(Union node, StatementAnalysisContext context) {
-        if (node.isDistinct()) {
-            throw new UnsupportedFeatureException("UNION [DISTINCT] is not supported");
-        }
         AnalyzedRelation left = node.getLeft().accept(this, context);
         AnalyzedRelation right = node.getRight().accept(this, context);
 
         ensureUnionOutputsHaveTheSameSize(left, right);
         ensureUnionOutputsHaveCompatibleTypes(left, right);
 
-        return new UnionSelect(left, right);
+        return new UnionSelect(left, right, node.isDistinct());
     }
 
     private static void ensureUnionOutputsHaveTheSameSize(AnalyzedRelation left, AnalyzedRelation right) {

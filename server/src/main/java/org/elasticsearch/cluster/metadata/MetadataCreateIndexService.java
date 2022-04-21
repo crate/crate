@@ -121,7 +121,6 @@ public class MetadataCreateIndexService {
     private final boolean forbidPrivateIndexSettings;
     private final Settings settings;
     private final ShardLimitValidator shardLimitValidator;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     public MetadataCreateIndexService(
             final Settings settings,
@@ -146,7 +145,6 @@ public class MetadataCreateIndexService {
         this.xContentRegistry = xContentRegistry;
         this.forbidPrivateIndexSettings = forbidPrivateIndexSettings;
         this.shardLimitValidator = shardLimitValidator;
-        this.indexNameExpressionResolver = new IndexNameExpressionResolver();
     }
 
     /**
@@ -254,8 +252,7 @@ public class MetadataCreateIndexService {
                     settings,
                     this::validate,
                     indexScopedSettings,
-                    nodeContext,
-                    indexNameExpressionResolver));
+                    nodeContext));
     }
 
     interface IndexValidator {
@@ -274,7 +271,6 @@ public class MetadataCreateIndexService {
         private final IndexValidator validator;
         private final IndexScopedSettings indexScopedSettings;
         private final NodeContext nodeContext;
-        private final IndexNameExpressionResolver indexNameExpressionResolver;
 
         IndexCreationTask(Logger logger,
                           AllocationService allocationService,
@@ -286,8 +282,7 @@ public class MetadataCreateIndexService {
                           Settings settings,
                           IndexValidator validator,
                           IndexScopedSettings indexScopedSettings,
-                          NodeContext nodeContext,
-                          IndexNameExpressionResolver indexNameExpressionResolver) {
+                          NodeContext nodeContext) {
             super(Priority.URGENT, request, listener);
             this.request = request;
             this.logger = logger;
@@ -299,7 +294,6 @@ public class MetadataCreateIndexService {
             this.validator = validator;
             this.indexScopedSettings = indexScopedSettings;
             this.nodeContext = nodeContext;
-            this.indexNameExpressionResolver = indexNameExpressionResolver;
         }
 
         @Override
@@ -568,7 +562,7 @@ public class MetadataCreateIndexService {
                 return;
             }
             var relationName = RelationName.fromIndexName(request.index());
-            var builder = new DocTableInfoBuilder(nodeContext, relationName, updatedState, indexNameExpressionResolver);
+            var builder = new DocTableInfoBuilder(nodeContext, relationName, updatedState);
             builder.build();
         }
 

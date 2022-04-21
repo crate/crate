@@ -22,6 +22,7 @@
 package io.crate.exceptions;
 
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 
 public final class Exceptions {
 
@@ -42,6 +43,16 @@ public final class Exceptions {
     }
 
     public static Exception toException(Throwable t) {
+        if (t instanceof CompletionException || t instanceof ExecutionException) {
+            var cause = t.getCause();
+            if (cause instanceof Exception ex) {
+                return ex;
+            }
+            // Prefer to keep CompletionException/ExecutionException as is over wrapping.
+            // The CompletionException/ExecutionException have a chance of being unwrapped
+            // later to get the real cause. RuntimeExceptions are never unwrapped.
+            return (Exception) t;
+        }
         if (t instanceof Exception) {
             return (Exception) t;
         } else {
@@ -50,7 +61,7 @@ public final class Exceptions {
     }
 
     public static RuntimeException toRuntimeException(Throwable t) {
-        if (t instanceof CompletionException) {
+        if (t instanceof CompletionException | t instanceof ExecutionException) {
             t = t.getCause();
         }
         if (t instanceof RuntimeException) {

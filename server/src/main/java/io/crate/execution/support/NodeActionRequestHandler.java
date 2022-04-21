@@ -21,8 +21,8 @@
 
 package io.crate.execution.support;
 
-import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
+import java.io.IOException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.transport.TransportChannel;
@@ -30,7 +30,7 @@ import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 
-import java.io.IOException;
+import io.crate.exceptions.Exceptions;
 
 public final class NodeActionRequestHandler<TRequest extends TransportRequest, TResponse extends TransportResponse>
     implements TransportRequestHandler<TRequest> {
@@ -54,7 +54,7 @@ public final class NodeActionRequestHandler<TRequest extends TransportRequest, T
                     }
                 } else {
                     try {
-                        channel.sendResponse(Exceptions.toRuntimeException(SQLExceptions.unwrap(throwable)));
+                        channel.sendResponse(Exceptions.toException(throwable));
                     } catch (IOException e) {
                         LOGGER.error("Error sending failure: " + e.getMessage(), e);
                     }
@@ -62,7 +62,7 @@ public final class NodeActionRequestHandler<TRequest extends TransportRequest, T
             });
         } catch (Throwable t) {
             try {
-                channel.sendResponse(Exceptions.toRuntimeException(SQLExceptions.unwrap(t)));
+                channel.sendResponse(Exceptions.toException(t));
             } catch (IOException e) {
                 LOGGER.error("Error sending failure: " + e.getMessage(), e);
             }

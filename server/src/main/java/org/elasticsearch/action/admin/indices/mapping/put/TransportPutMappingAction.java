@@ -50,9 +50,8 @@ public class TransportPutMappingAction extends TransportMasterNodeAction<PutMapp
     public TransportPutMappingAction(TransportService transportService,
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
-                                     MetadataMappingService metadataMappingService,
-                                     IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(PutMappingAction.NAME, transportService, clusterService, threadPool, PutMappingRequest::new, indexNameExpressionResolver);
+                                     MetadataMappingService metadataMappingService) {
+        super(PutMappingAction.NAME, transportService, clusterService, threadPool, PutMappingRequest::new);
         this.metadataMappingService = metadataMappingService;
     }
 
@@ -71,7 +70,7 @@ public class TransportPutMappingAction extends TransportMasterNodeAction<PutMapp
     protected ClusterBlockException checkBlock(PutMappingRequest request, ClusterState state) {
         String[] indices;
         if (request.getConcreteIndex() == null) {
-            indices = indexNameExpressionResolver.concreteIndexNames(state, request);
+            indices = IndexNameExpressionResolver.concreteIndexNames(state, request);
         } else {
             indices = new String[] {request.getConcreteIndex().getName()};
         }
@@ -83,7 +82,7 @@ public class TransportPutMappingAction extends TransportMasterNodeAction<PutMapp
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
         try {
-            final Index[] concreteIndices = request.getConcreteIndex() == null ? indexNameExpressionResolver.concreteIndices(state, request) : new Index[] {request.getConcreteIndex()};
+            final Index[] concreteIndices = request.getConcreteIndex() == null ? IndexNameExpressionResolver.concreteIndices(state, request) : new Index[] {request.getConcreteIndex()};
             PutMappingClusterStateUpdateRequest updateRequest = new PutMappingClusterStateUpdateRequest(request.source())
                 .ackTimeout(request.timeout())
                 .masterNodeTimeout(request.masterNodeTimeout())

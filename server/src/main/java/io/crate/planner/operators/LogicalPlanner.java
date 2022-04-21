@@ -82,6 +82,7 @@ import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
+import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
@@ -146,7 +147,8 @@ public class LogicalPlanner {
                 new MoveOrderBeneathRename(),
                 new DeduplicateOrder(),
                 new OptimizeCollectWhereClauseAccess(),
-                new RewriteGroupByKeysLimitToTopNDistinct()
+                new RewriteGroupByKeysLimitToTopNDistinct(),
+                new MoveConstantJoinConditionsBeneathNestedLoop()
             )
         );
         this.fetchOptimizer = new Optimizer(
@@ -321,10 +323,14 @@ public class LogicalPlanner {
         public LogicalPlan visitUnionSelect(UnionSelect union, List<Symbol> outputs) {
             var lhsRel = union.left();
             var rhsRel = union.right();
-            return new Union(
-                lhsRel.accept(this, lhsRel.outputs()),
-                rhsRel.accept(this, rhsRel.outputs()),
-                union.outputs()
+            return Distinct.create(
+                new Union(
+                    lhsRel.accept(this, lhsRel.outputs()),
+                    rhsRel.accept(this, rhsRel.outputs()),
+                    union.outputs()),
+                union.isDistinct(),
+                union.outputs(),
+                tableStats
             );
         }
 

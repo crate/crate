@@ -44,7 +44,6 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -105,8 +104,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_
 @Singleton
 public class TransportCreatePartitionsAction extends TransportMasterNodeAction<CreatePartitionsRequest, AcknowledgedResponse> {
 
-    public static final String NAME = "indices:admin/bulk_create";
-
     private final IndicesService indicesService;
     private final AllocationService allocationService;
     private final NamedXContentRegistry xContentRegistry;
@@ -132,9 +129,8 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                                            IndicesService indicesService,
                                            AllocationService allocationService,
                                            NamedXContentRegistry xContentRegistry,
-                                           IndexNameExpressionResolver indexNameExpressionResolver,
                                            ShardLimitValidator shardLimitValidator) {
-        super(NAME, transportService, clusterService, threadPool, CreatePartitionsRequest::new, indexNameExpressionResolver);
+        super(CreatePartitionsAction.NAME, transportService, clusterService, threadPool, CreatePartitionsRequest::new);
         this.indicesService = indicesService;
         this.allocationService = allocationService;
         this.xContentRegistry = xContentRegistry;

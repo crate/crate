@@ -84,7 +84,6 @@ import org.apache.lucene.util.TestRuleMarkFailure;
 import org.apache.lucene.util.TestUtil;
 import org.apache.lucene.util.TimeUnits;
 import org.elasticsearch.Version;
-import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -243,8 +242,6 @@ public abstract class ESTestCase extends LuceneTestCase {
 
         // Enable Netty leak detection and monitor logger for logged leak errors
         System.setProperty("io.netty.leakDetection.level", "paranoid");
-
-        System.setProperty("cr8.transport.rst_on_close", "true");
     }
 
     protected final Logger logger = LogManager.getLogger(getClass());
@@ -320,20 +317,6 @@ public abstract class ESTestCase extends LuceneTestCase {
     @AfterClass
     public static void restoreFileSystem() throws Exception {
         PathUtilsForTesting.teardown();
-    }
-
-    // randomize content type for request builders
-
-    @BeforeClass
-    public static void setContentType() throws Exception {
-        Requests.CONTENT_TYPE = randomFrom(XContentType.values());
-        Requests.INDEX_CONTENT_TYPE = randomFrom(XContentType.values());
-    }
-
-    @AfterClass
-    public static void restoreContentType() {
-        Requests.CONTENT_TYPE = XContentType.SMILE;
-        Requests.INDEX_CONTENT_TYPE = XContentType.JSON;
     }
 
     @BeforeClass

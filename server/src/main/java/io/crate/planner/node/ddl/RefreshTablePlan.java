@@ -37,6 +37,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Table;
+import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 
@@ -95,14 +96,12 @@ public class RefreshTablePlan implements Plan {
         RefreshRequest request = new RefreshRequest(toRefresh.toArray(String[]::new));
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
-        var transportRefreshAction = dependencies.transportActionProvider().transportRefreshAction();
-        transportRefreshAction.execute(
-            request,
-            new OneRowActionListener<>(
-                consumer,
-                response -> new Row1(toRefresh.isEmpty() ? -1L : (long) toRefresh.size())
-            )
-        );
+        dependencies.client().execute(RefreshAction.INSTANCE, request)
+            .whenComplete(
+                new OneRowActionListener<>(
+                    consumer,
+                    response -> new Row1(toRefresh.isEmpty() ? -1L : (long) toRefresh.size())
+                ));
     }
 
     @Override

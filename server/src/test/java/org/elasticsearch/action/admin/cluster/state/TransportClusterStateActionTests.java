@@ -64,7 +64,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
         var request = new ClusterStateRequest();
         request.metadata(true);
 
-        var response = buildResponse(request, CLUSTER_STATE, new IndexNameExpressionResolver(), logger);
+        var response = buildResponse(request, CLUSTER_STATE, logger);
         assertThat(response.getState().metadata().templates().get("template1"), notNullValue());
         assertThat(response.getState().metadata().hasIndex("index1"), is(true));
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), is("bar"));
@@ -76,7 +76,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.metadata(true);
         request.templates("template1");
 
-        var response = buildResponse(request, CLUSTER_STATE, new IndexNameExpressionResolver(), logger);
+        var response = buildResponse(request, CLUSTER_STATE, logger);
         assertThat(response.getState().metadata().templates().get("template1"), notNullValue());
         assertThat(response.getState().metadata().hasIndex("index1"), is(false));
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());
@@ -88,7 +88,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.metadata(true);
         request.indices("index1");
 
-        var response = buildResponse(request, CLUSTER_STATE, new IndexNameExpressionResolver(), logger);
+        var response = buildResponse(request, CLUSTER_STATE, logger);
         assertThat(response.getState().metadata().templates().get("template1"), nullValue());
         assertThat(response.getState().metadata().hasIndex("index1"), is(true));
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());
@@ -101,7 +101,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.templates("template1");
         request.indices("index1");
 
-        var response = buildResponse(request, CLUSTER_STATE, new IndexNameExpressionResolver(), logger);
+        var response = buildResponse(request, CLUSTER_STATE, logger);
         assertThat(response.getState().metadata().templates().get("template1"), notNullValue());
         assertThat(response.getState().metadata().hasIndex("index1"), is(true));
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());

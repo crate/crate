@@ -25,6 +25,8 @@ import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.testing.Asserts;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -35,6 +37,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
@@ -100,6 +103,44 @@ public class AlterTableClusterStateExecutorTest {
         assertThat(AlterTableClusterStateExecutor.addExistingMeta(request, currentMeta), containsString("{\"_meta\":{}}"));
         verify(request, times(1)).mappingDeltaAsMap();
         // DO NOT WANT empty containers and nulls: "{"_meta":{"indices":{},"partitioned_by":[],"primary_keys":null,"check_constraints":null,"constraints":{}}}"
+    }
+
+    @Test
+    public void testAddExistingMetaCarriesOverRoutingColumnFromCurrentMeta() throws IOException {
+        Map<String, Object> mapping = new HashMap<>();
+        AlterTableRequest request = new AlterTableRequest(RelationName.fromIndexName("dummy"),
+                                                          null,
+                                                          true,
+                                                          true,
+                                                          Settings.EMPTY,
+                                                          Collections.singletonMap("_meta", mapping));
+
+        var currentMeta = new HashMap<String,Object>();
+        assertThat(AlterTableClusterStateExecutor.addExistingMeta(request, currentMeta),
+                   containsString("{\"_meta\":{}}"));
+
+        currentMeta.put("routing", "routing_col");
+        assertThat(AlterTableClusterStateExecutor.addExistingMeta(request, currentMeta),
+                   containsString("{\"_meta\":{\"routing\":\"routing_col\"}}"));
+    }
+
+    @Test
+    public void testAddExistingMetaDoesNotAllowToModifyRoutingColumn() throws IOException{
+        Map<String, Object> mapping = new HashMap<>();
+        mapping.put("routing", "routing_col_update");
+        var currentMeta = new HashMap<String,Object>();
+        AlterTableRequest request = new AlterTableRequest(RelationName.fromIndexName("dummy"),
+                                                           null,
+                                                           true,
+                                                           true,
+                                                           Settings.EMPTY,
+                                                           Collections.singletonMap("_meta", mapping));
+
+        Asserts.assertThrowsMatches(
+            () -> AlterTableClusterStateExecutor.addExistingMeta(request, currentMeta),
+            IllegalArgumentException.class,
+            "Requested to change the routing column to routing_col_update, but routing columns cannot be changed"
+        );
     }
 
 }

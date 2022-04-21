@@ -34,7 +34,9 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.SysUpdateProjector;
 import io.crate.execution.dml.SysUpdateResultSetProjector;
+import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
+import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
@@ -100,6 +102,8 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -145,6 +149,7 @@ public class ProjectionToProjectorVisitor
     private final NodeContext nodeCtx;
     private final ThreadPool threadPool;
     private final Settings settings;
+    private final ElasticsearchClient elasticsearchClient;
     private final TransportActionProvider transportActionProvider;
     private final InputFactory inputFactory;
     private final EvaluatingNormalizer normalizer;
@@ -164,6 +169,7 @@ public class ProjectionToProjectorVisitor
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
+                                        ElasticsearchClient elasticsearchClient,
                                         TransportActionProvider transportActionProvider,
                                         InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer,
@@ -178,6 +184,7 @@ public class ProjectionToProjectorVisitor
         this.nodeCtx = nodeCtx;
         this.threadPool = threadPool;
         this.settings = settings;
+        this.elasticsearchClient = elasticsearchClient;
         this.transportActionProvider = transportActionProvider;
         this.inputFactory = inputFactory;
         this.normalizer = normalizer;
@@ -195,6 +202,7 @@ public class ProjectionToProjectorVisitor
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
+                                        ElasticsearchClient elasticsearchClient,
                                         TransportActionProvider transportActionProvider,
                                         InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer,
@@ -206,6 +214,7 @@ public class ProjectionToProjectorVisitor
             nodeCtx,
             threadPool,
             settings,
+            elasticsearchClient,
             transportActionProvider,
             inputFactory,
             normalizer,
@@ -442,8 +451,7 @@ public class ProjectionToProjectorVisitor
             state.metadata().settings(),
             targetTableNumShards,
             targetTableNumReplicas,
-            transportActionProvider.transportBulkCreateIndicesAction(),
-            transportActionProvider.transportShardUpsertAction()::execute,
+            elasticsearchClient,
             indexNameResolver,
             projection.rawSourceReference(),
             projection.primaryKeys(),
@@ -495,7 +503,7 @@ public class ProjectionToProjectorVisitor
             targetTableNumShards,
             targetTableNumReplicas,
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
-            transportActionProvider,
+            elasticsearchClient,
             projection.primaryKeys(),
             projection.ids(),
             projection.clusteredBy(),
@@ -561,7 +569,8 @@ public class ProjectionToProjectorVisitor
                                               projection.requiredVersion(),
                                               null,
                                               null),
-            transportActionProvider.transportShardUpsertAction()::execute,
+            (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req)
+                .whenComplete(ActionListener.toBiConsumer(resp)),
             collector);
     }
 
@@ -580,7 +589,8 @@ public class ProjectionToProjectorVisitor
             nodeJobsCounter,
             () -> new ShardDeleteRequest(shardId, context.jobId).timeout(reqTimeout),
             ShardDeleteRequest.Item::new,
-            transportActionProvider.transportShardDeleteAction()::execute,
+            (req, resp) -> elasticsearchClient.execute(ShardDeleteAction.INSTANCE, req)
+                .whenComplete(ActionListener.toBiConsumer(resp)),
             ShardDMLExecutor.ROW_COUNT_COLLECTOR
         );
         return new DMLProjector(shardDMLExecutor);

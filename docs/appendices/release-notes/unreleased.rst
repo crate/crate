@@ -56,7 +56,12 @@ None
 Changes
 =======
 
-- Updated the bundled JDK to 18+36
+- Added an optimization to push down constant join conditions to the relation
+  in an inner join, which results in a more efficient execution plan.
+
+- Added support for :ref:`UNION DISTINCT or UNION <sql-union>` statement to be
+  able to retrieve unique rows from multiple relations without using
+  sub-queries with extra ``GROUP BY`` clauses.
 
 - Implemented cancelling requests section of PostgreSQL wire protocol.
 
@@ -69,10 +74,6 @@ Changes
 
 - Optimized the casting from string to arrays by avoiding an unnecessary string
   to byte conversion.
-
-- Fixed an issue with the handling of intervals in generated columns. The table
-  creation failed when an interval is included in a function call as part of a
-  generated column.
 
 - Write blocks added due to low disk space are now automatically removed if a
   node again drops below the high watermark.
@@ -87,10 +88,6 @@ Changes
 
 - Improved the evaluation performance of implicit casts by utilize the compile
   step of the function to determine the return type.
-
-- Fixed an issue with the handling of quoted identifiers in column names where
-  certain characters break the processing. This makes sure any special characters
-  can be used as column name.
 
 - Added a ``flush_stats`` column to the :ref:`sys.shards <sys-shards>` table.
 
@@ -108,12 +105,23 @@ Changes
 - Added the option to run ``COPY FROM`` and ``COPY TO`` operations in the
   background without waiting for them to complete.
 
+- Updated to Admin UI 1.21.0, which improves console highlighting by adding
+  various keywords and data types.
+
 Fixes
 =====
 
 .. If you add an entry here, the fix needs to be backported to the latest
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
+
+- Fixed an issue with the handling of quoted identifiers in column names where
+  certain characters break the processing. This makes sure any special characters
+  can be used as column name.
+
+- Fixed an issue with the handling of intervals in generated columns. The table
+  creation failed when an interval is included in a function call as part of a
+  generated column.
 
 - Fixed a race condition that could cause a ``blocked by: [FORBIDDEN/4/Table or
   partition preparing to close`` error when inserting into a partitioned table
@@ -132,3 +140,6 @@ Fixes
 
 - Fixed an issue that threw ``SQLParseException`` when a ``ILIKE`` operand
   contained '{' or '}'.
+
+- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` to lose an optional
+  ``routing_column`` information provided at table creation.

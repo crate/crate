@@ -89,17 +89,14 @@ public class SyncedFlushService implements IndexEventListener {
     private final IndicesService indicesService;
     private final ClusterService clusterService;
     private final TransportService transportService;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     @Inject
     public SyncedFlushService(IndicesService indicesService,
                               ClusterService clusterService,
-                              TransportService transportService,
-                              IndexNameExpressionResolver indexNameExpressionResolver) {
+                              TransportService transportService) {
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.transportService = transportService;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
         transportService.registerRequestHandler(
             PRE_SYNCED_FLUSH_ACTION_NAME,
             ThreadPool.Names.FLUSH,
@@ -168,7 +165,7 @@ public class SyncedFlushService implements IndexEventListener {
         if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_4_4_0)) {
             DEPRECATION_LOGGER.deprecatedAndMaybeLog("synced_flush", SYNCED_FLUSH_DEPRECATION_MESSAGE);
         }
-        final Index[] concreteIndices = indexNameExpressionResolver.concreteIndices(state, indicesOptions, aliasesOrIndices);
+        final Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(state, indicesOptions, aliasesOrIndices);
         final Map<String, List<ShardsSyncedFlushResult>> results = ConcurrentCollections.newConcurrentMap();
         int numberOfShards = 0;
         for (Index index : concreteIndices) {

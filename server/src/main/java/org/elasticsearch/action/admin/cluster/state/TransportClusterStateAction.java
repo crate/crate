@@ -51,9 +51,8 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
 
 
     @Inject
-    public TransportClusterStateAction(Settings settings, TransportService transportService, ClusterService clusterService, ThreadPool threadPool,
-                                       IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ClusterStateAction.NAME, false, transportService, clusterService, threadPool, indexNameExpressionResolver, ClusterStateRequest::new);
+    public TransportClusterStateAction(Settings settings, TransportService transportService, ClusterService clusterService, ThreadPool threadPool) {
+        super(settings, ClusterStateAction.NAME, false, transportService, clusterService, threadPool, ClusterStateRequest::new);
     }
 
     @Override
@@ -93,7 +92,6 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
             ActionListener.completeWith(listener, () -> buildResponse(
                 request,
                 state,
-                indexNameExpressionResolver,
                 logger
             ));
         } else {
@@ -107,7 +105,6 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
                             ActionListener.completeWith(listener, () -> buildResponse(
                                 request,
                                 newState,
-                                indexNameExpressionResolver,
                                 logger
                             ));
                         } else {
@@ -137,7 +134,6 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
     @VisibleForTesting
     static ClusterStateResponse buildResponse(final ClusterStateRequest request,
                                               final ClusterState currentState,
-                                              final IndexNameExpressionResolver indexNameExpressionResolver,
                                               final Logger logger) {
         logger.trace("Serving cluster state request using version {}", currentState.version());
         ClusterState.Builder builder = ClusterState.builder(currentState.getClusterName());
@@ -149,7 +145,7 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
         if (request.routingTable()) {
             if (request.indices().length > 0) {
                 RoutingTable.Builder routingTableBuilder = RoutingTable.builder();
-                String[] indices = indexNameExpressionResolver.concreteIndexNames(currentState, request);
+                String[] indices = IndexNameExpressionResolver.concreteIndexNames(currentState, request);
                 for (String filteredIndex : indices) {
                     if (currentState.routingTable().getIndicesRouting().containsKey(filteredIndex)) {
                         routingTableBuilder.add(currentState.routingTable().getIndicesRouting().get(filteredIndex));
@@ -172,7 +168,7 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
                 mdBuilder = Metadata.builder(currentState.metadata());
             } else {
                 if (request.indices().length > 0) {
-                    String[] indices = indexNameExpressionResolver.concreteIndexNames(currentState, request);
+                    String[] indices = IndexNameExpressionResolver.concreteIndexNames(currentState, request);
                     for (String filteredIndex : indices) {
                         IndexMetadata indexMetadata = currentState.metadata().index(filteredIndex);
                         if (indexMetadata != null) {

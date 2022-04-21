@@ -29,7 +29,6 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -52,7 +51,6 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
     public TransportOpenCloseTableOrPartitionAction(TransportService transportService,
                                                     ClusterService clusterService,
                                                     ThreadPool threadPool,
-                                                    IndexNameExpressionResolver indexNameExpressionResolver,
                                                     AllocationService allocationService,
                                                     DDLClusterStateService ddlClusterStateService,
                                                     MetadataIndexUpgradeService metadataIndexUpgradeService,
@@ -61,15 +59,13 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
             transportService,
             clusterService,
             threadPool,
-            indexNameExpressionResolver,
             OpenCloseTableOrPartitionRequest::new,
             AcknowledgedResponse::new,
             AcknowledgedResponse::new,
             "open-table-or-partition");
-        openExecutor = new OpenTableClusterStateTaskExecutor(indexNameExpressionResolver, allocationService,
+        openExecutor = new OpenTableClusterStateTaskExecutor(allocationService,
             ddlClusterStateService, metadataIndexUpgradeService, indexServices);
-        closeExecutor = new CloseTableClusterStateTaskExecutor(indexNameExpressionResolver, allocationService,
-            ddlClusterStateService);
+        closeExecutor = new CloseTableClusterStateTaskExecutor(allocationService, ddlClusterStateService);
     }
 
     @Override
@@ -85,7 +81,6 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
     protected ClusterBlockException checkBlock(OpenCloseTableOrPartitionRequest request, ClusterState state) {
         return TransportCloseTable.checkBlock(
             state,
-            indexNameExpressionResolver,
             request.ignoreUnavailableIndices(),
             request.tables(),
             request.partitionIndexName()

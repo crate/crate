@@ -146,7 +146,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
 
         startDisrupting((subscriberTransport, publisherAddress) -> {
             subscriberTransport.addSendBehavior(publisherAddress, (connection, requestId, action, request, options) -> {
-                if (action.equals(ClusterStateAction.NAME)) {
+                if (action.equals(PublicationsStateAction.NAME)) {
                     throw new ElasticsearchException("rejected");
                 }
                 connection.sendRequest(requestId, action, request, options);
@@ -169,7 +169,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
             " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
             " ORDER BY s.subname");
         assertThat(printedTable(res.rows()),
-                   is("sub1| [pub1]| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking\n"));
+                   is("sub1| [pub1]| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking.\nReason: rejected\n"));
     }
 
     private boolean isMetadataTrackerActive() throws Exception {

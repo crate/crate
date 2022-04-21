@@ -28,6 +28,7 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.testing.MoreMatchers;
+import io.crate.testing.UseRandomizedSchema;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -45,7 +46,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 
-
+@UseRandomizedSchema(random = false)
 public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
@@ -384,7 +385,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThrowsMatches(
             () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't support or allow INSERT operations."
+            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication."
         );
     }
 
@@ -408,14 +409,14 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThrowsMatches(
             () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't support or allow INSERT operations."
+            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication."
         );
     }
 
     @Test
     public void test_subscription_state_order() throws Exception {
         String subscriptionName = "sub1";
-        ArrayList<Subscription.State> subscriptionStates = new ArrayList<>();
+        final ArrayList<Subscription.State> subscriptionStates = new ArrayList<>();
         ClusterService clusterService = subscriberCluster.getMasterNodeInstance(ClusterService.class);
         clusterService.addListener(
             event -> {
@@ -428,9 +429,11 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                     var subscription = metadata.subscription().get(subscriptionName);
                     if (subscription != null) {
                         var currentState = subscription.relations().get(RelationName.fromIndexName("doc.t1")).state();
-                        var size = subscriptionStates.size();
-                        if (size == 0 || subscriptionStates.get(size -1).equals(currentState) == false) {
-                            subscriptionStates.add(currentState);
+                        synchronized (subscriptionStates) {
+                            var size = subscriptionStates.size();
+                            if (size == 0 || subscriptionStates.get(size -1).equals(currentState) == false) {
+                                subscriptionStates.add(currentState);
+                            }
                         }
                     }
                 }
@@ -444,13 +447,17 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         // Tracking (MONITORING state) may not have started even if table is green, so lets use a busy loop
         assertBusy(
-            () -> assertThat(
-                subscriptionStates,
-                contains(Subscription.State.INITIALIZING,
-                         Subscription.State.RESTORING,
-                         Subscription.State.SYNCHRONIZED,
-                         Subscription.State.MONITORING)
-            )
+            () -> {
+                synchronized (subscriptionStates) {
+                    assertThat(
+                        subscriptionStates,
+                        contains(Subscription.State.INITIALIZING,
+                                Subscription.State.RESTORING,
+                                Subscription.State.SYNCHRONIZED,
+                                Subscription.State.MONITORING)
+                    );
+                }
+            }
         );
 
         // check final exposed `r`(MONITORING) state
@@ -482,5 +489,59 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         response = executeOnSubscriber("INSERT INTO doc.t2 (id, p) VALUES(3, 3)");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void test_alter_publication_add_table() {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("CREATE TABLE t2 (id INT) WITH(" + defaultTableSettings() + ")");
+        createPublication("pub1", false, List.of("t1"));
+        executeOnPublisher("ALTER PUBLICATION pub1 ADD TABLE t2");
+        var response = executeOnPublisher(
+            "SELECT oid, p.pubname, pubowner, puballtables, schemaname, tablename, pubinsert, pubupdate, pubdelete" +
+                " FROM pg_publication p" +
+                " JOIN pg_publication_tables t ON p.pubname = t.pubname" +
+                " ORDER BY p.pubname, schemaname, tablename");
+        assertThat(printedTable(response.rows()),
+            is("14768324| pub1| -450373579| false| doc| t1| true| true| true\n" +
+                "14768324| pub1| -450373579| false| doc| t2| true| true| true\n"));
+    }
+
+    /**
+     * Ensures a dropped subscription can be immediately re-created.
+     * Specially, that all existing retention leases at the publisher shards are dropped when the subscription is dropped.
+     */
+    @Test
+    public void test_recreate_dropped_subscription() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2), (3), (4)");
+
+        createPublication("pub1", false, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        executeOnSubscriber("DROP SUBSCRIPTION sub1 ");
+        executeOnSubscriber("DROP TABLE t1");
+
+        createSubscription("sub1", "pub1");
+        assertBusy(
+            () -> {
+                var res = executeOnSubscriber("SELECT id FROM t1 ORDER BY id");
+                assertThat(res.rowCount(), is(4L));
+            }
+        );
+    }
+
+    @Test
+    public void test_drop_subscribed_table_is_not_allowed() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+
+        createPublication("pub1", false, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        assertThrowsMatches(
+            () ->  executeOnSubscriber("DROP TABLE t1"),
+            OperationOnInaccessibleRelationException.class,
+            "The relation \"doc.t1\" doesn't allow DROP operations, because it is included in a logical replication."
+        );
     }
 }

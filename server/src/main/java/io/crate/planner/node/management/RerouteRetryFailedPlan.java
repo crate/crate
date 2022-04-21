@@ -29,6 +29,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
@@ -47,11 +48,8 @@ public class RerouteRetryFailedPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        dependencies
-            .transportActionProvider()
-            .transportClusterRerouteAction()
-            .execute(
-                new ClusterRerouteRequest().setRetryFailed(true),
+        dependencies.client().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest().setRetryFailed(true))
+            .whenComplete(
                 new OneRowActionListener<>(
                     consumer,
                     response -> {
@@ -78,8 +76,6 @@ public class RerouteRetryFailedPlan implements Plan {
                         } else {
                             return new Row1(-1L);
                         }
-                    }
-                )
-            );
+                    }));
     }
 }

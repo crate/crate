@@ -21,28 +21,32 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.replication.logical.metadata.Publication;
-import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import io.crate.user.Privilege;
-import io.crate.user.User;
-import io.crate.user.UserLookup;
+import static org.hamcrest.Matchers.contains;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.MockLogAppender;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Set;
-
-import static org.hamcrest.Matchers.contains;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.RelationMetadata;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import io.crate.user.Privilege;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
 
 public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -52,13 +56,13 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     public void appendLogger() throws Exception {
         appender = new MockLogAppender();
         appender.start();
-        Loggers.addAppender(Loggers.getLogger(PublicationsStateAction.class), appender);
+        Loggers.addAppender(Loggers.getLogger(Publication.class), appender);
 
     }
 
     @After
     public void removeLogger() {
-        Loggers.removeAppender(Loggers.getLogger(PublicationsStateAction.class), appender);
+        Loggers.removeAppender(Loggers.getLogger(Publication.class), appender);
         appender.stop();
     }
 
@@ -80,18 +84,13 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
                                  "'soft_deletes.enabled' is set to: false";
         appender.addExpectation(new MockLogAppender.SeenEventExpectation(
             expectedLogMessage,
-            Loggers.getLogger(PublicationsStateAction.class).getName(),
+            Loggers.getLogger(Publication.class).getName(),
             Level.WARN,
             expectedLogMessage
         ));
 
-        var resolvedRelations = PublicationsStateAction.TransportAction.resolveRelationsNames(
-            publication,
-            clusterService.state(),
-            user,
-            user
-        );
-        assertThat(resolvedRelations, contains(new RelationName("doc", "t1")));
+        Map<RelationName, RelationMetadata> resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), user, user);
+        assertThat(resolvedRelations.keySet(), contains(new RelationName("doc", "t1")));
         appender.assertAllExpectationsMatched();
     }
 
@@ -120,14 +119,13 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .build();
         var publication = new Publication("publisher", true, List.of());
 
-        var resolvedRelations = PublicationsStateAction.TransportAction.resolveRelationsNames(
-            publication,
+        var resolvedRelations = publication.resolveCurrentRelations(
             clusterService.state(),
             publicationOwner,
             subscriber
         );
 
-        assertThat(resolvedRelations, contains(new RelationName("doc", "t1")));
+        assertThat(resolvedRelations.keySet(), contains(new RelationName("doc", "t1")));
     }
 
     @Test
@@ -156,13 +154,8 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .build();
         var publication = new Publication("publisher", true, List.of());
 
-        var resolvedRelations = PublicationsStateAction.TransportAction.resolveRelationsNames(
-            publication,
-            clusterService.state(),
-            publicationOwner,
-            subscriber
-        );
-        assertThat(resolvedRelations, contains(new RelationName("doc", "t1")));
+        var resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), publicationOwner, subscriber);
+        assertThat(resolvedRelations.keySet(), contains(new RelationName("doc", "t1")));
     }
 
     @Test
@@ -196,12 +189,11 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             )
         );
 
-        var resolvedRelations = PublicationsStateAction.TransportAction.resolveRelationsNames(
-            publication,
+        var resolvedRelations = publication.resolveCurrentRelations(
             clusterService.state(),
             publicationOwner,
             subscriber
         );
-        assertThat(resolvedRelations, contains(new RelationName("doc", "t1")));
+        assertThat(resolvedRelations.keySet(), contains(new RelationName("doc", "t1")));
     }
 }

@@ -99,8 +99,7 @@ public class TransportClearVotingConfigExclusionsActionTests extends ESTestCase 
             null
         );
 
-        new TransportClearVotingConfigExclusionsAction(
-            transportService, clusterService, threadPool, new IndexNameExpressionResolver()); // registers action
+        new TransportClearVotingConfigExclusionsAction(transportService, clusterService, threadPool); // registers action
 
         transportService.start();
         transportService.acceptIncomingRequests();

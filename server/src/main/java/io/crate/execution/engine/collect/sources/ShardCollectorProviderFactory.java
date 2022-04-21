@@ -32,6 +32,7 @@ import io.crate.execution.jobs.NodeLimits;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -41,6 +42,7 @@ import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Map;
@@ -53,6 +55,7 @@ public class ShardCollectorProviderFactory {
     private final Schemas schemas;
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
+    private final ElasticsearchClient elasticsearchClient;
     private final TransportActionProvider transportActionProvider;
     private final BlobIndicesService blobIndicesService;
 
@@ -70,6 +73,7 @@ public class ShardCollectorProviderFactory {
                                          Settings settings,
                                          Schemas schemas,
                                          ThreadPool threadPool,
+                                         Node node,
                                          TransportActionProvider transportActionProvider,
                                          BlobIndicesService blobIndicesService,
                                          NodeContext nodeCtx,
@@ -82,6 +86,7 @@ public class ShardCollectorProviderFactory {
         this.schemas = schemas;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
+        this.elasticsearchClient = node.client();
         this.transportActionProvider = transportActionProvider;
         this.blobIndicesService = blobIndicesService;
         this.nodeCtx = nodeCtx;
@@ -103,6 +108,7 @@ public class ShardCollectorProviderFactory {
                 nodeCtx,
                 threadPool,
                 settings,
+                elasticsearchClient,
                 transportActionProvider,
                 fileOutputFactoryMap
             );
@@ -116,6 +122,7 @@ public class ShardCollectorProviderFactory {
                 nodeCtx,
                 threadPool,
                 settings,
+                elasticsearchClient,
                 transportActionProvider,
                 indexShard,
                 bigArrays,

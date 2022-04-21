@@ -41,7 +41,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -82,7 +81,6 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
     public TransportSchemaUpdateAction(TransportService transportService,
                                        ClusterService clusterService,
                                        ThreadPool threadPool,
-                                       IndexNameExpressionResolver indexNameExpressionResolver,
                                        NodeClient nodeClient,
                                        NamedXContentRegistry xContentRegistry) {
         super(
@@ -90,8 +88,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             transportService,
             clusterService,
             threadPool,
-            SchemaUpdateRequest::new,
-            indexNameExpressionResolver
+            SchemaUpdateRequest::new
         );
         this.nodeClient = nodeClient;
         this.xContentRegistry = xContentRegistry;
@@ -140,7 +137,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             .source(mappingSource, XContentType.JSON)
             .timeout(timeout)
             .masterNodeTimeout(timeout);
-        nodeClient.execute(PutMappingAction.INSTANCE, putMappingRequest, putMappingListener);
+        nodeClient.execute(PutMappingAction.INSTANCE, putMappingRequest).whenComplete(ActionListener.toBiConsumer(putMappingListener));
         return putMappingListener;
     }
 

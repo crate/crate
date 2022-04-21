@@ -24,7 +24,6 @@ import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.single.shard.SingleShardRequest;
 import org.elasticsearch.action.support.single.shard.TransportSingleShardAction;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -64,7 +63,6 @@ public class RetentionLeaseActions {
             final ThreadPool threadPool,
             final ClusterService clusterService,
             final TransportService transportService,
-            final IndexNameExpressionResolver indexNameExpressionResolver,
             final IndicesService indicesService,
             final Writeable.Reader<T> requestSupplier) {
             super(
@@ -72,7 +70,6 @@ public class RetentionLeaseActions {
                 threadPool,
                 clusterService,
                 transportService,
-                indexNameExpressionResolver,
                 requestSupplier,
                 ThreadPool.Names.MANAGEMENT);
             this.indicesService = Objects.requireNonNull(indicesService);
@@ -135,14 +132,12 @@ public class RetentionLeaseActions {
                 final ThreadPool threadPool,
                 final ClusterService clusterService,
                 final TransportService transportService,
-                final IndexNameExpressionResolver indexNameExpressionResolver,
                 final IndicesService indicesService) {
                 super(
                     ACTION_NAME,
                     threadPool,
                     clusterService,
                     transportService,
-                    indexNameExpressionResolver,
                     indicesService,
                     AddOrRenewRequest::new);
             }
@@ -181,14 +176,12 @@ public class RetentionLeaseActions {
                 final ThreadPool threadPool,
                 final ClusterService clusterService,
                 final TransportService transportService,
-                final IndexNameExpressionResolver indexNameExpressionResolver,
                 final IndicesService indicesService) {
                 super(
                     ACTION_NAME,
                     threadPool,
                     clusterService,
                     transportService,
-                    indexNameExpressionResolver,
                     indicesService,
                     AddOrRenewRequest::new);
             }
@@ -225,14 +218,12 @@ public class RetentionLeaseActions {
                 final ThreadPool threadPool,
                 final ClusterService clusterService,
                 final TransportService transportService,
-                final IndexNameExpressionResolver indexNameExpressionResolver,
                 final IndicesService indicesService) {
                 super(
                     ACTION_NAME,
                     threadPool,
                     clusterService,
                     transportService,
-                    indexNameExpressionResolver,
                     indicesService,
                     RemoveRequest::new);
             }

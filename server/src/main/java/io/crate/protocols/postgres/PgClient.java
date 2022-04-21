@@ -47,8 +47,8 @@ import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.ConnectionProfile;
 import org.elasticsearch.transport.NodeNotConnectedException;
 import org.elasticsearch.transport.OutboundHandler;
+import org.elasticsearch.transport.ProxyConnection;
 import org.elasticsearch.transport.RemoteClusterAwareRequest;
-import org.elasticsearch.transport.RemoteConnectionManager.ProxyConnection;
 import org.elasticsearch.transport.RemoteConnectionParser;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.Transport.Connection;
@@ -142,7 +142,7 @@ public class PgClient extends AbstractClient {
         String host = hosts.get(0);
         var transportAddress = new TransportAddress(RemoteConnectionParser.parseConfiguredAddress(host));
         return new DiscoveryNode(
-            "RemoteCluster=" + name + "#" + transportAddress.toString(),
+            "pg_tunnel_to=" + name + "#" + transportAddress.toString(),
             transportAddress,
             Version.CURRENT.minimumCompatibilityVersion()
         );
@@ -159,15 +159,10 @@ public class PgClient extends AbstractClient {
                 future = connectionFuture;
                 // fall-through to connect
             } else {
-                if (connectionFuture.isDone()) {
-                    Connection connection = connectionFuture.join();
-                    if (connection.isClosed() || connectionFuture.isCompletedExceptionally()) {
-                        connectionFuture = new CompletableFuture<>();
-                        future = connectionFuture;
-                        // fall-through to connect
-                    } else {
-                        return connectionFuture;
-                    }
+                if (connectionFuture.isCompletedExceptionally() || (connectionFuture.isDone() && connectionFuture.join().isClosed())) {
+                    connectionFuture = new CompletableFuture<>();
+                    future = connectionFuture;
+                    // fall-through to connect
                 } else {
                     return connectionFuture;
                 }
@@ -648,7 +643,7 @@ public class PgClient extends AbstractClient {
                                                                                                     ActionListener<Response> listener) {
         ensureConnected().whenComplete((connection, e) -> {
             if (e != null) {
-                listener.onFailure(Exceptions.toRuntimeException(e));
+                listener.onFailure(Exceptions.toException(e));
             } else {
                 if (request instanceof RemoteClusterAwareRequest remoteClusterAware) {
                     DiscoveryNode targetNode = remoteClusterAware.getPreferredTargetNode();

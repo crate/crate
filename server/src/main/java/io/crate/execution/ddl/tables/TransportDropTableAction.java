@@ -51,13 +51,11 @@ public class TransportDropTableAction extends AbstractDDLTransportAction<DropTab
     public TransportDropTableAction(TransportService transportService,
                                     ClusterService clusterService,
                                     ThreadPool threadPool,
-                                    IndexNameExpressionResolver indexNameExpressionResolver,
                                     MetadataDeleteIndexService deleteIndexService,
                                     DDLClusterStateService ddlClusterStateService) {
         super(ACTION_NAME, transportService, clusterService, threadPool,
-            indexNameExpressionResolver, DropTableRequest::new, AcknowledgedResponse::new, AcknowledgedResponse::new, "drop-table");
-        executor = new DropTableClusterStateTaskExecutor(indexNameExpressionResolver, deleteIndexService,
-            ddlClusterStateService);
+            DropTableRequest::new, AcknowledgedResponse::new, AcknowledgedResponse::new, "drop-table");
+        executor = new DropTableClusterStateTaskExecutor(deleteIndexService, ddlClusterStateService);
     }
 
     @Override
@@ -72,6 +70,6 @@ public class TransportDropTableAction extends AbstractDDLTransportAction<DropTab
             indicesOptions = IndicesOptions.lenientExpandOpen();
         }
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE,
-            indexNameExpressionResolver.concreteIndexNames(state, indicesOptions, request.tableIdent().indexNameOrAlias()));
+            IndexNameExpressionResolver.concreteIndexNames(state, indicesOptions, request.tableIdent().indexNameOrAlias()));
     }
 }

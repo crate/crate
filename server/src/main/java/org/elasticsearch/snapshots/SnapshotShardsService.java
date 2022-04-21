@@ -19,9 +19,23 @@
 
 package org.elasticsearch.snapshots;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableList;
+import static org.elasticsearch.cluster.SnapshotsInProgress.completed;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -40,7 +54,6 @@ import org.elasticsearch.cluster.SnapshotsInProgress.ShardSnapshotStatus;
 import org.elasticsearch.cluster.SnapshotsInProgress.ShardState;
 import org.elasticsearch.cluster.SnapshotsInProgress.State;
 import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
@@ -68,19 +81,8 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableList;
-import static org.elasticsearch.cluster.SnapshotsInProgress.completed;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 /**
  * This service runs on data and master nodes and controls currently snapshotted shards on these nodes. It is responsible for
@@ -111,8 +113,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
     private final UpdateSnapshotStatusAction updateSnapshotStatusHandler;
 
     public SnapshotShardsService(Settings settings, ClusterService clusterService, RepositoriesService repositoriesService,
-                                 ThreadPool threadPool, TransportService transportService, IndicesService indicesService,
-                                 IndexNameExpressionResolver indexNameExpressionResolver) {
+                                 ThreadPool threadPool, TransportService transportService, IndicesService indicesService) {
         this.indicesService = indicesService;
         this.repositoriesService = repositoriesService;
         this.transportService = transportService;
@@ -125,7 +126,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
 
         // The constructor of UpdateSnapshotStatusAction will register itself to the TransportService.
         this.updateSnapshotStatusHandler =
-            new UpdateSnapshotStatusAction(transportService, clusterService, threadPool, indexNameExpressionResolver);
+            new UpdateSnapshotStatusAction(transportService, clusterService, threadPool);
     }
 
     @Override
@@ -578,10 +579,10 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
 
     private class UpdateSnapshotStatusAction
         extends TransportMasterNodeAction<UpdateIndexShardSnapshotStatusRequest, UpdateIndexShardSnapshotStatusResponse> {
-        UpdateSnapshotStatusAction(TransportService transportService, ClusterService clusterService,
-                                   ThreadPool threadPool,IndexNameExpressionResolver indexNameExpressionResolver) {
+
+        UpdateSnapshotStatusAction(TransportService transportService, ClusterService clusterService, ThreadPool threadPool) {
             super(
-                SnapshotShardsService.UPDATE_SNAPSHOT_STATUS_ACTION_NAME, transportService, clusterService, threadPool, UpdateIndexShardSnapshotStatusRequest::new, indexNameExpressionResolver
+                SnapshotShardsService.UPDATE_SNAPSHOT_STATUS_ACTION_NAME, transportService, clusterService, threadPool, UpdateIndexShardSnapshotStatusRequest::new
             );
         }
 
