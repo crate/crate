@@ -34,6 +34,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
@@ -122,15 +123,16 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
     @Override
     protected ClusterBlockException checkBlock(SwapRelationsRequest request, ClusterState state) {
         Set<String> affectedIndices = new HashSet<>();
+        Metadata metadata = state.metadata();
         for (RelationNameSwap swapAction : request.swapActions()) {
             affectedIndices.addAll(Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(
-                state, IndicesOptions.LENIENT_EXPAND_OPEN, swapAction.source().indexNameOrAlias())));
+                metadata, IndicesOptions.LENIENT_EXPAND_OPEN, swapAction.source().indexNameOrAlias())));
             affectedIndices.addAll(Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(
-                state, IndicesOptions.LENIENT_EXPAND_OPEN, swapAction.target().indexNameOrAlias())));
+                metadata, IndicesOptions.LENIENT_EXPAND_OPEN, swapAction.target().indexNameOrAlias())));
         }
         for (RelationName dropRelation : request.dropRelations()) {
             affectedIndices.addAll(Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(
-                state, IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())));
+                metadata, IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())));
         }
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_READ, affectedIndices.toArray(new String[0]));
     }

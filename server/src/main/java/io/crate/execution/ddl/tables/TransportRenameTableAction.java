@@ -114,7 +114,7 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
                         false
                     );
                     newIndexNames.set(IndexNameExpressionResolver.concreteIndexNames(
-                            updatedState, openIndices, request.targetTableIdent().indexNameOrAlias()));
+                        updatedState.metadata(), openIndices, request.targetTableIdent().indexNameOrAlias()));
                     return updatedState;
                 }
 
@@ -128,8 +128,14 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
     @Override
     protected ClusterBlockException checkBlock(RenameTableRequest request, ClusterState state) {
         try {
-            return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE,
-                IndexNameExpressionResolver.concreteIndexNames(state, STRICT_INDICES_OPTIONS, request.sourceTableIdent().indexNameOrAlias()));
+            return state.blocks().indicesBlockedException(
+                ClusterBlockLevel.METADATA_WRITE,
+                IndexNameExpressionResolver.concreteIndexNames(
+                    state.metadata(),
+                    STRICT_INDICES_OPTIONS,
+                    request.sourceTableIdent().indexNameOrAlias()
+                )
+            );
         } catch (IndexNotFoundException e) {
             if (request.isPartitioned() == false) {
                 throw e;

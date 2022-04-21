@@ -260,7 +260,7 @@ public class MetadataTrackerTest extends ESTestCase {
         testTable = new RelationName("doc", "test");
         publicationsStateResponse = new Response(Map.of(
             testTable,
-            RelationMetadata.fromMetadata(testTable, PUBLISHER_CLUSTER_STATE)));
+            RelationMetadata.fromMetadata(testTable, PUBLISHER_CLUSTER_STATE.metadata())));
 
         SUBSCRIBER_CLUSTER_STATE = new Builder("subscriber")
             .addReplicatingTable("sub1", "test", Map.of("1", "one"), Settings.EMPTY)
@@ -287,7 +287,7 @@ public class MetadataTrackerTest extends ESTestCase {
 
         var updatedResponse = new Response(Map.of(
             testTable,
-            RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState)));
+            RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata())));
 
         syncedSubscriberClusterState = MetadataTracker.updateIndexMetadata(
             "sub1",
@@ -312,7 +312,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .build();
         var updatedResponse = new Response(Map.of(
             testTable,
-            RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState)));
+            RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata())));
         var syncedSubscriberClusterState = MetadataTracker.updateIndexMetadata(
             "sub1",
             retrieveSubscription("sub1", SUBSCRIBER_CLUSTER_STATE),
@@ -335,7 +335,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .build();
         var updatedResponse = new Response(Map.of(
             testTable,
-            RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState)));
+            RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata())));
 
         var syncedSubscriberClusterState = MetadataTracker.updateIndexMetadata(
             "sub1",
@@ -356,7 +356,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .build();
         var updatedResponse = new Response(Map.of(
             testTable,
-            RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState)));
+            RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata())));
 
         var syncedSubscriberClusterState = MetadataTracker.updateIndexMetadata(
             "sub1",
@@ -404,7 +404,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .build();
         var updatedResponse = new Response(Map.of(
             testTable,
-            RelationMetadata.fromMetadata(testTable, publisherState)));
+            RelationMetadata.fromMetadata(testTable, publisherState.metadata())));
 
         var future = MetadataTracker.subscribeToNewRelations(
             retrieveSubscription("sub1", subscriberClusterState),
@@ -438,7 +438,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .addPartitionedTable(p1, List.of())
             .addPublication("pub1", List.of(p1.indexNameOrAlias()))
             .build();
-        var publisherStateResponse = new Response(Map.of(p1, RelationMetadata.fromMetadata(p1, publisherState)));
+        var publisherStateResponse = new Response(Map.of(p1, RelationMetadata.fromMetadata(p1, publisherState.metadata())));
 
         var future = MetadataTracker.subscribeToNewRelations(
             retrieveSubscription("sub1", subscriberClusterState),
@@ -472,7 +472,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .addPublication("pub1", List.of(newRelation.indexNameOrAlias()))
             .addPartitionedTable(newRelation, List.of(newPartitionName))
             .build();
-        RelationMetadata relationMetadata = RelationMetadata.fromMetadata(newRelation, publisherState);
+        RelationMetadata relationMetadata = RelationMetadata.fromMetadata(newRelation, publisherState.metadata());
         var publisherStateResponse = new Response(Map.of(newRelation, relationMetadata));
 
         var future = MetadataTracker.subscribeToNewRelations(
@@ -507,7 +507,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .addPublication("pub1", List.of(relationName.indexNameOrAlias()))
             .addPartitionedTable(relationName, List.of(newPartitionName))
             .build();
-        RelationMetadata relationMetadata = RelationMetadata.fromMetadata(relationName, publisherState);
+        RelationMetadata relationMetadata = RelationMetadata.fromMetadata(relationName, publisherState.metadata());
         var publisherStateResponse = new Response(Map.of(relationName, relationMetadata));
 
         var future = MetadataTracker.subscribeToNewRelations(

@@ -165,7 +165,7 @@ public class SyncedFlushService implements IndexEventListener {
         if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_4_4_0)) {
             DEPRECATION_LOGGER.deprecatedAndMaybeLog("synced_flush", SYNCED_FLUSH_DEPRECATION_MESSAGE);
         }
-        final Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(state, indicesOptions, aliasesOrIndices);
+        final Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(state.metadata(), indicesOptions, aliasesOrIndices);
         final Map<String, List<ShardsSyncedFlushResult>> results = ConcurrentCollections.newConcurrentMap();
         int numberOfShards = 0;
         for (Index index : concreteIndices) {
