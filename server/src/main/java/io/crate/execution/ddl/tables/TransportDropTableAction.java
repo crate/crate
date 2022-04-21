@@ -70,6 +70,6 @@ public class TransportDropTableAction extends AbstractDDLTransportAction<DropTab
             indicesOptions = IndicesOptions.lenientExpandOpen();
         }
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE,
-            IndexNameExpressionResolver.concreteIndexNames(state, indicesOptions, request.tableIdent().indexNameOrAlias()));
+            IndexNameExpressionResolver.concreteIndexNames(state.metadata(), indicesOptions, request.tableIdent().indexNameOrAlias()));
     }
 }

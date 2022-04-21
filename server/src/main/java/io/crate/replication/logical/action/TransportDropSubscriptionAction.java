@@ -106,9 +106,10 @@ public class TransportDropSubscriptionAction extends AbstractDDLTransportAction<
     private void removeSubscriptionSetting(Subscription subscription,
                                            ClusterState currentState,
                                            Metadata.Builder mdBuilder) {
+        Metadata metadata = currentState.metadata();
         for (var relationName : subscription.relations().keySet()) {
             var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-                currentState,
+                metadata,
                 IndicesOptions.lenientExpandOpen(),
                 relationName.indexNameOrAlias()
             );
