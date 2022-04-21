@@ -26,7 +26,6 @@ import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -119,16 +118,19 @@ public final class MetadataTracker implements Closeable {
     }
 
     private void start() {
-        assert isActive == false : "MetadataTracker is already started";
-        assert clusterService.state().getNodes().isLocalNodeElectedMaster() : "MetadataTracker must only be run on the master node";
-        var runnable = new RetryRunnable(
-            threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
-            threadPool.scheduler(),
-            this::run,
-            BackoffPolicy.exponentialBackoff(replicationSettings.pollDelay(), 8)
-        );
+        RetryRunnable runnable;
+        synchronized (this) {
+            assert isActive == false : "MetadataTracker is already started";
+            assert clusterService.state().getNodes().isLocalNodeElectedMaster() : "MetadataTracker must only be run on the master node";
+            runnable = new RetryRunnable(
+                threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
+                threadPool.scheduler(),
+                this::run,
+                BackoffPolicy.exponentialBackoff(replicationSettings.pollDelay(), 8)
+            );
+            isActive = true;
+        }
         runnable.run();
-        isActive = true;
     }
 
     private void stop() {
@@ -560,8 +562,22 @@ public final class MetadataTracker implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         stop();
     }
 
+    /**
+     * Start tracking if there is at least one subscription and if the tracker wasn't already active
+     */
+    public void maybeStart() {
+        synchronized (this) {
+            if (isActive) {
+                return;
+            }
+            if (subscriptionsToTrack.isEmpty()) {
+                return;
+            }
+            start();
+        }
+    }
 }
