@@ -27,11 +27,14 @@ import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
 
 import io.crate.execution.engine.export.FileOutputFactory;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -113,6 +116,12 @@ public abstract class ShardCollectorProvider {
         indexShard.awaitShardSearchActive(b -> {
             try {
                 futureIt.complete(getIterator(collectPhase, requiresScroll, collectTask));
+            } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
+                if (IndexParts.isPartitioned(e.getIndex().getName())) {
+                    futureIt.complete(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
+                } else {
+                    futureIt.completeExceptionally(e);
+                }
             } catch (Throwable t) {
                 futureIt.completeExceptionally(t);
             }
@@ -175,6 +184,12 @@ public abstract class ShardCollectorProvider {
         indexShard.awaitShardSearchActive(b -> {
             try {
                 futureIt.complete(getOrderedCollector(collectPhase, sharedShardContext, collectTask, requiresRepeat));
+            } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
+                if (IndexParts.isPartitioned(e.getIndex().getName())) {
+                    futureIt.complete(OrderedDocCollector.empty(e.getShardId()));
+                } else {
+                    futureIt.completeExceptionally(e);
+                }
             } catch (Throwable t) {
                 futureIt.completeExceptionally(t);
             }
