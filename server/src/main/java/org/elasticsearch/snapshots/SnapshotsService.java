@@ -291,8 +291,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     throw new ConcurrentSnapshotExecutionException(repositoryName, snapshotName, " a snapshot is already running");
                 }
                 // Store newSnapshot here to be processed in clusterStateProcessed
-                indices = Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(currentState,
-                    request.indicesOptions(), request.indices()));
+                indices = Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(currentState.metadata(), request.indicesOptions(), request.indices()));
                 LOGGER.trace("[{}][{}] creating snapshot for indices [{}]", repositoryName, snapshotName, indices);
                 newSnapshot = new SnapshotsInProgress.Entry(
                     new Snapshot(repositoryName, snapshotId),

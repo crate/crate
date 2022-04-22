@@ -51,7 +51,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF
 public class DocTableInfoBuilder {
 
     private final RelationName ident;
-    private final ClusterState state;
     private final NodeContext nodeCtx;
     private final Metadata metadata;
     private String[] concreteIndices;
@@ -63,7 +62,6 @@ public class DocTableInfoBuilder {
                                ClusterState state) {
         this.nodeCtx = nodeCtx;
         this.ident = ident;
-        this.state = state;
         this.metadata = state.metadata();
     }
 
@@ -74,15 +72,20 @@ public class DocTableInfoBuilder {
             docIndexMetadata = buildDocIndexMetadataFromTemplate(ident.indexNameOrAlias(), templateName);
             // We need all concrete indices, regardless of their state, for operations such as reopening.
             concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-                state, IndicesOptions.lenientExpandOpen(), ident.indexNameOrAlias());
+                metadata,
+                IndicesOptions.lenientExpandOpen(),
+                ident.indexNameOrAlias()
+            );
             // We need all concrete open indices, as closed indices must not appear in the routing.
             concreteOpenIndices = IndexNameExpressionResolver.concreteIndexNames(
-                state, IndicesOptions.fromOptions(true, true, true,
-                    false, IndicesOptions.strictExpandOpenAndForbidClosed()), ident.indexNameOrAlias());
+                metadata,
+                IndicesOptions.fromOptions(true, true, true, false, IndicesOptions.strictExpandOpenAndForbidClosed()),
+                ident.indexNameOrAlias()
+            );
         } else {
             try {
                 concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-                    state, IndicesOptions.strictExpandOpen(), ident.indexNameOrAlias());
+                    metadata, IndicesOptions.strictExpandOpen(), ident.indexNameOrAlias());
                 concreteOpenIndices = concreteIndices;
                 if (concreteIndices.length == 0) {
                     // no matching index found

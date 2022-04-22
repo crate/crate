@@ -81,7 +81,7 @@ public class RenameTableClusterStateExecutor {
 
         try {
             Index[] sourceIndices = IndexNameExpressionResolver.concreteIndices(
-                currentState, STRICT_INDICES_OPTIONS, source.indexNameOrAlias());
+                currentState.metadata(), STRICT_INDICES_OPTIONS, source.indexNameOrAlias());
 
             for (Index sourceIndex : sourceIndices) {
                 IndexMetadata sourceIndexMetadata = currentMetadata.getIndexSafe(sourceIndex);

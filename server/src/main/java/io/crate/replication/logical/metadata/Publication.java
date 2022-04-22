@@ -124,7 +124,7 @@ public class Publication implements Writeable {
                 if (indexParts.isPartitioned()
                         && userCanPublish(relationName, publicationOwner)
                         && subscriberCanRead(relationName, subscriber)) {
-                    relations.put(relationName, RelationMetadata.fromMetadata(relationName, state));
+                    relations.put(relationName, RelationMetadata.fromMetadata(relationName, metadata));
                 }
             }
             for (var cursor : metadata.indices().values()) {
@@ -145,7 +145,7 @@ public class Publication implements Writeable {
                     continue;
                 }
                 if (userCanPublish(relationName, publicationOwner) && subscriberCanRead(relationName, subscriber)) {
-                    relations.put(relationName, RelationMetadata.fromMetadata(relationName, state));
+                    relations.put(relationName, RelationMetadata.fromMetadata(relationName, metadata));
                 }
             }
             return relations;
@@ -153,7 +153,7 @@ public class Publication implements Writeable {
             return tables.stream()
                 .filter(relationName -> userCanPublish(relationName, publicationOwner))
                 .filter(relationName -> subscriberCanRead(relationName, subscriber))
-                .map(relationName -> RelationMetadata.fromMetadata(relationName, state))
+                .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata()))
                 .collect(Collectors.toMap(x -> x.name(), x -> x));
         }
     }
