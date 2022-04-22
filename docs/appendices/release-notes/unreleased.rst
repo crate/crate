@@ -64,6 +64,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Updated the bundled JDK to 17.0.3+7
+
 - Fixed an issue with the handling of intervals in generated columns. The table
   creation failed when an interval is included in a function call as part of a
   generated column.
