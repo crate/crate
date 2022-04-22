@@ -229,6 +229,7 @@ public final class SniffRemoteClient extends AbstractClient {
 
                 @Override
                 public void handleException(TransportException exp) {
+                    connection.close();
                     result.completeExceptionally(exp.unwrapCause());
                 }
 
