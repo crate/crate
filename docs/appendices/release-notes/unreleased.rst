@@ -115,6 +115,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Updated the bundled JDK to 17.0.3+7
+
 - Fixed an issue with the handling of quoted identifiers in column names where
   certain characters break the processing. This makes sure any special characters
   can be used as column name.
