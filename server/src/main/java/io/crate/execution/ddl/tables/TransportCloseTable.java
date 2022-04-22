@@ -284,7 +284,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         return state.blocks().indicesBlockedException(
             ClusterBlockLevel.METADATA_WRITE,
             IndexNameExpressionResolver.concreteIndexNames(
-                state,
+                state.metadata(),
                 ignoreUnavailableIndices ? IndicesOptions.lenientExpandOpen() : IndicesOptions.strictExpandOpen(),
                 getIndices(relationsToCheck, partition)
             )
@@ -294,9 +294,10 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     public static List<RelationName> collectEmptyPartitionedTables(List<RelationName> relationNames,
                                                                    ClusterState clusterState) {
         ArrayList<RelationName> emptyPartitionedTables = new ArrayList<>();
+        Metadata metadata = clusterState.metadata();
         for (var relationName : relationNames) {
             var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-                clusterState,
+                metadata,
                 IndicesOptions.lenientExpandOpen(),
                 getIndices(List.of(relationName), null)
             );
@@ -405,7 +406,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
-            Index[] indices = IndexNameExpressionResolver.concreteIndices(currentState, IndicesOptions.lenientExpandOpen(), getIndices(request.tables(), request.partition()));
+            Index[] indices = IndexNameExpressionResolver.concreteIndices(currentState.metadata(), IndicesOptions.lenientExpandOpen(), getIndices(request.tables(), request.partition()));
             if (indices.length == 0) {
                 return currentState;
             }

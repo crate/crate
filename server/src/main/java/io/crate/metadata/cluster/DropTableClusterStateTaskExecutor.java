@@ -50,7 +50,7 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
     protected ClusterState execute(ClusterState currentState, DropTableRequest request) throws Exception {
         RelationName relationName = request.tableIdent();
         final Set<Index> concreteIndices = new HashSet<>(Arrays.asList(IndexNameExpressionResolver.concreteIndices(
-            currentState, IndicesOptions.lenientExpandOpen(), relationName.indexNameOrAlias())));
+            currentState.metadata(), IndicesOptions.lenientExpandOpen(), relationName.indexNameOrAlias())));
         currentState = deleteIndexService.deleteIndices(currentState, concreteIndices);
 
         if (request.isPartitioned()) {

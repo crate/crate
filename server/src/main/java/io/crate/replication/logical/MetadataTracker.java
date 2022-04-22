@@ -453,7 +453,7 @@ public final class MetadataTracker implements Closeable {
                 changedRelations.add(relationName);
             }
             var concreteIndices = IndexNameExpressionResolver.concreteIndices(
-                subscriberClusterState,
+                subscriberClusterState.metadata(),
                 IndicesOptions.lenientExpand(),
                 relationName.indexNameOrAlias()
             );

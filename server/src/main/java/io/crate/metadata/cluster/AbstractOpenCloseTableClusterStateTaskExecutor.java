@@ -87,8 +87,7 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
         String[] indexToResolve = partitionIndexName != null ? new String[] {partitionIndexName} :
             request.tables().stream().map(t -> t.indexNameOrAlias()).toArray(String[]::new);
         PartitionName partitionName = partitionIndexName != null ? PartitionName.fromIndexOrTemplate(partitionIndexName) : null;
-        String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-            currentState, IndicesOptions.lenientExpandOpen(), indexToResolve);
+        String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(currentState.metadata(), IndicesOptions.lenientExpandOpen(), indexToResolve);
         Set<IndexMetadata> indicesMetadata = DDLClusterStateHelpers.indexMetadataSetFromIndexNames(metadata, concreteIndices, indexState());
         List<IndexTemplateMetadata> indexTemplatesMetadata = new ArrayList<>();
         if (partitionIndexName == null) {

@@ -529,9 +529,10 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
 
     private Index[] resolveIndices(ClusterState currentState, String indexExpressions) {
         return IndexNameExpressionResolver.concreteIndices(
-            currentState,
+            currentState.metadata(),
             FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING,
-            indexExpressions);
+            indexExpressions
+        );
     }
 
     /**

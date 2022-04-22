@@ -29,6 +29,7 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -60,20 +61,20 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
         this.globalBlobPath = BlobIndicesService.getGlobalBlobPath(settings);;
     }
 
-    private IndexMetadata resolveIndexMetadata(String tableName, ClusterState state) {
+    private IndexMetadata resolveIndexMetadata(String tableName, Metadata metadata) {
         String indexName = BlobIndex.fullIndexName(tableName);
         Index index;
         try {
-            index = IndexNameExpressionResolver.concreteIndices(state, IndicesOptions.strictExpandOpen(), indexName)[0];
+            index = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.strictExpandOpen(), indexName)[0];
         } catch (IndexNotFoundException ex) {
             throw new RelationUnknown(indexName, ex);
         }
-        return state.metadata().index(index);
+        return metadata.index(index);
     }
 
     @Override
     public BlobTableInfo create(RelationName ident, ClusterState clusterState) {
-        IndexMetadata indexMetadata = resolveIndexMetadata(ident.name(), clusterState);
+        IndexMetadata indexMetadata = resolveIndexMetadata(ident.name(), clusterState.metadata());
         Settings settings = indexMetadata.getSettings();
         return new BlobTableInfo(
             ident,
