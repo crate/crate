@@ -33,9 +33,24 @@ import java.util.function.Supplier;
 public abstract class OrderedDocCollector implements Supplier<KeyIterable<ShardId, Row>>, AutoCloseable, Killable {
 
     private final ShardId shardId;
-    private final KeyIterable<ShardId, Row> empty;
+    protected final KeyIterable<ShardId, Row> empty;
 
     boolean exhausted = false;
+
+    public static OrderedDocCollector empty(ShardId shardId) {
+        return new OrderedDocCollector(shardId) {
+
+            @Override
+            protected KeyIterable<ShardId, Row> collect() {
+                return empty;
+            }
+
+            @Override
+            public boolean exhausted() {
+                return true;
+            }
+        };
+    }
 
     OrderedDocCollector(ShardId shardId) {
         this.shardId = shardId;
