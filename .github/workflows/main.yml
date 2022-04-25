@@ -1,0 +1,31 @@
+---
+name: CrateDB SQL
+on:
+  pull_request: ~
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: Test CrateDB SQL on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Setup Gradle Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Run tests on ${{ matrix.os }}
+        uses: eskatos/gradle-command-action@v1
+        env:
+          CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
+        with:
+          arguments: :sql:test -Dtests.crate.run-windows-incompatible=${{ matrix.os == 'ubuntu-latest' }}

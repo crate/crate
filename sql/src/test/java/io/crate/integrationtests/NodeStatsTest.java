@@ -29,6 +29,7 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.junit.Ignore;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -200,6 +201,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @Ignore("cgroup v2 support missing")
     public void testSysNodesCgroup() throws Exception {
         if (Constants.LINUX && !"true".equals(System.getenv("SHIPPABLE"))) { // cgroups are only available on Linux
             SQLResponse response = execute("select" +
@@ -240,7 +242,6 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
                 assertNull(response.rows()[0][i]);
             }
         }
-
     }
 
     @Test
