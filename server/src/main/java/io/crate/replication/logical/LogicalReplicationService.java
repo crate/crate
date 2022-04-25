@@ -290,29 +290,25 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         };
 
         remoteClusters.connect(subscriptionName, connectionInfo)
-            .whenComplete(
-                (client, err) -> {
-                    if (err == null) {
-                        client.execute(
-                            PublicationsStateAction.INSTANCE,
-                            new PublicationsStateAction.Request(
-                                publications,
-                                connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey())
-                            )
-                        ).whenComplete(
-                            ActionListener.toBiConsumer(
-                                ActionListener.delegateResponse(
-                                    finalFuture,
-                                    (d, stateError) -> onError.accept("Failed to request the publications state",
-                                                                      stateError)
-                                )
-                            )
-                        );
-                    } else {
-                        onError.accept("Failed to connect to the remote cluster", err);
-                    }
+            .whenComplete((client, err) -> {
+                if (err == null) {
+                    client.execute(
+                        PublicationsStateAction.INSTANCE,
+                        new PublicationsStateAction.Request(
+                            publications,
+                            connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey())
+                        )
+                    ).whenComplete((d, stateErr) -> {
+                        if (stateErr == null) {
+                            finalFuture.complete(d);
+                        } else {
+                            onError.accept("Failed to request the publications state", stateErr);
+                        }
+                    });
+                } else {
+                    onError.accept("Failed to connect to the remote cluster", err);
                 }
-            );
+            });
         return finalFuture;
     }
 
