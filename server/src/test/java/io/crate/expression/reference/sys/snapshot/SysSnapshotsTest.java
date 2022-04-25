@@ -53,6 +53,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -69,23 +70,19 @@ public class SysSnapshotsTest extends ESTestCase {
             1, snapshots, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY);
 
         Repository r1 = mock(Repository.class);
-        doAnswer((Answer<Void>) invocation -> {
-            ActionListener<RepositoryData> callback = invocation.getArgument(0);
-            callback.onResponse(repositoryData);
-            return null;
-        }).when(r1).getRepositoryData(any());
+        doReturn(CompletableFuture.completedFuture(repositoryData))
+            .when(r1)
+            .getRepositoryData();
 
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
-        doAnswer((Answer<Void>) invocation -> {
-            ActionListener<SnapshotInfo> callback = invocation.getArgument(1);
-            callback.onFailure(new SnapshotException("repo1", "s1", "Everything is wrong"));
-            return null;
-        }).when(r1).getSnapshotInfo(eq(s1), any());
-        doAnswer((Answer<Void>) invocation -> {
-            ActionListener<SnapshotInfo> callback = invocation.getArgument(1);
-            callback.onResponse(new SnapshotInfo(s2, Collections.emptyList(), SnapshotState.SUCCESS));
-            return null;
-        }).when(r1).getSnapshotInfo(eq(s2), any());
+
+        doReturn(CompletableFuture.failedFuture(new SnapshotException("repo1", "s1", "Everything is wrong")))
+            .when(r1)
+            .getSnapshotInfo(eq(s1));
+
+        doReturn(CompletableFuture.completedFuture(new SnapshotInfo(s2, Collections.emptyList(), SnapshotState.SUCCESS)))
+            .when(r1)
+            .getSnapshotInfo(eq(s2));
 
         SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1));
         Stream<SysSnapshot> currentSnapshots = StreamSupport.stream(
@@ -99,11 +96,11 @@ public class SysSnapshotsTest extends ESTestCase {
     }
 
     @Test
-    public void test_current_snapshot_does_not_fail_if_get_repository_data_raises_exception() throws Exception {
+    public void test_current_snapshot_does_not_fail_if_get_repository_data_returns_failed_future() throws Exception {
         Repository r1 = mock(Repository.class);
         Mockito
-            .doThrow(new IllegalStateException("some error"))
-            .when(r1).getRepositoryData(any());
+            .doReturn(CompletableFuture.failedFuture(new IllegalStateException("some error")))
+            .when(r1).getRepositoryData();
 
         SysSnapshots sysSnapshots = new SysSnapshots(() -> List.of(r1));
         CompletableFuture<Iterable<SysSnapshot>> currentSnapshots = sysSnapshots.currentSnapshots();

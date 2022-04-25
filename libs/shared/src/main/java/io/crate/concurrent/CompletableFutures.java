@@ -35,6 +35,32 @@ public final class CompletableFutures {
     private CompletableFutures() {
     }
 
+    /**
+     * Return a new {@link CompletableFuture} that is completed when all of the given futures
+     * complete. The future contains a List containing the results of all futures that completed successfully.
+     *
+     * Failed futures are skipped. Their result is not included in the result list.
+     */
+    public static <T> CompletableFuture<List<T>> allSuccessfulAsList(Collection<? extends CompletableFuture<? extends T>> futures) {
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+            .handle((ignored, ignoredErr) -> {
+                ArrayList<T> results = new ArrayList<>(futures.size());
+                for (CompletableFuture<? extends T> future : futures) {
+                    if (future.isCompletedExceptionally()) {
+                        continue;
+                    }
+                    results.add(future.join());
+                }
+                return results;
+            });
+    }
+
+    /**
+     * Return a new {@link CompletableFuture} that is completed when all of the given futures
+     * complete. The future contains a List containing the result of all futures.
+     *
+     * If any future failed, the result is a failed future.
+     */
     public static <T> CompletableFuture<List<T>> allAsList(Collection<? extends CompletableFuture<? extends T>> futures) {
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
             .thenApply(aVoid -> {
