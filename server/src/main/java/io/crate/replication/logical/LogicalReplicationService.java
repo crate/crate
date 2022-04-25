@@ -194,7 +194,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                     startReplication(subscriptionName, subscription)
                         .whenComplete(
                             (success, e) -> {
-                                var relationNames = subscription.relations().keySet().stream().toList();
+                                var relationNames = subscription.relations().keySet();
                                 if (e != null) {
                                     e = SQLExceptions.unwrap(e);
                                     LOGGER.debug("Failure for logical replication for subscription", e);
