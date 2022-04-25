@@ -83,6 +83,8 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.EngineFactory;
+import org.elasticsearch.index.engine.InternalEngineFactory;
+import org.elasticsearch.index.engine.NoOpEngine;
 import org.elasticsearch.index.engine.ReadOnlyEngine;
 import org.elasticsearch.index.engine.RefreshFailedEngineException;
 import org.elasticsearch.index.engine.SafeCommitInfo;
@@ -260,7 +262,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         this.codecService = new CodecService(mapperService, logger);
         Objects.requireNonNull(store, "Store must be provided to the index shard");
         this.engineFactoryProviders = engineFactoryProviders;
-        this.engineFactory = IndicesService.getEngineFactory(indexSettings, engineFactoryProviders);
+        this.engineFactory = getEngineFactory();
         this.store = store;
         this.indexEventListener = indexEventListener;
         this.threadPool = threadPool;
@@ -1799,7 +1801,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     public void onSettingsChanged() {
-        var newEngineFactory = IndicesService.getEngineFactory(indexSettings, engineFactoryProviders);
+        var newEngineFactory = getEngineFactory();
         if (newEngineFactory.getClass() != engineFactory.getClass()) {
             try {
                 // resetEngineToGlobalCheckpoint will use the new engine factory
@@ -3371,7 +3373,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     }
                 };
             IOUtils.close(currentEngineReference.getAndSet(readOnlyEngine));
-            engineFactory = IndicesService.getEngineFactory(indexSettings, engineFactoryProviders);
+            engineFactory = getEngineFactory();
             newEngineReference.set(engineFactory.newReadWriteEngine(newEngineConfig(replicationTracker)));
             onNewEngine(newEngineReference.get());
         }
@@ -3440,5 +3442,39 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     public long periodicFlushCount() {
         return periodicFlushMetric.count();
+    }
+
+    private EngineFactory getEngineFactory() {
+        final IndexMetadata indexMetadata = indexSettings.getIndexMetadata();
+        if (indexMetadata != null && indexMetadata.getState() == IndexMetadata.State.CLOSE) {
+            // NoOpEngine takes precedence as long as the index is closed
+            return NoOpEngine::new;
+        }
+
+        final List<Optional<EngineFactory>> engineFactories =
+            engineFactoryProviders
+                .stream()
+                .map(engineFactoryProvider -> engineFactoryProvider.apply(indexSettings))
+                .filter(maybe -> Objects.requireNonNull(maybe).isPresent())
+                .collect(Collectors.toList());
+        if (engineFactories.isEmpty()) {
+            return new InternalEngineFactory();
+        } else if (engineFactories.size() == 1) {
+            assert engineFactories.get(0).isPresent();
+            return engineFactories.get(0).get();
+        } else {
+            final String message = String.format(
+                Locale.ROOT,
+                "multiple engine factories provided for %s: %s",
+                indexMetadata.getIndex(),
+                engineFactories
+                    .stream()
+                    .map(t -> {
+                        assert t.isPresent();
+                        return "[" + t.get().getClass().getName() + "]";
+                    })
+                    .collect(Collectors.joining(",")));
+            throw new IllegalStateException(message);
+        }
     }
 }

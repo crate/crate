@@ -64,8 +64,6 @@ import org.elasticsearch.index.IndexService.IndexCreationContext;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.engine.EngineFactory;
-import org.elasticsearch.index.engine.InternalEngineFactory;
-import org.elasticsearch.index.engine.NoOpEngine;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.shard.IndexEventListener;
@@ -93,7 +91,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -432,41 +429,6 @@ public class IndicesService extends AbstractLifecycleComponent
             indicesQueryCache,
             mapperRegistry
         );
-    }
-
-    public static EngineFactory getEngineFactory(final IndexSettings idxSettings,
-                                                 Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders) {
-        final IndexMetadata indexMetadata = idxSettings.getIndexMetadata();
-        if (indexMetadata != null && indexMetadata.getState() == IndexMetadata.State.CLOSE) {
-            // NoOpEngine takes precedence as long as the index is closed
-            return NoOpEngine::new;
-        }
-
-        final List<Optional<EngineFactory>> engineFactories =
-                engineFactoryProviders
-                        .stream()
-                        .map(engineFactoryProvider -> engineFactoryProvider.apply(idxSettings))
-                        .filter(maybe -> Objects.requireNonNull(maybe).isPresent())
-                        .collect(Collectors.toList());
-        if (engineFactories.isEmpty()) {
-            return new InternalEngineFactory();
-        } else if (engineFactories.size() == 1) {
-            assert engineFactories.get(0).isPresent();
-            return engineFactories.get(0).get();
-        } else {
-            final String message = String.format(
-                    Locale.ROOT,
-                    "multiple engine factories provided for %s: %s",
-                    idxSettings.getIndex(),
-                    engineFactories
-                            .stream()
-                            .map(t -> {
-                                assert t.isPresent();
-                                return "[" + t.get().getClass().getName() + "]";
-                            })
-                            .collect(Collectors.joining(",")));
-            throw new IllegalStateException(message);
-        }
     }
 
     /**
