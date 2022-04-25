@@ -33,7 +33,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
-import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardState;
@@ -113,7 +112,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
                 shard.shardPath(),
                 shard.indexSettings().getIndexMetadata(),
                 null,
-                new InternalEngineFactory(),
+                List.of(),
                 () -> {},
                 RetentionLeaseSyncer.EMPTY,
                 EMPTY_EVENT_LISTENER

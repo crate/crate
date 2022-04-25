@@ -19,12 +19,11 @@
 
 package org.elasticsearch.index;
 
+import io.crate.common.Booleans;
+import io.crate.types.DataTypes;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.SetOnce;
-import io.crate.common.Booleans;
-import io.crate.types.DataTypes;
-
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -48,12 +47,13 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
@@ -107,7 +107,7 @@ public final class IndexModule {
 
     private final IndexSettings indexSettings;
     private final AnalysisRegistry analysisRegistry;
-    private final EngineFactory engineFactory;
+    private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
     private final Set<IndexEventListener> indexEventListeners = new HashSet<>();
     private final Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories;
     private final SetOnce<BiFunction<IndexSettings, IndicesQueryCache, QueryCache>> forceQueryCacheProvider = new SetOnce<>();
@@ -126,11 +126,11 @@ public final class IndexModule {
     public IndexModule(
             final IndexSettings indexSettings,
             final AnalysisRegistry analysisRegistry,
-            final EngineFactory engineFactory,
+            final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
             final Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories) {
         this.indexSettings = indexSettings;
         this.analysisRegistry = analysisRegistry;
-        this.engineFactory = Objects.requireNonNull(engineFactory);
+        this.engineFactoryProviders = engineFactoryProviders;
         this.directoryFactories = Collections.unmodifiableMap(directoryFactories);
     }
 
@@ -175,8 +175,8 @@ public final class IndexModule {
      *
      * @return the engine factory
      */
-    EngineFactory getEngineFactory() {
-        return engineFactory;
+    Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders() {
+        return engineFactoryProviders;
     }
 
     /**
@@ -329,7 +329,7 @@ public final class IndexModule {
             xContentRegistry,
             shardStoreDeleter,
             analysisRegistry,
-            engineFactory,
+            engineFactoryProviders,
             circuitBreakerService,
             bigArrays,
             threadPool,
