@@ -1,17 +1,27 @@
 pipeline {
   agent any
+  tools {
+    // used to run gradle
+    jdk 'jdk11'
+  }
+  options {
+    timeout(time: 45, unit: 'MINUTES') 
+  }
+  environment {
+    CI_RUN = 'true'
+  }
   stages {
     stage('Parallel') {
       parallel {
         stage('sphinx') {
-          agent { label 'medium' }
+          agent { label 'small' }
           steps {
             sh 'cd ./blackbox/ && ./bootstrap.sh'
-            sh './blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E blackbox/docs/ docs/out/html'
+            sh './blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E docs/ docs/_out/html'
             sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
           }
         }
-        stage('test') {
+        stage('Java tests') {
           agent { label 'large' }
           environment {
             CODECOV_TOKEN = credentials('cratedb-codecov-token')
@@ -20,139 +30,46 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'git submodule update --init'
-            sh './gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain pmdMain jacocoReport'
-            sh 'curl -s https://codecov.io/bash | bash'
+            sh './gradlew --no-daemon --parallel -Dtests.crate.slow=true -PtestForks=8 test jacocoReport'
+
+            // Upload coverage report to Codecov.
+            // https://about.codecov.io/blog/introducing-codecovs-new-uploader/
+            sh '''
+              # Download uploader program and perform integrity checks.
+              curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --import # One-time step
+              curl -Os https://uploader.codecov.io/latest/linux/codecov
+              curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
+              curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
+              gpg --verify codecov.SHA256SUM.sig codecov.SHA256SUM
+              shasum -a 256 -c codecov.SHA256SUM
+
+              # Invoke program.
+              chmod +x codecov
+              ./codecov -t ${CODECOV_TOKEN}
+            '''.stripIndent()
           }
           post {
             always {
-              junit '*/build/test-results/test/*.xml'
+              junit '**/build/test-results/test/*.xml'
             }
           }
         }
-        stage('test jdk11') {
-          agent { label 'large' }
-          environment {
-            CODECOV_TOKEN = credentials('cratedb-codecov-token')
-          }
-          tools {
-            jdk 'jdk11'
-          }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'git submodule update --init'
-            sh './gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
-            sh 'curl -s https://codecov.io/bash | bash'
-          }
-          post {
-            always {
-              junit '*/build/test-results/test/*.xml'
-            }
-          }
-        }
-        stage('test jdk12') {
-          agent { label 'large' }
-          environment {
-            CODECOV_TOKEN = credentials('cratedb-codecov-token')
-          }
-          tools {
-            jdk 'jdk12'
-          }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'git submodule update --init'
-            sh './gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
-            sh 'curl -s https://codecov.io/bash | bash'
-          }
-          post {
-            always {
-              junit '*/build/test-results/test/*.xml'
-            }
-          }
-        }
-        stage('itest jdk8') {
+        stage('itest') {
           agent { label 'medium' }
-          tools {
-            jdk 'jdk8'
-          }
           steps {
             sh 'git clean -xdff'
             checkout scm
             sh 'git submodule update --init'
             sh './gradlew --no-daemon itest'
-          }
-        }
-        stage('itest jdk11') {
-          agent { label 'medium' }
-          tools {
-            jdk 'jdk11'
-          }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'git submodule update --init'
-            sh './gradlew --no-daemon itest'
-          }
-        }
-        stage('ce itest jdk11') {
-          agent { label 'medium' }
-          tools {
-            jdk 'jdk11'
-          }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'git submodule update --init'
-            sh './gradlew --no-daemon ceItest'
-          }
-        }
-        stage('ce licenseTest jdk11') {
-          agent { label 'medium' }
-          tools {
-            jdk 'jdk11'
-          }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'git submodule update --init'
-            sh './gradlew --no-daemon ceLicenseTest'
-          }
-        }
-        stage('itest jdk12') {
-          agent { label 'medium' }
-          tools {
-            jdk 'jdk12'
-          }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'git submodule update --init'
-            sh './gradlew --no-daemon itest'
-          }
-        }
-        stage('test jar jdk11') {
-          agent { label 'medium' }
-          tools {
-            jdk 'jdk11'
-          }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'git submodule update --init'
-            sh 'timeout 20m ./gradlew --no-daemon :app:jar :app:sourceJar :app:javadocJar'
           }
         }
         stage('blackbox tests') {
-          agent { label 'large' }
-          tools {
-            jdk 'jdk11'
-          }
+          agent { label 'medium' }
           steps {
             sh 'git clean -xdff'
             checkout scm
             sh 'git submodule update --init'
-            sh './gradlew --no-daemon hdfsTest monitoringTest gtest'
+            sh './gradlew --no-daemon gtest'
           }
         }
       }

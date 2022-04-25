@@ -140,7 +140,7 @@ To upload a blob the sha1 hash of the blob has to be known upfront since this
 has to be used as the ID of the new blob. For this example we use a fancy
 Python one-liner to compute the shasum::
 
-    sh$ python -c 'import hashlib;print(hashlib.sha1("contents".encode("utf-8")).hexdigest())'
+    sh$ python3 -c 'import hashlib;print(hashlib.sha1("contents".encode("utf-8")).hexdigest())'
     4a756ca07e9487f482465a99e8286abc86ba4dc7
 
 The blob can now be uploaded by issuing a PUT request::
