@@ -69,7 +69,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
@@ -476,10 +475,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             onComplete.accept(response.getRestoreInfo(), null);
         } else {
             var restoreFuture =
-                new FutureActionListener<RestoreSnapshotResponse, RestoreSnapshotResponse>(Function.identity());
-            restoreFuture.whenComplete(
-                (restoreSnapshotResponse, err) -> onComplete.accept(restoreSnapshotResponse.getRestoreInfo(), err)
-            );
+                new FutureActionListener<RestoreSnapshotResponse, RestoreInfo>(RestoreSnapshotResponse::getRestoreInfo);
+            restoreFuture.whenComplete(onComplete);
             clusterService.addListener(new RestoreClusterStateListener(clusterService, response, restoreFuture));
         }
         return future;
