@@ -63,7 +63,6 @@ import org.elasticsearch.transport.netty4.Netty4TcpChannel;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
-import io.crate.common.collections.BorrowedItem;
 import io.crate.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -77,7 +76,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.ssl.SslContext;
@@ -193,14 +191,15 @@ public class PgClient extends AbstractClient {
             pageCacheRecycler,
             sslContextProvider,
             connectionInfo,
-            future,
-            eventLoopGroup
+            future
         ));
         bootstrap.remoteAddress(host.getAddress().address());
         ChannelFuture connectFuture = bootstrap.connect();
         var channel = connectFuture.channel();
+        channel.closeFuture().addListener(f -> {
+            transportService.getThreadPool().generic().execute(eventLoopGroup::close);
+        });
         future.exceptionally(err -> {
-            eventLoopGroup.close();
             try {
                 Netty4Utils.closeChannels(List.of(channel));
             } catch (IOException ignored) {
@@ -262,7 +261,6 @@ public class PgClient extends AbstractClient {
         private final ConnectionProfile profile;
         private final ConnectionInfo connectionInfo;
         private final SslContextProvider sslContextProvider;
-        private final BorrowedItem<EventLoopGroup> eventLoopGroup;
 
         public ClientChannelInitializer(ConnectionProfile profile,
                                         DiscoveryNode node,
@@ -270,8 +268,7 @@ public class PgClient extends AbstractClient {
                                         PageCacheRecycler pageCacheRecycler,
                                         SslContextProvider sslContextProvider,
                                         ConnectionInfo connectionInfo,
-                                        CompletableFuture<Transport.Connection> result,
-                                        BorrowedItem<EventLoopGroup> eventLoopGroup) {
+                                        CompletableFuture<Transport.Connection> result) {
             this.profile = profile;
             this.node = node;
             this.transport = transport;
@@ -279,7 +276,6 @@ public class PgClient extends AbstractClient {
             this.sslContextProvider = sslContextProvider;
             this.connectionInfo = connectionInfo;
             this.result = result;
-            this.eventLoopGroup = eventLoopGroup;
         }
 
         @Override
@@ -301,8 +297,7 @@ public class PgClient extends AbstractClient {
                 transport,
                 pageCacheRecycler,
                 connectionInfo,
-                result,
-                eventLoopGroup
+                result
             );
             ch.pipeline().addLast("dispatcher", handler);
         }
@@ -316,22 +311,19 @@ public class PgClient extends AbstractClient {
         private final Netty4Transport transport;
         private final ConnectionProfile profile;
         private final ConnectionInfo connectionInfo;
-        private final BorrowedItem<EventLoopGroup> eventLoopGroup;
 
         public Handler(ConnectionProfile profile,
                        DiscoveryNode node,
                        Netty4Transport transport,
                        PageCacheRecycler pageCacheRecycler,
                        ConnectionInfo connectionInfo,
-                       CompletableFuture<Transport.Connection> result,
-                       BorrowedItem<EventLoopGroup> eventLoopGroup) {
+                       CompletableFuture<Transport.Connection> result) {
             this.profile = profile;
             this.node = node;
             this.transport = transport;
             this.pageCacheRecycler = pageCacheRecycler;
             this.connectionInfo = connectionInfo;
             this.result = result;
-            this.eventLoopGroup = eventLoopGroup;
         }
 
         @Override
@@ -394,8 +386,7 @@ public class PgClient extends AbstractClient {
                         node,
                         tcpChannel,
                         profile,
-                        version,
-                        eventLoopGroup
+                        version
                     );
                     long relativeMillisTime = this.transport.getThreadPool().relativeTimeInMillis();
                     tcpChannel.getChannelStats().markAccessed(relativeMillisTime);
@@ -581,20 +572,17 @@ public class PgClient extends AbstractClient {
         private final Version version;
         private final OutboundHandler outboundHandler;
         private final AtomicBoolean isClosing = new AtomicBoolean(false);
-        private final BorrowedItem<EventLoopGroup> eventLoopGroup;
 
         public TunneledConnection(OutboundHandler outboundHandler,
                                   DiscoveryNode node,
                                   Netty4TcpChannel channel,
                                   ConnectionProfile connectionProfile,
-                                  Version version,
-                                  BorrowedItem<EventLoopGroup> eventLoopGroup) {
+                                  Version version) {
             this.outboundHandler = outboundHandler;
             this.node = node;
             this.channel = channel;
             this.connectionProfile = connectionProfile;
             this.version = version;
-            this.eventLoopGroup = eventLoopGroup;
         }
 
         @Override
@@ -628,7 +616,6 @@ public class PgClient extends AbstractClient {
         public void close() {
             if (isClosing.compareAndSet(false, true)) {
                 try {
-                    eventLoopGroup.close();
                     CloseableChannel.closeChannels(List.of(channel), false);
                 } finally {
                     super.close();

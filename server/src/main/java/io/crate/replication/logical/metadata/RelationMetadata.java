@@ -28,7 +28,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -59,15 +58,14 @@ public record RelationMetadata(RelationName name,
         out.writeOptionalWriteable(template);
     }
 
-    public static RelationMetadata fromMetadata(RelationName table, ClusterState state) {
-        Metadata metadata = state.metadata();
+    public static RelationMetadata fromMetadata(RelationName table, Metadata metadata) {
         String indexNameOrAlias = table.indexNameOrAlias();
         var indexMetadata = metadata.index(indexNameOrAlias);
         if (indexMetadata == null) {
             String templateName = PartitionName.templateName(table.schema(), table.name());
             var templateMetadata = metadata.templates().get(templateName);
             String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-                state,
+                metadata,
                 IndicesOptions.lenientExpandOpen(),
                 indexNameOrAlias
             );
