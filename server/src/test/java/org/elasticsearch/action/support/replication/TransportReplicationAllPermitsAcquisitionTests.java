@@ -46,7 +46,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.elasticsearch.index.shard.ShardId;
@@ -151,7 +150,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             .put(SETTING_CREATION_DATE, System.currentTimeMillis())
             .build();
 
-        primary = newStartedShard(p -> newShard(shardRouting, indexSettings, new InternalEngineFactory()), true);
+        primary = newStartedShard(p -> newShard(shardRouting, indexSettings, List.of()), true);
         for (int i = 0; i < 10; i++) {
             final String id = Integer.toString(i);
             indexDoc(primary, id, "{\"value\":" + id + "}");

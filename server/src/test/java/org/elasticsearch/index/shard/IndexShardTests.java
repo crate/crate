@@ -18,64 +18,10 @@
  */
 package org.elasticsearch.index.shard;
 
-import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
-import static org.elasticsearch.common.lucene.Lucene.cleanLuceneIndex;
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
-import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
-import static org.elasticsearch.test.hamcrest.RegexMatcher.matches;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.either;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.hasToString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isIn;
-import static org.hamcrest.Matchers.isOneOf;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.sameInstance;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.LongFunction;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
+import io.crate.Constants;
+import io.crate.common.collections.Tuple;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
@@ -168,10 +114,64 @@ import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.crate.Constants;
-import io.crate.common.collections.Tuple;
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.LongFunction;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
+import static org.elasticsearch.common.lucene.Lucene.cleanLuceneIndex;
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
+import static org.elasticsearch.test.hamcrest.RegexMatcher.matches;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isIn;
+import static org.hamcrest.Matchers.isOneOf;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 
 /**
  * Simple unit-test IndexShard related operations.
@@ -1249,7 +1249,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shardPath,
             indexMetaData,
             null,
-            indexShard.engineFactory,
+            indexShard.engineFactoryProviders(),
             indexShard.getGlobalCheckpointSyncer(),
             indexShard.getRetentionLeaseSyncer(),
             EMPTY_EVENT_LISTENER
@@ -1302,7 +1302,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shardPath,
             indexMetaData,
             null,
-            indexShard.engineFactory,
+            indexShard.engineFactoryProviders,
             indexShard.getGlobalCheckpointSyncer(),
             indexShard.getRetentionLeaseSyncer(),
             EMPTY_EVENT_LISTENER
@@ -1335,7 +1335,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shardPath,
             indexMetaData,
             null,
-            indexShard.engineFactory,
+            indexShard.engineFactoryProviders,
             indexShard.getGlobalCheckpointSyncer(),
             indexShard.getRetentionLeaseSyncer(),
             EMPTY_EVENT_LISTENER
@@ -1390,7 +1390,7 @@ public class IndexShardTests extends IndexShardTestCase {
             indexShard.shardPath(),
             indexMetaData,
             null,
-            indexShard.engineFactory,
+            indexShard.engineFactoryProviders,
             indexShard.getGlobalCheckpointSyncer(),
             indexShard.getRetentionLeaseSyncer(),
             EMPTY_EVENT_LISTENER
@@ -2378,7 +2378,7 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard primaryShard = newShard(
             shardRouting,
             indexMetadata.build(),
-            new InternalEngineFactory(),
+            List.of(),
             () -> synced.set(true)
         );
         // add a replica
@@ -2808,7 +2808,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 shardPath,
                 metaData,
                 i -> store,
-                new InternalEngineFactory(),
+                List.of(),
                 () -> { },
                 RetentionLeaseSyncer.EMPTY,
                 EMPTY_EVENT_LISTENER);
@@ -3423,7 +3423,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shard.shardPath(),
             newShardIndexMetadata,
             null,
-            shard.getEngineFactory(),
+            shard.engineFactoryProviders(),
             shard.getGlobalCheckpointSyncer(),
             shard.getRetentionLeaseSyncer(),
             EMPTY_EVENT_LISTENER);
@@ -3655,7 +3655,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shardPath,
             metaData,
             null,
-            new InternalEngineFactory(),
+            List.of(),
             () -> { },
             new IndexEventListener() {
                 @Override
@@ -3846,19 +3846,20 @@ public class IndexShardTests extends IndexShardTestCase {
     public void testCloseShardWhileResettingEngine() throws Exception {
         CountDownLatch readyToCloseLatch = new CountDownLatch(1);
         CountDownLatch closeDoneLatch = new CountDownLatch(1);
-        IndexShard shard = newStartedShard(false, Settings.EMPTY, config -> new InternalEngine(config) {
-            @Override
-            public InternalEngine recoverFromTranslog(TranslogRecoveryRunner translogRecoveryRunner,
-                                                      long recoverUpToSeqNo) throws IOException {
-                readyToCloseLatch.countDown();
-                try {
-                    closeDoneLatch.await();
-                } catch (InterruptedException e) {
-                    throw new AssertionError(e);
+        IndexShard shard = newStartedShard(false, Settings.EMPTY, List.of(idxSettings -> Optional.of(
+            config -> new InternalEngine(config) {
+                @Override
+                public InternalEngine recoverFromTranslog(TranslogRecoveryRunner translogRecoveryRunner,
+                                                          long recoverUpToSeqNo) throws IOException {
+                    readyToCloseLatch.countDown();
+                    try {
+                        closeDoneLatch.await();
+                    } catch (InterruptedException e) {
+                        throw new AssertionError(e);
+                    }
+                    return super.recoverFromTranslog(translogRecoveryRunner, recoverUpToSeqNo);
                 }
-                return super.recoverFromTranslog(translogRecoveryRunner, recoverUpToSeqNo);
-            }
-        });
+        })));
 
         Thread closeShardThread = new Thread(() -> {
             try {
@@ -3947,20 +3948,21 @@ public class IndexShardTests extends IndexShardTestCase {
     public void testSnapshotWhileResettingEngine() throws Exception {
         CountDownLatch readyToSnapshotLatch = new CountDownLatch(1);
         CountDownLatch snapshotDoneLatch = new CountDownLatch(1);
-        IndexShard shard = newStartedShard(false, Settings.EMPTY, config -> new InternalEngine(config) {
-            @Override
-            public InternalEngine recoverFromTranslog(TranslogRecoveryRunner translogRecoveryRunner,
-                                                      long recoverUpToSeqNo) throws IOException {
-                InternalEngine internalEngine = super.recoverFromTranslog(translogRecoveryRunner, recoverUpToSeqNo);
-                readyToSnapshotLatch.countDown();
-                try {
-                    snapshotDoneLatch.await();
-                } catch (InterruptedException e) {
-                    throw new AssertionError(e);
+        IndexShard shard = newStartedShard(false, Settings.EMPTY, List.of(idxSettings -> Optional.of(
+            config -> new InternalEngine(config) {
+                @Override
+                public InternalEngine recoverFromTranslog(TranslogRecoveryRunner translogRecoveryRunner,
+                                                          long recoverUpToSeqNo) throws IOException {
+                    InternalEngine internalEngine = super.recoverFromTranslog(translogRecoveryRunner, recoverUpToSeqNo);
+                    readyToSnapshotLatch.countDown();
+                    try {
+                        snapshotDoneLatch.await();
+                    } catch (InterruptedException e) {
+                        throw new AssertionError(e);
+                    }
+                    return internalEngine;
                 }
-                return internalEngine;
-            }
-        });
+        })));
 
         indexOnReplicaWithGaps(shard, between(0, 1000), Math.toIntExact(shard.getLocalCheckpoint()), true);
         final long globalCheckpoint = randomLongBetween(shard.getLastKnownGlobalCheckpoint(), shard.getLocalCheckpoint());
@@ -4001,48 +4003,6 @@ public class IndexShardTests extends IndexShardTestCase {
 
         closeShard(shard, false);
     }
-
-    @Test
-    public void testClosedIndicesSkipSyncGlobalCheckpoint() throws Exception {
-        ShardId shardId = new ShardId("index", "_na_", 0);
-        IndexMetadata.Builder indexMetadata = IndexMetadata.builder("index")
-            .putMapping("default", "{ \"properties\": { \"foo\":  { \"type\": \"text\"}}}")
-            .settings(Settings.builder()
-                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
-                .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 2)
-            )
-            .state(IndexMetadata.State.CLOSE).primaryTerm(0, 1);
-        ShardRouting shardRouting = TestShardRouting.newShardRouting(
-            shardId,
-            randomAlphaOfLength(8),
-            true,
-            ShardRoutingState.INITIALIZING,
-            RecoverySource.EmptyStoreRecoverySource.INSTANCE
-        );
-        AtomicBoolean synced = new AtomicBoolean();
-        IndexShard primaryShard = newShard(
-            shardRouting,
-            indexMetadata.build(),
-            new InternalEngineFactory(),
-            () -> synced.set(true)
-        );
-        recoverShardFromStore(primaryShard);
-        IndexShard replicaShard = newShard(shardId, false);
-        recoverReplica(replicaShard, primaryShard, true);
-        int numDocs = between(1, 10);
-        for (int i = 0; i < numDocs; i++) {
-            indexDoc(primaryShard, Integer.toString(i));
-        }
-        assertThat(primaryShard.getLocalCheckpoint(), equalTo(numDocs - 1L));
-        primaryShard.updateLocalCheckpointForShard(replicaShard.shardRouting.allocationId().getId(), primaryShard.getLocalCheckpoint());
-        long globalCheckpointOnReplica = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, primaryShard.getLocalCheckpoint());
-        primaryShard.updateGlobalCheckpointForShard(replicaShard.shardRouting.allocationId().getId(), globalCheckpointOnReplica);
-        primaryShard.maybeSyncGlobalCheckpoint("test");
-        assertFalse("closed indices should skip global checkpoint sync", synced.get());
-        closeShards(primaryShard, replicaShard);
-    }
-
 
     @Test
     public void testRelocateMissingTarget() throws Exception {
@@ -4213,7 +4173,7 @@ public class IndexShardTests extends IndexShardTestCase {
 
     @Test
     public void testDoNotTrimCommitsWhenOpenReadOnlyEngine() throws Exception {
-        IndexShard shard = newStartedShard(false, Settings.EMPTY, new InternalEngineFactory());
+        IndexShard shard = newStartedShard(false, Settings.EMPTY, List.of());
         long numDocs = randomLongBetween(1, 20);
         long seqNo = 0;
         for (long i = 0; i < numDocs; i++) {
@@ -4247,13 +4207,16 @@ public class IndexShardTests extends IndexShardTestCase {
             shard,
             readonlyShardRouting,
             shard.indexSettings.getIndexMetadata(),
-            engineConfig -> new ReadOnlyEngine(engineConfig, null, null, true, Function.identity()) {
+            List.of(idxSettings -> Optional.of(
+                engineConfig ->
+                    new ReadOnlyEngine(engineConfig, null, null, true, Function.identity()) {
 
-                @Override
-                protected void ensureMaxSeqNoEqualsToGlobalCheckpoint(SeqNoStats seqNoStats) {
-                    // just like a following shard, we need to skip this check for now.
-                }
-            }
+                        @Override
+                        protected void ensureMaxSeqNoEqualsToGlobalCheckpoint(SeqNoStats seqNoStats) {
+                            // just like a following shard, we need to skip this check for now.
+                        }
+                    }
+            ))
         );
         DiscoveryNode localNode = new DiscoveryNode(
             "foo",
