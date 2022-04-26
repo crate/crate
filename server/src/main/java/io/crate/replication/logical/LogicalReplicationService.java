@@ -21,26 +21,31 @@
 
 package io.crate.replication.logical;
 
-import io.crate.action.FutureActionListener;
-import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.RetryRunnable;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.action.PublicationsStateAction;
-import io.crate.replication.logical.action.UpdateSubscriptionAction;
-import io.crate.replication.logical.metadata.ConnectionInfo;
-import io.crate.replication.logical.metadata.Publication;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.replication.logical.metadata.Subscription;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.replication.logical.repository.LogicalReplicationRepository;
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
+import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreClusterStateListener;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
-import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
@@ -57,23 +62,18 @@ import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
-import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
+import io.crate.action.FutureActionListener;
+import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.UpdateSubscriptionAction;
+import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.replication.logical.repository.LogicalReplicationRepository;
 
 public class LogicalReplicationService implements ClusterStateListener, Closeable {
 
@@ -187,40 +187,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         repositoriesService.registerInternalRepository(REMOTE_REPOSITORY_PREFIX + subscriptionName, TYPE);
 
         if (clusterService.state().nodes().isLocalNodeElectedMaster()) {
-            withRetry(
-                () -> {
-                    // The startReplication will initiate the remote connection upfront
-                    LOGGER.debug("Start logical replication for subscription '{}'", subscriptionName);
-                    startReplication(subscriptionName, subscription)
-                        .whenComplete(
-                            (success, e) -> {
-                                var relationNames = subscription.relations().keySet().stream().toList();
-                                if (e != null) {
-                                    e = SQLExceptions.unwrap(e);
-                                    LOGGER.debug("Failure for logical replication for subscription", e);
-                                    // Set a generic error reason if state is not already "FAILED" (same states won't be overridden)
-                                    updateSubscriptionState(
-                                        subscriptionName,
-                                        relationNames,
-                                        Subscription.State.FAILED,
-                                        e.getMessage()
-                                    );
-                                } else if (success) {
-                                    LOGGER.debug("Acknowledged logical replication for subscription '{}'",
-                                                 subscriptionName);
-                                    updateSubscriptionState(
-                                        subscriptionName,
-                                        relationNames,
-                                        Subscription.State.MONITORING,
-                                        null
-                                    ).thenAccept(
-                                        ignored -> metadataTracker.startTracking(subscriptionName)
-                                    );
-                                }
-                            }
-                        );
-                }
-            ).run();
+            remoteClusters.connect(subscriptionName, subscription.connectionInfo())
+                .thenAccept(ignored -> metadataTracker.startTracking(subscriptionName));
         } else {
             remoteClusters.connect(subscriptionName, subscription.connectionInfo());
         }
@@ -236,15 +204,6 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         remoteClusters.remove(subscriptionName);
     }
 
-    private Runnable withRetry(Runnable runnable) {
-        return new RetryRunnable(
-            threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
-            threadPool.scheduler(),
-            runnable,
-            BackoffPolicy.exponentialBackoff()
-        );
-    }
-
     public Map<String, Subscription> subscriptions() {
         return currentSubscriptionsMetadata.subscription();
     }
@@ -256,21 +215,6 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     @Override
     public void close() throws IOException {
         metadataTracker.close();
-    }
-
-    public CompletableFuture<Boolean> startReplication(String subscriptionName, Subscription subscription) {
-        return getPublicationState(subscriptionName, subscription.publications(), subscription.connectionInfo())
-            .thenCompose(
-                stateResponse -> {
-                    verifyTablesDoNotExist(subscriptionName, stateResponse);
-                    return restore(
-                        subscriptionName,
-                        subscription.settings(),
-                        stateResponse.tables(),
-                        stateResponse.concreteIndices(),
-                        stateResponse.concreteTemplates()
-                    );
-                });
     }
 
     public CompletableFuture<PublicationsStateAction.Response> getPublicationState(String subscriptionName,
@@ -355,6 +299,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                                               Collection<RelationName> relationNames,
                                               List<String> indicesToRestore,
                                               List<String> templatesToRestore) {
+        LOGGER.info("--> Restoring subscription={} indices={} templates={}", subscriptionName, indicesToRestore, templatesToRestore);
         var publisherClusterRepoName = LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX + subscriptionName;
         final RestoreService.RestoreRequest restoreRequest =
             new RestoreService.RestoreRequest(
@@ -381,35 +326,35 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
         FutureActionListener<RestoreService.RestoreCompletionResponse, RestoreService.RestoreCompletionResponse> restoreFuture =
             FutureActionListener.newInstance();
-        restoreFuture.whenComplete(
-            (response, err) -> {
-                if (err == null) {
-                    updateSubscriptionState(
-                        subscriptionName,
-                        relationNames,
-                        Subscription.State.RESTORING,
-                        null
-                    ).whenComplete((ignored, ignoredErr) -> CompletableFuture.completedFuture(response));
-                } else {
-                    updateSubscriptionState(
-                        subscriptionName,
-                        relationNames,
-                        Subscription.State.FAILED,
-                        "Failed restoring subscription, error=" + err.getMessage()
-                    ).whenComplete((ignored, ignoredErr) -> CompletableFuture.failedFuture(err));
-                }
+        restoreFuture.whenComplete((response, err) -> {
+            if (err == null) {
+                updateSubscriptionState(
+                    subscriptionName,
+                    relationNames,
+                    Subscription.State.RESTORING,
+                    null
+                );
+            } else {
+                updateSubscriptionState(
+                    subscriptionName,
+                    relationNames,
+                    Subscription.State.FAILED,
+                    "Failed restoring subscription, error=" + err.getMessage()
+                );
             }
-        );
+        });
 
-        threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
-            () -> {
+        try {
+            threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {
                 try {
                     restoreService.restoreSnapshot(restoreRequest, restoreFuture);
                 } catch (Exception e) {
                     restoreFuture.onFailure(e);
                 }
-            }
-        );
+            });
+        } catch (RejectedExecutionException e) {
+            restoreFuture.onFailure(e);
+        }
 
         return restoreFuture
             .thenCompose(response -> afterReplicationStarted(subscriptionName, response, relationNames));
