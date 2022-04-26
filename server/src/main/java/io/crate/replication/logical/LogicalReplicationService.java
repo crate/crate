@@ -384,14 +384,14 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                         relationNames,
                         Subscription.State.RESTORING,
                         null
-                    ).whenComplete((ignored, ignoredErr) -> CompletableFuture.completedFuture(response));
+                    );
                 } else {
                     updateSubscriptionState(
                         subscriptionName,
                         relationNames,
                         Subscription.State.FAILED,
                         "Failed restoring subscription, error=" + err.getMessage()
-                    ).whenComplete((ignored, ignoredErr) -> CompletableFuture.failedFuture(err));
+                    );
                 }
             }
         );
