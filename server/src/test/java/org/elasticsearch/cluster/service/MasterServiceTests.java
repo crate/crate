@@ -836,7 +836,7 @@ public class MasterServiceTests extends ESTestCase {
                 publisherRef.set((clusterChangedEvent, publishListener, ackListener) ->
                     publishListener.onFailure(new FailedToCommitClusterStateException("mock exception")));
 
-                masterService.submitStateUpdateTask("test2", new AckedClusterStateUpdateTask<Void>(null, null) {
+                masterService.submitStateUpdateTask("test2", new AckedClusterStateUpdateTask<Void>(null) {
                     @Override
                     public ClusterState execute(ClusterState currentState) {
                         return ClusterState.builder(currentState).build();
@@ -891,7 +891,7 @@ public class MasterServiceTests extends ESTestCase {
                     ackListener.onNodeAck(node3, null);
                 });
 
-                masterService.submitStateUpdateTask("test2", new AckedClusterStateUpdateTask<Void>(null, null) {
+                masterService.submitStateUpdateTask("test2", new AckedClusterStateUpdateTask<Void>(null) {
                     @Override
                     public ClusterState execute(ClusterState currentState) {
                         return ClusterState.builder(currentState).build();
