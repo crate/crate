@@ -21,24 +21,22 @@
 
 package io.crate.replication.logical;
 
-import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
-import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
-
-import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
+import io.crate.action.FutureActionListener;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.concurrent.CountdownFutureCallback;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.support.RetryRunnable;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.action.DropSubscriptionAction;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.PublicationsStateAction.Response;
+import io.crate.replication.logical.action.UpdateSubscriptionAction;
+import io.crate.replication.logical.metadata.RelationMetadata;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.Subscription.RelationState;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -61,21 +59,22 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.action.FutureActionListener;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CountdownFutureCallback;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.RetryRunnable;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.action.PublicationsStateAction;
-import io.crate.replication.logical.action.PublicationsStateAction.Response;
-import io.crate.replication.logical.action.UpdateSubscriptionAction;
-import io.crate.replication.logical.metadata.RelationMetadata;
-import io.crate.replication.logical.metadata.Subscription;
-import io.crate.replication.logical.metadata.Subscription.RelationState;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
+import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
 
 public final class MetadataTracker implements Closeable {
 
@@ -295,11 +294,11 @@ public final class MetadataTracker implements Closeable {
                     LOGGER.trace("Process cluster state for subscription {}", subscriptionName);
                 }
 
-                localClusterState = removeDroppedTablesOrPartitions(
+                localClusterState = processDroppedTablesOrPartitions(
                     subscriptionName,
                     subscription,
                     localClusterState,
-                    response
+                    response.relationsInPublications()
                 );
 
                 return updateIndexMetadata(
@@ -460,23 +459,21 @@ public final class MetadataTracker implements Closeable {
         return new RestoreDiff(toRestoreIndices, toRestoreTemplates, relationNamesForStateUpdate);
     }
 
-    private ClusterState removeDroppedTablesOrPartitions(String subscriptionName,
-                                                         Subscription subscription,
-                                                         ClusterState subscriberClusterState,
-                                                         Response response) {
+    private ClusterState processDroppedTablesOrPartitions(String subscriptionName,
+                                                          Subscription subscription,
+                                                          ClusterState subscriberClusterState,
+                                                          Map<RelationName, RelationMetadata> relationsInPublications) {
         HashSet<RelationName> changedRelations = new HashSet<>();
-        HashSet<Index> indicesToRemove = new HashSet<>();
-        ArrayList<String> templatesToRemove = new ArrayList<>();
+        HashSet<Index> partitionsToRemove = new HashSet<>();
         Metadata subscriberMetadata = subscriberClusterState.metadata();
         for (var relationName : subscription.relations().keySet()) {
-            var publisherRelationMetadata = response.relationsInPublications().get(relationName);
-            var possibleTemplateName = PartitionName.templateName(relationName.schema(), relationName.name());
-            var isPartitioned = subscriberMetadata.templates().get(possibleTemplateName) != null;
-            boolean partitionDisappeared = isPartitioned && (publisherRelationMetadata == null || publisherRelationMetadata.template() == null);
-            if (partitionDisappeared) {
-                templatesToRemove.add(possibleTemplateName);
+            var publisherRelationMetadata = relationsInPublications.get(relationName);
+            boolean relationDisappeared = publisherRelationMetadata == null;
+            if (relationDisappeared) {
                 changedRelations.add(relationName);
+                continue;
             }
+            // Check for possible dropped partitions
             var concreteIndices = IndexNameExpressionResolver.concreteIndices(
                 subscriberClusterState.metadata(),
                 IndicesOptions.lenientExpand(),
@@ -485,32 +482,21 @@ public final class MetadataTracker implements Closeable {
             for (var concreteIndex : concreteIndices) {
                 var subscriberIndexMetadata = subscriberMetadata.index(concreteIndex);
                 String indexUUID = PUBLISHER_INDEX_UUID.get(subscriberIndexMetadata.getSettings());
-                boolean publisherContainsIndex = publisherRelationMetadata != null
-                    && publisherRelationMetadata.indices().stream().anyMatch(x -> x.getIndexUUID().equals(indexUUID));
+                boolean publisherContainsIndex = publisherRelationMetadata.indices().stream().anyMatch(x -> x.getIndexUUID().equals(indexUUID));
                 if (!publisherContainsIndex) {
-                    indicesToRemove.add(concreteIndex);
-                    if (isPartitioned == false) {
-                        changedRelations.add(relationName);
-                    }
+                    partitionsToRemove.add(concreteIndex);
                 }
             }
         }
 
         var updatedClusterState = subscriberClusterState;
-        if (templatesToRemove.isEmpty() == false) {
-            var newMetadataBuilder = Metadata.builder(subscriberMetadata);
-            for (var templateName : templatesToRemove) {
-                newMetadataBuilder.removeTemplate(templateName);
-            }
-            updatedClusterState = ClusterState.builder(subscriberClusterState).metadata(newMetadataBuilder).build();
-        }
 
-        if (indicesToRemove.isEmpty() == false) {
+        if (partitionsToRemove.isEmpty() == false) {
             updatedClusterState = MetadataDeleteIndexService.deleteIndices(
                 updatedClusterState,
                 settings,
                 allocationService,
-                indicesToRemove
+                partitionsToRemove
             );
         }
         if (changedRelations.isEmpty() == false) {
@@ -522,6 +508,12 @@ public final class MetadataTracker implements Closeable {
                     relations.put(relationName, state);
                 }
             }
+            updatedClusterState = DropSubscriptionAction.removeSubscriptionSetting(
+                changedRelations,
+                updatedClusterState,
+                Metadata.builder(updatedClusterState.metadata())
+            );
+
             updatedClusterState = UpdateSubscriptionAction.update(
                 updatedClusterState,
                 subscriptionName,
