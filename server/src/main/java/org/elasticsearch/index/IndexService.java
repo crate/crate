@@ -568,7 +568,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         if (updateIndexSettings) {
             for (final IndexShard shard : this.shards.values()) {
                 try {
-                    shard.onSettingsChanged();
+                    shard.onSettingsChanged(currentIndexMetadata.getSettings());
                 } catch (Exception e) {
                     logger.warn(
                         () -> new ParameterizedMessage(

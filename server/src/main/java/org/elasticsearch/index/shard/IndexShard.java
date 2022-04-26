@@ -1521,7 +1521,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         }
         // time elapses after the engine is created above (pulling the config settings) until we set the engine reference, during
         // which settings changes could possibly have happened, so here we forcefully push any config changes to the new engine.
-        onSettingsChanged();
+        onSettingsChanged(indexSettings.getSettings());
         assert assertSequenceNumbersInCommit();
         assert recoveryState.getStage() == RecoveryState.Stage.TRANSLOG : "TRANSLOG stage expected but was: " + recoveryState.getStage();
     }
@@ -1801,7 +1801,9 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return false;
     }
 
-    public void onSettingsChanged() {
+    public void onSettingsChanged(Settings oldSettings) {
+        this.indexEventListener.beforeIndexSettingsChangesApplied(this, oldSettings, indexSettings.getSettings());
+
         var newEngineFactory = getEngineFactory();
         if (newEngineFactory.getClass() != engineFactory.getClass()) {
             try {
@@ -1843,7 +1845,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
             @Override
             protected void doRun() {
-                onSettingsChanged();
+                onSettingsChanged(indexSettings.getSettings());
                 trimTranslog();
             }
         });
@@ -3397,7 +3399,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         }
         // time elapses after the engine is created above (pulling the config settings) until we set the engine reference, during
         // which settings changes could possibly have happened, so here we forcefully push any config changes to the new engine.
-        onSettingsChanged();
+        onSettingsChanged(indexSettings.getSettings());
     }
 
     /**
