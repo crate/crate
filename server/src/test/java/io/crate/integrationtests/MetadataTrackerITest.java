@@ -240,68 +240,6 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
     }
 
     @Test
-    public void test_dropped_partitioned_table_is_replicated() throws Exception {
-        executeOnPublisher("CREATE TABLE t1 (id INT, p INT) PARTITIONED BY (p)");
-        executeOnPublisher("INSERT INTO t1 (id, p) VALUES (1, 1), (2, 2)");
-        createPublication("pub1", true, List.of("t1"));
-        createSubscription("sub1", "pub1");
-
-        // Ensure tracker has started
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
-
-        // Wait until table is replicated
-        assertBusy(() -> {
-            executeOnSubscriber("REFRESH TABLE t1");
-            var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
-            assertThat(printedTable(r.rows()), is(
-                "1| 1\n" +
-                    "2| 2\n"));
-
-        });
-
-        // Drop table
-        executeOnPublisher("DROP TABLE t1");
-
-        assertBusy(() -> {
-            var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
-                " WHERE table_name = 't1'" +
-                " ORDER BY ordinal_position");
-            assertThat(r.rowCount(), is(0L));
-        });
-    }
-
-    @Test
-    public void test_dropped_table_is_replicated() throws Exception {
-        executeOnPublisher("CREATE TABLE t1 (id INT)");
-        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
-        createPublication("pub1", true, List.of("t1"));
-        createSubscription("sub1", "pub1");
-
-        // Ensure tracker has started
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
-
-        // Wait until table is replicated
-        assertBusy(() -> {
-            executeOnSubscriber("REFRESH TABLE t1");
-            var r = executeOnSubscriber("SELECT id FROM t1 ORDER BY id");
-            assertThat(printedTable(r.rows()), is(
-                "1\n" +
-                "2\n"));
-
-        });
-
-        // Drop table
-        executeOnPublisher("DROP TABLE t1");
-
-        assertBusy(() -> {
-            var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
-                " WHERE table_name = 't1'" +
-                " ORDER BY ordinal_position");
-            assertThat(r.rowCount(), is(0L));
-        });
-    }
-
-    @Test
     public void test_drop_publication_stops_the_replication_on_subscriber() throws Exception {
         executeOnPublisher("CREATE TABLE t1 (id INT)");
         executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
@@ -370,6 +308,47 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
             }, 20, TimeUnit.SECONDS
         );
 
+    }
+
+    @Test
+    public void test_alter_publication_drop_table_disables_table_replication() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
+        executeOnPublisher("CREATE TABLE p2 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("INSERT INTO p2 (id, p) VALUES (1, 1), (2, 2)");
+        createPublication("pub1", false, List.of("t1", "p2"));
+        createSubscription("sub1", "pub1");
+
+        // Wait until tables are restored and tracker is active
+        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+
+        executeOnPublisher("ALTER PUBLICATION pub1 DROP TABLE t1, p2");
+
+        // Only a next metadata poll will detect a dropped table and turn the table into a normal read-write one.
+        assertBusy(
+            () -> {
+                long rowCount;
+                try {
+                    var response = executeOnSubscriber("INSERT INTO t1 (id) VALUES(4)");
+                    rowCount = response.rowCount();
+                } catch (OperationOnInaccessibleRelationException e) {
+                    throw new AssertionError(e.getMessage());
+                }
+                assertThat(rowCount, is(1L));
+            }
+        );
+        assertBusy(
+            () -> {
+                long rowCount;
+                try {
+                    var response = executeOnSubscriber("INSERT INTO p2 (id, p) VALUES(4, 4)");
+                    rowCount = response.rowCount();
+                } catch (OperationOnInaccessibleRelationException e) {
+                    throw new AssertionError(e.getMessage());
+                }
+                assertThat(rowCount, is(1L));
+            }
+        );
     }
 
     private boolean isTrackerActive() throws Exception {
