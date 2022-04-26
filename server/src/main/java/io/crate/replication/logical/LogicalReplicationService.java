@@ -45,7 +45,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreClusterStateListener;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
-import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
@@ -64,8 +63,7 @@ import org.elasticsearch.transport.RemoteClusters;
 
 import io.crate.action.FutureActionListener;
 import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.RetryRunnable;
+import io.crate.exceptions.SubscriptionRestoreException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.PublicationsStateAction;
@@ -189,40 +187,10 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         repositoriesService.registerInternalRepository(REMOTE_REPOSITORY_PREFIX + subscriptionName, TYPE);
 
         if (clusterService.state().nodes().isLocalNodeElectedMaster()) {
-            withRetry(
-                () -> {
-                    // The startReplication will initiate the remote connection upfront
-                    LOGGER.debug("Start logical replication for subscription '{}'", subscriptionName);
-                    startReplication(subscriptionName, subscription)
-                        .whenComplete(
-                            (success, e) -> {
-                                var relationNames = subscription.relations().keySet();
-                                if (e != null) {
-                                    e = SQLExceptions.unwrap(e);
-                                    LOGGER.debug("Failure for logical replication for subscription", e);
-                                    // Set a generic error reason if state is not already "FAILED" (same states won't be overridden)
-                                    updateSubscriptionState(
-                                        subscriptionName,
-                                        relationNames,
-                                        Subscription.State.FAILED,
-                                        e.getMessage()
-                                    );
-                                } else if (success) {
-                                    LOGGER.debug("Acknowledged logical replication for subscription '{}'",
-                                                 subscriptionName);
-                                    updateSubscriptionState(
-                                        subscriptionName,
-                                        relationNames,
-                                        Subscription.State.MONITORING,
-                                        null
-                                    ).thenAccept(
-                                        ignored -> metadataTracker.startTracking(subscriptionName)
-                                    );
-                                }
-                            }
-                        );
-                }
-            ).run();
+            remoteClusters.connect(subscriptionName, subscription.connectionInfo())
+                .thenAccept(ignored -> {
+                    metadataTracker.startTracking(subscriptionName);
+                });
         } else {
             remoteClusters.connect(subscriptionName, subscription.connectionInfo());
         }
@@ -238,15 +206,6 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         remoteClusters.remove(subscriptionName);
     }
 
-    private Runnable withRetry(Runnable runnable) {
-        return new RetryRunnable(
-            threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
-            threadPool.scheduler(),
-            runnable,
-            BackoffPolicy.exponentialBackoff()
-        );
-    }
-
     public Map<String, Subscription> subscriptions() {
         return currentSubscriptionsMetadata.subscription();
     }
@@ -258,21 +217,6 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     @Override
     public void close() throws IOException {
         metadataTracker.close();
-    }
-
-    public CompletableFuture<Boolean> startReplication(String subscriptionName, Subscription subscription) {
-        return getPublicationState(subscriptionName, subscription.publications(), subscription.connectionInfo())
-            .thenCompose(
-                stateResponse -> {
-                    verifyTablesDoNotExist(subscriptionName, stateResponse);
-                    return restore(
-                        subscriptionName,
-                        subscription.settings(),
-                        stateResponse.tables(),
-                        stateResponse.concreteIndices(),
-                        stateResponse.concreteTemplates()
-                    );
-                });
     }
 
     public CompletableFuture<PublicationsStateAction.Response> getPublicationState(String subscriptionName,
@@ -394,83 +338,47 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         }
 
         return restoreFuture
-            .thenCompose(response ->
-                updateSubscriptionState(subscriptionName, relationNames, Subscription.State.RESTORING, null)
-                    .thenApply(ignored -> response)
-            )
-            .thenCompose(response -> afterReplicationStarted(subscriptionName, response, relationNames));
+            .thenCompose(ignored -> updateSubscriptionState(
+                subscriptionName,
+                relationNames,
+                Subscription.State.RESTORING,
+                null
+            ))
+            .thenCompose(ignored -> afterReplicationStarted(subscriptionName, restoreFuture.join(), relationNames));
     }
 
     private CompletableFuture<Boolean> afterReplicationStarted(String subscriptionName,
                                                                RestoreService.RestoreCompletionResponse response,
                                                                Collection<RelationName> relationNames) {
-        var future = new CompletableFuture<Boolean>();
-        BiConsumer<RestoreInfo, Throwable> onComplete =
-            (restoreInfo, err) -> {
-                if (err == null) {
-                    if (restoreInfo == null) {
-                        LOGGER.error(
-                            "Restore failed, restoreInfo = NULL, seems like a master failure happened while restoring");
-                        updateSubscriptionState(
-                            subscriptionName,
-                            relationNames,
-                            Subscription.State.FAILED,
-                            "Error while initial restoring the subscription relations"
-                        ).whenComplete(
-                            (ignore, ignoredErr) -> future.complete(false)
-                        );
-                    } else if (restoreInfo.failedShards() == 0) {
-                        LOGGER.debug("Restore success, following will start once shards are active");
-                        updateSubscriptionState(
-                            subscriptionName,
-                            relationNames,
-                            Subscription.State.SYNCHRONIZED,
-                            null
-                        ).whenComplete(
-                            (ignore, ignoredErr) -> future.complete(true)
-                        );
-                    } else {
-                        assert restoreInfo.failedShards() > 0 : "Some failed shards are expected";
-                        LOGGER.error("Failed to restore {}/{} shards",
-                                     restoreInfo.failedShards(),
-                                     restoreInfo.totalShards());
-                        var msg = "Error while initial restoring the subscription relations";
-                        if (restoreInfo.failedShards() != restoreInfo.totalShards()) {
-                            msg = String.format(Locale.ENGLISH,
-                                                "Restoring the subscription relations failed partially. Failed to restore %d/%d shards",
-                                                restoreInfo.failedShards(),
-                                                restoreInfo.totalShards());
-                        }
-                        updateSubscriptionState(
-                            subscriptionName,
-                            relationNames,
-                            Subscription.State.FAILED,
-                            msg
-                        ).whenComplete(
-                            (ignore, ignoredErr) -> future.complete(false)
-                        );
-                    }
-                } else {
-                    updateSubscriptionState(
-                        subscriptionName,
-                        relationNames,
-                        Subscription.State.FAILED,
-                        "Error while initial restoring the subscription relations"
-                    ).whenComplete(
-                        (ignore, ignoredErr) -> future.completeExceptionally(err)
-                    );
+        var restoreFuture =
+            new FutureActionListener<RestoreSnapshotResponse, RestoreInfo>(RestoreSnapshotResponse::getRestoreInfo);
+        clusterService.addListener(new RestoreClusterStateListener(clusterService, response, restoreFuture));
+        return restoreFuture.thenCompose(restoreInfo -> {
+            if (restoreInfo == null) {
+                throw new SubscriptionRestoreException(
+                    subscriptionName, "Restore failed, restoreInfo = NULL, seems like a master failure happened while restoring");
+            }
+            if (restoreInfo.failedShards() == 0) {
+                LOGGER.debug("Restore success, following will start once shards are active");
+                return updateSubscriptionState(
+                    subscriptionName,
+                    relationNames,
+                    Subscription.State.MONITORING,
+                    null
+                );
+            } else {
+                assert restoreInfo.failedShards() > 0 : "Some failed shards are expected";
+                LOGGER.error("Failed to restore {}/{} shards", restoreInfo.failedShards(), restoreInfo.totalShards());
+                var msg = "Error while initial restoring the subscription relations";
+                if (restoreInfo.failedShards() != restoreInfo.totalShards()) {
+                    msg = String.format(Locale.ENGLISH,
+                                        "Restoring the subscription relations failed partially. Failed to restore %d/%d shards",
+                                        restoreInfo.failedShards(),
+                                        restoreInfo.totalShards());
                 }
-            };
-
-        if (response.getRestoreInfo() != null) {
-            onComplete.accept(response.getRestoreInfo(), null);
-        } else {
-            var restoreFuture =
-                new FutureActionListener<RestoreSnapshotResponse, RestoreInfo>(RestoreSnapshotResponse::getRestoreInfo);
-            restoreFuture.whenComplete(onComplete);
-            clusterService.addListener(new RestoreClusterStateListener(clusterService, response, restoreFuture));
-        }
-        return future;
+                throw new SubscriptionRestoreException(subscriptionName, msg);
+            }
+        });
     }
 
     public CompletableFuture<Boolean> updateSubscriptionState(String subscriptionName,
