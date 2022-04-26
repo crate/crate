@@ -21,18 +21,28 @@
 
 package io.crate.metadata.doc;
 
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.table.Operation;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -41,11 +51,14 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import javax.script.ScriptException;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.metadata.doc.DocSchemaInfo.getTablesAffectedByPublicationsChange;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 
 public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
@@ -130,4 +143,125 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         docSchemaInfo.invalidateFromIndex(new Index("my_index", "asdf"), metadata);
     }
 
+    @Test
+    public void test_update_when_tables_are_published() throws Exception {
+        var state = docTablesByName("t1", "t2", "t3", "t4");
+        var publishNewTables = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+
+        assertThat(getTablesAffectedByPublicationsChange(null, publishNewTables, state), containsInAnyOrder("t1", "t2"));
+    }
+
+    @Test
+    public void test_publish_all_tables() throws Exception {
+        var state = docTablesByName("t1", "t2", "t3", "t4");
+        var publishAllTables = publicationsMetadata("pub1", true, List.of());
+
+        assertThat(getTablesAffectedByPublicationsChange(null, publishAllTables, state), containsInAnyOrder("t1", "t2", "t3", "t4"));
+    }
+
+    @Test
+    public void test_remove_all_tables() throws Exception {
+        var state = docTablesByName("t1", "t2", "t3", "t4");
+        var prevMetaData = publicationsMetadata("pub1", true, List.of());
+        var newMetaData = publicationsMetadata("pub1", false, List.of());
+
+        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t1", "t2", "t3", "t4"));
+    }
+
+    @Test
+    public void test_add_and_remove_tables() throws Exception {
+        var state = docTablesByName("t1", "t2", "t3", "t4");
+        // publish t3, t4 drop t1, t2
+        var prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        var newMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2", "t3", "t4"));
+
+        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t3", "t4"));
+
+        // publish t3, t4 drop t2
+        prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        newMetaData = publicationsMetadata("pub1", false, List.of("t1", "t3", "t4"));
+
+        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t2", "t3", "t4"));
+    }
+
+    @Test
+    public void test_publish_all_tables_when_tables_have_been_previously_published() throws Exception {
+        var state = docTablesByName("t1", "t2", "t3", "t4");
+        // publish t3, t4 drop t1, t2
+        var  prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        var newMetaData = publicationsMetadata("pub1", true, List.of());
+
+        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t3", "t4"));
+    }
+
+    @Test
+    public void test_unpublish_all_tables_when_tables_have_been_previously_published() throws Exception {
+        var state = docTablesByName("t1", "t2", "t3", "t4");
+        var prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        var newMetaData = publicationsMetadata("pub1", false, List.of());
+
+        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t1", "t2"));
+    }
+
+    @Test
+    public void test_drop_all_previous_published_tables() throws Exception {
+        var state = docTablesByName("t1", "t2", "t3", "t4");
+        var prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        var newMetaData = publicationsMetadata("pub1", false, List.of());
+
+        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t1", "t2"));
+    }
+
+    @Test
+    public void test_nothing_changed() throws Exception {
+        var state = docTablesByName("t1", "t2", "t3", "t4");
+        var prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        var newMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+
+        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder());
+        assertThat(getTablesAffectedByPublicationsChange(null, null, state), containsInAnyOrder());
+    }
+
+    private PublicationsMetadata publicationsMetadata(String name, boolean allTables, List<String> tables) {
+        var relationNames = Lists2.map(tables, x -> new RelationName(Schemas.DOC_SCHEMA_NAME, x));
+        var publications = Map.of(name, new Publication("user1", allTables, relationNames));
+        return new PublicationsMetadata(publications);
+    }
+
+    private Map<String, DocTableInfo> docTablesByName(String ... tables) {
+        var result = new HashMap<String, DocTableInfo>();
+        for (String table : tables) {
+            result.put(table, docTableInfo(table));
+        };
+        return result;
+    }
+
+    private DocTableInfo docTableInfo(String name) {
+        return new DocTableInfo(
+            new RelationName(Schemas.DOC_SCHEMA_NAME, name),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            List.of(),
+            List.of(),
+            null,
+            true,
+            new String[0],
+            new String[0],
+            5,
+            "0",
+            Settings.EMPTY,
+            List.of(),
+            List.of(),
+            ColumnPolicy.DYNAMIC,
+            Version.CURRENT,
+            null,
+            false,
+            Operation.ALL
+        );
+    }
 }

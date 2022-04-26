@@ -30,6 +30,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,7 +60,7 @@ public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitT
     public void test_returning_for_insert_from_values_throw_error_with_4_1_nodes() throws Exception {
         // Make sure the former initialized cluster service is shutdown
         cleanup();
-        this.clusterService = createClusterService(additionalClusterSettings(), Version.V_4_1_0);
+        this.clusterService = createClusterService(additionalClusterSettings(), Metadata.EMPTY_METADATA, Version.V_4_1_0);
         e = buildExecutor(clusterService);
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage(InsertFromSubQueryPlanner.RETURNING_VERSION_ERROR_MSG);
@@ -71,7 +72,7 @@ public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitT
     public void test_returning_for_insert_from_subquery_throw_error_with_4_1_nodes() throws Exception {
         // Make sure the former initialized cluster service is shutdown
         cleanup();
-        this.clusterService = createClusterService(additionalClusterSettings(), Version.V_4_1_0);
+        this.clusterService = createClusterService(additionalClusterSettings(), Metadata.EMPTY_METADATA, Version.V_4_1_0);
         e = buildExecutor(clusterService);
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage(InsertFromSubQueryPlanner.RETURNING_VERSION_ERROR_MSG);

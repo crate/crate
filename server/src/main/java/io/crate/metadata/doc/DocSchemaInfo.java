@@ -39,6 +39,8 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -49,10 +51,12 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
 
 import javax.annotation.Nullable;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -283,6 +287,91 @@ public class DocSchemaInfo implements SchemaInfo {
             udfService.updateImplementations(
                 schemaName,
                 udfMetadata.functionsMetadata().stream().filter(f -> schemaName.equals(f.schema())));
+        }
+
+        PublicationsMetadata prevPublicationsMetadata = prevMetadata.custom(PublicationsMetadata.TYPE);
+        PublicationsMetadata newPublicationsMetadata = newMetadata.custom(PublicationsMetadata.TYPE);
+        var tablesAffectedByPublicationsChange = getTablesAffectedByPublicationsChange(prevPublicationsMetadata,
+                                                                                       newPublicationsMetadata,
+                                                                                       docTableByName);
+        for (String updatedTable : tablesAffectedByPublicationsChange) {
+            docTableByName.remove(updatedTable);
+        }
+    }
+
+    @VisibleForTesting
+    static Set<String> getTablesAffectedByPublicationsChange(
+        @Nullable PublicationsMetadata prevMetadata,
+        @Nullable PublicationsMetadata newMetadata,
+        Map<String, DocTableInfo> docTableByName) {
+
+        if (Objects.equals(prevMetadata, newMetadata)) {
+            return Set.of();
+        }
+
+        if (prevMetadata == null) {
+            // No previous publications exist so all tables have to be updated which are now published
+            var result = new HashSet<String>();
+            for (var publication : newMetadata.publications().values()) {
+                if (publication.isForAllTables()) {
+                    return docTableByName.keySet();
+                } else {
+                    for (var table : publication.tables()) {
+                        result.add(table.name());
+                    }
+                }
+            }
+            return result;
+        }
+
+        // Find the difference of tables which have been published across all publications
+        var prevPublishedTables = new HashSet<String>();
+        var newPublishedTables = new HashSet<String>();
+        var allPrevTablesArePublished = false;
+        var allNewTablesArePublished = false;
+
+        for (var publication : prevMetadata.publications().values()) {
+            if (publication.isForAllTables()) {
+                allPrevTablesArePublished = true;
+            } else {
+                for (var table : publication.tables()) {
+                    prevPublishedTables.add(table.name());
+                }
+            }
+        }
+
+        for (var publication : newMetadata.publications().values()) {
+            if (publication.isForAllTables()) {
+                allNewTablesArePublished = true;
+            } else {
+                for (var table : publication.tables()) {
+                    newPublishedTables.add(table.name());
+                }
+            }
+        }
+
+        if (allPrevTablesArePublished == true && allNewTablesArePublished == true) {
+            // Nothing to update, all tables are still published
+            return Set.of();
+        } else if (allPrevTablesArePublished == true && allNewTablesArePublished == false) {
+            // Update all tables which are not published anymore
+            var result = docTableByName.keySet();
+            result.removeAll(newPublishedTables);
+            return result;
+        } else if (allPrevTablesArePublished == false && allNewTablesArePublished == true) {
+            // Update all tables which have not been published
+            var result = docTableByName.keySet();
+            result.removeAll(prevPublishedTables);
+            return result;
+        } else {
+            // Update all tables where the state has changed
+            var result = new HashSet<String>();
+            result.addAll(prevPublishedTables);
+            result.addAll(newPublishedTables);
+            var intersection = new HashSet<>(prevPublishedTables);
+            intersection.retainAll(newPublishedTables);
+            result.removeAll(intersection);
+            return result;
         }
     }
 
