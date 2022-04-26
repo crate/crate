@@ -547,7 +547,7 @@ public class MetadataTrackerTest extends ESTestCase {
         PublicationsMetadata publicationsMetadata = publisherState.metadata().custom(PublicationsMetadata.TYPE);
         Publication publication = publicationsMetadata.publications().get("pub1");
         var publisherStateResponse = new Response(
-                publication.resolveCurrentRelations(publisherState, User.CRATE_USER, User.CRATE_USER));
+                publication.resolveCurrentRelations(publisherState, User.CRATE_USER, User.CRATE_USER, "dummy"));
 
         var future = MetadataTracker.subscribeToNewRelations(
             retrieveSubscription("sub1", subscriberClusterState),
@@ -584,7 +584,7 @@ public class MetadataTrackerTest extends ESTestCase {
         PublicationsMetadata publicationsMetadata = publisherClusterState.metadata().custom(PublicationsMetadata.TYPE);
         Publication publication = publicationsMetadata.publications().get("pub1");
         var publisherStateResponse = new Response(
-                publication.resolveCurrentRelations(publisherClusterState, User.CRATE_USER, User.CRATE_USER));
+                publication.resolveCurrentRelations(publisherClusterState, User.CRATE_USER, User.CRATE_USER, "dummy"));
 
         var future = MetadataTracker.subscribeToNewRelations(
             retrieveSubscription("sub1", subscriberClusterState),
