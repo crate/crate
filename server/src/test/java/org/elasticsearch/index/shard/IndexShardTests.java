@@ -4003,49 +4003,7 @@ public class IndexShardTests extends IndexShardTestCase {
 
         closeShard(shard, false);
     }
-
-    @Test
-    public void testClosedIndicesSkipSyncGlobalCheckpoint() throws Exception {
-        ShardId shardId = new ShardId("index", "_na_", 0);
-        IndexMetadata.Builder indexMetadata = IndexMetadata.builder("index")
-            .putMapping("default", "{ \"properties\": { \"foo\":  { \"type\": \"text\"}}}")
-            .settings(Settings.builder()
-                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
-                .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 2)
-            )
-            .state(IndexMetadata.State.CLOSE).primaryTerm(0, 1);
-        ShardRouting shardRouting = TestShardRouting.newShardRouting(
-            shardId,
-            randomAlphaOfLength(8),
-            true,
-            ShardRoutingState.INITIALIZING,
-            RecoverySource.EmptyStoreRecoverySource.INSTANCE
-        );
-        AtomicBoolean synced = new AtomicBoolean();
-        IndexShard primaryShard = newShard(
-            shardRouting,
-            indexMetadata.build(),
-            List.of(idxSettings -> Optional.of(new InternalEngineFactory())),
-            () -> synced.set(true)
-        );
-        recoverShardFromStore(primaryShard);
-        IndexShard replicaShard = newShard(shardId, false);
-        recoverReplica(replicaShard, primaryShard, true);
-        int numDocs = between(1, 10);
-        for (int i = 0; i < numDocs; i++) {
-            indexDoc(primaryShard, Integer.toString(i));
-        }
-        assertThat(primaryShard.getLocalCheckpoint(), equalTo(numDocs - 1L));
-        primaryShard.updateLocalCheckpointForShard(replicaShard.shardRouting.allocationId().getId(), primaryShard.getLocalCheckpoint());
-        long globalCheckpointOnReplica = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, primaryShard.getLocalCheckpoint());
-        primaryShard.updateGlobalCheckpointForShard(replicaShard.shardRouting.allocationId().getId(), globalCheckpointOnReplica);
-        primaryShard.maybeSyncGlobalCheckpoint("test");
-        assertFalse("closed indices should skip global checkpoint sync", synced.get());
-        closeShards(primaryShard, replicaShard);
-    }
-
-
+    
     @Test
     public void testRelocateMissingTarget() throws Exception {
         final IndexShard shard = newStartedShard(true);

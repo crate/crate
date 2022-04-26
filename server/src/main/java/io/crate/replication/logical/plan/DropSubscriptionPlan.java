@@ -29,6 +29,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.replication.logical.action.DropSubscriptionAction;
 import io.crate.replication.logical.action.DropSubscriptionRequest;
 import io.crate.replication.logical.analyze.AnalyzedDropSubscription;
 
@@ -53,9 +54,7 @@ public class DropSubscriptionPlan implements Plan {
                               SubQueryResults subQueryResults) throws Exception {
 
         var request = new DropSubscriptionRequest(analyzedDropSubscription.name(), analyzedDropSubscription.ifExists());
-        dependencies.dropSubscriptionAction().execute(
-            request,
-            new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : 1L))
-        );
+        dependencies.client().execute(DropSubscriptionAction.INSTANCE, request)
+            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : 1L)));
     }
 }
