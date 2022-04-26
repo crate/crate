@@ -21,6 +21,22 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.contains;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
@@ -31,20 +47,6 @@ import io.crate.testing.MoreMatchers;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.contains;
 
 @UseRandomizedSchema(random = false)
 public class LogicalReplicationITest extends LogicalReplicationITestCase {
@@ -416,7 +418,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     @Test
     public void test_subscription_state_order() throws Exception {
         String subscriptionName = "sub1";
-        final ArrayList<Subscription.State> subscriptionStates = new ArrayList<>();
+        Set<Subscription.State> subscriptionStates = new HashSet<>();
         ClusterService clusterService = subscriberCluster.getMasterNodeInstance(ClusterService.class);
         clusterService.addListener(
             event -> {
@@ -424,16 +426,14 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                     return;
                 }
                 Metadata currentMetadata = event.state().metadata();
-                var metadata = (SubscriptionsMetadata) currentMetadata.custom(SubscriptionsMetadata.TYPE);
+                SubscriptionsMetadata metadata = currentMetadata.custom(SubscriptionsMetadata.TYPE);
                 if (metadata != null) {
                     var subscription = metadata.subscription().get(subscriptionName);
                     if (subscription != null) {
                         var currentState = subscription.relations().get(RelationName.fromIndexName("doc.t1")).state();
+                        logger.info("--> metdata Changed. Current state={}", currentState);
                         synchronized (subscriptionStates) {
-                            var size = subscriptionStates.size();
-                            if (size == 0 || subscriptionStates.get(size -1).equals(currentState) == false) {
-                                subscriptionStates.add(currentState);
-                            }
+                            subscriptionStates.add(currentState);
                         }
                     }
                 }
@@ -453,8 +453,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                         subscriptionStates,
                         contains(Subscription.State.INITIALIZING,
                                 Subscription.State.RESTORING,
-                                Subscription.State.SYNCHRONIZED,
-                                Subscription.State.MONITORING)
+                                Subscription.State.SYNCHRONIZED)
                     );
                 }
             }

@@ -21,12 +21,11 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
-import io.crate.replication.logical.metadata.Subscription;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import java.io.IOException;
+import java.util.HashMap;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -47,11 +46,15 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.HashMap;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 
 public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
 
+    private static final Logger LOGGER = LogManager.getLogger(UpdateSubscriptionAction.class);
     public static final String NAME = "internal:crate:replication/logical/subscription/update";
     public static final UpdateSubscriptionAction INSTANCE = new UpdateSubscriptionAction();
 
@@ -89,6 +92,7 @@ public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
     public static ClusterState update(ClusterState clusterState,
                                       String subscriptionName,
                                       Subscription subscription) {
+        LOGGER.info("--> Updating subscription {}={}", subscriptionName, subscription);
         Metadata currentMetadata = clusterState.metadata();
         Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
 

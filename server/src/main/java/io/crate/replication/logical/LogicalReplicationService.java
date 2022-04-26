@@ -326,24 +326,6 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
         FutureActionListener<RestoreService.RestoreCompletionResponse, RestoreService.RestoreCompletionResponse> restoreFuture =
             FutureActionListener.newInstance();
-        restoreFuture.whenComplete((response, err) -> {
-            if (err == null) {
-                updateSubscriptionState(
-                    subscriptionName,
-                    relationNames,
-                    Subscription.State.RESTORING,
-                    null
-                );
-            } else {
-                updateSubscriptionState(
-                    subscriptionName,
-                    relationNames,
-                    Subscription.State.FAILED,
-                    "Failed restoring subscription, error=" + err.getMessage()
-                );
-            }
-        });
-
         try {
             threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {
                 try {
@@ -357,6 +339,14 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         }
 
         return restoreFuture
+            .thenCompose(response -> {
+                return updateSubscriptionState(
+                    subscriptionName,
+                    relationNames,
+                    Subscription.State.RESTORING,
+                    null
+                ).thenApply(ignored -> response);
+            })
             .thenCompose(response -> afterReplicationStarted(subscriptionName, response, relationNames));
     }
 
@@ -440,8 +430,10 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                                                               @Nullable String failureReason) {
         var oldSubscription = subscriptions().get(subscriptionName);
         if (oldSubscription == null) {
+            LOGGER.info("--> Aborting updating subscription state to {}, no old subscription", newState);
             return CompletableFuture.completedFuture(false);
         }
+        LOGGER.info("--> Updating subscription state to {}", newState);
         HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>(oldSubscription.relations());
         for (var relationName : relationNames) {
             relations.put(relationName, new Subscription.RelationState(newState, failureReason));
@@ -474,9 +466,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             relations
         );
         var request = new UpdateSubscriptionAction.Request(subscriptionName, newSubscription);
-        var future = new FutureActionListener<>(AcknowledgedResponse::isAcknowledged);
-        client.execute(UpdateSubscriptionAction.INSTANCE, request)
-            .whenComplete(ActionListener.toBiConsumer(future));
-        return future;
+        return client.execute(UpdateSubscriptionAction.INSTANCE, request)
+            .thenApply(AcknowledgedResponse::isAcknowledged);
     }
 }
