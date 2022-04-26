@@ -141,7 +141,11 @@ public interface Repository extends LifecycleComponent {
      */
     default CompletableFuture<RepositoryData> getRepositoryData() {
         FutureActionListener<RepositoryData, RepositoryData> future = FutureActionListener.newInstance();
-        getRepositoryData(future);
+        try {
+            getRepositoryData(future);
+        } catch (Exception e) {
+            future.onFailure(e);
+        }
         return future;
     }
 
