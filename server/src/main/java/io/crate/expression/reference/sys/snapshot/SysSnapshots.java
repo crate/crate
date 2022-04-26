@@ -24,16 +24,16 @@ package io.crate.expression.reference.sys.snapshot;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.GroupedActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
-import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.SnapshotException;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
@@ -64,38 +64,20 @@ public class SysSnapshots {
     }
 
     public CompletableFuture<Iterable<SysSnapshot>> currentSnapshots() {
-        ArrayList<CompletableFuture<Collection<SysSnapshot>>> futureActionListeners = new ArrayList<>();
+        ArrayList<CompletableFuture<List<SysSnapshot>>> sysSnapshots = new ArrayList<>();
         for (Repository repository : getRepositories.get()) {
-            var future = new CompletableFuture<Collection<SysSnapshot>>();
-            ActionListener<RepositoryData> listener = ActionListener.wrap(
-                repositoryData -> {
+            var futureSnapshots = repository.getRepositoryData()
+                .thenCompose(repositoryData -> {
                     Collection<SnapshotId> snapshotIds = repositoryData.getSnapshotIds();
-                    if (snapshotIds.isEmpty()) {
-                        future.complete(List.of());
-                        return;
-                    }
-                    GroupedActionListener<SysSnapshot> snapshotListener = new GroupedActionListener<>(
-                        ActionListener.wrap(future::complete, future::completeExceptionally),
-                        snapshotIds.size()
-                    );
+                    ArrayList<CompletableFuture<SysSnapshot>> snapshots = new ArrayList<>(snapshotIds.size());
                     for (SnapshotId snapshotId : snapshotIds) {
-                        createSysSnapshot(repository, snapshotId, snapshotListener);
+                        snapshots.add(createSysSnapshot(repository, snapshotId));
                     }
-                },
-                future::completeExceptionally
-            );
-            try {
-                repository.getRepositoryData(listener);
-            } catch (Exception ex) {
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("Couldn't load repository data. repository={} error={}", repository, ex);
-                }
-                // ignore - `sys.snapshots` shouldn't fail because of an illegal repository definition
-                continue;
-            }
-            futureActionListeners.add(future);
+                    return CompletableFutures.allSuccessfulAsList(snapshots);
+                });
+            sysSnapshots.add(futureSnapshots);
         }
-        return CompletableFutures.allAsList(futureActionListeners).thenApply(data -> {
+        return CompletableFutures.allSuccessfulAsList(sysSnapshots).thenApply(data -> {
             ArrayList<SysSnapshot> result = new ArrayList<>();
             for (Collection<SysSnapshot> datum : data) {
                 result.addAll(datum);
@@ -104,47 +86,41 @@ public class SysSnapshots {
         });
     }
 
-    private static void createSysSnapshot(Repository repository,
-                                          SnapshotId snapshotId,
-                                          ActionListener<SysSnapshot> listener) {
-        repository.getSnapshotInfo(
-            snapshotId,
-            new ActionListener<>() {
-                @Override
-                public void onResponse(SnapshotInfo snapshotInfo) {
-                    Version version = snapshotInfo.version();
-                    listener.onResponse(new SysSnapshot(
+    private static SysSnapshot toSysSnapshot(Repository repository, SnapshotId snapshotId, SnapshotInfo snapshotInfo) {
+        Version version = snapshotInfo.version();
+        return new SysSnapshot(
+            snapshotId.getName(),
+            repository.getMetadata().name(),
+            snapshotInfo.indices(),
+            snapshotInfo.startTime(),
+            snapshotInfo.endTime(),
+            version == null ? null : version.toString(),
+            snapshotInfo.state().name(),
+            Lists2.map(snapshotInfo.shardFailures(), SnapshotShardFailure::toString)
+        );
+    }
+
+    private static CompletableFuture<SysSnapshot> createSysSnapshot(Repository repository, SnapshotId snapshotId) {
+        return repository.getSnapshotInfo(snapshotId)
+            .thenApply(snapshotInfo -> toSysSnapshot(repository, snapshotId, snapshotInfo))
+            .exceptionally(t -> {
+                var err = SQLExceptions.unwrap(t);
+                if (err instanceof SnapshotException) {
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Couldn't retrieve snapshotId={} error={}", snapshotId, err);
+                    }
+                    return new SysSnapshot(
                         snapshotId.getName(),
                         repository.getMetadata().name(),
-                        snapshotInfo.indices(),
-                        snapshotInfo.startTime(),
-                        snapshotInfo.endTime(),
-                        version == null ? null : version.toString(),
-                        snapshotInfo.state().name(),
-                        Lists2.map(snapshotInfo.shardFailures(), SnapshotShardFailure::toString)
-                    ));
+                        Collections.emptyList(),
+                        null,
+                        null,
+                        null,
+                        SnapshotState.FAILED.name(),
+                        List.of()
+                    );
                 }
-
-                @Override
-                public void onFailure(Exception e) {
-                    if (e instanceof SnapshotException) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("Couldn't retrieve snapshotId={} error={}", snapshotId, e);
-                        }
-                        listener.onResponse(new SysSnapshot(
-                            snapshotId.getName(),
-                            repository.getMetadata().name(),
-                            Collections.emptyList(),
-                            null,
-                            null,
-                            null,
-                            SnapshotState.FAILED.name(),
-                            List.of()
-                        ));
-                    } else {
-                        listener.onFailure(e);
-                    }
-                }
+                throw Exceptions.toRuntimeException(err);
             });
     }
 }

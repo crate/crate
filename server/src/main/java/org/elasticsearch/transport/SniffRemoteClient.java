@@ -102,16 +102,23 @@ public final class SniffRemoteClient extends AbstractClient {
     @Override
     public void close() {
         synchronized (this) {
-            if (discoveredNodes != null && discoveredNodes.isDone() && !discoveredNodes.isCompletedExceptionally()) {
-                DiscoveredNodes nodes = discoveredNodes.join();
-
-                var it = nodes.connections.entrySet().iterator();
-                while (it.hasNext()) {
-                    DiscoveryNode node = it.next().getKey();
-                    transportService.disconnectFromNode(node);
-                    it.remove();
-                }
+            if (discoveredNodes == null) {
+                return;
             }
+            if (discoveredNodes.isCompletedExceptionally()) {
+                discoveredNodes = null;
+                return;
+            }
+            discoveredNodes.thenAccept(nodes -> {
+                synchronized (nodes) {
+                    var it = nodes.connections.entrySet().iterator();
+                    while (it.hasNext()) {
+                        DiscoveryNode node = it.next().getKey();
+                        transportService.disconnectFromNode(node);
+                        it.remove();
+                    }
+                }
+            });
             discoveredNodes = null;
         }
     }
@@ -229,6 +236,7 @@ public final class SniffRemoteClient extends AbstractClient {
 
                 @Override
                 public void handleException(TransportException exp) {
+                    connection.close();
                     result.completeExceptionally(exp.unwrapCause());
                 }
 
