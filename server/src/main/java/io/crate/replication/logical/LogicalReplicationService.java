@@ -379,26 +379,6 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
         FutureActionListener<RestoreService.RestoreCompletionResponse, RestoreService.RestoreCompletionResponse> restoreFuture =
             FutureActionListener.newInstance();
-        restoreFuture.whenComplete(
-            (response, err) -> {
-                if (err == null) {
-                    updateSubscriptionState(
-                        subscriptionName,
-                        relationNames,
-                        Subscription.State.RESTORING,
-                        null
-                    );
-                } else {
-                    updateSubscriptionState(
-                        subscriptionName,
-                        relationNames,
-                        Subscription.State.FAILED,
-                        "Failed restoring subscription, error=" + err.getMessage()
-                    );
-                }
-            }
-        );
-
         try {
             threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
                 () -> {
@@ -414,6 +394,10 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         }
 
         return restoreFuture
+            .thenCompose(response ->
+                updateSubscriptionState(subscriptionName, relationNames, Subscription.State.RESTORING, null)
+                    .thenApply(ignored -> response)
+            )
             .thenCompose(response -> afterReplicationStarted(subscriptionName, response, relationNames));
     }
 
