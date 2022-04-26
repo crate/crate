@@ -246,7 +246,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
         assertThat(operator, instanceOf(HashJoin.class));
-        assertThat(((HashJoin) operator).concreteRelation.toString(), is("DocTableRelation{doc.locations}"));
+        assertThat(((HashJoin) operator).concreteRelation().toString(), is("DocTableRelation{doc.locations}"));
 
         Join join = buildJoin(operator);
         assertThat(((Collect) join.left()).collectPhase().toCollect().get(1), isReference("other_id"));
@@ -266,7 +266,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
         assertThat(operator, instanceOf(HashJoin.class));
-        assertThat(((HashJoin) operator).concreteRelation.toString(), is("DocTableRelation{doc.locations}"));
+        assertThat(((HashJoin) operator).concreteRelation().toString(), is("DocTableRelation{doc.locations}"));
 
         Join join = buildJoin(operator);
         assertThat(((Collect) join.left()).collectPhase().toCollect().get(1), isReference("loc"));

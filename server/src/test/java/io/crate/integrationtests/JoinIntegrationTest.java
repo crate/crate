@@ -1253,4 +1253,52 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
         execute(stmt);
         assertThat(response.rowCount(), is(0L));
     }
+
+    /**
+     * https://github.com/crate/crate/issues/12357
+     */
+    @Test
+    @UseHashJoins(1)
+    public void test_alias_in_left_join_condition() {
+        execute("CREATE TABLE doc.t1 (id TEXT, name TEXT, subscription_id TEXT, PRIMARY KEY (id))");
+        execute("CREATE TABLE doc.t2 (kind TEXT, cluster_id TEXT, PRIMARY KEY (kind, cluster_id))");
+        execute("CREATE TABLE doc.t3 (id TEXT PRIMARY KEY, reference TEXT)");
+
+        execute("insert into doc.t1 values ('1', 'foo', '2')");
+        execute("insert into doc.t2 values ('bar', '1')");
+        execute("insert into doc.t3 values ('2', 'bazinga')");
+
+        execute("refresh table doc.t1");
+        execute("refresh table doc.t2");
+        execute("refresh table doc.t3");
+
+        var stmt = """
+                SELECT doc.t3.id, doc.t3.reference
+                FROM doc.t3
+                JOIN doc.t1 ON doc.t1.subscription_id = doc.t3.id
+                JOIN doc.t2 ON doc.t2.cluster_id = doc.t1.id
+                AND doc.t2.kind = 'bar'
+                LEFT OUTER JOIN doc.t2 AS temp ON temp.cluster_id = doc.t1.id
+                AND temp.kind = 'bar'
+                WHERE doc.t3.reference = 'bazinga';
+            """;
+
+        execute("EXPLAIN " + stmt);
+        assertThat(printedTable(response.rows()), is(
+            """
+                Eval[id, reference]
+                  └ NestedLoopJoin[LEFT | ((cluster_id = id) AND (kind = 'bar'))]
+                    ├ HashJoin[(cluster_id = id)]
+                    │  ├ HashJoin[(subscription_id = id)]
+                    │  │  ├ Collect[doc.t3 | [id, reference] | (reference = 'bazinga')]
+                    │  │  └ Collect[doc.t1 | [subscription_id, id] | true]
+                    │  └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]
+                    └ Rename[cluster_id, kind] AS temp
+                      └ Collect[doc.t2 | [cluster_id, kind] | true]
+                """
+        ));
+
+        execute(stmt);
+        assertThat(printedTable(response.rows()), is("2| bazinga\n"));
+    }
 }

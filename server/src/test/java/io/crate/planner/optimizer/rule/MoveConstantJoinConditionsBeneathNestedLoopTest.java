@@ -86,6 +86,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
 
         assertThat(result.joinCondition(), is(nonConstantPart));
         assertThat(result.lhs(), is(c1));
+        assertThat(result.concreteRelation(), is(t2));
         Filter filter = (Filter) result.rhs();
         assertThat(filter.source(), is(c2));
         assertThat(filter.query(), is(constantPart));

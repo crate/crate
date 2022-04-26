@@ -39,7 +39,6 @@ import javax.annotation.Nullable;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
@@ -67,8 +66,7 @@ import io.crate.statistics.TableStats;
 public class HashJoin implements LogicalPlan {
 
     private final Symbol joinCondition;
-    @VisibleForTesting
-    final AnalyzedRelation concreteRelation;
+    private final AnalyzedRelation concreteRelation;
     private final List<Symbol> outputs;
     final LogicalPlan rhs;
     final LogicalPlan lhs;
@@ -98,6 +96,10 @@ public class HashJoin implements LogicalPlan {
 
     public LogicalPlan rhs() {
         return rhs;
+    }
+
+    public AnalyzedRelation concreteRelation() {
+        return concreteRelation;
     }
 
     @Override
