@@ -19,38 +19,10 @@
 
 package org.elasticsearch.indices;
 
-import static io.crate.common.collections.MapBuilder.newMapBuilder;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
+import io.crate.common.collections.Iterables;
+import io.crate.common.collections.Sets;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -76,26 +48,22 @@ import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
-import io.crate.common.collections.Iterables;
-import io.crate.common.collections.Sets;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.env.ShardLockObtainFailedException;
-import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.gateway.MetaStateService;
+import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.IndexService.IndexCreationContext;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.engine.EngineFactory;
-import org.elasticsearch.index.engine.InternalEngineFactory;
-import org.elasticsearch.index.engine.NoOpEngine;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.shard.IndexEventListener;
@@ -113,8 +81,35 @@ import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import static io.crate.common.collections.MapBuilder.newMapBuilder;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
+import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 public class IndicesService extends AbstractLifecycleComponent
     implements IndicesClusterStateService.AllocatedIndices<IndexShard, IndexService>, IndexService.ShardStoreDeleter {
@@ -415,7 +410,7 @@ public class IndicesService extends AbstractLifecycleComponent
             idxSettings.getNumberOfReplicas(),
             indexCreationContext);
 
-        final IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, getEngineFactory(idxSettings), directoryFactories);
+        final IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry,engineFactoryProviders, directoryFactories);
         for (IndexingOperationListener operationListener : indexingOperationListeners) {
             indexModule.addIndexOperationListener(operationListener);
         }
@@ -436,40 +431,6 @@ public class IndicesService extends AbstractLifecycleComponent
         );
     }
 
-    private EngineFactory getEngineFactory(final IndexSettings idxSettings) {
-        final IndexMetadata indexMetadata = idxSettings.getIndexMetadata();
-        if (indexMetadata != null && indexMetadata.getState() == IndexMetadata.State.CLOSE) {
-            // NoOpEngine takes precedence as long as the index is closed
-            return NoOpEngine::new;
-        }
-
-        final List<Optional<EngineFactory>> engineFactories =
-                engineFactoryProviders
-                        .stream()
-                        .map(engineFactoryProvider -> engineFactoryProvider.apply(idxSettings))
-                        .filter(maybe -> Objects.requireNonNull(maybe).isPresent())
-                        .collect(Collectors.toList());
-        if (engineFactories.isEmpty()) {
-            return new InternalEngineFactory();
-        } else if (engineFactories.size() == 1) {
-            assert engineFactories.get(0).isPresent();
-            return engineFactories.get(0).get();
-        } else {
-            final String message = String.format(
-                    Locale.ROOT,
-                    "multiple engine factories provided for %s: %s",
-                    idxSettings.getIndex(),
-                    engineFactories
-                            .stream()
-                            .map(t -> {
-                                assert t.isPresent();
-                                return "[" + t.get().getClass().getName() + "]";
-                            })
-                            .collect(Collectors.joining(",")));
-            throw new IllegalStateException(message);
-        }
-    }
-
     /**
      * creates a new mapper service for the given index, in order to do administrative work like mapping updates.
      * This *should not* be used for document parsing. Doing so will result in an exception.
@@ -478,7 +439,7 @@ public class IndicesService extends AbstractLifecycleComponent
      */
     public synchronized MapperService createIndexMapperService(IndexMetadata indexMetadata) throws IOException {
         final IndexSettings idxSettings = new IndexSettings(indexMetadata, this.settings, indexScopedSettings);
-        final IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, getEngineFactory(idxSettings), directoryFactories);
+        final IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, engineFactoryProviders, directoryFactories);
         pluginsService.onIndexModule(indexModule);
         return indexModule.newIndexMapperService(xContentRegistry, mapperRegistry);
     }

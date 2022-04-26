@@ -18,16 +18,18 @@
  */
 package org.elasticsearch.index.engine;
 
-import static org.elasticsearch.cluster.routing.ShardRoutingHelper.initWithSameId;
-
-import java.io.IOException;
-
 import org.elasticsearch.cluster.routing.RecoverySource.ExistingStoreRecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
+import static org.elasticsearch.cluster.routing.ShardRoutingHelper.initWithSameId;
 
 public class NoOpEngineRecoveryTests extends IndexShardTestCase {
 
@@ -43,12 +45,12 @@ public class NoOpEngineRecoveryTests extends IndexShardTestCase {
 
         final ShardRouting shardRouting = indexShard.routingEntry();
         IndexShard primary = reinitShard(indexShard, initWithSameId(shardRouting, ExistingStoreRecoverySource.INSTANCE),
-            indexShard.indexSettings().getIndexMetadata(), NoOpEngine::new);
+            indexShard.indexSettings().getIndexMetadata(), List.of(idxSettings -> Optional.of(NoOpEngine::new)));
         recoverShardFromStore(primary);
         assertEquals(primary.seqNoStats().getMaxSeqNo(), primary.getMaxSeqNoOfUpdatesOrDeletes());
         assertEquals(nbDocs, primary.docStats().getCount());
 
-        IndexShard replica = newShard(false, Settings.EMPTY, NoOpEngine::new);
+        IndexShard replica = newShard(false, Settings.EMPTY, List.of(idxSettings -> Optional.of(NoOpEngine::new)));
         recoverReplica(replica, primary, true);
         assertEquals(replica.seqNoStats().getMaxSeqNo(), replica.getMaxSeqNoOfUpdatesOrDeletes());
         assertEquals(nbDocs, replica.docStats().getCount());

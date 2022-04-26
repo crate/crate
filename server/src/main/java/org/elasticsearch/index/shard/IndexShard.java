@@ -19,41 +19,12 @@
 
 package org.elasticsearch.index.shard;
 
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.channels.ClosedByInterruptException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import javax.annotation.Nullable;
-
 import com.carrotsearch.hppc.ObjectLongMap;
-
+import io.crate.common.Booleans;
+import io.crate.common.collections.Tuple;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.Exceptions;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.CheckIndex;
@@ -112,6 +83,8 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.EngineFactory;
+import org.elasticsearch.index.engine.InternalEngineFactory;
+import org.elasticsearch.index.engine.NoOpEngine;
 import org.elasticsearch.index.engine.ReadOnlyEngine;
 import org.elasticsearch.index.engine.RefreshFailedEngineException;
 import org.elasticsearch.index.engine.SafeCommitInfo;
@@ -153,11 +126,39 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.common.Booleans;
-import io.crate.common.collections.Tuple;
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
+import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.UncheckedIOException;
+import java.nio.channels.ClosedByInterruptException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 
 public class IndexShard extends AbstractIndexShardComponent implements IndicesClusterStateService.Shard {
 
@@ -187,7 +188,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     protected volatile long pendingPrimaryTerm; // see JavaDocs for getPendingPrimaryTerm
     private final Object engineMutex = new Object(); // lock ordering: engineMutex -> mutex
     private final AtomicReference<Engine> currentEngineReference = new AtomicReference<>();
-    final EngineFactory engineFactory;
+    private volatile EngineFactory engineFactory;
+    final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
 
     private final IndexingOperationListener indexingOperationListeners;
     private final Runnable globalCheckpointSyncer;
@@ -246,7 +248,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             Store store,
             IndexCache indexCache,
             MapperService mapperService,
-            @Nullable EngineFactory engineFactory,
+            Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
             IndexEventListener indexEventListener,
             ThreadPool threadPool,
             BigArrays bigArrays,
@@ -260,7 +262,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         final Settings settings = indexSettings.getSettings();
         this.codecService = new CodecService(mapperService, logger);
         Objects.requireNonNull(store, "Store must be provided to the index shard");
-        this.engineFactory = Objects.requireNonNull(engineFactory);
+        this.engineFactoryProviders = engineFactoryProviders;
+        this.engineFactory = getEngineFactory();
         this.store = store;
         this.indexEventListener = indexEventListener;
         this.threadPool = threadPool;
@@ -1799,6 +1802,22 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     public void onSettingsChanged() {
+        var newEngineFactory = getEngineFactory();
+        if (newEngineFactory.getClass() != engineFactory.getClass()) {
+            try {
+                // resetEngineToGlobalCheckpoint will use the new engine factory
+                indexShardOperationPermits.blockOperations(30, TimeUnit.MINUTES, this::resetEngineToGlobalCheckpoint);
+            } catch (InterruptedException | TimeoutException e) {
+                var msg = "Timeout exception while trying to switch to a new engine";
+                failShard(msg, null);
+                throw new RuntimeException(msg, e);
+            } catch (IOException e) {
+                var msg = "IOException while trying to switch to a new engine";
+                failShard(msg, e);
+                throw new UncheckedIOException(msg, e);
+            }
+        }
+
         Engine engineOrNull = getEngineOrNull();
         if (engineOrNull != null) {
             final boolean disableTranslogRetention = indexSettings.isSoftDeleteEnabled() && useRetentionLeasesInPeerRecovery;
@@ -3104,9 +3123,10 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         }
     }
 
-    EngineFactory getEngineFactory() {
-        return engineFactory;
+    Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders() {
+        return engineFactoryProviders;
     }
+
 
     // for tests
     ReplicationTracker getReplicationTracker() {
@@ -3358,6 +3378,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     }
                 };
             IOUtils.close(currentEngineReference.getAndSet(readOnlyEngine));
+            engineFactory = getEngineFactory();
             newEngineReference.set(engineFactory.newReadWriteEngine(newEngineConfig(replicationTracker)));
             onNewEngine(newEngineReference.get());
         }
@@ -3426,5 +3447,39 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     public long periodicFlushCount() {
         return periodicFlushMetric.count();
+    }
+
+    private EngineFactory getEngineFactory() {
+        final IndexMetadata indexMetadata = indexSettings.getIndexMetadata();
+        if (indexMetadata != null && indexMetadata.getState() == IndexMetadata.State.CLOSE) {
+            // NoOpEngine takes precedence as long as the index is closed
+            return NoOpEngine::new;
+        }
+
+        final List<Optional<EngineFactory>> engineFactories =
+            engineFactoryProviders
+                .stream()
+                .map(engineFactoryProvider -> engineFactoryProvider.apply(indexSettings))
+                .filter(maybe -> Objects.requireNonNull(maybe).isPresent())
+                .collect(Collectors.toList());
+        if (engineFactories.isEmpty()) {
+            return new InternalEngineFactory();
+        } else if (engineFactories.size() == 1) {
+            assert engineFactories.get(0).isPresent();
+            return engineFactories.get(0).get();
+        } else {
+            final String message = String.format(
+                Locale.ROOT,
+                "multiple engine factories provided for %s: %s",
+                indexMetadata.getIndex(),
+                engineFactories
+                    .stream()
+                    .map(t -> {
+                        assert t.isPresent();
+                        return "[" + t.get().getClass().getName() + "]";
+                    })
+                    .collect(Collectors.joining(",")));
+            throw new IllegalStateException(message);
+        }
     }
 }

@@ -22,12 +22,8 @@
 package io.crate.testing;
 
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -51,7 +47,6 @@ import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
-import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
@@ -63,8 +58,11 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.metadata.doc.DocTableInfo;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class IndexEnv implements AutoCloseable {
 
@@ -110,7 +108,7 @@ public final class IndexEnv implements AutoCloseable {
         );
         DisabledQueryCache queryCache = new DisabledQueryCache(idxSettings);
         indexCache = new IndexCache(idxSettings, queryCache);
-        IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, new InternalEngineFactory(), Collections.emptyMap());
+        IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, List.of(), Collections.emptyMap());
         nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env);
         luceneReferenceResolver = new LuceneReferenceResolver(
             indexName,

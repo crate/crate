@@ -21,26 +21,17 @@
 
 package io.crate.replication.logical.plan;
 
-import io.crate.action.FutureActionListener;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.execution.support.ChainableAction;
-import io.crate.execution.support.ChainableActions;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.replication.logical.action.DropSubscriptionAction;
 import io.crate.replication.logical.action.DropSubscriptionRequest;
 import io.crate.replication.logical.analyze.AnalyzedDropSubscription;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 public class DropSubscriptionPlan implements Plan {
 
@@ -62,59 +53,8 @@ public class DropSubscriptionPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
 
-        List<RelationName> tables = analyzedDropSubscription.subscription()
-            .relations().keySet().stream().toList();
-
-        final List<ChainableAction<Long>> actions = new ArrayList<>();
-
-        // Step 1 - Close subscribed tables and consequently stop tracking and remove retention lease.
-        actions.add(new ChainableAction<>(
-            () -> dependencies.alterTableOperation()
-                .executeAlterTableOpenClose(tables, false, true, null)
-                .exceptionally(error -> {
-                    throw new IllegalStateException(
-                        "Couldn't close subscribed tables, please retry DROP SUBSCRIPTION command."
-                            + error.getMessage(), error
-                    );
-                }),
-            () -> CompletableFuture.completedFuture(-1L)
-        ));
-
-        // Step 2
-        // Drop setting and subscription
-        actions.add(new ChainableAction<>(
-            () -> {
-                FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 1L);
-                var request = new DropSubscriptionRequest(analyzedDropSubscription.name(), analyzedDropSubscription.ifExists());
-                dependencies.dropSubscriptionAction().execute(request, listener);
-                return listener.exceptionally(error -> {
-                    throw new IllegalStateException(
-                        "Couldn't update metadata, please retry DROP SUBSCRIPTION command."
-                            + error.getMessage(), error
-                    );
-                });
-            },
-            () -> CompletableFuture.completedFuture(-1L)
-        ));
-
-        // Step 3
-        // Reopen table to update table engine to normal (Operation will be reset back to ALL)
-        actions.add(new ChainableAction<>(
-            () -> dependencies.alterTableOperation()
-                .executeAlterTableOpenClose(tables, true, true, null)
-                .exceptionally(error -> {
-                    String tablesHint = "all subscribed tables. ";
-                    if (tables.size() < 5) {
-                        tablesHint = "tables (" + tables.stream().map(relationName -> relationName.name()).collect(Collectors.joining(",")) + "). ";
-                    }
-                    throw new IllegalStateException(
-                        "Couldn't reopen tables, please run command ALTER TABLE OPEN for " + tablesHint
-                            + error.getMessage(), error
-                    );
-                }),
-            () -> CompletableFuture.completedFuture(-1L)
-        ));
-
-        ChainableActions.run(actions).whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
+        var request = new DropSubscriptionRequest(analyzedDropSubscription.name(), analyzedDropSubscription.ifExists());
+        dependencies.client().execute(DropSubscriptionAction.INSTANCE, request)
+            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : 1L)));
     }
 }
