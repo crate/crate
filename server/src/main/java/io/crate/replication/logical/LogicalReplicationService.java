@@ -21,20 +21,25 @@
 
 package io.crate.replication.logical;
 
-import io.crate.action.FutureActionListener;
-import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.RetryRunnable;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.action.PublicationsStateAction;
-import io.crate.replication.logical.action.UpdateSubscriptionAction;
-import io.crate.replication.logical.metadata.ConnectionInfo;
-import io.crate.replication.logical.metadata.Publication;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.replication.logical.metadata.Subscription;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.replication.logical.repository.LogicalReplicationRepository;
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
+import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
+import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -57,22 +62,20 @@ import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
-import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
-import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
+import io.crate.action.FutureActionListener;
+import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.support.RetryRunnable;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.UpdateSubscriptionAction;
+import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.replication.logical.repository.LogicalReplicationRepository;
 
 public class LogicalReplicationService implements ClusterStateListener, Closeable {
 
@@ -396,15 +399,19 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             }
         );
 
-        threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
-            () -> {
-                try {
-                    restoreService.restoreSnapshot(restoreRequest, restoreFuture);
-                } catch (Exception e) {
-                    restoreFuture.onFailure(e);
+        try {
+            threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
+                () -> {
+                    try {
+                        restoreService.restoreSnapshot(restoreRequest, restoreFuture);
+                    } catch (Exception e) {
+                        restoreFuture.onFailure(e);
+                    }
                 }
-            }
-        );
+            );
+        } catch (RejectedExecutionException ex) {
+            restoreFuture.onFailure(ex);
+        }
 
         return restoreFuture
             .thenCompose(response -> afterReplicationStarted(subscriptionName, response, relationNames));
