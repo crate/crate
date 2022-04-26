@@ -441,8 +441,8 @@ public final class MetadataTracker implements Closeable {
             var relationName = RelationName.fromIndexName(indexName);
             if (subscriberState.metadata().hasIndex(indexName) == false) {
                 toRestoreIndices.add(indexName);
-            }
-            if (subscribedRelations.get(relationName) == null) {
+                relationNamesForStateUpdate.add(relationName);
+            } else if (subscribedRelations.get(relationName) == null) {
                 relationNamesForStateUpdate.add(relationName);
             }
         }
