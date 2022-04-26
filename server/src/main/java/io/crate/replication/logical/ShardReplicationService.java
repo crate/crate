@@ -100,7 +100,7 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
     public void afterIndexCreated(IndexService indexService) {
         var settings = indexService.getIndexSettings().getSettings();
         var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(settings);
-        if (subscriptionName != null) {
+        if (subscriptionName.isEmpty() == false) {
             subscribedIndices.put(indexService.indexUUID(), subscriptionName);
         }
     }
@@ -109,7 +109,7 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
     public void afterIndexRemoved(Index index, IndexSettings indexSettings, IndexRemovalReason reason) {
         var settings = indexSettings.getSettings();
         var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(settings);
-        if (subscriptionName != null) {
+        if (subscriptionName.isEmpty() == false) {
             subscribedIndices.remove(index.getUUID());
         }
     }
@@ -140,20 +140,27 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
 
     @Override
     public void beforeIndexShardClosed(ShardId shardId,
-                                        @Nullable IndexShard indexShard,
-                                        Settings indexSettings) {
-        var tracker = shards.remove(shardId);
-        if (tracker != null) {
-            try {
-                tracker.close();
-            } catch (IOException e) {
-                LOGGER.error("Error while closing shard changes tracker of shardId=" + shardId, e);
-            }
-        }
+                                       @Nullable IndexShard indexShard,
+                                       Settings indexSettings) {
+        closeTracker(shardId);
     }
 
     @Override
     public void afterIndexShardDeleted(ShardId shardId, Settings indexSettings) {
+        closeTracker(shardId);
+    }
+
+    @Override
+    public void beforeIndexSettingsChangesApplied(IndexShard indexShard, Settings oldSettings, Settings newSettings) {
+        if (REPLICATION_SUBSCRIPTION_NAME.get(oldSettings).isEmpty() == false
+            && REPLICATION_SUBSCRIPTION_NAME.get(newSettings).isEmpty() == true) {
+            var shardId = indexShard.shardId();
+            closeTracker(shardId);
+            subscribedIndices.remove(indexShard.shardId().getIndex().getUUID());
+        }
+    }
+
+    private void closeTracker(ShardId shardId) {
         var tracker = shards.remove(shardId);
         if (tracker != null) {
             try {
