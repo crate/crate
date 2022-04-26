@@ -26,7 +26,6 @@ import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_
 
 import java.io.Closeable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -63,7 +62,6 @@ import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.action.FutureActionListener;
-import io.crate.common.TriConsumer;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.SQLExceptions;
@@ -247,13 +245,28 @@ public final class MetadataTracker implements Closeable {
             }
             assert publicationsState.isDone() : "If thenCompose triggers, publicationsState must be done";
             var publicationResponse = publicationsState.join();
-            return subscribeToNewRelations(
+
+            RestoreDiff restoreDiff = getRestoreDiff(subscription, subscriberState, publicationResponse);
+            if (restoreDiff.isEmpty()) {
+                return CompletableFuture.completedFuture(true);
+            }
+
+            CompletableFuture<Boolean> updateState = restoreDiff.relationsForStateUpdate.isEmpty()
+                ? CompletableFuture.completedFuture(true)
+                : replicationService.updateSubscriptionState(
+                    subscriptionName,
+                    restoreDiff.relationsForStateUpdate,
+                    Subscription.State.INITIALIZING,
+                    null
+                );
+
+            return updateState.thenCompose(ignored -> replicationService.restore(
                 subscriptionName,
-                subscription,
-                subscriberState,
-                publicationResponse,
-                replicationService
-            );
+                subscription.settings(),
+                restoreDiff.relationsForStateUpdate,
+                restoreDiff.indexNamesToRestore,
+                restoreDiff.templatesToRestore
+            ));
         }).exceptionallyCompose(err -> {
             var e = SQLExceptions.unwrap(err);
             if (SQLExceptions.maybeTemporary(e)) {
@@ -401,44 +414,19 @@ public final class MetadataTracker implements Closeable {
         return existingRelations;
     }
 
-    /**
-     * Extract new relations of all publications of the subscription based on the local and remote publication state
-     * and initiate a restore of these.
-     * See also {@link LogicalReplicationService#restore}.
-     */
-    private static CompletableFuture<Boolean> subscribeToNewRelations(String subscriptionName,
-                                                                      Subscription subscription,
-                                                                      ClusterState subscriberClusterState,
-                                                                      PublicationsStateAction.Response stateResponse,
-                                                                      LogicalReplicationService replicationService) {
-        return subscribeToNewRelations(
-            subscription,
-            subscriberClusterState,
-            stateResponse,
-            relationNames -> replicationService.updateSubscriptionState(
-                subscriptionName,
-                relationNames,
-                Subscription.State.INITIALIZING,
-                null
-            ),
-            (relationNames, toRestoreIndices, toRestoreTemplates) ->
-                replicationService.restore(
-                    subscriptionName,
-                    subscription.settings(),
-                    relationNames,
-                    toRestoreIndices,
-                    toRestoreTemplates
-                )
-        );
+    record RestoreDiff(List<String> indexNamesToRestore,
+                       List<String> templatesToRestore,
+                       Set<RelationName> relationsForStateUpdate) {
+
+        public boolean isEmpty() {
+            return indexNamesToRestore.isEmpty() && templatesToRestore.isEmpty();
+        }
     }
 
     @VisibleForTesting
-    static CompletableFuture<Boolean> subscribeToNewRelations(
-        Subscription subscription,
-        ClusterState subscriberClusterState,
-        PublicationsStateAction.Response stateResponse,
-        Function<Collection<RelationName>, CompletableFuture<Boolean>> updateStateFunction,
-        TriConsumer<Collection<RelationName>, List<String>, List<String>> restoreConsumer) {
+    static RestoreDiff getRestoreDiff(Subscription subscription,
+                                      ClusterState subscriberState,
+                                      PublicationsStateAction.Response stateResponse) {
 
         var subscribedRelations = subscription.relations();
         var relationNamesForStateUpdate = new HashSet<RelationName>();
@@ -447,7 +435,7 @@ public final class MetadataTracker implements Closeable {
 
         for (var indexName : stateResponse.concreteIndices()) {
             var relationName = RelationName.fromIndexName(indexName);
-            if (subscriberClusterState.metadata().hasIndex(indexName) == false) {
+            if (subscriberState.metadata().hasIndex(indexName) == false) {
                 toRestoreIndices.add(indexName);
             }
             if (subscribedRelations.get(relationName) == null) {
@@ -458,7 +446,7 @@ public final class MetadataTracker implements Closeable {
             var indexParts = new IndexParts(templateName);
             if (indexParts.isPartitioned()) {
                 var relationName = indexParts.toRelationName();
-                if (subscriberClusterState.metadata().templates().get(templateName) == null) {
+                if (subscriberState.metadata().templates().get(templateName) == null) {
                     toRestoreTemplates.add(templateName);
                 }
                 if (subscribedRelations.get(relationName) == null) {
@@ -466,29 +454,10 @@ public final class MetadataTracker implements Closeable {
                 }
             }
         }
-
         if (toRestoreIndices.isEmpty() && toRestoreTemplates.isEmpty()) {
-            return CompletableFuture.completedFuture(true);
+            relationNamesForStateUpdate.clear();
         }
-
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("Restoring newly subscribed relations={}, indices={}, templates={}",
-                relationNamesForStateUpdate,
-                toRestoreIndices,
-                toRestoreTemplates
-            );
-        }
-
-        var stateFuture = CompletableFuture.completedFuture(true);
-        if (relationNamesForStateUpdate.isEmpty() == false) {
-            stateFuture = updateStateFunction.apply(relationNamesForStateUpdate);
-        }
-
-        // Trigger restore of new subscribed relations
-        return stateFuture.whenComplete(
-            (ignored, ignoredErr) ->
-                restoreConsumer.accept(relationNamesForStateUpdate, toRestoreIndices, toRestoreTemplates)
-        );
+        return new RestoreDiff(toRestoreIndices, toRestoreTemplates, relationNamesForStateUpdate);
     }
 
     private ClusterState removeDroppedTablesOrPartitions(String subscriptionName,
