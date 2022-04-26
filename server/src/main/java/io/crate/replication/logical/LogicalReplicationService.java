@@ -69,7 +69,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
@@ -194,7 +193,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                     startReplication(subscriptionName, subscription)
                         .whenComplete(
                             (success, e) -> {
-                                var relationNames = subscription.relations().keySet().stream().toList();
+                                var relationNames = subscription.relations().keySet();
                                 if (e != null) {
                                     e = SQLExceptions.unwrap(e);
                                     LOGGER.debug("Failure for logical replication for subscription", e);
@@ -290,29 +289,25 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         };
 
         remoteClusters.connect(subscriptionName, connectionInfo)
-            .whenComplete(
-                (client, err) -> {
-                    if (err == null) {
-                        client.execute(
-                            PublicationsStateAction.INSTANCE,
-                            new PublicationsStateAction.Request(
-                                publications,
-                                connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey())
-                            )
-                        ).whenComplete(
-                            ActionListener.toBiConsumer(
-                                ActionListener.delegateResponse(
-                                    finalFuture,
-                                    (d, stateError) -> onError.accept("Failed to request the publications state",
-                                                                      stateError)
-                                )
-                            )
-                        );
-                    } else {
-                        onError.accept("Failed to connect to the remote cluster", err);
-                    }
+            .whenComplete((client, err) -> {
+                if (err == null) {
+                    client.execute(
+                        PublicationsStateAction.INSTANCE,
+                        new PublicationsStateAction.Request(
+                            publications,
+                            connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey())
+                        )
+                    ).whenComplete((d, stateErr) -> {
+                        if (stateErr == null) {
+                            finalFuture.complete(d);
+                        } else {
+                            onError.accept("Failed to request the publications state", stateErr);
+                        }
+                    });
+                } else {
+                    onError.accept("Failed to connect to the remote cluster", err);
                 }
-            );
+            });
         return finalFuture;
     }
 
@@ -480,10 +475,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             onComplete.accept(response.getRestoreInfo(), null);
         } else {
             var restoreFuture =
-                new FutureActionListener<RestoreSnapshotResponse, RestoreSnapshotResponse>(Function.identity());
-            restoreFuture.whenComplete(
-                (restoreSnapshotResponse, err) -> onComplete.accept(restoreSnapshotResponse.getRestoreInfo(), err)
-            );
+                new FutureActionListener<RestoreSnapshotResponse, RestoreInfo>(RestoreSnapshotResponse::getRestoreInfo);
+            restoreFuture.whenComplete(onComplete);
             clusterService.addListener(new RestoreClusterStateListener(clusterService, response, restoreFuture));
         }
         return future;

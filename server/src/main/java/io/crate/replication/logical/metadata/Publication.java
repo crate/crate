@@ -113,7 +113,7 @@ public class Publication implements Writeable {
     }
 
 
-    public Map<RelationName, RelationMetadata> resolveCurrentRelations(ClusterState state, User publicationOwner, User subscriber) {
+    public Map<RelationName, RelationMetadata> resolveCurrentRelations(ClusterState state, User publicationOwner, User subscriber, String publicationName) {
         if (isForAllTables()) {
             Map<RelationName, RelationMetadata> relations = new HashMap<>();
             Metadata metadata = state.metadata();
@@ -122,8 +122,8 @@ public class Publication implements Writeable {
                 IndexParts indexParts = new IndexParts(templateName);
                 RelationName relationName = indexParts.toRelationName();
                 if (indexParts.isPartitioned()
-                        && userCanPublish(relationName, publicationOwner)
-                        && subscriberCanRead(relationName, subscriber)) {
+                        && userCanPublish(relationName, publicationOwner, publicationName)
+                        && subscriberCanRead(relationName, subscriber, publicationName)) {
                     relations.put(relationName, RelationMetadata.fromMetadata(relationName, metadata));
                 }
             }
@@ -144,31 +144,42 @@ public class Publication implements Writeable {
                     );
                     continue;
                 }
-                if (userCanPublish(relationName, publicationOwner) && subscriberCanRead(relationName, subscriber)) {
+                if (userCanPublish(relationName, publicationOwner, publicationName) && subscriberCanRead(relationName, subscriber, publicationName)) {
                     relations.put(relationName, RelationMetadata.fromMetadata(relationName, metadata));
                 }
             }
             return relations;
         } else {
             return tables.stream()
-                .filter(relationName -> userCanPublish(relationName, publicationOwner))
-                .filter(relationName -> subscriberCanRead(relationName, subscriber))
+                .filter(relationName -> userCanPublish(relationName, publicationOwner, publicationName))
+                .filter(relationName -> subscriberCanRead(relationName, subscriber, publicationName))
                 .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata()))
                 .collect(Collectors.toMap(x -> x.name(), x -> x));
         }
     }
 
-    private static boolean subscriberCanRead(RelationName relationName, User subscriber) {
-        return subscriber.hasPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, relationName.fqn(), Schemas.DOC_SCHEMA_NAME);
+    private static boolean subscriberCanRead(RelationName relationName, User subscriber, String publicationName) {
+        boolean canRead = subscriber.hasPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, relationName.fqn(), Schemas.DOC_SCHEMA_NAME);
+        if (canRead == false) {
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("User {} subscribed to the publication {} doesn't have DQL privilege on the table {}, this table will not be replicated.",
+                    subscriber.name(), publicationName, relationName.fqn());
+            }
+        }
+        return canRead;
     }
 
-    private static boolean userCanPublish(RelationName relationName, User publicationOwner) {
+    private static boolean userCanPublish(RelationName relationName, User publicationOwner, String publicationName) {
         for (Privilege.Type type: Privilege.Type.READ_WRITE_DEFINE) {
             // This check is triggered only on ALL TABLES case.
             // Required privileges correspond to those we check for the pre-defined tables case in AccessControlImpl.visitCreatePublication.
 
             // Schemas.DOC_SCHEMA_NAME is a dummy parameter since we are passing fqn as ident.
             if (!publicationOwner.hasPrivilege(type, Privilege.Clazz.TABLE, relationName.fqn(), Schemas.DOC_SCHEMA_NAME)) {
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("User {} owning publication {} doesn't have {} privilege on the table {}, this table will not be replicated.",
+                        publicationOwner.name(), publicationName, type.name(), relationName.fqn());
+                }
                 return false;
             }
         }

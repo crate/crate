@@ -277,7 +277,9 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             executeOnPublisher("CREATE PUBLICATION " + pub + " FOR TABLE " + tablesAsString);
         }
         executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
-        executeOnPublisher("GRANT DQL ON TABLE " + tablesAsString + " TO " + SUBSCRIBING_USER);
+        if (!tablesAsString.isEmpty()) {
+            executeOnPublisher("GRANT DQL ON TABLE " + tablesAsString + " TO " + SUBSCRIBING_USER);
+        }
     }
 
     protected void createSubscription(String subName, String pubName) throws Exception {

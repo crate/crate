@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 @UseRandomizedSchema(random = false)
@@ -335,6 +336,40 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
         response = executeOnSubscriber("INSERT INTO t1 (id) VALUES(3)");
         assertThat(response.rowCount(), CoreMatchers.is(1L));
+    }
+
+    @Test
+    public void test_subscribing_to_the_own_tables_on_the_same_cluster() throws Exception {
+        createPublication("pub", true, List.of());
+
+        // subscription is created on the same cluster
+        executeOnPublisher("CREATE SUBSCRIPTION sub "+
+            " CONNECTION '" + publisherConnectionUrl() + "' publication pub");
+
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+            defaultTableSettings() +
+            ")");
+        executeOnPublisher("CREATE TABLE doc.t2 (id INT, p INT) PARTITIONED BY (p)");
+
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1, doc.t2 TO " + SUBSCRIBING_USER);
+
+        assertBusy(
+            () -> {
+                var res = executeOnPublisher(
+                    "SELECT s.subname, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
+                        " FROM pg_subscription s" +
+                        " LEFT JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                        " ORDER BY s.subname");
+                assertThat(res.rows(),
+                    arrayContainingInAnyOrder(
+                        new Object[] {"sub", "doc.t1", "e", "Relation already exists"},
+                        new Object[] {"sub", "doc.t2", "e", "Relation already exists"}
+                    )
+                );
+                assertThat(isTrackerActive(), is(false));
+            }, 20, TimeUnit.SECONDS
+        );
+
     }
 
     private boolean isTrackerActive() throws Exception {
