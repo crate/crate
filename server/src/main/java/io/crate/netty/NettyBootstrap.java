@@ -33,6 +33,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportSettings;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.BorrowedItem;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -56,6 +57,11 @@ public class NettyBootstrap {
 
     private int refs = 0;
     private EventLoopGroup worker;
+
+    @VisibleForTesting
+    public boolean workerIsShutdown() {
+        return worker == null || worker.isShutdown();
+    }
 
     public synchronized BorrowedItem<EventLoopGroup> getSharedEventLoopGroup(Settings settings) {
         if (worker == null) {
