@@ -392,7 +392,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         public void onResponse(Void unused) {
                             LOGGER.info("Restore successful for {}", store.shardId());
                             store.decRef();
-                            releasePublisherResources(restoreUUID, publisherShardNode, shardId);
+                            releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
                             recoveryState.getIndex().setFileDetailsComplete();
                             listener.onResponse(null);
                         }
@@ -406,7 +406,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                             } else {
                                 LOGGER.error("Not retrying restore shard for {}", store.shardId());
                                 store.decRef();
-                                releasePublisherResources(restoreUUID, publisherShardNode, shardId);
+                                releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
                                 listener.onFailure(e);
                             }
 
@@ -422,7 +422,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         listener.onFailure(new UncheckedIOException(e));
                     } finally {
                         store.decRef();
-                        releasePublisherResources(restoreUUID, publisherShardNode, shardId);
+                        releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
                     }
                 } else {
                     multiChunkTransfer.start();
@@ -444,7 +444,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                        ActionListener<ClusterState> listener,
                                        String[] remoteIndices,
                                        String[] remoteTemplates) {
-        var clusterStateRequest = getRemoteClient().admin().cluster().prepareState()
+        Client remoteClient = getRemoteClient();
+        var clusterStateRequest = remoteClient.admin().cluster().prepareState()
             .setIndices(remoteIndices)
             .setTemplates(remoteTemplates)
             .setMetadata(true)
@@ -453,7 +454,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .setIndicesOptions(IndicesOptions.strictSingleIndexNoExpandForbidClosed())
             .setWaitForTimeOut(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC))
             .request();
-        getRemoteClient().admin().cluster().execute(
+        remoteClient.admin().cluster().execute(
             ClusterStateAction.INSTANCE, clusterStateRequest)
             .whenComplete(
                 ActionListener.toBiConsumer(
@@ -482,7 +483,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             )).whenComplete(ActionListener.toBiConsumer(listener));
     }
 
-    private void releasePublisherResources(String restoreUUID,
+    private void releasePublisherResources(Client remoteClient,
+                                           String restoreUUID,
                                            DiscoveryNode publisherShardNode,
                                            ShardId shardId) {
         var releaseResourcesReq = new ReleasePublisherResourcesAction.Request(
@@ -491,7 +493,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             shardId,
             clusterService.getClusterName().value()
         );
-        getRemoteClient().execute(ReleasePublisherResourcesAction.INSTANCE, releaseResourcesReq)
+        remoteClient.execute(ReleasePublisherResourcesAction.INSTANCE, releaseResourcesReq)
             .whenComplete(
                 ActionListener.toBiConsumer(
                     new ActionListener<>() {
