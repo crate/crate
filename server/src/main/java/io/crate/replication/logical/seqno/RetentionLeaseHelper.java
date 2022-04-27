@@ -112,11 +112,15 @@ public class RetentionLeaseHelper {
                 ActionListener.toBiConsumer(
                     ActionListener.wrap(
                         response -> {
-                            LOGGER.info("Removed retention lease with id - {}", retentionLeaseId);
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug("Removed retention lease with id - {}", retentionLeaseId);
+                            }
                             listener.onResponse(response);
                         },
                         e -> {
-                            LOGGER.error("Exception in removing retention lease", e);
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug("Exception in removing retention lease", e);
+                            }
                             listener.onFailure(e);
                         }
                     )
