@@ -21,22 +21,24 @@
 
 package io.crate.replication.logical;
 
-import io.crate.action.FutureActionListener;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CountdownFutureCallback;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.RetryRunnable;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.action.DropSubscriptionAction;
-import io.crate.replication.logical.action.PublicationsStateAction;
-import io.crate.replication.logical.action.PublicationsStateAction.Response;
-import io.crate.replication.logical.action.UpdateSubscriptionAction;
-import io.crate.replication.logical.metadata.RelationMetadata;
-import io.crate.replication.logical.metadata.Subscription;
-import io.crate.replication.logical.metadata.Subscription.RelationState;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
+import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
+
+import java.io.Closeable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -59,22 +61,22 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
-import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.concurrent.CountdownFutureCallback;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.support.RetryRunnable;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.action.DropSubscriptionAction;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.PublicationsStateAction.Response;
+import io.crate.replication.logical.action.UpdateSubscriptionAction;
+import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
+import io.crate.replication.logical.metadata.RelationMetadata;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.Subscription.RelationState;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 
 public final class MetadataTracker implements Closeable {
 
@@ -272,6 +274,10 @@ public final class MetadataTracker implements Closeable {
                 LOGGER.warn("Retrieving remote metadata failed for subscription '" + subscriptionName + "', will retry", e);
                 return CompletableFuture.completedFuture(null);
             }
+            if (e instanceof SubscriptionUnknownException) {
+                stopTracking(subscriptionName);
+                return CompletableFuture.completedFuture(null);
+            }
             var msg = "Tracking of metadata failed for subscription '" + subscriptionName + "'" + " with unrecoverable error, stop tracking";
             LOGGER.error(msg, e);
             return replicationService.updateSubscriptionState(subscriptionName, Subscription.State.FAILED, msg + ".\nReason: " + e.getMessage())
@@ -285,8 +291,7 @@ public final class MetadataTracker implements Closeable {
     private CompletableFuture<Boolean> updateClusterState(String subscriptionName,
                                                           Subscription subscription,
                                                           Response response) {
-        var listener = new FutureActionListener<>(AcknowledgedResponse::isAcknowledged);
-        var updateTask = new AckedClusterStateUpdateTask<>(new AckMetadataUpdateRequest(), listener) {
+        var updateTask = new AckedClusterStateUpdateTask<AcknowledgedResponse>(new AckMetadataUpdateRequest()) {
 
             @Override
             public ClusterState execute(ClusterState localClusterState) throws Exception {
@@ -316,7 +321,7 @@ public final class MetadataTracker implements Closeable {
             }
         };
         clusterService.submitStateUpdateTask("track-metadata", updateTask);
-        return listener;
+        return updateTask.completionFuture().thenApply(AcknowledgedResponse::isAcknowledged);
     }
 
     private static class AckMetadataUpdateRequest extends AcknowledgedRequest<AckMetadataUpdateRequest> {
