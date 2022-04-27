@@ -21,13 +21,15 @@
 
 package io.crate.replication.logical.repository;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.replication.logical.LogicalReplicationSettings;
-import io.crate.replication.logical.action.GetStoreMetadataAction;
-import io.crate.replication.logical.action.PublicationsStateAction;
-import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
-import io.crate.replication.logical.metadata.ConnectionInfo;
+import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexCommit;
@@ -35,7 +37,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.StepListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
@@ -67,14 +68,14 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.RemoteClusters;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.Exceptions;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.replication.logical.action.GetStoreMetadataAction;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 
 /**
  * Derived from org.opensearch.replication.repository.RemoteClusterRepository
@@ -454,24 +455,18 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .setIndicesOptions(IndicesOptions.strictSingleIndexNoExpandForbidClosed())
             .setWaitForTimeOut(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC))
             .request();
-        remoteClient.admin().cluster().execute(
-            ClusterStateAction.INSTANCE, clusterStateRequest)
-            .whenComplete(
-                ActionListener.toBiConsumer(
-                    new ActionListener<>() {
-                        @Override
-                        public void onResponse(ClusterStateResponse clusterStateResponse) {
-                            ClusterState remoteState = clusterStateResponse.getState();
-                            LOGGER.trace("Successfully fetched the cluster state from remote repository {}", remoteState);
-                            listener.onResponse(remoteState);
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            listener.onFailure(e);
-                        }
+        remoteClient.admin().cluster().execute(ClusterStateAction.INSTANCE, clusterStateRequest)
+            .whenComplete((response, err) -> {
+                if (err == null) {
+                    ClusterState remoteState = response.getState();
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("Successfully fetched the cluster state from remote repository {}", remoteState);
                     }
-                ));
+                    listener.onResponse(remoteState);
+                } else {
+                    listener.onFailure(Exceptions.toException(err));
+                }
+            });
     }
 
     private void getPublicationsState(ActionListener<PublicationsStateAction.Response> listener) {
