@@ -157,10 +157,10 @@ public final class MetadataTracker implements Closeable {
         synchronized (this) {
             var copy = new HashSet<>(subscriptionsToTrack);
             var updated = copy.add(subscriptionName);
+            subscriptionsToTrack = copy;
             if (updated && !isActive) {
                 start();
             }
-            subscriptionsToTrack = copy;
             return updated;
         }
     }
