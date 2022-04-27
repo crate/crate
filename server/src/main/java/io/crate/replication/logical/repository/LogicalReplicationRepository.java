@@ -21,13 +21,15 @@
 
 package io.crate.replication.logical.repository;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.replication.logical.LogicalReplicationSettings;
-import io.crate.replication.logical.action.GetStoreMetadataAction;
-import io.crate.replication.logical.action.PublicationsStateAction;
-import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
-import io.crate.replication.logical.metadata.ConnectionInfo;
+import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexCommit;
@@ -35,7 +37,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.StepListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
@@ -67,14 +68,14 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.RemoteClusters;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.Exceptions;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.replication.logical.action.GetStoreMetadataAction;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 
 /**
  * Derived from org.opensearch.replication.repository.RemoteClusterRepository
@@ -392,7 +393,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         public void onResponse(Void unused) {
                             LOGGER.info("Restore successful for {}", store.shardId());
                             store.decRef();
-                            releasePublisherResources(restoreUUID, publisherShardNode, shardId);
+                            releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
                             recoveryState.getIndex().setFileDetailsComplete();
                             listener.onResponse(null);
                         }
@@ -406,7 +407,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                             } else {
                                 LOGGER.error("Not retrying restore shard for {}", store.shardId());
                                 store.decRef();
-                                releasePublisherResources(restoreUUID, publisherShardNode, shardId);
+                                releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
                                 listener.onFailure(e);
                             }
 
@@ -422,7 +423,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         listener.onFailure(new UncheckedIOException(e));
                     } finally {
                         store.decRef();
-                        releasePublisherResources(restoreUUID, publisherShardNode, shardId);
+                        releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
                     }
                 } else {
                     multiChunkTransfer.start();
@@ -444,7 +445,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                        ActionListener<ClusterState> listener,
                                        String[] remoteIndices,
                                        String[] remoteTemplates) {
-        var clusterStateRequest = getRemoteClient().admin().cluster().prepareState()
+        Client remoteClient = getRemoteClient();
+        var clusterStateRequest = remoteClient.admin().cluster().prepareState()
             .setIndices(remoteIndices)
             .setTemplates(remoteTemplates)
             .setMetadata(true)
@@ -453,24 +455,18 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .setIndicesOptions(IndicesOptions.strictSingleIndexNoExpandForbidClosed())
             .setWaitForTimeOut(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC))
             .request();
-        getRemoteClient().admin().cluster().execute(
-            ClusterStateAction.INSTANCE, clusterStateRequest)
-            .whenComplete(
-                ActionListener.toBiConsumer(
-                    new ActionListener<>() {
-                        @Override
-                        public void onResponse(ClusterStateResponse clusterStateResponse) {
-                            ClusterState remoteState = clusterStateResponse.getState();
-                            LOGGER.trace("Successfully fetched the cluster state from remote repository {}", remoteState);
-                            listener.onResponse(remoteState);
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            listener.onFailure(e);
-                        }
+        remoteClient.admin().cluster().execute(ClusterStateAction.INSTANCE, clusterStateRequest)
+            .whenComplete((response, err) -> {
+                if (err == null) {
+                    ClusterState remoteState = response.getState();
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("Successfully fetched the cluster state from remote repository {}", remoteState);
                     }
-                ));
+                    listener.onResponse(remoteState);
+                } else {
+                    listener.onFailure(Exceptions.toException(err));
+                }
+            });
     }
 
     private void getPublicationsState(ActionListener<PublicationsStateAction.Response> listener) {
@@ -482,7 +478,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             )).whenComplete(ActionListener.toBiConsumer(listener));
     }
 
-    private void releasePublisherResources(String restoreUUID,
+    private void releasePublisherResources(Client remoteClient,
+                                           String restoreUUID,
                                            DiscoveryNode publisherShardNode,
                                            ShardId shardId) {
         var releaseResourcesReq = new ReleasePublisherResourcesAction.Request(
@@ -491,7 +488,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             shardId,
             clusterService.getClusterName().value()
         );
-        getRemoteClient().execute(ReleasePublisherResourcesAction.INSTANCE, releaseResourcesReq)
+        remoteClient.execute(ReleasePublisherResourcesAction.INSTANCE, releaseResourcesReq)
             .whenComplete(
                 ActionListener.toBiConsumer(
                     new ActionListener<>() {
