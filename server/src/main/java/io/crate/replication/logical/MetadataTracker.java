@@ -72,6 +72,7 @@ import io.crate.replication.logical.action.DropSubscriptionAction;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.PublicationsStateAction.Response;
 import io.crate.replication.logical.action.UpdateSubscriptionAction;
+import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.Subscription.RelationState;
@@ -271,6 +272,10 @@ public final class MetadataTracker implements Closeable {
             var e = SQLExceptions.unwrap(err);
             if (SQLExceptions.maybeTemporary(e)) {
                 LOGGER.warn("Retrieving remote metadata failed for subscription '" + subscriptionName + "', will retry", e);
+                return CompletableFuture.completedFuture(null);
+            }
+            if (e instanceof SubscriptionUnknownException) {
+                stopTracking(subscriptionName);
                 return CompletableFuture.completedFuture(null);
             }
             var msg = "Tracking of metadata failed for subscription '" + subscriptionName + "'" + " with unrecoverable error, stop tracking";
