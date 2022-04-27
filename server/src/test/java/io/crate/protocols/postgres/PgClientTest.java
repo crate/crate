@@ -22,10 +22,12 @@
 package io.crate.protocols.postgres;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +36,7 @@ import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
@@ -44,6 +47,7 @@ import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Test;
 
 import io.crate.action.sql.SQLOperations;
@@ -58,6 +62,20 @@ import io.crate.user.StubUserManager;
 import io.crate.user.User;
 
 public class PgClientTest extends CrateDummyClusterServiceUnitTest {
+
+    private List<LifecycleComponent> toClose = new ArrayList<>();
+    private PgClient pgClient;
+
+    @After
+    public void stop() throws Exception {
+        for (var lifecycleComponent : toClose) {
+            lifecycleComponent.close();
+        }
+        assertBusy(() -> {
+            assertThat(pgClient.nettyBootstrap.workerIsShutdown(), is(true));
+        });
+    }
+
 
     @Test
     // keeping some iterations because there was an issue with the initial implementation that caused the test timeout after a few iterations
@@ -88,6 +106,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             authentication,
             sslContextProvider
         );
+        toClose.add(serverTransport);
         var clientTransport = new Netty4Transport(
             clientSettings,
             Version.CURRENT,
@@ -99,7 +118,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             nettyBootstrap,
             authentication,
             sslContextProvider
-        );
+        ); // clientTransport is closed via clientTransportService
         var sqlOperations = mock(SQLOperations.class);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(mock(Session.class));
         PostgresNetty postgresNetty = new PostgresNetty(
@@ -114,6 +133,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             pageCacheRecycler,
             sslContextProvider
         );
+        toClose.add(postgresNetty);
         postgresNetty.start();
         TransportAddress serverAddress = postgresNetty.boundAddress().publishAddress();
         DiscoveryNode localNode = new DiscoveryNode("client", serverAddress, Version.CURRENT);
@@ -124,9 +144,10 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             address -> localNode,
             null
         );
+        toClose.add(clientTransportService);
         clientTransportService.start();
         clientTransportService.acceptIncomingRequests();
-        var pgClient = new PgClient(
+        pgClient = new PgClient(
             "dummy",
             clientSettings,
             clientTransportService,
@@ -148,18 +169,17 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         conn2.get(120, TimeUnit.SECONDS);
         conn3.get(120, TimeUnit.SECONDS);
 
-        // if a connection failed, calling ensureConnected again should return a new connection
+        assertThat(connect, sameInstance(conn2));
+        assertThat(conn2, sameInstance(conn3));
         connection.close();
+
+        // if a connection failed, calling ensureConnected again should return a new connection
         connect.obtrudeException(new IllegalStateException("test"));
         CompletableFuture<Connection> conn4 = pgClient.ensureConnected();
         assertThat(conn4, Matchers.is(Matchers.not(conn3)));
         connection = conn4.get(120, TimeUnit.SECONDS);
 
-        postgresNetty.close();
         pgClient.close();
-        serverTransport.close();
-        clientTransportService.close();
-
-        assertThat(connection.isClosed(), is(true));
+        assertThat("pgClient.close must close connection", connection.isClosed(), is(true));
     }
 }
