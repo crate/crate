@@ -65,7 +65,6 @@ import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.RemoteClusters;
 
 import io.crate.common.unit.TimeValue;
@@ -324,11 +323,22 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                              ShardId snapshotShardId,
                              RecoveryState recoveryState,
                              ActionListener<Void> listener) {
-        // TODO: implement RETRY logic
         store.incRef();
-        restoreShardUsingMultiChunkTransfer(store, indexId, snapshotShardId, recoveryState, listener);
-        // We will do decRef and releaseResources ultimately, not while during our retries/restarts of
-        // restoreShard .
+        var releaseListener = new ActionListener<Void>() {
+
+            @Override
+            public void onResponse(Void response) {
+                store.decRef();
+                listener.onResponse(response);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                store.decRef();
+                listener.onFailure(e);
+            }
+        };
+        restoreShardUsingMultiChunkTransfer(store, indexId, snapshotShardId, recoveryState, releaseListener);
 
     }
 
@@ -392,7 +402,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         @Override
                         public void onResponse(Void unused) {
                             LOGGER.info("Restore successful for {}", store.shardId());
-                            store.decRef();
                             releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
                             recoveryState.getIndex().setFileDetailsComplete();
                             listener.onResponse(null);
@@ -401,16 +410,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         @Override
                         public void onFailure(Exception e) {
                             LOGGER.error("Restore of " + store.shardId() + " failed due to ", e);
-                            if (e instanceof ConnectTransportException) {
-                                // TODO: retry
-                                LOGGER.info("TODO: Retry restore shard for ${store.shardId()}");
-                            } else {
-                                LOGGER.error("Not retrying restore shard for {}", store.shardId());
-                                store.decRef();
-                                releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
-                                listener.onFailure(e);
-                            }
-
+                            releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
+                            listener.onFailure(e);
                         }
                     }
                 );
