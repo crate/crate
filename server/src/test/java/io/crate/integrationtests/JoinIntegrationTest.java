@@ -1322,14 +1322,10 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
                 SELECT doc.t3.id, doc.t3.reference
                 FROM doc.t3
                 JOIN doc.t1 ON doc.t1.subscription_id = doc.t3.id
-                JOIN doc.t2 ON doc.t2.cluster_id = doc.t1.id
-                AND doc.t2.kind = 'bar'
-                LEFT OUTER JOIN doc.t2 AS temp ON temp.cluster_id = doc.t1.id
-                AND temp.kind = 'bar'
                 WHERE doc.t3.reference in
-                (select reference from doc.t3 where reference = 'bazinga' union select kind from doc.t2 where kind = 'bar');
+                (select reference from doc.t3 where reference = 'bazinga' union select reference from doc.t3 where reference != 'foo');
             """;
-
+        
         execute(stmt);
         assertThat(printedTable(response.rows()), is("2| bazinga\n"));
     }

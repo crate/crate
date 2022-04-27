@@ -77,6 +77,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
                 nonConstantConditions.add(condition.getValue());
             }
         }
+
         if (constantConditions.isEmpty() || nonConstantConditions.isEmpty()) {
             // Nothing to optimize, just mark nestedLoopJoin to skip the rule the next time
             return new NestedLoopJoin(
