@@ -21,7 +21,6 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static io.crate.common.collections.Lists2.getOnlyElement;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getNewSource;
 
@@ -103,7 +102,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
                 newLhs,
                 newRhs,
                 AndOperator.join(nonConstantConditions),
-                getOnlyElement(rhs.baseTables())
+                newRhs.baseTables().get(0)
             );
         }
     }

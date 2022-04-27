@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -305,6 +306,13 @@ public class HashJoin implements LogicalPlan {
 
         // First extract the symbols that belong to the concrete relation
         List<Symbol> hashJoinSymbolsForConcreteRelation = hashJoinSymbols.remove(concreteRelation.relationName());
+        if (hashJoinSymbolsForConcreteRelation == null) {
+            throw new IllegalStateException(
+                String.format(Locale.ENGLISH,
+                          "Join Condition `%s` must only reference the concrete relation `%s` of the HashJoin",
+                          joinCondition,
+                          concreteRelation.relationName().name()));
+        }
 
         // All leftover extracted symbols belong to the other relation which might be a
         // "concrete" relation too but can already be a tree of relation.
