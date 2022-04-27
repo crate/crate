@@ -1817,6 +1817,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 var msg = "IOException while trying to switch to a new engine";
                 failShard(msg, e);
                 throw new UncheckedIOException(msg, e);
+            } catch (AlreadyClosedException e) {
+                return;
             }
         }
 
