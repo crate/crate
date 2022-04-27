@@ -75,7 +75,7 @@ public class AlterTableOpenClosePlan implements Plan {
         }
 
         dependencies.alterTableOperation()
-            .executeAlterTableOpenClose(List.of(tableInfo.ident()), analyzedAlterTable.isOpenTable(), false, partitionName)
+            .executeAlterTableOpenClose(List.of(tableInfo.ident()), analyzedAlterTable.isOpenTable(), partitionName)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

@@ -81,7 +81,6 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
     protected ClusterBlockException checkBlock(OpenCloseTableOrPartitionRequest request, ClusterState state) {
         return TransportCloseTable.checkBlock(
             state,
-            request.ignoreUnavailableIndices(),
             request.tables(),
             request.partitionIndexName()
         );

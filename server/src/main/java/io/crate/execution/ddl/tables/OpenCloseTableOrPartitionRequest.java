@@ -21,16 +21,18 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import io.crate.metadata.RelationName;
 
 
 public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCloseTableOrPartitionRequest> {
@@ -39,16 +41,11 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
     @Nullable
     private final String partitionIndexName;
     private final boolean openTable;
-    private final boolean ignoreUnavailableIndices;
 
-    public OpenCloseTableOrPartitionRequest(List<RelationName> tables,
-                                            @Nullable String partitionIndexName,
-                                            boolean openTable,
-                                            boolean ignoreUnavailableIndices) {
+    public OpenCloseTableOrPartitionRequest(List<RelationName> tables, @Nullable String partitionIndexName, boolean openTable) {
         this.tables = tables;
         this.partitionIndexName = partitionIndexName;
         this.openTable = openTable;
-        this.ignoreUnavailableIndices = ignoreUnavailableIndices;
     }
 
     @Nullable
@@ -64,14 +61,12 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
         super(in);
         if (in.getVersion().before(Version.V_4_8_0)) {
             tables = List.of(new RelationName(in));
-            ignoreUnavailableIndices = false;
         } else {
             int count = in.readVInt();
             tables = new ArrayList<>(count);
             for (int i = 0; i < count; i++) {
                 tables.add(new RelationName(in));
             }
-            ignoreUnavailableIndices = in.readBoolean();
         }
         partitionIndexName = in.readOptionalString();
         openTable = in.readBoolean();
@@ -90,7 +85,6 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
             for (int i = 0; i < tables.size(); i++) {
                 tables.get(i).writeTo(out);
             }
-            out.writeBoolean(ignoreUnavailableIndices);
         }
         out.writeOptionalString(partitionIndexName);
         out.writeBoolean(openTable);
@@ -98,9 +92,5 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
 
     public List<RelationName> tables() {
         return tables;
-    }
-
-    public boolean ignoreUnavailableIndices() {
-        return ignoreUnavailableIndices;
     }
 }

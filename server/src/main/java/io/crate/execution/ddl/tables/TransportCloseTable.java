@@ -92,6 +92,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
     private static final Logger LOGGER = LogManager.getLogger(TransportCloseTable.class);
     private static final String ACTION_NAME = "internal:crate:sql/table_or_partition/close";
+    private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
     public static final int INDEX_CLOSED_BLOCK_ID = 4;
 
     private final TransportVerifyShardBeforeCloseAction verifyShardBeforeClose;
@@ -259,14 +260,12 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     protected ClusterBlockException checkBlock(CloseTableRequest request, ClusterState state) {
         return checkBlock(
             state,
-            request.ignoreUnavailableIndices(),
             request.tables(),
             request.partition()
         );
     }
 
     public static ClusterBlockException checkBlock(ClusterState state,
-                                                   boolean ignoreUnavailableIndices,
                                                    List<RelationName> relationNames,
                                                    @Nullable String partition) {
         var relationsToCheck = new ArrayList<>(relationNames);
@@ -285,7 +284,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             ClusterBlockLevel.METADATA_WRITE,
             IndexNameExpressionResolver.concreteIndexNames(
                 state.metadata(),
-                ignoreUnavailableIndices ? IndicesOptions.lenientExpandOpen() : IndicesOptions.strictExpandOpen(),
+                STRICT_INDICES_OPTIONS,
                 getIndices(relationsToCheck, partition)
             )
         );

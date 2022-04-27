@@ -22,41 +22,39 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import io.crate.metadata.RelationName;
 
 public class CloseTableRequest extends AcknowledgedRequest<CloseTableRequest> {
 
     private final List<RelationName> tables;
     private final String partition;
-    private final boolean ignoreUnavailableIndices;
 
-    public CloseTableRequest(List<RelationName> tables, @Nullable String partition, boolean ignoreUnavailableIndices) {
+    public CloseTableRequest(List<RelationName> tables, @Nullable String partition) {
         this.tables = tables;
         this.partition = partition;
-        this.ignoreUnavailableIndices = ignoreUnavailableIndices;
     }
 
     public CloseTableRequest(StreamInput in) throws IOException {
         super(in);
         if (in.getVersion().before(Version.V_4_8_0)) {
             tables = List.of(new RelationName(in));
-            ignoreUnavailableIndices = false;
         } else {
             int count = in.readVInt();
             tables = new ArrayList<>(count);
             for (int i = 0; i < count; i++) {
                 tables.add(new RelationName(in));
             }
-            ignoreUnavailableIndices = in.readBoolean();
         }
         partition = in.readOptionalString();
     }
@@ -74,7 +72,6 @@ public class CloseTableRequest extends AcknowledgedRequest<CloseTableRequest> {
             for (int i = 0; i < tables.size(); i++) {
                 tables.get(i).writeTo(out);
             }
-            out.writeBoolean(ignoreUnavailableIndices);
         }
         out.writeOptionalString(partition);
     }
@@ -86,9 +83,5 @@ public class CloseTableRequest extends AcknowledgedRequest<CloseTableRequest> {
     @Nullable
     public String partition() {
         return partition;
-    }
-
-    public boolean ignoreUnavailableIndices() {
-        return ignoreUnavailableIndices;
     }
 }
