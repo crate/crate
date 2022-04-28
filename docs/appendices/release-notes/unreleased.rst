@@ -42,9 +42,7 @@ Unreleased Changes
 Breaking Changes
 ================
 
-- Removed support for HDFS snapshot repositories. We suspect nobody uses it
-  anymore. If you require HDFS support please reach out to us, if there is
-  enough interest we may be able to provide a plugin with the functionality.
+None
 
 
 Deprecations
@@ -56,66 +54,8 @@ None
 Changes
 =======
 
-SQL Statements and Compatibility
---------------------------------
+None
 
-- Added support for :ref:`UNION DISTINCT or UNION <sql-union>` statement to be
-  able to retrieve unique rows from multiple relations without using
-  sub-queries with extra ``GROUP BY`` clauses.
-
-- Implemented cancelling requests section of PostgreSQL wire protocol.
-
-- Added a ``WITH`` clause parameter, ``validation`` to ``COPY FROM`` which
-  can enable or disable the newly added type validation feature. Please see
-  :ref:`validation <sql-copy-from-validation>` for more details.
-
-- Added type validation logic to ``COPY FROM``. Now raw data will be parsed and
-  validated against the target table schema and casted if possible utilizing
-  :ref:`type casting <data-types-casting>`.
-
-- Allow users to be able to specify different S3 compatible storage endpoints
-  to ``COPY FROM/TO`` statements by embedding the host and port to the ``URI``
-  parameter and also a ``WITH`` clause parameter ``protocol`` to choose between
-  ``HTTP`` or ``HTTPS``.
-
-- Added the option to import CSV files without field headers using the
-  ``COPY FROM`` statement.
-
-- Added the option to import only a subset of columns using ``COPY FROM`` when
-  importing CSV files with headers.
-
-- Added the option to run ``COPY FROM`` and ``COPY TO`` operations in the
-  background without waiting for them to complete.
-
-New Scalars
------------
-
-- Added the :ref:`array_position <scalar-array_position>` function which
-  returns the position of the first occurrence of the provided value in an
-  array. A starting position can be optionally provided.
-
-Administration and Operations
------------------------------
-
-- Added the :ref:`Logical Replication <administration-logical-replication>`
-  feature allowing to replicate data across multiple clusters.
-
-- Write blocks added due to low disk space are now automatically removed if a
-  node again drops below the high watermark.
-
-- Added a ``flush_stats`` column to the :ref:`sys.shards <sys-shards>` table.
-
-- Updated to Admin UI 1.21.0, which improves console highlighting by adding
-  various keywords and data types.
-
-Performance
------------
-
-- Optimized the casting from string to arrays by avoiding an unnecessary string
-  to byte conversion.
-
-- Improved the evaluation performance of implicit casts by utilizing the compile
-  step of the function to determine the return type.
 
 Fixes
 =====
