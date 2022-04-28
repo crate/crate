@@ -21,10 +21,8 @@
 
 package io.crate.metadata.cluster;
 
-import java.util.List;
 import java.util.Set;
 
-import io.crate.metadata.RelationName;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -40,6 +38,7 @@ import org.elasticsearch.indices.IndicesService;
 
 import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
 import io.crate.execution.ddl.tables.TransportCloseTable;
+
 
 public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClusterStateTaskExecutor {
 
@@ -64,9 +63,9 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
     protected ClusterState execute(ClusterState currentState, OpenCloseTableOrPartitionRequest request) throws Exception {
         Context context = prepare(currentState, request);
         Set<IndexMetadata> indicesToOpen = context.indicesMetadata();
-        List<IndexTemplateMetadata> templatesMetadata = context.templatesMetadata();
+        IndexTemplateMetadata templateMetadata = context.templateMetadata();
 
-        if (indicesToOpen.isEmpty() && templatesMetadata.isEmpty()) {
+        if (indicesToOpen.isEmpty() && templateMetadata == null) {
             return currentState;
         }
 
@@ -104,7 +103,7 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
         }
 
         // remove closed flag at possible partitioned table template
-        for (IndexTemplateMetadata templateMetadata: templatesMetadata) {
+        if (templateMetadata != null) {
             mdBuilder.put(updateOpenCloseOnPartitionTemplate(templateMetadata, true));
         }
 
@@ -117,9 +116,7 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
         if (context.partitionName() != null) {
             updatedState = ddlClusterStateService.onOpenTablePartition(updatedState, context.partitionName());
         } else {
-            for (RelationName relationName: request.tables()) {
-                updatedState = ddlClusterStateService.onOpenTable(updatedState, relationName);
-            }
+            updatedState = ddlClusterStateService.onOpenTable(updatedState, request.tableIdent());
         }
 
         RoutingTable.Builder rtBuilder = RoutingTable.builder(updatedState.routingTable());
