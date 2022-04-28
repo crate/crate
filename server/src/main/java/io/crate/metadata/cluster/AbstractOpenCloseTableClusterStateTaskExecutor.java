@@ -23,6 +23,7 @@ package io.crate.metadata.cluster;
 
 import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -32,12 +33,8 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.Set;
 
@@ -46,14 +43,14 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
     protected static class Context {
 
         private final Set<IndexMetadata> indicesMetadata;
-        @Nonnull
-        private final List<IndexTemplateMetadata> templatesMetadata;
+        @Nullable
+        private final IndexTemplateMetadata templateMetadata;
         @Nullable
         private final PartitionName partitionName;
 
-        Context(Set<IndexMetadata> indicesMetadata, List<IndexTemplateMetadata> templatesMetadata, PartitionName partitionName) {
+        Context(Set<IndexMetadata> indicesMetadata, IndexTemplateMetadata templateMetadata, PartitionName partitionName) {
             this.indicesMetadata = indicesMetadata;
-            this.templatesMetadata = templatesMetadata;
+            this.templateMetadata = templateMetadata;
             this.partitionName = partitionName;
         }
 
@@ -61,9 +58,9 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
             return indicesMetadata;
         }
 
-        @Nonnull
-        List<IndexTemplateMetadata> templatesMetadata() {
-            return templatesMetadata;
+        @Nullable
+        IndexTemplateMetadata templateMetadata() {
+            return templateMetadata;
         }
 
         @Nullable
@@ -82,22 +79,18 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
     }
 
     protected Context prepare(ClusterState currentState, OpenCloseTableOrPartitionRequest request) {
+        RelationName relationName = request.tableIdent();
         String partitionIndexName = request.partitionIndexName();
         Metadata metadata = currentState.metadata();
-        String[] indexToResolve = partitionIndexName != null ? new String[] {partitionIndexName} :
-            request.tables().stream().map(t -> t.indexNameOrAlias()).toArray(String[]::new);
+        String indexToResolve = partitionIndexName != null ? partitionIndexName : relationName.indexNameOrAlias();
         PartitionName partitionName = partitionIndexName != null ? PartitionName.fromIndexOrTemplate(partitionIndexName) : null;
         String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(currentState.metadata(), IndicesOptions.lenientExpandOpen(), indexToResolve);
         Set<IndexMetadata> indicesMetadata = DDLClusterStateHelpers.indexMetadataSetFromIndexNames(metadata, concreteIndices, indexState());
-        List<IndexTemplateMetadata> indexTemplatesMetadata = new ArrayList<>();
+        IndexTemplateMetadata indexTemplateMetadata = null;
         if (partitionIndexName == null) {
-            indexTemplatesMetadata = request.tables()
-                .stream()
-                .map(table -> DDLClusterStateHelpers.templateMetadata(metadata, table))
-                .filter(template -> template != null)
-                .collect(Collectors.toList());
+            indexTemplateMetadata = DDLClusterStateHelpers.templateMetadata(metadata, relationName);
         }
-        return new Context(indicesMetadata, indexTemplatesMetadata, partitionName);
+        return new Context(indicesMetadata, indexTemplateMetadata, partitionName);
     }
 
     protected abstract IndexMetadata.State indexState();
