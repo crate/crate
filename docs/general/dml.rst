@@ -486,8 +486,8 @@ Here's an example statement::
     cr> COPY quotes FROM 'file:///tmp/import_data/quotes.json';
     COPY OK, 3 rows affected (... sec)
 
-This statement imports data from the ``/tmp/import_data/quotes.json`` file and
-uses it to create a table named ``quotes``.
+This statement imports data from the ``/tmp/import_data/quotes.json`` file into
+a table named ``quotes``.
 
 .. NOTE::
 

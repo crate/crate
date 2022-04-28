@@ -478,7 +478,7 @@ public class MetadataTrackerTest extends ESTestCase {
             publisherStateResponse
         );
 
-        assertThat(restoreDiff.relationsForStateUpdate(), empty());
+        assertThat(restoreDiff.relationsForStateUpdate(), contains(relationName));
         assertThat(restoreDiff.indexNamesToRestore(), contains(newPartitionName.asIndexName()));
         assertThat(restoreDiff.templatesToRestore(), empty());
     }

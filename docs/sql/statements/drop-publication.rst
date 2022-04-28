@@ -33,9 +33,8 @@ existing subscriptions.
 
 .. NOTE::
 
-  Replicated tables on a subscriber cluster will stay read-only after dropping
-  a publication on a publishing cluster. To make them writable, use
-  :ref:`DROP SUBSCRIPTION <sql-drop-subscription>`.
+  Replicated tables on a subscriber cluster will turn into regular writable
+  tables after dropping a publication on a publishing cluster.
 
 
 .. _sql-drop-publication-params:

@@ -157,10 +157,10 @@ public final class MetadataTracker implements Closeable {
         synchronized (this) {
             var copy = new HashSet<>(subscriptionsToTrack);
             var updated = copy.add(subscriptionName);
+            subscriptionsToTrack = copy;
             if (updated && !isActive) {
                 start();
             }
-            subscriptionsToTrack = copy;
             return updated;
         }
     }
@@ -441,8 +441,8 @@ public final class MetadataTracker implements Closeable {
             var relationName = RelationName.fromIndexName(indexName);
             if (subscriberState.metadata().hasIndex(indexName) == false) {
                 toRestoreIndices.add(indexName);
-            }
-            if (subscribedRelations.get(relationName) == null) {
+                relationNamesForStateUpdate.add(relationName);
+            } else if (subscribedRelations.get(relationName) == null) {
                 relationNamesForStateUpdate.add(relationName);
             }
         }
