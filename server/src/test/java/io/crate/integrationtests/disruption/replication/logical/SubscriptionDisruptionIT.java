@@ -101,8 +101,18 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
         executeOnSubscriber("CREATE SUBSCRIPTION " + subscriptionName +
                             " CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
 
-        // Ensure tracker started
-        assertBusy(() -> assertThat(isMetadataTrackerActive(), is(true)));
+        // Ensure tracker started and initial recovery is done
+        assertBusy(() -> {
+            assertThat(isMetadataTrackerActive(), is(true));
+            var res = executeOnSubscriber(
+                "SELECT s.subname, s.subpublications, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
+                    " FROM pg_subscription s" +
+                    " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                    " ORDER BY s.subname");
+            assertThat(printedTable(res.rows()), is(
+                "sub1| [pub1]| doc.t1| r| NULL\n"
+            ));
+        });
 
         var expectedLogMessage = "Retrieving remote metadata failed for subscription 'sub1', will retry";
         var mockAppender = appendLogger(expectedLogMessage, MetadataTracker.class, Level.WARN);
