@@ -112,33 +112,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Updated the bundled JDK to 17.0.3+7
-
-- Fixed an issue with the handling of quoted identifiers in column names where
-  certain characters break the processing. This makes sure any special characters
-  can be used as column name.
-
-- Fixed an issue with the handling of intervals in generated columns. The table
-  creation failed when an interval is included in a function call as part of a
-  generated column.
-
-- Fixed a race condition that could cause a ``blocked by: [FORBIDDEN/4/Table or
-  partition preparing to close`` error when inserting into a partitioned table
-  where a single partition got closed.
-
-- Fixed an issue that caused an ``Relation unknown`` error while trying to
-  close an empty partitioned table using ``ALTER TABLE ... CLOSE``.
-
-- Fixed an issue that caused ``COPY FROM RETURN SUMMARY`` fail non-gracefully
-  in case of import from CSV containing invalid line(s).
-
-- Bumped JNA library to version 5.10.0. This will make CrateDB start without
-  JNA library warnings on M1 chip based MacOS systems.
-
-- Updated to Admin UI 1.20.2, which fixes duplicate entries in query history.
-
-- Fixed an issue that threw ``SQLParseException`` when a ``ILIKE`` operand
-  contained '{' or '}'.
-
-- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` to lose an optional
-  ``routing_column`` information provided at table creation.
+None
