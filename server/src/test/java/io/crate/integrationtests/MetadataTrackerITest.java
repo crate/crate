@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 @UseRandomizedSchema(random = false)
@@ -237,6 +238,84 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 "2| 2\n" +
                     "11| 1\n"));        // <- this must contain the id of the re-created partition
         }, 50, TimeUnit.SECONDS);
+    }
+
+    public void test_subscription_to_multiple_publications_should_not_stop_on_a_single_publication_drop() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT)");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
+        createPublication("pub1", false, List.of("t1"));
+
+        executeOnPublisher("CREATE TABLE t2 (id INT)");
+        executeOnPublisher("INSERT INTO t2 (id) VALUES (1), (2)");
+        createPublicationWithoutUser("pub2", false, List.of("t2"));
+
+        executeOnPublisher("CREATE TABLE t3 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("INSERT INTO t3 (id, p) VALUES (1, 1), (2, 2)");
+        createPublicationWithoutUser("pub3", false, List.of("t3"));
+
+        createSubscription("sub1", List.of("pub1", "pub2", "pub3"));
+
+        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+
+
+        executeOnPublisher("DROP PUBLICATION pub2"); // exclude publication with regular table
+        executeOnPublisher("DROP PUBLICATION pub3"); // exclude publication with partitioned table
+
+        // Dropping of the one one multiple publications doesn't stop tracking of the whole subscription.
+        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+
+        // Subscriber keeps receiving updates from non-dropped publication's regular table.
+        assertBusy(() -> {
+                executeOnPublisher("INSERT INTO t1 (id) VALUES (3)");
+                var res = executeOnSubscriber("SELECT id FROM t1 ORDER BY id");
+                assertThat(res.rowCount(), greaterThan(2L));
+            }
+        );
+
+        // Tables belonging to the dropped publications turned into regular writable tables.
+        assertBusy(
+            () -> {
+                long rowCount;
+                try {
+                    var response = executeOnSubscriber("INSERT INTO t2 (id) VALUES(4)");
+                    rowCount = response.rowCount();
+                } catch (OperationOnInaccessibleRelationException e) {
+                    throw new AssertionError(e.getMessage());
+                }
+                assertThat(rowCount, is(1L));
+            }
+        );
+        assertBusy(
+            () -> {
+                long rowCount;
+                try {
+                    var response = executeOnSubscriber("INSERT INTO t3 (id, p) VALUES(4, 4)");
+                    rowCount = response.rowCount();
+                } catch (OperationOnInaccessibleRelationException e) {
+                    throw new AssertionError(e.getMessage());
+                }
+                assertThat(rowCount, is(1L));
+            }
+        );
+    }
+
+    public void test_subscription_to_multiple_publications_stops_when_all_publications_are_dropped() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT)");
+        createPublication("pub1", false, List.of("t1"));
+
+        executeOnPublisher("CREATE TABLE t2 (id INT)");
+        createPublicationWithoutUser("pub2", false, List.of("t2"));
+
+
+        createSubscription("sub1", List.of("pub1", "pub2"));
+
+        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+
+        executeOnPublisher("DROP PUBLICATION pub1");
+        executeOnPublisher("DROP PUBLICATION pub2");
+
+        // Dropping all publications of the subscription stops tracking.
+        assertBusy(() -> assertThat(isTrackerActive(), is(false)));
     }
 
     @Test

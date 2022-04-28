@@ -214,6 +214,11 @@ public final class MetadataTracker implements Closeable {
         );
         CompletableFuture<Response> publicationsState = client.execute(PublicationsStateAction.INSTANCE, request);
         CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response -> {
+            if (response.droppedPublications().containsAll(subscription.publications())) {
+                stopTracking(subscriptionName);
+                return CompletableFuture.completedFuture(false);
+            }
+
             // We cannot use replicationService.verifyTablesDoNotExist(subscriptionName, stateResponse)
             // as it uses cluster metadata for comparison and will fail on the second round of every replication.
             Set<RelationName> existingTables = getExistingLocallyTables(subscription, subscriberState, response);
@@ -297,6 +302,22 @@ public final class MetadataTracker implements Closeable {
             public ClusterState execute(ClusterState localClusterState) throws Exception {
                 if (LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Process cluster state for subscription {}", subscriptionName);
+                }
+
+                ArrayList<String> mutablePublications = new ArrayList<>(subscription.publications());
+                if (mutablePublications.removeAll(response.droppedPublications())) {
+                    LOGGER.info("Subscription {} will stop getting updates from publications: {} as they have been dropped.", subscriptionName, response.droppedPublications());
+                    localClusterState = UpdateSubscriptionAction.update(
+                        localClusterState,
+                        subscriptionName,
+                        new Subscription(
+                            subscription.owner(),
+                            subscription.connectionInfo(),
+                            mutablePublications,
+                            subscription.settings(),
+                            subscription.relations()
+                        )
+                    );
                 }
 
                 localClusterState = processDroppedTablesOrPartitions(

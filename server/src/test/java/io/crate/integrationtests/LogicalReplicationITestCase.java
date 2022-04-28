@@ -269,6 +269,21 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
 
     }
 
+    /**
+     * Should be used in tests where multiple publications needs to be created.
+     * Doesn't create a SUBSCRIBING_USER as it's supposed to be created by creating
+     * first publication with createPublication
+     */
+    protected void createPublicationWithoutUser(String pub, boolean isForAllTables, List<String> tables) {
+        String tablesAsString = tables.stream().collect(Collectors.joining(","));
+        if (isForAllTables) {
+            executeOnPublisher("CREATE PUBLICATION " + pub + " FOR ALL TABLES");
+        } else {
+            executeOnPublisher("CREATE PUBLICATION " + pub + " FOR TABLE " + tablesAsString);
+        }
+        executeOnPublisher("GRANT DQL ON TABLE " + tablesAsString + " TO " + SUBSCRIBING_USER);
+    }
+
     protected void createPublication(String pub, boolean isForAllTables, List<String> tables) {
         String tablesAsString = tables.stream().collect(Collectors.joining(","));
         if (isForAllTables) {
@@ -282,18 +297,23 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         }
     }
 
+    protected void createSubscription(String subName, List<String> publications) throws Exception {
+        String pubsAsString = publications.stream().collect(Collectors.joining(","));
+        executeOnSubscriber("CREATE SUBSCRIPTION " + subName +
+            " CONNECTION '" + publisherConnectionUrl() + "' publication " + pubsAsString);
+        ensureGreenOnSubscriber();
+    }
+
     protected void createSubscription(String subName, String pubName) throws Exception {
         executeOnSubscriber("CREATE SUBSCRIPTION " + subName +
                 " CONNECTION '" + publisherConnectionUrl() + "' publication " + pubName);
         ensureGreenOnSubscriber();
-
     }
 
     protected void createSubscriptionAsUser(String subName, String pubName, User user) throws Exception {
         subscriberSqlExecutor.executeAs("CREATE SUBSCRIPTION " + subName +
             " CONNECTION '" + publisherConnectionUrl() + "' publication " + pubName, user);
         ensureGreenOnSubscriber();
-
     }
 
     @Retention(RetentionPolicy.RUNTIME)
