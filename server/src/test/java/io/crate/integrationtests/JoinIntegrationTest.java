@@ -29,6 +29,7 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -1252,5 +1253,49 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
         ));
         execute(stmt);
         assertThat(response.rowCount(), is(0L));
+    }
+
+    @UseJdbc(0)
+    @Test
+    @UseHashJoins(1)
+    public void test_union_in_hashjoin() {
+        execute("CREATE TABLE doc.t1 (id TEXT, name TEXT, PRIMARY KEY (id))");
+        execute("CREATE TABLE doc.t2 (id TEXT, name TEXT, PRIMARY KEY (id))");
+        execute("CREATE TABLE doc.t3 (id TEXT, name TEXT, PRIMARY KEY (id))");
+
+        execute("insert into doc.t1 values ('1', 'a')");
+        execute("insert into doc.t2 values ('1', 'b')");
+        execute("insert into doc.t3 values ('1', 'c')");
+
+        execute("refresh table doc.t1");
+        execute("refresh table doc.t2");
+        execute("refresh table doc.t3");
+
+        var stmt = """
+                select * from (select name from doc.t1 where name = 'a' union select name from doc.t3 where name = 'c') x
+                join
+                (select name from doc.t1 where name = 'a' union select name from doc.t2 where name = 'b') y
+                on x.name = y.name and x.name != 'c'
+            """;
+
+        execute("EXPLAIN " + stmt);
+
+        assertThat(printedTable(response.rows()), is(
+            """
+                NestedLoopJoin[INNER | ((name = name) AND (NOT (name = 'c')))]
+                  ├ Rename[name] AS x
+                  │  └ GroupHashAggregate[name]
+                  │    └ Union[name]
+                  │      ├ Collect[doc.t1 | [name] | (name = 'a')]
+                  │      └ Collect[doc.t3 | [name] | (name = 'c')]
+                  └ Rename[name] AS y
+                    └ GroupHashAggregate[name]
+                      └ Union[name]
+                        ├ Collect[doc.t1 | [name] | (name = 'a')]
+                        └ Collect[doc.t2 | [name] | (name = 'b')]
+                """
+        ));
+        execute(stmt);
+        assertThat(printedTable(response.rows()), is("a| a\n"));
     }
 }
