@@ -681,4 +681,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         analyze("ALTER SUBSCRIPTION sub1 DISABLE", user);
         assertAskedForCluster(Privilege.Type.AL);
     }
+
+    @Test
+    public void test_anaylze_works_for_normal_user_with_AL_privileges() {
+        analyze("ANALYZE", user);
+        assertAskedForCluster(Privilege.Type.AL);
+    }
 }

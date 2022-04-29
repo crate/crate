@@ -29,6 +29,7 @@ import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedAlterUser;
+import io.crate.analyze.AnalyzedAnalyze;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedCopyFrom;
@@ -843,6 +844,17 @@ public final class AccessControlImpl implements AccessControl {
                 user,
                 defaultSchema
             );
+            return null;
+        }
+
+        @Override
+        public Void visitAnalyze(AnalyzedAnalyze analyzedAnalyze, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema);
             return null;
         }
     }

@@ -56,6 +56,8 @@ Changes
 
 - Added ``decimal`` type as alias to ``numeric``
 
+- Users with AL privileges can now run ``ANALYZE``
+
 Fixes
 =====
 
