@@ -412,7 +412,8 @@ public final class DataTypes {
         entry("interval", INTERVAL),
         entry(DATE.getName(), DATE),
         entry(BitStringType.INSTANCE_ONE.getName(), BitStringType.INSTANCE_ONE),
-        entry(JsonType.INSTANCE.getName(), JsonType.INSTANCE)
+        entry(JsonType.INSTANCE.getName(), JsonType.INSTANCE),
+        entry("decimal", NUMERIC)
     );
 
     public static DataType<?> ofName(String typeName) {

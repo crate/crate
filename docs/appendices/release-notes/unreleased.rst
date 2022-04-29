@@ -54,8 +54,7 @@ None
 Changes
 =======
 
-None
-
+- Added ``decimal`` type as alias to ``numeric``
 
 Fixes
 =====
