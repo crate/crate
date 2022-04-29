@@ -54,6 +54,9 @@ None
 Changes
 =======
 
+- Moved the :ref:`scalar-quote_ident` function to `pg_catalog` for improved
+  compatibility with PostgreSQL.
+
 - Added ``decimal`` type as alias to ``numeric``
 
 - Users with AL privileges can now run ``ANALYZE``
