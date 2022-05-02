@@ -27,6 +27,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
+import io.crate.common.collections.Sets;
 import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -74,7 +75,6 @@ public class NestedLoopJoin implements LogicalPlan {
     final LogicalPlan rhs;
     private final List<Symbol> outputs;
     private final List<AbstractTableRelation<?>> baseTables;
-    private final Set<RelationName> relationNames;
     private final Map<LogicalPlan, SelectSymbol> dependencies;
     private boolean orderByWasPushedDown = false;
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
@@ -97,7 +97,6 @@ public class NestedLoopJoin implements LogicalPlan {
             this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
         }
         this.baseTables = Lists2.concat(lhs.baseTables(), rhs.baseTables());
-        this.relationNames = new HashSet<>(Lists2.concat(lhs.getRelationNames(), rhs.getRelationNames()));
         this.topMostLeftRelation = topMostLeftRelation;
         this.joinCondition = joinCondition;
         this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
@@ -261,7 +260,7 @@ public class NestedLoopJoin implements LogicalPlan {
 
     @Override
     public Set<RelationName> getRelationNames() {
-        return relationNames;
+        return Sets.union(lhs.getRelationNames(), rhs.getRelationNames());
     }
 
     @Override
