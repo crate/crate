@@ -558,7 +558,8 @@ public class ProjectionToProjectorVisitor
                                               null,
                                               projection.requiredVersion(),
                                               null,
-                                              null),
+                                              null,
+                                              List.of()),
             transportActionProvider.transportShardUpsertAction()::execute,
             collector);
     }

@@ -92,6 +92,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.engine.indexing.GroupRowsByShard;
 import io.crate.execution.engine.indexing.IndexNameResolver;
+import io.crate.execution.engine.indexing.ItemFactory;
 import io.crate.execution.engine.indexing.ShardLocation;
 import io.crate.execution.engine.indexing.ShardedRequests;
 import io.crate.execution.jobs.NodeLimits;
@@ -463,12 +464,16 @@ public class InsertFromValues implements LogicalPlan {
                                  PlannerContext plannerContext,
                                  ClusterService clusterService) {
         InputRow insertValues = new InputRow(insertInputs);
-        Function<String, ShardUpsertRequest.Item> itemFactory = id ->
+        ItemFactory<ShardUpsertRequest.Item> itemFactory = (id, pkValues) ->
             new ShardUpsertRequest.Item(
                 id,
                 assignmentSources,
                 insertValues.materialize(),
-                null, null, null);
+                null,
+                null,
+                null,
+                pkValues
+            );
 
         var rowShardResolver = new RowShardResolver(
             plannerContext.transactionContext(),
@@ -517,7 +522,7 @@ public class InsertFromValues implements LogicalPlan {
                 index,
                 GeneratedColumns.Validation.VALUE_MATCH,
                 writerProjection.allTargetColumns()));
-        validator.generateSourceAndCheckConstraints(cells);
+        validator.generateSourceAndCheckConstraints(cells, List.of());
     }
 
     private static Iterator<Row> evaluateValueTableFunction(TableFunctionImplementation<?> funcImplementation,

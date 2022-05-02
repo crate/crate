@@ -63,7 +63,7 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
     }
 
     @Override
-    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) {
+    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values, List<String> pkValues) {
         String rawSource = (String) values[0];
         Map<String, Object> source = XContentHelper.toMap(new BytesArray(rawSource), XContentType.JSON);
         generateDefaultsAndMerge(source);

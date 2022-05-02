@@ -21,18 +21,20 @@
 
 package io.crate.execution.dml.upsert;
 
+import static org.hamcrest.Matchers.is;
+
+import java.util.List;
+import java.util.Map;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.common.collections.Maps;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.Map;
-
-import static org.hamcrest.Matchers.is;
 
 public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -46,7 +48,7 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
         DocTableInfo t = e.resolveTableInfo("generated_based_on_default");
         GeneratedColsFromRawInsertSource insertSource = new GeneratedColsFromRawInsertSource(
             txnCtx, e.nodeCtx, t.generatedColumns(), t.defaultExpressionColumns());
-        Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
+        Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"}, List.of());
         assertThat(Maps.getByPath(map, "x"), is(1));
         assertThat(Maps.getByPath(map, "y"), is(2));
     }
@@ -59,7 +61,7 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
         DocTableInfo t = e.resolveTableInfo("generated_based_on_default");
         GeneratedColsFromRawInsertSource insertSource = new GeneratedColsFromRawInsertSource(
             txnCtx, e.nodeCtx, t.generatedColumns(), t.defaultExpressionColumns());
-        Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"x\":2}"});
+        Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"x\":2}"}, List.of());
         assertThat(Maps.getByPath(map, "x"), is(2));
         assertThat(Maps.getByPath(map, "y"), is(3));
     }
@@ -72,7 +74,7 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
         DocTableInfo t = e.resolveTableInfo("t");
         var insertSource = new GeneratedColsFromRawInsertSource(
             txnCtx, e.nodeCtx, t.generatedColumns(), t.defaultExpressionColumns());
-        Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
+        Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"}, List.of());
         assertThat(Maps.getByPath(map, "x"), is("ab"));
     }
 
@@ -86,7 +88,7 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
             txnCtx, e.nodeCtx, t.generatedColumns(), t.defaultExpressionColumns());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("'abc' is too long for the text type of length: 2");
-        insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
+        insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"}, List.of());
     }
 
     @Test
@@ -99,7 +101,7 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
             txnCtx, e.nodeCtx, t.generatedColumns(), t.defaultExpressionColumns());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("'abc' is too long for the text type of length: 2");
-        insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
+        insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"}, List.of());
     }
 
     @Test
@@ -115,9 +117,9 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
             tbl.defaultExpressionColumns()
         );
         Map<String, Object> result;
-        result = sourceGen.generateSourceAndCheckConstraints(new Object[] {"{\"x\":10}"});
+        result = sourceGen.generateSourceAndCheckConstraints(new Object[] {"{\"x\":10}"}, List.of());
         var id1 = result.get("id");
-        result = sourceGen.generateSourceAndCheckConstraints(new Object[] {"{\"x\":20}"});
+        result = sourceGen.generateSourceAndCheckConstraints(new Object[] {"{\"x\":20}"}, List.of());
         var id2 = result.get("id");
         assertThat(id1, Matchers.notNullValue());
         assertThat(id1, Matchers.not(is(id2)));

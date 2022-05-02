@@ -48,10 +48,10 @@ public interface InsertSourceGen {
 
 
     default BytesReference generateSourceAndCheckConstraintsAsBytesReference(Object[] values) throws IOException {
-        return BytesReference.bytes(XContentFactory.jsonBuilder().map(generateSourceAndCheckConstraints(values), SOURCE_WRITERS));
+        return BytesReference.bytes(XContentFactory.jsonBuilder().map(generateSourceAndCheckConstraints(values, List.of()), SOURCE_WRITERS));
     }
 
-    Map<String, Object> generateSourceAndCheckConstraints(Object[] values) throws IOException;
+    Map<String, Object> generateSourceAndCheckConstraints(Object[] values, List<String> pkValues) throws IOException;
 
     static InsertSourceGen of(TransactionContext txnCtx,
                               NodeContext nodeCtx,

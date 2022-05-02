@@ -21,6 +21,13 @@
 
 package io.crate.execution.dml.upsert;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.data.BiArrayRow;
@@ -39,13 +46,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.common.collections.Tuple;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public final class InsertSourceFromCells implements InsertSourceGen {
 
@@ -57,9 +57,11 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     private final GeneratedColumns<Row> generatedColumns;
     private final List<Input<?>> defaultValues;
     private final List<Reference> partitionedByColumns;
+    private final DocTableInfo table;
 
     // This is re-used per document to hold the default values
     private final Object[] defaultValuesCells;
+
 
     public InsertSourceFromCells(TransactionContext txnCtx,
                                  NodeContext nodeCtx,
@@ -67,9 +69,10 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                                  String indexName,
                                  GeneratedColumns.Validation validation,
                                  List<Reference> targets) {
-        Tuple<List<Reference>, List<Input<?>>> allTargetColumnsAndDefaults = addDefaults(targets, table, txnCtx, nodeCtx);
-        this.targets = allTargetColumnsAndDefaults.v1();
-        this.defaultValues = allTargetColumnsAndDefaults.v2();
+        Defaults allTargetColumnsAndDefaults = addDefaults(targets, table, txnCtx, nodeCtx);
+        this.table = table;
+        this.targets = allTargetColumnsAndDefaults.allColumns;
+        this.defaultValues = allTargetColumnsAndDefaults.defaults;
         this.defaultValuesCells = defaultValues.isEmpty() ? EMPTY_ARRAY : new Object[defaultValues.size()];
         this.partitionedByColumns = table.partitionedByColumns();
         this.row.secondCells(defaultValuesCells);
@@ -101,7 +104,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     }
 
     @Override
-    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) {
+    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values, List<String> pkValues) {
         row.firstCells(values);
         evaluateDefaultValues();
 
@@ -115,6 +118,12 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             if (valueForInsert != null) {
                 Maps.mergeInto(source, column.name(), column.path(), valueForInsert, Map::putIfAbsent);
             }
+        }
+
+        for (int i = 0; i < pkValues.size(); i++) {
+            String pkValue = pkValues.get(i);
+            ColumnIdent column = table.primaryKey().get(i);
+            Maps.mergeInto(source, column.name(), column.path(), pkValue, Map::putIfAbsent);
         }
 
         generatedColumns.setNextRow(row);
@@ -146,18 +155,25 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         }
     }
 
-    private static Tuple<List<Reference>, List<Input<?>>> addDefaults(List<Reference> targets,
-                                                                      DocTableInfo table,
-                                                                      TransactionContext txnCtx,
-                                                                      NodeContext nodeCtx) {
+    record Defaults(List<Reference> allColumns, List<Input<?>> defaults) {
+    }
+
+    private static Defaults addDefaults(List<Reference> targets,
+                                        DocTableInfo table,
+                                        TransactionContext txnCtx,
+                                        NodeContext nodeCtx) {
         if (table.defaultExpressionColumns().isEmpty()) {
-            return new Tuple<>(targets, List.of());
+            return new Defaults(targets, List.of());
         }
         InputFactory inputFactory = new InputFactory(nodeCtx);
         Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
         ArrayList<Reference> defaultColumns = new ArrayList<>(table.defaultExpressionColumns().size());
         ArrayList<Input<?>> defaultValues = new ArrayList<>();
         for (Reference ref : table.defaultExpressionColumns()) {
+            // Generated primary key values are generated up-front as they are required for sharding.
+            if (table.primaryKey().contains(ref.column())) {
+                continue;
+            }
             if (targets.contains(ref) == false) {
                 defaultColumns.add(ref);
                 defaultValues.add(ctx.add(ref.defaultExpression()));
@@ -169,7 +185,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         } else {
             allColumns = Lists2.concat(targets, defaultColumns);
         }
-        return new Tuple<>(allColumns, defaultValues);
+        return new Defaults(allColumns, defaultValues);
     }
 
     private static class ReferencesFromInputRow implements ReferenceResolver<CollectExpression<Row, ?>> {
