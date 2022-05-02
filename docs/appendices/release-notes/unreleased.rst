@@ -59,16 +59,13 @@ Changes
 - Moved the :ref:`scalar-quote_ident` function to `pg_catalog` for improved
   compatibility with PostgreSQL.
 
+- Added the :ref:`concat_ws <scalar-concat-ws>` scalar function which allows
+  concatenation with a custom separator.
+
 - Added ``decimal`` type as alias to ``numeric``
 
 - Users with AL privileges can now run ``ANALYZE``
 
-.. vale off
-
-- Added ``concat_ws`` scalar function which allows concatenation with a custom
-  separator.
-
-.. vale on
 
 Fixes
 =====
