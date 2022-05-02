@@ -68,4 +68,5 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue with primary key columns that have a ``DEFAULT`` clause. That
+  could lead to queries on the primary key column not matching the row.

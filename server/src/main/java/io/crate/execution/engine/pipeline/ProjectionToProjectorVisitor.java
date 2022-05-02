@@ -568,7 +568,8 @@ public class ProjectionToProjectorVisitor
                                               null,
                                               projection.requiredVersion(),
                                               null,
-                                              null),
+                                              null,
+                                              List.of()),
             (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req)
                 .whenComplete(ActionListener.toBiConsumer(resp)),
             collector);

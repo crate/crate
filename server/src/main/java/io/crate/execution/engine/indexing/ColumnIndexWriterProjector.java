@@ -50,7 +50,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class ColumnIndexWriterProjector implements Projector {
@@ -112,14 +111,16 @@ public class ColumnIndexWriterProjector implements Projector {
             true);
 
         InputRow insertValues = new InputRow(insertInputs);
-        Function<String, ShardUpsertRequest.Item> itemFactory =
-            id -> new ShardUpsertRequest.Item(id,
-                                              assignments,
-                                              insertValues.materialize(),
-                                              null,
-                                              null,
-                                              null
-                                              );
+        ItemFactory<ShardUpsertRequest.Item> itemFactory = (id, values) ->
+            new ShardUpsertRequest.Item(
+                id,
+                assignments,
+                insertValues.materialize(),
+                null,
+                null,
+                null,
+                values
+            );
 
         var upsertResultContext = returnValues.isEmpty() ? UpsertResultContext.forRowCount() : UpsertResultContext.forResultRows();
 
