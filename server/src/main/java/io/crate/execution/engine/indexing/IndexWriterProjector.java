@@ -117,14 +117,11 @@ public class IndexWriterProjector implements Projector {
             jobId,
             validation);
 
-        ItemFactory<ShardUpsertRequest.Item> itemFactory = (id, pkValues) -> new ShardUpsertRequest.Item(
+        ItemFactory<ShardUpsertRequest.Item> itemFactory = (id, pkValues) -> ShardUpsertRequest.Item.forInsert(
             id,
-            null,
+            pkValues,
             new Object[]{source.value()},
-            null,
-            null,
-            null,
-            pkValues
+            null
         );
 
         Predicate<UpsertResults> earlyTerminationCondition = results -> failFast && results.containsErrors();

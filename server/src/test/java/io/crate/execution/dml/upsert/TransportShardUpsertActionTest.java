@@ -181,7 +181,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, List.of()));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -203,7 +203,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, List.of()));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -245,7 +245,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, List.of()));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
@@ -267,7 +267,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, List.of()));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), new Object[]{1}, null));
 
         reset(indexShard);
 

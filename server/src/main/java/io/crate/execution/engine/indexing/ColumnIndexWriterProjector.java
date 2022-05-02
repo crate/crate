@@ -77,7 +77,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                       List<Input<?>> insertInputs,
                                       List<? extends CollectExpression<Row, ?>> collectExpressions,
                                       boolean ignoreDuplicateKeys,
-                                      @Nullable Map<Reference, Symbol> updateAssignments,
+                                      @Nullable Map<Reference, Symbol> onConflictAssignmentsByRef,
                                       int bulkActions,
                                       boolean autoCreateIndices,
                                       List<Symbol> returnValues,
@@ -88,15 +88,15 @@ public class ColumnIndexWriterProjector implements Projector {
         assert columnReferences.size() == insertInputs.size()
             : "number of insert inputs must be equal to the number of columns";
 
-        String[] updateColumnNames;
-        Symbol[] assignments;
-        if (updateAssignments == null) {
-            updateColumnNames = null;
-            assignments = null;
+        String[] onConflictColumns;
+        Symbol[] onConflictAssignments;
+        if (onConflictAssignmentsByRef == null) {
+            onConflictColumns = null;
+            onConflictAssignments = null;
         } else {
-            Assignments convert = Assignments.convert(updateAssignments, nodeCtx);
-            updateColumnNames = convert.targetNames();
-            assignments = convert.sources();
+            Assignments convert = Assignments.convert(onConflictAssignmentsByRef, nodeCtx);
+            onConflictColumns = convert.targetNames();
+            onConflictAssignments = convert.sources();
         }
 
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
@@ -104,23 +104,19 @@ public class ColumnIndexWriterProjector implements Projector {
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(settings),
             ignoreDuplicateKeys ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
             true, // continueOnErrors
-            updateColumnNames,
+            onConflictColumns,
             columnReferences.toArray(new Reference[columnReferences.size()]),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
             jobId,
             true);
 
         InputRow insertValues = new InputRow(insertInputs);
-        ItemFactory<ShardUpsertRequest.Item> itemFactory = (id, values) ->
-            new ShardUpsertRequest.Item(
-                id,
-                assignments,
-                insertValues.materialize(),
-                null,
-                null,
-                null,
-                values
-            );
+        ItemFactory<ShardUpsertRequest.Item> itemFactory = (id, pkValues) -> ShardUpsertRequest.Item.forInsert(
+            id,
+            pkValues,
+            insertValues.materialize(),
+            onConflictAssignments
+        );
 
         var upsertResultContext = returnValues.isEmpty() ? UpsertResultContext.forRowCount() : UpsertResultContext.forResultRows();
 
