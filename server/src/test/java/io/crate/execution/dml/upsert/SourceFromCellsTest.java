@@ -88,7 +88,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     public void testGeneratedSourceBytesRef() throws IOException {
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             txnCtx, e.nodeCtx, t1, "t1", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y));
-        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1, 2});
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1, 2}, List.of());
         assertThat(source, is(Map.of("x", 1, "y", 2, "z", 3)));
     }
 
@@ -98,7 +98,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.nodeCtx, t1, "t1", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y, z));
 
         expectedException.expectMessage("Given value 8 for generated column z does not match calculation (x + y) = 3");
-        sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1, 2, 8});
+        sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1, 2, 8}, List.of());
     }
 
     @Test
@@ -107,7 +107,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.nodeCtx, t2, "t2", GeneratedColumns.Validation.VALUE_MATCH, Collections.singletonList(obj));
         HashMap<Object, Object> m = new HashMap<>();
         m.put("a", 10);
-        var map = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{m});
+        var map = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{m}, List.of());
         assertThat(map.get("b"), is(11));
         assertThat(Maps.getByPath(map, "obj.a"), is(10));
         assertThat(Maps.getByPath(map, "obj.c"), is(13));
@@ -123,7 +123,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.nodeCtx, t3, partitionName.asIndexName(), GeneratedColumns.Validation.VALUE_MATCH, emptyList());
 
         expectedException.expectMessage("\"p\" must not be null");
-        sourceFromCells.generateSourceAndCheckConstraints(new Object[0]);
+        sourceFromCells.generateSourceAndCheckConstraints(new Object[0], List.of());
     }
 
     @Test
@@ -136,7 +136,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.nodeCtx, t3, partitionName.asIndexName(), GeneratedColumns.Validation.VALUE_MATCH, emptyList());
 
         // this must pass without error
-        sourceFromCells.generateSourceAndCheckConstraints(new Object[0]);
+        sourceFromCells.generateSourceAndCheckConstraints(new Object[0], List.of());
     }
 
     @Test
@@ -149,7 +149,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.nodeCtx, t4, "t4", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x));
 
         Object[] input = new Object[]{1};
-        var source = sourceFromCells.generateSourceAndCheckConstraints(input);
+        var source = sourceFromCells.generateSourceAndCheckConstraints(input, List.of());
         assertThat(source, is(Map.of("x", 1, "y", "crate")));
     }
 
@@ -164,7 +164,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.nodeCtx, t4, "t4", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y));
 
         Object[] input = {1, "cr8"};
-        var source = sourceFromCells.generateSourceAndCheckConstraints(input);
+        var source = sourceFromCells.generateSourceAndCheckConstraints(input, List.of());
         assertThat(source, is(Map.of("x", 1, "y", "cr8")));
     }
 
@@ -180,7 +180,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         providedValueForObj.put("a", 10);
         providedValueForObj.put("c", 13);
 
-        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj});
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj}, List.of());
 
         assertThat(Maps.getByPath(source, "obj.a"), is(10));
         assertThat(Maps.getByPath(source, "b"), is(11));
@@ -200,7 +200,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         providedValueForObj.put("c", 14);
 
         expectedException.expectMessage("Given value 14 for generated column obj['c'] does not match calculation (obj['a'] + 3) = 13");
-        sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj});
+        sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj}, List.of());
     }
 
     @Test
@@ -214,7 +214,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.nodeCtx, t5, "t4", GeneratedColumns.Validation.VALUE_MATCH, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
         providedValueForObj.put("y", 2);
-        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj});
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj}, List.of());
         assertThat(Maps.getByPath(source, "obj.x"), is(0));
         assertThat(Maps.getByPath(source, "obj.y"), is(2));
     }
@@ -230,7 +230,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.nodeCtx, t5, "t5", GeneratedColumns.Validation.VALUE_MATCH, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
         providedValueForObj.put("x", 2);
-        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj});
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj}, List.of());
         assertThat(Maps.getByPath(source, "obj.x"), is(2));
     }
 
@@ -239,7 +239,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo t6 = e.resolveTableInfo("t6");
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             txnCtx, e.nodeCtx, t6, "t6", GeneratedColumns.Validation.VALUE_MATCH, List.of());
-        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[0]);
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[0], List.of());
         assertThat(Maps.getByPath(source, "x"), is(1));
         assertThat(Maps.getByPath(source, "y"), is(2));
     }
@@ -258,7 +258,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             GeneratedColumns.Validation.VALUE_MATCH,
             List.of(Objects.requireNonNull(tableInfo.getReference(new ColumnIdent("x")))));
 
-        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1});
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1}, List.of());
 
         assertThat(source, is(Map.of("x", 1, "y", 1)));
     }
@@ -280,7 +280,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             GeneratedColumns.Validation.VALUE_MATCH,
             List.of());
 
-        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{});
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{}, List.of());
 
         assertThat(source, is(Map.of("x", "test")));
     }
@@ -300,7 +300,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             List.copyOf(tableInfo.columns())
         );
         var payloads = List.of(Map.of("x", 10), Map.of("x", 20));
-        var source = sourceGen.generateSourceAndCheckConstraints(new Object[] { payloads });
+        var source = sourceGen.generateSourceAndCheckConstraints(new Object[] { payloads }, List.of());
         assertThat(source, is(Map.of("payloads", List.of(Map.of("x", 10), Map.of("x", 20)))));
     }
 
@@ -324,7 +324,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> obj = new HashMap<>();
         obj.put("x", 10);
         obj.put("p", 1);
-        var source = sourceGen.generateSourceAndCheckConstraints(new Object[] { obj });
+        var source = sourceGen.generateSourceAndCheckConstraints(new Object[] { obj }, List.of());
         assertThat(source, is(Map.of("obj", Map.of("x", 10))));
     }
 
@@ -342,7 +342,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             GeneratedColumns.Validation.VALUE_MATCH,
             List.of()
         );
-        var source = sourceGen.generateSourceAndCheckConstraints(new Object[]{});
+        var source = sourceGen.generateSourceAndCheckConstraints(new Object[]{}, List.of());
         assertThat(source, is(Map.of("str", "ab")));
     }
 
@@ -362,7 +362,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         );
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("'ab' is too long for the text type of length: 1");
-        sourceGen.generateSourceAndCheckConstraints(new Object[]{});
+        sourceGen.generateSourceAndCheckConstraints(new Object[]{}, List.of());
     }
 
     @Test
@@ -381,7 +381,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         );
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("'ab ' is too long for the text type of length: 1");
-        sourceGen.generateSourceAndCheckConstraints(new Object[]{});
+        sourceGen.generateSourceAndCheckConstraints(new Object[]{}, List.of());
     }
 
     @Test
@@ -400,7 +400,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             GeneratedColumns.Validation.VALUE_MATCH,
             List.of(name, model)
         );
-        Map<String, Object> source = sourceGen.generateSourceAndCheckConstraints(new Object[] { "foo", null });
+        Map<String, Object> source = sourceGen.generateSourceAndCheckConstraints(new Object[] { "foo", null }, List.of());
         assertThat(source, not(Matchers.hasKey("model")));
     }
 
@@ -420,9 +420,9 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             List.of(x)
         );
         Map<String, Object> result;
-        result = sourceGen.generateSourceAndCheckConstraints(new Object[] { 10 });
+        result = sourceGen.generateSourceAndCheckConstraints(new Object[] { 10 }, List.of());
         var id1 = result.get("id");
-        result = sourceGen.generateSourceAndCheckConstraints(new Object[] { 20 });
+        result = sourceGen.generateSourceAndCheckConstraints(new Object[] { 20 }, List.of());
         var id2 = result.get("id");
         assertThat(id1, Matchers.notNullValue());
         assertThat(id1, Matchers.not(is(id2)));
@@ -450,7 +450,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             List.of(ts, g_ts_month)
         );
         Map<String, Object> generateSourceAndCheckConstraints =
-            sourceGen.generateSourceAndCheckConstraints(new Object[] { 1631628823105L, 1630454400000L });
+            sourceGen.generateSourceAndCheckConstraints(new Object[] { 1631628823105L, 1630454400000L }, List.of());
         assertThat(generateSourceAndCheckConstraints, Matchers.hasEntry("ts", 1631628823105L));
         assertThat("partition value must not become part of the source", generateSourceAndCheckConstraints.size(), is(1));
     }
@@ -477,7 +477,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             List.of(ts, g_ts_month)
         );
         assertThrows(IllegalArgumentException.class, () -> {
-            sourceGen.generateSourceAndCheckConstraints(new Object[] { 1631628823105L, 2630454400000L });
+            sourceGen.generateSourceAndCheckConstraints(new Object[] { 1631628823105L, 2630454400000L }, List.of());
         });
     }
 }

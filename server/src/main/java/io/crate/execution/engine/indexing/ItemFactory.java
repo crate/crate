@@ -19,30 +19,10 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.dml.upsert;
+package io.crate.execution.engine.indexing;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-
-public class FromRawInsertSource implements InsertSourceGen {
-
-    public BytesReference generateSourceAndCheckConstraintsAsBytesReference(Object[] values) throws IOException {
-        return new BytesArray(((String) values[0]));
-    }
-
-    @Override
-    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values, List<String> pkValues) throws IOException {
-        return JsonXContent.JSON_XCONTENT.createParser(
-            NamedXContentRegistry.EMPTY,
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            new BytesArray(((String) values[0])).array()
-        ).map();
-    }
+public interface ItemFactory<T> {
+    T create(String id, List<String> pkValues);
 }

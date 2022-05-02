@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
@@ -55,7 +54,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final RowShardResolver rowShardResolver;
     private final List<? extends CollectExpression<Row, ?>> expressions;
     private final List<? extends CollectExpression<Row, ?>> sourceInfoExpressions;
-    private final Function<String, TItem> itemFactory;
+    private final ItemFactory<TItem> itemFactory;
     private final Supplier<String> indexNameResolver;
     private final ClusterService clusterService;
     private final boolean autoCreateIndices;
@@ -70,7 +69,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                             ToLongFunction<Row> estimateRowSize,
                             Supplier<String> indexNameResolver,
                             List<? extends CollectExpression<Row, ?>> expressions,
-                            Function<String, TItem> itemFactory,
+                            ItemFactory<TItem> itemFactory,
                             boolean autoCreateIndices,
                             UpsertResultContext upsertContext) {
         this.estimateRowSize = estimateRowSize;
@@ -95,7 +94,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                             ToLongFunction<Row> estimateRowSize,
                             Supplier<String> indexNameResolver,
                             List<? extends CollectExpression<Row, ?>> expressions,
-                            Function<String, TItem> itemFactory,
+                            ItemFactory<TItem> itemFactory,
                             boolean autoCreateIndices) {
         this(clusterService,
              rowShardResolver,
@@ -124,7 +123,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             }
 
             String id = rowShardResolver.id();
-            TItem item = itemFactory.apply(id);
+            TItem item = itemFactory.create(id, rowShardResolver.pkValues());
             String indexName = indexNameResolver.get();
             String routing = rowShardResolver.routing();
             String sourceUri = sourceUriInput.value();

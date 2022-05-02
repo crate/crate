@@ -164,12 +164,15 @@ public final class UpdateById implements Plan {
                             Long version,
                             Long seqNo,
                             Long primaryTerm) {
-            ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(id,
-                                                                       assignmentSources,
-                                                                       null,
-                                                                       version,
-                                                                       seqNo,
-                                                                       primaryTerm);
+            ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(
+                id,
+                assignmentSources,
+                null,
+                version,
+                seqNo,
+                primaryTerm,
+                List.of()
+            );
             request.add(location, item);
         }
     }

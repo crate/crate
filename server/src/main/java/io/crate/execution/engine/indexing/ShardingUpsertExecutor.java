@@ -111,7 +111,7 @@ public class ShardingUpsertExecutor
                            int bulkSize,
                            UUID jobId,
                            RowShardResolver rowShardResolver,
-                           Function<String, ShardUpsertRequest.Item> itemFactory,
+                           ItemFactory<ShardUpsertRequest.Item> itemFactory,
                            Function<ShardId, ShardUpsertRequest> requestFactory,
                            List<? extends CollectExpression<Row, ?>> expressions,
                            Supplier<String> indexNameResolver,
