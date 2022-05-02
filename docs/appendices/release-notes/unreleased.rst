@@ -54,6 +54,8 @@ None
 Changes
 =======
 
+- Updated the bundled JDK to 18.0.1+10
+
 - Moved the :ref:`scalar-quote_ident` function to `pg_catalog` for improved
   compatibility with PostgreSQL.
 
