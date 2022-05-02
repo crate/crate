@@ -146,8 +146,8 @@ public class HashJoin implements LogicalPlan {
 
         // First extract the symbols that belong to the relations from the right-hand side
         var rhsHashSymbols = new ArrayList<Symbol>(rightLogicalPlan.getRelationNames().size());
-        for (var baseTable : rightLogicalPlan.getRelationNames()) {
-            var symbols = hashSymbols.remove(baseTable);
+        for (var r : rightLogicalPlan.getRelationNames()) {
+            var symbols = hashSymbols.remove(r);
             if (symbols != null) {
                 for (var symbol : symbols) {
                     rhsHashSymbols.add(paramBinder.apply(symbol));
@@ -155,11 +155,14 @@ public class HashJoin implements LogicalPlan {
             }
         }
 
-        // All leftover extracted symbols belong to the other left-hand side
+        // Then extract the symbols that belong to the relations from the left-hand side
         var lhsHashSymbols = new ArrayList<Symbol>(hashSymbols.values().size());
-        for (var symbols : hashSymbols.values()) {
-            for (Symbol symbol : symbols) {
-                lhsHashSymbols.add(paramBinder.apply(symbol));
+        for (var r : leftLogicalPlan.getRelationNames()) {
+            var symbols = hashSymbols.remove(r);
+            if (symbols != null) {
+                for (var symbol : symbols) {
+                    lhsHashSymbols.add(paramBinder.apply(symbol));
+                }
             }
         }
 
