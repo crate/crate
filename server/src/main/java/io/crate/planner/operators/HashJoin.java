@@ -173,10 +173,6 @@ public class HashJoin implements LogicalPlan {
             }
         }
 
-        if (lhsHashSymbols.isEmpty() || rhsHashSymbols.isEmpty()) {
-            System.out.println("lhsHashSymbols = " + lhsHashSymbols);
-        }
-
 
         // We can only run the join distributed if no remaining limit or offset must be applied on the source relations.
         // Because on distributed joins, every join is running on a slice (modulo) set of the data and so no limit/offset
@@ -356,9 +352,6 @@ public class HashJoin implements LogicalPlan {
                                                List<Symbol> planOutputs,
                                                ExecutionPlan executionPlan) {
         List<Symbol> outputs = planOutputs;
-        if (joinSymbols.isEmpty()) {
-            System.out.println("outputs = " + outputs);
-        }
         Symbol firstJoinSymbol = joinSymbols.get(0);
         int distributeBySymbolPos = planOutputs.indexOf(firstJoinSymbol);
         if (distributeBySymbolPos < 0) {
