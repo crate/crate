@@ -81,22 +81,18 @@ public class ShardUpsertRequestTest extends ESTestCase {
             false
             ).newRequest(shardId);
 
-        request.add(123, new ShardUpsertRequest.Item(
+        request.add(123, ShardUpsertRequest.Item.forInsert(
             "99",
-            null,
+            List.of(),
             new Object[]{99, "Marvin"},
-            null,
-            null,
-            null,
-            List.of()));
-        request.add(42, new ShardUpsertRequest.Item(
+            null
+        ));
+        request.add(42, ShardUpsertRequest.Item.forInsert(
             "99",
-            new Symbol[0],
+            List.of(),
             new Object[]{99, "Marvin"},
-            null,
-            null,
-            null,
-            List.of()));
+            new Symbol[0]
+        ));
         request.add(5, new ShardUpsertRequest.Item(
             "42",
             new Symbol[]{Literal.of(42), Literal.of("Deep Thought")},
@@ -105,7 +101,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
             1L,
             5L,
             List.of()
-            ));
+        ));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
@@ -134,22 +130,18 @@ public class ShardUpsertRequestTest extends ESTestCase {
             false
         ).newRequest(shardId);
 
-        request.add(123, new ShardUpsertRequest.Item(
+        request.add(123, ShardUpsertRequest.Item.forInsert(
             "99",
-            null,
+            List.of(),
             new Object[]{99, "Marvin"},
-            null,
-            null,
-            null,
-            List.of()));
-        request.add(42, new ShardUpsertRequest.Item(
+            null
+        ));
+        request.add(42, ShardUpsertRequest.Item.forInsert(
             "99",
-            new Symbol[0],
+            List.of(),
             new Object[]{99, "Marvin"},
-            null,
-            null,
-            null,
-            List.of()));
+            new Symbol[0]
+        ));
         request.add(5, new ShardUpsertRequest.Item(
             "42",
             new Symbol[]{Literal.of(42), Literal.of("Deep Thought")},

@@ -200,18 +200,18 @@ public class InsertFromValues implements LogicalPlan {
             clusterByInput = null;
         }
 
-        String[] updateColumnNames;
-        Symbol[] assignmentSources;
+        String[] onConflictColumns;
+        Symbol[] onConflictAssignments;
         if (writerProjection.onDuplicateKeyAssignments() == null) {
-            updateColumnNames = null;
-            assignmentSources = null;
+            onConflictColumns = null;
+            onConflictAssignments = null;
         } else {
             Assignments assignments = Assignments.convert(
                 writerProjection.onDuplicateKeyAssignments(),
                 dependencies.nodeContext()
             );
-            assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
-            updateColumnNames = assignments.targetNames();
+            onConflictAssignments = assignments.bindSources(tableInfo, params, subQueryResults);
+            onConflictColumns = assignments.targetNames();
         }
         var indexNameResolver = IndexNameResolver.create(
             writerProjection.tableIdent(),
@@ -220,7 +220,7 @@ public class InsertFromValues implements LogicalPlan {
 
         GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper =
             createRowsByShardGrouper(
-                assignmentSources,
+                onConflictAssignments,
                 insertInputs,
                 indexNameResolver,
                 context,
@@ -247,7 +247,7 @@ public class InsertFromValues implements LogicalPlan {
                 ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             rows.size() > 1, // continueOnErrors
-            updateColumnNames,
+            onConflictColumns,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
             plannerContext.jobId(),
@@ -457,7 +457,7 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     private GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item>
-        createRowsByShardGrouper(Symbol[] assignmentSources,
+        createRowsByShardGrouper(Symbol[] onConflictAssignments,
                                  ArrayList<Input<?>> insertInputs,
                                  Supplier<String> indexNameResolver,
                                  InputFactory.Context<CollectExpression<Row, ?>> collectContext,
@@ -465,14 +465,11 @@ public class InsertFromValues implements LogicalPlan {
                                  ClusterService clusterService) {
         InputRow insertValues = new InputRow(insertInputs);
         ItemFactory<ShardUpsertRequest.Item> itemFactory = (id, pkValues) ->
-            new ShardUpsertRequest.Item(
+            ShardUpsertRequest.Item.forInsert(
                 id,
-                assignmentSources,
+                pkValues,
                 insertValues.materialize(),
-                null,
-                null,
-                null,
-                pkValues
+                onConflictAssignments
             );
 
         var rowShardResolver = new RowShardResolver(
