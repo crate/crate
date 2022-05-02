@@ -179,7 +179,7 @@ public class PgClient extends AbstractClient {
             LOGGER.trace("Connecting to {}", host);
         }
         var bootstrap = new Bootstrap();
-        var eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup(settings);
+        var eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup(settings, "pg-client");
         bootstrap.group(eventLoopGroup.item());
         bootstrap.channel(NettyBootstrap.clientChannel());
         bootstrap.option(ChannelOption.TCP_NODELAY, TransportSettings.TCP_NO_DELAY.get(settings));

@@ -29,6 +29,7 @@ import static org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService.T
 import static org.elasticsearch.node.Node.INITIAL_STATE_TIMEOUT_SETTING;
 import static org.elasticsearch.test.ESTestCase.assertBusy;
 import static org.elasticsearch.test.ESTestCase.randomFrom;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -151,6 +152,7 @@ import org.elasticsearch.transport.TransportSettings;
 import io.crate.action.sql.SQLOperations;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.SQLTransportExecutor;
 
@@ -2278,5 +2280,17 @@ public final class InternalTestCluster extends TestCluster {
                 }
             }
         );
+    }
+
+    public void assertEventLoopGroupHasShutdown() {
+        for (var nettyBootstrap : getInstances(NettyBootstrap.class)) {
+            for (var entry : nettyBootstrap.contexts().entrySet()) {
+                String context = entry.getKey();
+                Integer numRefs = entry.getValue();
+                throw new AssertionError(
+                    "There shouldn't be any more references to eventLoopGroups, but " + context + " has " + numRefs + " references");
+            }
+            assertThat(nettyBootstrap.workerIsShutdown(), is(true));
+        }
     }
 }

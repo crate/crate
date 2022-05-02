@@ -23,11 +23,15 @@ package io.crate.netty;
 
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Assertions;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportSettings;
@@ -55,17 +59,35 @@ public class NettyBootstrap {
     public static final String WORKER_THREAD_PREFIX = "netty-worker";
     private static final Logger LOGGER = LogManager.getLogger(NettyBootstrap.class);
 
+    private final ConcurrentMap<String, Integer> contexts;
+
     private int refs = 0;
     private EventLoopGroup worker;
+
+    public NettyBootstrap() {
+        if (Assertions.ENABLED) {
+            contexts = new ConcurrentHashMap<>();
+        } else {
+            contexts = null;
+        }
+    }
 
     @VisibleForTesting
     public boolean workerIsShutdown() {
         return worker == null || worker.isShutdown();
     }
 
-    public synchronized BorrowedItem<EventLoopGroup> getSharedEventLoopGroup(Settings settings) {
+    @VisibleForTesting
+    public Map<String, Integer> contexts() {
+        return contexts;
+    }
+
+    public synchronized BorrowedItem<EventLoopGroup> getSharedEventLoopGroup(Settings settings, String context) {
         if (worker == null) {
             worker = newEventLoopGroup(settings);
+        }
+        if (Assertions.ENABLED) {
+            contexts.compute(context, (key, value) -> value == null ? 0 : value + 1);
         }
         refs++;
         return new BorrowedItem<>(worker, () -> {
@@ -79,6 +101,9 @@ public class NettyBootstrap {
                     }
                     worker = null;
                 }
+            }
+            if (Assertions.ENABLED) {
+                contexts.compute(context, (key, value) -> value <= 0 ? null : value - 1);
             }
         });
     }

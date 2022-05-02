@@ -153,6 +153,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             } finally {
                 cluster.wipe(Collections.emptySet());
                 cluster.close();
+                cluster.assertEventLoopGroupHasShutdown();
             }
         }
     }

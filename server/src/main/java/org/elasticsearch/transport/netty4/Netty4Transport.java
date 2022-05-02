@@ -144,7 +144,7 @@ public class Netty4Transport extends TcpTransport {
     protected void doStart() {
         boolean success = false;
         try {
-            eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup(settings);
+            eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup(settings, "netty4-transport");
             clientBootstrap = createClientBootstrap(eventLoopGroup.item());
             if (NetworkService.NETWORK_SERVER.get(settings)) {
                 for (ProfileSettings profileSettings : profileSettings) {
