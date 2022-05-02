@@ -27,16 +27,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
@@ -146,7 +149,8 @@ public class HashJoin implements LogicalPlan {
 
         // First extract the symbols that belong to the relations from the right-hand side
         var rhsHashSymbols = new ArrayList<Symbol>(rightLogicalPlan.getRelationNames().size());
-        for (var r : rightLogicalPlan.getRelationNames()) {
+        Set<RelationName> rhsRelationNames = rightLogicalPlan.getRelationNames();
+        for (var r : rhsRelationNames) {
             var symbols = hashSymbols.remove(r);
             if (symbols != null) {
                 for (var symbol : symbols) {
@@ -155,9 +159,11 @@ public class HashJoin implements LogicalPlan {
             }
         }
 
+
         // Then extract the symbols that belong to the relations from the left-hand side
         var lhsHashSymbols = new ArrayList<Symbol>(hashSymbols.values().size());
-        for (var r : leftLogicalPlan.getRelationNames()) {
+        Set<RelationName> lhsRelationNames = leftLogicalPlan.getRelationNames();
+        for (var r : lhsRelationNames) {
             var symbols = hashSymbols.remove(r);
             if (symbols != null) {
                 for (var symbol : symbols) {
@@ -165,6 +171,11 @@ public class HashJoin implements LogicalPlan {
                 }
             }
         }
+
+        if (lhsHashSymbols.isEmpty() || rhsHashSymbols.isEmpty()) {
+            System.out.println("lhsHashSymbols = " + lhsHashSymbols);
+        }
+
 
         // We can only run the join distributed if no remaining limit or offset must be applied on the source relations.
         // Because on distributed joins, every join is running on a slice (modulo) set of the data and so no limit/offset
@@ -240,6 +251,11 @@ public class HashJoin implements LogicalPlan {
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
         return Lists2.concat(lhs.baseTables(), rhs.baseTables());
+    }
+
+    @Override
+    public Set<RelationName> getRelationNames() {
+        return new HashSet<>(Lists2.concat(lhs.getRelationNames(), rhs.getRelationNames()));
     }
 
     @Override
@@ -339,6 +355,9 @@ public class HashJoin implements LogicalPlan {
                                                List<Symbol> planOutputs,
                                                ExecutionPlan executionPlan) {
         List<Symbol> outputs = planOutputs;
+        if (joinSymbols.isEmpty()) {
+            System.out.println("outputs = " + outputs);
+        }
         Symbol firstJoinSymbol = joinSymbols.get(0);
         int distributeBySymbolPos = planOutputs.indexOf(firstJoinSymbol);
         if (distributeBySymbolPos < 0) {

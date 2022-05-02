@@ -254,6 +254,7 @@ public class NodeStatsTest extends SQLIntegrationTestCase {
         assertEquals(jvmObj, results.get("jvm"));
     }
 
+    @UseJdbc(1)
     @Test
     public void testSysNodesProcess() throws Exception {
         SQLResponse response = execute("select process['open_file_descriptors'], " +

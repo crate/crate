@@ -39,6 +39,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.RelationName;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
@@ -52,6 +53,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -72,6 +74,7 @@ public class NestedLoopJoin implements LogicalPlan {
     final LogicalPlan rhs;
     private final List<Symbol> outputs;
     private final List<AbstractTableRelation<?>> baseTables;
+    private final Set<RelationName> relationNames;
     private final Map<LogicalPlan, SelectSymbol> dependencies;
     private boolean orderByWasPushedDown = false;
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
@@ -94,6 +97,7 @@ public class NestedLoopJoin implements LogicalPlan {
             this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
         }
         this.baseTables = Lists2.concat(lhs.baseTables(), rhs.baseTables());
+        this.relationNames = new HashSet<>(Lists2.concat(lhs.getRelationNames(), rhs.getRelationNames()));
         this.topMostLeftRelation = topMostLeftRelation;
         this.joinCondition = joinCondition;
         this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
@@ -253,6 +257,11 @@ public class NestedLoopJoin implements LogicalPlan {
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
         return baseTables;
+    }
+
+    @Override
+    public Set<RelationName> getRelationNames() {
+        return relationNames;
     }
 
     @Override

@@ -57,6 +57,9 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.carrotsearch.randomizedtesting.annotations.Seed;
+
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class JoinIntegrationTest extends SQLIntegrationTestCase {
 
@@ -1346,5 +1349,36 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
 
         execute(stmt);
         assertThat(printedTable(response.rows()), is("2| bazinga\n"));
+    }
+
+    @UseJdbc(1)
+    @Test
+    public void test_psql_query() {
+        var stmt = """
+            SELECT c.oid,
+                   a.attnum,
+                   a.attname,
+                   c.relname,
+                   n.nspname,
+                   a.attnotnull
+            OR (t.typtype = 'd'
+                AND t.typnotnull), a.attidentity != ''
+            OR pg_catalog.pg_get_expr(d.adbin, d.adrelid) LIKE '%nextval(%'
+            FROM pg_catalog.pg_class c
+            JOIN pg_catalog.pg_namespace n ON (c.relnamespace = n.oid)
+            JOIN pg_catalog.pg_attribute a ON (c.oid = a.attrelid)
+            JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid)
+            LEFT JOIN pg_catalog.pg_attrdef d ON (d.adrelid = a.attrelid
+                                                  AND d.adnum = a.attnum)
+            JOIN
+              (SELECT -1420189195 AS oid,
+                      103 AS attnum
+               UNION ALL SELECT -1420189195,
+                                102) vals ON (c.oid = vals.oid
+                                              AND a.attnum = vals.attnum)
+                        """;
+
+        execute(stmt);
+        System.out.println(printedTable(response.rows()));
     }
 }
