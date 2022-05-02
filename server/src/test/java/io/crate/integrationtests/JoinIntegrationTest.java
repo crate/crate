@@ -1282,12 +1282,12 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
 
         assertThat(printedTable(response.rows()), is(
             """
-                NestedLoopJoin[INNER | ((name = name) AND (NOT (name = 'c')))]
+                HashJoin[(name = name)]
                   ├ Rename[name] AS x
                   │  └ GroupHashAggregate[name]
                   │    └ Union[name]
-                  │      ├ Collect[doc.t1 | [name] | (name = 'a')]
-                  │      └ Collect[doc.t3 | [name] | (name = 'c')]
+                  │      ├ Collect[doc.t1 | [name] | ((NOT (name = 'c')) AND (name = 'a'))]
+                  │      └ Collect[doc.t3 | [name] | ((NOT (name = 'c')) AND (name = 'c'))]
                   └ Rename[name] AS y
                     └ GroupHashAggregate[name]
                       └ Union[name]
