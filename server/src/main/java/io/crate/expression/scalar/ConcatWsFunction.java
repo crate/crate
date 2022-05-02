@@ -22,9 +22,6 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -55,9 +52,9 @@ public class ConcatWsFunction extends Scalar<String, String> {
     }
 
     @Override
-    public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
-
-        String separator = (String) args[0].value();
+    @SafeVarargs
+    public final String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String> ... args) {
+        String separator = args[0].value();
         if (separator == null) {
             return null;
         }
@@ -87,18 +84,5 @@ public class ConcatWsFunction extends Scalar<String, String> {
     @Override
     public Signature boundSignature() {
         return boundSignature;
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx, NodeContext nodeCtx) {
-        if (anyNonLiterals(function.arguments())) {
-            return function;
-        }
-        Input[] inputs = new Input[function.arguments().size()];
-        for (int i = 0; i < function.arguments().size(); i++) {
-            inputs[i] = ((Input) function.arguments().get(i));
-        }
-        //noinspection unchecked
-        return Literal.ofUnchecked(boundSignature.getReturnType().createType(), evaluate(txnCtx, nodeCtx, inputs));
     }
 }
