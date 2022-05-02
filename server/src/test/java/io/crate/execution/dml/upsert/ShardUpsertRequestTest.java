@@ -21,6 +21,19 @@
 
 package io.crate.execution.dml.upsert;
 
+import static org.hamcrest.Matchers.equalTo;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -31,18 +44,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.index.shard.ShardId;
-import org.junit.Test;
-
-import java.util.UUID;
-
-import static org.hamcrest.Matchers.equalTo;
 
 public class ShardUpsertRequestTest extends ESTestCase {
 
@@ -85,21 +87,24 @@ public class ShardUpsertRequestTest extends ESTestCase {
             new Object[]{99, "Marvin"},
             null,
             null,
-            null));
+            null,
+            List.of()));
         request.add(42, new ShardUpsertRequest.Item(
             "99",
             new Symbol[0],
             new Object[]{99, "Marvin"},
             null,
             null,
-            null));
+            null,
+            List.of()));
         request.add(5, new ShardUpsertRequest.Item(
             "42",
             new Symbol[]{Literal.of(42), Literal.of("Deep Thought")},
             null,
             2L,
             1L,
-            5L
+            5L,
+            List.of()
             ));
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -135,21 +140,24 @@ public class ShardUpsertRequestTest extends ESTestCase {
             new Object[]{99, "Marvin"},
             null,
             null,
-            null));
+            null,
+            List.of()));
         request.add(42, new ShardUpsertRequest.Item(
             "99",
             new Symbol[0],
             new Object[]{99, "Marvin"},
             null,
             null,
-            null));
+            null,
+            List.of()));
         request.add(5, new ShardUpsertRequest.Item(
             "42",
             new Symbol[]{Literal.of(42), Literal.of("Deep Thought")},
             null,
             2L,
             1L,
-            5L));
+            5L,
+            List.of()));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);

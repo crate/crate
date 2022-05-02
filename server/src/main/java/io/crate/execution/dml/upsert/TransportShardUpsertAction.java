@@ -320,7 +320,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             if (insertSourceGen instanceof RawInsertSource) {
                 rawSource = insertSourceGen.generateSourceAndCheckConstraintsAsBytesReference(item.insertValues());
             } else {
-                source = insertSourceGen.generateSourceAndCheckConstraints(item.insertValues());
+                source = insertSourceGen.generateSourceAndCheckConstraints(item.insertValues(), item.pkValues());
                 rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source, SOURCE_WRITERS));
             }
         } catch (IOException e) {
