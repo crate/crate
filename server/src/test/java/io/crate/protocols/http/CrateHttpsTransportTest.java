@@ -94,7 +94,7 @@ public class CrateHttpsTransportTest extends ESTestCase {
             mock(ThreadPool.class),
             NamedXContentRegistry.EMPTY,
             pipelineRegistry,
-            new NettyBootstrap(),
+            new NettyBootstrap(Settings.EMPTY),
             mock(NodeClient.class));
 
         EmbeddedChannel channel = new EmbeddedChannel();

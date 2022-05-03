@@ -21,23 +21,40 @@
 
 package io.crate.execution.jobs.kill;
 
-import io.crate.execution.jobs.TasksService;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.transport.MockTransportService;
-import org.junit.Test;
-import org.mockito.Answers;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.transport.MockTransportService;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Answers;
+
+import io.crate.execution.jobs.TasksService;
+import io.crate.netty.NettyBootstrap;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUnitTest {
+
+    private NettyBootstrap nettyBootstrap;
+
+    @Before
+    public void setupNetty() {
+        nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
+        nettyBootstrap.start();
+    }
+
+    @After
+    public void teardownNetty() {
+        nettyBootstrap.close();
+    }
 
     @Test
     public void testKillIsCalledOnJobContextService() throws Exception {
@@ -46,7 +63,7 @@ public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUni
             tasksService,
             clusterService,
             MockTransportService.createNewService(
-                Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings())
+                Settings.EMPTY, Version.CURRENT, THREAD_POOL, nettyBootstrap, clusterService.getClusterSettings())
         );
 
         List<UUID> toKill = List.of(UUID.randomUUID(), UUID.randomUUID());
