@@ -39,6 +39,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
+import io.crate.common.collections.Sets;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -48,6 +49,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.RelationName;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -184,6 +186,11 @@ public class Union implements LogicalPlan {
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
         return Lists2.concat(lhs.baseTables(), rhs.baseTables());
+    }
+
+    @Override
+    public Set<RelationName> getRelationNames() {
+        return Sets.union(lhs.getRelationNames(), rhs.getRelationNames());
     }
 
     @Override

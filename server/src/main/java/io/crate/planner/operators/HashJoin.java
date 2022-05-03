@@ -41,6 +41,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Sets;
 import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
@@ -228,6 +229,11 @@ public class HashJoin implements LogicalPlan {
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
         return Lists2.concat(lhs.baseTables(), rhs.baseTables());
+    }
+
+    @Override
+    public Set<RelationName> getRelationNames() {
+        return Sets.union(lhs.getRelationNames(), rhs.getRelationNames());
     }
 
     @Override
