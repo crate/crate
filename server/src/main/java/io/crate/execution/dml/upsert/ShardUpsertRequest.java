@@ -292,25 +292,49 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
          */
         private List<String> pkValues;
 
-        public Item(String id,
-                    @Nullable Symbol[] updateAssignments,
-                    @Nullable Object[] insertValues,
-                    @Nullable Long version,
-                    @Nullable Long seqNo,
-                    @Nullable Long primaryTerm,
-                    List<String> pkValues
-        ) {
+        public static Item forUpdate(String id,
+                                     Symbol[] assignments,
+                                     long requiredVersion,
+                                     long seqNo,
+                                     long primaryTerm) {
+            return new Item(
+                id,
+                assignments,
+                null,
+                requiredVersion,
+                seqNo,
+                primaryTerm,
+                List.of()
+            );
+        }
+
+        public static Item forInsert(String id,
+                                     List<String> pkValues,
+                                     @Nullable Object[] values,
+                                     @Nullable Symbol[] onConflictAssignments) {
+            return new Item(
+                id,
+                onConflictAssignments,
+                values,
+                Versions.MATCH_ANY,
+                SequenceNumbers.UNASSIGNED_SEQ_NO,
+                SequenceNumbers.UNASSIGNED_PRIMARY_TERM,
+                pkValues
+            );
+        }
+
+        Item(String id,
+             @Nullable Symbol[] updateAssignments,
+             @Nullable Object[] insertValues,
+             long version,
+             long seqNo,
+             long primaryTerm,
+             List<String> pkValues) {
             super(id);
             this.updateAssignments = updateAssignments;
-            if (version != null) {
-                this.version = version;
-            }
-            if (seqNo != null) {
-                this.seqNo = seqNo;
-            }
-            if (primaryTerm != null) {
-                this.primaryTerm = primaryTerm;
-            }
+            this.version = version;
+            this.seqNo = seqNo;
+            this.primaryTerm = primaryTerm;
             this.insertValues = insertValues;
             this.pkValues = pkValues;
         }
