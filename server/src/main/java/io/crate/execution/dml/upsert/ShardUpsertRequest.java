@@ -366,6 +366,10 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             return pkValues;
         }
 
+        private static boolean streamPkValues(Version version) {
+            return version.after(Version.V_4_7_2) && !version.equals(Version.V_4_8_0);
+        }
+
         public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super(in);
             if (in.readBoolean()) {
@@ -387,7 +391,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             if (in.readBoolean()) {
                 source = in.readBytesReference();
             }
-            if (in.getVersion().after(Version.V_4_8_0)) {
+            if (streamPkValues(in.getVersion())) {
                 pkValues = in.readList(StreamInput::readString);
             } else {
                 pkValues = List.of();
@@ -420,7 +424,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             if (sourceAvailable) {
                 out.writeBytesReference(source);
             }
-            if (out.getVersion().after(Version.V_4_8_0)) {
+            if (streamPkValues(out.getVersion())) {
                 out.writeStringCollection(pkValues);
             }
         }
