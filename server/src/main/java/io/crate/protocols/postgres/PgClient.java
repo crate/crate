@@ -179,8 +179,8 @@ public class PgClient extends AbstractClient {
             LOGGER.trace("Connecting to {}", host);
         }
         var bootstrap = new Bootstrap();
-        var eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup(settings);
-        bootstrap.group(eventLoopGroup.item());
+        var eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup();
+        bootstrap.group(eventLoopGroup);
         bootstrap.channel(NettyBootstrap.clientChannel());
         bootstrap.option(ChannelOption.TCP_NODELAY, TransportSettings.TCP_NO_DELAY.get(settings));
         bootstrap.option(ChannelOption.SO_KEEPALIVE, TransportSettings.TCP_KEEP_ALIVE.get(settings));
@@ -196,9 +196,6 @@ public class PgClient extends AbstractClient {
         bootstrap.remoteAddress(host.getAddress().address());
         ChannelFuture connectFuture = bootstrap.connect();
         var channel = connectFuture.channel();
-        channel.closeFuture().addListener(f -> {
-            transportService.getThreadPool().generic().execute(eventLoopGroup::close);
-        });
         future.exceptionally(err -> {
             try {
                 Netty4Utils.closeChannels(List.of(channel));
