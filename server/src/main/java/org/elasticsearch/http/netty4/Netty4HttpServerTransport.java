@@ -235,7 +235,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
                                      PipelineRegistry pipelineRegistry,
                                      NettyBootstrap nettyBootstrap,
                                      NodeClient nodeClient) {
-        Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
         this.settings = settings;
         this.networkService = networkService;
         this.bigArrays = bigArrays;

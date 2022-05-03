@@ -22,6 +22,8 @@
 package org.elasticsearch.transport;
 
 import io.crate.common.io.IOUtils;
+import io.crate.netty.NettyBootstrap;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
@@ -53,12 +55,15 @@ public class TransportActionProxyTests extends ESTestCase {
 
     protected DiscoveryNode nodeC;
     protected MockTransportService serviceC;
+    private NettyBootstrap nettyBootstrap;
 
 
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
+        nettyBootstrap.start();
         threadPool = new TestThreadPool(getClass().getName());
         serviceA = buildService(version0); // this one supports dynamic tracer updates
         nodeA = serviceA.getLocalDiscoNode();
@@ -71,13 +76,13 @@ public class TransportActionProxyTests extends ESTestCase {
     @Override
     public void tearDown() throws Exception {
         super.tearDown();
-        IOUtils.close(serviceA, serviceB, serviceC, () -> {
+        IOUtils.close(serviceA, serviceB, serviceC, nettyBootstrap, () -> {
             terminate(threadPool);
         });
     }
 
     private MockTransportService buildService(final Version version) {
-        MockTransportService service = MockTransportService.createNewService(Settings.EMPTY, version, threadPool, null);
+        MockTransportService service = MockTransportService.createNewService(Settings.EMPTY, version, threadPool, nettyBootstrap);
         service.start();
         service.acceptIncomingRequests();
         return service;

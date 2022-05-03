@@ -50,7 +50,6 @@ import io.crate.auth.AuthSettings;
 import io.crate.auth.Authentication;
 import io.crate.auth.Protocol;
 import io.crate.common.SuppressForbidden;
-import io.crate.common.collections.BorrowedItem;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
@@ -107,8 +106,6 @@ public class Netty4Transport extends TcpTransport {
     private final SslContextProvider sslContextProvider;
     private final Authentication authentication;
 
-    private BorrowedItem<EventLoopGroup> eventLoopGroup;
-
     private final LoggingHandler loggingHandler = new LoggingHandler(LogLevel.TRACE);
 
 
@@ -124,7 +121,6 @@ public class Netty4Transport extends TcpTransport {
                            Authentication authentication,
                            SslContextProvider sslContextProvider) {
         super(settings, version, threadPool, pageCacheRecycler, circuitBreakerService, namedWriteableRegistry, networkService);
-        Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
         this.authentication = authentication;
         this.nettyBootstrap = nettyBootstrap;
         this.sslContextProvider = sslContextProvider;
@@ -144,11 +140,11 @@ public class Netty4Transport extends TcpTransport {
     protected void doStart() {
         boolean success = false;
         try {
-            eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup(settings);
-            clientBootstrap = createClientBootstrap(eventLoopGroup.item());
+            var eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup();
+            clientBootstrap = createClientBootstrap(eventLoopGroup);
             if (NetworkService.NETWORK_SERVER.get(settings)) {
                 for (ProfileSettings profileSettings : profileSettings) {
-                    createServerBootstrap(profileSettings, eventLoopGroup.item());
+                    createServerBootstrap(profileSettings, eventLoopGroup);
                     bindServer(profileSettings);
                 }
             }
@@ -211,7 +207,7 @@ public class Netty4Transport extends TcpTransport {
         }
 
         if (profileSettings.receiveBufferSize.getBytes() != -1) {
-            serverBootstrap.childOption(ChannelOption.SO_RCVBUF, Math.toIntExact(profileSettings.receiveBufferSize.bytesAsInt()));
+            serverBootstrap.childOption(ChannelOption.SO_RCVBUF, Math.toIntExact(profileSettings.receiveBufferSize.getBytes()));
         }
 
         serverBootstrap.option(ChannelOption.RCVBUF_ALLOCATOR, recvByteBufAllocator);
@@ -260,10 +256,6 @@ public class Netty4Transport extends TcpTransport {
     @SuppressForbidden(reason = "debug")
     protected void stopInternal() {
         Releasables.close(() -> {
-            if (eventLoopGroup != null) {
-                eventLoopGroup.close();
-                eventLoopGroup = null;
-            }
             serverBootstraps.clear();
             clientBootstrap = null;
         });

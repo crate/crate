@@ -87,7 +87,9 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         var clientSettings = Settings.builder()
             .put("node.name", "client")
             .build();
-        var nettyBootstrap = new NettyBootstrap();
+        var nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
+        nettyBootstrap.start();
+        toClose.add(nettyBootstrap);
         var pageCacheRecycler = PageCacheRecycler.NON_RECYCLING_INSTANCE;
         var networkService = new NetworkService(List.of());
         var namedWriteableRegistry = new NamedWriteableRegistry(List.of());
