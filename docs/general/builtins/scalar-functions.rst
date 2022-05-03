@@ -508,7 +508,7 @@ The quoted string can be used as an identifier in an SQL statement.
 
 ::
 
-    cr> select quote_ident('Column name') AS quoted;
+    cr> select pg_catalog.quote_ident('Column name') AS quoted;
     +---------------+
     | quoted        |
     +---------------+

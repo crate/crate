@@ -20,12 +20,13 @@
 package org.elasticsearch.index.shard;
 
 import org.elasticsearch.cluster.routing.ShardRouting;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
+
+import javax.annotation.Nullable;
 
 /**
  * An index event listener is the primary extension point for plugins and build-in services
@@ -187,5 +188,11 @@ public interface IndexEventListener {
      * @param shardId the shard ID the store belongs to
      */
     default void onStoreClosed(ShardId shardId) {
+    }
+
+    /**
+     * Called when the setting of the index has changed but *before* the new setting is processed by the shard.
+     */
+    default void beforeIndexSettingsChangesApplied(IndexShard indexShard, Settings oldSettings, Settings newSettings) {
     }
 }

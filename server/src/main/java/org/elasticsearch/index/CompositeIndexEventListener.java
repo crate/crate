@@ -22,7 +22,6 @@ package org.elasticsearch.index;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexEventListener;
@@ -31,6 +30,7 @@ import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
@@ -254,6 +254,18 @@ final class CompositeIndexEventListener implements IndexEventListener {
                 listener.onStoreClosed(shardId);
             } catch (Exception e) {
                 logger.warn("failed to invoke on store closed", e);
+                throw e;
+            }
+        }
+    }
+
+    @Override
+    public void beforeIndexSettingsChangesApplied(IndexShard indexShard, Settings oldSettings, Settings newSettings) {
+        for (IndexEventListener listener : listeners) {
+            try {
+                listener.beforeIndexSettingsChangesApplied(indexShard, oldSettings, newSettings);
+            } catch (Exception e) {
+                logger.warn("failed to invoke before index settings changes applied", e);
                 throw e;
             }
         }

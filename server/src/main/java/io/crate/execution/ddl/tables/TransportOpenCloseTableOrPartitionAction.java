@@ -25,10 +25,13 @@ import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.cluster.CloseTableClusterStateTaskExecutor;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.OpenTableClusterStateTaskExecutor;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
+import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -38,10 +41,12 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import static io.crate.execution.ddl.tables.TransportCloseTable.isEmptyPartitionedTable;
 
 @Singleton
 public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTransportAction<OpenCloseTableOrPartitionRequest, AcknowledgedResponse> {
 
+    private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
     private static final String ACTION_NAME = "internal:crate:sql/table_or_partition/open_close";
 
     private final OpenTableClusterStateTaskExecutor openExecutor;
@@ -79,11 +84,10 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
 
     @Override
     protected ClusterBlockException checkBlock(OpenCloseTableOrPartitionRequest request, ClusterState state) {
-        return TransportCloseTable.checkBlock(
-            state,
-            request.ignoreUnavailableIndices(),
-            request.tables(),
-            request.partitionIndexName()
-        );
+        if (isEmptyPartitionedTable(request.tableIdent(), state)) {
+            return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
+        }
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE,
+            IndexNameExpressionResolver.concreteIndexNames(state.metadata(), STRICT_INDICES_OPTIONS, request.tableIdent().indexNameOrAlias()));
     }
 }

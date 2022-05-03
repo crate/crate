@@ -28,6 +28,8 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -48,11 +50,15 @@ import java.util.Locale;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
+import javax.annotation.Nullable;
+
 public class DocTableInfoBuilder {
 
     private final RelationName ident;
     private final NodeContext nodeCtx;
     private final Metadata metadata;
+    @Nullable
+    private final PublicationsMetadata publicationsMetadata;
     private String[] concreteIndices;
     private String[] concreteOpenIndices;
     private static final Logger LOGGER = LogManager.getLogger(DocTableInfoBuilder.class);
@@ -63,6 +69,7 @@ public class DocTableInfoBuilder {
         this.nodeCtx = nodeCtx;
         this.ident = ident;
         this.metadata = state.metadata();
+        this.publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
     }
 
     private DocIndexMetadata docIndexMetadata() {
@@ -103,7 +110,10 @@ public class DocTableInfoBuilder {
         DocIndexMetadata docIndexMetadata;
         IndexMetadata indexMetadata = metadata.index(indexName);
         try {
-            docIndexMetadata = new DocIndexMetadata(nodeCtx, indexMetadata, ident);
+            docIndexMetadata = new DocIndexMetadata(nodeCtx,
+                                                    indexMetadata,
+                                                    ident,
+                                                    publicationsMetadata);
         } catch (IOException e) {
             throw new UnhandledServerException("Unable to build DocIndexMetadata", e);
         }
@@ -135,7 +145,7 @@ public class DocTableInfoBuilder {
             builder.settings(settings);
             builder.numberOfShards(settings.getAsInt(SETTING_NUMBER_OF_SHARDS, 5));
             builder.numberOfReplicas(settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
-            docIndexMetadata = new DocIndexMetadata(nodeCtx, builder.build(), ident);
+            docIndexMetadata = new DocIndexMetadata(nodeCtx, builder.build(), ident, publicationsMetadata);
         } catch (IOException e) {
             throw new UnhandledServerException("Unable to build DocIndexMetadata from template", e);
         }

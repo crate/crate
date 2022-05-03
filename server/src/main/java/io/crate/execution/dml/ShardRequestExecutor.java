@@ -40,12 +40,13 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -84,7 +85,7 @@ public class ShardRequestExecutor<Req> {
         /**
          * Creates and adds a new item to the request; This is called once per docKey per params.
          */
-        void addItem(R request, int location, String id, @Nullable Long version, @Nullable Long seqNo, @Nullable Long primaryTerm);
+        void addItem(R request, int location, String id, long version, long seqNo, long primaryTerm);
     }
 
     public ShardRequestExecutor(ClusterService clusterService,
@@ -173,9 +174,15 @@ public class ShardRequestExecutor<Req> {
                 request = grouper.newRequest(shardId);
                 requests.put(shardId, request);
             }
-            Long version = docKey.version(txnCtx, nodeCtx, parameters, subQueryResults).orElse(null);
-            Long seqNo = docKey.sequenceNo(txnCtx, nodeCtx, parameters, subQueryResults).orElse(null);
-            Long primaryTerm = docKey.primaryTerm(txnCtx, nodeCtx, parameters, subQueryResults).orElse(null);
+            long version = docKey
+                .version(txnCtx, nodeCtx, parameters, subQueryResults)
+                .orElse(Versions.MATCH_ANY);
+            long seqNo = docKey
+                .sequenceNo(txnCtx, nodeCtx, parameters, subQueryResults)
+                .orElse(SequenceNumbers.UNASSIGNED_SEQ_NO);
+            long primaryTerm = docKey
+                .primaryTerm(txnCtx, nodeCtx, parameters, subQueryResults)
+                .orElse(SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
             grouper.addItem(request, location, id, version, seqNo, primaryTerm);
             location++;
         }

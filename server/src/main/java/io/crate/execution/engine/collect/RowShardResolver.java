@@ -49,6 +49,7 @@ public class RowShardResolver {
 
     private String id;
     private String routing;
+    private List<String> pkValues;
 
 
     public RowShardResolver(TransactionContext txnCtx,
@@ -77,7 +78,8 @@ public class RowShardResolver {
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
-        id = idFunction.apply(pkValues(primaryKeyInputs));
+        pkValues = pkValues(primaryKeyInputs);
+        id = idFunction.apply(pkValues);
         if (routingInput == null) {
             routing = null;
         } else {
@@ -87,6 +89,10 @@ public class RowShardResolver {
 
     private static List<String> pkValues(List<Input<?>> primaryKeyInputs) {
         return Lists2.map(primaryKeyInputs, input -> nullOrString(input.value()));
+    }
+
+    public List<String> pkValues() {
+        return pkValues;
     }
 
     /**

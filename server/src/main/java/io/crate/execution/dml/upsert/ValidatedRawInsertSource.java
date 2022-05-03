@@ -79,7 +79,7 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
     }
 
     @Override
-    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) throws IOException {
+    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values, List<String> pkValues) throws IOException {
         try {
             String src = (String) values[0];
             Map<String, Object> validatedSource;

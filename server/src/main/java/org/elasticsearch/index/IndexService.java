@@ -19,27 +19,9 @@
 
 package org.elasticsearch.index;
 
-import static io.crate.common.collections.MapBuilder.newMapBuilder;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-
-import javax.annotation.Nullable;
-
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
@@ -82,9 +64,28 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import static io.crate.common.collections.MapBuilder.newMapBuilder;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
 
 public class IndexService extends AbstractIndexComponent implements IndicesClusterStateService.AllocatedIndex<IndexShard> {
 
@@ -95,7 +96,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final IndexStorePlugin.DirectoryFactory directoryFactory;
     private final MapperService mapperService;
     private final NamedXContentRegistry xContentRegistry;
-    private final EngineFactory engineFactory;
+    private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
     private volatile Map<Integer, IndexShard> shards = emptyMap();
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicBoolean deleted = new AtomicBoolean(false);
@@ -121,7 +122,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             NamedXContentRegistry xContentRegistry,
             ShardStoreDeleter shardStoreDeleter,
             AnalysisRegistry registry,
-            EngineFactory engineFactory,
+            Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
             CircuitBreakerService circuitBreakerService,
             BigArrays bigArrays,
             ThreadPool threadPool,
@@ -155,7 +156,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.eventListener = eventListener;
         this.nodeEnv = nodeEnv;
         this.directoryFactory = directoryFactory;
-        this.engineFactory = Objects.requireNonNull(engineFactory);
+        this.engineFactoryProviders = engineFactoryProviders;
         this.indexingOperationListeners = Collections.unmodifiableList(indexingOperationListeners);
         // kick off async ops for the first shard in this index
         this.refreshTask = new AsyncRefreshTask(this);
@@ -376,7 +377,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 store,
                 indexCache,
                 mapperService,
-                engineFactory,
+                engineFactoryProviders,
                 eventListener,
                 threadPool,
                 bigArrays,
@@ -567,7 +568,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         if (updateIndexSettings) {
             for (final IndexShard shard : this.shards.values()) {
                 try {
-                    shard.onSettingsChanged();
+                    shard.onSettingsChanged(currentIndexMetadata.getSettings());
                 } catch (Exception e) {
                     logger.warn(
                         () -> new ParameterizedMessage(
@@ -634,8 +635,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         void addPendingDelete(ShardId shardId, IndexSettings indexSettings);
     }
 
-    public final EngineFactory getEngineFactory() {
-        return engineFactory;
+    public final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders() {
+        return engineFactoryProviders;
     }
 
     @VisibleForTesting

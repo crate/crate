@@ -19,29 +19,45 @@
 
 package org.elasticsearch.cluster;
 
+import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ack.AckedRequest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
+
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.CompletionListenable;
 
 /**
  * An extension interface to {@link ClusterStateUpdateTask} that allows to be notified when
  * all the nodes have acknowledged a cluster state update request
  */
-public abstract class AckedClusterStateUpdateTask<Response> extends ClusterStateUpdateTask implements AckedClusterStateTaskListener {
+public abstract class AckedClusterStateUpdateTask<Response> extends ClusterStateUpdateTask
+    implements AckedClusterStateTaskListener, CompletionListenable<Response> {
 
-    private final ActionListener<Response> listener;
     private final AckedRequest request;
+    private final CompletableFuture<Response> future;
 
     protected AckedClusterStateUpdateTask(AckedRequest request, ActionListener<Response> listener) {
-        this(Priority.NORMAL, request, listener);
+        this(Priority.NORMAL, request);
+        future.whenComplete(ActionListener.toBiConsumer(listener));
     }
 
     protected AckedClusterStateUpdateTask(Priority priority, AckedRequest request, ActionListener<Response> listener) {
+        this(priority, request);
+        future.whenComplete(ActionListener.toBiConsumer(listener));
+    }
+
+    protected AckedClusterStateUpdateTask(AckedRequest request) {
+        this(Priority.NORMAL, request);
+    }
+
+    protected AckedClusterStateUpdateTask(Priority priority, AckedRequest request) {
         super(priority);
-        this.listener = listener;
+        this.future = new CompletableFuture<>();
         this.request = request;
     }
 
@@ -62,7 +78,7 @@ public abstract class AckedClusterStateUpdateTask<Response> extends ClusterState
      * @param e optional error that might have been thrown
      */
     public void onAllNodesAcked(@Nullable Exception e) {
-        listener.onResponse(newResponse(e == null));
+        future.complete(newResponse(e == null));
     }
 
     protected abstract Response newResponse(boolean acknowledged);
@@ -72,12 +88,12 @@ public abstract class AckedClusterStateUpdateTask<Response> extends ClusterState
      * {@link AckedClusterStateUpdateTask#ackTimeout()} has expired
      */
     public void onAckTimeout() {
-        listener.onResponse(newResponse(false));
+        future.complete(newResponse(false));
     }
 
     @Override
     public void onFailure(String source, Exception e) {
-        listener.onFailure(e);
+        future.completeExceptionally(e);
     }
 
     /**
@@ -90,5 +106,10 @@ public abstract class AckedClusterStateUpdateTask<Response> extends ClusterState
     @Override
     public TimeValue timeout() {
         return request.masterNodeTimeout();
+    }
+
+    @Override
+    public CompletableFuture<Response> completionFuture() {
+        return future;
     }
 }

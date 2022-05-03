@@ -21,25 +21,27 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.execution.ddl.SchemaUpdateClient;
-import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
-import io.crate.execution.jobs.TasksService;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.SessionSettings;
-import io.crate.metadata.table.Operation;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.types.DataTypes;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -60,27 +62,30 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
+import io.crate.execution.jobs.TasksService;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.SessionSettings;
+import io.crate.metadata.table.Operation;
+import io.crate.netty.NettyBootstrap;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.types.DataTypes;
 
 public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -128,12 +133,14 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
     private TransportShardUpsertAction transportShardUpsertAction;
     private IndexShard indexShard;
+    private NettyBootstrap nettyBootstrap;
 
     @Before
     public void prepare() throws Exception {
-
         charactersIndexUUID = UUIDs.randomBase64UUID();
         partitionIndexUUID = UUIDs.randomBase64UUID();
+        nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
+        nettyBootstrap.start();
 
         IndicesService indicesService = mock(IndicesService.class);
         IndexService indexService = mock(IndexService.class);
@@ -154,7 +161,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
             mock(ThreadPool.class),
             clusterService,
-            MockTransportService.createNewService(Settings.EMPTY, Version.V_3_2_0, THREAD_POOL, clusterService.getClusterSettings()),
+            MockTransportService.createNewService(Settings.EMPTY, Version.V_3_2_0, THREAD_POOL, nettyBootstrap, clusterService.getClusterSettings()),
             mock(SchemaUpdateClient.class),
             mock(TasksService.class),
             indicesService,
@@ -162,6 +169,11 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             createNodeContext(),
             schemas
         );
+    }
+
+    @After
+    public void teardownNetty() {
+        nettyBootstrap.close();
     }
 
     @Test
@@ -178,7 +190,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -200,7 +212,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -242,7 +254,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
@@ -264,7 +276,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), new Object[]{1}, null));
 
         reset(indexShard);
 

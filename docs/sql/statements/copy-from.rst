@@ -15,9 +15,6 @@ from a file into a table.
 
     :ref:`SQL syntax: COPY TO <sql-copy-to>`
 
-Import and export
-=================
-
 .. rubric:: Table of contents
 
 .. contents::
@@ -42,8 +39,7 @@ Synopsis
 Description
 ===========
 
-``COPY FROM`` copies data from a URI to the specified table as a raw data
-import.
+A ``COPY FROM`` copies data from a URI to the specified table.
 
 The nodes in the cluster will attempt to read the files available at the URI
 and import the data.
@@ -67,18 +63,16 @@ extension (``.json`` or ``.csv`` respectively) if possible. The :ref:`format
 specified and the format cannot be inferred, the file will be processed as
 JSON.
 
-Files must be UTF-8 encoded. Any keys in the object will be added as columns,
-regardless of the previously defined table. Empty lines are skipped.
-
-JSON files must contain a single JSON object per line.
+JSON files must contain a single JSON object per line and all files must be
+UTF-8 encoded. Also, any empty lines are skipped.
 
 Example JSON data::
 
     {"id": 1, "quote": "Don't panic"}
     {"id": 2, "quote": "Ford, you're turning into a penguin. Stop it."}
 
-CSV files must contain a header with comma-separated values, which will be
-added as columns.
+A CSV file may or may not contain a header. See :ref:`CSV header option
+<sql-copy-from-header>` for further details.
 
 Example CSV data::
 
@@ -99,7 +93,7 @@ See also: :ref:`dml-importing-data`.
 Data type checks
 ----------------
 
-CrateDB checks if the column's data types match the types from the import file.
+CrateDB checks if the columns' data types match the types from the import file.
 It casts the types and will always import the data as in the source file.
 Furthermore CrateDB will check for all :ref:`column_constraints`.
 
@@ -579,7 +573,7 @@ Enables or disables parsing and validation of source data.
 
 If set to ``false`` CrateDB will not validate the data in any way. Use this
 with caution if you're sure the data is in the right format - for example if
-you exported the data using ``COPY TO``.
+you exported the data using :ref:`COPY TO <sql-copy-to>`.
 
 All constraints - including type value constraints are bypassed. If you import
 invalid data this way, subsequent queries can fail.

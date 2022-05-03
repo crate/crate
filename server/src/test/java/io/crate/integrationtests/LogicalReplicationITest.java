@@ -21,6 +21,21 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.contains;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
@@ -31,20 +46,7 @@ import io.crate.testing.MoreMatchers;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.hamcrest.Matchers;
-import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.contains;
 
 @UseRandomizedSchema(random = false)
 public class LogicalReplicationITest extends LogicalReplicationITestCase {
@@ -385,7 +387,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThrowsMatches(
             () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication."
+            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription."
         );
     }
 
@@ -409,7 +411,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThrowsMatches(
             () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication."
+            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription."
         );
     }
 
@@ -453,7 +455,6 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                         subscriptionStates,
                         contains(Subscription.State.INITIALIZING,
                                 Subscription.State.RESTORING,
-                                Subscription.State.SYNCHRONIZED,
                                 Subscription.State.MONITORING)
                     );
                 }
@@ -541,7 +542,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThrowsMatches(
             () ->  executeOnSubscriber("DROP TABLE t1"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't allow DROP operations, because it is included in a logical replication."
+            "The relation \"doc.t1\" doesn't allow DROP operations, because it is included in a logical replication subscription."
         );
     }
 }

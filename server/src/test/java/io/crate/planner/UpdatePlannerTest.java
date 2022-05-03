@@ -47,6 +47,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -193,7 +194,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_returning_for_update_throw_error_with_4_1_nodes() throws Exception {
         // Make sure the former initialized cluster service is shutdown
         cleanup();
-        this.clusterService = createClusterService(additionalClusterSettings(), Version.V_4_1_0);
+        this.clusterService = createClusterService(additionalClusterSettings(), Metadata.EMPTY_METADATA, Version.V_4_1_0);
         e = buildExecutor(clusterService);
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage(UpdatePlanner.RETURNING_VERSION_ERROR_MSG);

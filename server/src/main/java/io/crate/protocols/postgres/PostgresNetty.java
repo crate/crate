@@ -38,7 +38,6 @@ import javax.annotation.Nullable;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -61,7 +60,7 @@ import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.Authentication;
-import io.crate.common.collections.BorrowedItem;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
@@ -71,7 +70,6 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
 import io.netty.handler.ssl.SslContext;
 
 @Singleton
@@ -112,8 +110,6 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private BoundTransportAddress boundAddress;
     @Nullable
     private Netty4OpenChannelsHandler openChannels;
-
-    private BorrowedItem<EventLoopGroup> eventLoopGroup;
 
     private final PageCacheRecycler pageCacheRecycler;
     private final Netty4Transport transport;
@@ -168,8 +164,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         if (!enabled) {
             return;
         }
-        eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup(settings);
-        bootstrap = NettyBootstrap.newServerBootstrap(settings, eventLoopGroup.item());
+        var eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup();
+        bootstrap = NettyBootstrap.newServerBootstrap(settings, eventLoopGroup);
         this.openChannels = new Netty4OpenChannelsHandler(LOGGER);
 
         bootstrap.childHandler(new ChannelInitializer<>() {
@@ -285,10 +281,6 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         serverChannels.clear();
         if (bootstrap != null) {
             bootstrap = null;
-        }
-        if (eventLoopGroup != null) {
-            eventLoopGroup.close();
-            eventLoopGroup = null;
         }
         if (openChannels != null) {
             openChannels.close();

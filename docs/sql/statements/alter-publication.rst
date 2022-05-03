@@ -43,6 +43,11 @@ of the table stops for all subscribers. Already replicated data remains on
 the subscribed clusters, therefore subscribers can not re-subscribe again to
 the tables removed from the publication.
 
+.. NOTE::
+
+  Replicated tables on a subscriber cluster will turn into regular writable
+  tables after excluding them from a publication on a publishing cluster.
+
 Parameters
 ==========
 

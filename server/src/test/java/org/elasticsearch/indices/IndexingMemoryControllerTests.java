@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -420,8 +421,11 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
 
             }
         };
-        IndexShard shard = newStartedShard(randomBoolean(), Settings.EMPTY,
-                                           config -> new InternalEngine(configWithRefreshListener(config, refreshListener)));
+        IndexShard shard = newStartedShard(
+            randomBoolean(),
+            Settings.EMPTY,
+            List.of(idxSettings -> Optional.of(config -> new InternalEngine(configWithRefreshListener(config, refreshListener))))
+        );
         refreshLatch.set(new CountDownLatch(1)); // block refresh
         final IndexingMemoryController controller = new IndexingMemoryController(
             Settings.builder().put("indices.memory.interval", "200h") // disable it

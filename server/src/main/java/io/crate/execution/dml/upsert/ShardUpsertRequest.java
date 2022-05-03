@@ -21,28 +21,30 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.Streamer;
-import io.crate.execution.dml.ShardRequest;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Reference;
-import io.crate.metadata.settings.SessionSettings;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.lucene.uid.Versions;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-import org.elasticsearch.index.shard.ShardId;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.shard.ShardId;
+
+import io.crate.Streamer;
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.dml.ShardRequest;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.Reference;
+import io.crate.metadata.settings.SessionSettings;
 
 public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
@@ -285,25 +287,56 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         @Nullable
         private Object[] insertValues;
 
-        public Item(String id,
-                    @Nullable Symbol[] updateAssignments,
-                    @Nullable Object[] insertValues,
-                    @Nullable Long version,
-                    @Nullable Long seqNo,
-                    @Nullable Long primaryTerm
-        ) {
+        /**
+         * Values that make up the primary key.
+         */
+        private List<String> pkValues;
+
+        public static Item forUpdate(String id,
+                                     Symbol[] assignments,
+                                     long requiredVersion,
+                                     long seqNo,
+                                     long primaryTerm) {
+            return new Item(
+                id,
+                assignments,
+                null,
+                requiredVersion,
+                seqNo,
+                primaryTerm,
+                List.of()
+            );
+        }
+
+        public static Item forInsert(String id,
+                                     List<String> pkValues,
+                                     @Nullable Object[] values,
+                                     @Nullable Symbol[] onConflictAssignments) {
+            return new Item(
+                id,
+                onConflictAssignments,
+                values,
+                Versions.MATCH_ANY,
+                SequenceNumbers.UNASSIGNED_SEQ_NO,
+                SequenceNumbers.UNASSIGNED_PRIMARY_TERM,
+                pkValues
+            );
+        }
+
+        Item(String id,
+             @Nullable Symbol[] updateAssignments,
+             @Nullable Object[] insertValues,
+             long version,
+             long seqNo,
+             long primaryTerm,
+             List<String> pkValues) {
             super(id);
             this.updateAssignments = updateAssignments;
-            if (version != null) {
-                this.version = version;
-            }
-            if (seqNo != null) {
-                this.seqNo = seqNo;
-            }
-            if (primaryTerm != null) {
-                this.primaryTerm = primaryTerm;
-            }
+            this.version = version;
+            this.seqNo = seqNo;
+            this.primaryTerm = primaryTerm;
             this.insertValues = insertValues;
+            this.pkValues = pkValues;
         }
 
         @Nullable
@@ -329,6 +362,14 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             return insertValues;
         }
 
+        public List<String> pkValues() {
+            return pkValues;
+        }
+
+        private static boolean streamPkValues(Version version) {
+            return version.after(Version.V_4_7_2) && !version.equals(Version.V_4_8_0);
+        }
+
         public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super(in);
             if (in.readBoolean()) {
@@ -349,6 +390,11 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             }
             if (in.readBoolean()) {
                 source = in.readBytesReference();
+            }
+            if (streamPkValues(in.getVersion())) {
+                pkValues = in.readList(StreamInput::readString);
+            } else {
+                pkValues = List.of();
             }
         }
 
@@ -377,6 +423,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             out.writeBoolean(sourceAvailable);
             if (sourceAvailable) {
                 out.writeBytesReference(source);
+            }
+            if (streamPkValues(out.getVersion())) {
+                out.writeStringCollection(pkValues);
             }
         }
 

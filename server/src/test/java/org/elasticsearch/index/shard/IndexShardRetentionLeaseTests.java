@@ -19,24 +19,13 @@
 
 package org.elasticsearch.index.shard;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasSize;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.RetentionLeaseStats;
@@ -46,8 +35,18 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
-import io.crate.common.collections.Tuple;
-import io.crate.common.unit.TimeValue;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 
 public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
 
@@ -153,7 +152,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
             .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey(), TimeValue.timeValueMillis(retentionLeaseMillis).getStringRep())
             .build();
         // current time is mocked through the thread pool
-        final IndexShard indexShard = newStartedShard(primary, settings, new InternalEngineFactory());
+        final IndexShard indexShard = newStartedShard(primary, settings, List.of());
         final long primaryTerm = indexShard.getOperationPrimaryTerm();
         try {
             final long[] retainingSequenceNumbers = new long[1];
@@ -232,7 +231,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
         final IndexShard indexShard = newStartedShard(
                 true,
                 settings,
-                new InternalEngineFactory());
+                List.of());
         try {
             final int length = randomIntBetween(0, 8);
             final long[] minimumRetainingSequenceNumbers = new long[length];
