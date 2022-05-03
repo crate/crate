@@ -57,12 +57,16 @@ import io.crate.user.User;
 public class TransportServiceHandshakeTests extends ESTestCase {
 
     private static ThreadPool threadPool;
+    private static NettyBootstrap nettyBootstrap;
     private static final long timeout = Long.MAX_VALUE;
 
     @BeforeClass
     public static void startThreadPool() {
         threadPool = new TestThreadPool(TransportServiceHandshakeTests.class.getSimpleName());
+        nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
+        nettyBootstrap.start();
     }
+
 
     private List<TransportService> transportServices = new ArrayList<>();
 
@@ -86,7 +90,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             PageCacheRecycler.NON_RECYCLING_INSTANCE,
             new NamedWriteableRegistry(Collections.emptyList()),
             new NoneCircuitBreakerService(),
-            new NettyBootstrap(),
+            nettyBootstrap,
             new AlwaysOKAuthentication(userName -> User.CRATE_USER),
             new SslContextProvider(settings)
         );
@@ -120,6 +124,9 @@ public class TransportServiceHandshakeTests extends ESTestCase {
 
     @AfterClass
     public static void terminateThreadPool() {
+        nettyBootstrap.close();
+        nettyBootstrap = null;
+
         ThreadPool.terminate(threadPool, 30, TimeUnit.SECONDS);
         // since static must set to null to be eligible for collection
         threadPool = null;
