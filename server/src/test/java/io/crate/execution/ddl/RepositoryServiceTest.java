@@ -21,7 +21,15 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
@@ -31,7 +39,6 @@ import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepos
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
@@ -42,18 +49,27 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.transport.MockTransportService;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
+import io.crate.netty.NettyBootstrap;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
+
+    private NettyBootstrap nettyBootstrap;
+
+    @Before
+    public void setupNetty() {
+        nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
+        nettyBootstrap.start();
+    }
+
+    @After
+    public void teardownNetty() {
+        nettyBootstrap.close();
+    }
 
     @Test
     public void testConvertException() throws Throwable {
@@ -82,7 +98,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
 
         final AtomicBoolean deleteRepoCalled = new AtomicBoolean(false);
         MockTransportService transportService = MockTransportService.createNewService(
-            Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings());
+            Settings.EMPTY, Version.CURRENT, THREAD_POOL, nettyBootstrap, clusterService.getClusterSettings());
         TransportDeleteRepositoryAction deleteRepositoryAction = new TransportDeleteRepositoryAction(
             transportService,
             clusterService,
