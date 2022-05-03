@@ -143,33 +143,10 @@ public class HashJoin implements LogicalPlan {
         MergePhase rightMerge = null;
 
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
-        Map<RelationName, List<Symbol>> hashSymbols = HashJoinConditionSymbolsExtractor.extract(joinCondition);
+        var hashSymbols = HashJoinConditionSymbolsExtractor.extract(joinCondition);
 
-        // First extract the symbols that belong to the relations from the right-hand side
-        var rhsHashSymbols = new ArrayList<Symbol>(rightLogicalPlan.getRelationNames().size());
-        Set<RelationName> rhsRelationNames = rightLogicalPlan.getRelationNames();
-        for (var r : rhsRelationNames) {
-            var symbols = hashSymbols.remove(r);
-            if (symbols != null) {
-                for (var symbol : symbols) {
-                    rhsHashSymbols.add(paramBinder.apply(symbol));
-                }
-            }
-        }
-
-
-        // Then extract the symbols that belong to the relations from the left-hand side
-        var lhsHashSymbols = new ArrayList<Symbol>(hashSymbols.values().size());
-        Set<RelationName> lhsRelationNames = leftLogicalPlan.getRelationNames();
-        for (var r : lhsRelationNames) {
-            var symbols = hashSymbols.remove(r);
-            if (symbols != null) {
-                for (var symbol : symbols) {
-                    lhsHashSymbols.add(paramBinder.apply(symbol));
-                }
-            }
-        }
-
+        var rhsHashSymbols = extractHashJoinSymbols(rightLogicalPlan, hashSymbols, paramBinder);
+        var lhsHashSymbols = extractHashJoinSymbols(leftLogicalPlan, hashSymbols, paramBinder);
 
         // We can only run the join distributed if no remaining limit or offset must be applied on the source relations.
         // Because on distributed joins, every join is running on a slice (modulo) set of the data and so no limit/offset
@@ -315,6 +292,22 @@ public class HashJoin implements LogicalPlan {
                 joinCondition
             )
         );
+    }
+
+    private static List<Symbol> extractHashJoinSymbols(LogicalPlan logicalPlan,
+                                                       Map<RelationName, List<Symbol>> hashSymbols,
+                                                       SubQueryAndParamBinder paramBinder) {
+        var result = new ArrayList<Symbol>();
+        for (var relationName : logicalPlan.getRelationNames()) {
+            var symbols = hashSymbols.get(relationName);
+            if (symbols != null) {
+                for (var symbol : symbols) {
+                    result.add(paramBinder.apply(symbol));
+                }
+            }
+        }
+        assert (!result.isEmpty()) : "Hash symbols for Logical Plan must not be empty";
+        return result;
     }
 
     @Override
