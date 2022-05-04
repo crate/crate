@@ -24,15 +24,17 @@ package io.crate.planner.operators;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 
 import java.util.List;
-
 import org.elasticsearch.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.analyze.where.DocKeys;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -47,8 +49,8 @@ import io.crate.types.DataTypes;
 public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
-    private AbstractTableRelation<?> t1Relation;
-    private AbstractTableRelation<?> t2Relation;
+    private DocTableRelation t1Relation;
+    private DocTableRelation t2Relation;
     private RelationName t1RenamedRelationName;
     private RelationName t2RenamedRelationName;
     private Rename t1Rename;
@@ -101,4 +103,37 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
         assertThat(union.baseTables(), containsInAnyOrder(t1Relation, t2Relation));
         assertThat(union.getRelationNames(), containsInAnyOrder(t1RenamedRelationName, t2RenamedRelationName));
     }
+
+    @Test
+    public void test_relationnames_are_based_on_sources_in_table_function() {
+        QueriedSelectRelation relation = e.analyze("select * from abs(1)");
+        TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation.from().get(0);
+        var tableFunction = new TableFunction(tableFunctionRelation, List.of(), new WhereClause(null));
+        assertThat(tableFunction.baseTables(), containsInAnyOrder());
+        assertThat(tableFunction.getRelationNames(), containsInAnyOrder(new RelationName(null, "abs")));
+    }
+
+    @Test
+    public void test_relationnames_are_based_on_sources_in_collect() {
+        var collect = new Collect(t1Relation, List.of(), new WhereClause(null), 1,1);
+        assertThat(collect.baseTables(), containsInAnyOrder(t1Relation));
+        assertThat(collect.getRelationNames(), containsInAnyOrder(t1Relation.relationName()));
+    }
+
+    @Test
+    public void test_relationnames_are_based_on_sources_in_get() {
+        var get = new Get(t1Relation, new DocKeys(List.of(List.of()), false, false, 1, null), null, List.of(), 1);
+        assertThat(get.baseTables(), containsInAnyOrder(t1Relation));
+        assertThat(get.getRelationNames(), containsInAnyOrder(t1Relation.relationName()));
+    }
+
+    @Test
+    public void test_relationnames_are_based_on_sources_in_count() {
+        QueriedSelectRelation relation = e.analyze("select count(1)");
+        Function function = (Function) relation.outputs().get(0);
+        var count = new Count(function, t1Relation, new WhereClause(null));
+        assertThat(count.baseTables(), containsInAnyOrder(t1Relation));
+        assertThat(count.getRelationNames(), containsInAnyOrder(t1Relation.relationName()));
+    }
+
 }

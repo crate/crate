@@ -104,6 +104,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -832,6 +833,11 @@ public class InsertFromValues implements LogicalPlan {
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
         return List.of();
+    }
+
+    @Override
+    public Set<RelationName> getRelationNames() {
+        return Set.of();
     }
 
     @Override
