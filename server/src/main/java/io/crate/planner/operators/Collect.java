@@ -29,6 +29,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Sets;
 import io.crate.data.Row;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -46,6 +47,7 @@ import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
@@ -326,6 +328,11 @@ public class Collect implements LogicalPlan {
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
         return baseTables;
+    }
+
+    @Override
+    public Set<RelationName> getRelationNames() {
+        return Set.of(relation.relationName());
     }
 
     @Override
