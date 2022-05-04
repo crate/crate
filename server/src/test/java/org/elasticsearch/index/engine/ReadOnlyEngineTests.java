@@ -59,7 +59,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
             try (InternalEngine engine = createEngine(config)) {
                 Engine.Get get = null;
                 for (int i = 0; i < numDocs; i++) {
-                    ParsedDocument doc = testParsedDocument(Integer.toString(i), null, testDocument(), new BytesArray("{}"), null);
+                    ParsedDocument doc = testParsedDocument(Integer.toString(i), testDocument(), new BytesArray("{}"), null);
                     engine.index(new Engine.Index(newUid(doc), doc, i, primaryTerm.get(), 1, null, Engine.Operation.Origin.REPLICA,
                                                   System.nanoTime(), -1, false, SequenceNumbers.UNASSIGNED_SEQ_NO, 0));
                     if (get == null || rarely()) {
@@ -137,7 +137,6 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 for (int i = 0; i < numDocs; i++) {
                     ParsedDocument doc = testParsedDocument(
                         Integer.toString(i),
-                        null,
                         testDocument(),
                         new BytesArray("{}"),
                         null
@@ -184,7 +183,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
             try (InternalEngine engine = createEngine(config)) {
                 long maxSeqNo = SequenceNumbers.NO_OPS_PERFORMED;
                 for (int i = 0; i < numDocs; i++) {
-                    ParsedDocument doc = testParsedDocument(Integer.toString(i), null, testDocument(), new BytesArray("{}"), null);
+                    ParsedDocument doc = testParsedDocument(Integer.toString(i), testDocument(), new BytesArray("{}"), null);
                     engine.index(new Engine.Index(newUid(doc), doc, i, primaryTerm.get(), 1, null, Engine.Operation.Origin.REPLICA,
                                                   System.nanoTime(), -1, false, SequenceNumbers.UNASSIGNED_SEQ_NO, 0));
                     maxSeqNo = engine.getProcessedLocalCheckpoint();
@@ -288,7 +287,6 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 for (int i = 0; i < numDocs; i++) {
                     ParsedDocument doc = testParsedDocument(
                         Integer.toString(i),
-                        null,
                         testDocument(),
                         new BytesArray("{}"),
                         null
@@ -352,7 +350,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
 
             try (InternalEngine engine = createEngine(config)) {
                 for (int i = 0; i < numDocs; i++) {
-                    ParsedDocument doc = testParsedDocument(Integer.toString(i), null, testDocument(), new BytesArray("{}"), null);
+                    ParsedDocument doc = testParsedDocument(Integer.toString(i), testDocument(), new BytesArray("{}"), null);
                     engine.index(new Engine.Index(newUid(doc), doc, i, primaryTerm.get(), 1, null, Engine.Operation.Origin.REPLICA,
                                                   System.nanoTime(), -1, false, SequenceNumbers.UNASSIGNED_SEQ_NO, 0));
                     globalCheckpoint.set(i);

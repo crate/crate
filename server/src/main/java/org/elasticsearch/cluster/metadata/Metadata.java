@@ -622,22 +622,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         return types != null && types.length == 1 && ALL.equals(types[0]);
     }
 
-    /**
-     * @param concreteIndex The concrete index to check if routing is required
-     * @param type          The type to check if routing is required
-     * @return Whether routing is required according to the mapping for the specified index and type
-     */
-    public boolean routingRequired(String concreteIndex) {
-        IndexMetadata indexMetadata = indices.get(concreteIndex);
-        if (indexMetadata != null) {
-            MappingMetadata mappingMetadata = indexMetadata.mapping();
-            if (mappingMetadata != null) {
-                return mappingMetadata.routing().required();
-            }
-        }
-        return false;
-    }
-
     @Override
     public Iterator<IndexMetadata> iterator() {
         return indices.valuesIt();

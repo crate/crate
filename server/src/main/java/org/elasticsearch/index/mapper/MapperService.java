@@ -328,7 +328,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         MapperUtils.collect(newMapper.mapping().root(), objectMappers, fieldMappers);
 
         MapperMergeValidator.validateNewMappers(objectMappers, fieldMappers);
-        checkPartitionedIndexConstraints(newMapper);
 
         this.fieldTypes = new FieldTypeLookup(fieldMappers);
 
@@ -404,15 +403,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         if (depth > maxDepth) {
             throw new IllegalArgumentException("Limit of mapping depth [" + maxDepth + "] in index [" + index().getName()
                 + "] has been exceeded due to object field [" + objectPath + "]");
-        }
-    }
-
-    private void checkPartitionedIndexConstraints(DocumentMapper newMapper) {
-        if (indexSettings.getIndexMetadata().isRoutingPartitionedIndex()) {
-            if (!newMapper.routingFieldMapper().required()) {
-                throw new IllegalArgumentException("mapping type [" + newMapper.type() + "] must have routing "
-                    + "required for partitioned index [" + indexSettings.getIndex().getName() + "]");
-            }
         }
     }
 

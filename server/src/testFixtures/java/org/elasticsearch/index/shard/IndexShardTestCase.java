@@ -193,16 +193,15 @@ public abstract class IndexShardTestCase extends ESTestCase {
     }
 
     protected Engine.IndexResult indexDoc(IndexShard shard, String id, String source) throws IOException {
-        return indexDoc(shard, id, source, XContentType.JSON, null);
+        return indexDoc(shard, id, source, XContentType.JSON);
     }
 
     protected Engine.IndexResult indexDoc(IndexShard shard,
                                           String id,
                                           String source,
-                                          XContentType xContentType,
-                                          String routing) throws IOException {
+                                          XContentType xContentType) throws IOException {
         SourceToParse sourceToParse = new SourceToParse(
-            shard.shardId().getIndexName(), id, new BytesArray(source), xContentType, routing);
+            shard.shardId().getIndexName(), id, new BytesArray(source), xContentType);
         Engine.IndexResult result;
         if (shard.routingEntry().primary()) {
             result = shard.applyIndexOperationOnPrimary(

@@ -330,22 +330,21 @@ public abstract class EngineTestCase extends ESTestCase {
         return new ParseContext.Document();
     }
 
-    public static ParsedDocument createParsedDoc(String id, String routing) {
-        return testParsedDocument(id, routing, testDocumentWithKeywordField("test"), new BytesArray("{ \"value\" : \"test\" }"), null);
+    public static ParsedDocument createParsedDoc(String id) {
+        return testParsedDocument(id, testDocumentWithKeywordField("test"), new BytesArray("{ \"value\" : \"test\" }"), null);
     }
 
-    public static ParsedDocument createParsedDoc(String id, String routing, boolean recoverySource) {
-        return testParsedDocument(id, routing, testDocumentWithTextField(), new BytesArray("{ \"value\" : \"test\" }"), null,
+    public static ParsedDocument createParsedDoc(String id, boolean recoverySource) {
+        return testParsedDocument(id, testDocumentWithTextField(), new BytesArray("{ \"value\" : \"test\" }"), null,
             recoverySource);
     }
 
     protected static ParsedDocument testParsedDocument(
-        String id, String routing, ParseContext.Document document, BytesReference source, Mapping mappingUpdate) {
-        return testParsedDocument(id, routing, document, source, mappingUpdate, false);
+        String id, ParseContext.Document document, BytesReference source, Mapping mappingUpdate) {
+        return testParsedDocument(id, document, source, mappingUpdate, false);
     }
 
-    protected static ParsedDocument testParsedDocument(
-        String id, String routing, ParseContext.Document document, BytesReference source, Mapping mappingUpdate,
+    protected static ParsedDocument testParsedDocument(String id, ParseContext.Document document, BytesReference source, Mapping mappingUpdate,
         boolean recoverySource) {
         Field uidField = new Field("_id", Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
         Field versionField = new NumericDocValuesField("_version", 0);
@@ -362,7 +361,7 @@ public abstract class EngineTestCase extends ESTestCase {
         } else {
             document.add(new StoredField(SourceFieldMapper.NAME, ref.bytes, ref.offset, ref.length));
         }
-        return new ParsedDocument(versionField, seqID, id, routing, Arrays.asList(document), source, mappingUpdate);
+        return new ParsedDocument(versionField, seqID, id, Arrays.asList(document), source, mappingUpdate);
     }
 
     /**
@@ -384,7 +383,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 seqID.tombstoneField.setLongValue(1);
                 doc.add(seqID.tombstoneField);
                 return new ParsedDocument(
-                    versionField, seqID, id, null, Collections.singletonList(doc), new BytesArray("{}"), null);
+                    versionField, seqID, id, Collections.singletonList(doc), new BytesArray("{}"), null);
             }
 
             @Override
@@ -401,7 +400,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 BytesRef byteRef = new BytesRef(reason);
                 doc.add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
                 return new ParsedDocument(
-                    versionField, seqID, null, null, Collections.singletonList(doc), null, null);
+                    versionField, seqID, null, Collections.singletonList(doc), null, null);
             }
         };
     }
@@ -880,7 +879,7 @@ public abstract class EngineTestCase extends ESTestCase {
             if (randomBoolean()) {
                 op = new Engine.Index(
                     id,
-                    testParsedDocument(docId, null, testDocumentWithTextField(valuePrefix + i), SOURCE, null),
+                    testParsedDocument(docId, testDocumentWithTextField(valuePrefix + i), SOURCE, null),
                     forReplica && i >= startWithSeqNo ? i * 2 : UNASSIGNED_SEQ_NO,
                     forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
                     version,
@@ -919,7 +918,7 @@ public abstract class EngineTestCase extends ESTestCase {
             final long startTime = threadPool.relativeTimeInMillis();
             final int copies = allowDuplicate && rarely() ? between(2, 4) : 1;
             for (int copy = 0; copy < copies; copy++) {
-                final ParsedDocument doc = createParsedDoc(id, null);
+                final ParsedDocument doc = createParsedDoc(id);
                 switch (opType) {
                     case INDEX:
                         operations.add(new Engine.Index(
