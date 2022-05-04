@@ -352,17 +352,17 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
     }
 
     private int getSubscriberNumberOfNodes() {
-        PublisherClusterScope annotation = getAnnotation(this.getClass(), PublisherClusterScope.class);
+        SubscriberClusterScope annotation = getAnnotation(this.getClass(), SubscriberClusterScope.class);
         return annotation == null ? 2 : annotation.numberOfNodes();
     }
 
     private boolean getSubscriberSupportsDedicatedMasters() {
-        PublisherClusterScope annotation = getAnnotation(this.getClass(), PublisherClusterScope.class);
+        SubscriberClusterScope annotation = getAnnotation(this.getClass(), SubscriberClusterScope.class);
         return annotation == null || annotation.supportsDedicatedMasters();
     }
 
     private boolean getSubscriberAutoManageMasterNodes() {
-        PublisherClusterScope annotation = getAnnotation(this.getClass(), PublisherClusterScope.class);
+        SubscriberClusterScope annotation = getAnnotation(this.getClass(), SubscriberClusterScope.class);
         return annotation == null || annotation.autoManageMasterNodes();
     }
 

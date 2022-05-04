@@ -26,6 +26,7 @@ import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -157,6 +158,18 @@ public final class MetadataTracker implements Closeable {
         synchronized (this) {
             var copy = new HashSet<>(subscriptionsToTrack);
             var updated = copy.add(subscriptionName);
+            subscriptionsToTrack = copy;
+            if (updated && !isActive) {
+                start();
+            }
+            return updated;
+        }
+    }
+
+    public boolean startTracking(Collection<String> subscriptionNames) {
+        synchronized (this) {
+            var copy = new HashSet<>(subscriptionsToTrack);
+            var updated = copy.addAll(subscriptionNames);
             subscriptionsToTrack = copy;
             if (updated && !isActive) {
                 start();
@@ -598,20 +611,5 @@ public final class MetadataTracker implements Closeable {
     @Override
     public void close() {
         stop();
-    }
-
-    /**
-     * Start tracking if there is at least one subscription and if the tracker wasn't already active
-     */
-    public void maybeStart() {
-        synchronized (this) {
-            if (isActive) {
-                return;
-            }
-            if (subscriptionsToTrack.isEmpty()) {
-                return;
-            }
-            start();
-        }
     }
 }
