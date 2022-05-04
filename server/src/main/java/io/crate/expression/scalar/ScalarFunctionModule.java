@@ -164,6 +164,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
 
         TranslateFunction.register(this);
         ConcatFunction.register(this);
+        ConcatWsFunction.register(this);
 
         LengthFunction.register(this);
         HashFunctions.register(this);
