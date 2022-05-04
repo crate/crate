@@ -70,7 +70,7 @@ public class IdFieldMapper extends MetadataFieldMapper {
         }
     }
 
-    static final class IdFieldType extends StringFieldType {
+    static final class IdFieldType extends MappedFieldType {
 
         public static final IdFieldType INSTANCE = new IdFieldType();
 

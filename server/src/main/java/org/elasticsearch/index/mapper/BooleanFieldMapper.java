@@ -112,7 +112,7 @@ public class BooleanFieldMapper extends FieldMapper {
         }
     }
 
-    public static final class BooleanFieldType extends TermBasedFieldType {
+    public static final class BooleanFieldType extends MappedFieldType {
 
         public BooleanFieldType(String name, boolean isSearchable, boolean hasDocValues) {
             super(name, isSearchable, hasDocValues);
