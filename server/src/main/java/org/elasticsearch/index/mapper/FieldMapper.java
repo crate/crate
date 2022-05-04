@@ -19,29 +19,24 @@
 
 package org.elasticsearch.index.mapper;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.Version;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper.FieldNamesFieldType;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.StreamSupport;
 
 public abstract class FieldMapper extends Mapper implements Cloneable {
 
@@ -52,7 +47,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         protected boolean indexOptionsSet = false;
         protected boolean hasDocValues = true;
         protected boolean indexed = true;
-        protected final MultiFields.Builder multiFieldsBuilder;
         protected CopyTo copyTo = CopyTo.empty();
         protected Integer position;
         @Nullable
@@ -65,7 +59,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         protected Builder(String name, FieldType fieldType) {
             super(name);
             this.fieldType = new FieldType(fieldType);
-            multiFieldsBuilder = new MultiFields.Builder();
         }
 
         public T index(boolean index) {
@@ -144,11 +137,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             return builder;
         }
 
-        public T addMultiField(Mapper.Builder<?> mapperBuilder) {
-            multiFieldsBuilder.add(mapperBuilder);
-            return builder;
-        }
-
         public T copyTo(CopyTo copyTo) {
             this.copyTo = copyTo;
             return builder;
@@ -170,7 +158,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     protected final Version indexCreatedVersion;
     protected FieldType fieldType;
     protected MappedFieldType mappedFieldType;
-    protected MultiFields multiFields;
     protected CopyTo copyTo;
 
     /**
@@ -192,7 +179,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
                           FieldType fieldType,
                           MappedFieldType mappedFieldType,
                           Settings indexSettings,
-                          MultiFields multiFields,
                           CopyTo copyTo) {
         super(simpleName);
         assert indexSettings != null;
@@ -205,7 +191,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         fieldType.freeze();
         this.fieldType = fieldType;
         this.mappedFieldType = mappedFieldType;
-        this.multiFields = multiFields;
         this.copyTo = Objects.requireNonNull(copyTo);
     }
 
@@ -248,7 +233,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             throw new MapperParsingException("failed to parse field [{}] of type [{}]", e, fieldType().name(),
                     fieldType().typeName());
         }
-        multiFields.parse(this, context);
     }
 
     /**
@@ -269,7 +253,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
 
     @Override
     public Iterator<Mapper> iterator() {
-        return multiFields.iterator();
+        return Collections.emptyIterator();
     }
 
     @Override
@@ -296,7 +280,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             throw new IllegalArgumentException("Mapper for [" + name() +
                 "] conflicts with existing mapping:\n" + conflicts.toString());
         }
-        merged.multiFields = multiFields.merge(toMerge.multiFields);
         // apply changeable values
         merged.mappedFieldType = toMerge.mappedFieldType;
         merged.fieldType = toMerge.fieldType;
@@ -402,7 +385,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             builder.field("store", fieldType.stored());
         }
 
-        multiFields.toXContent(builder, params);
         copyTo.toXContent(builder, params);
     }
 
@@ -469,108 +451,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     }
 
     protected abstract String contentType();
-
-    public static class MultiFields {
-
-        public static MultiFields empty() {
-            return new MultiFields(ImmutableOpenMap.<String, FieldMapper>of());
-        }
-
-        public static class Builder {
-
-            private final ImmutableOpenMap.Builder<String, Mapper.Builder> mapperBuilders = ImmutableOpenMap.builder();
-
-            public Builder add(Mapper.Builder builder) {
-                mapperBuilders.put(builder.name(), builder);
-                return this;
-            }
-
-            @SuppressWarnings("unchecked")
-            public MultiFields build(FieldMapper.Builder mainFieldBuilder, BuilderContext context) {
-                if (mapperBuilders.isEmpty()) {
-                    return empty();
-                } else {
-                    context.path().add(mainFieldBuilder.name());
-                    ImmutableOpenMap.Builder mapperBuilders = this.mapperBuilders;
-                    for (ObjectObjectCursor<String, Mapper.Builder> cursor : this.mapperBuilders) {
-                        String key = cursor.key;
-                        Mapper.Builder value = cursor.value;
-                        Mapper mapper = value.build(context);
-                        assert mapper instanceof FieldMapper;
-                        mapperBuilders.put(key, mapper);
-                    }
-                    context.path().remove();
-                    ImmutableOpenMap.Builder<String, FieldMapper> mappers = mapperBuilders.cast();
-                    return new MultiFields(mappers.build());
-                }
-            }
-        }
-
-        private final ImmutableOpenMap<String, FieldMapper> mappers;
-
-        private MultiFields(ImmutableOpenMap<String, FieldMapper> mappers) {
-            ImmutableOpenMap.Builder<String, FieldMapper> builder = new ImmutableOpenMap.Builder<>();
-            // we disable the all in multi-field mappers
-            for (ObjectObjectCursor<String, FieldMapper> cursor : mappers) {
-                builder.put(cursor.key, cursor.value);
-            }
-            this.mappers = builder.build();
-        }
-
-        public void parse(FieldMapper mainField, ParseContext context) throws IOException {
-            // TODO: multi fields are really just copy fields, we just need to expose "sub fields" or something that can be part of the mappings
-            if (mappers.isEmpty()) {
-                return;
-            }
-
-            context.path().add(mainField.simpleName());
-            for (ObjectCursor<FieldMapper> cursor : mappers.values()) {
-                cursor.value.parse(context);
-            }
-            context.path().remove();
-        }
-
-        public MultiFields merge(MultiFields mergeWith) {
-            ImmutableOpenMap.Builder<String, FieldMapper> newMappersBuilder = ImmutableOpenMap.builder(mappers);
-
-            for (ObjectCursor<FieldMapper> cursor : mergeWith.mappers.values()) {
-                FieldMapper mergeWithMapper = cursor.value;
-                FieldMapper mergeIntoMapper = mappers.get(mergeWithMapper.simpleName());
-                if (mergeIntoMapper == null) {
-                    newMappersBuilder.put(mergeWithMapper.simpleName(), mergeWithMapper);
-                } else {
-                    FieldMapper merged = mergeIntoMapper.merge(mergeWithMapper);
-                    newMappersBuilder.put(merged.simpleName(), merged); // override previous definition
-                }
-            }
-
-            ImmutableOpenMap<String, FieldMapper> mappers = newMappersBuilder.build();
-            return new MultiFields(mappers);
-        }
-
-        public Iterator<Mapper> iterator() {
-            return StreamSupport.stream(mappers.values().spliterator(), false).map((p) -> (Mapper)p.value).iterator();
-        }
-
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            if (!mappers.isEmpty()) {
-                // sort the mappers so we get consistent serialization format
-                Mapper[] sortedMappers = mappers.values().toArray(Mapper.class);
-                Arrays.sort(sortedMappers, new Comparator<Mapper>() {
-                    @Override
-                    public int compare(Mapper o1, Mapper o2) {
-                        return o1.name().compareTo(o2.name());
-                    }
-                });
-                builder.startObject("fields");
-                for (Mapper mapper : sortedMappers) {
-                    mapper.toXContent(builder, params);
-                }
-                builder.endObject();
-            }
-            return builder;
-        }
-    }
 
     /**
      * Represents a list of fields with optional boost factor where the current field should be copied to

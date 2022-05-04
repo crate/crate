@@ -100,7 +100,6 @@ public class TextFieldMapper extends FieldMapper {
                 fieldType,
                 tft,
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo
             );
         }
@@ -144,9 +143,8 @@ public class TextFieldMapper extends FieldMapper {
                               FieldType fieldType,
                               TextFieldType mappedFieldType,
                               Settings indexSettings,
-                              MultiFields multiFields,
                               CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
         assert mappedFieldType.hasDocValues() == false;
     }
 

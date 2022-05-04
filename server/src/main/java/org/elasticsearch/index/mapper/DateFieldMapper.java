@@ -126,7 +126,6 @@ public class DateFieldMapper extends FieldMapper {
                 nullValue,
                 ignoreTimezone,
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo);
         }
     }
@@ -203,9 +202,8 @@ public class DateFieldMapper extends FieldMapper {
             String nullValueAsString,
             Boolean ignoreTimezone,
             Settings indexSettings,
-            MultiFields multiFields,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
         this.ignoreTimezone = ignoreTimezone;
         this.nullValue = nullValue;
         this.nullValueAsString = nullValueAsString;
