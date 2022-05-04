@@ -1553,7 +1553,7 @@ public class InternalEngineTests extends EngineTestCase {
                     if (op != null) {
                         assertThat(op, instanceOf(Translog.Index.class));
                         assertThat(msg, ((Translog.Index) op).id(), isIn(liveDocs));
-                        assertEquals(msg, ((Translog.Index) op).source(), B_1);
+                        assertEquals(msg, ((Translog.Index) op).getSource(), B_1);
                     }
                 } else {
                     assertThat(msg, ops.get(seqno), notNullValue());
@@ -1651,7 +1651,7 @@ public class InternalEngineTests extends EngineTestCase {
                     Translog.Operation op = ops.get(seqno);
                     assertThat(msg, op, notNullValue());
                     if (op instanceof Translog.Index) {
-                        assertEquals(msg, ((Translog.Index) op).source(), B_1);
+                        assertEquals(msg, ((Translog.Index) op).getSource(), B_1);
                     }
                 }
             }

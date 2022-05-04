@@ -147,9 +147,9 @@ final class TranslogLeafReader extends LeafReader {
             throw new IllegalArgumentException("no such doc ID " + docID);
         }
         if (visitor.needsField(FAKE_SOURCE_FIELD) == StoredFieldVisitor.Status.YES) {
-            assert operation.source().toBytesRef().offset == 0;
-            assert operation.source().toBytesRef().length == operation.source().toBytesRef().bytes.length;
-            visitor.binaryField(FAKE_SOURCE_FIELD, operation.source().toBytesRef().bytes);
+            assert operation.getSource().toBytesRef().offset == 0;
+            assert operation.getSource().toBytesRef().length == operation.getSource().toBytesRef().bytes.length;
+            visitor.binaryField(FAKE_SOURCE_FIELD, operation.getSource().toBytesRef().bytes);
         }
         if (visitor.needsField(FAKE_ID_FIELD) == StoredFieldVisitor.Status.YES) {
             BytesRef bytesRef = Uid.encodeId(operation.id());

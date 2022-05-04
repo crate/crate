@@ -1002,7 +1002,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
 
         long estimateSize();
 
-        Source getSource();
+        BytesReference getSource();
 
         long seqNo();
 
@@ -1050,15 +1050,6 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             }
         }
 
-    }
-
-    public static class Source {
-
-        public final BytesReference source;
-
-        public Source(BytesReference source) {
-            this.source = source;
-        }
     }
 
     public static class Index implements Operation {
@@ -1144,10 +1135,6 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             return this.id;
         }
 
-        public BytesReference source() {
-            return this.source;
-        }
-
         @Override
         public long seqNo() {
             return seqNo;
@@ -1163,8 +1150,8 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
         }
 
         @Override
-        public Source getSource() {
-            return new Source(source);
+        public BytesReference getSource() {
+            return this.source;
         }
 
         void write(final StreamOutput out) throws IOException {
@@ -1331,7 +1318,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
         }
 
         @Override
-        public Source getSource() {
+        public BytesReference getSource() {
             throw new IllegalStateException("trying to read doc source from delete operation");
         }
 
@@ -1448,7 +1435,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
         }
 
         @Override
-        public Source getSource() {
+        public BytesReference getSource() {
             throw new UnsupportedOperationException("source does not exist for a no-op");
         }
 
