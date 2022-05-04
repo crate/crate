@@ -305,7 +305,6 @@ public class HashJoin implements LogicalPlan {
                 }
             }
         }
-        assert (!result.isEmpty()) : "Hash Join symbols for Logical Plan must not be empty";
         return result;
     }
 
