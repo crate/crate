@@ -41,6 +41,7 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -114,6 +115,11 @@ public class Insert implements LogicalPlan {
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public Set<RelationName> getRelationNames() {
+        return Set.of();
     }
 
     @Override
