@@ -226,9 +226,7 @@ public interface LogicalPlan extends Plan {
         return StatementType.SELECT;
     }
 
-    default Set<RelationName> getRelationNames() {
-        return baseTables().stream().map(AnalyzedRelation::relationName).collect(Collectors.toSet());
-    }
+    Set<RelationName> getRelationNames();
 
     default void print(PrintContext printContext) {
         printContext
