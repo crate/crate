@@ -510,6 +510,8 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             this.validation = validation;
         }
 
+        
+
         public ShardUpsertRequest newRequest(ShardId shardId) {
             return new ShardUpsertRequest(
                 shardId,
