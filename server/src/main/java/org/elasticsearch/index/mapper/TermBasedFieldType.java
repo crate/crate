@@ -19,21 +19,11 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
-
 /** Base {@link MappedFieldType} implementation for a field that is indexed
  *  with the inverted index. */
 abstract class TermBasedFieldType extends MappedFieldType {
 
     TermBasedFieldType(String name, boolean isSearchable, boolean hasDocValues) {
         super(name, isSearchable, hasDocValues);
-    }
-
-    /** Returns the indexed value used to construct search "values".
-     *  This method is used for the default implementations of most
-     *  query factory methods such as {@link #termQuery}. */
-    protected BytesRef indexedValueForSearch(Object value) {
-        return BytesRefs.toBytesRef(value);
     }
 }

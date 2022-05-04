@@ -183,10 +183,6 @@ public class DateFieldMapper extends FieldMapper {
             return dateTimeFormatter;
         }
 
-        public void setDateTimeFormatter(FormatDateTimeFormatter dateTimeFormatter) {
-            this.dateTimeFormatter = dateTimeFormatter;
-        }
-
         long parse(String value) {
             return dateTimeFormatter().parser().parseMillis(value);
         }
