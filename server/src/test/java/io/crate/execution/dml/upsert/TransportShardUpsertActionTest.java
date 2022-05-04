@@ -58,6 +58,7 @@ import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -190,7 +191,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -212,7 +213,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -254,7 +255,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
@@ -276,7 +277,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
 
         reset(indexShard);
 
