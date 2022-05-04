@@ -85,7 +85,7 @@ public class NoOpEngineTests extends EngineTestCase {
         tracker.updateFromMaster(1L, Collections.singleton(allocationId.getId()), table);
         tracker.activatePrimaryMode(SequenceNumbers.NO_OPS_PERFORMED);
         for (int i = 0; i < docs; i++) {
-            ParsedDocument doc = testParsedDocument("" + i, null, testDocumentWithTextField(), B_1, null);
+            ParsedDocument doc = testParsedDocument("" + i, testDocumentWithTextField(), B_1, null);
             engine.index(indexForDoc(doc));
             tracker.updateLocalCheckpoint(allocationId.getId(), i);
         }
@@ -124,7 +124,7 @@ public class NoOpEngineTests extends EngineTestCase {
             int deletions = 0;
             try (InternalEngine engine = createEngine(config)) {
                 for (int i = 0; i < numDocs; i++) {
-                    engine.index(indexForDoc(createParsedDoc(Integer.toString(i), null)));
+                    engine.index(indexForDoc(createParsedDoc(Integer.toString(i))));
                     if (rarely()) {
                         engine.flush();
                     }
@@ -176,7 +176,7 @@ public class NoOpEngineTests extends EngineTestCase {
         int totalTranslogOps = 0;
         for (int i = 0; i < numDocs; i++) {
             totalTranslogOps++;
-            engine.index(indexForDoc(createParsedDoc(Integer.toString(i), null)));
+            engine.index(indexForDoc(createParsedDoc(Integer.toString(i))));
             tracker.updateLocalCheckpoint(allocationId.getId(), i);
             if (rarely()) {
                 totalTranslogOps = 0;

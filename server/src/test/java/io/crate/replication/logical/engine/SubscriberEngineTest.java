@@ -37,7 +37,7 @@ public class SubscriberEngineTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_operation_validation_with_unassigned_seqno_raises_exception() {
-        var op = new Engine.Index(newUid("0"), 0, InternalEngineTests.createParsedDoc("0", null));
+        var op = new Engine.Index(newUid("0"), 0, InternalEngineTests.createParsedDoc("0"));
         assertThrowsMatches(
             () -> SubscriberEngine.validate(op),
             UnsupportedFeatureException.class,
@@ -48,7 +48,7 @@ public class SubscriberEngineTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_operation_validation_with_invalid_version_type_raises_exception() {
         var op = new Engine.Index(newUid("0"),
-                                  InternalEngineTests.createParsedDoc("0", null),
+                                  InternalEngineTests.createParsedDoc("0"),
                                   0,
                                   0,
                                   Versions.MATCH_ANY,

@@ -24,9 +24,7 @@ import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 
@@ -45,7 +43,7 @@ import static java.util.Collections.emptyMap;
  * Base {@link StoredFieldVisitor} that retrieves all non-redundant metadata.
  */
 public class FieldsVisitor extends StoredFieldVisitor {
-    private static final Set<String> BASE_REQUIRED_FIELDS = Set.of(IdFieldMapper.NAME, RoutingFieldMapper.NAME);
+    private static final Set<String> BASE_REQUIRED_FIELDS = Set.of(IdFieldMapper.NAME);
 
     private final boolean loadSource;
     private final String sourceFieldName;
@@ -120,18 +118,6 @@ public class FieldsVisitor extends StoredFieldVisitor {
 
     public String id() {
         return id;
-    }
-
-    public String routing() {
-        if (fieldsValues == null) {
-            return null;
-        }
-        List<Object> values = fieldsValues.get(RoutingFieldMapper.NAME);
-        if (values == null || values.isEmpty()) {
-            return null;
-        }
-        assert values.size() == 1;
-        return BytesRefs.toString(values.get(0));
     }
 
     public Map<String, List<Object>> fields() {

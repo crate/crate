@@ -237,7 +237,7 @@ public class TranslogWriter extends BaseTranslogReader implements Closeable {
                     final Translog.Index o1 = (Translog.Index) prvOp;
                     final Translog.Index o2 = (Translog.Index) newOp;
                     sameOp = Objects.equals(o1.id(), o2.id())
-                        && Objects.equals(o1.source(), o2.source()) && Objects.equals(o1.routing(), o2.routing())
+                        && Objects.equals(o1.source(), o2.source())
                         && o1.primaryTerm() == o2.primaryTerm() && o1.seqNo() == o2.seqNo() && o1.version() == o2.version();
                 } else if (prvOp instanceof Translog.Delete && newOp instanceof Translog.Delete) {
                     final Translog.Delete o1 = (Translog.Delete) prvOp;

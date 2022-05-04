@@ -193,11 +193,6 @@ public class DocumentMapper implements ToXContentFragment {
         return mapping.metadataMapper(type);
     }
 
-    public RoutingFieldMapper routingFieldMapper() {
-        return metadataMapper(RoutingFieldMapper.class);
-
-    }
-
     public DocumentFieldMappers mappers() {
         return this.fieldMappers;
     }

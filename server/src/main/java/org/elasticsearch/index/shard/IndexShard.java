@@ -1387,7 +1387,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                         shardId.getIndexName(),
                         index.id(),
                         index.source(),
-                        XContentHelper.xContentType(index.source()), index.routing())
+                        XContentHelper.xContentType(index.source())
+                    )
                 );
                 break;
             case DELETE:

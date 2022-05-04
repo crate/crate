@@ -213,7 +213,6 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                         operationPrimaryTerm,
                         sourceOp.version(),
                         BytesReference.toBytes(sourceOp.source()),
-                        sourceOp.routing(),
                         Translog.UNSET_AUTO_GENERATED_TIMESTAMP
                     );
                 }
