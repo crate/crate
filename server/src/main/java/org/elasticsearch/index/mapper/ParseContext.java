@@ -465,24 +465,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
 
     public abstract void seqID(SeqNoFieldMapper.SequenceIDFields seqID);
 
-    /**
-     * Return a new context that will have the external value set.
-     */
-    public final ParseContext createExternalValueContext(final Object externalValue) {
-        return new FilterParseContext(this) {
-
-            @Override
-            public boolean externalValueSet() {
-                return true;
-            }
-
-            @Override
-            public Object externalValue() {
-                return externalValue;
-            }
-        };
-    }
-
     public boolean externalValueSet() {
         return false;
     }

@@ -75,7 +75,6 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                 fieldType,
                 ft,
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo);
         }
     }
@@ -97,9 +96,8 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                                FieldType fieldType,
                                MappedFieldType defaultFieldType,
                                Settings indexSettings,
-                               MultiFields multiFields,
                                CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, copyTo);
     }
 
     @Override
@@ -151,10 +149,6 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
             for (IndexableField field : fields) {
                 context.doc().add(field);
             }
-        }
-        // if the mapping contains multifields then use the geohash string
-        if (multiFields.iterator().hasNext()) {
-            multiFields.parse(this, context.createExternalValueContext(point.geohash()));
         }
     }
 

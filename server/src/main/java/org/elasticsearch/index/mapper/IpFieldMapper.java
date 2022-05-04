@@ -77,7 +77,6 @@ public class IpFieldMapper extends FieldMapper {
                 new IpFieldType(buildFullName(context), indexed, hasDocValues),
                 nullValue,
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo);
         }
     }
@@ -133,9 +132,8 @@ public class IpFieldMapper extends FieldMapper {
             MappedFieldType mappedFieldType,
             InetAddress nullValue,
             Settings indexSettings,
-            MultiFields multiFields,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
         this.nullValue = nullValue;
     }
 

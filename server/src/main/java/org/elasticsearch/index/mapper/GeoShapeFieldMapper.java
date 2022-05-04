@@ -146,7 +146,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
                 fieldType,
                 ft,
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo
             );
         }
@@ -366,9 +365,8 @@ public class GeoShapeFieldMapper extends FieldMapper {
                                FieldType fieldType,
                                MappedFieldType mappedFieldType,
                                Settings indexSettings,
-                               MultiFields multiFields,
                                CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
     }
 
     @Override

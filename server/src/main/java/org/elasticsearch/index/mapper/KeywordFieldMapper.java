@@ -135,7 +135,6 @@ public final class KeywordFieldMapper extends FieldMapper {
                 nullValue,
                 lengthLimit,
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo
             );
         }
@@ -205,9 +204,8 @@ public final class KeywordFieldMapper extends FieldMapper {
                                  String nullValue,
                                  Integer lengthLimit,
                                  Settings indexSettings,
-                                 MultiFields multiFields,
                                  CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.ignoreAbove = ignoreAbove;
         this.lengthLimit = lengthLimit;

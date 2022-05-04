@@ -85,7 +85,6 @@ public class BooleanFieldMapper extends FieldMapper {
                 fieldType,
                 new BooleanFieldType(buildFullName(context), indexed, hasDocValues),
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo,
                 nullValue);
         }
@@ -136,10 +135,9 @@ public class BooleanFieldMapper extends FieldMapper {
                                  FieldType fieldType,
                                  MappedFieldType defaultFieldType,
                                  Settings indexSettings,
-                                 MultiFields multiFields,
                                  CopyTo copyTo,
                                  Boolean nullValue) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, copyTo);
         this.nullValue = nullValue;
     }
 
