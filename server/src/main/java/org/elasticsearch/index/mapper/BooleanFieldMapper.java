@@ -126,32 +126,6 @@ public class BooleanFieldMapper extends FieldMapper {
         public String typeName() {
             return CONTENT_TYPE;
         }
-
-
-        @Override
-        public BytesRef indexedValueForSearch(Object value) {
-            if (value == null) {
-                return Values.FALSE;
-            }
-            if (value instanceof Boolean) {
-                return ((Boolean) value) ? Values.TRUE : Values.FALSE;
-            }
-            String sValue;
-            if (value instanceof BytesRef) {
-                sValue = ((BytesRef) value).utf8ToString();
-            } else {
-                sValue = value.toString();
-            }
-            switch (sValue) {
-                case "true":
-                    return Values.TRUE;
-                case "false":
-                    return Values.FALSE;
-                default:
-                    throw new IllegalArgumentException("Can't parse boolean value [" +
-                                    sValue + "], expected [true] or [false]");
-            }
-        }
     }
 
     private final Boolean nullValue;

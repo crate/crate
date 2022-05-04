@@ -121,19 +121,6 @@ public class IpFieldMapper extends FieldMapper {
         public String typeName() {
             return CONTENT_TYPE;
         }
-
-        private InetAddress parse(Object value) {
-            if (value instanceof InetAddress) {
-                return (InetAddress) value;
-            } else {
-                if (value instanceof BytesRef) {
-                    value = ((BytesRef) value).utf8ToString();
-                }
-                return InetAddresses.forString(value.toString());
-            }
-        }
-
-
     }
 
     private final InetAddress nullValue;

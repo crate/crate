@@ -36,7 +36,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 
-import io.crate.sql.tree.BitString;
 
 public class BitStringFieldMapper extends FieldMapper {
 
@@ -88,13 +87,6 @@ public class BitStringFieldMapper extends FieldMapper {
         public String typeName() {
             return CONTENT_TYPE;
         }
-
-        @Override
-        protected BytesRef indexedValueForSearch(Object value) {
-            BitString bitString = (BitString) value;
-            return new BytesRef(bitString.bitSet().toByteArray());
-        }
-
     }
 
     public static class Builder extends FieldMapper.Builder<Builder> {
