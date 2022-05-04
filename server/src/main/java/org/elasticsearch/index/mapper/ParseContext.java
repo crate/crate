@@ -154,11 +154,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
         }
 
         @Override
-        public Iterable<Document> nonRootDocuments() {
-            return in.nonRootDocuments();
-        }
-
-        @Override
         public DocumentMapperParser docMapperParser() {
             return in.docMapperParser();
         }
@@ -395,24 +390,10 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
         }
 
         @Override
-        public Iterable<Document> nonRootDocuments() {
-            if (docsReversed) {
-                throw new IllegalStateException("documents are already reversed");
-            }
-            return documents.subList(1, documents.size());
-        }
-
-        @Override
         public Iterator<Document> iterator() {
             return documents.iterator();
         }
     }
-
-    /**
-     * Returns an Iterable over all non-root documents. If there are no non-root documents
-     * the iterable will return an empty iterator.
-     */
-    public abstract Iterable<Document> nonRootDocuments();
 
     public abstract DocumentMapperParser docMapperParser();
 
