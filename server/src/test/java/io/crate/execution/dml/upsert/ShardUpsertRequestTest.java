@@ -30,6 +30,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -84,12 +85,14 @@ public class ShardUpsertRequestTest extends ESTestCase {
         request.add(123, ShardUpsertRequest.Item.forInsert(
             "99",
             List.of(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
             new Object[]{99, "Marvin"},
             null
         ));
         request.add(42, ShardUpsertRequest.Item.forInsert(
             "99",
             List.of(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
             new Object[]{99, "Marvin"},
             new Symbol[0]
         ));
@@ -100,7 +103,8 @@ public class ShardUpsertRequestTest extends ESTestCase {
             2L,
             1L,
             5L,
-            List.of()
+            List.of(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP
         ));
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -133,12 +137,14 @@ public class ShardUpsertRequestTest extends ESTestCase {
         request.add(123, ShardUpsertRequest.Item.forInsert(
             "99",
             List.of(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
             new Object[]{99, "Marvin"},
             null
         ));
         request.add(42, ShardUpsertRequest.Item.forInsert(
             "99",
             List.of(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
             new Object[]{99, "Marvin"},
             new Symbol[0]
         ));
@@ -149,7 +155,9 @@ public class ShardUpsertRequestTest extends ESTestCase {
             2L,
             1L,
             5L,
-            List.of()));
+            List.of(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP
+        ));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
