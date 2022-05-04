@@ -77,7 +77,7 @@ public class BitStringFieldMapper extends FieldMapper {
         }
     }
 
-    static class BitStringFieldType extends TermBasedFieldType {
+    static class BitStringFieldType extends MappedFieldType {
 
         BitStringFieldType(String name, boolean isSearchable, boolean hasDocValues) {
             super(name, isSearchable, hasDocValues);

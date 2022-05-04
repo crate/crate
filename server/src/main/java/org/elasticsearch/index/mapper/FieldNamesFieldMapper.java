@@ -98,7 +98,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         }
     }
 
-    public static final class FieldNamesFieldType extends TermBasedFieldType {
+    public static final class FieldNamesFieldType extends MappedFieldType {
 
         private boolean enabled = Defaults.ENABLED;
 

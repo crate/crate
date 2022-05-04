@@ -162,7 +162,7 @@ public final class KeywordFieldMapper extends FieldMapper {
         }
     }
 
-    public static final class KeywordFieldType extends StringFieldType {
+    public static final class KeywordFieldType extends MappedFieldType {
 
         boolean hasNorms;
 

@@ -120,7 +120,7 @@ public class TextFieldMapper extends FieldMapper {
         }
     }
 
-    public static final class TextFieldType extends StringFieldType {
+    public static final class TextFieldType extends MappedFieldType {
 
         public TextFieldType(String name, boolean indexed, boolean hasPositions) {
             super(name, indexed, false);
