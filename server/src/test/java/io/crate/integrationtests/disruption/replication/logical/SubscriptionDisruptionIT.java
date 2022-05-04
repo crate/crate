@@ -21,22 +21,10 @@
 
 package io.crate.integrationtests.disruption.replication.logical;
 
-import io.crate.integrationtests.LogicalReplicationITestCase;
-import io.crate.protocols.postgres.PostgresNetty;
-import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.replication.logical.MetadataTracker;
-import io.crate.replication.logical.action.PublicationsStateAction;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.test.MockLogAppender;
-import org.elasticsearch.test.transport.MockTransportService;
-import org.elasticsearch.transport.TransportService;
-import org.junit.Test;
+import static io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase.isolateNode;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.elasticsearch.test.ESIntegTestCase.ensureStableCluster;
+import static org.hamcrest.Matchers.is;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -44,11 +32,28 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.test.MockLogAppender;
+import org.elasticsearch.test.disruption.NetworkDisruption;
+import org.elasticsearch.test.transport.MockTransportService;
+import org.elasticsearch.transport.TransportService;
+import org.junit.Test;
 
+import io.crate.integrationtests.LogicalReplicationITestCase;
+import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.MetadataTracker;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.testing.UseRandomizedSchema;
+
+@UseRandomizedSchema(random = false)
 @LogicalReplicationITestCase.PublisherClusterScope(numberOfNodes = 1, supportsDedicatedMasters = false)
-@LogicalReplicationITestCase.SubscriberClusterScope(numberOfNodes = 1, supportsDedicatedMasters = false)
+@LogicalReplicationITestCase.SubscriberClusterScope(numberOfNodes = 3, supportsDedicatedMasters = false)
 public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
 
     @Test
@@ -192,8 +197,59 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
                    is("sub1| [pub1]| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking.\nReason: rejected\n"));
     }
 
+    @Test
+    public void test_subscription_keeps_tracking_on_subscriber_master_node_changed() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() +")");
+        createPublication("pub1", false, List.of("doc.t1"));
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        executeOnSubscriber("CREATE SUBSCRIPTION sub1" +
+            " CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
+
+        // Ensure tracker started and initial recovery is done
+        assertBusy(() -> {
+            assertThat(isMetadataTrackerActive(), is(true));
+            var res = executeOnSubscriber(
+                "SELECT s.subname, s.subpublications, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
+                    " FROM pg_subscription s" +
+                    " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                    " ORDER BY s.subname");
+            assertThat(printedTable(res.rows()), is(
+                "sub1| [pub1]| doc.t1| r| NULL\n"
+            ));
+        });
+
+        String isolatedNode = subscriberCluster.getMasterName();
+        NetworkDisruption.TwoPartitions partitions = isolateNode(subscriberCluster, isolatedNode);
+        NetworkDisruption networkDisruption = new NetworkDisruption(partitions, new NetworkDisruption.NetworkDisconnect());
+        subscriberCluster.setDisruptionScheme(networkDisruption);
+        networkDisruption.startDisrupting();
+
+        String nonIsolatedNode = partitions.getMajoritySide().iterator().next();
+
+        // make sure cluster reforms
+        ensureStableCluster(subscriberCluster, 2, nonIsolatedNode, logger);
+
+        // restore isolation
+        networkDisruption.stopDisrupting();
+
+        // Ensure tracker is still running
+        assertBusy(() -> assertThat(isMetadataTrackerActive(), is(true)));
+
+        // Ensure new metadata keeps replicating
+        executeOnPublisher("ALTER TABLE doc.t1 ADD COLUMN value string");
+        assertBusy(() -> {
+            var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
+                " WHERE table_name = 't1'" +
+                " ORDER BY ordinal_position");
+            assertThat(printedTable(r.rows()), is("id\n" +
+                "value\n"));
+        });
+
+    }
+
     private boolean isMetadataTrackerActive() throws Exception {
-        var replicationService = subscriberCluster.getInstance(LogicalReplicationService.class);
+        var masterNode = subscriberCluster.getMasterName();
+        var replicationService = subscriberCluster.getInstance(LogicalReplicationService.class, masterNode);
         Field m = replicationService.getClass().getDeclaredField("metadataTracker");
         m.setAccessible(true);
         MetadataTracker metadataTracker = (MetadataTracker) m.get(replicationService);

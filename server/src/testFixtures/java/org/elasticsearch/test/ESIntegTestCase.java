@@ -65,10 +65,7 @@ import java.util.function.BooleanSupplier;
 
 import javax.annotation.Nullable;
 
-import com.carrotsearch.randomizedtesting.RandomizedContext;
-import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -128,6 +125,10 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+
+import com.carrotsearch.randomizedtesting.RandomizedContext;
+import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.common.collections.Lists2;
 import io.crate.common.io.IOUtils;
@@ -889,15 +890,33 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     protected void ensureStableCluster(int nodeCount, @Nullable String viaNode) {
-        ensureStableCluster(nodeCount, TimeValue.timeValueSeconds(30), false, viaNode);
+        ensureStableCluster(internalCluster(), nodeCount, viaNode, logger);
+    }
+
+    public static void ensureStableCluster(InternalTestCluster cluster,
+                                           int nodeCount,
+                                           @Nullable String viaNode,
+                                           @Nullable Logger logger) {
+        ensureStableCluster(cluster, nodeCount, TimeValue.timeValueSeconds(30), false, viaNode, logger);
     }
 
     protected void ensureStableCluster(int nodeCount, TimeValue timeValue, boolean local, @Nullable String viaNode) {
+        ensureStableCluster(internalCluster(), nodeCount, timeValue, local, viaNode, logger);
+    }
+
+    public static void ensureStableCluster(InternalTestCluster cluster,
+                                           int nodeCount,
+                                           TimeValue timeValue,
+                                           boolean local,
+                                           @Nullable String viaNode,
+                                           @Nullable Logger logger) {
         if (viaNode == null) {
-            viaNode = randomFrom(internalCluster().getNodeNames());
+            viaNode = randomFrom(cluster.getNodeNames());
         }
-        logger.debug("ensuring cluster is stable with [{}] nodes. access node: [{}]. timeout: [{}]", nodeCount, viaNode, timeValue);
-        ClusterHealthResponse clusterHealthResponse = client(viaNode).admin().cluster().prepareHealth()
+        if (logger != null) {
+            logger.debug("ensuring cluster is stable with [{}] nodes. access node: [{}]. timeout: [{}]", nodeCount, viaNode, timeValue);
+        }
+        ClusterHealthResponse clusterHealthResponse = cluster.client(viaNode).admin().cluster().prepareHealth()
             .setWaitForEvents(Priority.LANGUID)
             .setWaitForNodes(Integer.toString(nodeCount))
             .setTimeout(timeValue)
@@ -905,19 +924,23 @@ public abstract class ESIntegTestCase extends ESTestCase {
             .setWaitForNoRelocatingShards(true)
             .get();
         if (clusterHealthResponse.isTimedOut()) {
-            ClusterStateResponse stateResponse = client(viaNode).admin().cluster().prepareState().get();
+            ClusterStateResponse stateResponse = cluster.client(viaNode).admin().cluster().prepareState().get();
             fail("failed to reach a stable cluster of [" + nodeCount + "] nodes. Tried via [" + viaNode + "]. last cluster state:\n"
                  + stateResponse.getState());
         }
         assertThat(clusterHealthResponse.isTimedOut(), is(false));
-        ensureFullyConnectedCluster();
+        ensureFullyConnectedCluster(cluster);
     }
 
     /**
      * See {@link NetworkDisruption#ensureFullyConnectedCluster(InternalTestCluster)}
      */
     protected void ensureFullyConnectedCluster() {
-        NetworkDisruption.ensureFullyConnectedCluster(internalCluster());
+        ensureFullyConnectedCluster(internalCluster());
+    }
+
+    protected static void ensureFullyConnectedCluster(InternalTestCluster cluster) {
+        NetworkDisruption.ensureFullyConnectedCluster(cluster);
     }
 
     /**

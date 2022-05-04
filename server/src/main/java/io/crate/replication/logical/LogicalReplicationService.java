@@ -146,8 +146,9 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         }
 
         if (event.nodesDelta().masterNodeChanged()) {
-            if (event.state().nodes().isLocalNodeElectedMaster()) {
-                metadataTracker.maybeStart();
+            if (event.state().nodes().isLocalNodeElectedMaster()
+                && event.previousState().nodes().isLocalNodeElectedMaster() == false) {
+                metadataTracker.startTracking(currentSubscriptionsMetadata.subscription().keySet());
             } else {
                 metadataTracker.close();
             }

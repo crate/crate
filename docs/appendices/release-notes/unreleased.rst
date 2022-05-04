@@ -66,3 +66,6 @@ Fixes
 
 - Fixed an issue with primary key columns that have a ``DEFAULT`` clause. That
   could lead to queries on the primary key column not matching the row.
+
+- Fixed an issue with the logical replication of tables metadata which caused
+  to stop if the master node of the subscriber changed.
