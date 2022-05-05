@@ -615,4 +615,21 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         Object plan = executor.plan(statement);
         assertThat(plan, Matchers.instanceOf(Join.class));
     }
+
+    /**
+     * https://github.com/crate/crate/issues/11404
+     */
+    @Test
+    public void test_constant_expression_in_left_join_condition_is_pushed_down_to_relation() throws Exception {
+        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of()).build();
+
+        LogicalPlan logicalPlan = executor.logicalPlan(
+            "select doc.t1.*, doc.t2.b from doc.t1 join doc.t2 on doc.t1.x = doc.t2.y and doc.t2.b = 'abc'");
+
+        assertThat(logicalPlan, is(isPlan(
+            "Eval[a, x, i, b]\n" +
+            "  └ HashJoin[(x = y)]\n" +
+            "    ├ Collect[doc.t1 | [a, x, i] | true]\n" +
+            "    └ Collect[doc.t2 | [b, y] | (b = 'abc')]")));
+    }
 }
