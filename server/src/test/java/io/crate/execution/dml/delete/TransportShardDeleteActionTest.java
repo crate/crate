@@ -21,32 +21,6 @@
 
 package io.crate.execution.dml.delete;
 
-import io.crate.execution.ddl.SchemaUpdateClient;
-import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.jobs.TasksService;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.support.replication.TransportWriteAction;
-import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.test.transport.MockTransportService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Answers;
-
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -56,6 +30,33 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.action.support.replication.TransportWriteAction;
+import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.test.transport.MockTransportService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.jobs.TasksService;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.netty.NettyBootstrap;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+
 public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnitTest {
 
     private final static RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
@@ -63,9 +64,13 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
     private TransportShardDeleteAction transportShardDeleteAction;
     private IndexShard indexShard;
     private String indexUUID;
+    private NettyBootstrap nettyBootstrap;
+
 
     @Before
     public void prepare() throws Exception {
+        nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
+        nettyBootstrap.start();
         indexUUID = UUIDs.randomBase64UUID();
         IndicesService indicesService = mock(IndicesService.class);
         IndexService indexService = mock(IndexService.class);
@@ -77,7 +82,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         transportShardDeleteAction = new TransportShardDeleteAction(
             Settings.EMPTY,
             MockTransportService.createNewService(
-                Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings()),
+                Settings.EMPTY, Version.CURRENT, THREAD_POOL, nettyBootstrap, clusterService.getClusterSettings()),
             clusterService,
             indicesService,
             mock(TasksService.class),
@@ -85,6 +90,11 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
             mock(ShardStateAction.class),
             mock(SchemaUpdateClient.class)
         );
+    }
+
+    @After
+    public void teardownNetty() {
+        nettyBootstrap.close();
     }
 
     @Test
