@@ -631,12 +631,6 @@ disk. The following storage types are supported:
   depending on the operating environment, which is currently ``hybridfs`` on
   all supported systems but is subject to change.
 
-:simplefs:
-  The ``Simple FS`` type is an implementation of file system storage (Lucene
-  ``SimpleFsDirectory``) using a random access file.  This implementation has
-  poor concurrent performance. It is usually better to use the ``niofs`` when
-  you need index persistence.
-
 :niofs:
   The ``NIO FS`` type stores the shard index on the file system (Lucene
   ``NIOFSDirectory``) using NIO. It allows multiple threads to read from the

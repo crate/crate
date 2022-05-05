@@ -206,8 +206,9 @@ public class ElasticsearchAssertions {
         assertThat(query, instanceOf(DisjunctionMaxQuery.class));
         DisjunctionMaxQuery q = (DisjunctionMaxQuery) query;
         assertThat(q.getDisjuncts().size(), greaterThan(i));
-        assertThat(q.getDisjuncts().get(i), instanceOf(subqueryType));
-        return subqueryType.cast(q.getDisjuncts().get(i));
+        var d = List.copyOf(q.getDisjuncts()).get(i);
+        assertThat(d, instanceOf(subqueryType));
+        return subqueryType.cast(d);
     }
 
     /**

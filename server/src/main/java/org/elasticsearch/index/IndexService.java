@@ -26,7 +26,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Assertions;
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Setting;
@@ -550,9 +549,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     public synchronized void updateMetadata(final IndexMetadata currentIndexMetadata, final IndexMetadata newIndexMetadata) {
         final boolean updateIndexSettings = indexSettings.updateIndexMetadata(newIndexMetadata);
 
-        if (Assertions.ENABLED
-                && currentIndexMetadata != null
-                && currentIndexMetadata.getCreationVersion().onOrAfter(Version.V_3_2_0)) {
+        if (Assertions.ENABLED && currentIndexMetadata != null) {
             final long currentSettingsVersion = currentIndexMetadata.getSettingsVersion();
             final long newSettingsVersion = newIndexMetadata.getSettingsVersion();
             if (currentSettingsVersion == newSettingsVersion) {

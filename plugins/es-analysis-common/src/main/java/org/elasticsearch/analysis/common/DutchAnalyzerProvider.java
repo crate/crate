@@ -37,7 +37,6 @@ public class DutchAnalyzerProvider extends AbstractIndexAnalyzerProvider<DutchAn
             Analysis.parseStopWords(env, settings, DutchAnalyzer.getDefaultStopSet()),
             Analysis.parseStemExclusion(settings, CharArraySet.EMPTY_SET)
         );
-        analyzer.setVersion(version);
     }
 
     @Override

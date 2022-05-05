@@ -29,7 +29,6 @@ import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -87,8 +86,7 @@ public class FieldsVisitor extends StoredFieldVisitor {
     }
 
     @Override
-    public void stringField(FieldInfo fieldInfo, byte[] bytes) throws IOException {
-        final String value = new String(bytes, StandardCharsets.UTF_8);
+    public void stringField(FieldInfo fieldInfo, String value) throws IOException {
         addValue(fieldInfo.name, value);
     }
 

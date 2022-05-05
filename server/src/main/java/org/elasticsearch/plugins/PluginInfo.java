@@ -163,10 +163,6 @@ public class PluginInfo implements ToXContentObject {
             }
         }
 
-        if (crateVersion.before(Version.V_3_2_0)) {
-            propsMap.remove("requires.keystore");
-        }
-
         if (propsMap.isEmpty() == false) {
             throw new IllegalArgumentException("Unknown properties in plugin descriptor: " + propsMap.keySet());
         }

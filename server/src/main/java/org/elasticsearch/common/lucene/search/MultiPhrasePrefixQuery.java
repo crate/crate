@@ -30,6 +30,7 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.MultiPhraseQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.QueryVisitor;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.StringHelper;
 
@@ -178,6 +179,10 @@ public class MultiPhrasePrefixQuery extends Query {
         }
         query.add(terms.toArray(Term.class), position);
         return query.build();
+    }
+
+    @Override
+    public void visit(QueryVisitor visitor) {
     }
 
     private void getPrefixTerms(ObjectHashSet<Term> terms, final Term prefix, final IndexReader reader) throws IOException {

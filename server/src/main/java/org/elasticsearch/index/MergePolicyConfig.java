@@ -181,7 +181,6 @@ public final class MergePolicyConfig {
         mergePolicy.setForceMergeDeletesPctAllowed(forceMergeDeletesPctAllowed);
         mergePolicy.setFloorSegmentMB(floorSegment.getMbFrac());
         mergePolicy.setMaxMergeAtOnce(maxMergeAtOnce);
-        mergePolicy.setMaxMergeAtOnceExplicit(maxMergeAtOnceExplicit);
         mergePolicy.setMaxMergedSegmentMB(maxMergedSegment.getMbFrac());
         mergePolicy.setSegmentsPerTier(segmentsPerTier);
         mergePolicy.setDeletesPctAllowed(deletesPctAllowed);
@@ -197,10 +196,6 @@ public final class MergePolicyConfig {
 
     void setMaxMergedSegment(ByteSizeValue maxMergedSegment) {
         mergePolicy.setMaxMergedSegmentMB(maxMergedSegment.getMbFrac());
-    }
-
-    void setMaxMergesAtOnceExplicit(Integer maxMergeAtOnceExplicit) {
-        mergePolicy.setMaxMergeAtOnceExplicit(maxMergeAtOnceExplicit);
     }
 
     void setMaxMergesAtOnce(Integer maxMergeAtOnce) {

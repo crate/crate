@@ -20,7 +20,6 @@
 package org.elasticsearch.index.engine;
 
 import org.apache.lucene.search.Sort;
-import org.apache.lucene.util.Accountable;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
@@ -39,9 +38,7 @@ public class Segment {
     public org.apache.lucene.util.Version version = null;
     public Boolean compound = null;
     public String mergeId;
-    public long memoryInBytes;
     public Sort segmentSort;
-    public Accountable ramTree = null;
     public Map<String, String> attributes;
 
     public Segment(String name) {
@@ -71,10 +68,6 @@ public class Segment {
 
     public int getDeletedDocs() {
         return this.delDocCount;
-    }
-
-    public long getMemoryInBytes() {
-        return this.memoryInBytes;
     }
 
     public ByteSizeValue getSize() {
@@ -135,7 +128,6 @@ public class Segment {
                 ", version='" + version + '\'' +
                 ", compound=" + compound +
                 ", mergeId='" + mergeId + '\'' +
-                ", memoryInBytes=" + memoryInBytes +
                 (segmentSort != null ? ", sort=" + segmentSort : "") +
                 ", attributes=" + attributes +
                 '}';

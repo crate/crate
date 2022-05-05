@@ -54,7 +54,7 @@ public class TableSettingsTest extends SQLIntegrationTestCase {
                 "\"translog.sync_interval\" = '3600ms', " +
                 "\"translog.flush_threshold_size\" = '1000000b', " +
                 "\"warmer.enabled\" = false, " +
-                "\"store.type\" = 'simplefs', " +
+                "\"store.type\" = 'niofs', " +
                 "\"translog.sync_interval\" = '20s'," +
                 "\"refresh_interval\" = '1000ms'," +
                 "\"unassigned.node_left.delayed_timeout\" = '1m'," +

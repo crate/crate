@@ -474,14 +474,15 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                                 final Engine engine = getEngine();
                                 engine.restoreLocalHistoryFromTranslog((resettingEngine, snapshot) ->
                                     runTranslogRecovery(resettingEngine, snapshot, Engine.Operation.Origin.LOCAL_RESET, () -> {}));
-                                if (indexSettings.getIndexVersionCreated().onOrBefore(Version.V_3_0_1)) {
-                                    // an index that was created before sequence numbers were introduced may contain operations in its
-                                    // translog that do not have a sequence numbers. We want to make sure those operations will never
-                                    // be replayed as part of peer recovery to avoid an arbitrary mixture of operations with seq# (due
-                                    // to active indexing) and operations without a seq# coming from the translog. We therefore flush
-                                    // to create a lucene commit point to an empty translog file.
-                                    engine.flush(false, true);
-                                }
+
+                                // an index that was created before sequence numbers were introduced may contain operations in its
+                                // translog that do not have a sequence numbers. We want to make sure those operations will never
+                                // be replayed as part of peer recovery to avoid an arbitrary mixture of operations with seq# (due
+                                // to active indexing) and operations without a seq# coming from the translog. We therefore flush
+                                // to create a lucene commit point to an empty translog file.
+                                assert indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_0_0) :
+                                    "version should be on or after 4.0.0 but it is " + indexSettings.getIndexVersionCreated();
+
                                 /* Rolling the translog generation is not strictly needed here (as we will never have collisions between
                                  * sequence numbers in a translog generation in a new primary as it takes the last known sequence number
                                  * as a starting point), but it simplifies reasoning about the relationship between primary terms and
@@ -1283,7 +1284,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             maybeCheckIndex(); // check index here and won't do it again if ops-based recovery occurs
             recoveryState.setStage(RecoveryState.Stage.TRANSLOG);
             if (safeCommit.isPresent() == false) {
-                assert globalCheckpoint == UNASSIGNED_SEQ_NO || indexSettings.getIndexVersionCreated().before(Version.V_3_2_0) :
+                assert globalCheckpoint == UNASSIGNED_SEQ_NO :
                     "global checkpoint [" + globalCheckpoint + "] [ created version [" + indexSettings.getIndexVersionCreated() + "]";
                 logger.trace("skip local recovery as no safe commit found");
                 return UNASSIGNED_SEQ_NO;

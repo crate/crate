@@ -37,7 +37,6 @@ public class FrenchAnalyzerProvider extends AbstractIndexAnalyzerProvider<French
             Analysis.parseStopWords(env, settings, FrenchAnalyzer.getDefaultStopSet()),
             Analysis.parseStemExclusion(settings, CharArraySet.EMPTY_SET)
         );
-        analyzer.setVersion(version);
     }
 
     @Override

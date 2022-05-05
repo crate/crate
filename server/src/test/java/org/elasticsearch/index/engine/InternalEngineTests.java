@@ -95,7 +95,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.filter.RegexFilter;
-import org.apache.lucene.codecs.lucene87.Lucene87StoredFieldsFormat;
+import org.apache.lucene.codecs.lucene90.Lucene90StoredFieldsFormat;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -315,8 +315,7 @@ public class InternalEngineTests extends EngineTestCase {
             assertThat(segments.get(0).getNumDocs(), equalTo(2));
             assertThat(segments.get(0).getDeletedDocs(), equalTo(0));
             assertThat(segments.get(0).isCompound(), equalTo(true));
-            assertThat(segments.get(0).ramTree, nullValue());
-            assertThat(segments.get(0).getAttributes().keySet(), Matchers.contains(Lucene87StoredFieldsFormat.MODE_KEY));
+            assertThat(segments.get(0).getAttributes().keySet(), Matchers.contains(Lucene90StoredFieldsFormat.MODE_KEY));
 
             engine.flush();
 
@@ -481,7 +480,6 @@ public class InternalEngineTests extends EngineTestCase {
 
             segments = engine.segments(true);
             assertThat(segments.size(), equalTo(1));
-            assertThat(segments.get(0).ramTree, notNullValue());
 
             ParsedDocument doc2 = testParsedDocument("2", testDocumentWithTextField(), B_2, null);
             engine.index(indexForDoc(doc2));
@@ -492,9 +490,6 @@ public class InternalEngineTests extends EngineTestCase {
 
             segments = engine.segments(true);
             assertThat(segments.size(), equalTo(3));
-            assertThat(segments.get(0).ramTree, notNullValue());
-            assertThat(segments.get(1).ramTree, notNullValue());
-            assertThat(segments.get(2).ramTree, notNullValue());
         }
     }
 
@@ -5866,7 +5861,7 @@ public class InternalEngineTests extends EngineTestCase {
     @Test
     public void testStoreHonorsLuceneVersion() throws IOException {
         for (Version createdVersion : Arrays.asList(
-                Version.CURRENT, VersionUtils.getPreviousMinorVersion(), VersionUtils.getFirstVersion())) {
+            Version.CURRENT, VersionUtils.getPreviousMinorVersion(), Version.CURRENT.minimumIndexCompatibilityVersion())) {
             Settings settings = Settings.builder()
                     .put(indexSettings())
                     .put(IndexMetadata.SETTING_VERSION_CREATED, createdVersion).build();

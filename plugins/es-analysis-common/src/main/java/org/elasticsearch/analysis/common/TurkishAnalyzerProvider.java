@@ -37,7 +37,6 @@ public class TurkishAnalyzerProvider extends AbstractIndexAnalyzerProvider<Turki
             Analysis.parseStopWords(env, settings, TurkishAnalyzer.getDefaultStopSet()),
             Analysis.parseStemExclusion(settings, CharArraySet.EMPTY_SET)
         );
-        analyzer.setVersion(version);
     }
 
     @Override
