@@ -62,9 +62,7 @@ import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.types.TypeSignature.parseTypeSignature;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.*;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -489,7 +487,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testMultiMatchWithOperator() {
         assertThat(
             convert("match((tags, name), 'foo bar') using best_fields with (operator='and')").toString(),
-            is("(name:foo bar | (+tags:foo +tags:bar))")
+            anyOf(is("(name:foo bar | (+tags:foo +tags:bar))"), is("((+tags:foo +tags:bar) | name:foo bar)"))
         );
     }
 

@@ -242,7 +242,7 @@ public class InboundDecoderTests extends ESTestCase {
     public void testVersionIncompatibilityDecodeException() throws IOException {
         String action = "test-request";
         long requestId = randomNonNegativeLong();
-        Version incompatibleVersion = Version.V_3_2_0;
+        Version incompatibleVersion = Version.fromString("3.2.0");
         OutboundMessage message = new OutboundMessage.Request(new TestRequest(randomAlphaOfLength(100)),
             incompatibleVersion, action, requestId, false, true);
 

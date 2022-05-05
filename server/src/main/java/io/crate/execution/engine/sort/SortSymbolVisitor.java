@@ -171,7 +171,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         String fieldName = symbol.column().fqn();
         MultiValueMode sortMode = reverse ? MultiValueMode.MAX : MultiValueMode.MIN;
         switch (symbol.valueType().id()) {
-            case StringType.ID: {
+            case StringType.ID -> {
                 SortField sortField = new SortedSetSortField(
                     fieldName,
                     reverse,
@@ -186,49 +186,47 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 );
                 return sortField;
             }
-            case BooleanType.ID:
-            case ByteType.ID:
-            case ShortType.ID:
-            case IntegerType.ID:
-            case LongType.ID:
-            case TimestampType.ID_WITHOUT_TZ:
-            case TimestampType.ID_WITH_TZ: {
+            case BooleanType.ID, ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID, TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ -> {
                 SortedNumericSelector.Type selectorType = sortMode == MultiValueMode.MAX
                     ? SortedNumericSelector.Type.MAX
                     : SortedNumericSelector.Type.MIN;
                 var reducedType = SortField.Type.LONG;
                 var sortField = new SortedNumericSortField(fieldName, SortField.Type.LONG, reverse, selectorType);
+
+                /*  https://github.com/apache/lucene/commit/cc58c5194129e213877f11e002f7670d4f4bdf63
+                    > Sort optimization has a number of requirements, one of which is that SortField.Type matches the Point type
+                      with which the field was indexed (e.g. sort on IntPoint field should use SortField.Type.INT).
+
+                    The first requirement is not met (e.g. sort on IntPoint uses SortField.Type.LONG) so need to set it to false.  */
+                sortField.setOptimizeSortWithPoints(false);
+
                 sortField.setMissingValue(
-                        NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
+                    NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
                 return sortField;
             }
-
-            case FloatType.ID: {
+            case FloatType.ID -> {
                 SortedNumericSelector.Type selectorType = sortMode == MultiValueMode.MAX
                     ? SortedNumericSelector.Type.MAX
                     : SortedNumericSelector.Type.MIN;
                 var reducedType = SortField.Type.FLOAT;
                 var sortField = new SortedNumericSortField(fieldName, SortField.Type.FLOAT, reverse, selectorType);
                 sortField.setMissingValue(
-                        NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
+                    NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
                 return sortField;
             }
-            case DoubleType.ID: {
+            case DoubleType.ID -> {
                 SortedNumericSelector.Type selectorType = sortMode == MultiValueMode.MAX
                     ? SortedNumericSelector.Type.MAX
                     : SortedNumericSelector.Type.MIN;
                 var reducedType = SortField.Type.DOUBLE;
                 var sortField = new SortedNumericSortField(fieldName, SortField.Type.DOUBLE, reverse, selectorType);
                 sortField.setMissingValue(
-                        NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
+                    NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
                 return sortField;
             }
-            case GeoPointType.ID:
-                throw new IllegalArgumentException(
-                        "can't sort on geo_point field without using specific sorting feature, like geo_distance");
-
-            default:
-                throw new UnsupportedOperationException("Cannot order on " + symbol + "::" + symbol.valueType());
+            case GeoPointType.ID -> throw new IllegalArgumentException(
+                "can't sort on geo_point field without using specific sorting feature, like geo_distance");
+            default -> throw new UnsupportedOperationException("Cannot order on " + symbol + "::" + symbol.valueType());
         }
     }
 

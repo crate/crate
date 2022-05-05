@@ -33,7 +33,7 @@ import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
-import org.apache.lucene.search.ConjunctionDISI;
+import org.apache.lucene.search.ConjunctionUtils;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -105,8 +105,8 @@ final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
                             // we can't return null here lucenes DocIdMerger expects an instance
                             intersection = DocIdSetIterator.empty();
                         } else {
-                            intersection = ConjunctionDISI.intersectIterators(Arrays.asList(numeric,
-                                                                                            new BitSetIterator(recoverySourceToKeep, recoverySourceToKeep.length())));
+                            intersection = ConjunctionUtils.intersectIterators(Arrays.asList(numeric,
+                                                                                             new BitSetIterator(recoverySourceToKeep, recoverySourceToKeep.length())));
                         }
                         return new FilterNumericDocValues(numeric) {
                             @Override
@@ -205,11 +205,6 @@ final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
             public void close() throws IOException {
                 in.close();
             }
-
-            @Override
-            public long ramBytesUsed() {
-                return in.ramBytesUsed();
-            }
         }
 
         private static class FilterStoredFieldsReader extends StoredFieldsReader {
@@ -218,11 +213,6 @@ final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
 
             FilterStoredFieldsReader(StoredFieldsReader fieldsReader) {
                 this.fieldsReader = fieldsReader;
-            }
-
-            @Override
-            public long ramBytesUsed() {
-                return fieldsReader.ramBytesUsed();
             }
 
             @Override
@@ -259,7 +249,7 @@ final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
             }
 
             @Override
-            public void stringField(FieldInfo fieldInfo, byte[] value) throws IOException {
+            public void stringField(FieldInfo fieldInfo, String value) throws IOException {
                 visitor.stringField(fieldInfo, value);
             }
 

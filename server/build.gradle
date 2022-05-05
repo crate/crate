@@ -79,7 +79,7 @@ dependencies {
     implementation "io.netty:netty-transport:${versions.netty4}"
 
     api "org.apache.lucene:lucene-core:${versions.lucene}"
-    implementation "org.apache.lucene:lucene-analyzers-common:${versions.lucene}"
+    implementation "org.apache.lucene:lucene-analysis-common:${versions.lucene}"
     implementation "org.apache.lucene:lucene-backward-codecs:${versions.lucene}"
     implementation "org.apache.lucene:lucene-grouping:${versions.lucene}"
     implementation "org.apache.lucene:lucene-join:${versions.lucene}"
@@ -139,7 +139,7 @@ dependencies {
     testFixturesImplementation "joda-time:joda-time:${versions.jodatime}"
     testFixturesImplementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
     testFixturesImplementation "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
-    testFixturesImplementation "org.apache.lucene:lucene-analyzers-common:${versions.lucene}"
+    testFixturesImplementation "org.apache.lucene:lucene-analysis-common:${versions.lucene}"
     testFixturesImplementation project(':libs:pgwire')
 }
 

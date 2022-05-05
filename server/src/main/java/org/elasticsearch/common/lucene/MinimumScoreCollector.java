@@ -45,7 +45,7 @@ public class MinimumScoreCollector extends SimpleCollector {
     @Override
     public void setScorer(Scorable scorer) throws IOException {
         if (!(scorer instanceof ScoreCachingWrappingScorer)) {
-            scorer = new ScoreCachingWrappingScorer(scorer);
+            scorer = ScoreCachingWrappingScorer.wrap(scorer);
         }
         this.scorer = scorer;
         leafCollector.setScorer(scorer);

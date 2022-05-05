@@ -48,9 +48,9 @@ public class TablesNeedUpgradeSysCheckTest extends SQLIntegrationTestCase {
 
     @Test
     public void testUpgradeRequired() throws Exception {
-        startUpNodeWithDataDir("/indices/data_home/cratedata-3.2.3.zip");
-        execute("select * from sys.shards where min_lucene_version = '7.5.0';");
-        assertThat(response.rowCount(), is(4L));
+        startUpNodeWithDataDir("/indices/data_home/cratedata-4.3.0.zip");
+        execute("select * from sys.shards where min_lucene_version = '8.6.2'");
+        assertThat(response.rowCount(), is(1L));
         execute("select * from sys.checks where id = 3");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], is(

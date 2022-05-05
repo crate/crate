@@ -34,11 +34,12 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.VectorValues;
+import org.apache.lucene.index.VectorSimilarityFunction;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.Bits;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
-import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.translog.Translog;
 
 import java.io.IOException;
@@ -52,10 +53,10 @@ final class TranslogLeafReader extends LeafReader {
     private final Translog.Index operation;
     private static final FieldInfo FAKE_SOURCE_FIELD
         = new FieldInfo(SourceFieldMapper.NAME, 1, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
-        0, 0, 0,false);
+        0, 0, 0, 0, VectorSimilarityFunction.EUCLIDEAN, false);
     private static final FieldInfo FAKE_ID_FIELD
         = new FieldInfo(IdFieldMapper.NAME, 3, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
-        0, 0, 0,false);
+        0, 0, 0, 0, VectorSimilarityFunction.EUCLIDEAN, false);
 
     TranslogLeafReader(Translog.Index operation) {
         this.operation = operation;
@@ -98,6 +99,16 @@ final class TranslogLeafReader extends LeafReader {
 
     @Override
     public NumericDocValues getNormValues(String field) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public VectorValues getVectorValues(String field) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TopDocs searchNearestVectors(String field, float[] target, int k, Bits acceptDocs) throws IOException {
         throw new UnsupportedOperationException();
     }
 
@@ -152,10 +163,7 @@ final class TranslogLeafReader extends LeafReader {
             visitor.binaryField(FAKE_SOURCE_FIELD, operation.getSource().toBytesRef().bytes);
         }
         if (visitor.needsField(FAKE_ID_FIELD) == StoredFieldVisitor.Status.YES) {
-            BytesRef bytesRef = Uid.encodeId(operation.id());
-            byte[] id = new byte[bytesRef.length];
-            System.arraycopy(bytesRef.bytes, bytesRef.offset, id, 0, bytesRef.length);
-            visitor.stringField(FAKE_ID_FIELD, id);
+            visitor.stringField(FAKE_ID_FIELD, operation.id());
         }
     }
 

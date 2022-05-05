@@ -23,7 +23,8 @@ apply from: "$rootDir/extensions/extensionModule.gradle"
 dependencies {
     implementation project(':libs:shared')
     implementation project(':server')
-    pluginDependency "org.apache.lucene:lucene-analyzers-phonetic:${versions.lucene}"
+    pluginDependency "org.apache.lucene:lucene-analysis-phonetic:${versions.lucene}"
+    implementation "commons-codec:commons-codec:${versions.commonscodec}"
 
     testImplementation(testFixtures(project(':server')))
     testImplementation "junit:junit:${versions.junit}"
