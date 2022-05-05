@@ -67,7 +67,7 @@ public class MetaDataCreateIndexServiceTests extends ESTestCase {
         routingTableBuilder.addAsNew(metaData.index(name));
 
         RoutingTable routingTable = routingTableBuilder.build();
-        ClusterState clusterState = ClusterState.builder(org.elasticsearch.cluster.ClusterName.CLUSTER_NAME_SETTING
+        ClusterState clusterState = ClusterState.builder(ClusterName.CLUSTER_NAME_SETTING
             .getDefault(Settings.EMPTY))
             .metaData(metaData).routingTable(routingTable).blocks(ClusterBlocks.builder().addBlocks(indexMetaData)).build();
         return clusterState;
