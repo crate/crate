@@ -54,6 +54,9 @@ None
 Changes
 =======
 
+- Added an optimization to push down constant join conditions to the relation
+  in an inner join, which results in a more efficient execution plan.
+
 - Updated the bundled JDK to 18.0.1+10
 
 - Moved the :ref:`scalar-quote_ident` function to `pg_catalog` for improved

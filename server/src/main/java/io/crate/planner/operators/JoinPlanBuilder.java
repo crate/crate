@@ -180,7 +180,8 @@ public class JoinPlanBuilder {
                 joinType,
                 joinCondition,
                 !query.symbolType().isValueSymbol(),
-                lhs);
+                lhs,
+                false);
         }
     }
 
