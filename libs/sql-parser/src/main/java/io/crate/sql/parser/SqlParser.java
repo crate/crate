@@ -75,6 +75,7 @@ public class SqlParser {
     }
 
     public static List<Statement> createStatements(String sql) {
+        System.out.println("sql = " + sql);
         return ((MultiStatement) INSTANCE.generateStatements(sql)).statements();
     }
 
