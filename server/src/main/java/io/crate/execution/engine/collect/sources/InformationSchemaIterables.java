@@ -99,6 +99,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final Iterable<PgClassTable.Entry> pgClasses;
     private final Iterable<PgProcTable.Entry> pgBuiltInFunc;
     private final Iterable<PgProcTable.Entry> pgTypeReceiveFunctions;
+    private final Iterable<PgProcTable.Entry> pgTypeSendFunctions;
     private final NodeContext nodeCtx;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
@@ -172,6 +173,19 @@ public class InformationSchemaIterables implements ClusterStateListener {
                 // Don't generate array_recv entry from pgTypes to avoid duplicate entries
                 // (We want 1 array_recv entry, not one per array type)
                 Stream.of(PgProcTable.Entry.of(Regproc.of("array_recv").asDummySignature()))
+            )
+            .iterator();
+
+        pgTypeSendFunctions = () ->
+            Stream.concat(
+                sequentialStream(PGTypes.pgTypes())
+                    .filter(t -> t.typArray() != 0)
+                    .map(x -> x.typSend().asDummySignature())
+                    .map(PgProcTable.Entry::of),
+
+                // Don't generate array_send entry from pgTypes to avoid duplicate entries
+                // (We want 1 array_send entry, not one per array type)
+                Stream.of(PgProcTable.Entry.of(Regproc.of("array_send").asDummySignature()))
             )
             .iterator();
     }
@@ -301,7 +315,10 @@ public class InformationSchemaIterables implements ClusterStateListener {
                     .flatMap(List::stream)
                     .map(this::pgProc)
             ),
-            sequentialStream(pgTypeReceiveFunctions)
+            concat(
+                sequentialStream(pgTypeReceiveFunctions),
+                sequentialStream(pgTypeSendFunctions)
+            )
         ).iterator();
     }
 
