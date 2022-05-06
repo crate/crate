@@ -106,13 +106,15 @@ public class ShardReplicationChangesTracker implements Closeable {
 
     public void start() {
         LOGGER.debug("[{}] Spawning the shard changes reader", shardId);
-        newRunnable().run();
+        var retryRunnable = newRunnable();
+        cancellable = retryRunnable;
+        retryRunnable.run();
     }
 
     private RetryRunnable newRunnable() {
         return new RetryRunnable(
-            threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
-            threadPool.scheduler(),
+            threadPool,
+            ThreadPool.Names.LOGICAL_REPLICATION,
             this::pollAndProcessPendingChanges,
             BackoffPolicy.exponentialBackoff()
         );
