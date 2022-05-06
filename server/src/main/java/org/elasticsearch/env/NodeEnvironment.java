@@ -62,7 +62,6 @@ import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.Node;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -85,7 +84,6 @@ import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -96,9 +94,9 @@ import java.util.stream.Stream;
 public final class NodeEnvironment implements Closeable {
 
     public static class NodePath {
-        /* ${data.paths}/nodes/{node.id} */
+        /* ${data.paths}/nodes/0 */
         public final Path path;
-        /* ${data.paths}/nodes/{node.id}/indices */
+        /* ${data.paths}/nodes/0/indices */
         public final Path indicesPath;
         /** Cached FileStore from path */
         public final FileStore fileStore;
@@ -157,17 +155,10 @@ public final class NodeEnvironment implements Closeable {
     private final Path sharedDataPath;
     private final Lock[] locks;
 
-    private final int nodeLockId;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final Map<ShardId, InternalShardLock> shardLocks = new HashMap<>();
 
     private final NodeMetadata nodeMetadata;
-
-    /**
-     * Maximum number of data nodes that should run in an environment.
-     */
-    public static final Setting<Integer> MAX_LOCAL_STORAGE_NODES_SETTING = Setting.intSetting("node.max_local_storage_nodes", 1, 1,
-        Property.NodeScope, Property.Deprecated);
 
     /**
      * Seed for determining a persisted unique uuid of this node. If the node has already a persisted uuid on disk,
@@ -189,7 +180,6 @@ public final class NodeEnvironment implements Closeable {
 
     public static class NodeLock implements Releasable {
 
-        private final int nodeId;
         private final Lock[] locks;
         private final NodePath[] nodePaths;
 
@@ -197,17 +187,16 @@ public final class NodeEnvironment implements Closeable {
          * Tries to acquire a node lock for a node id, throws {@code IOException} if it is unable to acquire it
          * @param pathFunction function to check node path before attempt of acquiring a node lock
          */
-        public NodeLock(final int nodeId, final Logger logger,
+        public NodeLock(final Logger logger,
                         final Environment environment,
                         final CheckedFunction<Path, Boolean, IOException> pathFunction) throws IOException {
-            this.nodeId = nodeId;
             nodePaths = new NodePath[environment.dataFiles().length];
             locks = new Lock[nodePaths.length];
             try {
                 final Path[] dataPaths = environment.dataFiles();
                 for (int dirIndex = 0; dirIndex < dataPaths.length; dirIndex++) {
                     Path dataDir = dataPaths[dirIndex];
-                    Path dir = resolveNodePath(dataDir, nodeId);
+                    Path dir = resolveNodePath(dataDir);
                     if (pathFunction.apply(dir) == false) {
                         continue;
                     }
@@ -253,59 +242,35 @@ public final class NodeEnvironment implements Closeable {
             nodePaths = null;
             sharedDataPath = null;
             locks = null;
-            nodeLockId = -1;
             nodeMetadata = new NodeMetadata(generateNodeId(settings), Version.CURRENT);
             return;
         }
         boolean success = false;
-        NodeLock nodeLock = null;
 
         try {
             sharedDataPath = environment.sharedDataFile();
-            IOException lastException = null;
-            int maxLocalStorageNodes = MAX_LOCAL_STORAGE_NODES_SETTING.get(settings);
 
-            final AtomicReference<IOException> onCreateDirectoriesException = new AtomicReference<>();
-            for (int possibleLockId = 0; possibleLockId < maxLocalStorageNodes; possibleLockId++) {
-                try {
-                    nodeLock = new NodeLock(possibleLockId, logger, environment,
-                        dir -> {
-                            try {
-                                Files.createDirectories(dir);
-                            } catch (IOException e) {
-                                onCreateDirectoriesException.set(e);
-                                throw e;
-                            }
-                            return true;
-                        });
-                    break;
-                } catch (LockObtainFailedException e) {
-                    // ignore any LockObtainFailedException
-                } catch (IOException e) {
-                    if (onCreateDirectoriesException.get() != null) {
-                        throw onCreateDirectoriesException.get();
-                    }
-                    lastException = e;
-                }
+            for (Path path : environment.dataFiles()) {
+                Files.createDirectories(resolveNodePath(path));
             }
 
-            if (nodeLock == null) {
+            final NodeLock nodeLock;
+            try {
+                nodeLock = new NodeLock(logger, environment, dir -> true);
+            } catch (IOException e) {
                 final String message = String.format(
                     Locale.ROOT,
-                    "failed to obtain node locks, tried [%s] with lock id%s;" +
-                        " maybe these locations are not writable or multiple nodes were started without increasing [%s] (was [%d])?",
-                    Arrays.toString(environment.dataFiles()),
-                    maxLocalStorageNodes == 1 ? " [0]" : "s [0--" + (maxLocalStorageNodes - 1) + "]",
-                    MAX_LOCAL_STORAGE_NODES_SETTING.getKey(),
-                    maxLocalStorageNodes);
-                throw new IllegalStateException(message, lastException);
+                    "failed to obtain node locks, tried %s;" +
+                        " maybe these locations are not writable or multiple nodes were started on the same data path?",
+                    Arrays.toString(environment.dataFiles()));
+                throw new IllegalStateException(message, e);
             }
+
             this.locks = nodeLock.locks;
             this.nodePaths = nodeLock.nodePaths;
-            this.nodeLockId = nodeLock.nodeId;
 
             if (logger.isDebugEnabled()) {
-                logger.debug("using node location [{}], local_lock_id [{}]", nodePaths, nodeLockId);
+                logger.debug("using node location {}", Arrays.toString(nodePaths));
             }
 
             maybeLogPathDetails();
@@ -336,21 +301,13 @@ public final class NodeEnvironment implements Closeable {
     }
 
     /**
-     * Resolve a specific nodes/{node.id} path for the specified path and node lock id.
+     * Resolve a nodes/0 path for the specified path.
      *
      * @param path       the path
-     * @param nodeLockId the node lock id
      * @return the resolved path
      */
-    public static Path resolveNodePath(final Path path, final int nodeLockId) {
-        // This makes sure when the path for the node lock using the 'node/$nodeLockId' path already
-        // exists it is not recreated again.
-        var id = Integer.toString(nodeLockId);
-        if (path.toString().endsWith(NODES_FOLDER + File.separator + id)) {
-            return path;
-        } else {
-            return path.resolve(NODES_FOLDER).resolve(id);
-        }
+    public static Path resolveNodePath(final Path path) {
+        return path.resolve(NODES_FOLDER).resolve("0");
     }
 
     private void maybeLogPathDetails() throws IOException {
@@ -837,14 +794,6 @@ public final class NodeEnvironment implements Closeable {
         return nodePaths;
     }
 
-    public int getNodeLockId() {
-        assertEnvIsLocked();
-        if (nodePaths == null || locks == null) {
-            throw new IllegalStateException("node is not configured to store local location");
-        }
-        return nodeLockId;
-    }
-
     /**
      * Returns all index paths.
      */
@@ -1165,11 +1114,11 @@ public final class NodeEnvironment implements Closeable {
     /**
      * Resolve the custom path for a index's shard.
      */
-    public static Path resolveBaseCustomLocation(String customDataPath, Path sharedDataPath, int nodeLockId) {
+    public static Path resolveBaseCustomLocation(String customDataPath, Path sharedDataPath) {
         if (Strings.isNotEmpty(customDataPath)) {
             // This assert is because this should be caught by MetadataCreateIndexService
             assert sharedDataPath != null;
-            return sharedDataPath.resolve(customDataPath).resolve(Integer.toString(nodeLockId));
+            return sharedDataPath.resolve(customDataPath).resolve("0");
         } else {
             throw new IllegalArgumentException("no custom " + IndexMetadata.SETTING_DATA_PATH + " setting available");
         }
@@ -1183,11 +1132,11 @@ public final class NodeEnvironment implements Closeable {
      * @param customDataPath the custom data path
      */
     private Path resolveIndexCustomLocation(String customDataPath, String indexUUID) {
-        return resolveIndexCustomLocation(customDataPath, indexUUID, sharedDataPath, nodeLockId);
+        return resolveIndexCustomLocation(customDataPath, indexUUID, sharedDataPath);
     }
 
-    private static Path resolveIndexCustomLocation(String customDataPath, String indexUUID, Path sharedDataPath, int nodeLockId) {
-        return resolveBaseCustomLocation(customDataPath, sharedDataPath, nodeLockId).resolve(indexUUID);
+    private static Path resolveIndexCustomLocation(String customDataPath, String indexUUID, Path sharedDataPath) {
+        return resolveBaseCustomLocation(customDataPath, sharedDataPath).resolve(indexUUID);
     }
 
     /**
@@ -1199,12 +1148,12 @@ public final class NodeEnvironment implements Closeable {
      * @param shardId shard to resolve the path to
      */
     public Path resolveCustomLocation(String customDataPath, final ShardId shardId) {
-        return resolveCustomLocation(customDataPath, shardId, sharedDataPath, nodeLockId);
+        return resolveCustomLocation(customDataPath, shardId, sharedDataPath);
     }
 
-    public static Path resolveCustomLocation(String customDataPath, final ShardId shardId, Path sharedDataPath, int nodeLockId) {
+    public static Path resolveCustomLocation(String customDataPath, final ShardId shardId, Path sharedDataPath) {
         return resolveIndexCustomLocation(customDataPath, shardId.getIndex().getUUID(),
-            sharedDataPath, nodeLockId).resolve(Integer.toString(shardId.id()));
+            sharedDataPath).resolve(Integer.toString(shardId.id()));
     }
 
     /**
