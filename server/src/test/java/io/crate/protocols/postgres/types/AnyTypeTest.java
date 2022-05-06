@@ -74,4 +74,10 @@ public class AnyTypeTest extends BasePGTypeTest<Integer> {
         assertThat(AnyType.INSTANCE.typReceive().oid(), Matchers.is(0));
         assertThat(AnyType.INSTANCE.typReceive().name(), Matchers.is("-"));
     }
+
+    @Test
+    public void test_typsend_is_0_for_anytype() throws Exception {
+        assertThat(AnyType.INSTANCE.typSend().oid(), Matchers.is(0));
+        assertThat(AnyType.INSTANCE.typSend().name(), Matchers.is("-"));
+    }
 }
