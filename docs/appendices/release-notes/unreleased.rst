@@ -42,7 +42,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
-None
+- Removed deprecated ``node.max_local_storage_nodes`` setting. Set different
+  :ref:`path.data <path.data>` values to run multiple CrateDB processes on the
+  same machine.
 
 
 Deprecations

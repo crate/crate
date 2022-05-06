@@ -23,7 +23,6 @@ package org.elasticsearch.cluster.coordination;
 import io.crate.common.collections.Tuple;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.LockObtainFailedException;
@@ -68,7 +67,6 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
     public static final String NO_NODE_METADATA_FOUND_MSG = "no node meta data is found, node has not been started yet?";
     public static final String ABORTED_BY_USER_MSG = "aborted by user";
     public static final String CS_MISSING_MSG = "cluster state is empty, cluster has never been bootstrapped?";
-    final OptionSpec<Integer> nodeOrdinalOption;
 
     protected static final NamedXContentRegistry NAMED_X_CONTENT_REGISTRY = new NamedXContentRegistry(
         Stream.of(ClusterModule.getNamedXWriteables().stream(), IndicesModule.getNamedXContents().stream())
@@ -77,8 +75,6 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
 
     public ElasticsearchNodeCommand(String description) {
         super(description);
-        nodeOrdinalOption = parser.accepts("ordinal", "Optional node ordinal, 0 if not specified")
-            .withRequiredArg().ofType(Integer.class);
     }
 
     public static PersistedClusterStateService createPersistedClusterStateService(Settings settings, Path[] dataPaths) throws IOException {
@@ -110,11 +106,7 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
 
     protected void processNodePaths(Terminal terminal, OptionSet options, Environment env) throws IOException, UserException {
         terminal.println(Terminal.Verbosity.VERBOSE, "Obtaining lock for node");
-        Integer nodeOrdinal = nodeOrdinalOption.value(options);
-        if (nodeOrdinal == null) {
-            nodeOrdinal = 0;
-        }
-        try (NodeEnvironment.NodeLock lock = new NodeEnvironment.NodeLock(nodeOrdinal, LOGGER, env, Files::exists)) {
+        try (NodeEnvironment.NodeLock lock = new NodeEnvironment.NodeLock(LOGGER, env, Files::exists)) {
             final Path[] dataPaths =
                     Arrays.stream(lock.getNodePaths()).filter(Objects::nonNull).map(p -> p.path).toArray(Path[]::new);
             if (dataPaths.length == 0) {
