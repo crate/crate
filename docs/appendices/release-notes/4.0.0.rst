@@ -180,8 +180,8 @@ Removed Settings
   ``crate.yaml`` configuration file and command line arguments. Please, use the
   :ref:`sql-create-repository` statement parameters for this purpose.
 
-- Removed :ref:`HDFS repository <sql-create-repo-hdfs>` setting:
-  ``concurrent_streams`` as it is no longer supported.
+- Removed HDFS repository setting: ``concurrent_streams`` as it is no longer
+  supported.
 
 - The ``zen1`` related discovery settings mentioned in
   :ref:`v4.0.0-discovery-changes`.
