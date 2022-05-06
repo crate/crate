@@ -21,31 +21,36 @@
 
 package io.crate.execution.support;
 
-import io.crate.common.unit.TimeValue;
+import java.util.Iterator;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.threadpool.Scheduler;
+import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Iterator;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import io.crate.common.unit.TimeValue;
 
-public class RetryRunnable implements Runnable {
+public class RetryRunnable implements Runnable, Scheduler.Cancellable {
 
     private static final Logger LOGGER = LogManager.getLogger(RetryRunnable.class);
 
+    private final ThreadPool threadPool;
+    private final String executorName;
     private final Executor executor;
-    private final ScheduledExecutorService scheduler;
     private final Iterator<TimeValue> delay;
     private final Runnable retryCommand;
+    private Scheduler.Cancellable cancellable;
 
-    public RetryRunnable(Executor executor,
-                         ScheduledExecutorService scheduler,
+    public RetryRunnable(ThreadPool threadPool,
+                         String executorName,
                          Runnable command,
                          Iterable<TimeValue> backOffPolicy) {
-        this.executor = executor;
-        this.scheduler = scheduler;
+        this.threadPool = threadPool;
+        this.executorName = executorName;
+        this.executor = threadPool.executor(executorName);
         this.delay = backOffPolicy.iterator();
         this.retryCommand = command;
     }
@@ -60,12 +65,32 @@ public class RetryRunnable implements Runnable {
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug("Received RejectedExecutionException, will retry again in {}ms", currentDelay);
                 }
-                scheduler.schedule(retryCommand, currentDelay, TimeUnit.MILLISECONDS);
+                cancellable = threadPool.scheduleUnlessShuttingDown(
+                    new TimeValue(currentDelay, TimeUnit.MILLISECONDS),
+                    executorName,
+                    retryCommand
+                );
             } else {
                 LOGGER.warn("Received RejectedExecutionException after max retries, giving up");
             }
         } catch (Exception e) {
             LOGGER.error("Received unhandled exception", e);
         }
+    }
+
+    @Override
+    public boolean cancel() {
+        if (cancellable != null) {
+            return cancellable.cancel();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        if (cancellable != null) {
+            return cancellable.isCancelled();
+        }
+        return false;
     }
 }
