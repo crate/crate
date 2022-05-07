@@ -770,6 +770,148 @@ Example::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-parse_uri:
+
+``parse_uri(text)``
+-----------------------------------
+
+Returns: ``object``
+
+Parses the given URI string and returns an object containing the various 
+components of the URI. The returned object has the following properties::
+
+    "uri" OBJECT AS (
+        "scheme" TEXT,
+        "userinfo" TEXT,
+        "hostname" TEXT,
+        "port" INT,
+        "path" TEXT,
+        "query" TEXT,
+        "fragment" TEXT
+    )
+
+.. csv-table::
+   :header: "URI Component", "Description"
+   :widths: 25, 75
+   :align: left
+
+   ``scheme`` , "The scheme of the URI (e.g. ``http``, ``crate``, etc.)"
+   ``userinfo`` , "The decoded user-information component of this URI."
+   ``hostname`` , "The hostname or IP address specified in the URI."
+   ``port`` , "The port number specified in the URI"
+   ``path`` , "The decoded path specified in the URI."
+   ``query`` , "The decoded query string specified in the URI"
+   ``fragment`` , "The query string specified in the URI"
+
+.. NOTE::
+
+    For URI properties not specified in the input string, ``null`` is returned.
+
+Synopsis::
+
+    parse_uri(text)
+
+Example::
+
+    cr> SELECT parse_uri('crate://my_user@cluster.crate.io:5432/doc?sslmode=verify-full') as uri;                                                                               
+    +------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | uri                                                                                                                                                        |
+    +------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | {"fragment": null, "hostname": "cluster.crate.io", "path": "/doc", "port": 5432, "query": "sslmode=verify-full", "scheme": "crate", "userinfo": "my_user"} |
+    +------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+If you just want to select a specific URI component, you can use the bracket 
+notation on the returned object::
+
+    cr> SELECT parse_uri('crate://my_user@cluster.crate.io:5432')['hostname'] as uri_hostname;                                                                                  
+    +------------------+
+    | uri_hostname     |
+    +------------------+
+    | cluster.crate.io |
+    +------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-parse_url:
+
+``parse_url(text)``
+-----------------------------------
+
+Returns: ``object``
+
+Parses the given URL string and returns an object containing the various 
+components of the URL. The returned object has the following properties::
+
+    "url" OBJECT AS (
+        "scheme" TEXT,
+        "userinfo" TEXT,
+        "hostname" TEXT,
+        "port" INT,
+        "path" TEXT,
+        "query" TEXT,
+        "parameters" OBJECT AS (
+            "key1" ARRAY(TEXT),
+            "key2" ARRAY(TEXT)   
+        ),
+        "fragment" TEXT
+    )
+
+.. csv-table::
+   :header: "URL Component", "Description"
+   :widths: 25, 75
+   :align: left
+
+   ``scheme`` , "The scheme of the URL (e.g. ``https``, ``crate``, etc.)"
+   ``userinfo`` , "The decoded user-information component of this URL."
+   ``hostname`` , "The hostname or IP address specified in the URL."
+   ``port`` , "The port number specified in the URL. If no port number is specified, the default port for the given scheme will be used."
+   ``path`` , "The decoded path specified in the URL."
+   ``query`` , "The decoded query string specified in the URL."
+   ``parameters`` , "For each query parameter included in the URL, the ``parameter`` property holds an object property that stores an array of decoded text values for that specific query parameter."
+   ``fragment`` , "The decoded fragment specified in the URL"
+
+.. NOTE::
+
+    For URL properties not specified in the input string, ``null`` is returned.
+
+Synopsis::
+
+    parse_url(text)
+
+Example::
+
+    cr> SELECT parse_url('https://my_user@cluster.crate.io:4200/doc?sslmode=verify-full') as url;                                                                               
+    +--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | url                                                                                                                                                                                                    |
+    +--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | {"fragment": null, "hostname": "cluster.crate.io", "parameters": {"sslmode": ["verify-full"]}, "path": "/doc", "port": 4200, "query": "sslmode=verify-full", "scheme": "https", "userinfo": "my_user"} |
+    +--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+If you just want to select a specific URL component, you can use the bracket 
+notation on the returned object::
+
+    cr> SELECT parse_url('https://my_user@cluster.crate.io:5432')['hostname'] as url_hostname;                                                                                  
+    +------------------+
+    | url_hostname     |
+    +------------------+
+    | cluster.crate.io |
+    +------------------+
+    SELECT 1 row in set (... sec)
+
+Parameter values are always treated as ``text``. There is no conversion of 
+comma-separated parameter values into arrays::
+
+    cr> SELECT parse_url('http://crate.io?p1=1,2,3&p1=a&p2[]=1,2,3')['parameters'] as params;                                                                                                                        
+    +-------------------------------------------+
+    | params                                    |
+    +-------------------------------------------+
+    | {"p1": ["1,2,3", "a"], "p2[]": ["1,2,3"]} |
+    +-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-date-time:
 
 Date and time functions

@@ -159,6 +159,14 @@ Changes
   first level properties, taking the second object's values for duplicate
   properties.
 
+- Added the :ref:`parse_uri(text) <scalar-parse_uri>` scalar function which 
+  parses a valid URI string into an ``object`` containing the URI components, 
+  making it easier to query them.
+
+- Added the :ref:`parse_url(text) <scalar-parse_url>` scalar function which
+  parses a valid URL string into an ``object`` containing the URL components, 
+  including parsed query parameters, making it easier to query them.
+
 Fixes
 =====
 
