@@ -2945,6 +2945,32 @@ arguments, the return type is ``numeric``.
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-objects:
+
+Object functions
+================
+
+.. _scalar-object_keys:
+
+``object_keys(object)``
+-----------------------
+
+The ``object_keys`` function returns the set of first level keys of an ``object``.
+
+Returns: ``array(text)``
+
+::
+
+    cr> select
+    ...     object_keys({a = 1, b = { c = 2 }}) AS object_keys;
+    +-------------+
+    | object_keys |
+    +-------------+
+    | ["a", "b"]  |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-conditional-fn-exp:
 
 Conditional functions and expressions
