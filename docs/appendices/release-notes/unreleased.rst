@@ -68,6 +68,9 @@ Changes
 
 - Added ``typsend`` column to ``pg_catalog.pgtype`` table for improved
   compatibility with PostgreSQL.
+  
+- Added the :ref:`object_keys <scalar-object_keys>` scalar function which returns
+  the set of first level keys of an ``object``.
 
 
 Fixes
