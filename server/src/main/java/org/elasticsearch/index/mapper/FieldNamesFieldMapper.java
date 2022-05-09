@@ -87,14 +87,10 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         }
 
         @Override
-        public MetadataFieldMapper getDefault(MappedFieldType fieldType, ParserContext context) {
+        public MetadataFieldMapper getDefault(ParserContext context) {
             final Settings indexSettings = context.mapperService().getIndexSettings().getSettings();
-            if (fieldType != null) {
-                return new FieldNamesFieldMapper(Defaults.FIELD_TYPE, fieldType, indexSettings);
-            } else {
-                return parse(NAME, Collections.emptyMap(), context)
-                        .build(new BuilderContext(indexSettings, new ContentPath(1)));
-            }
+            return parse(NAME, Collections.emptyMap(), context)
+                    .build(new BuilderContext(indexSettings, new ContentPath(1)));
         }
     }
 
