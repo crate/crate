@@ -19,12 +19,11 @@
 
 package org.elasticsearch.index.mapper;
 
-import javax.annotation.Nullable;
+import java.util.Objects;
+
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentType;
-
-import java.util.Objects;
 
 public class SourceToParse {
 
@@ -34,22 +33,15 @@ public class SourceToParse {
 
     private final String id;
 
-    private final @Nullable String routing;
-
     private final XContentType xContentType;
 
-    public SourceToParse(String index, String id, BytesReference source, XContentType xContentType, @Nullable String routing) {
+    public SourceToParse(String index, String id, BytesReference source, XContentType xContentType) {
         this.index = Objects.requireNonNull(index);
         this.id = Objects.requireNonNull(id);
         // we always convert back to byte array, since we store it and Field only supports bytes..
         // so, we might as well do it here, and improve the performance of working with direct byte arrays
         this.source = new BytesArray(Objects.requireNonNull(source).toBytesRef());
         this.xContentType = Objects.requireNonNull(xContentType);
-        this.routing = routing;
-    }
-
-    public SourceToParse(String index, String id, BytesReference source, XContentType xContentType) {
-        this(index, id, source, xContentType, null);
     }
 
     public BytesReference source() {
@@ -62,10 +54,6 @@ public class SourceToParse {
 
     public String id() {
         return this.id;
-    }
-
-    public @Nullable String routing() {
-        return this.routing;
     }
 
     public XContentType getXContentType() {

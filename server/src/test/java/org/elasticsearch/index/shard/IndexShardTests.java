@@ -646,7 +646,7 @@ public class IndexShardTests extends IndexShardTestCase {
                         0,
                         primary.getPendingPrimaryTerm(),
                         1,
-                        "{\"foo\" : \"bar\"}".getBytes(StandardCharsets.UTF_8), null, -1));
+                        "{\"foo\" : \"bar\"}".getBytes(StandardCharsets.UTF_8), -1));
             } else {
                 // corrupt entry
                 operations.add(
@@ -655,7 +655,7 @@ public class IndexShardTests extends IndexShardTestCase {
                         1,
                         primary.getPendingPrimaryTerm(),
                         1,
-                        "{\"foo\" : \"bar}".getBytes(StandardCharsets.UTF_8), null, -1));
+                        "{\"foo\" : \"bar}".getBytes(StandardCharsets.UTF_8), -1));
                 numCorruptEntries++;
             }
         }
@@ -3906,7 +3906,6 @@ public class IndexShardTests extends IndexShardTestCase {
                 shard.getPendingPrimaryTerm(),
                 1,
                 "{\"foo\" : \"bar\"}".getBytes(StandardCharsets.UTF_8),
-                null,
                 -1)
             ),
             // entries with corrupted source
@@ -3916,7 +3915,6 @@ public class IndexShardTests extends IndexShardTestCase {
                 shard.getPendingPrimaryTerm(),
                 1,
                 "{\"foo\" : \"bar}".getBytes(StandardCharsets.UTF_8),
-                null,
                 -1)
             )).collect(Collectors.toList());
         Randomness.shuffle(operations);

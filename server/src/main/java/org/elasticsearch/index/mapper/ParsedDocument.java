@@ -35,8 +35,6 @@ public class ParsedDocument {
     private final String id;
     private final SeqNoFieldMapper.SequenceIDFields seqID;
 
-    private final String routing;
-
     private final List<Document> documents;
 
     private final BytesReference source;
@@ -46,14 +44,12 @@ public class ParsedDocument {
     public ParsedDocument(Field version,
                           SeqNoFieldMapper.SequenceIDFields seqID,
                           String id,
-                          String routing,
                           List<Document> documents,
                           BytesReference source,
                           Mapping dynamicMappingsUpdate) {
         this.version = version;
         this.seqID = seqID;
         this.id = id;
-        this.routing = routing;
         this.documents = documents;
         this.source = source;
         this.dynamicMappingsUpdate = dynamicMappingsUpdate;
@@ -82,10 +78,6 @@ public class ParsedDocument {
         this.seqID.tombstoneField.setLongValue(1);
         rootDoc().add(this.seqID.tombstoneField);
         return this;
-    }
-
-    public String routing() {
-        return this.routing;
     }
 
     public Document rootDoc() {

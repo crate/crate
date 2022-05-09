@@ -393,7 +393,6 @@ public class RecoverySourceHandlerTests extends ESTestCase {
     }
 
     private Engine.Index getIndex(final String id) {
-        final String type = "test";
         final ParseContext.Document document = new ParseContext.Document();
         document.add(new TextField("test", "test", Field.Store.YES));
         final Field idField = new Field("_id", Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
@@ -406,7 +405,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         document.add(seqID.primaryTerm);
         final BytesReference source = new BytesArray(new byte[] { 1 });
         final ParsedDocument doc =
-            new ParsedDocument(versionField, seqID, id, type, List.of(document), source, null);
+            new ParsedDocument(versionField, seqID, id, List.of(document), source, null);
         return new Engine.Index(
             new Term("_id", Uid.encodeId(doc.id())), doc, UNASSIGNED_SEQ_NO, 0,
             Versions.MATCH_ANY, VersionType.INTERNAL, PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);
@@ -1020,7 +1019,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             final long seqNo = randomValueOtherThanMany(n -> seqNos.add(n) == false, ESTestCase::randomNonNegativeLong);
             final Translog.Operation op;
             if (randomBoolean()) {
-                op = new Translog.Index("id", seqNo, randomNonNegativeLong(), randomNonNegativeLong(), source, null, -1);
+                op = new Translog.Index("id", seqNo, randomNonNegativeLong(), randomNonNegativeLong(), source, -1);
             } else if (randomBoolean()) {
                 op = new Translog.Delete("id", new Term("_id", Uid.encodeId("id")),
                     seqNo, randomNonNegativeLong(), randomNonNegativeLong());

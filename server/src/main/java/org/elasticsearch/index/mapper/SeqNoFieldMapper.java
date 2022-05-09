@@ -32,7 +32,6 @@ import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.ParseContext.Document;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 
 /**
@@ -155,10 +154,6 @@ public class SeqNoFieldMapper extends MetadataFieldMapper {
         // we share the parent docs fields to ensure good compression
         SequenceIDFields seqID = context.seqID();
         assert seqID != null;
-        for (Document doc : context.nonRootDocuments()) {
-            doc.add(seqID.seqNo);
-            doc.add(seqID.seqNoDocValue);
-        }
     }
 
     @Override

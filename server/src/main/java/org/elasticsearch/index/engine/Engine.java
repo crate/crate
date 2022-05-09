@@ -1209,10 +1209,6 @@ public abstract class Engine implements Closeable {
             return TYPE.INDEX;
         }
 
-        public String routing() {
-            return this.doc.routing();
-        }
-
         public List<Document> docs() {
             return this.doc.docs();
         }
