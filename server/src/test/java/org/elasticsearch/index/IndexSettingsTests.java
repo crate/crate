@@ -610,22 +610,6 @@ public class IndexSettingsTests extends ESTestCase {
     }
 
     @Test
-    public void testSoftDeletesDefaultSetting() {
-        Version createdVersion = VersionUtils.randomVersionBetween(
-            random(),
-            Version.CURRENT.minimumIndexCompatibilityVersion(),
-            Version.CURRENT
-        );
-
-        Settings settings = Settings.builder()
-            .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), createdVersion)
-            .build();
-
-        boolean isEnabled = createdVersion.onOrAfter(Version.V_4_3_0);
-        assertThat(IndexSettings.INDEX_SOFT_DELETES_SETTING.get(settings), is(isEnabled));
-    }
-
-    @Test
     public void testUpdateTranslogRetentionSettingsWithSoftDeletesDisabled() {
         Settings.Builder settings = Settings.builder()
             .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), false)
