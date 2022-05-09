@@ -44,11 +44,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-
 import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;
@@ -1433,5 +1433,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .mapToInt(x -> x.size())
             .sum();
         assertThat(numShards, is(1));
+    }
+
+    @Test
+    public void test_filter_on_aliased_subselect_output() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable(T3.T1_DEFINITION)
+            .build();
+
+        var stmt = "select * from (select i, true as b from t1) it where b";
+        Collect collect = e.plan(stmt);
+        RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collect.collectPhase();
+
+        assertThat(routedCollectPhase.where(), isLiteral(true));
     }
 }
