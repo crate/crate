@@ -128,20 +128,11 @@ public class IpFieldMapper extends FieldMapper {
 
     @Override
     protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
-        Object addressAsObject = context.parser().textOrNull();
-
-        if (addressAsObject == null) {
+        String addressAsString = context.parser().textOrNull();
+        if (addressAsString == null) {
             return;
         }
-
-        String addressAsString = addressAsObject.toString();
-        InetAddress address;
-        if (addressAsObject instanceof InetAddress) {
-            address = (InetAddress) addressAsObject;
-        } else {
-            address = InetAddresses.forString(addressAsString);
-        }
-
+        InetAddress address = InetAddresses.forString(addressAsString);
         if (fieldType().isSearchable()) {
             fields.add(new InetAddressPoint(fieldType().name(), address));
         }
