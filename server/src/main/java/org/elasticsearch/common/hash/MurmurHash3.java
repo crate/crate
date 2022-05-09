@@ -19,6 +19,10 @@
 
 package org.elasticsearch.common.hash;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
+
 import org.elasticsearch.common.util.ByteUtils;
 
 
@@ -48,6 +52,8 @@ public enum MurmurHash3 {
     private static final int M = 5;
     private static final int N1 = 0x52dce729;
     private static final int DEFAULT_SEED = 123;
+    private static final VarHandle VH_LE_LONG = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
+
 
     protected static long fmix(long k) {
         k ^= k >>> 33;
@@ -86,14 +92,7 @@ public enum MurmurHash3 {
         // body
         for (int i = 0; i < nblocks; i++) {
             final int i8 = (i << 3) + offset;
-            long k = ((long) data[i8] & 0xff)
-                | (((long) data[i8 + 1] & 0xff) << 8)
-                | (((long) data[i8 + 2] & 0xff) << 16)
-                | (((long) data[i8 + 3] & 0xff) << 24)
-                | (((long) data[i8 + 4] & 0xff) << 32)
-                | (((long) data[i8 + 5] & 0xff) << 40)
-                | (((long) data[i8 + 6] & 0xff) << 48)
-                | (((long) data[i8 + 7] & 0xff) << 56);
+            long k = (long) VH_LE_LONG.get(data, i8);
 
             // mix functions
             k *= C1;

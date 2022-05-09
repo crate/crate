@@ -42,7 +42,7 @@ public class RetryRunnable implements Runnable, Scheduler.Cancellable {
     private final Executor executor;
     private final Iterator<TimeValue> delay;
     private final Runnable retryCommand;
-    private Scheduler.Cancellable cancellable;
+    private volatile Scheduler.Cancellable cancellable;
 
     public RetryRunnable(ThreadPool threadPool,
                          String executorName,
