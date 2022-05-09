@@ -66,3 +66,7 @@ Fixes
 
 - Fixed an issue with primary key columns that have a ``DEFAULT`` clause. That
   could lead to queries on the primary key column not matching the row.
+
+- Fixed an issue with aliased sub-relation outputs when used inside the outer
+  where clause expression, resulting in a planner error. Example:
+  ``SELECT * FROM (SELECT id, true AS a FROM t1) WHERE a``
