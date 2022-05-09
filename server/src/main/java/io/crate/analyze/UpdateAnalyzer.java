@@ -21,6 +21,13 @@
 
 package io.crate.analyze;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.RandomAccess;
+import java.util.function.Predicate;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -34,7 +41,6 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
-import io.crate.common.collections.Lists2;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -54,13 +60,6 @@ import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.Update;
 import io.crate.types.ArrayType;
 import io.crate.types.ObjectType;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.RandomAccess;
-import java.util.function.Predicate;
 
 /**
  * Used to analyze statements like: `UPDATE t1 SET col1 = ? WHERE id = ?`
@@ -134,7 +133,7 @@ public final class UpdateAnalyzer {
             sourceExprAnalyzer,
             exprCtx
         );
-        List<Symbol> outputSymbol = Lists2.map(selectAnalysis.outputSymbols(), x -> normalizer.normalize(x, txnCtx));
+        List<Symbol> outputSymbol = selectAnalysis.outputSymbols();
         return new AnalyzedUpdateStatement(
             table,
             assignmentByTargetCol,
