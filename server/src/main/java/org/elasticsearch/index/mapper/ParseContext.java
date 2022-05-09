@@ -234,16 +234,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
         }
 
         @Override
-        public boolean externalValueSet() {
-            return in.externalValueSet();
-        }
-
-        @Override
-        public Object externalValue() {
-            return in.externalValue();
-        }
-
-        @Override
         public void addDynamicMapper(Mapper update) {
             in.addDynamicMapper(update);
         }
@@ -464,31 +454,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
     public abstract SeqNoFieldMapper.SequenceIDFields seqID();
 
     public abstract void seqID(SeqNoFieldMapper.SequenceIDFields seqID);
-
-    public boolean externalValueSet() {
-        return false;
-    }
-
-    public Object externalValue() {
-        throw new IllegalStateException("External value is not set");
-    }
-
-    /**
-     * Try to parse an externalValue if any
-     * @param clazz Expected class for external value
-     * @return null if no external value has been set or the value
-     */
-    public final <T> T parseExternalValue(Class<T> clazz) {
-        if (!externalValueSet() || externalValue() == null) {
-            return null;
-        }
-
-        if (!clazz.isInstance(externalValue())) {
-            throw new IllegalArgumentException("illegal external value class ["
-                    + externalValue().getClass().getName() + "]. Should be " + clazz.getName());
-        }
-        return clazz.cast(externalValue());
-    }
 
     /**
      * Add a new mapper dynamically created while parsing.
