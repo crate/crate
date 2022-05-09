@@ -48,7 +48,6 @@ public class BitStringFieldMapper extends FieldMapper {
                                    FieldType fieldType,
                                    MappedFieldType mappedFieldType,
                                    Settings indexSettings,
-                                   MultiFields multiFields,
                                    CopyTo copyTo) {
         super(
             simpleName,
@@ -57,7 +56,6 @@ public class BitStringFieldMapper extends FieldMapper {
             fieldType,
             mappedFieldType,
             indexSettings,
-            multiFields,
             copyTo
         );
         this.length = length;
@@ -108,7 +106,6 @@ public class BitStringFieldMapper extends FieldMapper {
                 fieldType,
                 new BitStringFieldType(name, true, true),
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo);
         }
 
