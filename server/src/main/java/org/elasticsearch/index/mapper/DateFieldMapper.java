@@ -24,7 +24,6 @@ import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBo
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -41,7 +40,6 @@ import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.joda.Joda;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.time.IsoLocale;
-import org.elasticsearch.common.util.LocaleUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 /** A {@link FieldMapper} for ip addresses. */
@@ -69,13 +67,10 @@ public class DateFieldMapper extends FieldMapper {
 
         private Explicit<String> format = new Explicit<>(DEFAULT_FORMAT_PATTERN, false);
         private Boolean ignoreTimezone;
-        private Locale locale;
-        String nullValue;
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE);
             builder = this;
-            locale = IsoLocale.ROOT;
         }
 
         public Builder ignoreTimezone(boolean ignoreTimezone) {
@@ -83,47 +78,26 @@ public class DateFieldMapper extends FieldMapper {
             return builder;
         }
 
-        public Builder locale(Locale locale) {
-            this.locale = locale;
-            return this;
-        }
-
-        public Builder nullValue(String nullValue) {
-            this.nullValue = nullValue;
-            return this;
-        }
-
-        public String format() {
-            return format.value();
-        }
-
         public Builder format(String format) {
             this.format = new Explicit<>(format, true);
             return this;
         }
 
-        public boolean isFormatterSet() {
-            return format.explicit();
-        }
-
         protected DateFieldType setupFieldType(BuilderContext context) {
             String pattern = this.format.value();
-            var formatter = Joda.forPattern(pattern, locale);
+            var formatter = Joda.forPattern(pattern, IsoLocale.ROOT);
             return new DateFieldType(buildFullName(context), indexed, hasDocValues, formatter);
         }
 
         @Override
         public DateFieldMapper build(BuilderContext context) {
             DateFieldType ft = setupFieldType(context);
-            Long nullTimestamp = nullValue == null ? null : ft.dateTimeFormatter.parser().parseMillis(nullValue);
             return new DateFieldMapper(
                 name,
                 position,
                 defaultExpression,
                 fieldType,
                 ft,
-                nullTimestamp,
-                nullValue,
                 ignoreTimezone,
                 context.indexSettings(),
                 copyTo);
@@ -143,17 +117,7 @@ public class DateFieldMapper extends FieldMapper {
                 Map.Entry<String, Object> entry = iterator.next();
                 String propName = entry.getKey();
                 Object propNode = entry.getValue();
-                if (propName.equals("null_value")) {
-                    if (propNode == null) {
-                        throw new MapperParsingException("Property [null_value] cannot be null.");
-                    }
-                    builder.nullValue(propNode.toString());
-                    iterator.remove();
-                } else if (propName.equals("locale")) {
-                    Locale locale = LocaleUtils.parse(propNode.toString());
-                    builder.locale(locale);
-                    iterator.remove();
-                } else if (propName.equals("format")) {
+                if (propName.equals("format")) {
                     builder.format(propNode.toString());
                     iterator.remove();
                 } else if (propName.equals("ignore_timezone")) {
@@ -189,8 +153,6 @@ public class DateFieldMapper extends FieldMapper {
     }
 
     private final Boolean ignoreTimezone;
-    private final Long nullValue;
-    private final String nullValueAsString;
 
     private DateFieldMapper(
             String simpleName,
@@ -198,15 +160,11 @@ public class DateFieldMapper extends FieldMapper {
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
-            Long nullValue,
-            String nullValueAsString,
             Boolean ignoreTimezone,
             Settings indexSettings,
             CopyTo copyTo) {
         super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
         this.ignoreTimezone = ignoreTimezone;
-        this.nullValue = nullValue;
-        this.nullValueAsString = nullValueAsString;
     }
 
     @Override
@@ -230,10 +188,7 @@ public class DateFieldMapper extends FieldMapper {
 
         long timestamp;
         if (dateAsString == null) {
-            if (nullValue == null) {
-                return;
-            }
-            timestamp = nullValue;
+            return;
         } else {
             timestamp = fieldType().parse(dateAsString);
         }
@@ -265,10 +220,6 @@ public class DateFieldMapper extends FieldMapper {
     @Override
     protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
         super.doXContentBody(builder, includeDefaults, params);
-
-        if (nullValue != null) {
-            builder.field("null_value", nullValueAsString);
-        }
 
         if (includeDefaults
                 || fieldType().dateTimeFormatter().format().equals(DEFAULT_DATE_TIME_FORMATTER.format()) == false) {
