@@ -41,6 +41,7 @@ import io.crate.data.Input;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.scalar.arithmetic.MapFunction;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Literal;
@@ -251,6 +252,11 @@ public class EvaluatingNormalizer {
                 function.windowDefinition().map(s -> s.accept(this, context)),
                 function.ignoreNulls()
             );
+        }
+
+        @Override
+        public Symbol visitAlias(AliasSymbol aliasSymbol, TransactionContext context) {
+            return aliasSymbol.symbol().accept(this, context);
         }
     }
 

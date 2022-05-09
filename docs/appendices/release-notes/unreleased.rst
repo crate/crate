@@ -66,6 +66,9 @@ Changes
 
 - Users with AL privileges can now run ``ANALYZE``
 
+- Added ``typsend`` column to ``pg_catalog.pgtype`` table for improved
+  compatibility with PostgreSQL.
+
 
 Fixes
 =====
@@ -79,3 +82,7 @@ Fixes
 
 - Fixed an issue with the logical replication of tables metadata which caused
   to stop if the master node of the subscriber changed.
+
+- Fixed an issue with aliased sub-relation outputs when used inside the outer
+  where clause expression, resulting in a planner error. Example:
+  ``SELECT * FROM (SELECT id, true AS a FROM t1) WHERE a``
