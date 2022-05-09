@@ -537,7 +537,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(922, response.rowCount());
+        assertEquals(923, response.rowCount());
     }
 
     @Test
@@ -610,6 +610,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
             "typowner| integer\n" +
             "typreceive| regproc\n" +
             "typrelid| integer\n" +
+            "typsend| regproc\n" +
             "typtype| text\n" +
             "typtypmod| integer\n")
         );
