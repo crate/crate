@@ -66,6 +66,9 @@ Changes
 
 - Users with AL privileges can now run ``ANALYZE``
 
+- Added ``typsend`` column to ``pg_catalog.pgtype`` table for improved
+  compatibility with PostgreSQL.
+
 
 Fixes
 =====
