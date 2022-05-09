@@ -106,13 +106,15 @@ public class ShardReplicationChangesTracker implements Closeable {
 
     public void start() {
         LOGGER.debug("[{}] Spawning the shard changes reader", shardId);
-        newRunnable().run();
+        var retryRunnable = newRunnable();
+        cancellable = retryRunnable;
+        retryRunnable.run();
     }
 
     private RetryRunnable newRunnable() {
         return new RetryRunnable(
-            threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION),
-            threadPool.scheduler(),
+            threadPool,
+            ThreadPool.Names.LOGICAL_REPLICATION,
             this::pollAndProcessPendingChanges,
             BackoffPolicy.exponentialBackoff()
         );
@@ -317,7 +319,7 @@ public class ShardReplicationChangesTracker implements Closeable {
         // has data until then.
         // Method is called inside a transport thread (response listener), so dispatch away
         threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION).execute(() -> {
-            shardReplicationService.getRemoteClusterClient(shardId.getIndex()).thenAccept(remoteClient -> {
+            shardReplicationService.getRemoteClusterClient(shardId.getIndex()).thenAccept(remoteClient ->
                 RetentionLeaseHelper.renewRetentionLease(
                     shardId,
                     toSeqNoReceived,
@@ -325,15 +327,17 @@ public class ShardReplicationChangesTracker implements Closeable {
                     remoteClient,
                     ActionListener.wrap(
                         r -> {
-                            cancellable = threadPool.scheduleUnlessShuttingDown(
-                                replicationSettings.pollDelay(),
-                                ThreadPool.Names.LOGICAL_REPLICATION,
-                                newRunnable()
-                            );
+                            if (!closed) {
+                                cancellable = threadPool.scheduleUnlessShuttingDown(
+                                    replicationSettings.pollDelay(),
+                                    ThreadPool.Names.LOGICAL_REPLICATION,
+                                    newRunnable()
+                                );
+                            }
                         },
                         e -> {
                             var t = SQLExceptions.unwrap(e);
-                            if (SQLExceptions.maybeTemporary(t) && !closed) {
+                            if (!closed && SQLExceptions.maybeTemporary(t)) {
                                 LOGGER.info(
                                     "[{}] Temporary error during renewal of retention leases for subscription '{}'. Retrying: {}:{}",
                                     shardId,
@@ -347,32 +351,30 @@ public class ShardReplicationChangesTracker implements Closeable {
                                     () -> renewLeasesThenReschedule(toSeqNoReceived)
                                 );
                             } else {
-                                LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed={})", e, closed);
+                                LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed=" + closed + ")", e);
                             }
                         }
                     )
-                );
-            });
+                )
+            );
         });
     }
 
     @Override
     public void close() throws IOException {
+        closed = true;
         Cancellable currentCancellable = cancellable;
         if (currentCancellable != null) {
             currentCancellable.cancel();
             cancellable = null;
         }
-        closed = true;
         shardReplicationService.getRemoteClusterClient(shardId.getIndex())
-            .thenAccept(client -> {
-                RetentionLeaseHelper.attemptRetentionLeaseRemoval(
-                    shardId,
-                    clusterName,
-                    client,
-                    ActionListener.wrap(() -> {})
-                );
-            });
+            .thenAccept(client -> RetentionLeaseHelper.attemptRetentionLeaseRemoval(
+                shardId,
+                clusterName,
+                client,
+                ActionListener.wrap(() -> {})
+            ));
     }
 
     private static class ReplayChangesRetryListener<TResp> extends RetryListener<TResp> {
