@@ -75,7 +75,6 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                 fieldType,
                 ft,
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo);
         }
     }
@@ -97,9 +96,8 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                                FieldType fieldType,
                                MappedFieldType defaultFieldType,
                                Settings indexSettings,
-                               MultiFields multiFields,
                                CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, copyTo);
     }
 
     @Override
@@ -152,63 +150,52 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                 context.doc().add(field);
             }
         }
-        // if the mapping contains multifields then use the geohash string
-        if (multiFields.iterator().hasNext()) {
-            multiFields.parse(this, context.createExternalValueContext(point.geohash()));
-        }
     }
 
     @Override
     public void parse(ParseContext context) throws IOException {
         context.path().add(simpleName());
 
-        GeoPoint sparse = context.parseExternalValue(GeoPoint.class);
-
-        if (sparse != null) {
-            parse(context, sparse);
-        } else {
-            sparse = new GeoPoint();
-            XContentParser.Token token = context.parser().currentToken();
+        GeoPoint sparse = new GeoPoint();
+        XContentParser.Token token = context.parser().currentToken();
+        if (token == XContentParser.Token.START_ARRAY) {
+            token = context.parser().nextToken();
             if (token == XContentParser.Token.START_ARRAY) {
-                token = context.parser().nextToken();
-                if (token == XContentParser.Token.START_ARRAY) {
-                    // its an array of array of lon/lat [ [1.2, 1.3], [1.4, 1.5] ]
-                    while (token != XContentParser.Token.END_ARRAY) {
-                        parseGeoPointIgnoringMalformed(context, sparse);
-                        token = context.parser().nextToken();
-                    }
-                } else {
-                    // its an array of other possible values
+                // its an array of array of lon/lat [ [1.2, 1.3], [1.4, 1.5] ]
+                while (token != XContentParser.Token.END_ARRAY) {
+                    parseGeoPointIgnoringMalformed(context, sparse);
+                    token = context.parser().nextToken();
+                }
+            } else {
+                // its an array of other possible values
+                if (token == XContentParser.Token.VALUE_NUMBER) {
+                    final double lon = context.parser().doubleValue();
+                    token = context.parser().nextToken();
+                    final double lat = context.parser().doubleValue();
+                    token = context.parser().nextToken();
                     if (token == XContentParser.Token.VALUE_NUMBER) {
-                        final double lon = context.parser().doubleValue();
-                        token = context.parser().nextToken();
-                        final double lat = context.parser().doubleValue();
-                        token = context.parser().nextToken();
-                        Double alt = Double.NaN;
-                        if (token == XContentParser.Token.VALUE_NUMBER) {
-                            alt = GeoPoint.assertZValue(context.parser().doubleValue());
-                        } else if (token != XContentParser.Token.END_ARRAY) {
-                            throw new ElasticsearchParseException("[{}] field type does not accept > 3 dimensions", CONTENT_TYPE);
+                        GeoPoint.assertZValue(context.parser().doubleValue());
+                    } else if (token != XContentParser.Token.END_ARRAY) {
+                        throw new ElasticsearchParseException("[{}] field type does not accept > 3 dimensions", CONTENT_TYPE);
+                    }
+                    parse(context, sparse.reset(lat, lon));
+                } else {
+                    while (token != XContentParser.Token.END_ARRAY) {
+                        if (token == XContentParser.Token.VALUE_STRING) {
+                            parseGeoPointStringIgnoringMalformed(context, sparse);
+                        } else {
+                            parseGeoPointIgnoringMalformed(context, sparse);
                         }
-                        parse(context, sparse.reset(lat, lon));
-                    } else {
-                        while (token != XContentParser.Token.END_ARRAY) {
-                            if (token == XContentParser.Token.VALUE_STRING) {
-                                parseGeoPointStringIgnoringMalformed(context, sparse);
-                            } else {
-                                parseGeoPointIgnoringMalformed(context, sparse);
-                            }
-                            token = context.parser().nextToken();
-                        }
+                        token = context.parser().nextToken();
                     }
                 }
-            } else if (token == XContentParser.Token.VALUE_STRING) {
-                parseGeoPointStringIgnoringMalformed(context, sparse);
-            } else if (token == XContentParser.Token.VALUE_NULL) {
-                // ignore
-            } else {
-                parseGeoPointIgnoringMalformed(context, sparse);
             }
+        } else if (token == XContentParser.Token.VALUE_STRING) {
+            parseGeoPointStringIgnoringMalformed(context, sparse);
+        } else if (token == XContentParser.Token.VALUE_NULL) {
+            // ignore
+        } else {
+            parseGeoPointIgnoringMalformed(context, sparse);
         }
 
         context.path().remove();

@@ -85,7 +85,6 @@ public class BooleanFieldMapper extends FieldMapper {
                 fieldType,
                 new BooleanFieldType(buildFullName(context), indexed, hasDocValues),
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo,
                 nullValue);
         }
@@ -136,10 +135,9 @@ public class BooleanFieldMapper extends FieldMapper {
                                  FieldType fieldType,
                                  MappedFieldType defaultFieldType,
                                  Settings indexSettings,
-                                 MultiFields multiFields,
                                  CopyTo copyTo,
                                  Boolean nullValue) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, copyTo);
         this.nullValue = nullValue;
     }
 
@@ -154,16 +152,14 @@ public class BooleanFieldMapper extends FieldMapper {
             return;
         }
 
-        Boolean value = context.parseExternalValue(Boolean.class);
-        if (value == null) {
-            XContentParser.Token token = context.parser().currentToken();
-            if (token == XContentParser.Token.VALUE_NULL) {
-                if (nullValue != null) {
-                    value = nullValue;
-                }
-            } else {
-                value = context.parser().booleanValue();
+        Boolean value = null;
+        XContentParser.Token token = context.parser().currentToken();
+        if (token == XContentParser.Token.VALUE_NULL) {
+            if (nullValue != null) {
+                value = nullValue;
             }
+        } else {
+            value = context.parser().booleanValue();
         }
 
         if (value == null) {

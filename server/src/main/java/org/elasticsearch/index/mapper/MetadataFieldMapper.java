@@ -73,7 +73,6 @@ public abstract class MetadataFieldMapper extends FieldMapper {
             fieldType,
             mappedFieldType,
             indexSettings,
-            MultiFields.empty(),
             CopyTo.empty()
         );
     }
