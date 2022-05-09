@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import com.carrotsearch.hppc.ObjectObjectHashMap;
-import com.carrotsearch.hppc.ObjectObjectMap;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexableField;
@@ -37,14 +35,11 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
     public static class Document implements Iterable<IndexableField> {
 
         private final Document parent;
-        private final String path;
         private final String prefix;
         private final List<IndexableField> fields;
-        private ObjectObjectMap<Object, IndexableField> keyedFields;
 
         private Document(String path, Document parent) {
             fields = new ArrayList<>();
-            this.path = path;
             this.prefix = path.isEmpty() ? "" : path + ".";
             this.parent = parent;
         }
@@ -80,22 +75,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
             // either a meta fields or starts with the prefix
             assert field.name().startsWith("_") || field.name().startsWith(prefix) : field.name() + " " + prefix;
             fields.add(field);
-        }
-
-        /** Add fields so that they can later be fetched using {@link #getByKey(Object)}. */
-        public void addWithKey(Object key, IndexableField field) {
-            if (keyedFields == null) {
-                keyedFields = new ObjectObjectHashMap<>();
-            } else if (keyedFields.containsKey(key)) {
-                throw new IllegalStateException("Only one field can be stored per key");
-            }
-            keyedFields.put(key, field);
-            add(field);
-        }
-
-        /** Get back fields that have been previously added with {@link #addWithKey(Object, IndexableField)}. */
-        public IndexableField getByKey(Object key) {
-            return keyedFields == null ? null : keyedFields.get(key);
         }
 
         public IndexableField[] getFields(String name) {
@@ -272,8 +251,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
         private SeqNoFieldMapper.SequenceIDFields seqID;
 
         private final List<Mapper> dynamicMappers;
-
-        private boolean docsReversed = false;
 
         public InternalParseContext(IndexSettings indexSettings, DocumentMapperParser docMapperParser, DocumentMapper docMapper,
                                     SourceToParse source, XContentParser parser) {
