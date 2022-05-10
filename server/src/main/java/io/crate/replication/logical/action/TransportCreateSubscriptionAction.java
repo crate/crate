@@ -43,6 +43,7 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.exceptions.Exceptions;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
@@ -105,6 +106,9 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
             )
             .thenCompose(
                 response -> {
+                    if (response.unknownPublications().isEmpty() == false) {
+                        throw new PublicationUnknownException(response.unknownPublications().get(0));
+                    }
                     logicalReplicationService.verifyTablesDoNotExist(request.name(), response);
                     return submitClusterStateTask(request, response);
                 }

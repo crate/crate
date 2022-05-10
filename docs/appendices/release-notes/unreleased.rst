@@ -101,4 +101,6 @@ Fixes
 - Fixed an issue with table functions parameter binding in ``SELECT`` queries
   without ``FROM`` clause. Example: ``SELECT unnest(?)``.
 
-
+- Improved error handling when creating a subscription with unknown
+  publications. Instead of successfully creating the subscription, an error
+  is now presented to the user.
