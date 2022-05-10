@@ -56,7 +56,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.snapshots.RestoreInfo;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
@@ -351,9 +350,14 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     private CompletableFuture<Boolean> afterReplicationStarted(String subscriptionName,
                                                                RestoreService.RestoreCompletionResponse response,
                                                                Collection<RelationName> relationNames) {
-        var restoreFuture =
-            new FutureActionListener<RestoreSnapshotResponse, RestoreInfo>(RestoreSnapshotResponse::getRestoreInfo);
-        clusterService.addListener(new RestoreClusterStateListener(clusterService, response, restoreFuture));
+        var restoreFuture = new FutureActionListener<>(RestoreSnapshotResponse::getRestoreInfo);
+        if (response.getRestoreInfo() != null) {
+            // Restore finished immediately
+            restoreFuture.complete(response.getRestoreInfo());
+        } else {
+            // Restore still in progress, add listener to wait for it
+            clusterService.addListener(new RestoreClusterStateListener(clusterService, response, restoreFuture));
+        }
         return restoreFuture.thenCompose(restoreInfo -> {
             if (restoreInfo == null) {
                 throw new SubscriptionRestoreException(
