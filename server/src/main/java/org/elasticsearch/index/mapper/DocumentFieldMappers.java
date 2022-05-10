@@ -19,8 +19,6 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.analysis.Analyzer;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,25 +30,11 @@ public final class DocumentFieldMappers implements Iterable<Mapper> {
     /** Full field name to mapper */
     private final Map<String, Mapper> fieldMappers;
 
-    private static void put(Map<String, Analyzer> analyzers, String key, Analyzer value, Analyzer defaultValue) {
-        if (value == null) {
-            value = defaultValue;
-        }
-        analyzers.put(key, value);
-    }
-
-    public DocumentFieldMappers(Collection<FieldMapper> mappers,
-                                Analyzer defaultIndex,
-                                Analyzer defaultSearch,
-                                Analyzer defaultSearchQuote) {
+    public DocumentFieldMappers(Collection<FieldMapper> mappers) {
         Map<String, Mapper> fieldMappers = new HashMap<>();
-        Map<String, Analyzer> indexAnalyzers = new HashMap<>();
         for (FieldMapper mapper : mappers) {
             fieldMappers.put(mapper.name(), mapper);
-            MappedFieldType fieldType = mapper.fieldType();
-            put(indexAnalyzers, fieldType.name(), fieldType.indexAnalyzer(), defaultIndex);
         }
-
         this.fieldMappers = Collections.unmodifiableMap(fieldMappers);
     }
 
