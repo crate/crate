@@ -232,7 +232,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                     assert mappings.size() == 1 : "Must have at most 1 mapping type";
                     var entry = mappings.entrySet().iterator().next();
                     try {
-                        mapperService.merge(entry.getKey(), entry.getValue(), MapperService.MergeReason.MAPPING_UPDATE);
+                        mapperService.merge(entry.getValue(), MapperService.MergeReason.MAPPING_UPDATE);
                     } catch (MapperParsingException mpe) {
                         removalReasons.add("failed on parsing mappings on index creation");
                         throw mpe;

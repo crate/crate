@@ -25,20 +25,17 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
-import io.crate.common.collections.Tuple;
+import io.crate.Constants;
 
 public class DocumentMapperParser {
 
@@ -75,30 +72,24 @@ public class DocumentMapperParser {
         );
     }
 
-    public DocumentMapper parse(@Nullable String type, CompressedXContent source) throws MapperParsingException {
+    public DocumentMapper parse(CompressedXContent source) throws MapperParsingException {
         Map<String, Object> mapping = null;
         if (source != null) {
             Map<String, Object> root = XContentHelper.convertToMap(source.compressedReference(), true, XContentType.JSON).v2();
-            Tuple<String, Map<String, Object>> t = extractMapping(type, root);
-            type = t.v1();
-            mapping = t.v2();
+            mapping = extractMapping(root);
         }
         if (mapping == null) {
             mapping = new HashMap<>();
         }
-        return parse(type, mapping);
+        return parse(mapping);
     }
 
     @SuppressWarnings({"unchecked"})
-    private DocumentMapper parse(String type, Map<String, Object> mapping) throws MapperParsingException {
-        if (type == null) {
-            throw new MapperParsingException("Failed to derive type");
-        }
-
+    private DocumentMapper parse(Map<String, Object> mapping) throws MapperParsingException {
         Mapper.TypeParser.ParserContext parserContext = parserContext();
         // parse RootObjectMapper
         DocumentMapper.Builder docBuilder = new DocumentMapper.Builder(
-                (RootObjectMapper.Builder) rootObjectTypeParser.parse(type, mapping, parserContext), mapperService);
+                (RootObjectMapper.Builder) rootObjectTypeParser.parse(Constants.DEFAULT_MAPPING_TYPE, mapping, parserContext), mapperService);
         Iterator<Map.Entry<String, Object>> iterator = mapping.entrySet().iterator();
         // parse DocumentMapper
         while (iterator.hasNext()) {
@@ -169,31 +160,20 @@ public class DocumentMapperParser {
         return remainingFields.toString();
     }
 
-    private Tuple<String, Map<String, Object>> extractMapping(String type, String source) throws MapperParsingException {
-        Map<String, Object> root;
-        try (XContentParser parser = XContentType.JSON.xContent()
-                .createParser(xContentRegistry, LoggingDeprecationHandler.INSTANCE, source)) {
-            root = parser.mapOrdered();
-        } catch (Exception e) {
-            throw new MapperParsingException("failed to parse mapping definition", e);
-        }
-        return extractMapping(type, root);
-    }
-
     @SuppressWarnings({"unchecked"})
-    private Tuple<String, Map<String, Object>> extractMapping(String type, Map<String, Object> root) throws MapperParsingException {
+    private static Map<String, Object> extractMapping(Map<String, Object> root) throws MapperParsingException {
         if (root.size() == 0) {
             // if we don't have any keys throw an exception
             throw new MapperParsingException("malformed mapping no root object found");
         }
         String rootName = root.keySet().iterator().next();
-        Tuple<String, Map<String, Object>> mapping;
-        if (type == null || type.equals(rootName)) {
-            mapping = new Tuple<>(rootName, (Map<String, Object>) root.get(rootName));
+        Map<String, Object> result;
+        if (Constants.DEFAULT_MAPPING_TYPE.equals(rootName)) {
+            result = (Map<String, Object>) root.get(rootName);
         } else {
-            mapping = new Tuple<>(type, root);
+            result = root;
         }
-        return mapping;
+        return result;
     }
 
     NamedXContentRegistry getXContentRegistry() {

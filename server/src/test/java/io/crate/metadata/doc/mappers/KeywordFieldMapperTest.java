@@ -77,7 +77,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
         var parser = parser(new KeywordFieldMapper.TypeParser());
         // string -> doXContentBody -> parse -> string
         var compressedXContent = new CompressedXContent(expectedMapping);
-        var mapper = parser.parse(TYPE, compressedXContent);
+        var mapper = parser.parse(compressedXContent);
         var actualMapping = mapper.mappingSource().toString();
 
         assertThat(expectedMapping, is(actualMapping));
@@ -90,7 +90,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
     public void test_keywords_fields_mapping_merge_fail_on_different_length_limit() throws Exception {
         var parser = parser(new TextFieldMapper.TypeParser());
 
-        var mapper = parser.parse(TYPE, new CompressedXContent(Strings.toString(
+        var mapper = parser.parse(new CompressedXContent(Strings.toString(
             XContentFactory.jsonBuilder()
                 .startObject()
                     .startObject(TYPE)
@@ -102,7 +102,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
                         .endObject()
                     .endObject()
                 .endObject())));
-        var anotherMapper = parser.parse(TYPE, new CompressedXContent(Strings.toString(
+        var anotherMapper = parser.parse(new CompressedXContent(Strings.toString(
             XContentFactory.jsonBuilder()
                 .startObject()
                     .startObject(TYPE)

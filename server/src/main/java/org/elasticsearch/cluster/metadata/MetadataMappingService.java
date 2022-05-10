@@ -254,7 +254,7 @@ public class MetadataMappingService {
                 updateList.add(indexMetadata);
                 // try and parse it (no need to add it here) so we can bail early in case of parsing exception
                 DocumentMapper existingMapper = mapperService.documentMapper();
-                DocumentMapper newMapper = mapperService.parse(MapperService.SINGLE_MAPPING_NAME, mappingUpdateSource);
+                DocumentMapper newMapper = mapperService.parse(mappingUpdateSource);
                 if (existingMapper != null) {
                     // first, simulate: just call merge and ignore the result
                     existingMapper.merge(newMapper.mapping());
@@ -275,7 +275,7 @@ public class MetadataMappingService {
                     existingSource = existingMapper.mappingSource();
                 }
                 DocumentMapper mergedMapper
-                    = mapperService.merge(MapperService.SINGLE_MAPPING_NAME, mappingUpdateSource, MergeReason.MAPPING_UPDATE);
+                    = mapperService.merge(mappingUpdateSource, MergeReason.MAPPING_UPDATE);
                 CompressedXContent updatedSource = mergedMapper.mappingSource();
 
                 if (existingSource != null) {

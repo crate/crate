@@ -233,17 +233,17 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
     }
 
-    public void merge(String type, Map<String, Object> mappings, MergeReason reason) throws IOException {
+    public void merge(Map<String, Object> mappings, MergeReason reason) throws IOException {
         CompressedXContent content = new CompressedXContent(Strings.toString(XContentFactory.jsonBuilder().map(mappings)));
-        internalMerge(type, content, reason);
+        internalMerge(content, reason);
     }
 
     public void merge(IndexMetadata indexMetadata, MergeReason reason) {
         internalMerge(indexMetadata, reason, false);
     }
 
-    public DocumentMapper merge(String type, CompressedXContent mappingSource, MergeReason reason) {
-        return internalMerge(type, mappingSource, reason);
+    public DocumentMapper merge(CompressedXContent mappingSource, MergeReason reason) {
+        return internalMerge(mappingSource, reason);
     }
 
     private synchronized DocumentMapper internalMerge(IndexMetadata indexMetaData,
@@ -254,21 +254,21 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             if (onlyUpdateIfNeeded) {
                 DocumentMapper existingMapper = documentMapper();
                 if (existingMapper == null || mappingMetadata.source().equals(existingMapper.mappingSource()) == false) {
-                    return internalMerge(mappingMetadata.type(), mappingMetadata.source(), reason);
+                    return internalMerge(mappingMetadata.source(), reason);
                 }
             } else {
-                return internalMerge(mappingMetadata.type(), mappingMetadata.source(), reason);
+                return internalMerge(mappingMetadata.source(), reason);
             }
         }
         return null;
     }
 
-    private synchronized DocumentMapper internalMerge(String type, CompressedXContent mappings, MergeReason reason) {
+    private synchronized DocumentMapper internalMerge(CompressedXContent mappings, MergeReason reason) {
 
         DocumentMapper documentMapper;
 
         try {
-            documentMapper = documentParser.parse(type, mappings);
+            documentMapper = documentParser.parse(mappings);
         } catch (Exception e) {
             throw new MapperParsingException("Failed to parse mapping: {}", e, e.getMessage());
         }
@@ -360,7 +360,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     private boolean assertSerialization(DocumentMapper mapper) {
         // capture the source now, it may change due to concurrent parsing
         final CompressedXContent mappingSource = mapper.mappingSource();
-        DocumentMapper newMapper = parse(mapper.type(), mappingSource);
+        DocumentMapper newMapper = parse(mappingSource);
 
         if (newMapper.mappingSource().equals(mappingSource) == false) {
             throw new IllegalStateException("DocumentMapper serialization result is different from source. \n--> Source ["
@@ -398,8 +398,8 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
     }
 
-    public DocumentMapper parse(String mappingType, CompressedXContent mappingSource) throws MapperParsingException {
-        return documentParser.parse(mappingType, mappingSource);
+    public DocumentMapper parse(CompressedXContent mappingSource) throws MapperParsingException {
+        return documentParser.parse(mappingSource);
     }
 
     /**
