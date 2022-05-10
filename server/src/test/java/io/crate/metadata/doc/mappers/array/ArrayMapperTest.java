@@ -89,13 +89,13 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         );
         DocumentMapperParser parser = mapperService.documentMapperParser();
 
-        DocumentMapper defaultMapper = parser.parse(TYPE, new CompressedXContent(mapping));
+        DocumentMapper defaultMapper = parser.parse(new CompressedXContent(mapping));
         XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
         builder.startObject();
         defaultMapper.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
         String rebuildMapping = Strings.toString(builder);
-        return parser.parse(TYPE, new CompressedXContent(rebuildMapping));
+        return parser.parse(new CompressedXContent(rebuildMapping));
     }
 
     @Test

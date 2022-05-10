@@ -478,7 +478,7 @@ public class MetadataCreateIndexService {
                     assert mappings.size() == 1;
                     var entry = mappings.entrySet().iterator().next();
                     try {
-                        mapperService.merge(entry.getKey(), entry.getValue(), MergeReason.MAPPING_UPDATE);
+                        mapperService.merge(entry.getValue(), MergeReason.MAPPING_UPDATE);
                     } catch (Exception e) {
                         removalExtraInfo = "failed on parsing default mapping/mappings on index creation";
                         throw e;

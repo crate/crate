@@ -55,9 +55,7 @@ public class RootObjectMapper extends ObjectMapper {
     public static class TypeParser extends ObjectMapper.TypeParser {
 
         @Override
-        @SuppressWarnings("rawtypes")
-        public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-
+        public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             RootObjectMapper.Builder builder = new Builder(name);
             Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator();
             while (iterator.hasNext()) {

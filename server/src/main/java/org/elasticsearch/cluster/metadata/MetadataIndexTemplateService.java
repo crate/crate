@@ -255,7 +255,7 @@ public class MetadataIndexTemplateService {
             if (mappingsForValidation.isEmpty() == false) {
                 assert mappingsForValidation.size() == 1;
                 String type = mappingsForValidation.keySet().iterator().next();
-                dummyIndexService.mapperService().merge(type, mappingsForValidation.get(type), MergeReason.MAPPING_UPDATE);
+                dummyIndexService.mapperService().merge(mappingsForValidation.get(type), MergeReason.MAPPING_UPDATE);
             }
 
         } finally {
