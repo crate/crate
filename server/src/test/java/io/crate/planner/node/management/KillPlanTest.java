@@ -21,12 +21,13 @@
 
 package io.crate.planner.node.management;
 
+import io.crate.action.FutureActionListener;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillAllRequest;
 import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.support.ActionExecutor;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.action.ActionListener;
@@ -51,7 +52,7 @@ public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
             mock(TransportService.class)
         ) {
             @Override
-            public void broadcast(KillAllRequest request, ActionListener<Long> listener) {
+            public void doExecute(KillAllRequest request, ActionListener<KillResponse> listener) {
                 broadcastCalls.incrementAndGet();
             }
 
@@ -65,8 +66,12 @@ public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
         killPlan.execute(
             null,
             "dummy-user",
-            killAllNodeAction,
-            mock(TransportKillJobsNodeAction.class),
+            mock(ActionExecutor.class),
+            req -> {
+                FutureActionListener listener = FutureActionListener.newInstance();
+                killAllNodeAction.doExecute(req, listener);
+                return listener;
+            },
             new TestingRowConsumer());
         assertThat(broadcastCalls.get(), is(1));
         assertThat(nodeOperationCalls.get(), is(0));

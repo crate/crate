@@ -22,6 +22,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
+import io.crate.action.FutureActionListener;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
@@ -30,6 +31,8 @@ import io.crate.execution.jobs.CumulativePageBucketReceiver;
 import io.crate.execution.jobs.DistResultRXTask;
 import io.crate.execution.jobs.PageBucketReceiver;
 import org.elasticsearch.test.ESTestCase;
+
+import io.crate.execution.support.NodeRequest;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.FailingBatchIterator;
 import io.crate.testing.TestingBatchIterators;
@@ -55,7 +58,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -101,7 +103,7 @@ public class DistributingConsumerTest extends ESTestCase {
                    "4\n"));
 
             // pageSize=2 and 5 rows causes 3x pushResult
-            verify(distributedResultAction, times(3)).pushResult(anyString(), any(), any());
+            verify(distributedResultAction, times(3)).doExecute(any(), any());
         } finally {
             executorService.shutdown();
             executorService.awaitTermination(10, TimeUnit.SECONDS);
@@ -171,7 +173,11 @@ public class DistributingConsumerTest extends ESTestCase {
             (byte) 0,
             0,
             Collections.singletonList("n1"),
-            distributedResultAction,
+            req -> {
+                FutureActionListener listener = FutureActionListener.newInstance();
+                distributedResultAction.doExecute(req, listener);
+                return listener;
+            },
             2 // pageSize
         );
     }
@@ -199,8 +205,8 @@ public class DistributingConsumerTest extends ESTestCase {
         TransportDistributedResultAction distributedResultAction = mock(TransportDistributedResultAction.class);
         doAnswer((InvocationOnMock invocationOnMock) -> {
             Object[] args = invocationOnMock.getArguments();
-            DistributedResultRequest resultRequest = (DistributedResultRequest) args[1];
-            ActionListener<DistributedResultResponse> listener = (ActionListener<DistributedResultResponse>) args[2];
+            DistributedResultRequest resultRequest = ((NodeRequest<DistributedResultRequest>) args[0]).innerRequest();
+            ActionListener<DistributedResultResponse> listener = (ActionListener<DistributedResultResponse>) args[1];
             Throwable throwable = resultRequest.throwable();
             PageBucketReceiver bucketReceiver = distResultRXTask.getBucketReceiver(resultRequest.executionPhaseInputId());
             assertThat(bucketReceiver, Matchers.notNullValue());
@@ -214,7 +220,7 @@ public class DistributingConsumerTest extends ESTestCase {
                 bucketReceiver.kill(throwable);
             }
             return null;
-        }).when(distributedResultAction).pushResult(anyString(), any(), any());
+        }).when(distributedResultAction).doExecute(any(), any());
         return distributedResultAction;
     }
 }

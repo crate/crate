@@ -22,17 +22,21 @@
 package io.crate.execution.engine.collect.collectors;
 
 import com.carrotsearch.hppc.IntArrayList;
+
+import io.crate.action.FutureActionListener;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccounting;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
-import io.crate.execution.jobs.kill.KillJobsRequest;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobRequest;
 import io.crate.execution.jobs.transport.JobResponse;
 import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.execution.support.NodeRequest;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
@@ -58,7 +62,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -100,7 +103,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             mock(TransportService.class)
         ) {
             @Override
-            public void broadcast(KillJobsRequest request, ActionListener<Long> listener) {
+            public void doExecute(KillJobsNodeRequest request, ActionListener<KillResponse> listener) {
                 numBroadcastCalls.incrementAndGet();
             }
         };
@@ -110,8 +113,16 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             "localNode",
             "remoteNode",
-            transportJobAction,
-            transportKillJobsNodeAction,
+            req -> {
+                FutureActionListener listener = FutureActionListener.newInstance();
+                transportJobAction.doExecute(req, listener);
+                return listener;
+            },
+            req -> {
+                FutureActionListener listener = FutureActionListener.newInstance();
+                transportKillJobsNodeAction.doExecute(req, listener);
+                return listener;
+            },
             Runnable::run,
             tasksService,
             RamAccounting.NO_ACCOUNTING,
@@ -125,7 +136,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         remoteCollector.kill(new InterruptedException("KILLED"));
         remoteCollector.doCollect();
 
-        verify(transportJobAction, times(0)).execute(eq("remoteNode"), any(JobRequest.class), any(ActionListener.class));
+        verify(transportJobAction, times(0)).doExecute(any(NodeRequest.class), any(ActionListener.class));
 
         expectedException.expect(InterruptedException.class);
         consumer.getResult();
@@ -138,7 +149,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         remoteCollector.kill(new InterruptedException());
         remoteCollector.createRemoteContext();
 
-        verify(transportJobAction, times(0)).execute(eq("remoteNode"), any(JobRequest.class), any(ActionListener.class));
+        verify(transportJobAction, times(0)).doExecute(any(NodeRequest.class), any(ActionListener.class));
         expectedException.expect(JobKilledException.class);
         consumer.getResult();
     }
@@ -146,7 +157,9 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testKillRequestsAreMadeIfCollectorIsKilledAfterRemoteContextCreation() throws Exception {
         remoteCollector.doCollect();
-        verify(transportJobAction, times(1)).execute(eq("remoteNode"), any(JobRequest.class), listenerCaptor.capture());
+        ArgumentCaptor<NodeRequest<JobRequest>> argumentCaptor = ArgumentCaptor.forClass(NodeRequest.class);
+        verify(transportJobAction, times(1)).doExecute(argumentCaptor.capture(), listenerCaptor.capture());
+        assertThat(argumentCaptor.getValue().nodeId(), is("remoteNode"));
 
         remoteCollector.kill(new InterruptedException());
 

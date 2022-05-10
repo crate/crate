@@ -21,6 +21,11 @@
 
 package io.crate.execution.engine.distribution;
 
+import io.crate.execution.jobs.kill.KillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
+import io.crate.execution.support.ActionExecutor;
+import io.crate.execution.support.NodeRequest;
 import io.crate.user.User;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
@@ -31,9 +36,6 @@ import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.PageResultListener;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
-import io.crate.execution.jobs.kill.KillJobsRequest;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
-import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
 import org.apache.logging.log4j.LogManager;
@@ -41,9 +43,10 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -57,16 +60,15 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 
-public class TransportDistributedResultAction implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
+public class TransportDistributedResultAction extends TransportAction<NodeRequest<DistributedResultRequest>, DistributedResultResponse> {
 
     private static final Logger LOGGER = LogManager.getLogger(TransportDistributedResultAction.class);
-    private static final String DISTRIBUTED_RESULT_ACTION = "internal:crate:sql/node/merge";
 
     private final Transports transports;
     private final TasksService tasksService;
     private final ScheduledExecutorService scheduler;
     private final ClusterService clusterService;
-    private final TransportKillJobsNodeAction killJobsAction;
+    private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
     private final BackoffPolicy backoffPolicy;
 
     @Inject
@@ -75,14 +77,13 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
                                             ThreadPool threadPool,
                                             TransportService transportService,
                                             ClusterService clusterService,
-                                            TransportKillJobsNodeAction killJobsAction,
-                                            Settings settings) {
+                                            Node node) {
         this(transports,
             tasksService,
             threadPool,
             transportService,
             clusterService,
-            killJobsAction,
+            req -> node.client().execute(KillJobsNodeAction.INSTANCE, req),
             BackoffPolicy.exponentialBackoff());
     }
 
@@ -92,29 +93,35 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
                                      ThreadPool threadPool,
                                      TransportService transportService,
                                      ClusterService clusterService,
-                                     TransportKillJobsNodeAction killJobsAction,
+                                     ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction,
                                      BackoffPolicy backoffPolicy) {
+        super(DistributedResultAction.NAME);
         this.transports = transports;
         this.tasksService = tasksService;
         scheduler = threadPool.scheduler();
         this.clusterService = clusterService;
-        this.killJobsAction = killJobsAction;
+        this.killNodeAction = killNodeAction;
         this.backoffPolicy = backoffPolicy;
 
         transportService.registerRequestHandler(
-            DISTRIBUTED_RESULT_ACTION,
+            DistributedResultAction.NAME,
             ThreadPool.Names.SAME, // <- we will dispatch later at the nodeOperation on non failures
             DistributedResultRequest::new,
-            new NodeActionRequestHandler<>(this));
-    }
-
-    void pushResult(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
-        transports.sendRequest(DISTRIBUTED_RESULT_ACTION, node, request, listener,
-            new ActionListenerResponseHandler<>(listener, DistributedResultResponse::new));
+            new NodeActionRequestHandler<>(this::nodeOperation));
     }
 
     @Override
-    public CompletableFuture<DistributedResultResponse> nodeOperation(DistributedResultRequest request) {
+    protected void doExecute(NodeRequest<DistributedResultRequest> request, ActionListener<DistributedResultResponse> listener) {
+        transports.sendRequest(
+            DistributedResultAction.NAME,
+            request.nodeId(),
+            request.innerRequest(),
+            listener,
+            new ActionListenerResponseHandler<>(listener, DistributedResultResponse::new)
+        );
+    }
+
+    CompletableFuture<DistributedResultResponse> nodeOperation(DistributedResultRequest request) {
         return nodeOperation(request, null);
     }
 
@@ -134,16 +141,24 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
         try {
             rxTask = rootTask.getTask(request.executionPhaseId());
         } catch (ClassCastException e) {
-            return CompletableFuture.failedFuture(new IllegalStateException(String.format(Locale.ENGLISH,
-                                                                                          "Found execution rootTask for %d but it's not a downstream rootTask", request.executionPhaseId()), e));
+            return CompletableFuture.failedFuture(
+                new IllegalStateException(
+                    String.format(
+                        Locale.ENGLISH,
+                        "Found execution rootTask for %d but it's not a downstream rootTask",
+                        request.executionPhaseId()), e));
         } catch (Throwable t) {
             return CompletableFuture.failedFuture(t);
         }
 
         PageBucketReceiver pageBucketReceiver = rxTask.getBucketReceiver(request.executionPhaseInputId());
         if (pageBucketReceiver == null) {
-            return CompletableFuture.failedFuture(new IllegalStateException(String.format(Locale.ENGLISH,
-                                                                                          "Couldn't find BucketReceiver for input %d", request.executionPhaseInputId())));
+            return CompletableFuture.failedFuture(
+                new IllegalStateException(
+                    String.format(
+                        Locale.ENGLISH,
+                        "Couldn't find BucketReceiver for input %d",
+                        request.executionPhaseInputId())));
         }
 
         Throwable throwable = request.throwable();
@@ -188,22 +203,22 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
              * The handler local-merge would get stuck if not all its upstreams send their requests, so we need to invoke
              * a kill to make sure that doesn't happen.
              */
-            KillJobsRequest killRequest = new KillJobsRequest(
+            KillJobsNodeRequest killRequest = new KillJobsNodeRequest(
+                excludedNodeIds,
                 List.of(request.jobId()),
                 User.CRATE_USER.name(),
                 "Received data for job=" + request.jobId() + " but there is no job context present. " +
                 "This can happen due to bad network latency or if individual nodes are unresponsive due to high load"
             );
-            killJobsAction.broadcast(killRequest, new ActionListener<>() {
-                @Override
-                public void onResponse(Long numKilled) {
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.debug("Could not kill " + request.jobId(), e);
-                }
-            }, excludedNodeIds);
+            killNodeAction
+                .execute(killRequest)
+                .whenComplete(
+                    (resp, t) -> {
+                        if (t != null) {
+                            LOGGER.debug("Could not kill " + request.jobId(), t);
+                        }
+                    }
+                );
             return CompletableFuture.failedFuture(new TaskMissing(TaskMissing.Type.ROOT, request.jobId()));
         }
     }

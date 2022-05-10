@@ -19,31 +19,46 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.profile;
+package io.crate.execution.engine.fetch;
+
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+
+import java.util.UUID;
+
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntObjectHashMap;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import java.util.UUID;
+import io.crate.breaker.RamAccounting;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
-public class NodeCollectProfileRequestTest {
+public class FetchRequestTest {
 
     @Test
     public void testStreaming() throws Exception {
-        NodeCollectProfileRequest originalRequest = new NodeCollectProfileRequest(UUID.randomUUID());
+
+        IntObjectHashMap<IntArrayList> toFetch = new IntObjectHashMap<>();
+        IntArrayList docIds = new IntArrayList(3);
+        toFetch.put(1, docIds);
+
+        NodeFetchRequest.FetchRequest orig = new NodeFetchRequest(
+            "dummy", UUID.randomUUID(), 1, true, toFetch, new IntObjectHashMap<>(), mock(RamAccounting.class)
+        ).innerRequest();
 
         BytesStreamOutput out = new BytesStreamOutput();
-        originalRequest.writeTo(out);
+        orig.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
 
-        NodeCollectProfileRequest streamed = new NodeCollectProfileRequest(in);
+        NodeFetchRequest.FetchRequest streamed = new NodeFetchRequest.FetchRequest(in);
 
-        assertThat(originalRequest.jobId(), is(streamed.jobId()));
+        assertThat(orig.jobId(), is(streamed.jobId()));
+        assertThat(orig.fetchPhaseId(), is(streamed.fetchPhaseId()));
+        assertThat(orig.isCloseContext(), is(streamed.isCloseContext()));
+        assertThat(orig.toFetch().toString(), is(streamed.toFetch().toString()));
     }
-
 }

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,20 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.cluster.decommission;
+package io.crate.execution.support;
 
-import org.elasticsearch.common.io.stream.Writeable.Reader;
-import org.elasticsearch.test.AbstractWireSerializingTestCase;
+import java.util.concurrent.CompletableFuture;
 
-public class DecommissionNodeRequestTest extends AbstractWireSerializingTestCase<DecommissionNodeRequest> {
+import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportResponse;
 
-    @Override
-    protected DecommissionNodeRequest createTestInstance() {
-        return new DecommissionNodeRequest();
-    }
+public interface ActionExecutor<Request extends TransportRequest, Response extends TransportResponse> {
 
-    @Override
-    protected Reader<DecommissionNodeRequest> instanceReader() {
-        return DecommissionNodeRequest::new;
-    }
+    CompletableFuture<Response> execute(Request request);
 }
