@@ -42,11 +42,16 @@ import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.Task;
 import io.crate.execution.jobs.TasksService;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.jobs.transport.JobRequest;
-import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.execution.jobs.transport.JobResponse;
+import io.crate.execution.support.ActionExecutor;
+import io.crate.execution.support.NodeRequest;
 import io.crate.metadata.TransactionContext;
 import io.crate.profile.ProfilingContext;
+
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.indices.IndicesService;
@@ -102,8 +107,8 @@ import java.util.stream.Collectors;
  **/
 public class JobLauncher {
 
-    private final TransportJobAction transportJobAction;
-    private final TransportKillJobsNodeAction transportKillJobsNodeAction;
+    private final ActionExecutor<NodeRequest<JobRequest>, JobResponse> transportJobAction;
+    private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
     private final List<NodeOperationTree> nodeOperationTrees;
     private final UUID jobId;
     private final ClusterService clusterService;
@@ -120,8 +125,8 @@ public class JobLauncher {
                 JobSetup jobSetup,
                 TasksService tasksService,
                 IndicesService indicesService,
-                TransportJobAction transportJobAction,
-                TransportKillJobsNodeAction transportKillJobsNodeAction,
+                ActionExecutor<NodeRequest<JobRequest>, JobResponse> transportJobAction,
+                ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction,
                 List<NodeOperationTree> nodeOperationTrees,
                 boolean enableProfiling,
                 Executor executor) {
@@ -131,7 +136,7 @@ public class JobLauncher {
         this.tasksService = tasksService;
         this.indicesService = indicesService;
         this.transportJobAction = transportJobAction;
-        this.transportKillJobsNodeAction = transportKillJobsNodeAction;
+        this.killNodeAction = killNodeAction;
         this.nodeOperationTrees = nodeOperationTrees;
         this.enableProfiling = enableProfiling;
         this.executor = executor;
@@ -313,7 +318,7 @@ public class JobLauncher {
                 consumerIt.next(),
                 initializationTracker,
                 executor,
-                transportKillJobsNodeAction
+                killNodeAction
             );
             handlerPhaseAndReceiver.add(new Tuple<>(handlerPhase, interceptingBatchConsumer));
         }
@@ -329,17 +334,26 @@ public class JobLauncher {
                                  InitializationTracker initializationTracker) {
         for (Map.Entry<String, Collection<NodeOperation>> entry : operationByServer.entrySet()) {
             String serverNodeId = entry.getKey();
-            JobRequest request = new JobRequest(
+            var request = JobRequest.of(
+                serverNodeId,
                 jobId,
                 txnCtx.sessionSettings(),
                 localNodeId,
                 entry.getValue(),
                 enableProfiling);
             if (hasDirectResponse) {
-                transportJobAction.execute(serverNodeId, request,
-                    BucketForwarder.asActionListener(pageBucketReceivers, bucketIdx, initializationTracker));
+                transportJobAction
+                    .execute(request)
+                    .whenComplete(
+                        ActionListener.toBiConsumer(
+                            BucketForwarder.asActionListener(pageBucketReceivers, bucketIdx, initializationTracker))
+                    );
             } else {
-                transportJobAction.execute(serverNodeId, request, new FailureOnlyResponseListener(handlerPhases, initializationTracker));
+                transportJobAction
+                    .execute(request)
+                    .whenComplete(
+                        ActionListener.toBiConsumer(new FailureOnlyResponseListener(handlerPhases, initializationTracker))
+                    );
             }
             bucketIdx++;
         }

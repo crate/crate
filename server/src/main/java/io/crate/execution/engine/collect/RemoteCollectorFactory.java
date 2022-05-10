@@ -30,15 +30,18 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.collectors.RemoteCollector;
 import io.crate.execution.engine.collect.collectors.ShardStateObserver;
 import io.crate.execution.engine.collect.sources.ShardCollectorProviderFactory;
 import io.crate.execution.jobs.TasksService;
+import io.crate.execution.jobs.kill.KillJobsNodeAction;
+import io.crate.execution.jobs.transport.JobAction;
 import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionInfo;
+
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
@@ -46,6 +49,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
@@ -69,19 +73,19 @@ public class RemoteCollectorFactory {
 
     private final ClusterService clusterService;
     private final TasksService tasksService;
-    private final TransportActionProvider transportActionProvider;
+    private final ElasticsearchClient elasticsearchClient;
     private final IndicesService indicesService;
     private final Executor searchTp;
 
     @Inject
     public RemoteCollectorFactory(ClusterService clusterService,
                                   TasksService tasksService,
-                                  TransportActionProvider transportActionProvider,
+                                  Node node,
                                   IndicesService indicesService,
                                   ThreadPool threadPool) {
         this.clusterService = clusterService;
         this.tasksService = tasksService;
-        this.transportActionProvider = transportActionProvider;
+        this.elasticsearchClient = node.client();
         this.indicesService = indicesService;
         searchTp = threadPool.executor(ThreadPool.Names.SEARCH);
     }
@@ -139,8 +143,8 @@ public class RemoteCollectorFactory {
                 collectTask.txnCtx().sessionSettings(),
                 localNodeId,
                 nodeId,
-                transportActionProvider.transportJobInitAction(),
-                transportActionProvider.transportKillJobsNodeAction(),
+                req -> elasticsearchClient.execute(JobAction.INSTANCE, req),
+                req -> elasticsearchClient.execute(KillJobsNodeAction.INSTANCE, req),
                 searchTp,
                 tasksService,
                 collectTask.getRamAccounting(),

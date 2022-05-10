@@ -27,7 +27,6 @@ import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SentinelRow;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.ExecutionPhaseVisitor;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
@@ -80,7 +79,6 @@ public class CollectSourceResolver {
                                  Settings settings,
                                  ThreadPool threadPool,
                                  Node node,
-                                 TransportActionProvider transportActionProvider,
                                  InformationSchemaInfo informationSchemaInfo,
                                  SysSchemaInfo sysSchemaInfo,
                                  PgCatalogSchemaInfo pgCatalogSchemaInfo,
@@ -100,7 +98,6 @@ public class CollectSourceResolver {
             threadPool,
             settings,
             node.client(),
-            transportActionProvider,
             new InputFactory(nodeCtx),
             normalizer,
             systemCollectSource::getRowUpdater,

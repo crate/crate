@@ -21,17 +21,46 @@
 
 package io.crate.execution.engine.distribution;
 
-import io.crate.Streamer;
-import io.crate.data.Bucket;
+import java.io.IOException;
+import java.util.UUID;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.UUID;
+import io.crate.Streamer;
+import io.crate.data.Bucket;
+import io.crate.execution.support.NodeRequest;
 
 public class DistributedResultRequest extends TransportRequest {
+
+    public static class Builder {
+
+        public final DistributedResultRequest innerRequest;
+
+        public Builder(UUID jobId, int executionPhaseId, byte inputId, int bucketIdx, Throwable throwable, boolean isKilled) {
+            this.innerRequest = new DistributedResultRequest(jobId, executionPhaseId, inputId, bucketIdx, throwable, isKilled);
+        }
+
+        public NodeRequest<DistributedResultRequest> build(String nodeId) {
+            return new NodeRequest<>(nodeId, innerRequest);
+        }
+    }
+
+    public static NodeRequest<DistributedResultRequest> of(String nodeId,
+                                                           UUID jobId,
+                                                           int executionPhaseId,
+                                                           byte inputId,
+                                                           int bucketIdx,
+                                                           StreamBucket rows,
+                                                           boolean isLast) {
+        return new NodeRequest<>(
+            nodeId,
+            new DistributedResultRequest(jobId, executionPhaseId, inputId, bucketIdx, rows, isLast)
+        );
+    }
 
     private final byte inputId;
     private final int executionPhaseId;
@@ -51,23 +80,23 @@ public class DistributedResultRequest extends TransportRequest {
         this.inputId = inputId;
     }
 
-    public DistributedResultRequest(UUID jobId,
-                                    int executionPhaseId,
-                                    byte inputId,
-                                    int bucketIdx,
-                                    StreamBucket rows,
-                                    boolean isLast) {
+    private DistributedResultRequest(UUID jobId,
+                                     int executionPhaseId,
+                                     byte inputId,
+                                     int bucketIdx,
+                                     StreamBucket rows,
+                                     boolean isLast) {
         this(jobId, inputId, executionPhaseId, bucketIdx);
         this.rows = rows;
         this.isLast = isLast;
     }
 
-    public DistributedResultRequest(UUID jobId,
-                                    int executionPhaseId,
-                                    byte inputId,
-                                    int bucketIdx,
-                                    Throwable throwable,
-                                    boolean isKilled) {
+    private DistributedResultRequest(UUID jobId,
+                                     int executionPhaseId,
+                                     byte inputId,
+                                     int bucketIdx,
+                                     Throwable throwable,
+                                     boolean isKilled) {
         this(jobId, inputId, executionPhaseId, bucketIdx);
         this.throwable = throwable;
         this.isKilled = isKilled;
@@ -107,7 +136,7 @@ public class DistributedResultRequest extends TransportRequest {
         return isKilled;
     }
 
-    public DistributedResultRequest(StreamInput in) throws IOException {
+    DistributedResultRequest(StreamInput in) throws IOException {
         super(in);
         jobId = new UUID(in.readLong(), in.readLong());
         executionPhaseId = in.readVInt();

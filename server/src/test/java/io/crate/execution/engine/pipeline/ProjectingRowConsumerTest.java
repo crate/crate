@@ -40,7 +40,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Answers;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
@@ -48,7 +47,6 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
@@ -91,7 +89,6 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             THREAD_POOL,
             Settings.EMPTY,
             mock(ElasticsearchClient.class),
-            mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS),
             new InputFactory(nodeCtx),
             new EvaluatingNormalizer(
                 nodeCtx,

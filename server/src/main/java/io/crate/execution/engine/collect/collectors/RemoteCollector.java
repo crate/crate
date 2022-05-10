@@ -33,16 +33,16 @@ import io.crate.execution.jobs.DistResultRXTask;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
-import io.crate.execution.jobs.kill.KillJobsRequest;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.jobs.transport.JobRequest;
 import io.crate.execution.jobs.transport.JobResponse;
-import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.execution.support.ActionExecutor;
+import io.crate.execution.support.NodeRequest;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -60,8 +60,8 @@ public class RemoteCollector {
     private final String localNode;
     private final String remoteNode;
     private final Executor executor;
-    private final TransportJobAction transportJobAction;
-    private final TransportKillJobsNodeAction transportKillJobsNodeAction;
+    private final ActionExecutor<NodeRequest<JobRequest>, JobResponse> jobAction;
+    private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
     private final TasksService tasksService;
     private final RamAccounting ramAccounting;
     private final RowConsumer consumer;
@@ -77,8 +77,8 @@ public class RemoteCollector {
                            SessionSettings sessionSettings,
                            String localNode,
                            String remoteNode,
-                           TransportJobAction transportJobAction,
-                           TransportKillJobsNodeAction transportKillJobsNodeAction,
+                           ActionExecutor<NodeRequest<JobRequest>, JobResponse> jobAction,
+                           ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction,
                            Executor executor,
                            TasksService tasksService,
                            RamAccounting ramAccounting,
@@ -97,8 +97,8 @@ public class RemoteCollector {
         this.enableProfiling = false;
 
         this.scrollRequired = consumer.requiresScroll();
-        this.transportJobAction = transportJobAction;
-        this.transportKillJobsNodeAction = transportKillJobsNodeAction;
+        this.jobAction = jobAction;
+        this.killNodeAction = killNodeAction;
         this.tasksService = tasksService;
         this.ramAccounting = ramAccounting;
         this.consumer = consumer;
@@ -143,31 +143,28 @@ public class RemoteCollector {
                 context.kill(null);
                 return;
             }
-            transportJobAction.execute(
-                remoteNode,
-                new JobRequest(
-                    jobId,
-                    sessionSettings,
-                    localNode,
-                    Collections.singletonList(nodeOperation),
-                    enableProfiling
-                ),
-                new ActionListener<>() {
-                    @Override
-                    public void onResponse(JobResponse jobResponse) {
-                        LOGGER.trace("RemoteCollector jobAction=onResponse");
-                        if (collectorKilled) {
-                            killRemoteContext();
+            jobAction
+                .execute(
+                    JobRequest.of(
+                        remoteNode,
+                        jobId,
+                        sessionSettings,
+                        localNode,
+                        Collections.singletonList(nodeOperation),
+                        enableProfiling))
+                .whenComplete(
+                    (resp, t) -> {
+                        if (t == null) {
+                            LOGGER.trace("RemoteCollector jobAction=onResponse");
+                            if (collectorKilled) {
+                                killRemoteContext();
+                            }
+                        } else {
+                            LOGGER.error("RemoteCollector jobAction=onFailure", t);
+                            context.kill(t.getMessage());
                         }
                     }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        LOGGER.error("RemoteCollector jobAction=onFailure", e);
-                        context.kill(e.getMessage());
-                    }
-                }
-            );
+                );
         }
     }
 
@@ -205,23 +202,23 @@ public class RemoteCollector {
     }
 
     private void killRemoteContext() {
-        KillJobsRequest killRequest = new KillJobsRequest(
+        KillJobsNodeRequest killRequest = new KillJobsNodeRequest(
+            List.of(),
             List.of(jobId),
             sessionSettings.userName(),
             null
         );
-        transportKillJobsNodeAction.broadcast(killRequest, new ActionListener<>() {
-
-                @Override
-                public void onResponse(Long numKilled) {
-                    context.kill(null);
+        killNodeAction
+            .execute(killRequest)
+            .whenComplete(
+                (resp, t) -> {
+                    if (t == null) {
+                        context.kill(null);
+                    } else {
+                        context.kill(t.getMessage());
+                    }
                 }
-
-                @Override
-                public void onFailure(Exception e) {
-                    context.kill(e.getMessage());
-                }
-            });
+            );
     }
 
     public void kill(@Nullable Throwable throwable) {

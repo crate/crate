@@ -21,26 +21,50 @@
 
 package io.crate.execution.jobs.kill;
 
-import io.crate.execution.jobs.TasksService;
+import static io.crate.execution.jobs.kill.TransportKillNodeAction.broadcast;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.concurrent.CompletableFuture;
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.support.NodeActionRequestHandler;
 
 @Singleton
-public class TransportKillAllNodeAction extends TransportKillNodeAction<KillAllRequest> {
+public class TransportKillAllNodeAction extends TransportAction<KillAllRequest, KillResponse> {
+
+    protected final TasksService tasksService;
+    protected final ClusterService clusterService;
+    protected final TransportService transportService;
 
     @Inject
     public TransportKillAllNodeAction(TasksService tasksService,
                                       ClusterService clusterService,
                                       TransportService transportService) {
-        super("internal:crate:sql/kill/all", tasksService, clusterService, transportService, KillAllRequest::new);
+        super(KillAllNodeAction.NAME);
+        this.tasksService = tasksService;
+        this.clusterService = clusterService;
+        this.transportService = transportService;
+        transportService.registerRequestHandler(
+            KillAllNodeAction.NAME,
+            ThreadPool.Names.GENERIC,
+            KillAllRequest::new,
+            new NodeActionRequestHandler<>(this::nodeOperation));
     }
 
     @Override
-    protected CompletableFuture<Integer> doKill(KillAllRequest request) {
-        return tasksService.killAll(request.userName());
+    public void doExecute(KillAllRequest request, ActionListener<KillResponse> listener) {
+        broadcast(clusterService, transportService, request, KillAllNodeAction.NAME, listener, List.of());
+    }
+
+    public CompletableFuture<KillResponse> nodeOperation(KillAllRequest request) {
+        return tasksService.killAll(request.userName()).thenApply(KillResponse::new);
     }
 }

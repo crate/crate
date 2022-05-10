@@ -27,10 +27,11 @@ import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.support.ActionExecutor;
+import io.crate.execution.support.NodeRequest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import javax.annotation.Nullable;
@@ -59,7 +60,7 @@ public class DistributingConsumer implements RowConsumer {
     private final int targetPhaseId;
     private final byte inputId;
     private final int bucketIdx;
-    private final TransportDistributedResultAction distributedResultAction;
+    private final ActionExecutor<NodeRequest<DistributedResultRequest>, DistributedResultResponse> distributedResultAction;
     private final int pageSize;
     private final StreamBucket[] buckets;
     private final List<Downstream> downstreams;
@@ -78,7 +79,7 @@ public class DistributingConsumer implements RowConsumer {
                                 byte inputId,
                                 int bucketIdx,
                                 Collection<String> downstreamNodeIds,
-                                TransportDistributedResultAction distributedResultAction,
+                                ActionExecutor<NodeRequest<DistributedResultRequest>, DistributedResultResponse> distributedResultAction,
                                 int pageSize) {
         this.traceEnabled = LOGGER.isTraceEnabled();
         this.responseExecutor = responseExecutor;
@@ -140,8 +141,7 @@ public class DistributingConsumer implements RowConsumer {
     private void forwardFailure(@Nullable final BatchIterator it, final Throwable f) {
         Throwable failure = SQLExceptions.unwrap(f); // make sure it's streamable
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
-        DistributedResultRequest request =
-            new DistributedResultRequest(jobId, targetPhaseId, inputId, bucketIdx, failure, false);
+        var builder = new DistributedResultRequest.Builder(jobId, targetPhaseId, inputId, bucketIdx, failure, false);
         for (int i = 0; i < downstreams.size(); i++) {
             Downstream downstream = downstreams.get(i);
             if (downstream.needsMoreData == false) {
@@ -149,31 +149,31 @@ public class DistributingConsumer implements RowConsumer {
             } else {
                 if (traceEnabled) {
                     LOGGER.trace("forwardFailure targetNode={} jobId={} targetPhase={}/{} bucket={} failure={}",
-                        downstream.nodeId, jobId, targetPhaseId, inputId, bucketIdx, failure);
+                                 downstream.nodeId, jobId, targetPhaseId, inputId, bucketIdx, failure);
                 }
-                distributedResultAction.pushResult(downstream.nodeId, request, new ActionListener<>() {
-                    @Override
-                    public void onResponse(DistributedResultResponse response) {
-                        downstream.needsMoreData = false;
-                        countdownAndMaybeCloseIt(numActiveRequests, it);
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        if (traceEnabled) {
-                            LOGGER.trace(
-                                "Error sending failure to downstream={} jobId={} targetPhase={}/{} bucket={} failure={}",
-                                downstream.nodeId,
-                                jobId,
-                                targetPhaseId,
-                                inputId,
-                                bucketIdx,
-                                e
-                            );
+                distributedResultAction
+                    .execute(builder.build(downstream.nodeId))
+                    .whenComplete(
+                        (resp, t) -> {
+                            if (t == null) {
+                                downstream.needsMoreData = false;
+                                countdownAndMaybeCloseIt(numActiveRequests, it);
+                            } else {
+                                if (traceEnabled) {
+                                    LOGGER.trace(
+                                        "Error sending failure to downstream={} jobId={} targetPhase={}/{} bucket={} failure={}",
+                                        downstream.nodeId,
+                                        jobId,
+                                        targetPhaseId,
+                                        inputId,
+                                        bucketIdx,
+                                        t
+                                    );
+                                }
+                                countdownAndMaybeCloseIt(numActiveRequests, it);
+                            }
                         }
-                        countdownAndMaybeCloseIt(numActiveRequests, it);
-                    }
-                });
+                    );
             }
         }
     }
@@ -189,7 +189,6 @@ public class DistributingConsumer implements RowConsumer {
 
     private void forwardResults(BatchIterator<Row> it, boolean isLast) {
         multiBucketBuilder.build(buckets);
-
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
         for (int i = 0; i < downstreams.size(); i++) {
             Downstream downstream = downstreams.get(i);
@@ -199,31 +198,37 @@ public class DistributingConsumer implements RowConsumer {
             }
             if (traceEnabled) {
                 LOGGER.trace("forwardResults targetNode={} jobId={} targetPhase={}/{} bucket={} isLast={}",
-                    downstream.nodeId, jobId, targetPhaseId, inputId, bucketIdx, isLast);
+                             downstream.nodeId, jobId, targetPhaseId, inputId, bucketIdx, isLast);
             }
-            distributedResultAction.pushResult(
-                downstream.nodeId,
-                new DistributedResultRequest(jobId, targetPhaseId, inputId, bucketIdx, buckets[i], isLast),
-                new ActionListener<>() {
-                    @Override
-                    public void onResponse(DistributedResultResponse response) {
-                        downstream.needsMoreData = response.needMore();
-                        countdownAndMaybeContinue(it, numActiveRequests, false);
+            distributedResultAction
+                .execute(
+                    DistributedResultRequest.of(
+                        downstream.nodeId,
+                        jobId,
+                        targetPhaseId,
+                        inputId,
+                        bucketIdx,
+                        buckets[i],
+                        isLast))
+                .whenComplete(
+                    (resp, t) -> {
+                        if (t == null) {
+                            downstream.needsMoreData = resp.needMore();
+                            countdownAndMaybeContinue(it, numActiveRequests, false);
+                        } else {
+                            failure = t;
+                            downstream.needsMoreData = false;
+                            // continue because it's necessary to send something to downstreams still waiting for data
+                            countdownAndMaybeContinue(it, numActiveRequests, false);
+                        }
                     }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        failure = e;
-                        downstream.needsMoreData = false;
-                        // continue because it's necessary to send something to downstreams still waiting for data
-                        countdownAndMaybeContinue(it, numActiveRequests, false);
-                    }
-                }
-            );
+                );
         }
     }
 
-    private void countdownAndMaybeContinue(BatchIterator<Row> it, AtomicInteger numActiveRequests, boolean sameExecutor) {
+    private void countdownAndMaybeContinue(BatchIterator<Row> it,
+                                           AtomicInteger numActiveRequests,
+                                           boolean sameExecutor) {
         if (numActiveRequests.decrementAndGet() == 0) {
             if (downstreams.stream().anyMatch(Downstream::needsMoreData)) {
                 if (failure == null) {

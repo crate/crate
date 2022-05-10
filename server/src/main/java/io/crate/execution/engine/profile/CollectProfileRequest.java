@@ -21,18 +21,24 @@
 
 package io.crate.execution.engine.profile;
 
+import java.io.IOException;
+import java.util.UUID;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
-import java.io.IOException;
-import java.util.UUID;
+import io.crate.execution.support.NodeRequest;
 
-public class NodeCollectProfileRequest extends TransportRequest {
+public class CollectProfileRequest extends TransportRequest {
+
+    public static NodeRequest<CollectProfileRequest> of(String nodeId, UUID jobId) {
+        return new NodeRequest<>(nodeId, new CollectProfileRequest(jobId));
+    }
 
     private final UUID jobId;
 
-    NodeCollectProfileRequest(UUID jobId) {
+    private CollectProfileRequest(UUID jobId) {
         this.jobId = jobId;
     }
 
@@ -40,7 +46,7 @@ public class NodeCollectProfileRequest extends TransportRequest {
         return jobId;
     }
 
-    public NodeCollectProfileRequest(StreamInput in) throws IOException {
+    CollectProfileRequest(StreamInput in) throws IOException {
         super(in);
         jobId = new UUID(in.readLong(), in.readLong());
     }

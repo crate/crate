@@ -22,8 +22,10 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.Session;
-import io.crate.execution.jobs.kill.KillJobsRequest;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
+import io.crate.execution.support.ActionExecutor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -36,11 +38,11 @@ public class PgSessions {
     private static final Logger LOGGER = LogManager.getLogger(PgSessions.class);
 
     private final ConcurrentMap<KeyData, Session> activeSessions;
-    private final TransportKillJobsNodeAction transportKillJobsNodeAction;
+    private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
 
-    public PgSessions(TransportKillJobsNodeAction transportKillJobsNodeAction) {
+    public PgSessions(ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction) {
         this.activeSessions = new ConcurrentHashMap<>();
-        this.transportKillJobsNodeAction = transportKillJobsNodeAction;
+        this.killNodeAction = killNodeAction;
     }
 
     public void remove(KeyData keyData) {
@@ -58,8 +60,12 @@ public class PgSessions {
             String userName = targetSession.sessionContext().sessionUser().name();
             UUID targetJobID = targetSession.getMostRecentJobID();
             if (targetJobID != null) {
-                transportKillJobsNodeAction.broadcast(
-                    new KillJobsRequest(List.of(targetJobID), userName, "Cancellation requested by: " + userName));
+                killNodeAction.execute(
+                    new KillJobsNodeRequest(List.of(),
+                                            List.of(targetJobID),
+                                            userName,
+                                            "Cancellation requested by: " + userName)
+                );
                 targetSession.resetDeferredExecutions();
             } else {
                 LOGGER.debug("Cancellation request is ignored since the session does not have an active job to kill");

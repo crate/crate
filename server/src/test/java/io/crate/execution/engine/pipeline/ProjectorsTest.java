@@ -22,7 +22,6 @@
 package io.crate.execution.engine.pipeline;
 
 import io.crate.breaker.RamAccounting;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.engine.aggregation.GroupingProjector;
@@ -45,7 +44,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Answers;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -75,7 +73,6 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             Settings.EMPTY,
             mock(ElasticsearchClient.class),
-            mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS),
             new InputFactory(nodeCtx),
             new EvaluatingNormalizer(
                 nodeCtx,

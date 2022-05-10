@@ -48,7 +48,6 @@ import javax.annotation.Nullable;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
@@ -67,17 +66,16 @@ import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.execution.jobs.kill.KillJobsRequest;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
+import io.crate.execution.support.ActionExecutor;
 import io.crate.planner.DependencyCarrier;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import io.crate.user.StubUserManager;
 import io.crate.user.User;
-import io.crate.user.UserManager;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -146,7 +144,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> null),
                 null,
-                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                new PgSessions(mock(ActionExecutor.class)),
                 keyData);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
@@ -191,7 +189,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
                 null,
-                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                new PgSessions(mock(ActionExecutor.class)),
                 keyData);
         AtomicBoolean flushed = new AtomicBoolean(false);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler) {
@@ -222,7 +220,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
                 null,
-                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                new PgSessions(mock(ActionExecutor.class)),
                 keyData);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
@@ -250,7 +248,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
                 null,
-                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                new PgSessions(mock(ActionExecutor.class)),
                 keyData);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -311,7 +309,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
                 null,
-                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                new PgSessions(mock(ActionExecutor.class)),
                 keyData);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -376,7 +374,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
                 null,
-                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                new PgSessions(mock(ActionExecutor.class)),
                 keyData);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -435,7 +433,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> null),
                 () -> null,
-                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                new PgSessions(mock(ActionExecutor.class)),
                 keyData);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -478,7 +476,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                     return null;
                 }
             },
-            new PgSessions(mock(TransportKillJobsNodeAction.class)),
+            new PgSessions(mock(ActionExecutor.class)),
             keyData
         );
 
@@ -506,7 +504,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             chPipeline -> {},
             new AlwaysOKAuthentication(userName -> User.CRATE_USER),
             null,
-            new PgSessions(mock(TransportKillJobsNodeAction.class)),
+            new PgSessions(mock(ActionExecutor.class)),
                 keyData);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
@@ -558,7 +556,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                     }
                 },
                 null,
-                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                new PgSessions(mock(ActionExecutor.class)),
                 keyData);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
@@ -598,7 +596,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
                 null,
-                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                new PgSessions(mock(ActionExecutor.class)),
                 keyData);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
@@ -642,7 +640,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
                 null,
-                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                new PgSessions(mock(ActionExecutor.class)),
                 keyData);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -654,7 +652,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHandleCancelRequestBody() {
-        TransportKillJobsNodeAction mockedKillAction = mock(TransportKillJobsNodeAction.class);
+        ActionExecutor<KillJobsNodeRequest, KillResponse> mockedKillAction = mock(ActionExecutor.class);
 
         UUID targetJobID = UUIDs.dirtyUUID();
         Session targetSession = mock(Session.class);
@@ -679,10 +677,10 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         sendCancelRequest(channel, keyData);
 
         // kill invoked with the target jobID
-        ArgumentCaptor<KillJobsRequest> arg = ArgumentCaptor.forClass(KillJobsRequest.class);
-        verify(mockedKillAction).broadcast(arg.capture());
-        KillJobsRequest capturedKillJobRequest = arg.getValue();
-        assertThat(capturedKillJobRequest.toKill(), is(List.of(targetJobID)));
+        ArgumentCaptor<KillJobsNodeRequest> arg = ArgumentCaptor.forClass(KillJobsNodeRequest.class);
+        verify(mockedKillAction).execute(arg.capture());
+        KillJobsNodeRequest capturedKillJobRequest = arg.getValue();
+        assertThat(capturedKillJobRequest.innerRequest().toKill(), is(List.of(targetJobID)));
 
         assertThat(channel.isOpen(), is(false));
         Asserts.assertThrowsMatches( // implicitly verifies that cancelling did not affect the internal map hence the original session
@@ -713,7 +711,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 chPipeline -> {},
                 new AlwaysOKAuthentication(userName -> User.CRATE_USER),
                 null,
-                new PgSessions(mock(TransportKillJobsNodeAction.class)),
+                new PgSessions(mock(ActionExecutor.class)),
                 keyData);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
