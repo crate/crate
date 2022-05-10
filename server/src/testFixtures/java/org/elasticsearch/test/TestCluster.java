@@ -26,11 +26,14 @@ import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteReposito
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 import org.elasticsearch.repositories.RepositoryMissingException;
@@ -137,7 +140,8 @@ public abstract class TestCluster implements Closeable {
         assert indices != null && indices.length > 0;
         if (size() > 0) {
             try {
-                assertAcked(client().admin().indices().prepareDelete(indices));
+                var acknowledgedResponse = FutureUtils.get(client().admin().indices().delete(new DeleteIndexRequest(indices)));
+                assertAcked(acknowledgedResponse);
             } catch (IndexNotFoundException e) {
                 // ignore
             } catch (IllegalArgumentException e) {
@@ -150,7 +154,8 @@ public abstract class TestCluster implements Closeable {
                         concreteIndices.add(indexMetadata.getIndex().getName());
                     }
                     if (!concreteIndices.isEmpty()) {
-                        assertAcked(client().admin().indices().prepareDelete(concreteIndices.toArray(String.class)));
+                        var acknowledgedResponse = FutureUtils.get(client().admin().indices().delete(new DeleteIndexRequest(concreteIndices.toArray(String.class))));
+                        assertAcked(acknowledgedResponse);
                     }
                 }
             }

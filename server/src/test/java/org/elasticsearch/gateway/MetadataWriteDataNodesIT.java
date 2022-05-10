@@ -20,6 +20,8 @@
 package org.elasticsearch.gateway;
 
 import io.crate.integrationtests.SQLIntegrationTestCase;
+
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.cluster.coordination.Coordinator;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -77,7 +79,7 @@ public class MetadataWriteDataNodesIT extends SQLIntegrationTestCase {
         assertIndexInMetaState(masterNode, "test");
         assertIndexDirectoryDeleted(masterNode, resolveIndex);
 
-        client().admin().indices().prepareDelete("test").get();
+        client().admin().indices().delete(new DeleteIndexRequest("test")).get();
         assertIndexDirectoryDeleted(node1, resolveIndex);
         assertIndexDirectoryDeleted(node2, resolveIndex);
     }
