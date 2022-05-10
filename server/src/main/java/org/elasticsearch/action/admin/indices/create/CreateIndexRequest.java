@@ -32,28 +32,21 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.elasticsearch.ElasticsearchGenerationException;
-import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.ParseField;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import io.crate.common.collections.MapBuilder;
@@ -83,9 +76,6 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
     private final Set<Alias> aliases = new HashSet<>();
 
     private ActiveShardCount waitForActiveShards = ActiveShardCount.DEFAULT;
-
-    public CreateIndexRequest() {
-    }
 
     /**
      * Constructs a new request to create an index with the specified name.
@@ -119,11 +109,6 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         return index;
     }
 
-    public CreateIndexRequest index(String index) {
-        this.index = index;
-        return this;
-    }
-
     /**
      * The settings to create the index with.
      */
@@ -151,37 +136,6 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
      */
     public CreateIndexRequest settings(Settings settings) {
         this.settings = settings;
-        return this;
-    }
-
-    /**
-     * The settings to create the index with (either json or yaml format)
-     */
-    public CreateIndexRequest settings(String source, XContentType xContentType) {
-        this.settings = Settings.builder().loadFromSource(source, xContentType).build();
-        return this;
-    }
-
-    /**
-     * Allows to set the settings using a json builder.
-     */
-    public CreateIndexRequest settings(XContentBuilder builder) {
-        settings(Strings.toString(builder), builder.contentType());
-        return this;
-    }
-
-    /**
-     * The settings to create the index with (either json/yaml/properties format)
-     */
-    @SuppressWarnings("unchecked")
-    public CreateIndexRequest settings(Map source) {
-        try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
-            builder.map(source);
-            settings(Strings.toString(builder), XContentType.JSON);
-        } catch (IOException e) {
-            throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
-        }
         return this;
     }
 
@@ -230,18 +184,7 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
      * @param type   The mapping type
      * @param source The mapping source
      */
-    public CreateIndexRequest mapping(String type, XContentBuilder source) {
-        return mapping(type, BytesReference.bytes(source), source.contentType());
-    }
-
-    /**
-     * Adds mapping that will be added when the index gets created.
-     *
-     * @param type   The mapping type
-     * @param source The mapping source
-     */
-    @SuppressWarnings("unchecked")
-    public CreateIndexRequest mapping(String type, Map source) {
+    public CreateIndexRequest mapping(String type, Map<String, Object> source) {
         if (mappings.containsKey(type)) {
             throw new IllegalStateException("mappings for type \"" + type + "\" were already defined");
         }
@@ -252,138 +195,18 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         try {
             XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
             builder.map(source);
-            return mapping(type, builder);
+            return mapping(type, BytesReference.bytes(builder), builder.contentType());
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
         }
     }
 
-    /**
-     * A specialized simplified mapping source method, takes the form of simple properties definition:
-     * ("field1", "type=string,store=true").
-     */
-    public CreateIndexRequest mapping(String type, Object... source) {
-        mapping(type, PutMappingRequest.buildFromSimplifiedDef(type, source));
-        return this;
-    }
-
-    /**
-     * Sets the aliases that will be associated with the index when it gets created
-     */
-    @SuppressWarnings("unchecked")
-    public CreateIndexRequest aliases(Map source) {
-        try {
-            XContentBuilder builder = XContentFactory.jsonBuilder();
-            builder.map(source);
-            return aliases(BytesReference.bytes(builder));
-        } catch (IOException e) {
-            throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
-        }
-    }
-
-    /**
-     * Sets the aliases that will be associated with the index when it gets created
-     */
-    public CreateIndexRequest aliases(XContentBuilder source) {
-        return aliases(BytesReference.bytes(source));
-    }
-
-    /**
-     * Sets the aliases that will be associated with the index when it gets created
-     */
-    public CreateIndexRequest aliases(String source) {
-        return aliases(new BytesArray(source));
-    }
-
-    /**
-     * Sets the aliases that will be associated with the index when it gets created
-     */
-    public CreateIndexRequest aliases(BytesReference source) {
-        // EMPTY is safe here because we never call namedObject
-        try (XContentParser parser = XContentHelper
-                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, source)) {
-            //move to the first alias
-            parser.nextToken();
-            while ((parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-                alias(Alias.fromXContent(parser));
-            }
-            return this;
-        } catch (IOException e) {
-            throw new ElasticsearchParseException("Failed to parse aliases", e);
-        }
-    }
 
     /**
      * Adds an alias that will be associated with the index when it gets created
      */
     public CreateIndexRequest alias(Alias alias) {
         this.aliases.add(alias);
-        return this;
-    }
-
-    /**
-     * Sets the settings and mappings as a single source.
-     */
-    public CreateIndexRequest source(String source, XContentType xContentType) {
-        return source(new BytesArray(source), xContentType);
-    }
-
-    /**
-     * Sets the settings and mappings as a single source.
-     */
-    public CreateIndexRequest source(XContentBuilder source) {
-        return source(BytesReference.bytes(source), source.contentType());
-    }
-
-    /**
-     * Sets the settings and mappings as a single source.
-     */
-    public CreateIndexRequest source(byte[] source, XContentType xContentType) {
-        return source(source, 0, source.length, xContentType);
-    }
-
-    /**
-     * Sets the settings and mappings as a single source.
-     */
-    public CreateIndexRequest source(byte[] source, int offset, int length, XContentType xContentType) {
-        return source(new BytesArray(source, offset, length), xContentType);
-    }
-
-    /**
-     * Sets the settings and mappings as a single source.
-     */
-    public CreateIndexRequest source(BytesReference source, XContentType xContentType) {
-        Objects.requireNonNull(xContentType);
-        source(XContentHelper.convertToMap(source, false, xContentType).v2(), LoggingDeprecationHandler.INSTANCE);
-        return this;
-    }
-
-    /**
-     * Sets the settings and mappings as a single source.
-     */
-    @SuppressWarnings("unchecked")
-    public CreateIndexRequest source(Map<String, ?> source, DeprecationHandler deprecationHandler) {
-        boolean found = false;
-        for (Map.Entry<String, ?> entry : source.entrySet()) {
-            String name = entry.getKey();
-            if (SETTINGS.match(name, deprecationHandler)) {
-                found = true;
-                settings((Map<String, Object>) entry.getValue());
-            } else if (MAPPINGS.match(name, deprecationHandler)) {
-                found = true;
-                Map<String, Object> mappings = (Map<String, Object>) entry.getValue();
-                for (Map.Entry<String, Object> entry1 : mappings.entrySet()) {
-                    mapping(entry1.getKey(), (Map<String, Object>) entry1.getValue());
-                }
-            } else if (ALIASES.match(name, deprecationHandler)) {
-                found = true;
-                aliases((Map<String, Object>) entry.getValue());
-            }
-        }
-        if (!found) {
-            // the top level are settings, use them
-            settings(source);
-        }
         return this;
     }
 
@@ -416,15 +239,6 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
     public CreateIndexRequest waitForActiveShards(ActiveShardCount waitForActiveShards) {
         this.waitForActiveShards = waitForActiveShards;
         return this;
-    }
-
-    /**
-     * A shortcut for {@link #waitForActiveShards(ActiveShardCount)} where the numerical
-     * shard count is passed in, instead of having to first call {@link ActiveShardCount#from(int)}
-     * to get the ActiveShardCount.
-     */
-    public CreateIndexRequest waitForActiveShards(final int waitForActiveShards) {
-        return waitForActiveShards(ActiveShardCount.from(waitForActiveShards));
     }
 
     public CreateIndexRequest(StreamInput in) throws IOException {

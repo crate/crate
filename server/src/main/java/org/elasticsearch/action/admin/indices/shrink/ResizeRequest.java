@@ -19,19 +19,16 @@
 
 package org.elasticsearch.action.admin.indices.shrink;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ObjectParser;
-import org.elasticsearch.common.xcontent.XContentParser;
-
-import java.io.IOException;
-import java.util.Objects;
 
 
 /**
@@ -39,30 +36,14 @@ import java.util.Objects;
  */
 public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements IndicesRequest {
 
-    public static final ObjectParser<ResizeRequest, Void> PARSER = new ObjectParser<>("resize_request", null);
-
-    static {
-        PARSER.declareField((parser, request, context) -> request.getTargetIndexRequest().settings(parser.map()),
-            new ParseField("settings"), ObjectParser.ValueType.OBJECT);
-        PARSER.declareField((parser, request, context) -> request.getTargetIndexRequest().aliases(parser.map()),
-            new ParseField("aliases"), ObjectParser.ValueType.OBJECT);
-    }
-
     private CreateIndexRequest targetIndexRequest;
     private String sourceIndex;
     private ResizeType type = ResizeType.SHRINK;
     private Boolean copySettings;
 
-    ResizeRequest() {
-    }
-
     public ResizeRequest(String targetIndex, String sourceIndex) {
         this.targetIndexRequest = new CreateIndexRequest(targetIndex);
         this.sourceIndex = sourceIndex;
-    }
-
-    public void setSourceIndex(String index) {
-        this.sourceIndex = index;
     }
 
     public ResizeRequest(StreamInput in) throws IOException {
@@ -90,10 +71,6 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements
     @Override
     public IndicesOptions indicesOptions() {
         return IndicesOptions.lenientExpandOpen();
-    }
-
-    public void setTargetIndex(CreateIndexRequest targetIndexRequest) {
-        this.targetIndexRequest = Objects.requireNonNull(targetIndexRequest, "target index request must not be null");
     }
 
     /**
@@ -129,15 +106,6 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements
     }
 
     /**
-     * A shortcut for {@link #setWaitForActiveShards(ActiveShardCount)} where the numerical
-     * shard count is passed in, instead of having to first call {@link ActiveShardCount#from(int)}
-     * to get the ActiveShardCount.
-     */
-    public void setWaitForActiveShards(final int waitForActiveShards) {
-        setWaitForActiveShards(ActiveShardCount.from(waitForActiveShards));
-    }
-
-    /**
      * The type of the resize operation
      */
     public void setResizeType(ResizeType type) {
@@ -160,9 +128,5 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements
 
     public Boolean getCopySettings() {
         return copySettings;
-    }
-
-    public void fromXContent(XContentParser parser) throws IOException {
-        PARSER.parse(parser, this, null);
     }
 }
