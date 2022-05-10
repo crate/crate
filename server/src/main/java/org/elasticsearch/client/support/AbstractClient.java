@@ -262,8 +262,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<AcknowledgedResponse> delete(final DeleteIndexRequest request) {
-            return legacyExecute(DeleteIndexAction.INSTANCE, request);
+        public CompletableFuture<AcknowledgedResponse> delete(final DeleteIndexRequest request) {
+            return execute(DeleteIndexAction.INSTANCE, request);
         }
 
         @Override
