@@ -211,8 +211,7 @@ public class TypeParsers {
         throw new IllegalArgumentException("Invalid format: [" + node.toString() + "]: expected string value");
     }
 
-    @SuppressWarnings("rawtypes")
-    public static void parseTermVector(String fieldName, String termVector, FieldMapper.Builder builder) throws MapperParsingException {
+    public static void parseTermVector(String fieldName, String termVector, TextFieldMapper.Builder builder) throws MapperParsingException {
         if ("no".equals(termVector)) {
             builder.storeTermVectors(false);
         } else if ("yes".equals(termVector)) {
