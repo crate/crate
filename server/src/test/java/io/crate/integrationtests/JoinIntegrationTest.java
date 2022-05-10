@@ -1253,4 +1253,97 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
         execute(stmt);
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    @UseHashJoins(1)
+    public void test_joins_with_constant_conditions_with_unions_and_renames() {
+        execute("CREATE TABLE doc.t1 (id TEXT, name TEXT, PRIMARY KEY (id))");
+        execute("CREATE TABLE doc.t2 (id TEXT, name TEXT, PRIMARY KEY (id))");
+        execute("CREATE TABLE doc.t3 (id TEXT, name TEXT, PRIMARY KEY (id))");
+
+        execute("insert into doc.t1 values ('1', 'a')");
+        execute("insert into doc.t2 values ('1', 'b')");
+        execute("insert into doc.t3 values ('1', 'c')");
+
+        execute("refresh table doc.t1");
+        execute("refresh table doc.t2");
+        execute("refresh table doc.t3");
+
+        var stmt = """
+                select x.name, y.name
+                from (select name from doc.t1 where name = 'a' union select name from doc.t3 where name = 'c') x
+                join
+                (select name from doc.t1 where name = 'a' union select name from doc.t2 where name = 'b') y
+                on x.name = y.name and x.name != 'constant-condition'
+            """;
+
+        execute("EXPLAIN " + stmt);
+
+        assertThat(printedTable(response.rows()), is(
+            """
+                HashJoin[(name = name)]
+                  ├ Rename[name] AS x
+                  │  └ GroupHashAggregate[name]
+                  │    └ Union[name]
+                  │      ├ Collect[doc.t1 | [name] | ((NOT (name = 'constant-condition')) AND (name = 'a'))]
+                  │      └ Collect[doc.t3 | [name] | ((NOT (name = 'constant-condition')) AND (name = 'c'))]
+                  └ Rename[name] AS y
+                    └ GroupHashAggregate[name]
+                      └ Union[name]
+                        ├ Collect[doc.t1 | [name] | (name = 'a')]
+                        └ Collect[doc.t2 | [name] | (name = 'b')]
+                """
+        ));
+        execute(stmt);
+        assertThat(printedTable(response.rows()), is("a| a\n"));
+    }
+
+
+    /**
+     * https://github.com/crate/crate/issues/12357
+     */
+    @Test
+    @UseHashJoins(1)
+    public void test_alias_in_left_join_condition() {
+        execute("CREATE TABLE doc.t1 (id TEXT, name TEXT, subscription_id TEXT, PRIMARY KEY (id))");
+        execute("CREATE TABLE doc.t2 (kind TEXT, cluster_id TEXT, PRIMARY KEY (kind, cluster_id))");
+        execute("CREATE TABLE doc.t3 (id TEXT PRIMARY KEY, reference TEXT)");
+
+        execute("insert into doc.t1 values ('1', 'foo', '2')");
+        execute("insert into doc.t2 values ('bar', '1')");
+        execute("insert into doc.t3 values ('2', 'bazinga')");
+
+        execute("refresh table doc.t1");
+        execute("refresh table doc.t2");
+        execute("refresh table doc.t3");
+
+        var stmt = """
+                SELECT doc.t3.id, doc.t3.reference
+                FROM doc.t3
+                JOIN doc.t1 ON doc.t1.subscription_id = doc.t3.id
+                JOIN doc.t2 ON doc.t2.cluster_id = doc.t1.id
+                AND doc.t2.kind = 'bar'
+                LEFT OUTER JOIN doc.t2 AS temp ON temp.cluster_id = doc.t1.id
+                AND temp.kind = 'bar'
+                WHERE doc.t3.reference = 'bazinga';
+            """;
+
+        execute("EXPLAIN " + stmt);
+        assertThat(printedTable(response.rows()), is(
+            """
+                Eval[id, reference]
+                  └ NestedLoopJoin[LEFT | ((cluster_id = id) AND (kind = 'bar'))]
+                    ├ HashJoin[(cluster_id = id)]
+                    │  ├ HashJoin[(subscription_id = id)]
+                    │  │  ├ Collect[doc.t3 | [id, reference] | (reference = 'bazinga')]
+                    │  │  └ Collect[doc.t1 | [subscription_id, id] | true]
+                    │  └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]
+                    └ Rename[cluster_id, kind] AS temp
+                      └ Collect[doc.t2 | [cluster_id, kind] | true]
+                """
+        ));
+
+        execute(stmt);
+        assertThat(printedTable(response.rows()), is("2| bazinga\n"));
+    }
 }

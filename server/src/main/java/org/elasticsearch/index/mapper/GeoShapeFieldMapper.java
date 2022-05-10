@@ -146,7 +146,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
                 fieldType,
                 ft,
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo
             );
         }
@@ -366,9 +365,8 @@ public class GeoShapeFieldMapper extends FieldMapper {
                                FieldType fieldType,
                                MappedFieldType mappedFieldType,
                                Settings indexSettings,
-                               MultiFields multiFields,
                                CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
     }
 
     @Override
@@ -379,14 +377,12 @@ public class GeoShapeFieldMapper extends FieldMapper {
     @Override
     public void parse(ParseContext context) throws IOException {
         try {
-            Shape shape = context.parseExternalValue(Shape.class);
-            if (shape == null) {
-                ShapeBuilder shapeBuilder = ShapeParser.parse(context.parser(), this);
-                if (shapeBuilder == null) {
-                    return;
-                }
-                shape = shapeBuilder.build();
+            Shape shape;
+            ShapeBuilder shapeBuilder = ShapeParser.parse(context.parser(), this);
+            if (shapeBuilder == null) {
+                return;
             }
+            shape = shapeBuilder.build();
             if (fieldType().pointsOnly() == true) {
                 // index configured for pointsOnly
                 if (shape instanceof XShapeCollection && XShapeCollection.class.cast(shape).pointsOnly()) {

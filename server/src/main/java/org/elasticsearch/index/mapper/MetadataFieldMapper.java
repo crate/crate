@@ -39,16 +39,11 @@ public abstract class MetadataFieldMapper extends FieldMapper {
 
         /**
          * Get the default {@link MetadataFieldMapper} to use, if nothing had to be parsed.
-         * @param fieldType      the existing field type for this meta mapper on the current index
-         *                       or null if this is the first type being introduced
          * @param parserContext context that may be useful to build the field like analyzers
          */
-        // TODO: remove the fieldType parameter which is only used for bw compat with pre-2.0
-        // since settings could be modified
-        MetadataFieldMapper getDefault(MappedFieldType fieldType, ParserContext parserContext);
+        MetadataFieldMapper getDefault(ParserContext parserContext);
     }
 
-    @SuppressWarnings("rawtypes")
     public abstract static class Builder<T extends Builder<T>> extends FieldMapper.Builder<T> {
         public Builder(String name, FieldType fieldType) {
             super(name, fieldType);
@@ -73,7 +68,6 @@ public abstract class MetadataFieldMapper extends FieldMapper {
             fieldType,
             mappedFieldType,
             indexSettings,
-            MultiFields.empty(),
             CopyTo.empty()
         );
     }

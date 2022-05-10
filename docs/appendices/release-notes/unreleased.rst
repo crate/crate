@@ -56,6 +56,9 @@ None
 Changes
 =======
 
+- Added an optimization to push down constant join conditions to the relation
+  in an inner join, which results in a more efficient execution plan.
+
 - Updated the bundled JDK to 18.0.1+10
 
 - Moved the :ref:`scalar-quote_ident` function to `pg_catalog` for improved
@@ -70,6 +73,9 @@ Changes
 
 - Added ``typsend`` column to ``pg_catalog.pgtype`` table for improved
   compatibility with PostgreSQL.
+  
+- Added the :ref:`object_keys <scalar-object_keys>` scalar function which returns
+  the set of first level keys of an ``object``.
 
 
 Fixes

@@ -83,9 +83,8 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
                 FieldType fieldType,
                 MappedFieldType defaultFieldType,
                 Settings indexSettings,
-                MultiFields multiFields,
                 Mapper innerMapper) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, CopyTo.empty());
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, CopyTo.empty());
         this.innerMapper = innerMapper;
     }
 
@@ -119,7 +118,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
                 fieldType,
                 mappedFieldType,
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 innerMapper
             );
         }

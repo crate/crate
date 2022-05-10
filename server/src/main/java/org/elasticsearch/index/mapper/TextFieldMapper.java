@@ -100,7 +100,6 @@ public class TextFieldMapper extends FieldMapper {
                 fieldType,
                 tft,
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo
             );
         }
@@ -144,9 +143,8 @@ public class TextFieldMapper extends FieldMapper {
                               FieldType fieldType,
                               TextFieldType mappedFieldType,
                               Settings indexSettings,
-                              MultiFields multiFields,
                               CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
         assert mappedFieldType.hasDocValues() == false;
     }
 
@@ -157,12 +155,7 @@ public class TextFieldMapper extends FieldMapper {
 
     @Override
     protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
-        final String value;
-        if (context.externalValueSet()) {
-            value = context.externalValue().toString();
-        } else {
-            value = context.parser().textOrNull();
-        }
+        final String value = context.parser().textOrNull();
 
         if (value == null) {
             return;

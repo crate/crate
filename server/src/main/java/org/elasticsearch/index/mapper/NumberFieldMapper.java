@@ -80,7 +80,6 @@ public class NumberFieldMapper extends FieldMapper {
                 fieldType,
                 new NumberFieldType(buildFullName(context), type, indexed, hasDocValues),
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo
             );
         }
@@ -459,9 +458,8 @@ public class NumberFieldMapper extends FieldMapper {
             FieldType fieldType,
             MappedFieldType mappedFieldType,
             Settings indexSettings,
-            MultiFields multiFields,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
     }
 
     @Override
@@ -484,9 +482,7 @@ public class NumberFieldMapper extends FieldMapper {
         XContentParser parser = context.parser();
         Object value;
         Number numericValue = null;
-        if (context.externalValueSet()) {
-            value = context.externalValue();
-        } else if (parser.currentToken() == Token.VALUE_NULL) {
+        if (parser.currentToken() == Token.VALUE_NULL) {
             value = null;
         } else if (parser.currentToken() == Token.VALUE_STRING
                 && parser.textLength() == 0) {
