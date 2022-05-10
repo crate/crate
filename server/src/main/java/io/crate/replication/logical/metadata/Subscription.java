@@ -40,7 +40,6 @@ public class Subscription implements Writeable {
     public enum State {
         INITIALIZING("i"),
         RESTORING("d"),
-        SYNCHRONIZED("s"),
         MONITORING("r"),
         FAILED("e");
 

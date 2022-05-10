@@ -42,7 +42,6 @@ import java.util.Set;
 
 import org.elasticsearch.common.Randomness;
 import org.hamcrest.Matchers;
-import org.hamcrest.core.Is;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -246,7 +245,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
         assertThat(operator, instanceOf(HashJoin.class));
-        assertThat(((HashJoin) operator).concreteRelation.toString(), is("DocTableRelation{doc.locations}"));
+        assertThat("Smaller table must be on the right-hand-side",
+                   ((HashJoin) operator).rhs().getRelationNames(),
+                   contains(TEST_DOC_LOCATIONS_TABLE_IDENT));
 
         Join join = buildJoin(operator);
         assertThat(((Collect) join.left()).collectPhase().toCollect().get(1), isReference("other_id"));
@@ -266,7 +267,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
         assertThat(operator, instanceOf(HashJoin.class));
-        assertThat(((HashJoin) operator).concreteRelation.toString(), is("DocTableRelation{doc.locations}"));
+        assertThat("Smaller table must be on the right-hand-side",
+                   ((HashJoin) operator).rhs().getRelationNames(),
+                   contains(TEST_DOC_LOCATIONS_TABLE_IDENT));
 
         Join join = buildJoin(operator);
         assertThat(((Collect) join.left()).collectPhase().toCollect().get(1), isReference("loc"));

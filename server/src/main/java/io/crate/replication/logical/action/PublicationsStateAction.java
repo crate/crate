@@ -22,6 +22,7 @@
 package io.crate.replication.logical.action;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -51,7 +52,6 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.metadata.RelationName;
-import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.user.User;
@@ -128,11 +128,12 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
             }
 
             Map<RelationName, RelationMetadata> allRelationsInPublications = new HashMap<>();
+            List<String> droppedPublications = new ArrayList<>();
             for (var publicationName : request.publications()) {
                 var publication = publicationsMetadata.publications().get(publicationName);
                 if (publication == null) {
-                    listener.onFailure(new PublicationUnknownException(publicationName));
-                    return;
+                    droppedPublications.add(publicationName);
+                    continue;
                 }
 
                 // Publication owner cannot be null as we ensure that users who owns publication cannot be dropped.
@@ -140,7 +141,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 User publicationOwner = userLookup.findUser(publication.owner());
                 allRelationsInPublications.putAll(publication.resolveCurrentRelations(state, publicationOwner, subscriber, publicationName));
             }
-            listener.onResponse(new Response(allRelationsInPublications));
+            listener.onResponse(new Response(allRelationsInPublications, droppedPublications));
         }
 
         @Override
@@ -184,28 +185,36 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
     public static class Response extends TransportResponse {
 
-        private Map<RelationName, RelationMetadata> relationsInPublications;
+        private final Map<RelationName, RelationMetadata> relationsInPublications;
+        private final List<String> droppedPublications;
 
-        public Response(Map<RelationName, RelationMetadata> relationsInPublications) {
+        public Response(Map<RelationName, RelationMetadata> relationsInPublications, List<String> droppedPublications) {
             this.relationsInPublications = relationsInPublications;
+            this.droppedPublications = droppedPublications;
         }
 
         public Response(StreamInput in) throws IOException {
             relationsInPublications = in.readMap(RelationName::new, RelationMetadata::new);
+            droppedPublications = in.readList(StreamInput::readString);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeMap(relationsInPublications, (o, v) -> v.writeTo(out), (o, v) -> v.writeTo(out));
+            out.writeStringCollection(droppedPublications);
         }
 
         public Map<RelationName, RelationMetadata> relationsInPublications() {
             return relationsInPublications;
         }
 
+        public List<String> droppedPublications() {
+            return droppedPublications;
+        }
+
         @Override
         public String toString() {
-            return "Response{" + relationsInPublications + '}';
+            return "Response{" + "relationsInPublications:" + relationsInPublications + '.' + "droppedPublications:" + droppedPublications + '}';
         }
 
         public List<String> concreteIndices() {

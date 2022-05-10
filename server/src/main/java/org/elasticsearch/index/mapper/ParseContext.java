@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import com.carrotsearch.hppc.ObjectObjectHashMap;
-import com.carrotsearch.hppc.ObjectObjectMap;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexableField;
@@ -37,14 +35,11 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
     public static class Document implements Iterable<IndexableField> {
 
         private final Document parent;
-        private final String path;
         private final String prefix;
         private final List<IndexableField> fields;
-        private ObjectObjectMap<Object, IndexableField> keyedFields;
 
         private Document(String path, Document parent) {
             fields = new ArrayList<>();
-            this.path = path;
             this.prefix = path.isEmpty() ? "" : path + ".";
             this.parent = parent;
         }
@@ -80,22 +75,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
             // either a meta fields or starts with the prefix
             assert field.name().startsWith("_") || field.name().startsWith(prefix) : field.name() + " " + prefix;
             fields.add(field);
-        }
-
-        /** Add fields so that they can later be fetched using {@link #getByKey(Object)}. */
-        public void addWithKey(Object key, IndexableField field) {
-            if (keyedFields == null) {
-                keyedFields = new ObjectObjectHashMap<>();
-            } else if (keyedFields.containsKey(key)) {
-                throw new IllegalStateException("Only one field can be stored per key");
-            }
-            keyedFields.put(key, field);
-            add(field);
-        }
-
-        /** Get back fields that have been previously added with {@link #addWithKey(Object, IndexableField)}. */
-        public IndexableField getByKey(Object key) {
-            return keyedFields == null ? null : keyedFields.get(key);
         }
 
         public IndexableField[] getFields(String name) {
@@ -151,11 +130,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
 
         private FilterParseContext(ParseContext in) {
             this.in = in;
-        }
-
-        @Override
-        public Iterable<Document> nonRootDocuments() {
-            return in.nonRootDocuments();
         }
 
         @Override
@@ -239,16 +213,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
         }
 
         @Override
-        public boolean externalValueSet() {
-            return in.externalValueSet();
-        }
-
-        @Override
-        public Object externalValue() {
-            return in.externalValue();
-        }
-
-        @Override
         public void addDynamicMapper(Mapper update) {
             in.addDynamicMapper(update);
         }
@@ -287,8 +251,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
         private SeqNoFieldMapper.SequenceIDFields seqID;
 
         private final List<Mapper> dynamicMappers;
-
-        private boolean docsReversed = false;
 
         public InternalParseContext(IndexSettings indexSettings, DocumentMapperParser docMapperParser, DocumentMapper docMapper,
                                     SourceToParse source, XContentParser parser) {
@@ -395,24 +357,10 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
         }
 
         @Override
-        public Iterable<Document> nonRootDocuments() {
-            if (docsReversed) {
-                throw new IllegalStateException("documents are already reversed");
-            }
-            return documents.subList(1, documents.size());
-        }
-
-        @Override
         public Iterator<Document> iterator() {
             return documents.iterator();
         }
     }
-
-    /**
-     * Returns an Iterable over all non-root documents. If there are no non-root documents
-     * the iterable will return an empty iterator.
-     */
-    public abstract Iterable<Document> nonRootDocuments();
 
     public abstract DocumentMapperParser docMapperParser();
 
@@ -483,49 +431,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
     public abstract SeqNoFieldMapper.SequenceIDFields seqID();
 
     public abstract void seqID(SeqNoFieldMapper.SequenceIDFields seqID);
-
-    /**
-     * Return a new context that will have the external value set.
-     */
-    public final ParseContext createExternalValueContext(final Object externalValue) {
-        return new FilterParseContext(this) {
-
-            @Override
-            public boolean externalValueSet() {
-                return true;
-            }
-
-            @Override
-            public Object externalValue() {
-                return externalValue;
-            }
-        };
-    }
-
-    public boolean externalValueSet() {
-        return false;
-    }
-
-    public Object externalValue() {
-        throw new IllegalStateException("External value is not set");
-    }
-
-    /**
-     * Try to parse an externalValue if any
-     * @param clazz Expected class for external value
-     * @return null if no external value has been set or the value
-     */
-    public final <T> T parseExternalValue(Class<T> clazz) {
-        if (!externalValueSet() || externalValue() == null) {
-            return null;
-        }
-
-        if (!clazz.isInstance(externalValue())) {
-            throw new IllegalArgumentException("illegal external value class ["
-                    + externalValue().getClass().getName() + "]. Should be " + clazz.getName());
-        }
-        return clazz.cast(externalValue());
-    }
 
     /**
      * Add a new mapper dynamically created while parsing.

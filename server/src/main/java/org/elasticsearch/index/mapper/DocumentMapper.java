@@ -19,20 +19,6 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.document.StoredField;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.ElasticsearchGenerationException;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.analysis.IndexAnalyzers;
-import org.elasticsearch.index.mapper.MetadataFieldMapper.TypeParser;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +30,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
+
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.ElasticsearchGenerationException;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.ToXContentFragment;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.mapper.MetadataFieldMapper.TypeParser;
 
 
 public class DocumentMapper implements ToXContentFragment {
@@ -63,7 +62,6 @@ public class DocumentMapper implements ToXContentFragment {
             this.builderContext = new Mapper.BuilderContext(indexSettings, new ContentPath(1));
             this.rootObjectMapper = builder.build(builderContext);
 
-            final String type = rootObjectMapper.name();
             DocumentMapper existingMapper = mapperService.documentMapper();
             for (Map.Entry<String, MetadataFieldMapper.TypeParser> entry : mapperService.mapperRegistry.getMetadataMapperParsers().entrySet()) {
                 final String name = entry.getKey();
@@ -73,8 +71,7 @@ public class DocumentMapper implements ToXContentFragment {
                 final MetadataFieldMapper metadataMapper;
                 if (existingMetadataMapper == null) {
                     final TypeParser parser = entry.getValue();
-                    metadataMapper = parser.getDefault(mapperService.fieldType(name),
-                            mapperService.documentMapperParser().parserContext());
+                    metadataMapper = parser.getDefault(mapperService.documentMapperParser().parserContext());
                 } else {
                     metadataMapper = existingMetadataMapper;
                 }
@@ -138,14 +135,7 @@ public class DocumentMapper implements ToXContentFragment {
         }
         MapperUtils.collect(this.mapping.root, newObjectMappers, newFieldMappers);
 
-        final IndexAnalyzers indexAnalyzers = mapperService.getIndexAnalyzers();
-        this.fieldMappers = new DocumentFieldMappers(
-            newFieldMappers,
-            indexAnalyzers.getDefaultIndexAnalyzer(),
-            indexAnalyzers.getDefaultSearchAnalyzer(),
-            indexAnalyzers.getDefaultSearchQuoteAnalyzer()
-        );
-
+        this.fieldMappers = new DocumentFieldMappers(newFieldMappers);
         Map<String, ObjectMapper> builder = new HashMap<>();
         for (ObjectMapper objectMapper : newObjectMappers) {
             ObjectMapper previous = builder.put(objectMapper.fullPath(), objectMapper);
@@ -191,11 +181,6 @@ public class DocumentMapper implements ToXContentFragment {
     @SuppressWarnings({"unchecked"})
     public <T extends MetadataFieldMapper> T metadataMapper(Class<T> type) {
         return mapping.metadataMapper(type);
-    }
-
-    public RoutingFieldMapper routingFieldMapper() {
-        return metadataMapper(RoutingFieldMapper.class);
-
     }
 
     public DocumentFieldMappers mappers() {

@@ -64,13 +64,13 @@ public class IdFieldMapper extends MetadataFieldMapper {
         }
 
         @Override
-        public MetadataFieldMapper getDefault(MappedFieldType fieldType, ParserContext context) {
+        public MetadataFieldMapper getDefault(ParserContext context) {
             final IndexSettings indexSettings = context.mapperService().getIndexSettings();
             return new IdFieldMapper(Defaults.FIELD_TYPE, indexSettings);
         }
     }
 
-    static final class IdFieldType extends StringFieldType {
+    static final class IdFieldType extends MappedFieldType {
 
         public static final IdFieldType INSTANCE = new IdFieldType();
 

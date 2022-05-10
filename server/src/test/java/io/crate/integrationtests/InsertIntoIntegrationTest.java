@@ -1636,4 +1636,19 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
             "{x=10, y=20}| {\"x\":10,\"y\":20}\n"
         ));
     }
+
+    @Test
+    public void test_insert_into_table_with_primary_key_with_default_clause_sets_right_id() {
+        execute("create table tbl (id text default gen_random_text_uuid() primary key, x int)");
+        execute("insert into tbl (x) values (1)");
+        execute("refresh table tbl");
+        execute("select _id, id from tbl");
+        assertThat("_id and id must match", response.rows()[0][0], is(response.rows()[0][1]));
+
+        String id = (String) response.rows()[0][1];
+        execute("select x from tbl where id = ?", new Object[] { id });
+        assertThat(printedTable(response.rows()), is(
+            "1\n"
+        ));
+    }
 }

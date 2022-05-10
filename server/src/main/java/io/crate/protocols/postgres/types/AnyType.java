@@ -67,6 +67,11 @@ public class AnyType extends PGType<Integer> {
     }
 
     @Override
+    public Regproc typSend() {
+        return Regproc.of(0, "-");
+    }
+
+    @Override
     protected byte[] encodeAsUTF8Text(@Nonnull Integer value) {
         return Integer.toString(value).getBytes(StandardCharsets.UTF_8);
     }

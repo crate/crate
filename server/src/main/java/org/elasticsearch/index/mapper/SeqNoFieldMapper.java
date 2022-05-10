@@ -30,10 +30,8 @@ import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.ParseContext.Document;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 
 /**
@@ -104,7 +102,7 @@ public class SeqNoFieldMapper extends MetadataFieldMapper {
         }
 
         @Override
-        public MetadataFieldMapper getDefault(MappedFieldType fieldType, ParserContext context) {
+        public MetadataFieldMapper getDefault(ParserContext context) {
             final Settings indexSettings = context.mapperService().getIndexSettings().getSettings();
             return new SeqNoFieldMapper(indexSettings);
         }
@@ -119,23 +117,6 @@ public class SeqNoFieldMapper extends MetadataFieldMapper {
         @Override
         public String typeName() {
             return CONTENT_TYPE;
-        }
-
-        private long parse(Object value) {
-            if (value instanceof Number) {
-                double doubleValue = ((Number) value).doubleValue();
-                if (doubleValue < Long.MIN_VALUE || doubleValue > Long.MAX_VALUE) {
-                    throw new IllegalArgumentException("Value [" + value + "] is out of range for a long");
-                }
-                if (doubleValue % 1 != 0) {
-                    throw new IllegalArgumentException("Value [" + value + "] has a decimal part");
-                }
-                return ((Number) value).longValue();
-            }
-            if (value instanceof BytesRef) {
-                value = ((BytesRef) value).utf8ToString();
-            }
-            return Long.parseLong(value.toString());
         }
     }
 
@@ -173,10 +154,6 @@ public class SeqNoFieldMapper extends MetadataFieldMapper {
         // we share the parent docs fields to ensure good compression
         SequenceIDFields seqID = context.seqID();
         assert seqID != null;
-        for (Document doc : context.nonRootDocuments()) {
-            doc.add(seqID.seqNo);
-            doc.add(seqID.seqNoDocValue);
-        }
     }
 
     @Override

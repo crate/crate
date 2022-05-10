@@ -40,7 +40,6 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.Numbers;
-import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
@@ -80,7 +79,6 @@ public class NumberFieldMapper extends FieldMapper {
                 fieldType,
                 new NumberFieldType(buildFullName(context), type, indexed, hasDocValues),
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo
             );
         }
@@ -437,8 +435,6 @@ public class NumberFieldMapper extends FieldMapper {
         public NumberFieldType(String name, NumberType type, boolean isSearchable, boolean hasDocValues) {
             super(name, isSearchable, hasDocValues);
             this.type = Objects.requireNonNull(type);
-            this.setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);     // allows number fields in significant text aggs - do we need this?
-            this.setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);    // allows match queries on number fields
         }
 
         public NumberFieldType(String name, NumberType type) {
@@ -459,9 +455,8 @@ public class NumberFieldMapper extends FieldMapper {
             FieldType fieldType,
             MappedFieldType mappedFieldType,
             Settings indexSettings,
-            MultiFields multiFields,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
     }
 
     @Override
@@ -484,9 +479,7 @@ public class NumberFieldMapper extends FieldMapper {
         XContentParser parser = context.parser();
         Object value;
         Number numericValue = null;
-        if (context.externalValueSet()) {
-            value = context.externalValue();
-        } else if (parser.currentToken() == Token.VALUE_NULL) {
+        if (parser.currentToken() == Token.VALUE_NULL) {
             value = null;
         } else if (parser.currentToken() == Token.VALUE_STRING
                 && parser.textLength() == 0) {

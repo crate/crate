@@ -37,13 +37,11 @@ import org.apache.lucene.index.Terms;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.translog.Translog;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 /**
@@ -54,9 +52,6 @@ final class TranslogLeafReader extends LeafReader {
     private final Translog.Index operation;
     private static final FieldInfo FAKE_SOURCE_FIELD
         = new FieldInfo(SourceFieldMapper.NAME, 1, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
-        0, 0, 0,false);
-    private static final FieldInfo FAKE_ROUTING_FIELD
-        = new FieldInfo(RoutingFieldMapper.NAME, 2, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
         0, 0, 0,false);
     private static final FieldInfo FAKE_ID_FIELD
         = new FieldInfo(IdFieldMapper.NAME, 3, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
@@ -152,12 +147,9 @@ final class TranslogLeafReader extends LeafReader {
             throw new IllegalArgumentException("no such doc ID " + docID);
         }
         if (visitor.needsField(FAKE_SOURCE_FIELD) == StoredFieldVisitor.Status.YES) {
-            assert operation.source().toBytesRef().offset == 0;
-            assert operation.source().toBytesRef().length == operation.source().toBytesRef().bytes.length;
-            visitor.binaryField(FAKE_SOURCE_FIELD, operation.source().toBytesRef().bytes);
-        }
-        if (operation.routing() != null && visitor.needsField(FAKE_ROUTING_FIELD) == StoredFieldVisitor.Status.YES) {
-            visitor.stringField(FAKE_ROUTING_FIELD, operation.routing().getBytes(StandardCharsets.UTF_8));
+            assert operation.getSource().toBytesRef().offset == 0;
+            assert operation.getSource().toBytesRef().length == operation.getSource().toBytesRef().bytes.length;
+            visitor.binaryField(FAKE_SOURCE_FIELD, operation.getSource().toBytesRef().bytes);
         }
         if (visitor.needsField(FAKE_ID_FIELD) == StoredFieldVisitor.Status.YES) {
             BytesRef bytesRef = Uid.encodeId(operation.id());

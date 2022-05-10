@@ -21,7 +21,18 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
@@ -30,9 +41,7 @@ import org.elasticsearch.cluster.coordination.FollowersChecker;
 import org.elasticsearch.cluster.coordination.JoinHelper;
 import org.elasticsearch.cluster.coordination.LeaderChecker;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.InternalSettingsPlugin;
@@ -49,15 +58,8 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportSettings;
 import org.junit.Before;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
+import io.crate.common.unit.TimeValue;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 public abstract class AbstractDisruptionTestCase extends SQLIntegrationTestCase {
 
@@ -246,8 +248,12 @@ public abstract class AbstractDisruptionTestCase extends SQLIntegrationTestCase 
     }
 
     TwoPartitions isolateNode(String isolatedNode) {
+        return isolateNode(internalCluster(), isolatedNode);
+    }
+
+    public static TwoPartitions isolateNode(InternalTestCluster cluster, String isolatedNode) {
         Set<String> side1 = new HashSet<>();
-        Set<String> side2 = new HashSet<>(Arrays.asList(internalCluster().getNodeNames()));
+        Set<String> side2 = new HashSet<>(Arrays.asList(cluster.getNodeNames()));
         side1.add(isolatedNode);
         side2.remove(isolatedNode);
 

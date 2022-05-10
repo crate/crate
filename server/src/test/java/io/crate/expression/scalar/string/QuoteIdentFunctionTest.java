@@ -37,7 +37,7 @@ public class QuoteIdentFunctionTest extends ScalarTestCase {
     public void testZeroArguments() {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: quote_ident()." +
-                                        " Possible candidates: quote_ident(text):text");
+                                        " Possible candidates: pg_catalog.quote_ident(text):text");
         assertEvaluate("quote_ident()", null);
     }
 

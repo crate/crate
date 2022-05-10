@@ -36,7 +36,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 
-import io.crate.sql.tree.BitString;
 
 public class BitStringFieldMapper extends FieldMapper {
 
@@ -49,7 +48,6 @@ public class BitStringFieldMapper extends FieldMapper {
                                    FieldType fieldType,
                                    MappedFieldType mappedFieldType,
                                    Settings indexSettings,
-                                   MultiFields multiFields,
                                    CopyTo copyTo) {
         super(
             simpleName,
@@ -58,7 +56,6 @@ public class BitStringFieldMapper extends FieldMapper {
             fieldType,
             mappedFieldType,
             indexSettings,
-            multiFields,
             copyTo
         );
         this.length = length;
@@ -78,7 +75,7 @@ public class BitStringFieldMapper extends FieldMapper {
         }
     }
 
-    static class BitStringFieldType extends TermBasedFieldType {
+    static class BitStringFieldType extends MappedFieldType {
 
         BitStringFieldType(String name, boolean isSearchable, boolean hasDocValues) {
             super(name, isSearchable, hasDocValues);
@@ -88,13 +85,6 @@ public class BitStringFieldMapper extends FieldMapper {
         public String typeName() {
             return CONTENT_TYPE;
         }
-
-        @Override
-        protected BytesRef indexedValueForSearch(Object value) {
-            BitString bitString = (BitString) value;
-            return new BytesRef(bitString.bitSet().toByteArray());
-        }
-
     }
 
     public static class Builder extends FieldMapper.Builder<Builder> {
@@ -116,7 +106,6 @@ public class BitStringFieldMapper extends FieldMapper {
                 fieldType,
                 new BitStringFieldType(name, true, true),
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo);
         }
 

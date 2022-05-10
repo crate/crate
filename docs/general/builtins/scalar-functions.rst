@@ -53,6 +53,28 @@ You can also use the ``||`` :ref:`operator <gloss-operator>`::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-concat-ws:
+
+``concat_ws('separator', second_arg, [ parameter , ... ])``
+------------------------------------------------------------------------------
+
+Concatenates a variable number of arguments into a single string using a
+separator defined by the first argument. If first argument is ``NULL`` the
+return value is ``NULL``. Remaining ``NULL`` arguments are ignored.
+
+Returns: ``text``
+
+::
+
+    cr> select concat_ws(',','foo', null, 'bar') AS col;
+    +---------+
+    | col     |
+    +---------+
+    | foo,bar |
+    +---------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-format:
 
 ``format('format_string', parameter, [ parameter , ... ])``
@@ -508,7 +530,7 @@ The quoted string can be used as an identifier in an SQL statement.
 
 ::
 
-    cr> select quote_ident('Column name') AS quoted;
+    cr> select pg_catalog.quote_ident('Column name') AS quoted;
     +---------------+
     | quoted        |
     +---------------+
@@ -2920,6 +2942,32 @@ arguments, the return type is ``numeric``.
     +-----+
     |   2 |
     +-----+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-objects:
+
+Object functions
+================
+
+.. _scalar-object_keys:
+
+``object_keys(object)``
+-----------------------
+
+The ``object_keys`` function returns the set of first level keys of an ``object``.
+
+Returns: ``array(text)``
+
+::
+
+    cr> select
+    ...     object_keys({a = 1, b = { c = 2 }}) AS object_keys;
+    +-------------+
+    | object_keys |
+    +-------------+
+    | ["a", "b"]  |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 

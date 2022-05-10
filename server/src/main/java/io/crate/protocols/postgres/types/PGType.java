@@ -136,6 +136,14 @@ public abstract class PGType<T> {
         }
     }
 
+    public Regproc typSend() {
+        if (typArray() == 0) {
+            return Regproc.of("array_send");
+        } else {
+            return Regproc.of(typName() + "send");
+        }
+    }
+
     public int typElem() {
         return 0;
     }

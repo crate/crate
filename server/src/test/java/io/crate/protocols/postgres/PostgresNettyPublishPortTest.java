@@ -21,27 +21,6 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.auth.AlwaysOKAuthentication;
-import io.crate.netty.NettyBootstrap;
-import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.user.StubUserManager;
-import io.crate.user.User;
-
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.http.BindHttpException;
-import org.elasticsearch.transport.BindTransportException;
-import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.netty4.Netty4Transport;
-import org.junit.Test;
-
-import java.net.UnknownHostException;
-import java.util.Collections;
-
 import static io.crate.protocols.postgres.PostgresNetty.resolvePublishPort;
 import static java.net.InetAddress.getByName;
 import static java.util.Arrays.asList;
@@ -49,7 +28,42 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
 
+import java.net.UnknownHostException;
+import java.util.Collections;
+
+import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.PageCacheRecycler;
+import org.elasticsearch.http.BindHttpException;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.transport.BindTransportException;
+import org.elasticsearch.transport.netty4.Netty4Transport;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.netty.NettyBootstrap;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.user.StubUserManager;
+import io.crate.user.User;
+
 public class PostgresNettyPublishPortTest extends ESTestCase {
+
+    private NettyBootstrap nettyBootstrap;
+
+    @Before
+    public void setupNetty() {
+        nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
+        nettyBootstrap.start();
+    }
+
+    @After
+    public void teardownNetty() {
+        nettyBootstrap.close();
+    }
 
     @Test
     public void testPSQLPublishPort() throws Exception {
@@ -89,7 +103,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             userManager,
             networkService,
             null, new AlwaysOKAuthentication(userManager),
-            new NettyBootstrap(),
+            nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,
             mock(SslContextProvider.class));
@@ -113,7 +127,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             userManager,
             networkService,
             null, new AlwaysOKAuthentication(userManager),
-            new NettyBootstrap(),
+            nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,
             mock(SslContextProvider.class));
@@ -141,7 +155,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             userManager,
             networkService,
             null, new AlwaysOKAuthentication(userManager),
-            new NettyBootstrap(),
+            nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,
             mock(SslContextProvider.class));
@@ -169,7 +183,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             userManager,
             networkService,
             null, new AlwaysOKAuthentication(userName -> User.CRATE_USER),
-            new NettyBootstrap(),
+            nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,
             mock(SslContextProvider.class));

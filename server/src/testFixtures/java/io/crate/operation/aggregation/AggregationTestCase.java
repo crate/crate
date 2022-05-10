@@ -381,8 +381,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                     shard.shardId().getIndexName(),
                     Integer.toString(i),
                     new BytesArray(Strings.toString(builder)),
-                    XContentType.JSON,
-                    null
+                    XContentType.JSON
                 ),
                 SequenceNumbers.UNASSIGNED_SEQ_NO,
                 0,

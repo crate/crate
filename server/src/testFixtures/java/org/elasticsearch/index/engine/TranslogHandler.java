@@ -100,9 +100,8 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
                     new SourceToParse(
                         indexName,
                         index.id(),
-                        index.source(),
-                        XContentHelper.xContentType(index.source()),
-                        index.routing()
+                        index.getSource(),
+                        XContentHelper.xContentType(index.getSource())
                     ),
                     index.seqNo(),
                     index.primaryTerm(),

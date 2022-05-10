@@ -455,7 +455,6 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                         subscriptionStates,
                         contains(Subscription.State.INITIALIZING,
                                 Subscription.State.RESTORING,
-                                Subscription.State.SYNCHRONIZED,
                                 Subscription.State.MONITORING)
                     );
                 }

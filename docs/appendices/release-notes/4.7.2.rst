@@ -1,0 +1,66 @@
+.. _version_4.7.2:
+
+=============
+Version 4.7.2
+=============
+
+Released on 2022-04-28.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 4.7.2.
+
+    We recommend that you upgrade to the latest 4.6 release before moving to
+    4.7.2.
+
+    A rolling upgrade from 4.6.x to 4.7.2 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.7.0` release notes for a full list of changes in the
+4.7 series.
+
+Fixes
+=====
+
+- Updated the bundled JDK to 17.0.3+7
+
+- Fixed an issue with the handling of intervals in generated columns. The table
+  creation failed when an interval is included in a function call as part of a
+  generated column.
+
+- Fixed an issue with the handling of quoted identifiers in column names where
+  certain characters break the processing. This makes sure any special characters
+  can be used as column name.
+
+- Fixed a race condition that could cause a ``blocked by: [FORBIDDEN/4/Table or
+  partition preparing to close`` error when inserting into a partitioned table
+  where a single partition got closed.
+
+- Fixed an issue that caused an ``Relation unknown`` error while trying to
+  close an empty partitioned table using ``ALTER TABLE ... CLOSE``.
+
+- Fixed an issue that caused ``COPY FROM RETURN SUMMARY`` fail non-gracefully
+  in case of import from CSV containing invalid line(s).
+
+- Bumped JNA library to version 5.10.0. This will make CrateDB start without
+  JNA library warnings on M1 chip based MacOS systems.
+
+- Updated to Admin UI 1.20.2, which fixes duplicate entries in query history.
+
+- Fixed an issue that threw ``SQLParseException`` when a ``ILIKE`` operand
+  contained '{' or '}'.
+
+- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` to lose an optional
+  ``routing_column`` information provided at table creation.

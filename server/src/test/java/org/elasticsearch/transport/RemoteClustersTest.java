@@ -21,24 +21,41 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.protocols.postgres.PgClientFactory;
-import io.crate.replication.logical.metadata.ConnectionInfo;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.transport.MockTransportService;
-import org.junit.Test;
-
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.transport.MockTransportService;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.netty.NettyBootstrap;
+import io.crate.protocols.postgres.PgClientFactory;
+import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+
 public class RemoteClustersTest extends CrateDummyClusterServiceUnitTest {
 
+    private NettyBootstrap nettyBootstrap;
+
+    @Before
+    public void setupNetty() {
+        nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
+        nettyBootstrap.start();
+    }
+
+    @After
+    public void teardownNetty() {
+        nettyBootstrap.close();
+    }
+
     @Test
-    public void test_connect_reconnects_if_previous_call_raised_an_exception() {
+    public void test_connect_reconnects_if_previous_call_raised_an_exception() throws Exception {
         var pgClientFactory = mock(PgClientFactory.class);
         when(pgClientFactory.createClient(anyString(), any(ConnectionInfo.class))).thenThrow(new RuntimeException("dummy"));
 
@@ -46,7 +63,7 @@ public class RemoteClustersTest extends CrateDummyClusterServiceUnitTest {
             Settings.EMPTY,
             THREAD_POOL,
             pgClientFactory,
-            MockTransportService.createNewService(Settings.EMPTY, Version.CURRENT, THREAD_POOL)
+            MockTransportService.createNewService(Settings.EMPTY, Version.CURRENT, THREAD_POOL, nettyBootstrap)
         );
 
         var future = remoteClusters.connect("foo", ConnectionInfo.fromURL("crate://localhost?mode=pg_tunnel"));
@@ -55,5 +72,7 @@ public class RemoteClustersTest extends CrateDummyClusterServiceUnitTest {
         // second call must also result in a `pgFactory.createClient()` call and such throw an exception
         future = remoteClusters.connect("foo", ConnectionInfo.fromURL("crate://localhost?mode=pg_tunnel"));
         assertThat(future.isCompletedExceptionally(), is(true));
+
+        remoteClusters.close();
     }
 }

@@ -3310,6 +3310,8 @@ See the table below for a full list of aliases:
 +-----------------------+------------------------------+
 | ``DOUBLE``            | ``DOUBLE PRECISION``         |
 +-----------------------+------------------------------+
+| ``DECIMAL``           | ``NUMERIC``                  |
++-----------------------+------------------------------+
 | ``TIMESTAMP``         | ``TIMESTAMP WITH TIME ZONE`` |
 +-----------------------+------------------------------+
 | ``TIMESTAMPTZ``       | ``TIMESTAMP WITH TIME ZONE`` |

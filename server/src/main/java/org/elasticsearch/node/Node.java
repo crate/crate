@@ -532,7 +532,8 @@ public class Node implements Closeable {
                 : new AlwaysOKAuthentication(userLookup);
 
             final SslContextProvider sslContextProvider = new SslContextProvider(settings);
-            final NettyBootstrap nettyBootstrap = new NettyBootstrap();
+            final NettyBootstrap nettyBootstrap = new NettyBootstrap(settings);
+            nettyBootstrap.start();
             final NetworkModule networkModule = new NetworkModule(
                 settings,
                 pluginsService.filterPlugins(NetworkPlugin.class),
@@ -1048,6 +1049,7 @@ public class Node implements Closeable {
         // we should stop this last since it waits for resources to get released
         // if we had scroll searchers etc or recovery going on we wait for to finish.
         injector.getInstance(IndicesService.class).stop();
+        injector.getInstance(NettyBootstrap.class).stop();
         logger.info("stopped");
 
         return this;
@@ -1137,6 +1139,8 @@ public class Node implements Closeable {
         toClose.add(injector.getInstance(SslContextProviderService.class));
         toClose.add(() -> stopWatch.stop().start("blob_service"));
         toClose.add(injector.getInstance(BlobService.class));
+        toClose.add(() -> stopWatch.stop().start("netty_bootstrap"));
+        toClose.add(injector.getInstance(NettyBootstrap.class));
 
         for (LifecycleComponent plugin : pluginLifecycleComponents) {
             toClose.add(() -> stopWatch.stop().start("plugin(" + plugin.getClass().getName() + ")"));

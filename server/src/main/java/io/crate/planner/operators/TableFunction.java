@@ -35,6 +35,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -119,6 +120,11 @@ public final class TableFunction implements LogicalPlan {
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
         return List.of();
+    }
+
+    @Override
+    public Set<RelationName> getRelationNames() {
+        return Set.of(relation.relationName());
     }
 
     @Override

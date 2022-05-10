@@ -1779,7 +1779,7 @@ How to reindex
     +--------------------+
     | version['created'] |
     +--------------------+
-    | 4.8.0              |
+    | 5.0.0              |
     +--------------------+
     SELECT 1 row in set (... sec)
 
@@ -2442,8 +2442,6 @@ contains the state for each replicated relation in each subscription.
 |                       | State code:                          |              |
 |                       | ``i`` - initializing;                |              |
 |                       | ``d`` - restoring;                   |              |
-|                       | ``s`` - synchronized, i.e replication|              |
-|                       | is done;                             |              |
 |                       | ``r`` - monitoring, i.e. waiting for |              |
 |                       | new changes;                         |              |
 |                       | ``e`` - error.                       |              |

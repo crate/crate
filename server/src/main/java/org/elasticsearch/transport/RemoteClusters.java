@@ -24,6 +24,8 @@ package org.elasticsearch.transport;
 import io.crate.common.io.IOUtils;
 import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.replication.logical.metadata.ConnectionInfo;
+
+import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -42,6 +44,7 @@ public class RemoteClusters implements Closeable {
     private final TransportService transportService;
     private final Map<String, RemoteCluster> remoteClusters = new HashMap<>();
     private final PgClientFactory pgClientFactory;
+    private boolean closed;
 
     public RemoteClusters(Settings settings,
                           ThreadPool threadPool,
@@ -54,9 +57,10 @@ public class RemoteClusters implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public synchronized void close() throws IOException {
         IOUtils.close(remoteClusters.values());
         remoteClusters.clear();
+        closed = true;
     }
 
     /**
@@ -66,6 +70,9 @@ public class RemoteClusters implements Closeable {
      * @throws NoSuchRemoteClusterException if there is no connected client for the subscription
      **/
     public synchronized Client getClient(String subscriptionName) {
+        if (closed) {
+            throw new AlreadyClosedException("RemoteClusters is closed");
+        }
         RemoteCluster remoteCluster = remoteClusters.get(subscriptionName);
         if (remoteCluster == null) {
             throw new NoSuchRemoteClusterException(subscriptionName);
@@ -75,6 +82,9 @@ public class RemoteClusters implements Closeable {
 
     public synchronized CompletableFuture<Client> connect(String name,
                                                           ConnectionInfo connectionInfo) {
+        if (closed) {
+            return CompletableFuture.failedFuture(new AlreadyClosedException("RemoteClusters is closed"));
+        }
         RemoteCluster remoteCluster = this.remoteClusters.get(name);
         if (remoteCluster == null) {
             remoteCluster = new RemoteCluster(

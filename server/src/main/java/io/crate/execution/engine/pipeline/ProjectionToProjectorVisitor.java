@@ -21,12 +21,42 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.common.collections.Iterables;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists2;
+import io.crate.common.unit.TimeValue;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
@@ -101,32 +131,6 @@ import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.client.ElasticsearchClient;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
 
 public class ProjectionToProjectorVisitor
     extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
@@ -563,12 +567,16 @@ public class ProjectionToProjectorVisitor
             clusterService,
             nodeJobsCounter,
             () -> builder.newRequest(shardId),
-            id -> new ShardUpsertRequest.Item(id,
-                                              projection.assignments(),
-                                              null,
-                                              projection.requiredVersion(),
-                                              null,
-                                              null),
+            id -> {
+                Long requiredVersion = projection.requiredVersion();
+                return ShardUpsertRequest.Item.forUpdate(
+                    id,
+                    projection.assignments(),
+                    requiredVersion == null ? Versions.MATCH_ANY : requiredVersion,
+                    SequenceNumbers.UNASSIGNED_SEQ_NO,
+                    SequenceNumbers.UNASSIGNED_PRIMARY_TERM
+                );
+            },
             (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req)
                 .whenComplete(ActionListener.toBiConsumer(resp)),
             collector);

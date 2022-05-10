@@ -19,7 +19,19 @@
 
 package org.elasticsearch.index.mapper;
 
-import com.carrotsearch.hppc.ObjectHashSet;
+import static java.util.Collections.emptyMap;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.DelegatingAnalyzerWrapper;
@@ -46,19 +58,6 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 
 import io.crate.Constants;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import static java.util.Collections.emptyMap;
-
 public class MapperService extends AbstractIndexComponent implements Closeable {
 
     /**
@@ -82,13 +81,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         Setting.longSetting("index.mapping.total_fields.limit", 1000L, 0, Property.Dynamic, Property.IndexScope);
     public static final Setting<Long> INDEX_MAPPING_DEPTH_LIMIT_SETTING =
             Setting.longSetting("index.mapping.depth.limit", 20L, 1, Property.Dynamic, Property.IndexScope);
-
-    //TODO this needs to be cleaned up: _timestamp and _ttl are not supported anymore, _field_names, _seq_no, _version and _source are
-    //also missing, not sure if on purpose. See IndicesModule#getMetadataMappers
-    private static final ObjectHashSet<String> META_FIELDS = ObjectHashSet.from(
-            "_id", "_type", "_routing", "_index",
-            "_size", "_timestamp", "_ttl"
-    );
 
     private final IndexAnalyzers indexAnalyzers;
 
@@ -328,7 +320,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         MapperUtils.collect(newMapper.mapping().root(), objectMappers, fieldMappers);
 
         MapperMergeValidator.validateNewMappers(objectMappers, fieldMappers);
-        checkPartitionedIndexConstraints(newMapper);
 
         this.fieldTypes = new FieldTypeLookup(fieldMappers);
 
@@ -407,15 +398,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
     }
 
-    private void checkPartitionedIndexConstraints(DocumentMapper newMapper) {
-        if (indexSettings.getIndexMetadata().isRoutingPartitionedIndex()) {
-            if (!newMapper.routingFieldMapper().required()) {
-                throw new IllegalArgumentException("mapping type [" + newMapper.type() + "] must have routing "
-                    + "required for partitioned index [" + indexSettings.getIndex().getName() + "]");
-            }
-        }
-    }
-
     public DocumentMapper parse(String mappingType, CompressedXContent mappingSource) throws MapperParsingException {
         return documentParser.parse(mappingType, mappingSource);
     }
@@ -476,13 +458,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     @Override
     public void close() throws IOException {
         indexAnalyzers.close();
-    }
-
-    /**
-     * @return Whether a field is a metadata field.
-     */
-    public static boolean isMetadataField(String fieldName) {
-        return META_FIELDS.contains(fieldName);
     }
 
     /** An analyzer wrapper that can lookup fields within the index mappings */

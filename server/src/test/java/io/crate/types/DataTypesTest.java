@@ -171,6 +171,11 @@ public class DataTypesTest extends ESTestCase {
     }
 
     @Test
+    public void testDecimalIsAliasedToNumeric() {
+        assertThat(DataTypes.ofName("decimal"), is(DataTypes.NUMERIC));
+    }
+
+    @Test
     public void test_is_same_type_on_primitive_types() {
         assertThat(DataTypes.isCompatibleType(DataTypes.STRING, DataTypes.STRING), is(true));
         assertThat(DataTypes.isCompatibleType(DataTypes.INTEGER, DataTypes.DOUBLE), is(false));

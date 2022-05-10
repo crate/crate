@@ -135,7 +135,6 @@ public final class KeywordFieldMapper extends FieldMapper {
                 nullValue,
                 lengthLimit,
                 context.indexSettings(),
-                multiFieldsBuilder.build(this, context),
                 copyTo
             );
         }
@@ -162,7 +161,7 @@ public final class KeywordFieldMapper extends FieldMapper {
         }
     }
 
-    public static final class KeywordFieldType extends StringFieldType {
+    public static final class KeywordFieldType extends MappedFieldType {
 
         boolean hasNorms;
 
@@ -189,26 +188,6 @@ public final class KeywordFieldMapper extends FieldMapper {
         public String typeName() {
             return CONTENT_TYPE;
         }
-
-        @Override
-        protected BytesRef indexedValueForSearch(Object value) {
-            if (searchAnalyzer() == Lucene.KEYWORD_ANALYZER) {
-                // keyword analyzer with the default attribute source which encodes terms using UTF8
-                // in that case we skip normalization, which may be slow if there many terms need to
-                // parse (eg. large terms query) since Analyzer.normalize involves things like creating
-                // attributes through reflection
-                // This if statement will be used whenever a normalizer is NOT configured
-                return super.indexedValueForSearch(value);
-            }
-
-            if (value == null) {
-                return null;
-            }
-            if (value instanceof BytesRef) {
-                value = ((BytesRef) value).utf8ToString();
-            }
-            return searchAnalyzer().normalize(name(), value.toString());
-        }
     }
 
     private int ignoreAbove;
@@ -225,9 +204,8 @@ public final class KeywordFieldMapper extends FieldMapper {
                                  String nullValue,
                                  Integer lengthLimit,
                                  Settings indexSettings,
-                                 MultiFields multiFields,
                                  CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.ignoreAbove = ignoreAbove;
         this.lengthLimit = lengthLimit;
@@ -254,15 +232,11 @@ public final class KeywordFieldMapper extends FieldMapper {
     @Override
     protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
         String value;
-        if (context.externalValueSet()) {
-            value = context.externalValue().toString();
+        XContentParser parser = context.parser();
+        if (parser.currentToken() == XContentParser.Token.VALUE_NULL) {
+            value = nullValue;
         } else {
-            XContentParser parser = context.parser();
-            if (parser.currentToken() == XContentParser.Token.VALUE_NULL) {
-                value = nullValue;
-            } else {
-                value = parser.textOrNull();
-            }
+            value = parser.textOrNull();
         }
 
         if (value == null || value.length() > ignoreAbove) {

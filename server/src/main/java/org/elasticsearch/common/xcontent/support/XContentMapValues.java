@@ -299,10 +299,6 @@ public class XContentMapValues {
         return filtered;
     }
 
-    public static boolean isArray(Object node) {
-        return node instanceof List;
-    }
-
     public static String nodeStringValue(Object node, String defaultValue) {
         if (node == null) {
             return defaultValue;
@@ -385,11 +381,10 @@ public class XContentMapValues {
      * Otherwise the node is treated as a comma-separated string.
      */
     public static String[] nodeStringArrayValue(Object node) {
-        if (isArray(node)) {
-            List list = (List) node;
-            String[] arr = new String[list.size()];
+        if (node instanceof List<?> nodes) {
+            String[] arr = new String[nodes.size()];
             for (int i = 0; i < arr.length; i++) {
-                arr[i] = nodeStringValue(list.get(i), null);
+                arr[i] = nodeStringValue(nodes.get(i), null);
             }
             return arr;
         } else {

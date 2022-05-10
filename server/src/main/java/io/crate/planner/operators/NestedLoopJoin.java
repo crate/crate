@@ -27,6 +27,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
+import io.crate.common.collections.Sets;
 import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -39,6 +40,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.RelationName;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
@@ -112,6 +114,11 @@ public class NestedLoopJoin implements LogicalPlan {
         this(lhs, rhs, joinType, joinCondition, isFiltered, topMostLeftRelation, joinConditionOptimised);
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
+    }
+
+    @Override
+    public Set<RelationName> getRelationNames() {
+        return Sets.union(lhs.getRelationNames(), rhs.getRelationNames());
     }
 
     public LogicalPlan lhs() {

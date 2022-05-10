@@ -96,13 +96,17 @@ public final class MockTransportService extends TransportService {
     }
 
 
-    public static MockTransportService createNewService(Settings settings, Version version, ThreadPool threadPool) {
-        return createNewService(settings, version, threadPool, null);
+    public static MockTransportService createNewService(Settings settings,
+                                                        Version version,
+                                                        ThreadPool threadPool,
+                                                        NettyBootstrap nettyBootstrap) {
+        return createNewService(settings, version, threadPool, nettyBootstrap, null);
     }
 
     public static MockTransportService createNewService(Settings settings,
                                                         Version version,
                                                         ThreadPool threadPool,
+                                                        NettyBootstrap nettyBootstrap,
                                                         @Nullable ClusterSettings clusterSettings) {
         var allSettings = Settings.builder()
             .put(TransportSettings.PORT.getKey(), ESTestCase.getPortRange())
@@ -117,7 +121,7 @@ public final class MockTransportService extends TransportService {
             new PageCacheRecycler(allSettings),
             namedWriteableRegistry,
             new NoneCircuitBreakerService(),
-            new NettyBootstrap(),
+            nettyBootstrap,
             new AlwaysOKAuthentication(name -> User.CRATE_USER),
             new SslContextProvider(allSettings)
         );

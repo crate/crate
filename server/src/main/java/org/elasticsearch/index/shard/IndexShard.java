@@ -1386,8 +1386,9 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     new SourceToParse(
                         shardId.getIndexName(),
                         index.id(),
-                        index.source(),
-                        XContentHelper.xContentType(index.source()), index.routing())
+                        index.getSource(),
+                        XContentHelper.xContentType(index.getSource())
+                    )
                 );
                 break;
             case DELETE:
@@ -1521,7 +1522,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         }
         // time elapses after the engine is created above (pulling the config settings) until we set the engine reference, during
         // which settings changes could possibly have happened, so here we forcefully push any config changes to the new engine.
-        onSettingsChanged(indexSettings.getSettings());
+        applyEngineSettings();
         assert assertSequenceNumbersInCommit();
         assert recoveryState.getStage() == RecoveryState.Stage.TRANSLOG : "TRANSLOG stage expected but was: " + recoveryState.getStage();
     }
@@ -1817,9 +1818,15 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 var msg = "IOException while trying to switch to a new engine";
                 failShard(msg, e);
                 throw new UncheckedIOException(msg, e);
+            } catch (AlreadyClosedException e) {
+                return;
             }
         }
 
+        applyEngineSettings();
+    }
+
+    private void applyEngineSettings() {
         Engine engineOrNull = getEngineOrNull();
         if (engineOrNull != null) {
             final boolean disableTranslogRetention = indexSettings.isSoftDeleteEnabled() && useRetentionLeasesInPeerRecovery;
@@ -1845,7 +1852,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
             @Override
             protected void doRun() {
-                onSettingsChanged(indexSettings.getSettings());
+                applyEngineSettings();
                 trimTranslog();
             }
         });
@@ -3399,7 +3406,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         }
         // time elapses after the engine is created above (pulling the config settings) until we set the engine reference, during
         // which settings changes could possibly have happened, so here we forcefully push any config changes to the new engine.
-        onSettingsChanged(indexSettings.getSettings());
+        applyEngineSettings();
     }
 
     /**
