@@ -97,7 +97,7 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @param request The delete index request
      * @return The result future
      */
-    ActionFuture<AcknowledgedResponse> delete(DeleteIndexRequest request);
+    CompletableFuture<AcknowledgedResponse> delete(DeleteIndexRequest request);
 
     /**
      * Explicitly refresh one or more indices (making the content indexed since the last refresh searchable).

@@ -79,7 +79,7 @@ public class MetadataWriteDataNodesIT extends SQLIntegrationTestCase {
         assertIndexInMetaState(masterNode, "test");
         assertIndexDirectoryDeleted(masterNode, resolveIndex);
 
-        client().admin().indices().delete(new DeleteIndexRequest("test")).get();
+        execute("drop table doc.test");
         assertIndexDirectoryDeleted(node1, resolveIndex);
         assertIndexDirectoryDeleted(node2, resolveIndex);
     }
