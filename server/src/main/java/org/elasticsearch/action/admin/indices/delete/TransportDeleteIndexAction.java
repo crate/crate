@@ -19,6 +19,9 @@
 
 package org.elasticsearch.action.admin.indices.delete;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.DestructiveOperations;
@@ -35,11 +38,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Delete index action.
@@ -85,15 +83,15 @@ public class TransportDeleteIndexAction extends TransportMasterNodeAction<Delete
     protected void masterOperation(final DeleteIndexRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
-        final Set<Index> concreteIndices = new HashSet<>(Arrays.asList(IndexNameExpressionResolver.concreteIndices(state, request)));
-        if (concreteIndices.isEmpty()) {
+        final Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(state, request);
+        if (concreteIndices.length == 0) {
             listener.onResponse(new AcknowledgedResponse(true));
             return;
         }
-
         DeleteIndexClusterStateUpdateRequest deleteRequest = new DeleteIndexClusterStateUpdateRequest()
-            .ackTimeout(request.timeout()).masterNodeTimeout(request.masterNodeTimeout())
-            .indices(concreteIndices.toArray(new Index[concreteIndices.size()]));
+            .ackTimeout(request.timeout())
+            .masterNodeTimeout(request.masterNodeTimeout())
+            .indices(concreteIndices);
 
         deleteIndexService.deleteIndices(deleteRequest, new ActionListener<ClusterStateUpdateResponse>() {
 
@@ -104,7 +102,7 @@ public class TransportDeleteIndexAction extends TransportMasterNodeAction<Delete
 
             @Override
             public void onFailure(Exception t) {
-                logger.debug(() -> new ParameterizedMessage("failed to delete indices [{}]", concreteIndices), t);
+                logger.debug(() -> new ParameterizedMessage("failed to delete indices [{}]", List.of(concreteIndices)), t);
                 listener.onFailure(t);
             }
         });
