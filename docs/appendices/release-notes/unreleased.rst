@@ -70,3 +70,6 @@ Fixes
 - Fixed an issue with aliased sub-relation outputs when used inside the outer
   where clause expression, resulting in a planner error. Example:
   ``SELECT * FROM (SELECT id, true AS a FROM t1) WHERE a``
+
+- Fixed an issue with table functions parameter binding in ``SELECT`` queries
+  without ``FROM`` clause. Example: ``SELECT unnest(?)``.
