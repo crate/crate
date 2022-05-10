@@ -73,3 +73,6 @@ Fixes
 - Fixed an issue with aliased sub-relation outputs when used inside the outer
   where clause expression, resulting in a planner error. Example:
   ``SELECT * FROM (SELECT id, true AS a FROM t1) WHERE a``
+
+- Fixed an edge case with the initial restore of subscribed tables when the
+  restore operation finish almost instantly (e.g. restoring small tables).
