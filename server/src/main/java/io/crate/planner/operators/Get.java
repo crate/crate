@@ -219,6 +219,11 @@ public class Get implements LogicalPlan {
     }
 
     @Override
+    public Set<RelationName> getRelationNames() {
+        return Set.of(tableRelation.relationName());
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of();
     }

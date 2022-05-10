@@ -117,7 +117,6 @@ public class JoinPlanBuilder {
             joinType,
             joinCondition,
             lhs,
-            rhs,
             query,
             hashJoinEnabled
         );
@@ -166,15 +165,14 @@ public class JoinPlanBuilder {
                                               JoinType joinType,
                                               Symbol joinCondition,
                                               AnalyzedRelation lhs,
-                                              AnalyzedRelation rhs,
                                               Symbol query,
                                               boolean hashJoinEnabled) {
         if (hashJoinEnabled && isHashJoinPossible(joinType, joinCondition)) {
             return new HashJoin(
                 lhsPlan,
                 rhsPlan,
-                joinCondition,
-                rhs);
+                joinCondition
+            );
         } else {
             return new NestedLoopJoin(
                 lhsPlan,
@@ -182,7 +180,8 @@ public class JoinPlanBuilder {
                 joinType,
                 joinCondition,
                 !query.symbolType().isValueSymbol(),
-                lhs);
+                lhs,
+                false);
         }
     }
 
@@ -232,7 +231,6 @@ public class JoinPlanBuilder {
                 type,
                 condition,
                 leftRelation,
-                nextRel,
                 query,
                 hashJoinEnabled),
             query

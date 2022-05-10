@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -43,7 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * LogicalPlan is a tree of "Operators"
@@ -226,9 +224,7 @@ public interface LogicalPlan extends Plan {
         return StatementType.SELECT;
     }
 
-    default Set<RelationName> getRelationNames() {
-        return baseTables().stream().map(AnalyzedRelation::relationName).collect(Collectors.toSet());
-    }
+    Set<RelationName> getRelationNames();
 
     default void print(PrintContext printContext) {
         printContext
