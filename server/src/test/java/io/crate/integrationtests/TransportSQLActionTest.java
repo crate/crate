@@ -1967,7 +1967,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         ArrayList<String> results = new ArrayList<>();
         try (var conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             Statement stmt = conn.createStatement();
-            ResultSet result = stmt.executeQuery("select xs from tbl order by xs");
+            ResultSet result = stmt.executeQuery("select xs from doc.tbl order by xs");
             while (result.next()) {
                 String string = result.getString(1);
                 results.add(string);

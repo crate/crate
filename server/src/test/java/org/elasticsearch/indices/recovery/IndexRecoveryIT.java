@@ -306,6 +306,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
 
         final int numOfDocs = scaledRandomIntBetween(1, 200);
         try (BackgroundIndexer indexer = new BackgroundIndexer(
+            sqlExecutor.getCurrentSchema(),
             IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null),
             "data",
             sqlExecutor.jdbcUrl(),
