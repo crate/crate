@@ -1103,6 +1103,30 @@ public class PostgresITest extends SQLIntegrationTestCase {
         }
     }
 
+    @Test
+    public void test_table_function_without_from_can_bind_parameters() throws Exception {
+        // https://github.com/crate/crate/issues/12442
+        Properties properties = new Properties();
+        properties.setProperty("user", "crate");
+        try (var conn = DriverManager.getConnection(url(RW), properties)) {
+            var selectUnnest = conn.prepareStatement(
+                "select unnest(?)");
+                var toUnnest = new Object[10];
+                for (int i = 0; i < 10; i++) {
+                    toUnnest[i] = i;
+                }
+                selectUnnest.setArray(1, conn.createArrayOf("bigint", toUnnest));
+
+                var result = selectUnnest.executeQuery();
+                int numResults = 0;
+                while (result.next()) {
+                    numResults++;
+                }
+                assertThat(numResults, is(10));
+        }
+    }
+
+
     private long getNumQueriesFromJobsLogs() {
         long result = 0;
         Iterable<JobsLogs> jobLogs = internalCluster().getInstances(JobsLogs.class);
