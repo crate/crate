@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.coordination;
 import static org.hamcrest.Matchers.containsString;
 
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cli.UserException;
 import org.elasticsearch.common.settings.Settings;
@@ -53,7 +54,7 @@ public class RemoveCustomsCommandIT extends ESIntegTestCase {
         internalCluster().setBootstrapMasterNodeIndex(0);
         String node = internalCluster().startNode();
         createIndex("test");
-        client().admin().indices().prepareDelete("test").get();
+        client().admin().indices().delete(new DeleteIndexRequest("test")).get();
         assertEquals(1, client().admin().cluster().prepareState().get().getState().metadata().indexGraveyard().getTombstones().size());
         Settings dataPathSettings = internalCluster().dataPathSettings(node);
         ensureStableCluster(1);
@@ -79,7 +80,7 @@ public class RemoveCustomsCommandIT extends ESIntegTestCase {
         internalCluster().setBootstrapMasterNodeIndex(0);
         String node = internalCluster().startNode();
         createIndex("test");
-        client().admin().indices().prepareDelete("test").get();
+        client().admin().indices().delete(new DeleteIndexRequest("test")).get();
         assertEquals(1, client().admin().cluster().prepareState().get().getState().metadata().indexGraveyard().getTombstones().size());
         Settings dataPathSettings = internalCluster().dataPathSettings(node);
         ensureStableCluster(1);

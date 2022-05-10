@@ -27,7 +27,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
@@ -99,13 +98,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @return The result future
      */
     ActionFuture<AcknowledgedResponse> delete(DeleteIndexRequest request);
-
-    /**
-     * Deletes an index based on the index name.
-     *
-     * @param indices The indices to delete. Use "_all" to delete all indices.
-     */
-    DeleteIndexRequestBuilder prepareDelete(String... indices);
 
     /**
      * Explicitly refresh one or more indices (making the content indexed since the last refresh searchable).
