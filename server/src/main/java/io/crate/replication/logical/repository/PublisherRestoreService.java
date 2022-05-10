@@ -21,9 +21,14 @@
 
 package io.crate.replication.logical.repository;
 
-import io.crate.common.io.IOUtils;
-import io.crate.replication.logical.action.RestoreShardRequest;
-import io.crate.replication.logical.seqno.RetentionLeaseHelper;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.elasticsearch.action.ActionListener;
@@ -37,13 +42,9 @@ import org.elasticsearch.index.seqno.RetentionLeaseActions;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.IndicesService;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
+import io.crate.common.io.IOUtils;
+import io.crate.replication.logical.action.RestoreShardRequest;
+import io.crate.replication.logical.seqno.RetentionLeaseHelper;
 
 /*
  * Restore source service tracks all the ongoing restore operations
@@ -157,7 +158,9 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
         try {
             metadataSnapshot = store.getMetadata(indexCommitRef.getIndexCommit());
         } catch (IOException e) {
-            onFailure.accept(new UncheckedIOException(e));
+            if (closeRetentionLock(retentionLock, onFailure)) {
+                onFailure.accept(new UncheckedIOException(e));
+            }
             return;
         } finally {
             store.decRef();
