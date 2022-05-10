@@ -35,19 +35,6 @@ Basics
 
       Node names must be unique in a CrateDB cluster.
 
-.. _node.max_local_storage_nodes:
-
-**node.max_local_storage_nodes**
-  | *Default:*    ``1``
-  | *Runtime:*   ``no``
-
-  Defines how many nodes are allowed to be started on the same machine using
-  the same configured data path defined via `path.data`_.
-
-  This setting is deprecated and will be removed with CrateDB 5.0.  You should
-  instead set different `path.data`_ values if you intend to run multiple
-  CrateDB processes on the same machine.
-
 .. _node.store_allow_mmap:
 
 **node.store.allow_mmap**

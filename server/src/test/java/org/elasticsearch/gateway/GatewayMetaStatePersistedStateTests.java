@@ -312,7 +312,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         for (Path path : paths) {
             Settings settings = Settings.builder()
                 .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toAbsolutePath())
-                .put(Environment.PATH_DATA_SETTING.getKey(), path.toString()).build();
+                .put(Environment.PATH_DATA_SETTING.getKey(), path.getParent().getParent().toString()).build();
             try (NodeEnvironment nodeEnvironment = new NodeEnvironment(settings, TestEnvironment.newEnvironment(settings))) {
                 final PersistedClusterStateService newPersistedClusterStateService =
                     new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), BigArrays.NON_RECYCLING_INSTANCE,
@@ -498,7 +498,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         for (Path path : nodeEnvironment.nodeDataPaths()) {
             Settings settings = Settings.builder()
                 .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toAbsolutePath())
-                .put(Environment.PATH_DATA_SETTING.getKey(), path.toString()).build();
+                .put(Environment.PATH_DATA_SETTING.getKey(), path.getParent().getParent().toString()).build();
             try (NodeEnvironment nodeEnvironment = new NodeEnvironment(settings, TestEnvironment.newEnvironment(settings))) {
                 final PersistedClusterStateService newPersistedClusterStateService =
                     new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), BigArrays.NON_RECYCLING_INSTANCE,
