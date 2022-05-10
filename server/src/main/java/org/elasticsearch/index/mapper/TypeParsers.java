@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.isArray;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeStringValue;
@@ -43,7 +42,9 @@ public class TypeParsers {
     public static final String INDEX_OPTIONS_POSITIONS = "positions";
     public static final String INDEX_OPTIONS_OFFSETS = "offsets";
 
-    private static void parseAnalyzersAndTermVectors(FieldMapper.Builder builder, String name, Map<String, Object> fieldNode,
+    private static void parseAnalyzersAndTermVectors(TextFieldMapper.Builder builder,
+                                                     String name,
+                                                     Map<String, Object> fieldNode,
                                                      Mapper.TypeParser.ParserContext parserContext) {
         NamedAnalyzer indexAnalyzer = null;
         NamedAnalyzer searchAnalyzer = null;
@@ -120,7 +121,7 @@ public class TypeParsers {
         }
     }
 
-    public static void parseNorms(FieldMapper.Builder builder, String fieldName, Object propNode) {
+    public static void parseNorms(TextFieldMapper.Builder builder, String fieldName, Object propNode) {
         builder.omitNorms(XContentMapValues.nodeBooleanValue(propNode, fieldName + ".norms") == false);
     }
 
@@ -128,8 +129,9 @@ public class TypeParsers {
      * Parse text field attributes. In addition to {@link #parseField common attributes}
      * this will parse analysis and term-vectors related settings.
      */
-    @SuppressWarnings("unchecked")
-    public static void parseTextField(FieldMapper.Builder builder, String name, Map<String, Object> fieldNode,
+    public static void parseTextField(TextFieldMapper.Builder builder,
+                                      String name,
+                                      Map<String, Object> fieldNode,
                                       Mapper.TypeParser.ParserContext parserContext) {
         parseField(builder, name, fieldNode, parserContext);
         parseAnalyzersAndTermVectors(builder, name, fieldNode, parserContext);
@@ -147,16 +149,17 @@ public class TypeParsers {
     /**
      * Parse common field attributes such as {@code doc_values} or {@code store}.
      */
-    @SuppressWarnings("rawtypes")
-    public static void parseField(FieldMapper.Builder builder, String name, Map<String, Object> fieldNode,
+    public static void parseField(FieldMapper.Builder<?> builder,
+                                  String name,
+                                  Map<String, Object> fieldNode,
                                   Mapper.TypeParser.ParserContext parserContext) {
         for (Iterator<Map.Entry<String, Object>> iterator = fieldNode.entrySet().iterator(); iterator.hasNext();) {
             Map.Entry<String, Object> entry = iterator.next();
             final String propName = entry.getKey();
             final Object propNode = entry.getValue();
-            if (false == propName.equals("null_value") && propNode == null) {
+            if (propNode == null) {
                 /*
-                 * No properties *except* null_value are allowed to have null. So we catch it here and tell the user something useful rather
+                 * No properties are allowed to have null. So we catch it here and tell the user something useful rather
                  * than send them a null pointer exception later.
                  */
                 throw new MapperParsingException("[" + propName + "] must not have a [null] value");
@@ -233,11 +236,10 @@ public class TypeParsers {
         }
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static void parseCopyFields(Object propNode, FieldMapper.Builder builder) {
+    public static void parseCopyFields(Object propNode, FieldMapper.Builder<?> builder) {
         FieldMapper.CopyTo.Builder copyToBuilder = new FieldMapper.CopyTo.Builder();
-        if (isArray(propNode)) {
-            for (Object node : (List<Object>) propNode) {
+        if (propNode instanceof List<?> nodes) {
+            for (Object node : nodes) {
                 copyToBuilder.add(nodeStringValue(node, null));
             }
         } else {

@@ -31,6 +31,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.analysis.NamedAnalyzer;
 
 /** A {@link FieldMapper} for full-text fields. */
 public class TextFieldMapper extends FieldMapper {
@@ -64,6 +65,10 @@ public class TextFieldMapper extends FieldMapper {
 
     public static class Builder extends FieldMapper.Builder<Builder> {
 
+        protected NamedAnalyzer indexAnalyzer;
+        protected NamedAnalyzer searchAnalyzer;
+        protected NamedAnalyzer searchQuoteAnalyzer;
+
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE);
             builder = this;
@@ -77,6 +82,20 @@ public class TextFieldMapper extends FieldMapper {
             return super.docValues(docValues);
         }
 
+        public Builder indexAnalyzer(NamedAnalyzer indexAnalyzer) {
+            this.indexAnalyzer = indexAnalyzer;
+            return builder;
+        }
+
+        public Builder searchAnalyzer(NamedAnalyzer searchAnalyzer) {
+            this.searchAnalyzer = searchAnalyzer;
+            return builder;
+        }
+
+        public Builder searchQuoteAnalyzer(NamedAnalyzer searchQuoteAnalyzer) {
+            this.searchQuoteAnalyzer = searchQuoteAnalyzer;
+            return builder;
+        }
 
         private TextFieldType buildFieldType(BuilderContext context) {
             TextFieldType ft = new TextFieldType(
@@ -109,7 +128,7 @@ public class TextFieldMapper extends FieldMapper {
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
-        public Mapper.Builder parse(String fieldName, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public Mapper.Builder<?> parse(String fieldName, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             TextFieldMapper.Builder builder = new TextFieldMapper.Builder(fieldName);
             builder.indexAnalyzer(parserContext.getIndexAnalyzers().getDefaultIndexAnalyzer());
             builder.searchAnalyzer(parserContext.getIndexAnalyzers().getDefaultSearchAnalyzer());
@@ -134,7 +153,6 @@ public class TextFieldMapper extends FieldMapper {
         public String typeName() {
             return CONTENT_TYPE;
         }
-
     }
 
     protected TextFieldMapper(String simpleName,

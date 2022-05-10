@@ -35,7 +35,6 @@ import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper.FieldNamesFieldType;
 
 public abstract class FieldMapper extends Mapper implements Cloneable {
@@ -51,10 +50,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         protected Integer position;
         @Nullable
         protected String defaultExpression;
-        // TODO move to text-specific builder base class
-        protected NamedAnalyzer indexAnalyzer;
-        protected NamedAnalyzer searchAnalyzer;
-        protected NamedAnalyzer searchQuoteAnalyzer;
 
         protected Builder(String name, FieldType fieldType) {
             super(name);
@@ -119,21 +114,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         public T indexOptions(IndexOptions indexOptions) {
             this.fieldType.setIndexOptions(indexOptions);
             this.indexOptionsSet = true;
-            return builder;
-        }
-
-        public T indexAnalyzer(NamedAnalyzer indexAnalyzer) {
-            this.indexAnalyzer = indexAnalyzer;
-            return builder;
-        }
-
-        public T searchAnalyzer(NamedAnalyzer searchAnalyzer) {
-            this.searchAnalyzer = searchAnalyzer;
-            return builder;
-        }
-
-        public T searchQuoteAnalyzer(NamedAnalyzer searchQuoteAnalyzer) {
-            this.searchQuoteAnalyzer = searchQuoteAnalyzer;
             return builder;
         }
 
