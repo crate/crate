@@ -19,24 +19,17 @@
 
 package org.elasticsearch.action;
 
-import io.crate.blob.DeleteBlobAction;
-import io.crate.blob.PutChunkAction;
-import io.crate.blob.StartBlobAction;
-import io.crate.blob.TransportDeleteBlobAction;
-import io.crate.blob.TransportPutChunkAction;
-import io.crate.blob.TransportStartBlobAction;
+import static java.util.Collections.unmodifiableMap;
+
+import java.util.List;
+import java.util.Map;
+
+import io.crate.cluster.decommission.DecommissionNodeAction;
+import io.crate.cluster.decommission.TransportDecommissionNodeAction;
 import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
-import io.crate.replication.logical.action.DropSubscriptionAction;
-import io.crate.replication.logical.action.GetFileChunkAction;
-import io.crate.replication.logical.action.GetStoreMetadataAction;
-import io.crate.replication.logical.action.PublicationsStateAction;
-import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
-import io.crate.replication.logical.action.ReplayChangesAction;
-import io.crate.replication.logical.action.ShardChangesAction;
-import io.crate.replication.logical.action.UpdateSubscriptionAction;
 import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsAction;
 import org.elasticsearch.action.admin.cluster.configuration.ClearVotingConfigExclusionsAction;
 import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusionsAction;
@@ -117,10 +110,34 @@ import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
-import java.util.List;
-import java.util.Map;
-
-import static java.util.Collections.unmodifiableMap;
+import io.crate.blob.DeleteBlobAction;
+import io.crate.blob.PutChunkAction;
+import io.crate.blob.StartBlobAction;
+import io.crate.blob.TransportDeleteBlobAction;
+import io.crate.blob.TransportPutChunkAction;
+import io.crate.blob.TransportStartBlobAction;
+import io.crate.execution.engine.collect.stats.NodeStatsAction;
+import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
+import io.crate.execution.engine.distribution.DistributedResultAction;
+import io.crate.execution.engine.distribution.TransportDistributedResultAction;
+import io.crate.execution.engine.fetch.FetchNodeAction;
+import io.crate.execution.engine.fetch.TransportFetchNodeAction;
+import io.crate.execution.engine.profile.CollectProfileNodeAction;
+import io.crate.execution.engine.profile.TransportCollectProfileNodeAction;
+import io.crate.execution.jobs.kill.KillAllNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeAction;
+import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.replication.logical.action.DropSubscriptionAction;
+import io.crate.execution.jobs.transport.JobAction;
+import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.replication.logical.action.GetFileChunkAction;
+import io.crate.replication.logical.action.GetStoreMetadataAction;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
+import io.crate.replication.logical.action.ReplayChangesAction;
+import io.crate.replication.logical.action.ShardChangesAction;
+import io.crate.replication.logical.action.UpdateSubscriptionAction;
 
 /**
  * Builds and binds the generic action map, all {@link TransportAction}s
@@ -190,6 +207,14 @@ public class ActionModule extends AbstractModule {
         actions.register(ShardDeleteAction.INSTANCE, TransportShardDeleteAction.class);
         actions.register(ShardUpsertAction.INSTANCE, TransportShardUpsertAction.class);
         actions.register(CreatePartitionsAction.INSTANCE, TransportCreatePartitionsAction.class);
+        actions.register(KillJobsNodeAction.INSTANCE, TransportKillJobsNodeAction.class);
+        actions.register(KillAllNodeAction.INSTANCE, TransportKillAllNodeAction.class);
+        actions.register(NodeStatsAction.INSTANCE, TransportNodeStatsAction.class);
+        actions.register(CollectProfileNodeAction.INSTANCE, TransportCollectProfileNodeAction.class);
+        actions.register(DecommissionNodeAction.INSTANCE, TransportDecommissionNodeAction.class);
+        actions.register(DistributedResultAction.INSTANCE, TransportDistributedResultAction.class);
+        actions.register(JobAction.INSTANCE, TransportJobAction.class);
+        actions.register(FetchNodeAction.INSTANCE, TransportFetchNodeAction.class);
 
         actionPlugins.stream().flatMap(p -> p.getActions().stream()).forEach(actions::register);
 

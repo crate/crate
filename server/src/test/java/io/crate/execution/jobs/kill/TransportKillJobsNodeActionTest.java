@@ -68,7 +68,9 @@ public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUni
 
         List<UUID> toKill = List.of(UUID.randomUUID(), UUID.randomUUID());
 
-        transportKillJobsNodeAction.nodeOperation(new KillJobsRequest(toKill, "dummy-user", null)).get(5, TimeUnit.SECONDS);
+        transportKillJobsNodeAction.nodeOperation(
+            new KillJobsNodeRequest(List.of(), toKill, "dummy-user", null).innerRequest())
+            .get(5, TimeUnit.SECONDS);
         verify(tasksService, times(1)).killJobs(toKill, "dummy-user", null);
     }
 }

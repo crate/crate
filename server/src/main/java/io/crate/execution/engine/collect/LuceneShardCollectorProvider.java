@@ -45,7 +45,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
@@ -88,7 +87,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         ThreadPool threadPool,
                                         Settings settings,
                                         ElasticsearchClient elasticsearchClient,
-                                        TransportActionProvider transportActionProvider,
                                         IndexShard indexShard,
                                         BigArrays bigArrays,
                                         Map<String, FileOutputFactory> fileOutputFactoryMap) {
@@ -101,7 +99,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             threadPool,
             settings,
             elasticsearchClient,
-            transportActionProvider,
             indexShard,
             new ShardRowContext(indexShard, clusterService),
             fileOutputFactoryMap

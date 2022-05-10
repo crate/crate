@@ -28,12 +28,13 @@ import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.TasksService;
-import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.execution.support.NodeRequest;
 import io.crate.execution.support.Transports;
 import io.crate.profile.ProfilingContext;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.indices.IndicesService;
@@ -48,10 +49,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 
 @Singleton
-public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
-
-    private static final String ACTION_NAME = "internal:crate:sql/job";
-    private static final String EXECUTOR = ThreadPool.Names.SEARCH;
+public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>, JobResponse> {
 
     private final IndicesService indicesService;
     private final Transports transports;
@@ -64,24 +62,30 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
                               Transports transports,
                               TasksService tasksService,
                               JobSetup jobSetup) {
+        super(JobAction.NAME);
         this.indicesService = indicesService;
         this.transports = transports;
         this.tasksService = tasksService;
         this.jobSetup = jobSetup;
         transportService.registerRequestHandler(
-            ACTION_NAME,
-            EXECUTOR,
+            JobAction.NAME,
+            ThreadPool.Names.SEARCH,
             JobRequest::new,
-            new NodeActionRequestHandler<>(this));
-    }
-
-    public void execute(String node, final JobRequest request, final ActionListener<JobResponse> listener) {
-        transports.sendRequest(
-            ACTION_NAME, node, request, listener, new ActionListenerResponseHandler<>(listener, JobResponse::new));
+            new NodeActionRequestHandler<>(this::nodeOperation));
     }
 
     @Override
-    public CompletableFuture<JobResponse> nodeOperation(final JobRequest request) {
+    public void doExecute(NodeRequest<JobRequest> request, ActionListener<JobResponse> listener) {
+        transports.sendRequest(
+            JobAction.NAME,
+            request.nodeId(),
+            request.innerRequest(),
+            listener,
+            new ActionListenerResponseHandler<>(listener, JobResponse::new)
+        );
+    }
+
+    private CompletableFuture<JobResponse> nodeOperation(final JobRequest request) {
         RootTask.Builder contextBuilder = tasksService.newBuilder(
             request.jobId(),
             request.sessionSettings().userName(),

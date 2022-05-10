@@ -42,7 +42,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Answers;
 import org.mockito.MockitoAnnotations;
 
 import io.crate.breaker.RamAccounting;
@@ -52,7 +51,6 @@ import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
@@ -106,7 +104,6 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
             THREAD_POOL,
             Settings.EMPTY,
             mock(ElasticsearchClient.class),
-            mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS),
             new InputFactory(nodeCtx),
             EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx),
             t -> null,

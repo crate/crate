@@ -19,41 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.fetch;
-
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
-import java.util.UUID;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntObjectHashMap;
+package io.crate.execution.engine.profile;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-public class NodeFetchRequestTest {
+import java.util.UUID;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
+public class CollectProfileRequestTest {
 
     @Test
     public void testStreaming() throws Exception {
-
-        IntObjectHashMap<IntArrayList> toFetch = new IntObjectHashMap<>();
-        IntArrayList docIds = new IntArrayList(3);
-        toFetch.put(1, docIds);
-
-        NodeFetchRequest orig = new NodeFetchRequest(UUID.randomUUID(), 1, true, toFetch);
+        CollectProfileRequest originalRequest =
+            CollectProfileRequest.of("NodeId", UUID.randomUUID()).innerRequest();
 
         BytesStreamOutput out = new BytesStreamOutput();
-        orig.writeTo(out);
+        originalRequest.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
 
-        NodeFetchRequest streamed = new NodeFetchRequest(in);
+        CollectProfileRequest streamed = new CollectProfileRequest(in);
 
-        assertThat(orig.jobId(), is(streamed.jobId()));
-        assertThat(orig.fetchPhaseId(), is(streamed.fetchPhaseId()));
-        assertThat(orig.isCloseContext(), is(streamed.isCloseContext()));
-        assertThat(orig.toFetch().toString(), is(streamed.toFetch().toString()));
+        assertThat(originalRequest.jobId(), is(streamed.jobId()));
     }
+
 }

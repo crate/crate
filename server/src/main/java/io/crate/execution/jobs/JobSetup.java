@@ -44,7 +44,6 @@ import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.IncrementalPageBucketReceiver;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.dsl.phases.ExecutionPhase;
@@ -155,7 +154,6 @@ public class JobSetup {
                     ThreadPool threadPool,
                     DistributingConsumerFactory distributingConsumerFactory,
                     Node node,
-                    TransportActionProvider transportActionProvider,
                     IndicesService indicesService,
                     NodeContext nodeCtx,
                     SystemCollectSource systemCollectSource,
@@ -182,7 +180,6 @@ public class JobSetup {
             threadPool,
             settings,
             node.client(),
-            transportActionProvider,
             inputFactory,
             normalizer,
             systemCollectSource::getRowUpdater,

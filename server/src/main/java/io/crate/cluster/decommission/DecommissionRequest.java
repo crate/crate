@@ -19,37 +19,43 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.jobs.kill;
+package io.crate.cluster.decommission;
 
+import java.io.IOException;
 
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportRequest;
 
-import java.util.List;
-import java.util.UUID;
+import io.crate.execution.support.NodeRequest;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+public class DecommissionRequest extends TransportRequest {
 
-public class KillJobsRequestTest extends ESTestCase {
+    public static NodeRequest<DecommissionRequest> of(String nodeId) {
+        return (new NodeRequest<>(nodeId, new DecommissionRequest()));
+    }
 
-    @Test
-    public void testStreaming() throws Exception {
-        List<UUID> toKill = List.of(UUID.randomUUID(), UUID.randomUUID());
-        KillJobsNodeRequest.KillJobsRequest r = new KillJobsNodeRequest(
-            List.of(), toKill, "dummy-user", "just because")
-            .innerRequest();
+    private DecommissionRequest() {
+    }
 
-        BytesStreamOutput out = new BytesStreamOutput();
-        r.writeTo(out);
+    DecommissionRequest(StreamInput in) throws IOException {
+        super(in);
+    }
 
-        StreamInput in = out.bytes().streamInput();
-        KillJobsNodeRequest.KillJobsRequest r2 = new KillJobsNodeRequest.KillJobsRequest(in);
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+    }
 
-        assertThat(r.toKill(), equalTo(r2.toKill()));
-        assertThat(r.reason(), is(r2.reason()));
-        assertThat(r.userName(), is(r2.userName()));
+    @Override
+    public int hashCode() {
+        return getParentTask().hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj == this
+               || (obj instanceof DecommissionRequest &&
+                   ((DecommissionRequest) obj).getParentTask().equals(getParentTask()));
     }
 }

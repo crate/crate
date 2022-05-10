@@ -23,7 +23,8 @@ package io.crate.planner;
 
 import io.crate.analyze.AnalyzedDecommissionNode;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.cluster.decommission.DecommissionNodeRequest;
+import io.crate.cluster.decommission.DecommissionNodeAction;
+import io.crate.cluster.decommission.DecommissionRequest;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -65,16 +66,11 @@ public final class DecommissionNodePlan implements Plan {
             boundedNodeIdOrName
         );
 
-        dependencies
-            .transportActionProvider()
-            .transportDecommissionNodeAction()
-            .execute(
-                targetNodeId,
-                new DecommissionNodeRequest(),
-                new OneRowActionListener<>(
-                    consumer,
-                    r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L))
-            );
+        dependencies.client()
+            .execute(DecommissionNodeAction.INSTANCE, DecommissionRequest.of(targetNodeId))
+            .whenComplete(new OneRowActionListener<>(
+                consumer,
+                r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L)));
     }
 
     @VisibleForTesting

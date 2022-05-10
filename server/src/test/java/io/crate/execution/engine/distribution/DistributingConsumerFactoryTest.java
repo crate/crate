@@ -34,6 +34,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.LongType;
+
+import org.elasticsearch.node.Node;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,7 +56,7 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
         rowDownstreamFactory = new DistributingConsumerFactory(
             clusterService,
             THREAD_POOL,
-            mock(TransportDistributedResultAction.class)
+            mock(Node.class)
         );
     }
 

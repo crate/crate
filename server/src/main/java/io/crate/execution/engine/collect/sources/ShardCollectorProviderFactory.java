@@ -23,7 +23,6 @@ package io.crate.execution.engine.collect.sources;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.engine.collect.BlobShardCollectorProvider;
 import io.crate.execution.engine.collect.LuceneShardCollectorProvider;
 import io.crate.execution.engine.collect.ShardCollectorProvider;
@@ -56,7 +55,6 @@ public class ShardCollectorProviderFactory {
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final ElasticsearchClient elasticsearchClient;
-    private final TransportActionProvider transportActionProvider;
     private final BlobIndicesService blobIndicesService;
 
     private final NodeContext nodeCtx;
@@ -74,7 +72,6 @@ public class ShardCollectorProviderFactory {
                                          Schemas schemas,
                                          ThreadPool threadPool,
                                          Node node,
-                                         TransportActionProvider transportActionProvider,
                                          BlobIndicesService blobIndicesService,
                                          NodeContext nodeCtx,
                                          LuceneQueryBuilder luceneQueryBuilder,
@@ -87,7 +84,6 @@ public class ShardCollectorProviderFactory {
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.elasticsearchClient = node.client();
-        this.transportActionProvider = transportActionProvider;
         this.blobIndicesService = blobIndicesService;
         this.nodeCtx = nodeCtx;
         this.luceneQueryBuilder = luceneQueryBuilder;
@@ -109,7 +105,6 @@ public class ShardCollectorProviderFactory {
                 threadPool,
                 settings,
                 elasticsearchClient,
-                transportActionProvider,
                 fileOutputFactoryMap
             );
         } else {
@@ -123,7 +118,6 @@ public class ShardCollectorProviderFactory {
                 threadPool,
                 settings,
                 elasticsearchClient,
-                transportActionProvider,
                 indexShard,
                 bigArrays,
                 fileOutputFactoryMap);

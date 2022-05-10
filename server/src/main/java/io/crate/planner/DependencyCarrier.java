@@ -23,7 +23,6 @@ package io.crate.planner;
 
 import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.analyze.repositories.RepositoryParamValidator;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.tables.AlterTableOperation;
@@ -63,7 +62,6 @@ import java.util.concurrent.ScheduledExecutorService;
 public class DependencyCarrier {
 
     private final Settings settings;
-    private final TransportActionProvider transportActionProvider;
     private final PhasesTaskFactory phasesTaskFactory;
     private final ThreadPool threadPool;
     private final Schemas schemas;
@@ -94,7 +92,6 @@ public class DependencyCarrier {
     @Inject
     public DependencyCarrier(Settings settings,
                              Node node,
-                             TransportActionProvider transportActionProvider,
                              PhasesTaskFactory phasesTaskFactory,
                              ThreadPool threadPool,
                              Schemas schemas,
@@ -121,7 +118,6 @@ public class DependencyCarrier {
                              LogicalReplicationService logicalReplicationService) {
         this.settings = settings;
         this.client = node.client();
-        this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
         this.threadPool = threadPool;
         this.schemas = schemas;
@@ -163,10 +159,6 @@ public class DependencyCarrier {
 
     public NodeContext nodeContext() {
         return nodeCtx;
-    }
-
-    public TransportActionProvider transportActionProvider() {
-        return transportActionProvider;
     }
 
     public ClusterService clusterService() {
