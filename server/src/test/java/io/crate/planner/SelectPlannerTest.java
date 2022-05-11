@@ -67,6 +67,8 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.ProjectionType;
+import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.TopNDistinctProjection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
@@ -1446,5 +1448,19 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collect.collectPhase();
 
         assertThat(routedCollectPhase.where(), isLiteral(true));
+    }
+
+    @Test
+    public void test_table_function_without_from_can_bind_parameters() {
+        SQLExecutor e = SQLExecutor.builder(clusterService).build();
+        String stmt = "SELECT UNNEST(?)";
+        Collect collect = e.plan(stmt, UUID.randomUUID(), 0, new RowN(new Object[] {null}));
+
+        assertThat(collect.collectPhase().projections().get(0).projectionType(), is(ProjectionType.PROJECT_SET));
+        ProjectSetProjection projectSetProjection = (ProjectSetProjection) collect.collectPhase().projections().get(0);
+        assertThat(
+            ((Function) projectSetProjection.tableFunctions().get(0)).arguments().get(0),
+            isLiteral(null) // used to be unbound ParameterSymbol
+        );
     }
 }

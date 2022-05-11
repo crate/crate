@@ -68,6 +68,7 @@ public class TextFieldMapper extends FieldMapper {
         protected NamedAnalyzer indexAnalyzer;
         protected NamedAnalyzer searchAnalyzer;
         protected NamedAnalyzer searchQuoteAnalyzer;
+        protected boolean omitNormsSet = false;
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE);
@@ -94,6 +95,43 @@ public class TextFieldMapper extends FieldMapper {
 
         public Builder searchQuoteAnalyzer(NamedAnalyzer searchQuoteAnalyzer) {
             this.searchQuoteAnalyzer = searchQuoteAnalyzer;
+            return builder;
+        }
+
+        public Builder omitNorms(boolean omitNorms) {
+            this.fieldType.setOmitNorms(omitNorms);
+            this.omitNormsSet = true;
+            return builder;
+        }
+
+        public Builder storeTermVectors(boolean termVectors) {
+            if (termVectors != this.fieldType.storeTermVectors()) {
+                this.fieldType.setStoreTermVectors(termVectors);
+            } // don't set it to false, it is default and might be flipped by a more specific option
+            return builder;
+        }
+
+        public Builder storeTermVectorOffsets(boolean termVectorOffsets) {
+            if (termVectorOffsets) {
+                this.fieldType.setStoreTermVectors(termVectorOffsets);
+            }
+            this.fieldType.setStoreTermVectorOffsets(termVectorOffsets);
+            return builder;
+        }
+
+        public Builder storeTermVectorPositions(boolean termVectorPositions) {
+            if (termVectorPositions) {
+                this.fieldType.setStoreTermVectors(termVectorPositions);
+            }
+            this.fieldType.setStoreTermVectorPositions(termVectorPositions);
+            return builder;
+        }
+
+        public Builder storeTermVectorPayloads(boolean termVectorPayloads) {
+            if (termVectorPayloads) {
+                this.fieldType.setStoreTermVectors(termVectorPayloads);
+            }
+            this.fieldType.setStoreTermVectorPayloads(termVectorPayloads);
             return builder;
         }
 
