@@ -359,11 +359,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             clusterService.addListener(new RestoreClusterStateListener(clusterService, response, restoreFuture));
         }
         return restoreFuture.thenCompose(restoreInfo -> {
-            if (restoreInfo == null) {
-                throw new SubscriptionRestoreException(
-                    subscriptionName, "Restore failed, restoreInfo = NULL, seems like a master failure happened while restoring");
-            }
-            if (restoreInfo.failedShards() == 0) {
+            if (restoreInfo == null || restoreInfo.failedShards() == 0) {
                 LOGGER.debug("Restore success, following will start once shards are active");
                 return updateSubscriptionState(
                     subscriptionName,
