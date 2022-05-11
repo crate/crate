@@ -120,6 +120,11 @@ To add tables to a publication, the user must have
 ``DQL``, ``DML``, and ``DDL`` privileges on the table. When a user creates a
 publication that publishes all tables automatically, only those tables where the
 user has ``DQL``, ``DML``, and ``DDL`` privileges will be published.
+The user a subscriber uses to connect to the publisher must have ``DQL``
+privileges on the published tables. Tables, included into a publication but
+not available for a subscriber due to lack of ``DQL`` privilege, will not be
+replicated.
+
 
 To create or drop a subscription, a user must have the ``AL`` privilege
 on the cluster. Only the owner (the user who created the subscription) or a

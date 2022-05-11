@@ -102,6 +102,12 @@ Parameters
 
   ``password``: user password.
 
+  .. CAUTION::
+
+     The user specified in the connection string, must have ``DQL`` privileges 
+     on all tables of the publication on a publisher cluster. Tables, for which
+     the user does not have the ``DQL``  privilege, will not be replicated.
+
 
   Parameters supported in the ``pg_tunnel`` mode:
 
