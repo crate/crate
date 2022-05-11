@@ -19,7 +19,28 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
+
+import java.io.UnsupportedEncodingException;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.stream.IntStream;
+
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -74,31 +95,11 @@ import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.Constants;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfoBuilder;
-
-import java.io.UnsupportedEncodingException;
-import java.nio.file.Path;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
-import java.util.stream.IntStream;
-
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
 /**
  * Service responsible for submitting create index requests
@@ -319,17 +320,19 @@ public class MetadataCreateIndexService {
                 List<IndexTemplateMetadata> templates =
                         MetadataIndexTemplateService.findTemplates(currentState.metadata(), request.index());
 
-                // add the request mapping
-                Map<String, Map<String, Object>> mappings = new HashMap<>();
 
                 Map<String, AliasMetadata> templatesAliases = new HashMap<>();
 
                 List<String> templateNames = new ArrayList<>();
 
-                for (Map.Entry<String, String> entry : request.mappings().entrySet()) {
-                    mappings.put(entry.getKey(), MapperService.parseMapping(xContentRegistry, entry.getValue()));
-                }
 
+                Map<String, Object> mapping;
+                String mappingStr = request.mapping();
+                if (mappingStr == null) {
+                    mapping = new HashMap<>();
+                } else {
+                    mapping = MapperService.parseMapping(xContentRegistry, mappingStr);
+                }
                 final Index recoverFromIndex = request.recoverFrom();
 
                 if (recoverFromIndex == null) {
@@ -338,12 +341,12 @@ public class MetadataCreateIndexService {
                         templateNames.add(template.getName());
                         for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
                             String mappingString = cursor.value.string();
-                            if (mappings.containsKey(cursor.key)) {
-                                XContentHelper.mergeDefaults(mappings.get(cursor.key),
+                            String mappingType = cursor.key;
+                            if (mappingType.equals(Constants.DEFAULT_MAPPING_TYPE)) {
+                                XContentHelper.mergeDefaults(mapping,
                                     MapperService.parseMapping(xContentRegistry, mappingString));
                             } else {
-                                mappings.put(cursor.key,
-                                    MapperService.parseMapping(xContentRegistry, mappingString));
+                                throw new IllegalStateException("Unexpected mapping type: " + mappingType);
                             }
                         }
                         //handle aliases
@@ -429,7 +432,6 @@ public class MetadataCreateIndexService {
                     assert request.resizeType() != null;
                     prepareResizeIndexSettings(
                             currentState,
-                            mappings.keySet(),
                             indexSettingsBuilder,
                             recoverFromIndex,
                             request.index(),
@@ -474,15 +476,11 @@ public class MetadataCreateIndexService {
                 // now add the mappings
 
                 MapperService mapperService = indexService.mapperService();
-                if (mappings.isEmpty() == false) {
-                    assert mappings.size() == 1;
-                    var entry = mappings.entrySet().iterator().next();
-                    try {
-                        mapperService.merge(entry.getValue(), MergeReason.MAPPING_UPDATE);
-                    } catch (Exception e) {
-                        removalExtraInfo = "failed on parsing default mapping/mappings on index creation";
-                        throw e;
-                    }
+                try {
+                    mapperService.merge(mapping, MergeReason.MAPPING_UPDATE);
+                } catch (Exception e) {
+                    removalExtraInfo = "failed on parsing default mapping/mappings on index creation";
+                    throw e;
                 }
 
                 // now, update the mappings with the actual source
@@ -531,9 +529,9 @@ public class MetadataCreateIndexService {
                     .put(indexMetadata, false)
                     .build();
 
-                logger.info("[{}] creating index, cause [{}], templates {}, shards [{}]/[{}], mappings {}",
+                logger.info("[{}] creating index, cause [{}], templates {}, shards [{}]/[{}]",
                     request.index(), request.cause(), templateNames, indexMetadata.getNumberOfShards(),
-                    indexMetadata.getNumberOfReplicas(), mappings.keySet());
+                    indexMetadata.getNumberOfReplicas());
 
                 ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
                 if (!request.blocks().isEmpty()) {
@@ -633,10 +631,9 @@ public class MetadataCreateIndexService {
      */
     static List<String> validateShrinkIndex(ClusterState state,
                                             String sourceIndex,
-                                            Set<String> targetIndexMappingsTypes,
                                             String targetIndexName,
                                             Settings targetIndexSettings) {
-        IndexMetadata sourceMetadata = validateResize(state, sourceIndex, targetIndexMappingsTypes, targetIndexName, targetIndexSettings);
+        IndexMetadata sourceMetadata = validateResize(state, sourceIndex, targetIndexName, targetIndexSettings);
         assert IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.exists(targetIndexSettings);
         IndexMetadata.selectShrinkShards(0, sourceMetadata, IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(targetIndexSettings));
 
@@ -666,15 +663,17 @@ public class MetadataCreateIndexService {
         return nodesToAllocateOn;
     }
 
-    static void validateSplitIndex(ClusterState state, String sourceIndex,
-                                   Set<String> targetIndexMappingsTypes, String targetIndexName,
+    static void validateSplitIndex(ClusterState state,
+                                   String sourceIndex,
+                                   String targetIndexName,
                                    Settings targetIndexSettings) {
-        IndexMetadata sourceMetadata = validateResize(state, sourceIndex, targetIndexMappingsTypes, targetIndexName, targetIndexSettings);
+        IndexMetadata sourceMetadata = validateResize(state, sourceIndex, targetIndexName, targetIndexSettings);
         IndexMetadata.selectSplitShard(0, sourceMetadata, IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(targetIndexSettings));
     }
 
-    static IndexMetadata validateResize(ClusterState state, String sourceIndex,
-                                        Set<String> targetIndexMappingsTypes, String targetIndexName,
+    static IndexMetadata validateResize(ClusterState state,
+                                        String sourceIndex,
+                                        String targetIndexName,
                                         Settings targetIndexSettings) {
         if (state.metadata().hasIndex(targetIndexName)) {
             throw new ResourceAlreadyExistsException(state.metadata().index(targetIndexName).getIndex());
@@ -688,12 +687,6 @@ public class MetadataCreateIndexService {
             throw new IllegalStateException("index " + sourceIndex + " must be read-only to resize index. use \"index.blocks.write=true\"");
         }
 
-        if (targetIndexMappingsTypes.size() > 1) {
-            throw new IllegalArgumentException(
-                "mappings are not allowed when resizing indices" +
-                ", all mappings are copied from the source index");
-        }
-
         if (IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.exists(targetIndexSettings)) {
             // this method applies all necessary checks ie. if the target shards are less than the source shards
             // of if the source shards are divisible by the number of target shards
@@ -705,7 +698,6 @@ public class MetadataCreateIndexService {
 
     static void prepareResizeIndexSettings(
             final ClusterState currentState,
-            final Set<String> mappingKeys,
             final Settings.Builder indexSettingsBuilder,
             final Index resizeSourceIndex,
             final String resizeIntoName,
@@ -714,8 +706,11 @@ public class MetadataCreateIndexService {
             final IndexScopedSettings indexScopedSettings) {
         final IndexMetadata sourceMetadata = currentState.metadata().index(resizeSourceIndex.getName());
         if (type == ResizeType.SHRINK) {
-            final List<String> nodesToAllocateOn = validateShrinkIndex(currentState, resizeSourceIndex.getName(),
-                mappingKeys, resizeIntoName, indexSettingsBuilder.build());
+            final List<String> nodesToAllocateOn = validateShrinkIndex(
+                currentState,
+                resizeSourceIndex.getName(),
+                resizeIntoName,
+                indexSettingsBuilder.build());
             indexSettingsBuilder
                 // we use "i.r.a.initial_recovery" rather than "i.r.a.require|include" since we want the replica to allocate right away
                 // once we are allocated.
@@ -725,7 +720,7 @@ public class MetadataCreateIndexService {
                 .put(IndexMetadata.INDEX_SHRINK_SOURCE_NAME.getKey(), resizeSourceIndex.getName())
                 .put(IndexMetadata.INDEX_SHRINK_SOURCE_UUID.getKey(), resizeSourceIndex.getUUID());
         } else if (type == ResizeType.SPLIT) {
-            validateSplitIndex(currentState, resizeSourceIndex.getName(), mappingKeys, resizeIntoName, indexSettingsBuilder.build());
+            validateSplitIndex(currentState, resizeSourceIndex.getName(), resizeIntoName, indexSettingsBuilder.build());
         } else {
             throw new IllegalStateException("unknown resize type is " + type);
         }

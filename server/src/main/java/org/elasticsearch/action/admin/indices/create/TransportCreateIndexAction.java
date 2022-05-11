@@ -82,8 +82,10 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
         final String indexName = request.index();
         final CreateIndexClusterStateUpdateRequest updateRequest = new CreateIndexClusterStateUpdateRequest(
             cause, indexName, request.index())
-                .ackTimeout(request.timeout()).masterNodeTimeout(request.masterNodeTimeout())
-                .settings(request.settings()).mappings(request.mappings())
+                .ackTimeout(request.timeout())
+                .masterNodeTimeout(request.masterNodeTimeout())
+                .settings(request.settings())
+                .mapping(request.mapping())
                 .aliases(request.aliases())
                 .waitForActiveShards(request.waitForActiveShards());
 

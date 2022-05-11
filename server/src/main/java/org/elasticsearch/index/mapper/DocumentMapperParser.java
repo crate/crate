@@ -162,9 +162,8 @@ public class DocumentMapperParser {
 
     @SuppressWarnings({"unchecked"})
     private static Map<String, Object> extractMapping(Map<String, Object> root) throws MapperParsingException {
-        if (root.size() == 0) {
-            // if we don't have any keys throw an exception
-            throw new MapperParsingException("malformed mapping no root object found");
+        if (root.isEmpty()) {
+            return root;
         }
         String rootName = root.keySet().iterator().next();
         Map<String, Object> result;
