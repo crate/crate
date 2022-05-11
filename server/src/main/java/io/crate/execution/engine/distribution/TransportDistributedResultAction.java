@@ -21,23 +21,16 @@
 
 package io.crate.execution.engine.distribution;
 
-import io.crate.execution.jobs.kill.KillJobsNodeAction;
-import io.crate.execution.jobs.kill.KillJobsNodeRequest;
-import io.crate.execution.jobs.kill.KillResponse;
-import io.crate.execution.support.ActionExecutor;
-import io.crate.execution.support.NodeRequest;
-import io.crate.user.User;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.JobKilledException;
-import io.crate.exceptions.TaskMissing;
-import io.crate.execution.jobs.DownstreamRXTask;
-import io.crate.execution.jobs.PageBucketReceiver;
-import io.crate.execution.jobs.PageResultListener;
-import io.crate.execution.jobs.RootTask;
-import io.crate.execution.jobs.TasksService;
-import io.crate.execution.support.NodeActionRequestHandler;
-import io.crate.execution.support.Transports;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -50,14 +43,24 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.TaskMissing;
+import io.crate.execution.jobs.DownstreamRXTask;
+import io.crate.execution.jobs.PageBucketReceiver;
+import io.crate.execution.jobs.PageResultListener;
+import io.crate.execution.jobs.RootTask;
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.jobs.kill.KillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
+import io.crate.execution.support.ActionExecutor;
+import io.crate.execution.support.NodeAction;
+import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.execution.support.NodeRequest;
+import io.crate.execution.support.Transports;
+import io.crate.user.User;
 
 
 public class TransportDistributedResultAction extends TransportAction<NodeRequest<DistributedResultRequest>, DistributedResultResponse> {
@@ -103,11 +106,12 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
         this.killNodeAction = killNodeAction;
         this.backoffPolicy = backoffPolicy;
 
+        NodeAction<DistributedResultRequest, DistributedResultResponse> nodeAction = this::nodeOperation;
         transportService.registerRequestHandler(
             DistributedResultAction.NAME,
             ThreadPool.Names.SAME, // <- we will dispatch later at the nodeOperation on non failures
             DistributedResultRequest::new,
-            new NodeActionRequestHandler<>(this::nodeOperation));
+            new NodeActionRequestHandler<>(nodeAction));
     }
 
     @Override
