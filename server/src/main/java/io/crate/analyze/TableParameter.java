@@ -30,9 +30,6 @@ public class TableParameter {
     private final Settings.Builder settingsBuilder;
     private final Settings.Builder mappingsBuilder;
 
-    private Settings settings;
-    private Map<String, Object> mappings;
-
     public TableParameter() {
         settingsBuilder = Settings.builder();
         mappingsBuilder = Settings.builder();
@@ -43,10 +40,7 @@ public class TableParameter {
     }
 
     public Settings settings() {
-        if (settings == null) {
-            settings = settingsBuilder.build();
-        }
-        return settings;
+        return settingsBuilder.build();
     }
 
     public Settings.Builder mappingsBuilder() {
@@ -54,9 +48,6 @@ public class TableParameter {
     }
 
     public Map<String, Object> mappings() {
-        if (mappings == null) {
-            mappings = mappingsBuilder.build().getAsStructuredMap();
-        }
-        return mappings;
+        return mappingsBuilder.build().getAsStructuredMap();
     }
 }
