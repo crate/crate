@@ -36,12 +36,13 @@ public class JobRequestTest {
 
     @Test
     public void testJobRequestStreaming() throws Exception {
-        JobRequest r1 = new JobRequest(UUID.randomUUID(),
-                                       new SessionSettings("dummyUser",
-                                                           SearchPath.createSearchPathFrom("dummySchema")),
-                                       "n1",
-                                       Collections.emptyList(),
-                                       true);
+        JobRequest r1 = JobRequest.of("dummyNodeId",
+                                                 UUID.randomUUID(),
+                                                 new SessionSettings("dummyUser",
+                                                                     SearchPath.createSearchPathFrom("dummySchema")),
+                                                 "n1",
+                                                 Collections.emptyList(),
+                                                 true).innerRequest();
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);

@@ -21,42 +21,59 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.metadata.ColumnIdent;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
-
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-public class NodeStatsRequest extends TransportRequest {
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportRequest;
 
-    private final Set<ColumnIdent> columns;
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.support.NodeRequest;
+import io.crate.metadata.ColumnIdent;
 
-    public NodeStatsRequest(Set<ColumnIdent> columns) {
-        this.columns = columns;
+public class NodeStatsRequest extends NodeRequest<NodeStatsRequest.StatsRequest> {
+
+    private final TimeValue timeout;
+
+    public NodeStatsRequest(String nodeId, TimeValue timeout, Set<ColumnIdent> columns) {
+        super(nodeId, new StatsRequest(columns));
+        this.timeout = timeout;
     }
 
-    public Set<ColumnIdent> columnIdents() {
-        return columns;
+    public TimeValue timeout() {
+        return timeout;
     }
 
-    public NodeStatsRequest(StreamInput in) throws IOException {
-        super(in);
-        columns = new HashSet<>();
-        int columnIdentsSize = in.readVInt();
-        for (int i = 0; i < columnIdentsSize; i++) {
-            columns.add(new ColumnIdent(in));
+    static class StatsRequest extends TransportRequest {
+
+        private final Set<ColumnIdent> columns;
+
+        private StatsRequest(Set<ColumnIdent> columns) {
+            this.columns = columns;
         }
-    }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeVInt(columns.size());
-        for (ColumnIdent columnIdent : columns) {
-            columnIdent.writeTo(out);
+        public Set<ColumnIdent> columnIdents() {
+            return columns;
+        }
+
+        StatsRequest(StreamInput in) throws IOException {
+            super(in);
+            columns = new HashSet<>();
+            int columnIdentsSize = in.readVInt();
+            for (int i = 0; i < columnIdentsSize; i++) {
+                columns.add(new ColumnIdent(in));
+            }
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            super.writeTo(out);
+            out.writeVInt(columns.size());
+            for (ColumnIdent columnIdent : columns) {
+                columnIdent.writeTo(out);
+            }
         }
     }
 }

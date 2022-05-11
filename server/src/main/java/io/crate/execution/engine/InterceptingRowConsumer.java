@@ -21,17 +21,17 @@
 
 package io.crate.execution.engine;
 
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
+import io.crate.execution.support.ActionExecutor;
 import io.crate.user.User;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.jobs.kill.KillJobsRequest;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.ThreadPools;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -49,7 +49,7 @@ class InterceptingRowConsumer implements RowConsumer {
     private final UUID jobId;
     private final RowConsumer consumer;
     private final Executor executor;
-    private final TransportKillJobsNodeAction transportKillJobsNodeAction;
+    private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
     private final AtomicBoolean consumerAccepted = new AtomicBoolean(false);
 
     private Throwable failure = null;
@@ -59,11 +59,11 @@ class InterceptingRowConsumer implements RowConsumer {
                             RowConsumer consumer,
                             InitializationTracker jobsInitialized,
                             Executor executor,
-                            TransportKillJobsNodeAction transportKillJobsNodeAction) {
+                            ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction) {
         this.jobId = jobId;
         this.consumer = consumer;
         this.executor = executor;
-        this.transportKillJobsNodeAction = transportKillJobsNodeAction;
+        this.killNodeAction = killNodeAction;
         jobsInitialized.future.whenComplete((o, f) -> tryForwardResult(f));
     }
 
@@ -92,27 +92,30 @@ class InterceptingRowConsumer implements RowConsumer {
             ThreadPools.forceExecute(executor, () -> consumer.accept(iterator, null));
         } else {
             consumer.accept(null, failure);
-            KillJobsRequest killRequest = new KillJobsRequest(
+            KillJobsNodeRequest killRequest = new KillJobsNodeRequest(
+                List.of(),
                 List.of(jobId),
                 User.CRATE_USER.name(),
                 "An error was encountered: " + failure
             );
-            transportKillJobsNodeAction.broadcast(
-                killRequest, new ActionListener<>() {
-                    @Override
-                    public void onResponse(Long numKilled) {
+            killNodeAction
+                .execute(killRequest)
+                .whenComplete(
+                    (resp, t) -> {
                         if (LOGGER.isTraceEnabled()) {
-                            LOGGER.trace("Killed {} contexts for jobId={} forwarding the failure={}", numKilled, jobId, failure);
+                            if (t == null) {
+                                LOGGER.trace("Killed {} contexts for jobId={} forwarding the failure={}",
+                                             resp.numKilled(),
+                                             jobId,
+                                             failure);
+                            } else {
+                                LOGGER.trace("Failed to kill jobId={}, forwarding failure={} anyway",
+                                             jobId,
+                                             failure);
+                            }
                         }
                     }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        if (LOGGER.isTraceEnabled()) {
-                            LOGGER.trace("Failed to kill jobId={}, forwarding failure={} anyway", jobId, failure);
-                        }
-                    }
-                });
+                );
         }
     }
 

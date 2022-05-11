@@ -22,11 +22,12 @@
 package io.crate.cluster.decommission;
 
 import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.execution.support.NodeRequest;
 import io.crate.execution.support.Transports;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -36,10 +37,7 @@ import org.elasticsearch.transport.TransportService;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
-public class TransportDecommissionNodeAction implements NodeAction<DecommissionNodeRequest, AcknowledgedResponse> {
-
-    private static final String ACTION_NAME = "internal:crate:sql/decommission/node";
-    private static final String EXECUTOR = ThreadPool.Names.MANAGEMENT;
+public class TransportDecommissionNodeAction extends TransportAction<NodeRequest<DecommissionRequest>, AcknowledgedResponse> {
 
     private final DecommissioningService decommissioningService;
     private final Transports transports;
@@ -48,30 +46,29 @@ public class TransportDecommissionNodeAction implements NodeAction<DecommissionN
     public TransportDecommissionNodeAction(TransportService transportService,
                                            DecommissioningService decommissioningService,
                                            Transports transports) {
+        super(DecommissionNodeAction.NAME);
         this.decommissioningService = decommissioningService;
         this.transports = transports;
         transportService.registerRequestHandler(
-            ACTION_NAME,
-            EXECUTOR,
-            DecommissionNodeRequest::new,
-            new NodeActionRequestHandler<>(this)
+            DecommissionNodeAction.NAME,
+            ThreadPool.Names.MANAGEMENT,
+            DecommissionRequest::new,
+            new NodeActionRequestHandler<>(this::nodeOperation)
         );
     }
 
-    public void execute(final String nodeId,
-                        final DecommissionNodeRequest request,
-                        final ActionListener<AcknowledgedResponse> listener) {
+    @Override
+    public void doExecute(NodeRequest<DecommissionRequest> request, ActionListener<AcknowledgedResponse> listener) {
         transports.sendRequest(
-            ACTION_NAME,
-            nodeId,
-            request,
+            DecommissionNodeAction.NAME,
+            request.nodeId(),
+            request.innerRequest(),
             listener,
             new ActionListenerResponseHandler<>(listener, AcknowledgedResponse::new)
         );
     }
 
-    @Override
-    public CompletableFuture<AcknowledgedResponse> nodeOperation(DecommissionNodeRequest request) {
+    private CompletableFuture<AcknowledgedResponse> nodeOperation(DecommissionRequest request) {
         try {
             return decommissioningService.decommission().thenApply(aVoid -> new AcknowledgedResponse(true));
         } catch (Throwable t) {

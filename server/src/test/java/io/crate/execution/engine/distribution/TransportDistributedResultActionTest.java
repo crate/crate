@@ -22,11 +22,13 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
+import io.crate.action.FutureActionListener;
 import io.crate.breaker.RamAccounting;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
-import io.crate.execution.jobs.kill.KillJobsRequest;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.Transports;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -37,7 +39,6 @@ import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -58,7 +59,7 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
             mock(TransportService.class)
         ) {
             @Override
-            public void broadcast(KillJobsRequest request, ActionListener<Long> listener, Collection<String> excludedNodeIds) {
+            public void doExecute(KillJobsNodeRequest request, ActionListener<KillResponse> listener) {
                 numBroadcasts.incrementAndGet();
             }
         };
@@ -68,7 +69,11 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
             THREAD_POOL,
             mock(TransportService.class),
             clusterService,
-            killJobsAction,
+            req -> {
+                FutureActionListener listener = FutureActionListener.newInstance();
+                killJobsAction.doExecute(req, listener);
+                return listener;
+            },
             BackoffPolicy.exponentialBackoff(TimeValue.ZERO, 0)
         );
 
@@ -76,7 +81,9 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
             new Streamer[0], RamAccounting.NO_ACCOUNTING);
         try {
             transportDistributedResultAction.nodeOperation(
-                new DistributedResultRequest(UUID.randomUUID(), 0, (byte) 0, 0, builder.build(), true)
+                DistributedResultRequest.of(
+                    "dummyNodeId", UUID.randomUUID(), 0, (byte) 0, 0, builder.build(), true
+                ).innerRequest()
             ).get(5, TimeUnit.SECONDS);
             fail("nodeOperation call should fail with TaskMissing");
         } catch (ExecutionException e) {

@@ -26,7 +26,6 @@ import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SentinelRow;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.collectors.BlobOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
@@ -64,7 +63,6 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       ThreadPool threadPool,
                                       Settings settings,
                                       ElasticsearchClient elasticsearchClient,
-                                      TransportActionProvider transportActionProvider,
                                       Map<String, FileOutputFactory> fileOutputFactoryMap) {
         super(
             clusterService,
@@ -75,7 +73,6 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
             threadPool,
             settings,
             elasticsearchClient,
-            transportActionProvider,
             blobShard.indexShard(),
             new ShardRowContext(blobShard, clusterService),
             fileOutputFactoryMap

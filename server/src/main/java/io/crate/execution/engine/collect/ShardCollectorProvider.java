@@ -43,7 +43,6 @@ import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SentinelRow;
-import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
@@ -74,7 +73,6 @@ public abstract class ShardCollectorProvider {
                            ThreadPool threadPool,
                            Settings settings,
                            ElasticsearchClient elasticsearchClient,
-                           TransportActionProvider transportActionProvider,
                            IndexShard indexShard,
                            ShardRowContext shardRowContext,
                            Map<String, FileOutputFactory> fileOutputFactoryMap) {
@@ -94,7 +92,6 @@ public abstract class ShardCollectorProvider {
             threadPool,
             settings,
             elasticsearchClient,
-            transportActionProvider,
             new InputFactory(nodeCtx),
             shardNormalizer,
             t -> null,
