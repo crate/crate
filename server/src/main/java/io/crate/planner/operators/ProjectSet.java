@@ -125,8 +125,13 @@ public class ProjectSet extends ForwardingLogicalPlan {
             params,
             subQueryResults
         );
+
+        // When a query with placeholders looks like 'SELECT UNNEST(?)' then source is a table function over EMPTY_ROW_TABLE_RELATION
+        // and parameter binding done inside TableFunction has no effect as EMPTY_ROW_TABLE_RELATION has zero arguments.
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
+
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
-        List<Symbol> tableFunctionsWithInputs = InputColumns.create(this.tableFunctions, sourceSymbols);
+        List<Symbol> tableFunctionsWithInputs = InputColumns.create(Lists2.map(this.tableFunctions, paramBinder), sourceSymbols);
         List<Symbol> standaloneWithInputs = InputColumns.create(this.standalone, sourceSymbols);
         sourcePlan.addProjection(new ProjectSetProjection(tableFunctionsWithInputs, standaloneWithInputs));
         return sourcePlan;

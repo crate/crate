@@ -76,3 +76,8 @@ Fixes
 
 - Fixed an edge case with the initial restore of subscribed tables when the
   restore operation finish almost instantly (e.g. restoring small tables).
+
+- Fixed an issue with table functions parameter binding in ``SELECT`` queries
+  without ``FROM`` clause. Example: ``SELECT unnest(?)``.
+
+
