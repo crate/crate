@@ -471,7 +471,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         prepareCreate(tableName).setSettings(Settings.builder()
             .put("index.analysis.analyzer.test.tokenizer", "standard")
             .put("index.number_of_shards", "1"))
-            .addMapping("default", "{\n" +
+            .addMapping("{\n" +
                 "    \"default\": {\n" +
                 "      \"properties\": {\n" +
                 "        \"field1\": {\n" +

@@ -58,7 +58,7 @@ public class TableCreator {
                 new CreateIndexRequest(
                     relationName.indexNameOrAlias(),
                     createTable.tableParameter().settings()
-                ).mapping(Constants.DEFAULT_MAPPING_TYPE, createTable.mapping())
+                ).mapping(createTable.mapping())
             )
             : new CreateTableRequest(
                 new PutIndexTemplateRequest(templateName)

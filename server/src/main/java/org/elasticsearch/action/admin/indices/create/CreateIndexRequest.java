@@ -25,7 +25,6 @@ import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -49,7 +48,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import io.crate.common.collections.MapBuilder;
+import io.crate.Constants;
 
 /**
  * A request to create an index.
@@ -71,7 +70,7 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
 
     private Settings settings = EMPTY_SETTINGS;
 
-    private final Map<String, String> mappings = new HashMap<>();
+    private String mapping = null;
 
     private final Set<Alias> aliases = new HashSet<>();
 
@@ -140,14 +139,13 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
     }
 
     /**
-     * Adds mapping that will be added when the index gets created.
+     * Sets the mapping that will be used when the index gets created.
      *
-     * @param type   The mapping type
      * @param source The mapping source
      * @param xContentType The content type of the source
      */
-    public CreateIndexRequest mapping(String type, String source, XContentType xContentType) {
-        return mapping(type, new BytesArray(source), xContentType);
+    public CreateIndexRequest mapping(String source, XContentType xContentType) {
+        return mapping(new BytesArray(source), xContentType);
     }
 
     /**
@@ -157,13 +155,13 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
      * @param source The mapping source
      * @param xContentType the content type of the mapping source
      */
-    private CreateIndexRequest mapping(String type, BytesReference source, XContentType xContentType) {
-        if (mappings.containsKey(type)) {
-            throw new IllegalStateException("mappings for type \"" + type + "\" were already defined");
+    private CreateIndexRequest mapping(BytesReference source, XContentType xContentType) {
+        if (this.mapping != null) {
+            throw new IllegalStateException("mapping already defined");
         }
         Objects.requireNonNull(xContentType);
         try {
-            mappings.put(type, XContentHelper.convertToJson(source, xContentType));
+            mapping = XContentHelper.convertToJson(source, xContentType);
             return this;
         } catch (IOException e) {
             throw new UncheckedIOException("failed to convert to json", e);
@@ -179,23 +177,18 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
     }
 
     /**
-     * Adds mapping that will be added when the index gets created.
+     * Sets the mapping that will be used when the index gets created.
      *
-     * @param type   The mapping type
      * @param source The mapping source
      */
-    public CreateIndexRequest mapping(String type, Map<String, Object> source) {
-        if (mappings.containsKey(type)) {
-            throw new IllegalStateException("mappings for type \"" + type + "\" were already defined");
-        }
-        // wrap it in a type map if its not
-        if (source.size() != 1 || !source.containsKey(type)) {
-            source = MapBuilder.<String, Object>newMapBuilder().put(type, source).map();
+    public CreateIndexRequest mapping(Map<String, Object> source) {
+        if (this.mapping != null) {
+            throw new IllegalStateException("mapping already defined");
         }
         try {
             XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
             builder.map(source);
-            return mapping(type, BytesReference.bytes(builder), builder.contentType());
+            return mapping(BytesReference.bytes(builder), builder.contentType());
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
         }
@@ -210,8 +203,8 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         return this;
     }
 
-    public Map<String, String> mappings() {
-        return this.mappings;
+    public String mapping() {
+        return this.mapping;
     }
 
     public Set<Alias> aliases() {
@@ -246,11 +239,15 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         cause = in.readString();
         index = in.readString();
         settings = readSettingsFromStream(in);
-        int size = in.readVInt();
-        for (int i = 0; i < size; i++) {
-            final String type = in.readString();
-            String source = in.readString();
-            mappings.put(type, source);
+        if (in.getVersion().onOrAfter(Version.V_5_0_0)) {
+            mapping = in.readOptionalString();
+        } else {
+            int size = in.readVInt();
+            for (int i = 0; i < size; i++) {
+                in.readString(); // type, was always "default"
+                String source = in.readString();
+                mapping = source;
+            }
         }
         int aliasesSize = in.readVInt();
         for (int i = 0; i < aliasesSize; i++) {
@@ -268,10 +265,16 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         out.writeString(cause);
         out.writeString(index);
         writeSettingsToStream(settings, out);
-        out.writeVInt(mappings.size());
-        for (Map.Entry<String, String> entry : mappings.entrySet()) {
-            out.writeString(entry.getKey());
-            out.writeString(entry.getValue());
+        if (out.getVersion().onOrAfter(Version.V_5_0_0)) {
+            out.writeOptionalString(mapping);
+        } else {
+            if (mapping == null) {
+                out.writeVInt(0);
+            } else {
+                out.writeVInt(1);
+                out.writeString(Constants.DEFAULT_MAPPING_TYPE);
+                out.writeString(mapping);
+            }
         }
         out.writeVInt(aliases.size());
         for (Alias alias : aliases) {

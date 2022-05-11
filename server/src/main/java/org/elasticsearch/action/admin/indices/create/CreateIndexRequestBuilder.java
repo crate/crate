@@ -57,8 +57,8 @@ public class CreateIndexRequestBuilder extends AcknowledgedRequestBuilder<Create
      * @param source The mapping source
      * @param xContentType The content type of the source
      */
-    public CreateIndexRequestBuilder addMapping(String type, String source, XContentType xContentType) {
-        request.mapping(type, source, xContentType);
+    public CreateIndexRequestBuilder addMapping(String source, XContentType xContentType) {
+        request.mapping(source, xContentType);
         return this;
     }
 

@@ -19,6 +19,9 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.shrink.ResizeType;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -27,11 +30,6 @@ import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Cluster state update request that allows to create an index
@@ -49,7 +47,7 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
 
     private Settings settings = Settings.Builder.EMPTY_SETTINGS;
 
-    private final Map<String, String> mappings = new HashMap<>();
+    private String mapping = null;
 
     private final Set<Alias> aliases = new HashSet<>();
 
@@ -68,8 +66,8 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
         return this;
     }
 
-    public CreateIndexClusterStateUpdateRequest mappings(Map<String, String> mappings) {
-        this.mappings.putAll(mappings);
+    public CreateIndexClusterStateUpdateRequest mapping(String mapping) {
+        this.mapping = mapping;
         return this;
     }
 
@@ -114,8 +112,8 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
         return settings;
     }
 
-    public Map<String, String> mappings() {
-        return mappings;
+    public String mapping() {
+        return mapping;
     }
 
     public Set<Alias> aliases() {
