@@ -42,7 +42,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     public abstract static class Builder<T extends Builder<T>> extends Mapper.Builder<T> {
 
         protected final FieldType fieldType;
-        protected boolean omitNormsSet = false;
         protected boolean indexOptionsSet = false;
         protected boolean hasDocValues = true;
         protected boolean indexed = true;
@@ -71,43 +70,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
 
         public T docValues(boolean docValues) {
             this.hasDocValues = docValues;
-            return builder;
-        }
-
-        public T storeTermVectors(boolean termVectors) {
-            if (termVectors != this.fieldType.storeTermVectors()) {
-                this.fieldType.setStoreTermVectors(termVectors);
-            } // don't set it to false, it is default and might be flipped by a more specific option
-            return builder;
-        }
-
-        public T storeTermVectorOffsets(boolean termVectorOffsets) {
-            if (termVectorOffsets) {
-                this.fieldType.setStoreTermVectors(termVectorOffsets);
-            }
-            this.fieldType.setStoreTermVectorOffsets(termVectorOffsets);
-            return builder;
-        }
-
-        public T storeTermVectorPositions(boolean termVectorPositions) {
-            if (termVectorPositions) {
-                this.fieldType.setStoreTermVectors(termVectorPositions);
-            }
-            this.fieldType.setStoreTermVectorPositions(termVectorPositions);
-            return builder;
-        }
-
-        public T storeTermVectorPayloads(boolean termVectorPayloads) {
-            if (termVectorPayloads) {
-                this.fieldType.setStoreTermVectors(termVectorPayloads);
-            }
-            this.fieldType.setStoreTermVectorPayloads(termVectorPayloads);
-            return builder;
-        }
-
-        public T omitNorms(boolean omitNorms) {
-            this.fieldType.setOmitNorms(omitNorms);
-            this.omitNormsSet = true;
             return builder;
         }
 
