@@ -180,7 +180,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
     }
 
     @Test
-    public void test_cannot_create_subscription_with_invalid_user_password_and_can_create_with_same_name_and_valid_credentials() throws Exception {
+    public void test_cannot_create_subscription_with_invalid_user_password() throws Exception {
         publisherCluster = newCluster("publisher", Settings.builder()
             .put("auth.host_based.enabled", true)
             .put("auth.host_based.config.0.user", "marvin")
@@ -214,20 +214,6 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
                 PGErrorStatus.EXCLUSION_VIOLATION,
                 HttpResponseStatus.INTERNAL_SERVER_ERROR,
                 5000));
-
-        // Check that later can re-create a subscription with the same name but with valid credentials.
-        // Used to reuse RemoteCluster with old ConnectionInfo and fail with auth failed, see https://github.com/crate/crate/issues/12462
-        subscriber.exec(String.format(Locale.ENGLISH, """
-                    CREATE SUBSCRIPTION sub1
-                        CONNECTION 'crate://%s:%d?user=marvin&password=secret&mode=pg_tunnel'
-                        PUBLICATION pub1
-                    """,
-            postgresAddress.getHostName(),
-            postgresAddress.getPort())
-        );
-        assertThat(TestingHelpers.printedTable(subscriber.exec("select subname from pg_subscription").rows()), is(
-            "sub1\n"
-        ));
     }
 
     @Test
