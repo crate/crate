@@ -87,3 +87,6 @@ Fixes
 - Fixed an issue with client caching which lead to authentication error when
   creating a subscription with bad credentials and ``pg_tunnel`` followed by
   re-creating it second time with the same name and valid credentials.
+
+- Fixed an issue resulting in a broken subscription when a subscription is
+  dropped and re-created within a short period of time.
