@@ -185,7 +185,12 @@ public class AlterTableAddColumnPlan implements Plan {
             if (reference.valueType().id() != ObjectType.ID) {
                 columnDef.indexConstraint(reference.indexType());
             }
-            columnDef.dataType(reference.valueType().getName());
+
+            // We are mirroring PK type as is (including type's internal settings if there are any)
+            // We cannot resolve type by name via columnDef.dataType(reference.valueType().getName())
+            // as internal parameters, such as VARCHAR length can be lost.
+            columnDef.dataType(reference.valueType());
+
             if (parentDef != null) {
                 parentDef.addChild(columnDef);
             }

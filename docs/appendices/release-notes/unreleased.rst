@@ -76,3 +76,7 @@ Fixes
 
 - Fixed an issue with table functions parameter binding in ``SELECT`` queries
   without ``FROM`` clause. Example: ``SELECT unnest(?)``.
+
+- Fixed an issue with ``VARCHAR`` and ``BIT`` columns with a length
+  limited used in primary key, generated or default column expression. An
+  ``ALTER TABLE`` statement removed the length limit from such columns.

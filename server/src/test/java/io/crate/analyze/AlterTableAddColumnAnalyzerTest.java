@@ -572,4 +572,48 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             is("text")
         );
     }
+
+    @Test
+    public void test_primary_key_varchar_length_is_not_lost_after_altering_table() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE tbl1 (x VARCHAR(512), PRIMARY KEY(x))")
+            .addTable("CREATE TABLE tbl2 (x BIT(10), PRIMARY KEY(x))")
+            .build();
+        BoundAddColumn addColumn = analyze("ALTER TABLE tbl1 ADD COLUMN y DOUBLE");
+        Map<String, Object> properties = (Map<String, Object>) addColumn.mapping().get("properties");
+        Map<String, Object> pk = (Map<String, Object>) properties.get("x");
+
+        assertThat(
+            "VARCHAR length info must be retained while mirroring PK mapping",
+            pk.get("length_limit"),
+            is(512)
+        );
+
+        addColumn = analyze("ALTER TABLE tbl2 ADD COLUMN y DOUBLE");
+        properties = (Map<String, Object>) addColumn.mapping().get("properties");
+        pk = (Map<String, Object>) properties.get("x");
+
+        assertThat(
+            "BIT length info must be retained while mirroring PK mapping",
+            pk.get("length"),
+            is(10)
+        );
+    }
+
+    @Test
+    public void test_default_column_varchar_length_of_the_expression_is_not_lost_after_altering_table() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE tbl (x int)")
+            .build();
+
+        BoundAddColumn addColumn = analyze("ALTER TABLE tbl ADD COLUMN gen generated always as '123'::varchar(10)");
+        Map<String, Object> properties = (Map<String, Object>) addColumn.mapping().get("properties");
+        Map<String, Object> gen = (Map<String, Object>) properties.get("gen");
+
+        assertThat(
+            "VARCHAR length info must be retained while processing generated column",
+            gen.get("length_limit"),
+            is(10)
+        );
+    }
 }

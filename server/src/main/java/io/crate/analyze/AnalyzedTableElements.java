@@ -406,9 +406,9 @@ public class AnalyzedTableElements<T> {
         } else {
             if (valueType instanceof ArrayType) {
                 columnDefinitionEvaluated.collectionType(ArrayType.NAME);
-                columnDefinitionEvaluated.dataType(ArrayType.unnest(valueType).getName());
+                columnDefinitionEvaluated.dataType(ArrayType.unnest(valueType));
             } else {
-                columnDefinitionEvaluated.dataType(valueType.getName());
+                columnDefinitionEvaluated.dataType(valueType);
             }
             formattedExpression = function.toString(Style.UNQUALIFIED);
         }
