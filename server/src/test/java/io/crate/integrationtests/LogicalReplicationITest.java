@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -556,5 +558,64 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             OperationOnInaccessibleRelationException.class,
             "The relation \"doc.t1\" doesn't allow DROP operations, because it is included in a logical replication subscription."
         );
+    }
+
+    /**
+     * Test a regression which resulting in a failed initial restore of the re-created subscription caused
+     * not correctly removed retention leases while subscription is dropped.
+     */
+    @Test
+    public void test_drop_and_recreate_subscription_while_published_table_is_written_to() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2), (3), (4)");
+        createPublication("pub1", false, List.of("t1"));
+
+        var cnt = new AtomicLong(4L);
+        var stop = new AtomicBoolean(false);
+        try {
+            var writeThread = new Thread(() -> {
+                while (stop.get() == false) {
+                    publisherSqlExecutor.exec("INSERT INTO t1 (id) VALUES (?)", new Object[randomIntBetween(1, 9999)]);
+                    cnt.incrementAndGet();
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        stop.set(true);
+                    }
+                }
+            });
+            writeThread.start();
+
+            createSubscription("sub1", "pub1");
+
+            assertBusy(() -> {
+                var res = executeOnSubscriber(
+                    "SELECT" +
+                        " s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
+                        " FROM pg_subscription s" +
+                        " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                        " JOIN pg_class r ON sr.srrelid = r.oid");
+                assertThat(printedTable(res.rows()), Matchers.is("sub1| t1| r| NULL\n"));
+            });
+
+            executeOnSubscriber("DROP SUBSCRIPTION sub1");
+            executeOnSubscriber("DROP TABLE t1");
+
+            executeOnSubscriber("CREATE SUBSCRIPTION sub1" +
+                " CONNECTION '" + publisherConnectionUrl() + "' publication pub1");
+
+        } finally {
+            stop.set(true);
+        }
+
+        assertBusy(() -> {
+            var res = executeOnSubscriber(
+                "SELECT" +
+                    " s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
+                    " FROM pg_subscription s" +
+                    " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                    " JOIN pg_class r ON sr.srrelid = r.oid");
+            assertThat(printedTable(res.rows()), Matchers.is("sub1| t1| r| NULL\n"));
+        });
     }
 }
