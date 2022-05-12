@@ -228,7 +228,7 @@ public final class MetadataTracker implements Closeable {
         );
         CompletableFuture<Response> publicationsState = client.execute(PublicationsStateAction.INSTANCE, request);
         CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response -> {
-            if (response.droppedPublications().containsAll(subscription.publications())) {
+            if (response.unknownPublications().containsAll(subscription.publications())) {
                 stopTracking(subscriptionName);
                 return CompletableFuture.completedFuture(false);
             }
@@ -319,8 +319,8 @@ public final class MetadataTracker implements Closeable {
                 }
 
                 ArrayList<String> mutablePublications = new ArrayList<>(subscription.publications());
-                if (mutablePublications.removeAll(response.droppedPublications())) {
-                    LOGGER.info("Subscription {} will stop getting updates from publications: {} as they have been dropped.", subscriptionName, response.droppedPublications());
+                if (mutablePublications.removeAll(response.unknownPublications())) {
+                    LOGGER.info("Subscription {} will stop getting updates from publications: {} as they have been dropped.", subscriptionName, response.unknownPublications());
                     localClusterState = UpdateSubscriptionAction.update(
                         localClusterState,
                         subscriptionName,

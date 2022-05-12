@@ -40,6 +40,7 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.testing.MoreMatchers;
@@ -229,6 +230,17 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
+    }
+
+    @Test
+    public void test_subscribing_to_unknown_publication_raises_error() throws Exception {
+        createPublication("pub1", true, List.of());
+        assertThrowsMatches(
+            () -> executeOnSubscriber("CREATE SUBSCRIPTION sub1" +
+                " CONNECTION '" + publisherConnectionUrl() + "' publication unknown_pub"),
+            PublicationUnknownException.class,
+            "Publication 'unknown_pub' unknown"
+        );
     }
 
     @Test
