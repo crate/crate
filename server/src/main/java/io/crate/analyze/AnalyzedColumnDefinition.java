@@ -261,6 +261,13 @@ public class AnalyzedColumnDefinition<T> {
         this.geoProperties = properties;
     }
 
+    /**
+     * Initializes from a given DataType including internal parameters
+     */
+    public void dataType(DataType<?> dataType) {
+        this.dataType = dataType;
+    }
+
     public void dataType(String dataType) {
         dataType(dataType, List.of(), true);
     }

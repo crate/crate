@@ -119,5 +119,10 @@ Fixes
   creating a subscription with bad credentials and ``pg_tunnel`` followed by
   re-creating it second time with the same name and valid credentials.
 
+- Fixed an issue with ``VARCHAR`` and ``BIT`` columns with a length
+  limited used in primary key, generated or default column expression. An
+  ``ALTER TABLE`` statement removed the length limit from such columns.
+
 - Fixed an issue resulting in a broken subscription when a subscription is
   dropped and re-created within a short period of time.
+
