@@ -21,12 +21,13 @@
 
 package org.elasticsearch.transport;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
+import io.crate.protocols.postgres.PgClient;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.transport.MockTransportService;
@@ -38,6 +39,8 @@ import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+
+import java.util.concurrent.CompletableFuture;
 
 public class RemoteClustersTest extends CrateDummyClusterServiceUnitTest {
 
@@ -72,6 +75,29 @@ public class RemoteClustersTest extends CrateDummyClusterServiceUnitTest {
         // second call must also result in a `pgFactory.createClient()` call and such throw an exception
         future = remoteClusters.connect("foo", ConnectionInfo.fromURL("crate://localhost?mode=pg_tunnel"));
         assertThat(future.isCompletedExceptionally(), is(true));
+
+        remoteClusters.close();
+    }
+
+    @Test
+    public void test_client_is_not_cached_if_failed_to_connect() throws Exception {
+        var pgClientFactory = mock(PgClientFactory.class);
+        when(pgClientFactory.createClient(anyString(), any(ConnectionInfo.class))).thenThrow(new RuntimeException("dummy"));
+
+        var remoteClusters = new RemoteClusters(
+            Settings.EMPTY,
+            THREAD_POOL,
+            pgClientFactory,
+            MockTransportService.createNewService(Settings.EMPTY, Version.CURRENT, THREAD_POOL, nettyBootstrap)
+        );
+
+        String subName = "sub1";
+        var future = remoteClusters.connect(subName, ConnectionInfo.fromURL("crate://localhost?mode=pg_tunnel"));
+        assertThat(future.isCompletedExceptionally(), is(true));
+
+        // Check that failed client is not cached so that later can re-create a subscription with the same name but with valid credentials.
+        // https://github.com/crate/crate/issues/12462
+        assertThrowsMatches(() -> remoteClusters.getClient(subName), NoSuchRemoteClusterException.class, "no such remote cluster: [" + subName + "]");
 
         remoteClusters.close();
     }
