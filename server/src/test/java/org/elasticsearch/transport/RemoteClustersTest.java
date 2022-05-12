@@ -25,9 +25,9 @@ import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import io.crate.protocols.postgres.PgClient;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.transport.MockTransportService;
@@ -39,8 +39,6 @@ import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-
-import java.util.concurrent.CompletableFuture;
 
 public class RemoteClustersTest extends CrateDummyClusterServiceUnitTest {
 
