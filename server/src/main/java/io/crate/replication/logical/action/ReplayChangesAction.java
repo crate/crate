@@ -44,6 +44,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.StrictDynamicMappingException;
@@ -55,7 +56,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
+import io.crate.replication.logical.engine.SubscriberEngine;
+import io.crate.replication.logical.exceptions.InvalidShardEngineException;
 
 public class ReplayChangesAction extends ActionType<ReplicationResponse> {
 
@@ -68,8 +72,7 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
     }
 
     @Singleton
-    public static class TransportAction
-        extends TransportWriteAction<Request, Request, ReplicationResponse> {
+    public static class TransportAction extends TransportWriteAction<Request, Request, ReplicationResponse> {
 
         private static final Logger LOGGER = Loggers.getLogger(ReplayChangesAction.class);
 
@@ -101,18 +104,32 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
         }
 
         @Override
-        protected void shardOperationOnPrimary(Request request, IndexShard primary, ActionListener<PrimaryResult<Request, ReplicationResponse>> listener) {
-            performOnPrimary(primary, request, new ArrayList<>(), 0, results -> {
+        protected void shardOperationOnPrimary(Request request,
+                                               IndexShard primary,
+                                               ActionListener<PrimaryResult<Request, ReplicationResponse>> listener) {
+            performOnPrimary(primary, request, new ArrayList<>(),0, results -> {
+                ArrayList<Translog.Operation> replicaOps = new ArrayList<>();
                 Translog.Location location = null;
                 try {
-                    for (Engine.Result engineResult : results) {
+                    for (int i = 0; i < results.size(); i++) {
+                        var engineResult = results.get(i);
+                        var failure = engineResult.getFailure();
+                        if (failure instanceof InvalidShardEngineException) {
+                            if (location == null) {
+                                // Bail out if the failure happened on the first item -> nothing to replicate
+                                listener.onFailure(failure);
+                            }
+                            break;
+                        }
+                        // Add successfully on primary written operation to the to-replicate operations
+                        replicaOps.add(request.changes().get(i));
                         location = syncOperationResultOrThrow(engineResult, location);
                     }
                 } catch (Exception e) {
                     listener.onFailure(e);
                 }
                 listener.onResponse(new WritePrimaryResult<>(
-                    request,
+                    new Request(primary.shardId(), replicaOps, request.maxSeqNoOfUpdatesOrDeletes()),
                     new ReplicationResponse(),
                     location,
                     null,
@@ -121,13 +138,27 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
             }, listener::onFailure);
         }
 
-        private void performOnPrimary(IndexShard primary, Request request, List<Engine.Result> accumulator, int offset, Consumer<List<Engine.Result>> result, Consumer<Exception> failure) {
+        @VisibleForTesting
+        void performOnPrimary(IndexShard primary,
+                              Request request,
+                              List<Engine.Result> accumulator,
+                              int offset,
+                              Consumer<List<Engine.Result>> result,
+                              Consumer<Exception> failure) {
             for (int i = offset; i < request.changes().size(); i++) {
                 final var op = request.changes().get(i);
                 final var opWithPrimary = withPrimaryTerm(op, primary.getOperationPrimaryTerm());
                 if (primary.getMaxSeqNoOfUpdatesOrDeletes() < request.maxSeqNoOfUpdatesOrDeletes()) {
                     primary.advanceMaxSeqNoOfUpdatesOrDeletes(request.maxSeqNoOfUpdatesOrDeletes());
                 }
+
+                if ((primary.getEngineOrNull() instanceof SubscriberEngine) == false) {
+                    accumulator.add(
+                        new Engine.IndexResult(new InvalidShardEngineException(primary.shardId()), Versions.MATCH_ANY)
+                    );
+                    break;
+                }
+
                 Engine.Result engineResult = null;
                 try {
                     engineResult = primary.applyTranslogOperation(opWithPrimary, Engine.Operation.Origin.PRIMARY);
@@ -148,7 +179,12 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
             result.accept(accumulator);
         }
 
-        private void retryWhenMappingsAreUpdated(IndexShard primary, Request request, List<Engine.Result> accumulator, int offset, Consumer<List<Engine.Result>> result, Consumer<Exception> failure) {
+        private void retryWhenMappingsAreUpdated(IndexShard primary,
+                                                 Request request,
+                                                 List<Engine.Result> accumulator,
+                                                 int offset,
+                                                 Consumer<List<Engine.Result>> result,
+                                                 Consumer<Exception> failure) {
             var indexName = request.shardId().getIndexName();
             var currentMappingVersion = clusterService.state().metadata().index(indexName).getMappingVersion();
             var clusterStateObserver = new ClusterStateObserver(clusterService, LOGGER);
