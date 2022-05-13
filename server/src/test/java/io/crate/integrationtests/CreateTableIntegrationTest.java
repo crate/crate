@@ -21,20 +21,23 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.Test;
-
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.junit.Test;
 
 public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
 
@@ -118,5 +121,16 @@ public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
         refresh();
         execute("select date_format('%Y-%m-%d %H:%i:%s', calculated) from test");
         assertThat(printedTable(response.rows()), is("2020-02-11 15:30:00\n"));
+    }
+
+    @Test
+    public void test_enforce_soft_deletes() {
+        assertThrowsMatches(
+            () -> execute("create table test(t timestamp) with (\"soft_deletes.enabled\" = false)"),
+            isSQLError(startsWith("Creating tables with soft-deletes disabled is no longer supported."),
+                       INTERNAL_ERROR,
+                       BAD_REQUEST,
+                       4000));
+
     }
 }

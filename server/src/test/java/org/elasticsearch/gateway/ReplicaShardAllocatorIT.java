@@ -33,6 +33,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushAction;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushResponse;
@@ -77,15 +78,13 @@ public class ReplicaShardAllocatorIT extends SQLIntegrationTestCase {
         execute("""
             create table doc.test (x int)
             clustered into 1 shards with (
-                "soft_deletes.enabled" = ?,
                 number_of_replicas = 1,
                 "recovery.file_based_threshold" = 1.0,
                 "global_checkpoint_sync.interval" = '100ms',
                 "soft_deletes.retention_lease.sync_interval" = '100ms',
                 "unassigned.node_left.delayed_timeout" = '1ms'
             )
-        """, new Object[] { randomBoolean() } );
-
+        """);
 
         String nodeWithReplica = internalCluster().startDataOnlyNode();
         Settings nodeWithReplicaSettings = internalCluster().dataPathSettings(nodeWithReplica);
@@ -241,13 +240,12 @@ public class ReplicaShardAllocatorIT extends SQLIntegrationTestCase {
             create table doc.test (x int)
             clustered into 1 shards with (
                 number_of_replicas = ?,
-                "soft_deletes.enabled" = ?,
                 "translog.flush_threshold_size" = ?,
                 "recovery.file_based_threshold" = '0.5',
                 "global_checkpoint_sync.interval" = '100ms',
                 "soft_deletes.retention_lease.sync_interval" = '100ms'
             )
-                """, new Object[] {numOfReplicas, randomBoolean(), randomIntBetween(10, 100) + "kb",  });
+                """, new Object[] {numOfReplicas, randomIntBetween(10, 100) + "kb",  });
 
         ensureGreen(indexName);
 

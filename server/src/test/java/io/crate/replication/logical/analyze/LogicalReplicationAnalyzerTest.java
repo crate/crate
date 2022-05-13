@@ -35,6 +35,10 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.user.User;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.Setting;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -88,8 +92,13 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void test_create_publication_with_table_having_soft_deletes_disabled() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table doc.t1 (x int) with (\"soft_deletes.enabled\" = false)")
+        // Soft-deletes are mandatory from 5.0, so let's use 4.8 to create a table with soft-deletes disabled
+        clusterService = createClusterService(additionalClusterSettings().stream().filter(Setting::hasNodeScope).toList(),
+                                                  Metadata.EMPTY_METADATA,
+                                                  Version.V_4_8_0);
+
+        var e = SQLExecutor.builder(clusterService).addTable(
+                "create table doc.t1 (x int) with (\"soft_deletes.enabled\" = false)")
             .build();
         assertThrowsMatches(
             () -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1"),
@@ -97,7 +106,6 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             "Tables included in a publication must have the table setting 'soft_deletes.enabled' " +
             "set to `true`, current setting for table 'doc.t1': false"
         );
-
     }
 
     @Test

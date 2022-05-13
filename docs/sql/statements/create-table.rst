@@ -559,15 +559,10 @@ Before the introduction of soft deletes, CrateDB had to retain the information
 in the :ref:`Translog <concept-durability>`. Using soft deletes uses less
 storage than the Translog equivalent and is faster.
 
-Soft deletes can only be configured when a table is created. This setting
-cannot be changed using ``ALTER TABLE``.
+Soft deletes are mandatory in CrateDB 5.0, therefore this setting can no
+longer be modified. It will always be set to ``true``.
 
-This setting is deprecated and soft deletes will become mandatory in CrateDB
-5.0.
-
-:value:
-  Defaults to ``true``. Set to ``false`` to disable soft deletes.
-
+The setting will be removed in CrateDB 6.0.
 
 .. _sql-create-table-soft-deletes-retention-lease-period:
 

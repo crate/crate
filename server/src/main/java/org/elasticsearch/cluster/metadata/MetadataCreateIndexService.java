@@ -63,6 +63,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.MapperService.MergeReason;
@@ -392,6 +393,15 @@ public class MetadataCreateIndexService {
                     final DiscoveryNodes nodes = currentState.nodes();
                     final Version createdVersion = Version.min(Version.CURRENT, nodes.getSmallestNonClientNodeVersion());
                     indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), createdVersion);
+                }
+
+                var settingsToValidate = indexSettingsBuilder.build();
+                if (IndexSettings.INDEX_SOFT_DELETES_SETTING.get(settingsToValidate) == false
+                    && IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settingsToValidate).onOrAfter(Version.V_5_0_0)) {
+                    throw new IllegalArgumentException(
+                        "Creating tables with soft-deletes disabled is no longer supported. "
+                        + "Please do not specify a value for setting [soft_deletes.enabled]."
+                    );
                 }
 
                 if (indexSettingsBuilder.get(SETTING_CREATION_DATE) == null) {

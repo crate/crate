@@ -128,11 +128,11 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
             }
 
             Map<RelationName, RelationMetadata> allRelationsInPublications = new HashMap<>();
-            List<String> droppedPublications = new ArrayList<>();
+            List<String> unknownPublications = new ArrayList<>();
             for (var publicationName : request.publications()) {
                 var publication = publicationsMetadata.publications().get(publicationName);
                 if (publication == null) {
-                    droppedPublications.add(publicationName);
+                    unknownPublications.add(publicationName);
                     continue;
                 }
 
@@ -141,7 +141,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 User publicationOwner = userLookup.findUser(publication.owner());
                 allRelationsInPublications.putAll(publication.resolveCurrentRelations(state, publicationOwner, subscriber, publicationName));
             }
-            listener.onResponse(new Response(allRelationsInPublications, droppedPublications));
+            listener.onResponse(new Response(allRelationsInPublications, unknownPublications));
         }
 
         @Override
@@ -186,35 +186,35 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
     public static class Response extends TransportResponse {
 
         private final Map<RelationName, RelationMetadata> relationsInPublications;
-        private final List<String> droppedPublications;
+        private final List<String> unknownPublications;
 
-        public Response(Map<RelationName, RelationMetadata> relationsInPublications, List<String> droppedPublications) {
+        public Response(Map<RelationName, RelationMetadata> relationsInPublications, List<String> unknownPublications) {
             this.relationsInPublications = relationsInPublications;
-            this.droppedPublications = droppedPublications;
+            this.unknownPublications = unknownPublications;
         }
 
         public Response(StreamInput in) throws IOException {
             relationsInPublications = in.readMap(RelationName::new, RelationMetadata::new);
-            droppedPublications = in.readList(StreamInput::readString);
+            unknownPublications = in.readList(StreamInput::readString);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeMap(relationsInPublications, (o, v) -> v.writeTo(out), (o, v) -> v.writeTo(out));
-            out.writeStringCollection(droppedPublications);
+            out.writeStringCollection(unknownPublications);
         }
 
         public Map<RelationName, RelationMetadata> relationsInPublications() {
             return relationsInPublications;
         }
 
-        public List<String> droppedPublications() {
-            return droppedPublications;
+        public List<String> unknownPublications() {
+            return unknownPublications;
         }
 
         @Override
         public String toString() {
-            return "Response{" + "relationsInPublications:" + relationsInPublications + '.' + "droppedPublications:" + droppedPublications + '}';
+            return "Response{" + "relationsInPublications:" + relationsInPublications + '.' + "unknownPublications:" + unknownPublications + '}';
         }
 
         public List<String> concreteIndices() {
