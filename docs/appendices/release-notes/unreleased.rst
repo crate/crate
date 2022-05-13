@@ -108,3 +108,7 @@ Fixes
 - Improved error handling when creating a subscription with unknown
   publications. Instead of successfully creating the subscription, an error
   is now presented to the user.
+
+- Fixed an issue with client caching which lead to authentication error when
+  creating a subscription with bad credentials and ``pg_tunnel`` followed by
+  re-creating it second time with the same name and valid credentials.
