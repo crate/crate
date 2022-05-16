@@ -95,8 +95,18 @@ public final class OutboundHandler {
             isHandshake,
             compressRequest
         );
-        ActionListener<Void> listener = ActionListener.wrap(() ->
-            messageListener.onRequestSent(node, requestId, action, request, options));
+        ActionListener<Void> listener = new ActionListener<Void>() {
+
+            @Override
+            public void onResponse(Void response) {
+                messageListener.onRequestSent(node, requestId, action, request, options);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                messageListener.onRequestFailed(node, requestId, action, request, e);
+            }
+        };
         sendMessage(channel, message, listener);
     }
 

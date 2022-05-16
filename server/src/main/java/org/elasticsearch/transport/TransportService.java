@@ -21,6 +21,7 @@ package org.elasticsearch.transport;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -835,6 +836,23 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         if (tracerLog.isTraceEnabled() && shouldTraceAction(action)) {
             tracerLog.trace(() -> new ParameterizedMessage("[{}][{}] sent error response", requestId, action), e);
         }
+    }
+
+    @Override
+    public void onRequestFailed(DiscoveryNode node,
+                                long requestId,
+                                String action,
+                                TransportRequest request,
+                                Exception exception) {
+        final Transport.ResponseContext<? extends TransportResponse> contextToNotify = responseHandlers.remove(requestId);
+        if (contextToNotify == null) {
+            // already done
+            return;
+        }
+        var transportException = exception instanceof TransportException e
+            ? e
+            : new TransportException(exception);
+        contextToNotify.handler().handleException(transportException);
     }
 
     public RequestHandlerRegistry<? extends TransportRequest> getRequestHandler(String action) {

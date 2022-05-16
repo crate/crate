@@ -77,4 +77,13 @@ public interface TransportMessageListener {
     default void onResponseReceived(long requestId, Transport.ResponseContext context) {
     }
 
+    /**
+     * Invoked if sending the request fails
+     **/
+    default void onRequestFailed(DiscoveryNode node,
+                                 long requestId,
+                                 String action,
+                                 TransportRequest request,
+                                 Exception exception) {
+    }
 }
