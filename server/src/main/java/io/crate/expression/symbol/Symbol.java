@@ -27,12 +27,22 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import java.util.Objects;
+
 import org.elasticsearch.common.io.stream.Writeable;
 
 public abstract class Symbol implements Writeable {
 
     public static boolean isLiteral(Symbol symbol, DataType<?> expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL && symbol.valueType().equals(expectedType);
+    }
+
+    public static boolean hasLiteralValue(Symbol symbol, Object value) {
+        while (symbol instanceof AliasSymbol alias) {
+            symbol = alias.symbol();
+        }
+        return symbol instanceof Literal<?> literal && Objects.equals(literal.value(), value);
     }
 
     public abstract SymbolType symbolType();

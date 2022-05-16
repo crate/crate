@@ -36,6 +36,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
+import io.crate.types.DataType;
 
 public class UnionSelect implements AnalyzedRelation {
 
@@ -54,8 +55,13 @@ public class UnionSelect implements AnalyzedRelation {
         // SQL semantics dictate that UNION uses the column names from the first relation (top or left side)
         List<Symbol> fieldsFromLeft = left.outputs();
         ArrayList<ScopedSymbol> outputs = new ArrayList<>(fieldsFromLeft.size());
-        for (Symbol field : fieldsFromLeft) {
-            outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(field), field.valueType()));
+        for (int i = 0; i < fieldsFromLeft.size(); i++) {
+            Symbol field = fieldsFromLeft.get(i);
+            Symbol rightField = right.outputs().get(i);
+            DataType<?> type = field.valueType().precedes(rightField.valueType())
+                ? field.valueType()
+                : rightField.valueType();
+            outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(field), type));
         }
         this.outputs = List.copyOf(outputs);
         this.isDistinct = isDistinct;

@@ -60,6 +60,9 @@ None
 Changes
 =======
 
+- Added support for using ``NULL`` literals in a ``UNION`` without requiring an
+  explicit cast.
+
 - Added an optimization to push down constant join conditions to the relation
   in an inner join, which results in a more efficient execution plan.
 
