@@ -42,6 +42,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Creating tables with soft deletes disabled is no longer supported.
+  The setting :ref:`sql-create-table-soft-deletes-enabled` will
+  always be set to ``true`` and removed in CrateDB 6.0.
+
 - Removed deprecated ``node.max_local_storage_nodes`` setting. Set different
   :ref:`path.data <path.data>` values to run multiple CrateDB processes on the
   same machine.
@@ -104,3 +108,7 @@ Fixes
 - Improved error handling when creating a subscription with unknown
   publications. Instead of successfully creating the subscription, an error
   is now presented to the user.
+
+- Fixed an issue with client caching which lead to authentication error when
+  creating a subscription with bad credentials and ``pg_tunnel`` followed by
+  re-creating it second time with the same name and valid credentials.

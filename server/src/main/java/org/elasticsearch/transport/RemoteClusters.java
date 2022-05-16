@@ -97,7 +97,12 @@ public class RemoteClusters implements Closeable {
             );
             remoteClusters.put(name, remoteCluster);
         }
-        return remoteCluster.connectAndGetClient();
+        var clientFuture = remoteCluster.connectAndGetClient();
+        return clientFuture.whenComplete((c, err) -> {
+            if (err != null) {
+                remove(name);
+            }
+        });
     }
 
     public synchronized void remove(String subscriptionName) {

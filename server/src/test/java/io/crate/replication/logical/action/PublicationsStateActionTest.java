@@ -30,8 +30,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.test.MockLogAppender;
 import org.junit.After;
 import org.junit.Before;
@@ -74,6 +76,10 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
                 return true; // This test case doesn't check privileges.
             }
         };
+        // Soft-deletes are mandatory from 5.0, so let's use 4.8 to create a table with soft-deletes disabled
+        clusterService = createClusterService(additionalClusterSettings().stream().filter(Setting::hasNodeScope).toList(),
+                                                  Metadata.EMPTY_METADATA,
+                                                  Version.V_4_8_0);
         SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
             .addTable("CREATE TABLE doc.t2 (id int) with (\"soft_deletes.enabled\" = false)")
