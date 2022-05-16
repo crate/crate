@@ -53,7 +53,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
@@ -263,13 +262,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<AcknowledgedResponse> delete(final DeleteIndexRequest request) {
-            return legacyExecute(DeleteIndexAction.INSTANCE, request);
-        }
-
-        @Override
-        public DeleteIndexRequestBuilder prepareDelete(String... indices) {
-            return new DeleteIndexRequestBuilder(this, DeleteIndexAction.INSTANCE, indices);
+        public CompletableFuture<AcknowledgedResponse> delete(final DeleteIndexRequest request) {
+            return execute(DeleteIndexAction.INSTANCE, request);
         }
 
         @Override

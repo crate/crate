@@ -56,6 +56,7 @@ import io.crate.execution.support.RetryListener;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.replication.logical.action.ReplayChangesAction;
 import io.crate.replication.logical.action.ShardChangesAction;
+import io.crate.replication.logical.exceptions.InvalidShardEngineException;
 import io.crate.replication.logical.seqno.RetentionLeaseHelper;
 
 /**
@@ -139,7 +140,10 @@ public class ShardReplicationChangesTracker implements Closeable {
         long fromSeqNo = rangeToFetch.fromSeqNo();
         long toSeqNo = rangeToFetch.toSeqNo();
 
-        var futureClient = shardReplicationService.getRemoteClusterClient(shardId.getIndex());
+        var futureClient = shardReplicationService.getRemoteClusterClient(
+            shardId.getIndex(),
+            subscriptionName
+        );
         var getPendingChangesRequest = new ShardChangesAction.Request(shardId, fromSeqNo, toSeqNo);
         var futurePendingChanges = futureClient.thenCompose(remoteClient -> {
             if (LOGGER.isDebugEnabled()) {
@@ -161,7 +165,7 @@ public class ShardReplicationChangesTracker implements Closeable {
                 updateBatchFetched(true, fromSeqNo, toSeqNo, lastSeqNo, pendingChanges.lastSyncedGlobalCheckpoint());
             } else {
                 var t = SQLExceptions.unwrap(e);
-                if (SQLExceptions.maybeTemporary(t)) {
+                if (!closed && SQLExceptions.maybeTemporary(t)) {
                     if (LOGGER.isInfoEnabled()) {
                         LOGGER.info(
                             "[{}] Temporary error during tracking of upstream shard changes for subscription '{}'. Retrying: {}:{}",
@@ -172,6 +176,10 @@ public class ShardReplicationChangesTracker implements Closeable {
                         );
                     }
                     updateBatchFetched(false, fromSeqNo, toSeqNo, fromSeqNo - 1, -1);
+                } else if (t instanceof InvalidShardEngineException) {
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Shard is not accepting replayed changes, engine changed", t);
+                    }
                 } else {
                     LOGGER.warn(
                         "[{}] Error during tracking of upstream shard changes for subscription '{}'. Tracking stopped: {}",
@@ -263,6 +271,9 @@ public class ShardReplicationChangesTracker implements Closeable {
                                     long toSeqNoRequested,
                                     long toSeqNoReceived,
                                     long seqNoAtLeader) {
+        if (closed) {
+            return;
+        }
         if (success) {
             // we shouldn't ever be getting more operations than requested.
             assert toSeqNoRequested >= toSeqNoReceived :
@@ -318,8 +329,8 @@ public class ShardReplicationChangesTracker implements Closeable {
         // Renew retention lease with global checkpoint so that any shard that picks up shard replication task
         // has data until then.
         // Method is called inside a transport thread (response listener), so dispatch away
-        threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION).execute(() -> {
-            shardReplicationService.getRemoteClusterClient(shardId.getIndex()).thenAccept(remoteClient ->
+        threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION).execute(() ->
+            shardReplicationService.getRemoteClusterClient(shardId.getIndex(), subscriptionName).thenAccept(remoteClient ->
                 RetentionLeaseHelper.renewRetentionLease(
                     shardId,
                     toSeqNoReceived,
@@ -356,8 +367,7 @@ public class ShardReplicationChangesTracker implements Closeable {
                         }
                     )
                 )
-            );
-        });
+            ));
     }
 
     @Override
@@ -368,7 +378,7 @@ public class ShardReplicationChangesTracker implements Closeable {
             currentCancellable.cancel();
             cancellable = null;
         }
-        shardReplicationService.getRemoteClusterClient(shardId.getIndex())
+        shardReplicationService.getRemoteClusterClient(shardId.getIndex(), subscriptionName)
             .thenAccept(client -> RetentionLeaseHelper.attemptRetentionLeaseRemoval(
                 shardId,
                 clusterName,
