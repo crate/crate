@@ -21,22 +21,25 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.UnionSelect;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
-import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.relations.UnionSelect;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
+import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 
 public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -132,8 +135,8 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUnionDifferentTypesOfOutputs() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Corresponding output columns at position: 2 " +
-                                        "must be compatible for all parts of a UNION");
+        expectedException.expectMessage("Output columns at position 2 " +
+                                        "must be compatible for all parts of a UNION. Got `integer` and `object_array`");
         analyze("select 1, 2 from users " +
                 "union all " +
                 "select 3, friends from users_multi_pk");
@@ -141,12 +144,28 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnionWithNullOutput() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Corresponding output columns at position: 1 " +
-                                        "must be compatible for all parts of a UNION");
-        analyze("select id from users " +
-                "union all " +
-                "select null");
+        // NULL streaming is compatible with any type, so we can allow this
+        UnionSelect union = analyze(
+            "select id from users " +
+            "union all " +
+            "select null");
+
+        assertThat(union.outputs(), Matchers.contains(
+            isField("id", DataTypes.LONG)
+        ));
+        assertThat(union.right().outputs(), Matchers.contains(
+            isLiteral(null, DataTypes.UNDEFINED)
+        ));
+
+        union = analyze("SELECT null AS id UNION ALL SELECT id FROM users");
+        assertThat(union.outputs(), Matchers.contains(
+            isField("id", DataTypes.LONG)
+        ));
+
+        union = analyze("SELECT null UNION ALL SELECT id FROM users");
+        assertThat(union.outputs(), Matchers.contains(
+            isField("NULL", DataTypes.LONG)
+        ));
     }
 
     @Test
@@ -182,7 +201,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Asserts.assertThrowsMatches(
             () -> analyze("select obj from v1 union all select obj from v2"),
             UnsupportedOperationException.class,
-            "Corresponding output columns at position: 1 must be compatible for all parts of a UNION"
+            "Output columns at position 1 must be compatible for all parts of a UNION. Got `object` and `object`"
         );
     }
 
