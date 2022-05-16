@@ -227,12 +227,18 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         List<Symbol> leftOutputs = left.outputs();
         List<Symbol> rightOutputs = right.outputs();
         for (int i = 0; i < leftOutputs.size(); i++) {
-            var leftType = leftOutputs.get(i).valueType();
-            var rightType = rightOutputs.get(i).valueType();
+            Symbol leftOutput = leftOutputs.get(i);
+            Symbol rightOutput = rightOutputs.get(i);
+            DataType<?> leftType = leftOutput.valueType();
+            DataType<?> rightType = rightOutput.valueType();
             if (!DataTypes.isCompatibleType(leftType, rightType)) {
+                if (Symbol.hasLiteralValue(leftOutput, null) || Symbol.hasLiteralValue(rightOutput, null)) {
+                    continue;
+                }
                 throw new UnsupportedOperationException(
-                    "Corresponding output columns at position: " + (i + 1) +
-                    " must be compatible for all parts of a UNION");
+                    "Output columns at position " + (i + 1) +
+                    " must be compatible for all parts of a UNION. " +
+                    "Got `" + leftType.getName() + "` and `" + rightType.getName() + "`");
             }
         }
     }

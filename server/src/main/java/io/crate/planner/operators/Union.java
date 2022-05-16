@@ -102,7 +102,8 @@ public class Union implements LogicalPlan {
         ExecutionPlan right = rhs.build(
             plannerContext, hints, projectionBuilder, limit + offset, TopN.NO_OFFSET, null, childPageSizeHint, params, subQueryResults);
 
-        addCastsForIncompatibleObjects(right);
+        addCastsForIncompatibleObjects(lhs, left);
+        addCastsForIncompatibleObjects(rhs, right);
 
         if (left.resultDescription().hasRemainingLimitOrOffset()) {
             left = Merge.ensureOnHandler(left, plannerContext);
@@ -171,10 +172,10 @@ public class Union implements LogicalPlan {
      * using the same type
      * </p>
      **/
-    private void addCastsForIncompatibleObjects(ExecutionPlan right) {
-        EvalProjection castValues = EvalProjection.castValues(Symbols.typeView(lhs.outputs()), rhs.outputs());
+    private void addCastsForIncompatibleObjects(LogicalPlan logicalPlan, ExecutionPlan executionPlan) {
+        EvalProjection castValues = EvalProjection.castValues(Symbols.typeView(outputs), logicalPlan.outputs());
         if (castValues != null) {
-            right.addProjection(castValues);
+            executionPlan.addProjection(castValues);
         }
     }
 

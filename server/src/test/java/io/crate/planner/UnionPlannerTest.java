@@ -21,24 +21,27 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import io.crate.analyze.TableDefinitions;
-import io.crate.execution.dsl.projection.TopNProjection;
-import io.crate.planner.node.dql.Collect;
-import io.crate.planner.operators.Distinct;
-import io.crate.planner.operators.LogicalPlannerTest;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 import java.util.List;
+
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.TableDefinitions;
+import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.LogicalPlannerTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 
 public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -161,4 +164,33 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    └ Collect[doc.locations | [id] | true]";
         assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(expectedPlan)));
     }
+
+    @Test
+    public void test_union_with_different_types_in_queries_adds_casts() {
+        UnionExecutionPlan union = e.plan("select null union all select id from users");
+        Collect left = (Collect) union.left();
+        assertThat(left.collectPhase().projections(), contains(
+            instanceOf(EvalProjection.class), // returns NULL
+            instanceOf(EvalProjection.class)  // casts NULL to long to match `id`
+        ));
+        Collect right = (Collect) union.right();
+        assertThat(left.streamOutputs(), is(right.streamOutputs()));
+        assertThat(left.streamOutputs(), contains(
+            is(DataTypes.LONG)
+        ));
+
+
+        union = e.plan("select id from users union all select null");
+        left = (Collect) union.left();
+        right = (Collect) union.right();
+        assertThat(left.streamOutputs(), is(right.streamOutputs()));
+        assertThat(right.streamOutputs(), contains(
+            is(DataTypes.LONG)
+        ));
+        assertThat(right.collectPhase().projections(), contains(
+            instanceOf(EvalProjection.class), // returns NULL
+            instanceOf(EvalProjection.class)  // casts NULL to long to match `id`
+        ));
+    }
+
 }
