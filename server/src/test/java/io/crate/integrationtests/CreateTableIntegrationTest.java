@@ -133,4 +133,16 @@ public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
                        4000));
 
     }
+
+    public void test_enforce_soft_deletes_on_partitioned_tables() {
+        assertThrowsMatches(
+            () -> execute("create table test(t timestamp) partitioned by (t) with (\"soft_deletes.enabled\" = false)"),
+            isSQLError(startsWith("Creating tables with soft-deletes disabled is no longer supported."),
+                       INTERNAL_ERROR,
+                       BAD_REQUEST,
+                       4000));
+
+    }
+
+
 }

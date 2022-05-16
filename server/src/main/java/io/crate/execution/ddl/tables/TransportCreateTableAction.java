@@ -21,6 +21,9 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
+import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
+
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
@@ -37,6 +40,7 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -110,6 +114,8 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
         }
         if (request.getCreateIndexRequest() != null) {
             CreateIndexRequest createIndexRequest = request.getCreateIndexRequest();
+            validateSettings(createIndexRequest.settings(), state);
+
             ActionListener<CreateIndexResponse> wrappedListener = ActionListener.wrap(
                 response -> listener.onResponse(new CreateTableResponse(response.isShardsAcknowledged())),
                 listener::onFailure
@@ -117,6 +123,8 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
             transportCreateIndexAction.masterOperation(createIndexRequest, state, wrappedListener);
         } else if (request.getPutIndexTemplateRequest() != null) {
             PutIndexTemplateRequest putIndexTemplateRequest = request.getPutIndexTemplateRequest();
+            validateSettings(putIndexTemplateRequest.settings(), state);
+
             ActionListener<AcknowledgedResponse> wrappedListener = ActionListener.wrap(
                 response -> listener.onResponse(new CreateTableResponse(response.isAcknowledged())),
                 listener::onFailure
@@ -130,5 +138,12 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     private static boolean viewsExists(RelationName relationName, ClusterState state) {
         ViewsMetadata views = state.metadata().custom(ViewsMetadata.TYPE);
         return views != null && views.contains(relationName);
+    }
+
+    private static void validateSettings(Settings settings, ClusterState state) {
+        var indexSettingsBuilder = Settings.builder();
+        indexSettingsBuilder.put(settings);
+        setIndexVersionCreatedSetting(indexSettingsBuilder, state);
+        validateSoftDeletesSetting(indexSettingsBuilder.build());
     }
 }

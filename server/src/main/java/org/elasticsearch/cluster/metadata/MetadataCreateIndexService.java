@@ -392,20 +392,8 @@ public class MetadataCreateIndexService {
                     indexSettingsBuilder.put(SETTING_AUTO_EXPAND_REPLICAS, settings.get(SETTING_AUTO_EXPAND_REPLICAS));
                 }
 
-                if (indexSettingsBuilder.get(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey()) == null) {
-                    final DiscoveryNodes nodes = currentState.nodes();
-                    final Version createdVersion = Version.min(Version.CURRENT, nodes.getSmallestNonClientNodeVersion());
-                    indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), createdVersion);
-                }
-
-                var settingsToValidate = indexSettingsBuilder.build();
-                if (IndexSettings.INDEX_SOFT_DELETES_SETTING.get(settingsToValidate) == false
-                    && IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settingsToValidate).onOrAfter(Version.V_5_0_0)) {
-                    throw new IllegalArgumentException(
-                        "Creating tables with soft-deletes disabled is no longer supported. "
-                        + "Please do not specify a value for setting [soft_deletes.enabled]."
-                    );
-                }
+                setIndexVersionCreatedSetting(indexSettingsBuilder, currentState);
+                validateSoftDeletesSetting(indexSettingsBuilder.build());
 
                 if (indexSettingsBuilder.get(SETTING_CREATION_DATE) == null) {
                     indexSettingsBuilder.put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
@@ -757,4 +745,24 @@ public class MetadataCreateIndexService {
             .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME.getKey(), resizeSourceIndex.getName())
             .put(IndexMetadata.INDEX_RESIZE_SOURCE_UUID.getKey(), resizeSourceIndex.getUUID());
     }
+
+    public static void validateSoftDeletesSetting(Settings settings) {
+        if (IndexSettings.INDEX_SOFT_DELETES_SETTING.get(settings) == false
+            && IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings).onOrAfter(Version.V_5_0_0)) {
+            throw new IllegalArgumentException(
+                "Creating tables with soft-deletes disabled is no longer supported. "
+                + "Please do not specify a value for setting [soft_deletes.enabled]."
+            );
+        }
+    }
+
+    public static void setIndexVersionCreatedSetting(Settings.Builder indexSettingsBuilder, ClusterState clusterState) {
+        if (indexSettingsBuilder.get(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey()) == null) {
+            final DiscoveryNodes nodes = clusterState.nodes();
+            final Version createdVersion = Version.min(Version.CURRENT,
+                                                       nodes.getSmallestNonClientNodeVersion());
+            indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), createdVersion);
+        }
+    }
+
 }
