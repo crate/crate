@@ -21,7 +21,16 @@
 
 package io.crate.replication.logical;
 
-import io.crate.replication.logical.exceptions.NoSubscriptionForIndexException;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
@@ -29,25 +38,14 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+import io.crate.replication.logical.exceptions.NoSubscriptionForIndexException;
 
 public class ShardReplicationService implements Closeable, IndexEventListener {
 
@@ -59,7 +57,6 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
     private final ThreadPool threadPool;
     private final ClusterName clusterName;
     private final Map<ShardId, ShardReplicationChangesTracker> shards = new ConcurrentHashMap<>();
-    private final Map<String, String> subscribedIndices = ConcurrentCollections.newConcurrentMap();
     private final RemoteClusters remoteClusters;
 
     @Inject
@@ -84,11 +81,7 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
         }
     }
 
-    CompletableFuture<Client> getRemoteClusterClient(Index index) {
-        String subscriptionName = subscribedIndices.get(index.getUUID());
-        if (subscriptionName == null) {
-            return CompletableFuture.failedFuture(new NoSubscriptionForIndexException(index));
-        }
+    CompletableFuture<Client> getRemoteClusterClient(Index index, String subscriptionName) {
         var subscription = logicalReplicationService.subscriptions().get(subscriptionName);
         if (subscription == null) {
             return CompletableFuture.failedFuture(new NoSubscriptionForIndexException(index));
@@ -97,27 +90,9 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
     }
 
     @Override
-    public void afterIndexCreated(IndexService indexService) {
-        var settings = indexService.getIndexSettings().getSettings();
-        var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(settings);
-        if (subscriptionName.isEmpty() == false) {
-            subscribedIndices.put(indexService.indexUUID(), subscriptionName);
-        }
-    }
-
-    @Override
-    public void afterIndexRemoved(Index index, IndexSettings indexSettings, IndexRemovalReason reason) {
-        var settings = indexSettings.getSettings();
-        var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(settings);
-        if (subscriptionName.isEmpty() == false) {
-            subscribedIndices.remove(index.getUUID());
-        }
-    }
-
-    @Override
     public void afterIndexShardStarted(IndexShard indexShard) {
         if (indexShard.routingEntry().primary()) {
-            var subscriptionName = subscribedIndices.get(indexShard.shardId().getIndex().getUUID());
+            var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(indexShard.indexSettings().getSettings());
             if (subscriptionName == null) {
                 return;
             }
@@ -156,7 +131,6 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
             && REPLICATION_SUBSCRIPTION_NAME.get(newSettings).isEmpty() == true) {
             var shardId = indexShard.shardId();
             closeTracker(shardId);
-            subscribedIndices.remove(indexShard.shardId().getIndex().getUUID());
         }
     }
 
