@@ -590,10 +590,12 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
 
     public void test_snapshot_with_corrupted_shard_index_file() throws Exception {
         execute("CREATE TABLE t1 (x int)");
-        var numberOfDocs = randomLongBetween(0, 10);
+        int numberOfDocs = randomIntBetween(0, 10);
+        Object[][] bulkArgs = new Object[numberOfDocs][1];
         for (int i = 0; i < numberOfDocs; i++) {
-            execute("INSERT INTO t1 (x) VALUES (?)", new Object[]{randomInt()});
+            bulkArgs[i] = new Object[] { randomInt() };
         }
+        execute("INSERT INTO t1 (x) VALUES (?)", bulkArgs);
         execute("REFRESH TABLE t1");
 
         var snapShotName1 = "s1";
@@ -621,12 +623,14 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
 
         execute("SELECT COUNT(*) FROM t1");
-        assertThat(response.rows()[0][0], is(numberOfDocs));
+        assertThat(response.rows()[0][0], is((long) numberOfDocs));
 
-        var numberOfAdditionalDocs = randomLongBetween(0, 10);
+        int numberOfAdditionalDocs = randomIntBetween(0, 10);
+        bulkArgs = new Object[numberOfAdditionalDocs][1];
         for (int i = 0; i < numberOfAdditionalDocs; i++) {
-            execute("INSERT INTO t1 (x) VALUES (?)", new Object[]{randomInt()});
+            bulkArgs[i] = new Object[]{ randomInt() };
         }
+        execute("INSERT INTO t1 (x) VALUES (?)", bulkArgs);
         execute("REFRESH TABLE t1");
 
         var snapShotName2 = "s2";
