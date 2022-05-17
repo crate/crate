@@ -42,7 +42,6 @@ import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreClusterStateListener;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -424,7 +423,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         var request = new UpdateSubscriptionAction.Request(subscriptionName, newSubscription);
         var future = new FutureActionListener<>(AcknowledgedResponse::isAcknowledged);
         client.execute(UpdateSubscriptionAction.INSTANCE, request)
-            .whenComplete(ActionListener.toBiConsumer(future));
+            .whenComplete(future);
         return future;
     }
 }

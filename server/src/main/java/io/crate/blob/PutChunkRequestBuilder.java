@@ -33,6 +33,6 @@ public class PutChunkRequestBuilder extends ReplicationRequestBuilder<PutChunkRe
 
     @Override
     public void execute(ActionListener<PutChunkResponse> listener) {
-        client.execute(PutChunkAction.INSTANCE, request).whenComplete(ActionListener.toBiConsumer(listener));
+        client.execute(PutChunkAction.INSTANCE, request).whenComplete(listener);
     }
 }

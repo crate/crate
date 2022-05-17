@@ -21,7 +21,6 @@ package org.elasticsearch.transport.netty4;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
 
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -92,12 +91,12 @@ public class Netty4TcpChannel implements TcpChannel {
 
     @Override
     public void addCloseListener(ActionListener<Void> listener) {
-        closeContext.whenComplete(ActionListener.toBiConsumer(listener));
+        closeContext.whenComplete(listener);
     }
 
     @Override
     public void addConnectListener(ActionListener<Void> listener) {
-        connectContext.whenComplete(ActionListener.toBiConsumer(listener));
+        connectContext.whenComplete(listener);
     }
 
     @Override

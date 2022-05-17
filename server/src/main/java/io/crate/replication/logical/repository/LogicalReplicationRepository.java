@@ -38,7 +38,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.StepListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -69,6 +68,7 @@ import org.elasticsearch.transport.RemoteClusters;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.action.GetStoreMetadataAction;
@@ -377,7 +377,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             // Gets the remote store metadata
             StepListener<GetStoreMetadataAction.Response> responseStepListener = new StepListener<>();
             remoteClient.execute(GetStoreMetadataAction.INSTANCE, getStoreMetadataRequest)
-                .whenComplete(ActionListener.toBiConsumer(responseStepListener));
+                .whenComplete(responseStepListener);
             responseStepListener.whenComplete(metadataResponse -> {
                 var metadataSnapshot = metadataResponse.metadataSnapshot();
 
@@ -476,7 +476,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             new PublicationsStateAction.Request(
                 logicalReplicationService.subscriptions().get(subscriptionName).publications(),
                 logicalReplicationService.subscriptions().get(subscriptionName).connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
-            )).whenComplete(ActionListener.toBiConsumer(listener));
+            )).whenComplete(listener);
     }
 
     private void releasePublisherResources(Client remoteClient,
@@ -490,27 +490,19 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             clusterService.getClusterName().value()
         );
         remoteClient.execute(ReleasePublisherResourcesAction.INSTANCE, releaseResourcesReq)
-            .whenComplete(
-                ActionListener.toBiConsumer(
-                    new ActionListener<>() {
-                        @Override
-                        public void onResponse(AcknowledgedResponse acknowledgedResponse) {
-                            if (acknowledgedResponse.isAcknowledged()) {
-                                if (LOGGER.isDebugEnabled()) {
-                                    LOGGER.debug("Successfully released resources at the publisher cluster for {} at {}",
-                                                 shardId,
-                                                 publisherShardNode
-                                    );
-                                }
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            LOGGER.error("Releasing publisher resource failed due to ", e);
+            .whenComplete((response, err) -> {
+                if (err == null) {
+                    if (response.isAcknowledged()) {
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("Successfully released resources at the publisher cluster for {} at {}",
+                                            shardId,
+                                            publisherShardNode
+                            );
                         }
                     }
-                ));
+                } else {
+                    LOGGER.error("Releasing publisher resource failed due to ", SQLExceptions.unwrap(err));
+                }
+            });
     }
-
 }
