@@ -715,17 +715,13 @@ public class InsertFromValues implements LogicalPlan {
             };
 
             elasticsearchClient.execute(ShardUpsertAction.INSTANCE, request)
-                .whenComplete(
-                    ActionListener.toBiConsumer(
-                        new RetryListener<>(
-                            scheduler,
-                            l -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, request)
-                                .whenComplete(ActionListener.toBiConsumer(l)),
-                            listener,
-                            BackoffPolicy.limitedDynamic(nodeLimit)
-                        )
-                    )
-                );
+                .whenComplete(new RetryListener<>(
+                    scheduler,
+                    l -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, request)
+                        .whenComplete(l),
+                    listener,
+                    BackoffPolicy.limitedDynamic(nodeLimit)
+                ));
         }
         return result;
     }
@@ -766,7 +762,7 @@ public class InsertFromValues implements LogicalPlan {
         }
         FutureActionListener<AcknowledgedResponse, AcknowledgedResponse> listener = new FutureActionListener<>(r -> r);
         elasticsearchClient.execute(CreatePartitionsAction.INSTANCE, new CreatePartitionsRequest(indicesToCreate, jobId))
-            .whenComplete(ActionListener.toBiConsumer(listener));
+            .whenComplete(listener);
         return listener;
     }
 
