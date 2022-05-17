@@ -88,12 +88,13 @@ public final class RoutingProvider {
             return forTableOnSingleNode(relationName, localNode.getId());
         }
         ImmutableOpenMap<String, DiscoveryNode> masterAndDataNodes = nodes.getMasterAndDataNodes();
-        int randomIdx = seed % masterAndDataNodes.size();
+        int randomIdx = Math.abs(seed % masterAndDataNodes.size());
         Iterator<DiscoveryNode> it = masterAndDataNodes.valuesIt();
         int currIdx = 0;
         while (it.hasNext()) {
+            DiscoveryNode next = it.next();
             if (currIdx == randomIdx) {
-                return forTableOnSingleNode(relationName, it.next().getId());
+                return forTableOnSingleNode(relationName, next.getId());
             }
             currIdx++;
         }
