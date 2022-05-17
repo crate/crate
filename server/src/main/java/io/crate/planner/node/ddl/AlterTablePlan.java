@@ -21,6 +21,8 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.metadata.table.Operation.isReplicated;
+
 import io.crate.analyze.BoundAlterTable;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
@@ -53,7 +55,7 @@ import java.util.function.Function;
 
 public class AlterTablePlan implements Plan {
 
-    private final AnalyzedAlterTable alterTable;
+    final AnalyzedAlterTable alterTable;
 
     public AlterTablePlan(AnalyzedAlterTable alterTable) {
         this.alterTable = alterTable;
@@ -99,7 +101,7 @@ public class AlterTablePlan implements Plan {
         Table<Object> table = alterTable.table();
 
         PartitionName partitionName = PartitionPropertiesAnalyzer.createPartitionName(table.partitionProperties(), docTableInfo);
-        TableParameters tableParameters = getTableParameterInfo(table, partitionName);
+        TableParameters tableParameters = getTableParameterInfo(table, docTableInfo, partitionName);
         TableParameter tableParameter = getTableParameter(alterTable, tableParameters);
         maybeRaiseBlockedException(docTableInfo, tableParameter.settings());
         return new BoundAlterTable(
@@ -110,8 +112,10 @@ public class AlterTablePlan implements Plan {
             docTableInfo.isPartitioned());
     }
 
-    private static TableParameters getTableParameterInfo(Table table,
-                                                         @Nullable PartitionName partitionName) {
+    private static TableParameters getTableParameterInfo(Table table, TableInfo tableInfo, @Nullable PartitionName partitionName) {
+        if (isReplicated(tableInfo.parameters())) {
+            return TableParameters.REPLICATED_TABLE_ALTER_PARAMETER_INFO;
+        }
         if (partitionName == null) {
             return TableParameters.TABLE_ALTER_PARAMETER_INFO;
         }

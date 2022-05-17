@@ -161,8 +161,16 @@ public class TableParameters {
 
     private static final Map<String, Setting<?>> SUPPORTED_MAPPINGS_DEFAULT = Map.of("column_policy", COLUMN_POLICY);
 
+    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_FOR_REPLICATED_TABLES = SUPPORTED_SETTINGS
+        .stream()
+        .filter(Setting::isReplicatedIndexScope)
+        .collect(Collectors.toMap(s -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
+
     public static final TableParameters TABLE_CREATE_PARAMETER_INFO
         = new TableParameters(SUPPORTED_SETTINGS_DEFAULT, SUPPORTED_MAPPINGS_DEFAULT);
+
+    public static final TableParameters REPLICATED_TABLE_ALTER_PARAMETER_INFO
+        = new TableParameters(SUPPORTED_SETTINGS_FOR_REPLICATED_TABLES, Map.of());
 
     public static final TableParameters TABLE_ALTER_PARAMETER_INFO
         = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS, SUPPORTED_MAPPINGS_DEFAULT);

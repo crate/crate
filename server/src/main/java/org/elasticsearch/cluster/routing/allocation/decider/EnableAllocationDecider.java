@@ -70,7 +70,7 @@ public class EnableAllocationDecider extends AllocationDecider {
             DataTypes.STRING, Property.Dynamic, Property.NodeScope);
     public static final Setting<Allocation> INDEX_ROUTING_ALLOCATION_ENABLE_SETTING =
         new Setting<>("index.routing.allocation.enable", Allocation.ALL.toString(), Allocation::parse,
-            DataTypes.STRING, Property.Dynamic, Property.IndexScope);
+            DataTypes.STRING, Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
 
     public static final Setting<Rebalance> CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING = new Setting<>(
         "cluster.routing.rebalance.enable",

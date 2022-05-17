@@ -128,6 +128,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -518,10 +519,14 @@ public class SQLExecutor {
             return this;
         }
 
+        public Builder addTable(String createTableStmt) throws IOException {
+            return addTable(createTableStmt, Settings.EMPTY);
+        }
+
         /**
          * Add a table to the clusterState
          */
-        public Builder addTable(String createTableStmt) throws IOException {
+        public Builder addTable(String createTableStmt, Settings settings) throws IOException {
             CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
             CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
@@ -540,11 +545,17 @@ public class SQLExecutor {
             if (analyzedStmt.isPartitioned()) {
                 throw new IllegalArgumentException("use addPartitionedTable(..) to add partitioned tables");
             }
+
+            var combinedSettings = Settings.builder()
+                .put(analyzedStmt.tableParameter().settings())
+                .put(settings)
+                .build();
+
             ClusterState prevState = clusterService.state();
             RelationName relationName = analyzedStmt.tableIdent();
             IndexMetadata indexMetadata = getIndexMetadata(
                 relationName.indexNameOrAlias(),
-                analyzedStmt.tableParameter().settings(),
+                combinedSettings,
                 analyzedStmt.mapping(),
                 prevState.nodes().getSmallestNonClientNodeVersion()
             ).build();
