@@ -118,6 +118,11 @@ public class Setting<T> implements ToXContentObject {
         IndexScope,
 
         /**
+         * Indicates an index-level setting that is allowed to be changed on a replicated index.
+         */
+        ReplicatedIndexScope,
+
+        /**
          * Mark this setting as not copyable during an index resize (shrink or split). This property can only be applied to settings that
          * also have {@link Property#IndexScope}.
          */
@@ -309,6 +314,10 @@ public class Setting<T> implements ToXContentObject {
      */
     public final boolean isDynamic() {
         return properties.contains(Property.Dynamic);
+    }
+
+    public final boolean isReplicatedIndexScope() {
+        return properties.contains(Property.ReplicatedIndexScope);
     }
 
     /**
