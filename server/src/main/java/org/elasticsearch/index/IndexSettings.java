@@ -69,13 +69,18 @@ public final class IndexSettings {
         Setting.boolSetting("index.query.parse.allow_unmapped_fields", true, Property.IndexScope);
     public static final Setting<TimeValue> INDEX_TRANSLOG_SYNC_INTERVAL_SETTING =
         Setting.timeSetting("index.translog.sync_interval", TimeValue.timeValueSeconds(5), TimeValue.timeValueMillis(100),
-            Property.Dynamic, Property.IndexScope);
+            Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
     public static final Setting<TimeValue> INDEX_SEARCH_IDLE_AFTER =
         Setting.timeSetting("index.search.idle.after", TimeValue.timeValueSeconds(30),
             TimeValue.timeValueMinutes(0), Property.IndexScope, Property.Dynamic);
     public static final Setting<Translog.Durability> INDEX_TRANSLOG_DURABILITY_SETTING =
-        new Setting<>("index.translog.durability", Translog.Durability.REQUEST.name(),
-            (value) -> Translog.Durability.valueOf(value.toUpperCase(Locale.ROOT)), DataTypes.STRING, Property.Dynamic, Property.IndexScope);
+        new Setting<>("index.translog.durability",
+                      Translog.Durability.REQUEST.name(),
+                      (value) -> Translog.Durability.valueOf(value.toUpperCase(Locale.ROOT)),
+                      DataTypes.STRING,
+                      Property.Dynamic,
+                      Property.IndexScope,
+                      Property.ReplicatedIndexScope);
 
     public static final Setting<Boolean> INDEX_WARMER_ENABLED_SETTING =
         Setting.boolSetting("index.warmer.enabled", true, Property.Dynamic, Property.IndexScope, Property.Deprecated);
@@ -101,7 +106,7 @@ public final class IndexSettings {
      * and is defensive as it prevents generating too many index terms.
      */
     public static final Setting<Integer> MAX_NGRAM_DIFF_SETTING =
-        Setting.intSetting("index.max_ngram_diff", 1, 0, Property.Dynamic, Property.IndexScope);
+        Setting.intSetting("index.max_ngram_diff", 1, 0, Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
 
     /**
      * Index setting describing for ShingleTokenFilter
@@ -110,12 +115,12 @@ public final class IndexSettings {
      * The default value is 3 is defensive as it prevents generating too many tokens.
      */
     public static final Setting<Integer> MAX_SHINGLE_DIFF_SETTING =
-        Setting.intSetting("index.max_shingle_diff", 3, 0, Property.Dynamic, Property.IndexScope);
+        Setting.intSetting("index.max_shingle_diff", 3, 0, Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
 
     public static final TimeValue DEFAULT_REFRESH_INTERVAL = new TimeValue(1, TimeUnit.SECONDS);
     public static final Setting<TimeValue> INDEX_REFRESH_INTERVAL_SETTING =
         Setting.timeSetting("index.refresh_interval", DEFAULT_REFRESH_INTERVAL, new TimeValue(-1, TimeUnit.MILLISECONDS),
-            Property.Dynamic, Property.IndexScope);
+            Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
     public static final Setting<ByteSizeValue> INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING =
         Setting.byteSizeSetting("index.translog.flush_threshold_size", new ByteSizeValue(512, ByteSizeUnit.MB),
             /*
@@ -125,7 +130,7 @@ public final class IndexSettings {
              */
             new ByteSizeValue(Translog.DEFAULT_HEADER_SIZE_IN_BYTES + 1, ByteSizeUnit.BYTES),
             new ByteSizeValue(Long.MAX_VALUE, ByteSizeUnit.BYTES),
-            Property.Dynamic, Property.IndexScope);
+            Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
 
 
     /**
@@ -223,7 +228,8 @@ public final class IndexSettings {
             TimeValue.timeValueHours(12),
             TimeValue.ZERO,
             Property.Dynamic,
-            Property.IndexScope
+            Property.IndexScope,
+            Property.ReplicatedIndexScope
         );
 
 

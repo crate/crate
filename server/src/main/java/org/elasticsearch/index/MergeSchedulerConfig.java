@@ -56,11 +56,12 @@ public final class MergeSchedulerConfig {
 
     public static final Setting<Integer> MAX_THREAD_COUNT_SETTING =
         new Setting<>("index.merge.scheduler.max_thread_count",
-            (s) -> Integer.toString(Math.max(1, Math.min(4, EsExecutors.numberOfProcessors(s) / 2))),
-            (s) -> Setting.parseInt(s, 1, "index.merge.scheduler.max_thread_count"),
-            DataTypes.INTEGER,
-            Property.Dynamic,
-            Property.IndexScope);
+                      (s) -> Integer.toString(Math.max(1, Math.min(4, EsExecutors.numberOfProcessors(s) / 2))),
+                      (s) -> Setting.parseInt(s, 1, "index.merge.scheduler.max_thread_count"),
+                      DataTypes.INTEGER,
+                      Property.Dynamic,
+                      Property.IndexScope,
+                      Property.ReplicatedIndexScope);
     public static final Setting<Integer> MAX_MERGE_COUNT_SETTING =
         new Setting<>("index.merge.scheduler.max_merge_count",
             (s) -> Integer.toString(MAX_THREAD_COUNT_SETTING.get(s) + 5),
