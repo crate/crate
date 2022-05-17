@@ -69,7 +69,7 @@ public class Netty4TcpServerChannel implements TcpServerChannel {
 
     @Override
     public void addCloseListener(ActionListener<Void> listener) {
-        closeContext.whenComplete(ActionListener.toBiConsumer(listener));
+        closeContext.whenComplete(listener);
     }
 
     @Override

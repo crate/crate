@@ -43,12 +43,12 @@ public abstract class AckedClusterStateUpdateTask<Response> extends ClusterState
 
     protected AckedClusterStateUpdateTask(AckedRequest request, ActionListener<Response> listener) {
         this(Priority.NORMAL, request);
-        future.whenComplete(ActionListener.toBiConsumer(listener));
+        future.whenComplete(listener);
     }
 
     protected AckedClusterStateUpdateTask(Priority priority, AckedRequest request, ActionListener<Response> listener) {
         this(priority, request);
-        future.whenComplete(ActionListener.toBiConsumer(listener));
+        future.whenComplete(listener);
     }
 
     protected AckedClusterStateUpdateTask(AckedRequest request) {

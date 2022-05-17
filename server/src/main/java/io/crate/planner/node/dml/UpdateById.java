@@ -40,7 +40,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -133,7 +132,7 @@ public final class UpdateById implements Plan {
             table,
             updateRequests,
             (request, listener) -> dependencies.client().execute(ShardUpsertAction.INSTANCE, request)
-                .whenComplete(ActionListener.toBiConsumer(listener)),
+                .whenComplete(listener),
             docKeys
         );
     }

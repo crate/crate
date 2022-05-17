@@ -36,7 +36,6 @@ import java.util.stream.Collector;
 import javax.annotation.Nullable;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -572,8 +571,7 @@ public class ProjectionToProjectorVisitor
                     SequenceNumbers.UNASSIGNED_PRIMARY_TERM
                 );
             },
-            (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req)
-                .whenComplete(ActionListener.toBiConsumer(resp)),
+            (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req).whenComplete(resp),
             collector);
     }
 
@@ -592,8 +590,7 @@ public class ProjectionToProjectorVisitor
             nodeJobsCounter,
             () -> new ShardDeleteRequest(shardId, context.jobId).timeout(reqTimeout),
             ShardDeleteRequest.Item::new,
-            (req, resp) -> elasticsearchClient.execute(ShardDeleteAction.INSTANCE, req)
-                .whenComplete(ActionListener.toBiConsumer(resp)),
+            (req, resp) -> elasticsearchClient.execute(ShardDeleteAction.INSTANCE, req).whenComplete(resp),
             ShardDMLExecutor.ROW_COUNT_COLLECTOR
         );
         return new DMLProjector(shardDMLExecutor);

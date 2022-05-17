@@ -39,7 +39,6 @@ import java.util.function.Function;
 
 import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 
-import org.elasticsearch.action.ActionListener;
 
 public class TransportFetchOperation implements FetchOperation {
 
@@ -76,7 +75,7 @@ public class TransportFetchOperation implements FetchOperation {
                                      toFetch,
                                      nodeIdToReaderIdToStreamers.get(nodeId),
                                      ramAccountingForIncomingResponse(ramAccounting, toFetch, closeContext)))
-            .whenComplete(ActionListener.toBiConsumer(listener));
+            .whenComplete(listener);
         return listener;
     }
 
