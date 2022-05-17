@@ -64,6 +64,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Enabled users to alter settings on tables subscribed in a logical replication.
+
 - Enabled to alter the setting ``blocks.read_only_allow_delete`` on blob tables
   to make it possible to drop read-only blob tables.
 

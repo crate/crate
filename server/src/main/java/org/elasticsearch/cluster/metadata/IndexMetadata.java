@@ -138,7 +138,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
     public static final Setting<Integer> INDEX_NUMBER_OF_SHARDS_SETTING = buildNumberOfShardsSetting();
     public static final String SETTING_NUMBER_OF_REPLICAS = "index.number_of_replicas";
     public static final Setting<Integer> INDEX_NUMBER_OF_REPLICAS_SETTING =
-        Setting.intSetting(SETTING_NUMBER_OF_REPLICAS, 1, 0, Property.Dynamic, Property.IndexScope);
+        Setting.intSetting(SETTING_NUMBER_OF_REPLICAS, 1, 0, Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
 
     public static final String SETTING_ROUTING_PARTITION_SIZE = "index.routing_partition_size";
     public static final Setting<Integer> INDEX_ROUTING_PARTITION_SIZE_SETTING =
@@ -192,7 +192,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
 
     public static final String SETTING_READ_ONLY_ALLOW_DELETE = "index.blocks.read_only_allow_delete";
     public static final Setting<Boolean> INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING =
-        Setting.boolSetting(SETTING_READ_ONLY_ALLOW_DELETE, false, Property.Dynamic, Property.IndexScope);
+        Setting.boolSetting(SETTING_READ_ONLY_ALLOW_DELETE, false, Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
 
     public static final String SETTING_VERSION_CREATED = "index.version.created";
 
@@ -223,13 +223,13 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
     public static final String INDEX_ROUTING_EXCLUDE_GROUP_PREFIX = "index.routing.allocation.exclude";
     public static final Setting.AffixSetting<String> INDEX_ROUTING_REQUIRE_GROUP_SETTING =
         Setting.prefixKeySetting(INDEX_ROUTING_REQUIRE_GROUP_PREFIX + ".", key ->
-            Setting.simpleString(key, value -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope));
+            Setting.simpleString(key, value -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope));
     public static final Setting.AffixSetting<String> INDEX_ROUTING_INCLUDE_GROUP_SETTING =
         Setting.prefixKeySetting(INDEX_ROUTING_INCLUDE_GROUP_PREFIX + ".", key ->
-            Setting.simpleString(key, value -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope));
+            Setting.simpleString(key, value -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope));
     public static final Setting.AffixSetting<String> INDEX_ROUTING_EXCLUDE_GROUP_SETTING =
         Setting.prefixKeySetting(INDEX_ROUTING_EXCLUDE_GROUP_PREFIX + ".", key ->
-            Setting.simpleString(key, value -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope));
+            Setting.simpleString(key, value -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope,Property.ReplicatedIndexScope));
 
     // this is only setable internally not a registered setting!!
     public static final Setting.AffixSetting<String> INDEX_ROUTING_INITIAL_RECOVERY_GROUP_SETTING =
@@ -244,7 +244,8 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
                       ActiveShardCount::parseString,
                       DataTypes.STRING,
                       Setting.Property.Dynamic,
-                      Setting.Property.IndexScope);
+                      Setting.Property.IndexScope,
+                      Property.ReplicatedIndexScope);
 
     /**
      * an internal index format description, allowing us to find out if this index is upgraded or needs upgrading

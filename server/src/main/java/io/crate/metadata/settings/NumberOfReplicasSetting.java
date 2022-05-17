@@ -44,7 +44,7 @@ public class NumberOfReplicasSetting extends Setting<Settings> {
         .build();
 
     public NumberOfReplicasSetting() {
-        this(new SimpleKey(NAME), (s) -> "0-1", NumberOfReplicasSetting::parseValue);
+        this(new SimpleKey(NAME), (s) -> "0-1", NumberOfReplicasSetting::parseValue, Property.ReplicatedIndexScope);
     }
 
     private NumberOfReplicasSetting(Key key, Function<Settings, String> defaultValue, Function<String, Settings> parser, Property... properties) {
