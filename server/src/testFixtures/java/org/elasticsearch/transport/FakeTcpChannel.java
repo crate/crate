@@ -19,13 +19,13 @@
 
 package org.elasticsearch.transport;
 
+import java.net.InetSocketAddress;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.bytes.BytesReference;
-
-import io.crate.concurrent.CompletableContext;
-
-import java.net.InetSocketAddress;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class FakeTcpChannel implements TcpChannel {
 
@@ -34,7 +34,7 @@ public class FakeTcpChannel implements TcpChannel {
     private final InetSocketAddress remoteAddress;
     private final String profile;
     private final ChannelStats stats = new ChannelStats();
-    private final CompletableContext<Void> closeContext = new CompletableContext<>();
+    private final CompletableFuture<Void> closeContext = new CompletableFuture<>();
     private final AtomicReference<BytesReference> messageCaptor;
     private final AtomicReference<ActionListener<Void>> listenerCaptor;
 
@@ -99,7 +99,6 @@ public class FakeTcpChannel implements TcpChannel {
 
     @Override
     public void addConnectListener(ActionListener<Void> listener) {
-
     }
 
     @Override
@@ -109,7 +108,7 @@ public class FakeTcpChannel implements TcpChannel {
 
     @Override
     public void addCloseListener(ActionListener<Void> listener) {
-        closeContext.addListener(ActionListener.toBiConsumer(listener));
+        closeContext.whenComplete(ActionListener.toBiConsumer(listener));
     }
 
     @Override

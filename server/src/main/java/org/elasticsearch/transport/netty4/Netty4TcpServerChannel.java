@@ -20,19 +20,19 @@
 package org.elasticsearch.transport.netty4;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.transport.TcpServerChannel;
 
-import io.crate.concurrent.CompletableContext;
 import io.netty.channel.Channel;
 
 public class Netty4TcpServerChannel implements TcpServerChannel {
 
     private final Channel channel;
     private final String profile;
-    private final CompletableContext<Void> closeContext = new CompletableContext<>();
+    private final CompletableFuture<Void> closeContext = new CompletableFuture<>();
 
     Netty4TcpServerChannel(Channel channel, String profile) {
         this.channel = channel;
@@ -69,7 +69,7 @@ public class Netty4TcpServerChannel implements TcpServerChannel {
 
     @Override
     public void addCloseListener(ActionListener<Void> listener) {
-        closeContext.addListener(ActionListener.toBiConsumer(listener));
+        closeContext.whenComplete(ActionListener.toBiConsumer(listener));
     }
 
     @Override
