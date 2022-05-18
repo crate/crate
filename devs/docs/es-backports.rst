@@ -380,7 +380,7 @@ should be crossed out as well.
 - [ ] 566b23c42ce Cancel task and descendants on channel disconnects (#56620)
 - [ ] 1ad83c37c4e Use index sort range query when possible. (#56710)
 - [ ] b4521d5183f upgrade to Lucene 8.6.0 snapshot (#56661)
-- [ ] 0a879b95d1d Save Bounds Checks in BytesReference (#56577) (#56621)
+- [x] 0a879b95d1d Save Bounds Checks in BytesReference (#56577) (#56621)
 - [ ] 9b64149ad22 [Geo] Refactor Point Field Mappers (#56060) (#56540)
 - [ ] 8e96e5c936a Use CollectionUtils.isEmpty where appropriate (#55910)
 - [ ] 9ae09570d87 Allow a number of broadcast transport actions to resolve data streams (#55726) (#56502)
