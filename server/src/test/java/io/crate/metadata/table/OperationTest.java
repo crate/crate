@@ -103,7 +103,7 @@ public class OperationTest extends ESTestCase {
         var replicatedIndexSettings = Settings.builder().put(REPLICATION_SUBSCRIPTION_NAME.getKey(), "sub1").build();
         assertThat(
             Operation.buildFromIndexSettingsAndState(replicatedIndexSettings, IndexMetadata.State.OPEN, false),
-            containsInAnyOrder(READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE, ALTER_OPEN)
+            containsInAnyOrder(READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE)
         );
     }
 
