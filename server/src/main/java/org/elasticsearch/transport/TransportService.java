@@ -573,72 +573,67 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             throw new IllegalStateException("can't send request to a null connection");
         }
         DiscoveryNode node = connection.getNode();
-
-        TimeoutResponseHandler<T> responseHandler = new TimeoutResponseHandler<>(handler);
-        // TODO we can probably fold this entire request ID dance into connection.sendRequest but it will be a bigger refactoring
-        final long requestId = responseHandlers.add(new Transport.ResponseContext<>(responseHandler, connection, action));
+        if (lifecycle.stoppedOrClosed()) {
+            handler.handleException(new SendRequestTransportException(node, action, new NodeClosedException(localNode)));
+            return;
+        }
+        final long requestId = responseHandlers.newRequestId();
         final TimeoutHandler timeoutHandler;
         if (options.timeout() != null) {
-            timeoutHandler = new TimeoutHandler(requestId, connection.getNode(), action);
-            responseHandler.setTimeoutHandler(timeoutHandler);
+            timeoutHandler = new TimeoutHandler(requestId, connection.getNode(), action, options.timeout());
         } else {
             timeoutHandler = null;
         }
+        TimeoutResponseHandler<T> responseHandler = new TimeoutResponseHandler<>(handler, timeoutHandler);
+        responseHandlers.add(requestId, new Transport.ResponseContext<>(responseHandler, connection, action));
+        if (timeoutHandler != null) {
+            timeoutHandler.schedule();
+        }
         try {
-            if (lifecycle.stoppedOrClosed()) {
-                /*
-                 * If we are not started the exception handling will remove the request holder again and calls the handler to notify the
-                 * caller. It will only notify if toStop hasn't done the work yet.
-                 */
-                throw new NodeClosedException(localNode);
-            }
-            if (timeoutHandler != null) {
-                assert options.timeout() != null;
-                timeoutHandler.scheduleTimeout(options.timeout());
-            }
             connection.sendRequest(requestId, action, request, options); // local node optimization happens upstream
         } catch (final Exception e) {
             // usually happen either because we failed to connect to the node
             // or because we failed serializing the message
             final Transport.ResponseContext<? extends TransportResponse> contextToNotify = responseHandlers.remove(requestId);
             // If holderToNotify == null then handler has already been taken care of.
-            if (contextToNotify != null) {
-                if (timeoutHandler != null) {
-                    timeoutHandler.cancel();
-                }
-                // callback that an exception happened, but on a different thread since we don't
-                // want handlers to worry about stack overflows. In the special case of running into a closing node we run on the current
-                // thread on a best effort basis though.
-                final SendRequestTransportException sendRequestException = new SendRequestTransportException(node, action, e);
-                final String executor = lifecycle.stoppedOrClosed() ? ThreadPool.Names.SAME : ThreadPool.Names.GENERIC;
-                threadPool.executor(executor).execute(new AbstractRunnable() {
-                    @Override
-                    public void onRejection(Exception e) {
-                        // if we get rejected during node shutdown we don't wanna bubble it up
-                        LOGGER.debug(
-                            () -> new ParameterizedMessage(
-                                "failed to notify response handler on rejection, action: {}",
-                                contextToNotify.action()),
-                            e);
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        LOGGER.warn(
-                            () -> new ParameterizedMessage(
-                                "failed to notify response handler on exception, action: {}",
-                                contextToNotify.action()),
-                            e);
-                    }
-
-                    @Override
-                    protected void doRun() throws Exception {
-                        contextToNotify.handler().handleException(sendRequestException);
-                    }
-                });
-            } else {
+            if (contextToNotify == null) {
                 LOGGER.debug("Exception while sending request, handler likely already notified due to timeout", e);
+                return;
             }
+
+            if (timeoutHandler != null) {
+                timeoutHandler.cancel();
+            }
+            // callback that an exception happened, but on a different thread since we don't
+            // want handlers to worry about stack overflows. In the special case of running into a closing node we run on the current
+            // thread on a best effort basis though.
+            final SendRequestTransportException sendRequestException = new SendRequestTransportException(node, action, e);
+            final String executor = lifecycle.stoppedOrClosed() ? ThreadPool.Names.SAME : ThreadPool.Names.GENERIC;
+            threadPool.executor(executor).execute(new AbstractRunnable() {
+                @Override
+                public void onRejection(Exception e) {
+                    // if we get rejected during node shutdown we don't wanna bubble it up
+                    LOGGER.debug(
+                        () -> new ParameterizedMessage(
+                            "failed to notify response handler on rejection, action: {}",
+                            contextToNotify.action()),
+                        e);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    LOGGER.warn(
+                        () -> new ParameterizedMessage(
+                            "failed to notify response handler on exception, action: {}",
+                            contextToNotify.action()),
+                        e);
+                }
+
+                @Override
+                protected void doRun() throws Exception {
+                    contextToNotify.handler().handleException(sendRequestException);
+                }
+            });
         }
     }
 
@@ -894,12 +889,18 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         private final long sentTime = threadPool.relativeTimeInMillis();
         private final String action;
         private final DiscoveryNode node;
-        volatile Scheduler.Cancellable cancellable;
+        private final TimeValue timeout;
+        private Scheduler.Cancellable cancellable;
 
-        TimeoutHandler(long requestId, DiscoveryNode node, String action) {
+        TimeoutHandler(long requestId, DiscoveryNode node, String action, TimeValue timeout) {
             this.requestId = requestId;
             this.node = node;
             this.action = action;
+            this.timeout = timeout;
+        }
+
+        void schedule() {
+            this.cancellable = threadPool.schedule(this, timeout, ThreadPool.Names.GENERIC);
         }
 
         @Override
@@ -937,10 +938,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         @Override
         public String toString() {
             return "timeout handler for [" + requestId + "][" + action + "]";
-        }
-
-        private void scheduleTimeout(TimeValue timeout) {
-            this.cancellable = threadPool.schedule(this, timeout, ThreadPool.Names.GENERIC);
         }
     }
 
@@ -982,10 +979,12 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     public static final class TimeoutResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
 
         private final TransportResponseHandler<T> delegate;
-        private volatile TimeoutHandler handler;
+        @Nullable
+        private final TimeoutHandler handler;
 
-        public TimeoutResponseHandler(TransportResponseHandler<T> delegate) {
+        public TimeoutResponseHandler(TransportResponseHandler<T> delegate, @Nullable TimeoutHandler handler) {
             this.delegate = delegate;
+            this.handler = handler;
         }
 
         @Override
@@ -1018,11 +1017,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         public String toString() {
             return getClass().getName() + "/" + delegate.toString();
         }
-
-        void setTimeoutHandler(TimeoutHandler handler) {
-            this.handler = handler;
-        }
-
     }
 
     static class DirectResponseChannel implements TransportChannel {

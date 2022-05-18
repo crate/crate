@@ -196,8 +196,7 @@ public interface Transport extends LifecycleComponent {
          * @return the new request ID
          * @see Connection#sendRequest(long, String, TransportRequest, TransportRequestOptions)
          */
-        public long add(ResponseContext<? extends TransportResponse> holder) {
-            long requestId = newRequestId();
+        public long add(long requestId, ResponseContext<? extends TransportResponse> holder) {
             ResponseContext<? extends TransportResponse> existing = handlers.put(requestId, holder);
             assert existing == null : "request ID already in use: " + requestId;
             return requestId;
