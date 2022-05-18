@@ -266,14 +266,15 @@ public class SQLTransportExecutor {
     }
 
     private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<long[]> listener) {
+        if (bulkArgs != null && bulkArgs.length == 0) {
+            listener.onResponse(new long[0]);
+            return;
+        }
         Session session = newSession();
         try {
             session.parse(UNNAMED, stmt, Collections.emptyList());
+            final long[] rowCounts = bulkArgs == null ? new long[0] : new long[bulkArgs.length];
             if (bulkArgs == null) {
-                bulkArgs = new Object[0][];
-            }
-            final long[] rowCounts = new long[bulkArgs.length];
-            if (rowCounts.length == 0) {
                 session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
                 session.execute(UNNAMED, 0, new BaseResultReceiver());
             } else {
