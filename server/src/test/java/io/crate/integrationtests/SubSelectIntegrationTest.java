@@ -21,24 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.data.Paging;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.metadata.RelationName;
-import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
-import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -46,6 +30,22 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
+import io.crate.data.Paging;
+import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.metadata.RelationName;
+import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
+import io.crate.testing.TestingHelpers;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
@@ -764,5 +764,17 @@ public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
                 "select o, o['a']['b']['c'] from nested_obj" +
                 ") nobj");
         assertThat(printedTable(response.rows()), is("1\n"));
+    }
+
+    @Test
+    public void test_non_recursive_with_query() {
+        setup.setUpCharacters();
+
+        execute("WITH ch AS (SELECT * FROM characters WHERE female = true) " +
+            "SELECT id, name " +
+            "FROM ch " +
+            "WHERE name LIKE 'Arthur'");
+        assertThat(printedTable(response.rows()),
+            is("4| Arthur\n"));
     }
 }

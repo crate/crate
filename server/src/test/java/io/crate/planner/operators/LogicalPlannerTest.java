@@ -21,6 +21,22 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.hamcrest.FeatureMatcher;
+import org.hamcrest.Matcher;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNDistinctProjection;
 import io.crate.metadata.ColumnIdent;
@@ -34,21 +50,6 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.hamcrest.FeatureMatcher;
-import org.hamcrest.Matcher;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
 public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -473,14 +474,28 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
 
+    public static String printPlan(LogicalPlan logicalPlan) {
+        var printContext = new PrintContext();
+        logicalPlan.print(printContext);
+        return printContext.toString();
+    }
+
     public static Matcher<LogicalPlan> isPlan(String expectedPlan) {
         return new FeatureMatcher<>(equalTo(expectedPlan), "same output", "output ") {
 
             @Override
             protected String featureValueOf(LogicalPlan actual) {
-                var printContext = new PrintContext();
-                actual.print(printContext);
-                return printContext.toString();
+                return printPlan(actual);
+            }
+        };
+    }
+
+    public static Matcher<LogicalPlan> isPlan(LogicalPlan expectedPlan) {
+        return new FeatureMatcher<>(equalTo(printPlan(expectedPlan)), "same output", "output ") {
+
+            @Override
+            protected String featureValueOf(LogicalPlan actual) {
+                return printPlan(actual);
             }
         };
     }

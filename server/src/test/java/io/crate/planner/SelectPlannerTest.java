@@ -23,6 +23,7 @@ package io.crate.planner;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -36,6 +37,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -50,7 +52,9 @@ import org.junit.Test;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.data.RowN;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioningValidationException;
@@ -1462,5 +1466,42 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             ((Function) projectSetProjection.tableFunctions().get(0)).arguments().get(0),
             isLiteral(null) // used to be unbound ParameterSymbol
         );
+    }
+
+    @Test
+    public void test_non_recursive_with_is_rewritten_to_nested_subselects() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table t1 (x int)")
+            .build();
+        var withPlan = e.logicalPlan(
+            "WITH" +
+                " r AS (SELECT x FROM t1)," +
+                " s AS (SELECT x FROM r) " +
+                "SELECT * FROM s");
+
+        var subSelectPlan = e.logicalPlan(
+                "SELECT * FROM (SELECT x FROM (SELECT x FROM t1) AS r) AS s");
+
+        assertThat(withPlan, isPlan(subSelectPlan));
+    }
+
+    @Test
+    public void test_non_recursive_nested_with() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table t1 (x int)")
+            .addTable("create table t2 (x int)")
+            .build();
+        var withPlan = e.logicalPlan(
+            "WITH" +
+                " u AS (SELECT * FROM t1)," +
+                " v AS (WITH u AS (SELECT * FROM t2) SELECT * FROM u) " +
+                "SELECT * FROM u, v");
+
+        var subSelectPlan = e.logicalPlan(
+            "SELECT * FROM" +
+                " (SELECT * FROM t1) AS u," +
+                " (SELECT x FROM (SELECT x FROM t2) AS u) AS v");
+
+        assertThat(withPlan, isPlan(subSelectPlan));
     }
 }
