@@ -51,7 +51,6 @@ import io.crate.execution.support.NodeRequest;
 import io.crate.metadata.TransactionContext;
 import io.crate.profile.ProfilingContext;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.indices.IndicesService;
@@ -345,14 +344,13 @@ public class JobLauncher {
                 transportJobAction
                     .execute(request)
                     .whenComplete(
-                        ActionListener.toBiConsumer(
-                            BucketForwarder.asActionListener(pageBucketReceivers, bucketIdx, initializationTracker))
+                        BucketForwarder.asActionListener(pageBucketReceivers, bucketIdx, initializationTracker)
                     );
             } else {
                 transportJobAction
                     .execute(request)
                     .whenComplete(
-                        ActionListener.toBiConsumer(new FailureOnlyResponseListener(handlerPhases, initializationTracker))
+                        new FailureOnlyResponseListener(handlerPhases, initializationTracker)
                     );
             }
             bucketIdx++;

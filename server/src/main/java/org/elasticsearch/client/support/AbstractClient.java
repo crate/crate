@@ -167,7 +167,7 @@ public abstract class AbstractClient implements Client {
         public <Request extends TransportRequest, Response extends TransportResponse> void execute(ActionType<Response> action,
                                                                                                    Request request,
                                                                                                    ActionListener<Response> listener) {
-            client.execute(action, request).whenComplete(ActionListener.toBiConsumer(listener));
+            client.execute(action, request).whenComplete(listener);
         }
 
         @Override
@@ -227,7 +227,7 @@ public abstract class AbstractClient implements Client {
 
         @Override
         public void nodesStats(final NodesStatsRequest request, final ActionListener<NodesStatsResponse> listener) {
-            execute(NodesStatsAction.INSTANCE, request).whenComplete(ActionListener.toBiConsumer(listener));
+            execute(NodesStatsAction.INSTANCE, request).whenComplete(listener);
         }
     }
 
@@ -243,7 +243,7 @@ public abstract class AbstractClient implements Client {
         public <Request extends TransportRequest, Response extends TransportResponse> void execute(ActionType<Response> action,
                                                                                                    Request request,
                                                                                                    ActionListener<Response> listener) {
-            client.execute(action, request).whenComplete(ActionListener.toBiConsumer(listener));
+            client.execute(action, request).whenComplete(listener);
         }
 
         @Override
@@ -293,7 +293,7 @@ public abstract class AbstractClient implements Client {
 
         @Override
         public void stats(final IndicesStatsRequest request, final ActionListener<IndicesStatsResponse> listener) {
-            execute(IndicesStatsAction.INSTANCE, request).whenComplete(ActionListener.toBiConsumer(listener));
+            execute(IndicesStatsAction.INSTANCE, request).whenComplete(listener);
         }
 
         @Override
@@ -324,7 +324,7 @@ public abstract class AbstractClient implements Client {
 
         @Override
         public void putTemplate(final PutIndexTemplateRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(PutIndexTemplateAction.INSTANCE, request).whenComplete(ActionListener.toBiConsumer(listener));
+            execute(PutIndexTemplateAction.INSTANCE, request).whenComplete(listener);
         }
 
         @Override
@@ -344,7 +344,7 @@ public abstract class AbstractClient implements Client {
 
         @Override
         public void deleteTemplate(final DeleteIndexTemplateRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(DeleteIndexTemplateAction.INSTANCE, request).whenComplete(ActionListener.toBiConsumer(listener));
+            execute(DeleteIndexTemplateAction.INSTANCE, request).whenComplete(listener);
         }
 
         @Override

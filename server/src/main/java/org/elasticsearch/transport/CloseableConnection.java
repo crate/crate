@@ -19,8 +19,9 @@
 
 package org.elasticsearch.transport;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.action.ActionListener;
-import io.crate.concurrent.CompletableContext;
 
 
 /**
@@ -28,11 +29,11 @@ import io.crate.concurrent.CompletableContext;
  */
 public abstract class CloseableConnection implements Transport.Connection {
 
-    private final CompletableContext<Void> closeContext = new CompletableContext<>();
+    private final CompletableFuture<Void> closeContext = new CompletableFuture<>();
 
     @Override
     public void addCloseListener(ActionListener<Void> listener) {
-        closeContext.addListener(ActionListener.toBiConsumer(listener));
+        closeContext.whenComplete(listener);
     }
 
     @Override

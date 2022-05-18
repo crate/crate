@@ -119,11 +119,11 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                 request.masterNodeTimeout()
             ).thenCompose(r -> updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource()))
                 .thenApply(r -> new AcknowledgedResponse(r.isAcknowledged()))
-                .whenComplete(ActionListener.toBiConsumer(listener));
+                .whenComplete(listener);
         } else {
             updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource())
                 .thenApply(r -> new AcknowledgedResponse(r.isAcknowledged()))
-                .whenComplete(ActionListener.toBiConsumer(listener));
+                .whenComplete(listener);
         }
     }
 
@@ -137,7 +137,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             .source(mappingSource, XContentType.JSON)
             .timeout(timeout)
             .masterNodeTimeout(timeout);
-        nodeClient.execute(PutMappingAction.INSTANCE, putMappingRequest).whenComplete(ActionListener.toBiConsumer(putMappingListener));
+        nodeClient.execute(PutMappingAction.INSTANCE, putMappingRequest).whenComplete(putMappingListener);
         return putMappingListener;
     }
 

@@ -22,15 +22,12 @@ package org.elasticsearch.transport.netty4;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 
-import javax.annotation.Nullable;
-
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.transport.TcpChannel;
 import org.elasticsearch.transport.TransportException;
 
-import io.crate.concurrent.CompletableContext;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelPromise;
@@ -40,15 +37,14 @@ public class Netty4TcpChannel implements TcpChannel {
     private final Channel channel;
     private final boolean isServer;
     private final String profile;
-    private final CompletableContext<Void> connectContext;
+    private final CompletableFuture<Void> connectContext = new CompletableFuture<>();
     private final CompletableFuture<Void> closeContext = new CompletableFuture<>();
     private final ChannelStats stats = new ChannelStats();
 
-    public Netty4TcpChannel(Channel channel, boolean isServer, String profile, @Nullable ChannelFuture connectFuture) {
+    public Netty4TcpChannel(Channel channel, boolean isServer, String profile, ChannelFuture connectFuture) {
         this.channel = channel;
         this.isServer = isServer;
         this.profile = profile;
-        this.connectContext = new CompletableContext<>();
         this.channel.closeFuture().addListener(f -> {
             if (f.isSuccess()) {
                 closeContext.complete(null);
@@ -95,12 +91,12 @@ public class Netty4TcpChannel implements TcpChannel {
 
     @Override
     public void addCloseListener(ActionListener<Void> listener) {
-        closeContext.whenComplete(ActionListener.toBiConsumer(listener));
+        closeContext.whenComplete(listener);
     }
 
     @Override
     public void addConnectListener(ActionListener<Void> listener) {
-        connectContext.addListener(ActionListener.toBiConsumer(listener));
+        connectContext.whenComplete(listener);
     }
 
     @Override

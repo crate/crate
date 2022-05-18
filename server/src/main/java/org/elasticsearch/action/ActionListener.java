@@ -19,24 +19,24 @@
 
 package org.elasticsearch.action;
 
-import io.crate.common.CheckedSupplier;
-import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
-
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.CheckedConsumer;
-import io.crate.common.CheckedFunction;
-import org.elasticsearch.common.CheckedRunnable;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.common.CheckedConsumer;
+import org.elasticsearch.common.CheckedRunnable;
+
+import io.crate.common.CheckedFunction;
+import io.crate.common.CheckedSupplier;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
+
 /**
  * A listener for action responses or failures.
  */
-public interface ActionListener<Response> {
+public interface ActionListener<Response> extends BiConsumer<Response, Throwable> {
     /**
      * Handle action response. This response may constitute a failure or a
      * success but it is up to the listener to make that decision.
@@ -47,6 +47,15 @@ public interface ActionListener<Response> {
      * A failure caused by an exception at some phase of the task.
      */
     void onFailure(Exception e);
+
+    @Override
+    default void accept(Response response, Throwable throwable) {
+        if (throwable == null) {
+            onResponse(response);
+        } else {
+            onFailure(Exceptions.toException(SQLExceptions.unwrap(throwable)));
+        }
+    }
 
     /**
      * Creates a listener that listens for a response (or failure) and executes the
@@ -161,24 +170,6 @@ public interface ActionListener<Response> {
      */
     static <T, Response> ActionListener<Response> map(ActionListener<T> listener, CheckedFunction<Response, T, Exception> fn) {
         return wrap(r -> listener.onResponse(fn.apply(r)), listener::onFailure);
-    }
-
-    /**
-     * Converts a listener to a {@link BiConsumer} for compatibility with the {@link java.util.concurrent.CompletableFuture}
-     * api.
-     *
-     * @param listener that will be wrapped
-     * @param <Response> the type of the response
-     * @return a bi consumer that will complete the wrapped listener
-     */
-    static <Response> BiConsumer<Response, Throwable> toBiConsumer(ActionListener<Response> listener) {
-        return (response, throwable) -> {
-            if (throwable == null) {
-                listener.onResponse(response);
-            } else {
-                listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(throwable)));
-            }
-        };
     }
 
     /**

@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.action.ActionListener;
 
 public class TransportCollectProfileOperation implements CollectProfileOperation {
 
@@ -46,7 +45,7 @@ public class TransportCollectProfileOperation implements CollectProfileOperation
     public CompletableFuture<Map<String, Object>> collect(String nodeId) {
         FutureActionListener<NodeCollectProfileResponse, Map<String, Object>> listener =
             new FutureActionListener<>(NodeCollectProfileResponse::durationByContextIdent);
-        transportAction.execute(CollectProfileRequest.of(nodeId, jobId)).whenComplete(ActionListener.toBiConsumer(listener));
+        transportAction.execute(CollectProfileRequest.of(nodeId, jobId)).whenComplete(listener);
         return listener;
     }
 }
