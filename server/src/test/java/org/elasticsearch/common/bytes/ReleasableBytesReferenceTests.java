@@ -78,7 +78,7 @@ public class ReleasableBytesReferenceTests extends AbstractBytesReferenceTestCas
                 }
                 i += sliceLength;
             }
-            BytesReference ref = new CompositeBytesReference(referenceList.toArray(new BytesReference[0]));
+            BytesReference ref = CompositeBytesReference.of(referenceList.toArray(new BytesReference[0]));
             assertThat(length, equalTo(ref.length()));
             delegate = ref;
         }
