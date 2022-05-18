@@ -23,6 +23,7 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;
 import org.elasticsearch.common.io.stream.BytesStream;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.util.ByteArray;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -110,6 +111,20 @@ public interface BytesReference extends Comparable<BytesReference>, ToXContentFr
             return new BytesArray(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining());
         }
         return new ByteBufferReference(buffer);
+    }
+
+    /**
+     * Returns BytesReference either wrapping the provided {@link ByteArray} or in case the has a backing raw byte array one that wraps
+     * that backing array directly.
+     */
+    static BytesReference fromByteArray(ByteArray byteArray, int length) {
+        if (length == 0) {
+            return BytesArray.EMPTY;
+        }
+        if (byteArray.hasArray()) {
+            return new BytesArray(byteArray.array(), 0, length);
+        }
+        return new PagedBytesReference(byteArray, 0, length);
     }
 
     /**
