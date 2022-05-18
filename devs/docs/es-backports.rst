@@ -194,7 +194,7 @@ should be crossed out as well.
 - [ ] a3a0c63ccfa Convert NumberFieldMapper to parametrized form (#61092) (#61376)
 - [ ] b1aa0d8731e Fix fieldnames field type for pre-6.1 indexes (#61322)
 - [x] 98213df9462 Report more details of unobtainable ShardLock (#61255)
-- [ ] b21cb7f4666 Reduce allocations when persisting cluster state (#61159)
+- [x] b21cb7f4666 Reduce allocations when persisting cluster state (#61159)
 - [x] c6276ae1771 Fail invalid incremental cluster state writes (#61030)
 - [ ] 5b3c10c3796 Fix serialization of AllFieldMapper (#61044)
 - [ ] 25404cbe3d0 Provide option to allow writes when master is down (#60605)
