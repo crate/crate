@@ -98,6 +98,7 @@ import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
 import io.crate.sql.tree.Window;
+import io.crate.sql.tree.With;
 
 public class TestStatementBuilder {
 
@@ -1808,6 +1809,18 @@ public class TestStatementBuilder {
         printStatement("ALTER SUBSCRIPTION \"mySub\" DISABLE");
     }
 
+    @Test
+    public void test_with_statement() {
+        printStatement("WITH r AS (SELECT * FROM t1)\n" +
+            "SELECT * FROM t2, r");
+        printStatement("WITH r AS (SELECT * FROM t1)," +
+            " s AS (SELECT * FROM t2)\n" +
+            "SELECT * FROM t2, r");
+        printStatement("WITH r AS (SELECT * FROM t1)," +
+            " s AS (WITH r AS (SELECT * FROM t2) SELECT * FROM r)\n" +
+            "SELECT * FROM t2, r");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
@@ -1844,7 +1857,8 @@ public class TestStatementBuilder {
             statement instanceof AlterPublication ||
             statement instanceof CreateSubscription ||
             statement instanceof DropSubscription ||
-            statement instanceof AlterSubscription) {
+            statement instanceof AlterSubscription ||
+            statement instanceof With) {
                 println(SqlFormatter.formatSql(statement));
                 println("");
                 assertFormattedSql(statement);

@@ -21,12 +21,14 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.metadata.RelationName;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import io.crate.metadata.RelationName;
 
 public class ParentRelations {
 
@@ -49,11 +51,18 @@ public class ParentRelations {
     }
 
     public boolean containsRelation(RelationName qualifiedName) {
+        return relation(qualifiedName) != null;
+    }
+
+    @Nullable
+    public AnalyzedRelation relation(RelationName relationName) {
+        AnalyzedRelation relation = null;
         for (int i = sourcesTree.size() - 1; i >= 0; i--) {
-            if (sourcesTree.get(i).containsKey(qualifiedName)) {
-                return true;
+            relation = sourcesTree.get(i).get(relationName);
+            if (relation != null) {
+                break;
             }
         }
-        return false;
+        return relation;
     }
 }

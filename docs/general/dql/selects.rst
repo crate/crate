@@ -1116,6 +1116,92 @@ in the ``HAVING`` clause, like in the result columns::
 
    Aliases are not supported in the ``HAVING`` clause.
 
+.. _sql_dql_with:
+
+``WITH`` Queries (Common Table Expressions)
+===========================================
+
+:ref:`WITH <sql_with>` queries, also referred to as
+*common table expressions (CTE)*, provides a way to reference subqueries by a
+name within the primary query. The subqueries effectively act as temporary
+tables or views for the duration of the primary query.
+
+This can improve the readability of SQL code as it break down complicated
+queries into smaller parts. An example is:
+
+::
+
+    cr> WITH
+    ... message_count_per_device AS (
+    ...  SELECT COUNT(*) AS cnt, device_id
+    ...  FROM UNNEST([1, 1, 1, 2, 2]) AS u(device_id)
+    ...  GROUP BY device_id
+    ... )
+    ... SELECT AVG(cnt) AS average_message_count
+    ... FROM message_count_per_device;
+    +-----------------------+
+    | average_message_count |
+    +-----------------------+
+    |                   2.5 |
+    +-----------------------+
+    WITH 1 row in set (... sec)
+
+which defines a temporary relation `message_count_per_device` inside the
+:ref:`WITH <sql_with>` clause which can be used as a relation name in the
+subsequent :ref:`SELECT <sql-select>` clause.
+
+The same query could have been written using subqueries only, but possibly
+harder to read:
+
+::
+
+    cr> SELECT AVG(cnt) AS average_message_count
+    ... FROM (
+    ...  SELECT COUNT(*) AS cnt, device_id
+    ...  FROM UNNEST([1, 1, 1, 2, 2]) AS u(device_id)
+    ...  GROUP BY device_id
+    ... ) as message_count_per_device;
+    +-----------------------+
+    | average_message_count |
+    +-----------------------+
+    |                   2.5 |
+    +-----------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. NOTE::
+
+    - CTEs can be used in combination with :ref:`SELECT <sql-select>` clauses
+      only.
+    - Recursive CTEs are not supported.
+    - CTEs are never materialized.
+
+
+Nested ``WITH`` clauses
+-----------------------
+
+It is possible to use :ref:`WITH <sql_with>` clauses within a subquery or
+another :ref:`WITH <sql_with>` clause. Nested clauses can use the CTE's defined
+within the parent's scope, but not the other way around.
+
+In this example, the inner :ref:`WITH <sql_with>` clause uses the outer CTE `a`:
+
+::
+
+    cr> WITH
+    ...  a(id) AS (SELECT * FROM unnest([1])),
+    ...  b AS (WITH c AS (SELECT * FROM a) SELECT * FROM c)
+    ... SELECT * FROM b;
+    +----+
+    | id |
+    +----+
+    |  1 |
+    +----+
+    WITH 1 row in set (... sec)
+
+
+
+
 
 .. _`3-valued logic`: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
 .. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html

@@ -21,27 +21,34 @@
 
 package io.crate.sql.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import static java.util.Objects.requireNonNull;
-
 public class Query extends Statement {
 
+    private final Optional<With> with;
     private final QueryBody queryBody;
     private final List<SortItem> orderBy;
     private final Optional<Expression> limit;
     private final Optional<Expression> offset;
 
-    public Query(QueryBody queryBody,
+    public Query(Optional<With> with,
+                 QueryBody queryBody,
                  List<SortItem> orderBy,
                  Optional<Expression> limit,
                  Optional<Expression> offset) {
+        this.with = requireNonNull(with, "with is null");
         this.queryBody = requireNonNull(queryBody, "queryBody is null");
         this.orderBy = orderBy;
         this.limit = limit;
         this.offset = offset;
+    }
+
+    public Optional<With> getWith() {
+        return with;
     }
 
     public QueryBody getQueryBody() {
@@ -74,7 +81,8 @@ public class Query extends Statement {
             return false;
         }
         Query query = (Query) o;
-        return Objects.equals(queryBody, query.queryBody) &&
+        return Objects.equals(with, query.with) &&
+               Objects.equals(queryBody, query.queryBody) &&
                Objects.equals(orderBy, query.orderBy) &&
                Objects.equals(limit, query.limit) &&
                Objects.equals(offset, query.offset);
@@ -82,12 +90,13 @@ public class Query extends Statement {
 
     @Override
     public int hashCode() {
-        return Objects.hash(queryBody, orderBy, limit, offset);
+        return Objects.hash(with, queryBody, orderBy, limit, offset);
     }
 
     @Override
     public String toString() {
         return "Query{" +
+               "with=" + with +
                "queryBody=" + queryBody +
                ", orderBy=" + orderBy +
                ", limit=" + limit +

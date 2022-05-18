@@ -126,8 +126,13 @@ alterStmt
     | ALTER SUBSCRIPTION name=ident alterSubscriptionMode                            #alterSubscription
     ;
 
-query:
-      queryTerm
+
+query
+    : with? queryNoWith
+    ;
+
+queryNoWith
+    : queryTerm
       (ORDER BY sortItem (',' sortItem)*)?
       (LIMIT limit=parameterOrInteger)?
       (OFFSET offset=parameterOrInteger)?
@@ -218,6 +223,14 @@ table
 
 aliasedColumns
     : '(' ident (',' ident)* ')'
+    ;
+
+with
+    : WITH namedQuery (',' namedQuery)*
+    ;
+
+namedQuery
+    : name=ident (aliasedColumns)? AS '(' query ')'
     ;
 
 expr
