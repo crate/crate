@@ -60,7 +60,7 @@ public class FulltextAnalyzerResolver {
     // a concrete index (see AnalyzerModule.ExtendedProcessor)
     // stripped Prebuilt<Thingy> (e.g. PreBuiltTokenFilters)
     private static final Set<String> EXTENDED_BUILTIN_TOKEN_FILTERS = Set.of(
-        "limit", "delimited_payload_filter", "synonym",
+        "limit", "synonym",
         "keep", "pattern_capture", "pattern_replace",
         "dictionary_decompounder", "hyphenation_decompounder",
         "keyword_marker", "stemmer_override",

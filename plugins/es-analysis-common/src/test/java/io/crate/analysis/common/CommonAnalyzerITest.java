@@ -66,7 +66,7 @@ public class CommonAnalyzerITest extends SQLIntegrationTestCase {
         assertEquals(1L, response.rowCount());
 
         execute("select * from information_schema.routines");
-        assertEquals(125L, response.rowCount());
+        assertEquals(124L, response.rowCount());
     }
 
     @Test
