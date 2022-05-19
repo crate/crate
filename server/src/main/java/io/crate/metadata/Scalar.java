@@ -31,6 +31,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.FunctionToQuery;
+import io.crate.user.UserLookup;
 
 /**
  * Base class for Scalar functions in crate.
@@ -82,7 +83,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      *                  {@link #evaluate(TransactionContext, NodeContext, Input[])} will have the same
      *                  value as those literals. (Within the scope of a single operation)
      */
-    public Scalar<ReturnType, InputType> compile(List<Symbol> arguments) {
+    public Scalar<ReturnType, InputType> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
         return this;
     }
 

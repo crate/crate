@@ -206,4 +206,8 @@ public class PgCatalogTableDefinitions {
     public static boolean isPgCatalogOrInformationSchema(String schemaName) {
         return InformationSchemaInfo.NAME.equals(schemaName) || PgCatalogSchemaInfo.NAME.equals(schemaName);
     }
+
+    public static boolean isPgCatalogOrInformationSchema(Integer schemaOid) {
+        return OidHash.schemaOid(InformationSchemaInfo.NAME) == schemaOid || OidHash.schemaOid(PgCatalogSchemaInfo.NAME) == schemaOid;
+    }
 }

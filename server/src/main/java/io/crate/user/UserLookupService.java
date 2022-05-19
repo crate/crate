@@ -28,6 +28,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import io.crate.metadata.pgcatalog.OidHash;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -55,6 +56,16 @@ public class UserLookupService implements UserLookup, ClusterStateListener {
     public User findUser(String userName) {
         for (User user : users()) {
             if (userName.equals(user.name())) {
+                return user;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    public User findUser(Integer userOid) {
+        for (User user : users()) {
+            if (userOid.equals(OidHash.userOid(user.name()))) {
                 return user;
             }
         }

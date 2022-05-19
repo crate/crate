@@ -58,6 +58,12 @@ public class StubUserManager implements UserManager {
         return User.CRATE_USER;
     }
 
+    @Nullable
+    @Override
+    public User findUser(Integer userOid) {
+        return User.CRATE_USER;
+    }
+
     @Override
     public AccessControl getAccessControl(SessionContext sessionContext) {
         return AccessControl.DISABLED;

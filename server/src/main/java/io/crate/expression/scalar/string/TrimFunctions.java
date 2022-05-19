@@ -30,6 +30,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.TrimMode;
 import io.crate.types.DataTypes;
+import io.crate.user.UserLookup;
 
 import java.util.HashSet;
 import java.util.List;
@@ -151,7 +152,7 @@ public final class TrimFunctions {
         }
 
         @Override
-        public Scalar<String, String> compile(List<Symbol> arguments) {
+        public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
             assert arguments.size() == 3 : "number of args must be 3";
 
             Symbol modeSymbol = arguments.get(2);

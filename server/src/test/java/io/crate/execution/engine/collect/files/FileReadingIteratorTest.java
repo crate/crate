@@ -71,7 +71,7 @@ public class FileReadingIteratorTest extends ESTestCase {
 
     @Before
     public void prepare() {
-        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()));
+        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), null);
         inputFactory = new InputFactory(nodeCtx);
     }
 
