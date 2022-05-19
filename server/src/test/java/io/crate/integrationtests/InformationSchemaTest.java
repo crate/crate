@@ -499,10 +499,10 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
                 "routine_name asc limit 5");
         assertThat(printedTable(response.rows()), is(
             "cjk_bigram\n" +
-            "cjk_width\n" +
-            "delimited_payload_filter\n" +
-            "dictionary_decompounder\n" +
-            "hunspell\n"
+                "cjk_width\n" +
+                "dictionary_decompounder\n" +
+                "hunspell\n" +
+                "hyphenation_decompounder\n"
         ));
     }
 
