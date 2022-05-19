@@ -21,6 +21,8 @@
 
 package io.crate.user;
 
+import io.crate.metadata.pgcatalog.OidHash;
+
 import java.util.Collections;
 
 import javax.annotation.Nullable;
@@ -31,7 +33,15 @@ public interface UserLookup {
      * finds a user by username
      */
     @Nullable
-    User findUser(String userName);
+    default User findUser(String userName) {
+        return findUser(OidHash.userOid(userName));
+    }
+
+    /**
+     * finds a user by OID
+     */
+    @Nullable
+    User findUser(Integer userOid);
 
     default Iterable<User> users() {
         return Collections.emptyList();

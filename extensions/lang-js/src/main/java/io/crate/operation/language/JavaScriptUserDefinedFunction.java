@@ -30,6 +30,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
+import io.crate.user.UserLookup;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 
@@ -49,7 +50,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Scalar<Object, Object> compile(List<Symbol> arguments) {
+    public Scalar<Object, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
         try {
             return new CompiledFunction(
                 resolvePolyglotFunctionValue(

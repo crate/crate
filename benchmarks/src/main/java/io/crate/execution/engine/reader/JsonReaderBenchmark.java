@@ -96,7 +96,7 @@ public class JsonReaderBenchmark {
 
     @Setup
     public void create_temp_file_and_uri() throws IOException {
-        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()));
+        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), null);
         inputFactory = new InputFactory(nodeCtx);
         tempFile = File.createTempFile("temp", null);
         fileUri = tempFile.toURI().getPath();

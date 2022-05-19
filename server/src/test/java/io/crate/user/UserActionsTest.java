@@ -39,7 +39,7 @@ import java.util.Map;
 
 public class UserActionsTest extends ESTestCase {
 
-    private static final NodeContext nodeCtx = new NodeContext(new Functions(Map.of()));
+    private static final NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), null);
 
     TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 

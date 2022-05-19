@@ -22,9 +22,11 @@
 package io.crate.user;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.metadata.pgcatalog.OidHash;
 
 import javax.annotation.Nullable;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
 
@@ -90,6 +92,31 @@ public class User {
      */
     public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident, String defaultSchema) {
         return isSuperUser() || privileges.matchPrivilege(type, clazz, ident, defaultSchema);
+    }
+
+    /**
+     * Checks if the user has a schema privilege that matches the given type and ident OID.
+     * @param type           privilege type
+     * @param schemaOid      OID of the schema
+     */
+    public boolean hasSchemaPrivilege(Privilege.Type type, Integer schemaOid) {
+        if (isSuperUser()) {
+            return true;
+        }
+        Iterator<Privilege> it = privileges.iterator();
+        while (it.hasNext()) {
+            Privilege privilege = it.next();
+            if (privilege.state() == Privilege.State.GRANT && privilege.ident().type() == type) {
+                if (privilege.ident().clazz() == Privilege.Clazz.CLUSTER) {
+                    return true;
+                }
+                if (privilege.ident().clazz() == Privilege.Clazz.SCHEMA && OidHash.schemaOid(privilege.ident().ident()) == schemaOid) {
+                    return true;
+                }
+            }
+        }
+        return false;
+
     }
 
     /**

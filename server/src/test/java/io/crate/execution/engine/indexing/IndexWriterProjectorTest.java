@@ -91,7 +91,7 @@ public class IndexWriterProjectorTest extends SQLIntegrationTestCase {
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             CoordinatorTxnCtx.systemTransactionContext(),
-            new NodeContext(internalCluster().getInstance(Functions.class)),
+            new NodeContext(internalCluster().getInstance(Functions.class), null),
             Settings.EMPTY,
             IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
             NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize()),

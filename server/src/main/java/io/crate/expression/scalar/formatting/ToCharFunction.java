@@ -30,6 +30,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.user.UserLookup;
 import org.elasticsearch.common.TriFunction;
 import org.joda.time.Period;
 
@@ -149,7 +150,7 @@ public class ToCharFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public Scalar<String, Object> compile(List<Symbol> arguments) {
+    public Scalar<String, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
         assert arguments.size() == 2 : "Invalid number of arguments";
 
         if (!arguments.get(1).symbolType().isValueSymbol()) {

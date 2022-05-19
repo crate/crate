@@ -215,5 +215,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         PgPostmasterStartTime.register(this);
 
         ObjectKeysFunction.register(this);
+
+        HasSchemaPrivilegeFunction.register(this);
     }
 }

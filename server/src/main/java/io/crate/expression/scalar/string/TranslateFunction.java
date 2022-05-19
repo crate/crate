@@ -29,6 +29,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
+import io.crate.user.UserLookup;
 
 import java.util.HashMap;
 import java.util.List;
@@ -65,7 +66,7 @@ public class TranslateFunction extends Scalar<String, String> {
     }
 
     @Override
-    public Scalar<String, String> compile(List<Symbol> args) {
+    public Scalar<String, String> compile(List<Symbol> args, String currentUser, UserLookup userLookup) {
         assert args.size() == 3 : "translate takes exactly three arguments";
 
         Symbol from = args.get(1);
