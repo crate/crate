@@ -667,4 +667,12 @@ public abstract class AstVisitor<R, C> {
     public R visitAlterSubscription(AlterSubscription alterSubscription, C context) {
         return visitStatement(alterSubscription, context);
     }
+
+    public R visitWithQuery(WithQuery withQuery, C context) {
+        return visitNode(withQuery, context);
+    }
+
+    public R visitWith(With with, C context) {
+        return visitStatement(with, context);
+    }
 }

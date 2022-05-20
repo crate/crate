@@ -21,6 +21,23 @@
 
 package io.crate.sql;
 
+import static io.crate.sql.ExpressionFormatter.formatExpression;
+import static io.crate.sql.ExpressionFormatter.formatStandaloneExpression;
+import static io.crate.sql.tree.Insert.DuplicateKeyContext.Type.NONE;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import io.crate.common.collections.Lists2;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
@@ -102,22 +119,8 @@ import io.crate.sql.tree.Values;
 import io.crate.sql.tree.ValuesList;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
-
-import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.TreeMap;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
-
-import static io.crate.sql.ExpressionFormatter.formatExpression;
-import static io.crate.sql.ExpressionFormatter.formatStandaloneExpression;
-import static io.crate.sql.tree.Insert.DuplicateKeyContext.Type.NONE;
+import io.crate.sql.tree.With;
+import io.crate.sql.tree.WithQuery;
 
 public final class SqlFormatter {
 
@@ -353,6 +356,10 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitQuery(Query node, Integer indent) {
+            if (node.getWith().isPresent()) {
+                node.getWith().get().accept(this, indent);
+            }
+
             node.getQueryBody().accept(this, indent);
 
             if (!node.getOrderBy().isEmpty()) {
@@ -870,7 +877,7 @@ public final class SqlFormatter {
         @Override
         protected Void visitUnion(Union node, Integer context) {
             node.getLeft().accept(this, context);
-            builder.append("UNION ");
+            builder.append(" UNION ");
             if (!node.isDistinct()) {
                 builder.append(" ALL");
             }
@@ -1106,6 +1113,34 @@ public final class SqlFormatter {
                 .append(quoteIdentifierIfNeeded(alterSubscription.name()))
                 .append(" ")
                 .append(alterSubscription.mode());
+            return null;
+        }
+
+        @Override
+        public Void visitWith(With with, Integer context) {
+            builder.append("WITH ");
+            var queriesIt = with.withQueries().iterator();
+            while (queriesIt.hasNext()) {
+                queriesIt.next().accept(this, context);
+                if (queriesIt.hasNext()) {
+                    builder.append(",");
+                }
+            }
+            builder.append("\n");
+            return null;
+        }
+
+        @Override
+        public Void visitWithQuery(WithQuery withQuery, Integer context) {
+            builder.append(withQuery.name());
+            if (withQuery.columnNames().isEmpty() == false) {
+                builder.append("(")
+                    .append(withQuery.columnNames().stream().collect(COMMA_JOINER))
+                    .append(")");
+            }
+            builder.append(" AS (");
+            withQuery.query().accept(this, context);
+            builder.append(")");
             return null;
         }
 

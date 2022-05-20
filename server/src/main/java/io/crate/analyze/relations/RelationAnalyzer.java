@@ -21,7 +21,20 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.common.collections.Iterables;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
@@ -34,6 +47,7 @@ import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.analyze.where.WhereClauseValidator;
+import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Tuple;
 import io.crate.exceptions.AmbiguousColumnAliasException;
@@ -87,22 +101,11 @@ import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
 import io.crate.sql.tree.Values;
 import io.crate.sql.tree.ValuesList;
+import io.crate.sql.tree.WithQuery;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 @Singleton
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -133,7 +136,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitQuery(Query node, StatementAnalysisContext statementContext) {
+        // Start scope shared by possible with-queries and the child relation
+        statementContext.startRelation();
+        if (node.getWith().isPresent()) {
+            var with = node.getWith().get();
+            with.withQueries().forEach(wq -> wq.accept(this, statementContext));
+        }
         AnalyzedRelation childRelation = node.getQueryBody().accept(this, statementContext);
+        statementContext.endRelation();
+
         if (node.getOrderBy().isEmpty() && node.getLimit().isEmpty() && node.getOffset().isEmpty()) {
             return childRelation;
         }
@@ -589,38 +600,59 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
+    public AnalyzedRelation visitWithQuery(WithQuery node, StatementAnalysisContext context) {
+        // With queries are already analyzed inside a dedicated relation context, no need for a new one.
+        AnalyzedRelation childRelation = node.query().accept(this, context);
+        AnalyzedRelation aliasedRelation = new AliasedAnalyzedRelation(
+            childRelation,
+            new RelationName(null, node.name()),
+            node.columnNames()
+        );
+        context.currentRelationContext().addSourceRelation(aliasedRelation);
+        return aliasedRelation;
+    }
+
+    @Override
     protected AnalyzedRelation visitTable(Table<?> node, StatementAnalysisContext context) {
         QualifiedName tableQualifiedName = node.getName();
         SearchPath searchPath = context.sessionContext().searchPath();
         AnalyzedRelation relation;
-        TableInfo tableInfo;
-        try {
-            tableInfo = schemas.resolveTableInfo(
-                tableQualifiedName,
-                context.currentOperation(),
-                context.sessionContext().sessionUser(),
-                searchPath
-            );
-            if (tableInfo instanceof DocTableInfo) {
-                // Dispatching of doc relations is based on the returned class of the schema information.
-                relation = new DocTableRelation((DocTableInfo) tableInfo);
-            } else {
-                relation = new TableRelation(tableInfo);
-            }
-        } catch (RelationUnknown e) {
-            Tuple<ViewMetadata, RelationName> viewMetadata;
+        var relationContext = context.currentRelationContext();
+
+        var withQuery = relationContext.parentSources()
+            .relation(RelationName.of(tableQualifiedName, null));
+        if (withQuery != null) {
+            relation = withQuery;
+        } else {
+            TableInfo tableInfo;
             try {
-                viewMetadata = schemas.resolveView(tableQualifiedName, searchPath);
-            } catch (RelationUnknown e1) {
-                // don't shadow original exception, as looking for the view is just a fallback
-                throw e;
+                tableInfo = schemas.resolveTableInfo(
+                    tableQualifiedName,
+                    context.currentOperation(),
+                    context.sessionContext().sessionUser(),
+                    searchPath
+                );
+                if (tableInfo instanceof DocTableInfo) {
+                    // Dispatching of doc relations is based on the returned class of the schema information.
+                    relation = new DocTableRelation((DocTableInfo) tableInfo);
+                } else {
+                    relation = new TableRelation(tableInfo);
+                }
+            } catch (RelationUnknown e) {
+                Tuple<ViewMetadata, RelationName> viewMetadata;
+                try {
+                    viewMetadata = schemas.resolveView(tableQualifiedName, searchPath);
+                } catch (RelationUnknown e1) {
+                    // don't shadow original exception, as looking for the view is just a fallback
+                    throw e;
+                }
+                ViewMetadata view = viewMetadata.v1();
+                AnalyzedRelation resolvedView = SqlParser.createStatement(view.stmt()).accept(this, context);
+                relation = new AnalyzedView(viewMetadata.v2(), view.owner(), resolvedView);
             }
-            ViewMetadata view = viewMetadata.v1();
-            AnalyzedRelation resolvedView = SqlParser.createStatement(view.stmt()).accept(this, context);
-            relation = new AnalyzedView(viewMetadata.v2(), view.owner(), resolvedView);
         }
 
-        context.currentRelationContext().addSourceRelation(relation);
+        relationContext.addSourceRelation(relation);
         return relation;
     }
 

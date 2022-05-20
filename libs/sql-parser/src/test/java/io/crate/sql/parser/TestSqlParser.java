@@ -21,6 +21,25 @@
 
 package io.crate.sql.parser;
 
+import static io.crate.sql.SqlFormatter.formatSql;
+import static io.crate.sql.tree.QueryUtil.selectList;
+import static io.crate.sql.tree.QueryUtil.table;
+import static java.lang.String.format;
+import static java.util.Collections.nCopies;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+
+import org.junit.Test;
+
 import io.crate.common.collections.Lists2;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.ColumnType;
@@ -37,24 +56,6 @@ import io.crate.sql.tree.Query;
 import io.crate.sql.tree.QuerySpecification;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-
-import static io.crate.sql.SqlFormatter.formatSql;
-import static io.crate.sql.tree.QueryUtil.selectList;
-import static io.crate.sql.tree.QueryUtil.table;
-import static java.lang.String.format;
-import static java.util.Collections.nCopies;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestSqlParser {
 
@@ -164,6 +165,7 @@ public class TestSqlParser {
     public void testDoubleInQuery() {
         assertStatement("SELECT 123.456E7 FROM DUAL",
             new Query(
+                Optional.empty(),
                 new QuerySpecification(
                     selectList(new DoubleLiteral("123.456E7")),
                     table(QualifiedName.of("dual")),
