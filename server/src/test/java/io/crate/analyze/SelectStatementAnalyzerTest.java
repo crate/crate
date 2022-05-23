@@ -2429,7 +2429,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService)
             .build();
         AnalyzedRelation relation = executor.analyze("select timestamp '2018-12-12T00:00:00'");
-        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMESTAMPZ));
+        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMESTAMP));
     }
 
     @Test

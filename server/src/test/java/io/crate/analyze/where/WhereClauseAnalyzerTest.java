@@ -174,7 +174,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateWherePartitionedByColumn() throws Exception {
-        AnalyzedUpdateStatement update = analyzeUpdate("update parted set id = 2 where date = 1395874800000::timestamp");
+        AnalyzedUpdateStatement update = analyzeUpdate("update parted set id = 2 where date = 1395874800000::timestamptz");
         assertThat(update.query(), isFunction(EqOperator.NAME, isReference("date"), isLiteral(1395874800000L)));
     }
 
@@ -265,7 +265,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_where_on_date_with_null_partition_or_id_can_match_all_partitions() throws Exception {
         WhereClause whereClause = analyzeSelectWhere(
-            "select id, name from parted where date = 1395961200000::timestamp or id = 1");
+            "select id, name from parted where date = 1395961200000::timestamptz or id = 1");
         assertThat(whereClause.partitions(), containsInAnyOrder(
             ".partitioned.parted.0400",
             ".partitioned.parted.04732cpp6ksjcc9i60o30c1g",
