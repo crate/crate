@@ -21,11 +21,28 @@
 
 package io.crate.metadata.doc;
 
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.ImplementedBy;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
-@ImplementedBy(InternalDocTableInfoFactory.class)
-public interface DocTableInfoFactory {
-    DocTableInfo create(RelationName ident, ClusterState state);
+@Singleton
+public class DocTableInfoFactory {
+
+    private final NodeContext nodeCtx;
+
+    @Inject
+    public DocTableInfoFactory(NodeContext nodeCtx) {
+        this.nodeCtx = nodeCtx;
+    }
+
+    public DocTableInfo create(RelationName ident, ClusterState state) {
+        DocTableInfoBuilder builder = new DocTableInfoBuilder(
+            nodeCtx,
+            ident,
+            state
+        );
+        return builder.build();
+    }
 }

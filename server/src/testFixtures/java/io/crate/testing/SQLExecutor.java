@@ -64,7 +64,6 @@ import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.CrateSettings;
@@ -268,8 +267,7 @@ public class SQLExecutor {
                         Collections.emptyMap(), createTempDir())));
 
 
-            Map<RelationName, DocTableInfo> docTables = new HashMap<>();
-            DocTableInfoFactory tableInfoFactory = new TestingDocTableInfoFactory(docTables, nodeCtx);
+            DocTableInfoFactory tableInfoFactory = new DocTableInfoFactory(nodeCtx);
             ViewInfoFactory testingViewInfoFactory = (ident, state) -> null;
 
             schemas = new Schemas(

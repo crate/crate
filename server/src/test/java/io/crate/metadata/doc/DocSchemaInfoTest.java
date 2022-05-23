@@ -110,8 +110,14 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
                 return "burlesque";
             }
         });
-        docSchemaInfo = new DocSchemaInfo("doc", clusterService, nodeCtx, udfService,
-            (ident, state) -> null, new TestingDocTableInfoFactory(Map.of()));
+        docSchemaInfo = new DocSchemaInfo(
+            "doc",
+            clusterService,
+            nodeCtx,
+            udfService,
+            (ident, state) -> null,
+            new DocTableInfoFactory(nodeCtx)
+        );
     }
 
     @Test
