@@ -21,6 +21,7 @@ package io.crate.execution.engine.indexing;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.elasticsearch.index.mapper.ParseContext.Document;
@@ -41,12 +42,10 @@ public class Indexer {
     @SuppressWarnings("unchecked")
     public Document createDoc(Object[] values) {
         var doc = new Document();
+        Consumer<? super Field> addField = doc::add;
         for (int i = 0; i < values.length; i++) {
             var indexer = (ValueIndexer<Object>) indexers.get(i);
-            List<Field> indexValue = indexer.indexValue(values[i]);
-            for (Field field : indexValue) {
-                doc.add(field);
-            }
+            indexer.indexValue(values[i], addField);
         }
         return doc;
     }

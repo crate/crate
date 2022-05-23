@@ -19,11 +19,11 @@
 
 package io.crate.execution.engine.indexing;
 
-import java.util.List;
+import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 
 public interface ValueIndexer<T> {
 
-    List<Field> indexValue(T value);
+    void indexValue(T value, Consumer<? super Field> consumer);
 }

@@ -222,6 +222,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return null;
     }
 
+    // TODO: Integrate into StorageSupport?
     @Nullable
     public ValueIndexer<? super T> valueIndexer(String columnName) {
         return null;

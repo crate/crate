@@ -52,6 +52,7 @@ import org.elasticsearch.index.mapper.SeqNoFieldMapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -100,11 +101,10 @@ public class IndexingBenchmark {
             .put("path.home", tempDir.toAbsolutePath().toString())
             .build();
         Environment environment = new Environment(settings, tempDir);
+        List<Class<? extends Plugin>> plugins = List.of(Netty4Plugin.class);
         node = new Node(
             environment,
-            List.of(
-                Netty4Plugin.class
-            ),
+            plugins,
             true
         );
         node.start();
@@ -131,13 +131,9 @@ public class IndexingBenchmark {
         );
         doc = new Document();
         var intValueIndexer = new IntValueIndexer("id");
-        for (var field : intValueIndexer.indexValue(10)) {
-            doc.add(field);
-        }
+        intValueIndexer.indexValue(10, doc::add);
         var stringIndexer = new StringValueIndexer("name");
-        for (var field : stringIndexer.indexValue("Arthur")) {
-            doc.add(field);
-        }
+        stringIndexer.indexValue("Arthur", doc::add);
     }
 
     @Benchmark

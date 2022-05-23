@@ -19,8 +19,7 @@
 
 package io.crate.execution.engine.indexing;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntPoint;
@@ -36,12 +35,10 @@ public class IntValueIndexer implements ValueIndexer<Integer> {
     }
 
     @Override
-    public List<Field> indexValue(Integer value) {
-        ArrayList<Field> fields = new ArrayList<>(3);
+    public void indexValue(Integer value, Consumer<? super Field> consumer) {
         int intValue = value.intValue();
-        fields.add(new IntPoint(name, intValue));
-        fields.add(new StoredField(name, intValue));
-        fields.add(new SortedNumericDocValuesField(name, intValue));
-        return fields;
+        consumer.accept(new IntPoint(name, intValue));
+        consumer.accept(new StoredField(name, intValue));
+        consumer.accept(new SortedNumericDocValuesField(name, intValue));
     }
 }

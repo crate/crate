@@ -19,8 +19,7 @@
 
 package io.crate.execution.engine.indexing;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.SortedDocValuesField;
@@ -36,11 +35,9 @@ public class StringValueIndexer implements ValueIndexer<String> {
     }
 
     @Override
-    public List<Field> indexValue(String value) {
-        ArrayList<Field> fields = new ArrayList<>();
+    public void indexValue(String value, Consumer<? super Field> consumer) {
         final BytesRef binaryValue = new BytesRef(value);
-        fields.add(new Field(name, binaryValue, KeywordFieldMapper.Defaults.FIELD_TYPE));
-        fields.add(new SortedDocValuesField(name, binaryValue));
-        return fields;
+        consumer.accept(new Field(name, binaryValue, KeywordFieldMapper.Defaults.FIELD_TYPE));
+        consumer.accept(new SortedDocValuesField(name, binaryValue));
     }
 }
