@@ -1121,6 +1121,15 @@ With a few exceptions (noted below), the ``+`` and ``-`` :ref:`operators
 A timestamp expresses a specific date and time as the number of milliseconds
 since the `Unix epoch`_ (i.e., ``1970-01-01T00:00:00Z``).
 
+``TIMESTAMP`` has two variants:
+    - :ref:`TIMESTAMP WITHOUT TIME ZONE <type-timestamp-without-tz>` which
+       presents all values in UTC.
+    - :ref:`TIMESTAMP WITH TIME ZONE <type-timestamp-with-tz>`  which presents
+      all values in UTC in respect to the ``TIME ZONE`` related offset.
+
+By default a ``TIMESTAMP`` is an alias for :ref:`TIMESTAMP WITHOUT TIME ZONE
+<type-timestamp-without-tz>`.
+
 Timestamps can be expressed as string literals (e.g.,
 ``'1970-01-02T00:00:00'``) with the following syntax:
 
@@ -1276,19 +1285,6 @@ timestamp into UTC prior to insertion. Contrast this with the behavior of
 
     ``TIMESTAMPTZ`` is an alias for ``TIMESTAMP WITH TIME ZONE``.
 
-.. CAUTION::
-
-    In the absence of an explicit :ref:`WITH TIME ZONE
-    <type-timestamp-with-tz>` or :ref:`WITHOUT TIME ZONE
-    <type-timestamp-without-tz>`, CrateDB will interpret ``TIMEZONE`` as an
-    alias for ``TIMESTAMP WITH TIME ZONE``.
-
-    This behaviour does not comply with standard SQL and is incompatible with
-    PostgreSQL. CrateDB 4.0 :ref:`deprecated this alias <v4.0.0-deprecations>`
-    and behavior may change in a future version of CrateDB (see `tracking issue
-    #11491`_). To avoid issues, we recommend that you always specify ``WITH
-    TIME ZONE`` or ``WITHOUT TIME ZONE``.
-
 
 .. _type-timestamp-without-tz:
 
@@ -1346,20 +1342,6 @@ literal. Contrast this with the behavior of :ref:`WITH TIME ZONE
 
     cr> DROP TABLE my_table;
     DROP OK, 1 row affected (... sec)
-
-.. CAUTION::
-
-    In the absence of an explicit :ref:`WITH TIME ZONE
-    <type-timestamp-with-tz>` or :ref:`WITHOUT TIME ZONE
-    <type-timestamp-without-tz>`, CrateDB will interpret ``TIMEZONE`` as an
-    alias for ``TIMESTAMP WITH TIME ZONE``.
-
-    This behaviour does not comply with standard SQL and is incompatible with
-    PostgreSQL. CrateDB 4.0 :ref:`deprecated this alias <v4.0.0-deprecations>`
-    and behavior may change in a future version of CrateDB (see `tracking issue
-    #11491`_). To avoid issues, we recommend that you always specify ``WITH
-    TIME ZONE`` or ``WITHOUT TIME ZONE``.
-
 
 .. _type-timestamp-at-tz:
 
@@ -3275,47 +3257,47 @@ For example, in a type cast::
 
 See the table below for a full list of aliases:
 
-+-----------------------+------------------------------+
-| Alias                 | CrateDB Type                 |
-+=======================+==============================+
-| ``SHORT``             | ``SMALLINT``                 |
-+-----------------------+------------------------------+
-| ``INT``               | ``INTEGER``                  |
-+-----------------------+------------------------------+
-| ``INT2``              | ``SMALLINT``                 |
-+-----------------------+------------------------------+
-| ``INT4``              | ``INTEGER``                  |
-+-----------------------+------------------------------+
-| ``INT8``              | ``BIGINT``                   |
-+-----------------------+------------------------------+
-| ``LONG``              | ``BIGINT``                   |
-+-----------------------+------------------------------+
-| ``STRING``            | ``TEXT``                     |
-+-----------------------+------------------------------+
-| ``VARCHAR``           | ``TEXT``                     |
-+-----------------------+------------------------------+
-| ``CHARACTER VARYING`` | ``TEXT``                     |
-+-----------------------+------------------------------+
-| ``NAME``              | ``TEXT``                     |
-+-----------------------+------------------------------+
-| ``REGPROC``           | ``TEXT``                     |
-+-----------------------+------------------------------+
-| ``BYTE``              | ``CHAR``                     |
-+-----------------------+------------------------------+
-| ``FLOAT``             | ``REAL``                     |
-+-----------------------+------------------------------+
-| ``FLOAT4``            | ``REAL``                     |
-+-----------------------+------------------------------+
-| ``FLOAT8``            | ``DOUBLE PRECISION``         |
-+-----------------------+------------------------------+
-| ``DOUBLE``            | ``DOUBLE PRECISION``         |
-+-----------------------+------------------------------+
-| ``DECIMAL``           | ``NUMERIC``                  |
-+-----------------------+------------------------------+
-| ``TIMESTAMP``         | ``TIMESTAMP WITH TIME ZONE`` |
-+-----------------------+------------------------------+
-| ``TIMESTAMPTZ``       | ``TIMESTAMP WITH TIME ZONE`` |
-+-----------------------+------------------------------+
++-----------------------+---------------------------------+
+| Alias                 | CrateDB Type                    |
++=======================+=================================+
+| ``SHORT``             | ``SMALLINT``                    |
++-----------------------+---------------------------------+
+| ``INT``               | ``INTEGER``                     |
++-----------------------+---------------------------------+
+| ``INT2``              | ``SMALLINT``                    |
++-----------------------+---------------------------------+
+| ``INT4``              | ``INTEGER``                     |
++-----------------------+---------------------------------+
+| ``INT8``              | ``BIGINT``                      |
++-----------------------+---------------------------------+
+| ``LONG``              | ``BIGINT``                      |
++-----------------------+---------------------------------+
+| ``STRING``            | ``TEXT``                        |
++-----------------------+---------------------------------+
+| ``VARCHAR``           | ``TEXT``                        |
++-----------------------+---------------------------------+
+| ``CHARACTER VARYING`` | ``TEXT``                        |
++-----------------------+---------------------------------+
+| ``NAME``              | ``TEXT``                        |
++-----------------------+---------------------------------+
+| ``REGPROC``           | ``TEXT``                        |
++-----------------------+---------------------------------+
+| ``BYTE``              | ``CHAR``                        |
++-----------------------+---------------------------------+
+| ``FLOAT``             | ``REAL``                        |
++-----------------------+---------------------------------+
+| ``FLOAT4``            | ``REAL``                        |
++-----------------------+---------------------------------+
+| ``FLOAT8``            | ``DOUBLE PRECISION``            |
++-----------------------+---------------------------------+
+| ``DOUBLE``            | ``DOUBLE PRECISION``            |
++-----------------------+---------------------------------+
+| ``DECIMAL``           | ``NUMERIC``                     |
++-----------------------+---------------------------------+
+| ``TIMESTAMP``         | ``TIMESTAMP WITHOUT TIME ZONE`` |
++-----------------------+---------------------------------+
+| ``TIMESTAMPTZ``       | ``TIMESTAMP WITH TIME ZONE``    |
++-----------------------+---------------------------------+
 
 .. NOTE::
 

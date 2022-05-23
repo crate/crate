@@ -37,8 +37,6 @@ import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -54,9 +52,6 @@ import java.util.function.Function;
 import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
 public class AnalyzedColumnDefinition<T> {
-
-    private static final DeprecationLogger DEPRECATION_LOGGER =
-        new DeprecationLogger(LogManager.getLogger(AnalyzedColumnDefinition.class));
 
     private static final Set<Integer> UNSUPPORTED_PK_TYPE_IDS = Set.of(
         ObjectType.ID,
@@ -273,13 +268,6 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     public void dataType(String typeName, List<Integer> parameters, boolean logWarnings) {
-        if ("timestamp".equals(typeName) && logWarnings) {
-            DEPRECATION_LOGGER.deprecated(
-                "Column [{}]: Usage of the `TIMESTAMP` data type as a timestamp with zone " +
-                "is deprecated, use the `TIMESTAMPTZ` or `TIMESTAMP WITH TIME ZONE` data type instead.",
-                ident.fqn()
-            );
-        }
         this.dataType = DataTypes.of(typeName, parameters);
     }
 
