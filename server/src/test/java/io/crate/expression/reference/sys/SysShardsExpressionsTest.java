@@ -91,7 +91,11 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         NodeContext nodeCtx = createNodeContext();
         indexShard = mockIndexShard();
         CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
-        UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
+        UserDefinedFunctionService udfService = new UserDefinedFunctionService(
+            clusterService,
+            new DocTableInfoFactory(nodeCtx),
+            nodeCtx
+        );
         schemas = new Schemas(
             Map.of("sys", new SysSchemaInfo(this.clusterService, crateSettings)),
             clusterService,

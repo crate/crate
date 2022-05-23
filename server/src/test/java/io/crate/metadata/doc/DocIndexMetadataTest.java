@@ -126,7 +126,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setupUdfService() {
         nodeCtx = createNodeContext();
-        udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
+        udfService = new UserDefinedFunctionService(clusterService, new DocTableInfoFactory(nodeCtx), nodeCtx);
     }
 
     @Test

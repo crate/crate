@@ -99,7 +99,7 @@ import io.crate.Constants;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfoBuilder;
+import io.crate.metadata.doc.DocTableInfoFactory;
 
 /**
  * Service responsible for submitting create index requests
@@ -558,8 +558,7 @@ public class MetadataCreateIndexService {
                 return;
             }
             var relationName = RelationName.fromIndexName(request.index());
-            var builder = new DocTableInfoBuilder(nodeContext, relationName, updatedState);
-            builder.build();
+            new DocTableInfoFactory(nodeContext).create(relationName, updatedState);
         }
 
         @Override
