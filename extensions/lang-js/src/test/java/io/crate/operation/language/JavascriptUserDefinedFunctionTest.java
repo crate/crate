@@ -29,6 +29,7 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -67,7 +68,9 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
         super.setUp();
         udfService = new UserDefinedFunctionService(
             mock(ClusterService.class),
-            sqlExpressions.nodeCtx);
+            new DocTableInfoFactory(sqlExpressions.nodeCtx),
+            sqlExpressions.nodeCtx
+        );
         udfService.registerLanguage(new JavaScriptLanguage(udfService));
     }
 

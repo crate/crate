@@ -253,7 +253,8 @@ public class SQLExecutor {
             this.clusterService = clusterService;
             addNodesToClusterState(numNodes);
             nodeCtx = createNodeContext(additionalModules);
-            udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
+            DocTableInfoFactory tableInfoFactory = new DocTableInfoFactory(nodeCtx);
+            udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeCtx);
             Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
             CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
             schemaInfoByName.put("sys", new SysSchemaInfo(clusterService, crateSettings));
@@ -267,7 +268,6 @@ public class SQLExecutor {
                         Collections.emptyMap(), createTempDir())));
 
 
-            DocTableInfoFactory tableInfoFactory = new DocTableInfoFactory(nodeCtx);
             ViewInfoFactory testingViewInfoFactory = (ident, state) -> null;
 
             schemas = new Schemas(
