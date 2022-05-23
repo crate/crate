@@ -99,6 +99,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Enabled to alter the setting ``blocks.read_only_allow_delete`` on blob tables
+  to make it possible to drop read-only blob tables.
+
 - Fixed an issue that could cause queries on ``sys.snapshots`` to get stuck and
   consume a significant amount of resources.
 
