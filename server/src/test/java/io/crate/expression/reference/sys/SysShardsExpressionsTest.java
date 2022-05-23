@@ -21,25 +21,20 @@
 
 package io.crate.expression.reference.sys;
 
-import io.crate.expression.NestableInput;
-import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.reference.sys.shard.ShardRowContext;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.SystemTable;
-import io.crate.metadata.doc.DocSchemaInfoFactory;
-import io.crate.metadata.doc.TestingDocTableInfoFactory;
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.shard.ShardReferenceResolver;
-import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.types.DataTypes;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static io.crate.testing.TestingHelpers.refInfo;
+import static io.crate.testing.TestingHelpers.resolveCanonicalString;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -62,20 +57,25 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static io.crate.testing.TestingHelpers.refInfo;
-import static io.crate.testing.TestingHelpers.resolveCanonicalString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.crate.expression.NestableInput;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.sys.shard.ShardRowContext;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.SystemTable;
+import io.crate.metadata.doc.DocSchemaInfoFactory;
+import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.shard.ShardReferenceResolver;
+import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.types.DataTypes;
 
 public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -95,7 +95,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         schemas = new Schemas(
             Map.of("sys", new SysSchemaInfo(this.clusterService, crateSettings)),
             clusterService,
-            new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), (ident, state) -> null , nodeCtx, udfService)
+            new DocSchemaInfoFactory(new DocTableInfoFactory(nodeCtx), (ident, state) -> null , nodeCtx, udfService)
         );
         resolver = new ShardReferenceResolver(schemas, new ShardRowContext(indexShard, clusterService));
         sysShards = schemas.getTableInfo(SysShardsTableInfo.IDENT);
