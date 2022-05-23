@@ -21,13 +21,19 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
-
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
+
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.testing.TestingHelpers;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
@@ -114,6 +120,28 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
         execute("select digest from blob.b1 where digest = '62cdb7020ff920e5aa642c3d4066950dd1f01f4d'");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n"));
+    }
+
+    /**
+     * https://github.com/crate/crate/issues/12534
+     */
+    @Test
+    public void test_drop_tables_which_is_read_only() throws Exception {
+        execute("create blob table b1 with (number_of_replicas = 0)");
+
+        execute("alter blob table b1 set (\"blocks.read_only_allow_delete\"=true)");
+
+        assertThrowsMatches(
+            () -> execute("drop blob table b1"),
+            isSQLError(Matchers.startsWith("blocked by: "),
+                       INTERNAL_ERROR,
+                       INTERNAL_SERVER_ERROR,
+                       5000)
+        );
+
+        execute("alter blob table b1 set (\"blocks.read_only_allow_delete\"=false)");
+        execute("drop blob table b1");
+        assertThat(response.rowCount(), is(1L));
     }
 
     private void blobUpload(String[] contents, String... tables) throws Exception {

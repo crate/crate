@@ -21,6 +21,9 @@
 
 package io.crate.analyze;
 
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -85,7 +88,7 @@ public class TableParameters {
             NUMBER_OF_REPLICAS,
             IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
             IndexMetadata.INDEX_READ_ONLY_SETTING,
-            IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
+            INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
             IndexMetadata.INDEX_BLOCKS_READ_SETTING,
             IndexMetadata.INDEX_BLOCKS_WRITE_SETTING,
             IndexMetadata.INDEX_BLOCKS_METADATA_SETTING,
@@ -180,9 +183,13 @@ public class TableParameters {
     );
 
     public static final TableParameters ALTER_BLOB_TABLE_PARAMETERS = new TableParameters(
-        Map.of(NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS),
+        Map.of(NUMBER_OF_REPLICAS.getKey(),
+               NUMBER_OF_REPLICAS,
+               stripDotSuffix(stripIndexPrefix(SETTING_READ_ONLY_ALLOW_DELETE)),
+               INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING
+        ),
         Map.of()
-    );
+        );
 
     private final Map<String, Setting<?>> supportedSettings;
     private final Map<String, Setting<?>> supportedMappings;
