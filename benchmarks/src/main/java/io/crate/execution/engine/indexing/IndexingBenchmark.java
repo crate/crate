@@ -36,6 +36,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -175,15 +176,13 @@ public class IndexingBenchmark {
         DocTableInfo table = schemas.getTableInfo(new RelationName("doc", "users"));
         Object[] values = new Object[] { 10, "Arthur" };
         Indexer indexer = new Indexer(table.columns());
-        return indexer.createDoc(values);
+        return indexer.createDoc("10", values, new BytesArray("{}"));
     }
 
     @Benchmark
     public ParsedDocument measure_indexing_using__indexers_creating_parsed_doc() throws Exception {
         DocTableInfo table = schemas.getTableInfo(new RelationName("doc", "users"));
         Object[] values = new Object[] { 10, "Arthur" };
-        Indexer indexer = new Indexer(table.columns());
-        Document doc = indexer.createDoc(values);
         InsertSourceGen sourceGen = InsertSourceGen.of(
             CoordinatorTxnCtx.systemTransactionContext(),
             nodeCtx,
@@ -193,11 +192,14 @@ public class IndexingBenchmark {
             List.copyOf(table.columns())
         );
         BytesReference source = sourceGen.generateSourceAndCheckConstraintsAsBytesReference(values);
+        Indexer indexer = new Indexer(table.columns());
+        String id = "10";
+        Document doc = indexer.createDoc(id, values, source);
         Field version = new NumericDocValuesField("_version", -1L);
         return new ParsedDocument(
             version,
             SequenceIDFields.emptySeqID(),
-            "10",
+            id,
             List.of(doc),
             source,
             (Mapping) null
@@ -209,7 +211,8 @@ public class IndexingBenchmark {
         DocTableInfo table = schemas.getTableInfo(new RelationName("doc", "users"));
         Object[] values = new Object[] { 10, "Arthur" };
         Indexer indexer = new Indexer(table.columns());
-        Document doc = indexer.createDoc(values);
+        String id = "10";
+        Document doc = indexer.createDoc(id, values, new BytesArray("{}"));
         Iterator<Reference> it = table.columns().iterator();
         var out = new BytesStreamOutput();
         for (int i = 0; i < values.length; i++) {
@@ -222,7 +225,7 @@ public class IndexingBenchmark {
         return new ParsedDocument(
             version,
             SequenceIDFields.emptySeqID(),
-            "10",
+            id,
             List.of(doc),
             out.bytes(),
             (Mapping) null

@@ -24,7 +24,12 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParseContext.Document;
+import org.elasticsearch.index.mapper.Uid;
 
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.Reference;
@@ -39,14 +44,20 @@ public class Indexer {
             x -> x.valueType().valueIndexer(x.column().fqn()));
     }
 
+    // TODO: Need to handle system columns (_field_names, _id, _seq_no, _source(?), _version)
+
     @SuppressWarnings("unchecked")
-    public Document createDoc(Object[] values) {
+    public Document createDoc(String id, Object[] values, BytesReference source) {
         var doc = new Document();
         Consumer<? super Field> addField = doc::add;
         for (int i = 0; i < values.length; i++) {
             var indexer = (ValueIndexer<Object>) indexers.get(i);
             indexer.indexValue(values[i], addField);
         }
+        BytesRef idBytes = Uid.encodeId(id);
+        doc.add(new Field("_id", idBytes, IdFieldMapper.Defaults.FIELD_TYPE));
+        BytesRef ref = source.toBytesRef();
+        doc.add(new StoredField("_source", ref.bytes, ref.offset, ref.length));
         return doc;
     }
 }
