@@ -223,6 +223,15 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_alter_setting_block_read_only() {
+        AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (\"blocks.read_only_allow_delete\"=true)");
+        assertThat(analysis.tableInfo().ident().name(), is("blobs"));
+        AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
+        TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
+        assertThat(parameter.settings().getAsBoolean(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE, false), is(true));
+    }
+
+    @Test
     public void testAlterBlobTableWithPath() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid property \"blobs_path\" passed to [ALTER | CREATE] TABLE statement");

@@ -29,6 +29,17 @@ import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.ThreadSafe;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
@@ -45,12 +56,6 @@ import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.mapper.MapperService;
 
-import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.ThreadSafe;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Container for the supported settings that can be used in the `WITH` clause of `CREATE TABLE` statements
@@ -83,7 +88,7 @@ public class TableParameters {
             NUMBER_OF_REPLICAS,
             IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
             IndexMetadata.INDEX_READ_ONLY_SETTING,
-            IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
+            INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
             IndexMetadata.INDEX_BLOCKS_READ_SETTING,
             IndexMetadata.INDEX_BLOCKS_WRITE_SETTING,
             IndexMetadata.INDEX_BLOCKS_METADATA_SETTING,
@@ -174,9 +179,13 @@ public class TableParameters {
     );
 
     public static final TableParameters ALTER_BLOB_TABLE_PARAMETERS = new TableParameters(
-        Map.of(NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS),
+        Map.of(NUMBER_OF_REPLICAS.getKey(),
+               NUMBER_OF_REPLICAS,
+               stripDotSuffix(stripIndexPrefix(SETTING_READ_ONLY_ALLOW_DELETE)),
+               INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING
+        ),
         Map.of()
-    );
+        );
 
     private final Map<String, Setting<?>> supportedSettings;
     private final Map<String, Setting<?>> supportedMappings;
