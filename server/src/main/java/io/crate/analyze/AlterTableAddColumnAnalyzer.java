@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ExpressionToColumnIdentVisitor;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.exceptions.ColumnUnknownException;
@@ -78,12 +77,10 @@ class AlterTableAddColumnAnalyzer {
         var exprAnalyzerWithReferenceResolver = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, referenceResolver, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
+            txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
         var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
 
         AddColumnDefinition<Expression> tableElement = alterTable.tableElement();
-        // convert and validate the column name
-        ExpressionToColumnIdentVisitor.convert(tableElement.name());
 
         // 1st phase, exclude check constraints (their expressions contain column references) and generated expressions
         AddColumnDefinition<Symbol> addColumnDefinition = new AddColumnDefinition<>(
@@ -155,7 +152,7 @@ class AlterTableAddColumnAnalyzer {
                     "CHECK expressions defined in this context cannot refer to other columns: %s",
                     ref));
             } catch (ColumnUnknownException cue) {
-                ColumnIdent colIdent = TableReferenceResolver.columnIdent(qualifiedName, path);
+                ColumnIdent colIdent = ColumnIdent.fromNameSafe(qualifiedName, path);
                 for (int i = 0; i < columnDefinitions.size(); i++) {
                     AnalyzedColumnDefinition<Symbol> def = columnDefinitions.get(i);
                     if (def.ident().equals(colIdent)) {

@@ -50,7 +50,7 @@ public class OptimizeTableAnalyzer {
                                          ParamTypeHints paramTypeHints,
                                          CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
+            txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
 
         var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
         OptimizeStatement<Symbol> analyzedStatement =

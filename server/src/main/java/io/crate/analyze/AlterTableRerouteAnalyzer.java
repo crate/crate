@@ -104,7 +104,7 @@ public class AlterTableRerouteAnalyzer {
             this.exprAnalyzer = new ExpressionAnalyzer(
                 txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
             this.exprAnalyzerWithFields = new ExpressionAnalyzer(
-                txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
+                txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
         }
     }
 

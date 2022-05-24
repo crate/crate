@@ -526,7 +526,6 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         execute("create table t (id int) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        ensureYellow();
         assertThrowsMatches(() -> execute("alter table t add \"o.x\" int"),
                      isSQLError(is("\"o.x\" contains a dot"),
                                 INTERNAL_ERROR,
@@ -537,10 +536,8 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void testAlterTableAddDotExpressionInSubscript() {
         execute("create table t (id int) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-
         assertThrowsMatches(() ->  execute("alter table t add \"o['x.y']\" int"),
-                     isSQLError(is("\"o['x.y']\" contains a dot"),
+                     isSQLError(is("\"x.y\" contains a dot"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4008));
@@ -552,7 +549,6 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         execute("create table t (id int) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        ensureYellow();
         execute("alter table t add o['x'] int");
         execute("select column_name from information_schema.columns where " +
                 "table_name = 't' and table_schema='doc'" +

@@ -228,7 +228,7 @@ public class AnalyzedColumnDefinition<T> {
         if (this.parent != null) {
             this.ident = ColumnIdent.getChildSafe(this.parent.ident, name);
         } else {
-            this.ident = ColumnIdent.fromNameSafe(name);
+            this.ident = ColumnIdent.fromNameSafe(name, List.of());
         }
     }
 
