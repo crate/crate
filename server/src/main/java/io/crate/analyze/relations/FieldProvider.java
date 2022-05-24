@@ -43,5 +43,10 @@ public interface FieldProvider<T extends Symbol> {
             "Maybe you wanted to use a string literal which requires single quotes: '" + qualifiedName + "'");
     };
 
-    FieldProvider<Literal<?>> FIELDS_AS_LITERAL = ((qualifiedName, path, operation, errorOnUnknownObjectKey) -> Literal.of(new ColumnIdent(qualifiedName.toString(), path).fqn()));
+    FieldProvider<Literal<?>> TO_LITERAL_VALIDATE_NAME = ((qualifiedName, path, operation, errorOnUnknownObjectKey) -> Literal.of(
+        ColumnIdent.fromNameSafe(qualifiedName, path == null ? List.of() : path).fqn()
+    ));
+
+    FieldProvider<Literal<?>> TO_LITERAL_UNSAFE = ((qualifiedName, path, operation, errorOnUnknownObjectKey) ->
+        Literal.of(new ColumnIdent(qualifiedName.toString(), path).fqn()));
 }

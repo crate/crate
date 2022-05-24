@@ -21,24 +21,28 @@
 
 package io.crate.metadata;
 
-import io.crate.common.collections.Ordering;
-import io.crate.common.StringUtils;
-import io.crate.common.collections.Lists2;
-import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.sql.Identifiers;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.common.StringUtils;
+import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Ordering;
+import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.sql.Identifiers;
+import io.crate.sql.tree.QualifiedName;
 
 public class ColumnIdent implements Comparable<ColumnIdent> {
 
@@ -81,22 +85,28 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
      * Creates and validates ident from given string.
      *
      * @param name ident name used for ColumnIdent creation
+     * @param path path
      *
      * @return the validated ColumnIdent
      */
-    public static ColumnIdent fromNameSafe(String name) {
+    public static ColumnIdent fromNameSafe(String name, List<String> path) {
         validateColumnName(name);
-        return new ColumnIdent(name);
+        for (String part : path) {
+            validateObjectKey(part);
+        }
+        return new ColumnIdent(name, path);
     }
 
-    /**
-     * Creates and validates ident from given string.
-     *
-     * @param name ident name used for ColumnIdent creation
-     *
-     * @return the validated ColumnIdent
-     */
-    public static ColumnIdent fromNameAndPathSafe(String name, List<String> path) {
+    public static ColumnIdent fromNameSafe(QualifiedName qualifiedName, @Nullable List<String> path) {
+        path = path == null ? List.of() : path;
+        List<String> parts = qualifiedName.getParts();
+        if (parts.size() != 1) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "Column reference \"%s\" has too many parts. " +
+                "A column must not have a schema or a table here.", qualifiedName));
+        }
+        String name = parts.get(0);
         validateColumnName(name);
         for (String part : path) {
             validateObjectKey(part);

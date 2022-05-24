@@ -46,7 +46,7 @@ class SetStatementAnalyzer {
             txnCtx,
             nodeCtx,
             typeHints,
-            FieldProvider.FIELDS_AS_LITERAL,
+            FieldProvider.TO_LITERAL_UNSAFE,
             null
         );
         SetStatement<Symbol> statement = node.map(x -> exprAnalyzer.convert(x, new ExpressionAnalysisContext(txnCtx.sessionContext())));

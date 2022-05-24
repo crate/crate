@@ -67,7 +67,7 @@ class CopyAnalyzer {
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            txnCtx, nodeCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
+            txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
 
         var normalizer = new EvaluatingNormalizer(
             nodeCtx,
@@ -129,7 +129,7 @@ class CopyAnalyzer {
             txnCtx,
             nodeCtx,
             paramTypeHints,
-            FieldProvider.FIELDS_AS_LITERAL,
+            FieldProvider.TO_LITERAL_VALIDATE_NAME,
             null);
 
         var uri = expressionAnalyzer.convert(node.targetUri(), exprCtx);
