@@ -1,0 +1,55 @@
+.. _version_4.7.3:
+
+=============
+Version 4.7.3
+=============
+
+Released on 2022-05-24.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 4.7.3.
+
+    We recommend that you upgrade to the latest 4.6 release before moving to
+    4.7.3.
+
+    A rolling upgrade from 4.6.x to 4.7.3 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.7.0` release notes for a full list of changes in the
+4.7 series.
+
+Fixes
+=====
+
+- Enabled to alter the setting ``blocks.read_only_allow_delete`` on blob tables
+  to make it possible to drop read-only blob tables.
+
+- Fixed an issue that could cause queries on ``sys.snapshots`` to get stuck and
+  consume a significant amount of resources.
+
+- Fixed an issue with primary key columns that have a ``DEFAULT`` clause. That
+  could lead to queries on the primary key column not matching the row.
+
+- Fixed an issue with aliased sub-relation outputs when used inside the outer
+  where clause expression, resulting in a planner error. Example:
+  ``SELECT * FROM (SELECT id, true AS a FROM t1) WHERE a``
+
+- Fixed an issue with table functions parameter binding in ``SELECT`` queries
+  without ``FROM`` clause. Example: ``SELECT unnest(?)``.
+
+- Fixed an issue with ``VARCHAR`` and ``BIT`` columns with a length
+  limited used in primary key, generated or default column expression. An
+  ``ALTER TABLE`` statement removed the length limit from such columns.
