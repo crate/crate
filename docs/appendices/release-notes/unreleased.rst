@@ -64,22 +64,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Enabled to alter the setting ``blocks.read_only_allow_delete`` on blob tables
-  to make it possible to drop read-only blob tables.
-
-- Fixed an issue that could cause queries on ``sys.snapshots`` to get stuck and
-  consume a significant amount of resources.
-
-- Fixed an issue with primary key columns that have a ``DEFAULT`` clause. That
-  could lead to queries on the primary key column not matching the row.
-
-- Fixed an issue with aliased sub-relation outputs when used inside the outer
-  where clause expression, resulting in a planner error. Example:
-  ``SELECT * FROM (SELECT id, true AS a FROM t1) WHERE a``
-
-- Fixed an issue with table functions parameter binding in ``SELECT`` queries
-  without ``FROM`` clause. Example: ``SELECT unnest(?)``.
-
-- Fixed an issue with ``VARCHAR`` and ``BIT`` columns with a length
-  limited used in primary key, generated or default column expression. An
-  ``ALTER TABLE`` statement removed the length limit from such columns.
+None
