@@ -209,7 +209,7 @@ should be crossed out as well.
 - [ ] 0286d0a769e Move distance_feature query building into MFT (#60614) (#60846)
 - [ ] f44c28b5951 Deprecate and ignore join timeout (#60872)
 - [ ] e8d9185045b Cut over IPFieldMapper to parametrized form (#60602)
-- [ ] 1f49e0b9d01 Fix testRerouteOccursOnDiskPassingHighWatermark (#60869)
+- [x] 1f49e0b9d01 Fix testRerouteOccursOnDiskPassingHighWatermark (#60869)
 - [ ] 2f76c48ea71 Propagate forceExecution when acquiring permit (#60634)
 - [ ] b4044004aa4 Add recovery state tracking for Searchable Snapshots (#60751)
 - [ ] ebfb93ff264 Improve some BytesStreamOutput Usage (#60730) (#60736)
