@@ -41,7 +41,6 @@ import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.DiskUsage;
 import org.elasticsearch.cluster.MockInternalClusterInfoService;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -143,7 +142,7 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
             internalCluster().startNode(
                 Settings.builder()
                     .put(Environment.PATH_DATA_SETTING.getKey(), createTempDir())
-                    .put(CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "1ms"));
+                    .put(CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "0ms"));
         }
         List<String> nodeIds = getNodeIds();
 
