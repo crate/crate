@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -95,7 +96,7 @@ public class DocSysColumns {
                              RowGranularity.DOC,
                              dataType,
                              ColumnPolicy.STRICT,
-                             Reference.IndexType.PLAIN,
+                             IndexType.PLAIN,
                              false,
                              false,
                              position,

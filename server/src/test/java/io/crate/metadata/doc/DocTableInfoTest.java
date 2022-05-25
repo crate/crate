@@ -25,6 +25,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -119,7 +120,7 @@ public class DocTableInfoTest extends ESTestCase {
             RowGranularity.DOC,
             DataTypes.UNTYPED_OBJECT,
             ColumnPolicy.STRICT,
-            Reference.IndexType.PLAIN,
+            IndexType.PLAIN,
             true,
             false,
             1,

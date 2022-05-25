@@ -65,7 +65,7 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
         GeneratedReference generatedReferenceInfo = new GeneratedReference(1,
             referenceIdent,
             RowGranularity.DOC,
-            StringType.INSTANCE, ColumnPolicy.STRICT, Reference.IndexType.FULLTEXT,
+            StringType.INSTANCE, ColumnPolicy.STRICT, IndexType.FULLTEXT,
             formattedGeneratedExpression,
             false,
             true);

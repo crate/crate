@@ -33,6 +33,7 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -565,13 +566,13 @@ public class AnalyzedTableElements<T> {
 
 
         }
-        if (columnDefinition.indexConstraint() == Reference.IndexType.FULLTEXT) {
+        if (columnDefinition.indexConstraint() == IndexType.FULLTEXT) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                              "Cannot use column %s with fulltext index in PARTITIONED BY clause",
                                                              columnDefinition.ident().sqlFqn()));
         }
         elements.columnIdents.remove(columnDefinition.ident());
-        columnDefinition.indexConstraint(Reference.IndexType.NONE);
+        columnDefinition.indexConstraint(IndexType.NONE);
         elements.partitionedByColumns.add(columnDefinition);
     }
 

@@ -31,6 +31,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -74,7 +75,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
         RowGranularity.DOC,
         DataTypes.INTEGER,
         ColumnPolicy.DYNAMIC,
-        Reference.IndexType.PLAIN,
+        IndexType.PLAIN,
         true,
         false,
         0,
@@ -85,7 +86,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
         RowGranularity.DOC,
         DataTypes.INTEGER,
         ColumnPolicy.DYNAMIC,
-        Reference.IndexType.PLAIN,
+        IndexType.PLAIN,
         false,
         false,
         0,

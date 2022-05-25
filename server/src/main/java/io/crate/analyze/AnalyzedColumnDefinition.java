@@ -26,7 +26,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.Reference;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.GenericProperties;
@@ -83,7 +83,7 @@ public class AnalyzedColumnDefinition<T> {
     @Nullable
     private GenericProperties<T> geoProperties;
 
-    private Reference.IndexType indexType;
+    private IndexType indexType;
     @Nullable
     private T analyzer;
     private String indexMethod;
@@ -126,7 +126,7 @@ public class AnalyzedColumnDefinition<T> {
                                      String name,
                                      DataType dataType,
                                      String collectionType,
-                                     Reference.IndexType indexType,
+                                     IndexType indexType,
                                      String geoTree,
                                      T analyzer,
                                      String indexMethod,
@@ -240,12 +240,12 @@ public class AnalyzedColumnDefinition<T> {
         this.indexMethod = indexMethod;
     }
 
-    public void indexConstraint(Reference.IndexType indexType) {
+    public void indexConstraint(IndexType indexType) {
         this.indexType = indexType;
     }
 
     @Nullable
-    Reference.IndexType indexConstraint() {
+    IndexType indexConstraint() {
         return indexType;
     }
 
@@ -381,7 +381,7 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     public void validate() {
-        if (indexType == Reference.IndexType.FULLTEXT && !DataTypes.STRING.equals(dataType)) {
+        if (indexType == IndexType.FULLTEXT && !DataTypes.STRING.equals(dataType)) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
                 "Can't use an Analyzer on column %s because analyzers are only allowed on " +
@@ -432,7 +432,7 @@ public class AnalyzedColumnDefinition<T> {
         if (definition.position != 0) {
             mapping.put("position", definition.position);
         }
-        if (definition.indexType == Reference.IndexType.NONE) {
+        if (definition.indexType == IndexType.NONE) {
             // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
             mapping.put("index", false);
         }

@@ -19,18 +19,21 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.types;
+package io.crate.metadata;
 
+import java.io.IOException;
+import java.util.List;
 
-import javax.annotation.Nullable;
+import org.elasticsearch.common.io.stream.StreamInput;
 
-import io.crate.metadata.IndexType;
+public enum IndexType {
+    FULLTEXT,
+    PLAIN,
+    NONE;
 
-public record StorageSupport<T>(boolean docValuesDefault,
-                                boolean hasFieldNamesIndex,
-                                @Nullable EqQuery<T> eqQuery) {
+    private static final List<IndexType> VALUES = List.of(values());
 
-    public boolean getComputedDocValuesDefault(IndexType indexType) {
-        return docValuesDefault && indexType != IndexType.FULLTEXT;
+    static IndexType fromStream(StreamInput in) throws IOException {
+        return VALUES.get(in.readVInt());
     }
 }

@@ -27,7 +27,6 @@ import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.MapLookupByPathExpression;
 import io.crate.expression.symbol.DynamicReference;
-import io.crate.metadata.Reference.IndexType;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;

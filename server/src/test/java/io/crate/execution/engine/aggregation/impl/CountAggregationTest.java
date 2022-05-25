@@ -47,11 +47,11 @@ import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValu
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.Reference.IndexType;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.sql.tree.BitString;

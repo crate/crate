@@ -45,6 +45,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
@@ -215,7 +216,7 @@ public class Collect implements LogicalPlan {
         // 2) no docValues or field data for analyzed columns -> can't sort on lucene level
         return s instanceof Reference &&
                (((Reference) s).granularity() == RowGranularity.PARTITION
-                || ((Reference) s).indexType() == Reference.IndexType.FULLTEXT);
+                || ((Reference) s).indexType() == IndexType.FULLTEXT);
     }
 
     @Nullable

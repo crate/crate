@@ -70,6 +70,7 @@ import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
@@ -406,7 +407,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                            RowGranularity.DOC,
                                            DataTypes.INTEGER_ARRAY,
                                            ColumnPolicy.DYNAMIC,
-                                           Reference.IndexType.PLAIN,
+                                           IndexType.PLAIN,
                                            true,
                                            true,
                                            1, null);

@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -41,18 +40,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class Reference implements Symbol {
-
-    public enum IndexType {
-        FULLTEXT,
-        PLAIN,
-        NONE;
-
-        private static final List<IndexType> VALUES = List.of(values());
-
-        static IndexType fromStream(StreamInput in) throws IOException {
-            return VALUES.get(in.readVInt());
-        }
-    }
 
     protected DataType<?> type;
 

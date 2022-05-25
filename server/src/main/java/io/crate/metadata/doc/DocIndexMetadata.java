@@ -37,6 +37,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -203,14 +204,14 @@ public class DocIndexMetadata {
                      DataType type,
                      @Nullable String defaultExpression,
                      ColumnPolicy columnPolicy,
-                     Reference.IndexType indexType,
+                     IndexType indexType,
                      boolean isNotNull,
                      boolean hasDocValues) {
         Reference ref;
         boolean partitionByColumn = partitionedBy.contains(column);
         String generatedExpression = generatedColumns.get(column.fqn());
         if (partitionByColumn) {
-            indexType = Reference.IndexType.PLAIN;
+            indexType = IndexType.PLAIN;
         }
         if (generatedExpression == null) {
             ref = newInfo(position, column, type, defaultExpression, columnPolicy, indexType, isNotNull, hasDocValues);
@@ -272,7 +273,7 @@ public class DocIndexMetadata {
                               DataType<?> type,
                               @Nullable String formattedDefaultExpression,
                               ColumnPolicy columnPolicy,
-                              Reference.IndexType indexType,
+                              IndexType indexType,
                               boolean nullable,
                               boolean hasDocValues) {
         Symbol defaultExpression = null;
@@ -385,22 +386,22 @@ public class DocIndexMetadata {
      *     }
      * </pre>
      */
-    private static Reference.IndexType getColumnIndexType(Map<String, Object> columnProperties) {
+    private static IndexType getColumnIndexType(Map<String, Object> columnProperties) {
         Object index = columnProperties.get("index");
         if (index == null) {
             if ("text".equals(columnProperties.get("type"))) {
-                return Reference.IndexType.FULLTEXT;
+                return IndexType.FULLTEXT;
             }
-            return Reference.IndexType.PLAIN;
+            return IndexType.PLAIN;
         }
         if (Boolean.FALSE.equals(index) || "no".equals(index) || "false".equals(index)) {
-            return Reference.IndexType.NONE;
+            return IndexType.NONE;
         }
 
         if ("not_analyzed".equals(index)) {
-            return Reference.IndexType.PLAIN;
+            return IndexType.PLAIN;
         }
-        return Reference.IndexType.FULLTEXT;
+        return IndexType.FULLTEXT;
     }
 
     private static ColumnIdent childIdent(@Nullable ColumnIdent ident, String name) {
@@ -434,7 +435,7 @@ public class DocIndexMetadata {
             columnProperties = furtherColumnProperties(columnProperties);
             int position = columnPosition((int) columnProperties.getOrDefault("position", 0));
             String defaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
-            Reference.IndexType columnIndexType = getColumnIndexType(columnProperties);
+            IndexType columnIndexType = getColumnIndexType(columnProperties);
             StorageSupport storageSupport = columnDataType.storageSupport();
             assert storageSupport != null
                 : "DataType used in table definition must have storage support: " + columnDataType;
@@ -450,7 +451,7 @@ public class DocIndexMetadata {
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
-                add(position, newIdent, columnDataType, defaultExpression, columnPolicy, Reference.IndexType.NONE, nullable, hasDocValues);
+                add(position, newIdent, columnDataType, defaultExpression, columnPolicy, IndexType.NONE, nullable, hasDocValues);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested

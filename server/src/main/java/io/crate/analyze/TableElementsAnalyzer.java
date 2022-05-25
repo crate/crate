@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
@@ -279,9 +280,9 @@ public class TableElementsAnalyzer {
             if (node.indexMethod().equals("fulltext")) {
                 setAnalyzer((GenericProperties<T>) node.properties(), context, node.indexMethod());
             } else if (node.indexMethod().equalsIgnoreCase("plain")) {
-                context.analyzedColumnDefinition.indexConstraint(Reference.IndexType.PLAIN);
+                context.analyzedColumnDefinition.indexConstraint(IndexType.PLAIN);
             } else if (node.indexMethod().equalsIgnoreCase("OFF")) {
-                context.analyzedColumnDefinition.indexConstraint(Reference.IndexType.NONE);
+                context.analyzedColumnDefinition.indexConstraint(IndexType.NONE);
             } else if (node.indexMethod().equals("quadtree") || node.indexMethod().equals("geohash")) {
                 setGeoType((GenericProperties<T>) node.properties(), context, node.indexMethod());
             } else {
@@ -328,7 +329,7 @@ public class TableElementsAnalyzer {
         private void setAnalyzer(GenericProperties<T> properties,
                                  ColumnDefinitionContext<T> context,
                                  String indexMethod) {
-            context.analyzedColumnDefinition.indexConstraint(Reference.IndexType.FULLTEXT);
+            context.analyzedColumnDefinition.indexConstraint(IndexType.FULLTEXT);
 
             T analyzerName = properties.get("analyzer");
             if (analyzerName == null) {
