@@ -21,6 +21,7 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;

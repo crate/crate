@@ -38,6 +38,7 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.parser.SqlParser;
@@ -145,12 +146,12 @@ public class MetadataToASTNodeResolver {
                 if (!ref.isNullable()) {
                     constraints.add(new NotNullColumnConstraint<>());
                 }
-                if (ref.indexType().equals(Reference.IndexType.NONE)
+                if (ref.indexType().equals(IndexType.NONE)
                     && ref.valueType().id() != ObjectType.ID
                     && !(ref.valueType().id() == ArrayType.ID &&
                          ((ArrayType<?>) ref.valueType()).innerType().id() == ObjectType.ID)) {
                     constraints.add(IndexColumnConstraint.off());
-                } else if (ref.indexType().equals(Reference.IndexType.FULLTEXT)) {
+                } else if (ref.indexType().equals(IndexType.FULLTEXT)) {
                     String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);
                     GenericProperties<Expression> properties = new GenericProperties<>();
                     if (analyzer != null) {
@@ -226,7 +227,7 @@ public class MetadataToASTNodeResolver {
                 for (var indexRef : indexColumns) {
                     String name = indexRef.column().name();
                     List<Expression> columns = expressionsFromReferences(indexRef.columns());
-                    if (indexRef.indexType().equals(Reference.IndexType.FULLTEXT)) {
+                    if (indexRef.indexType().equals(IndexType.FULLTEXT)) {
                         String analyzer = indexRef.analyzer();
                         GenericProperties<Expression> properties = new GenericProperties<>();
                         if (analyzer != null) {
@@ -234,7 +235,7 @@ public class MetadataToASTNodeResolver {
                                                                  new StringLiteral(analyzer)));
                         }
                         elements.add(new IndexDefinition<>(name, "fulltext", columns, properties));
-                    } else if (indexRef.indexType().equals(Reference.IndexType.PLAIN)) {
+                    } else if (indexRef.indexType().equals(IndexType.PLAIN)) {
                         elements.add(new IndexDefinition<>(name, "plain", columns, GenericProperties.empty()));
                     }
                 }

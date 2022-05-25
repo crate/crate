@@ -26,6 +26,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -57,7 +58,7 @@ public class SourceIndexWriterProjectionSerializationTest {
             RowGranularity.DOC,
             new ArrayType<>(DataTypes.UNTYPED_OBJECT),
             ColumnPolicy.STRICT,
-            Reference.IndexType.FULLTEXT,
+            IndexType.FULLTEXT,
             false,
             true,
             0,
@@ -115,7 +116,7 @@ public class SourceIndexWriterProjectionSerializationTest {
             RowGranularity.DOC,
             new ArrayType<>(DataTypes.UNTYPED_OBJECT),
             ColumnPolicy.STRICT,
-            Reference.IndexType.FULLTEXT,
+            IndexType.FULLTEXT,
             false,
             true,
             0,

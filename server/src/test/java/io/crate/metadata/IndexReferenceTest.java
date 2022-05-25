@@ -43,7 +43,7 @@ public class IndexReferenceTest extends ESTestCase {
         IndexReference indexReferenceInfo = new IndexReference(
             2,
             indexReferenceIdent,
-            Reference.IndexType.FULLTEXT, List.of(reference), "my_analyzer");
+            IndexType.FULLTEXT, List.of(reference), "my_analyzer");
 
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(indexReferenceInfo, out);
