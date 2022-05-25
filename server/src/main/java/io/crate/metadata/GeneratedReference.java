@@ -28,6 +28,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -56,7 +57,11 @@ public class GeneratedReference implements Reference {
     }
 
     public GeneratedReference(StreamInput in) throws IOException {
-        ref = new SimpleReference(in);
+        if (in.getVersion().onOrAfter(Version.V_5_0_0)) {
+            ref = Reference.fromStream(in);
+        } else {
+            ref = new SimpleReference(in);
+        }
         formattedGeneratedExpression = in.readString();
         generatedExpression = Symbols.fromStream(in);
         int size = in.readVInt();
@@ -68,7 +73,26 @@ public class GeneratedReference implements Reference {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        ref.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_5_0_0)) {
+            Reference.toStream(ref, out);
+        } else {
+            if (ref instanceof SimpleReference simpleRef) {
+                simpleRef.writeTo(out);
+            } else {
+                SimpleReference simpleReference = new SimpleReference(
+                    ref.ident(),
+                    ref.granularity(),
+                    ref.valueType(),
+                    ref.columnPolicy(),
+                    ref.indexType(),
+                    ref.isNullable(),
+                    ref.hasDocValues(),
+                    ref.position(),
+                    ref.defaultExpression()
+                );
+                simpleReference.writeTo(out);
+            }
+        }
         out.writeString(formattedGeneratedExpression);
         Symbols.toStream(generatedExpression, out);
         out.writeVInt(referencedReferences.size());
