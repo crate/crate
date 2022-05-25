@@ -24,7 +24,7 @@ package io.crate.expression.symbol;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 
@@ -35,7 +35,7 @@ import java.util.List;
 public enum SymbolType {
 
     AGGREGATION(Aggregation::new),
-    REFERENCE(Reference::new),
+    REFERENCE(SimpleReference::new),
     RELATION_OUTPUT(in -> {
         throw new UnsupportedOperationException("Field is not streamable");
     }),

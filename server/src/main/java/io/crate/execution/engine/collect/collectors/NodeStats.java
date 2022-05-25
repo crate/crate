@@ -38,7 +38,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import io.crate.common.unit.TimeValue;
@@ -191,7 +191,7 @@ public final class NodeStats {
 
     private static Set<ColumnIdent> getRootColumns(Iterable<? extends Symbol> symbols) {
         HashSet<ColumnIdent> columns = new HashSet<>();
-        Consumer<Reference> addRootColumn = ref -> columns.add(ref.column().getRoot());
+        Consumer<SimpleReference> addRootColumn = ref -> columns.add(ref.column().getRoot());
         for (Symbol symbol: symbols) {
             RefVisitor.visitRefs(symbol, addRootColumn);
         }

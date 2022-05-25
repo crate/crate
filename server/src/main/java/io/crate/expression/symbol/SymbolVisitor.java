@@ -21,7 +21,7 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 
 
 public class SymbolVisitor<C, R> {
@@ -34,7 +34,7 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(symbol, context);
     }
 
-    public R visitReference(Reference symbol, C context) {
+    public R visitReference(SimpleReference symbol, C context) {
         return visitSymbol(symbol, context);
     }
 

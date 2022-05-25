@@ -37,7 +37,7 @@ public class IndexReferenceTest extends ESTestCase {
     public void testStreaming() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "string_col");
-        Reference reference = new Reference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE, 1, null);
+        SimpleReference reference = new SimpleReference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE, 1, null);
 
         ReferenceIdent indexReferenceIdent = new ReferenceIdent(relationName, "index_column");
         IndexReference indexReferenceInfo = new IndexReference(
@@ -46,10 +46,10 @@ public class IndexReferenceTest extends ESTestCase {
             IndexType.FULLTEXT, List.of(reference), "my_analyzer");
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(indexReferenceInfo, out);
+        SimpleReference.toStream(indexReferenceInfo, out);
 
         StreamInput in = out.bytes().streamInput();
-        IndexReference indexReferenceInfo2 = Reference.fromStream(in);
+        IndexReference indexReferenceInfo2 = SimpleReference.fromStream(in);
 
         assertThat(indexReferenceInfo2, is(indexReferenceInfo));
     }

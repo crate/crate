@@ -42,7 +42,7 @@ public class PartitionReferenceResolver implements ReferenceResolver<PartitionEx
     }
 
     @Override
-    public PartitionExpression getImplementation(Reference ref) {
+    public PartitionExpression getImplementation(SimpleReference ref) {
         PartitionExpression expression = expressionMap.get(ref.ident());
         assert expression != null : "granularity < PARTITION should have been resolved already";
         return expression;

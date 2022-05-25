@@ -122,7 +122,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
@@ -630,7 +630,7 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitSysUpdateProjection(SysUpdateProjection projection, Context context) {
-        Map<Reference, Symbol> assignments = projection.assignments();
+        Map<SimpleReference, Symbol> assignments = projection.assignments();
         assert !assignments.isEmpty() : "at least one assignment is required";
 
         List<Input<?>> valueInputs = new ArrayList<>(assignments.size());
@@ -639,8 +639,8 @@ public class ProjectionToProjectorVisitor
         RelationName relationName = null;
         InputFactory.Context<NestableCollectExpression<?, ?>> readCtx = null;
 
-        for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
-            Reference ref = e.getKey();
+        for (Map.Entry<SimpleReference, Symbol> e : assignments.entrySet()) {
+            SimpleReference ref = e.getKey();
             assert
                 relationName == null || relationName.equals(ref.ident().tableIdent()) : "mixed table assignments found";
             relationName = ref.ident().tableIdent();

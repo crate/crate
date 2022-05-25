@@ -30,7 +30,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder.Writer;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -58,7 +58,7 @@ public interface InsertSourceGen {
                               DocTableInfo table,
                               String indexName,
                               boolean validate,
-                              List<Reference> targets) {
+                              List<SimpleReference> targets) {
         if (targets.size() == 1 && targets.get(0).column().equals(DocSysColumns.RAW)) {
             if (!validate && table.generatedColumns().isEmpty() && table.defaultExpressionColumns().isEmpty()) {
                 return new RawInsertSource();

@@ -33,7 +33,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
@@ -75,7 +75,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
             List<String> partitionValue = partitionName.values();
             assert partitionValue.size() ==
                    numPartitionedColumns : "invalid number of partitioned columns";
-            for (Reference partitionedInfo : info.partitionedByColumns()) {
+            for (SimpleReference partitionedInfo : info.partitionedByColumns()) {
                 builder.put(
                     partitionedInfo.column(),
                     constant(partitionedInfo.valueType().implicitCast(partitionValue.get(i)))
@@ -107,7 +107,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
     }
 
     @Override
-    public NestableInput<?> getImplementation(Reference ref) {
+    public NestableInput<?> getImplementation(SimpleReference ref) {
         NestableInput<?> partitionColImpl = partitionColumnResolver.getImplementation(ref);
         if (partitionColImpl != null) {
             return partitionColImpl;

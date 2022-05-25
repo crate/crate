@@ -32,6 +32,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 
 public interface FunctionToQuery {
 
@@ -49,7 +50,7 @@ public interface FunctionToQuery {
      * </p>
      *
      * <p>
-     * Default implementation calls {@link #toQuery(Reference, Literal, Context)},
+     * Default implementation calls {@link #toQuery(SimpleReference, Literal, Context)},
      * which is there to make it more convenient to implement the functionality.
      * It unwraps the arguments for the common `col <op> literal` case.
      * </p>

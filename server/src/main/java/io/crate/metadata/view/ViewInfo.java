@@ -23,7 +23,7 @@ package io.crate.metadata.view;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -41,11 +41,11 @@ public class ViewInfo implements RelationInfo {
 
     private final RelationName ident;
     private final String definition;
-    private final List<Reference> columns;
+    private final List<SimpleReference> columns;
     private final String owner;
 
     @VisibleForTesting
-    public ViewInfo(RelationName ident, String definition, List<Reference> columns, @Nullable String owner) {
+    public ViewInfo(RelationName ident, String definition, List<SimpleReference> columns, @Nullable String owner) {
         this.ident = ident;
         this.definition = definition;
         this.columns = columns;
@@ -53,7 +53,7 @@ public class ViewInfo implements RelationInfo {
     }
 
     @Override
-    public Collection<Reference> columns() {
+    public Collection<SimpleReference> columns() {
         return columns;
     }
 
@@ -88,7 +88,7 @@ public class ViewInfo implements RelationInfo {
     }
 
     @Override
-    public Iterator<Reference> iterator() {
+    public Iterator<SimpleReference> iterator() {
         return columns.iterator();
     }
 

@@ -40,7 +40,7 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -241,7 +241,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     }
 
     @Override
-    public Symbol visitReference(Reference ref, SourceSymbols sourceSymbols) {
+    public Symbol visitReference(SimpleReference ref, SourceSymbols sourceSymbols) {
         if (ref instanceof GeneratedReference) {
             return Objects.requireNonNullElse(
                 sourceSymbols.inputs.get(ref),

@@ -38,7 +38,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
@@ -166,7 +166,7 @@ public class Get implements LogicalPlan {
         // If the query contains only DocKeys, no filter is needed as all DocKeys are handled by the PKLookupOperation
         AtomicBoolean requiresAdditionalFilteringOnNonDocKeyColumns = new AtomicBoolean(false);
         var toCollectSet = new LinkedHashSet<>(boundOutputs);
-        Consumer<Reference> addRefIfMatch = ref -> {
+        Consumer<SimpleReference> addRefIfMatch = ref -> {
             toCollectSet.add(ref);
             if (docKeyColumns.contains(ref.column()) == false) {
                 requiresAdditionalFilteringOnNonDocKeyColumns.set(true);

@@ -65,7 +65,7 @@ public final class DocReferences {
      *     x -> _doc['x']
      * </pre>
      */
-    public static Symbol toSourceLookup(Symbol tree, Predicate<Reference> condition) {
+    public static Symbol toSourceLookup(Symbol tree, Predicate<SimpleReference> condition) {
         return RefReplacer.replaceRefs(tree, r -> toSourceLookup(r, condition));
     }
 
@@ -77,11 +77,11 @@ public final class DocReferences {
      *     x -> _doc['x']
      * </pre>
      */
-    public static Reference toSourceLookup(Reference reference) {
+    public static SimpleReference toSourceLookup(SimpleReference reference) {
         return toSourceLookup(reference, r -> true);
     }
 
-    private static Reference toSourceLookup(Reference reference, Predicate<Reference> condition) {
+    private static SimpleReference toSourceLookup(SimpleReference reference, Predicate<SimpleReference> condition) {
         ReferenceIdent ident = reference.ident();
         if (ident.columnIdent().isSystemColumn()) {
             return reference;
@@ -94,7 +94,7 @@ public final class DocReferences {
         return reference;
     }
 
-    public static Reference docRefToRegularRef(Reference ref) {
+    public static SimpleReference docRefToRegularRef(SimpleReference ref) {
         ColumnIdent column = ref.column();
         if (!column.isTopLevel() && column.name().equals(DocSysColumns.Names.DOC)) {
             return ref.getRelocated(new ReferenceIdent(ref.ident().tableIdent(), column.shiftRight()));

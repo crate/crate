@@ -25,7 +25,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -51,7 +51,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private final boolean failFast;
     private final boolean validation;
     private final Boolean overwriteDuplicates;
-    private final Reference rawSourceReference;
+    private final SimpleReference rawSourceReference;
     private final InputColumn rawSourceSymbol;
     private final List<? extends Symbol> outputs;
 
@@ -63,7 +63,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     public SourceIndexWriterProjection(RelationName relationName,
                                        @Nullable String partitionIdent,
-                                       Reference rawSourceReference,
+                                       SimpleReference rawSourceReference,
                                        InputColumn rawSourcePtr,
                                        List<ColumnIdent> primaryKeys,
                                        List<Symbol> partitionedBySymbols,
@@ -96,7 +96,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             failFast = false;
         }
         overwriteDuplicates = in.readBoolean();
-        rawSourceReference = Reference.fromStream(in);
+        rawSourceReference = SimpleReference.fromStream(in);
         rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
 
         if (in.readBoolean()) {
@@ -130,7 +130,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         return rawSourceSymbol;
     }
 
-    public Reference rawSourceReference() {
+    public SimpleReference rawSourceReference() {
         return rawSourceReference;
     }
 
@@ -190,7 +190,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeBoolean(failFast);
         }
         out.writeBoolean(overwriteDuplicates);
-        Reference.toStream(rawSourceReference, out);
+        SimpleReference.toStream(rawSourceReference, out);
         Symbols.toStream(rawSourceSymbol, out);
 
         if (includes == null) {

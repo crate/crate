@@ -34,7 +34,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -76,7 +76,7 @@ final class UpdateSourceGen {
 
     private final Evaluator eval;
     private final GeneratedColumns<Doc> generatedColumns;
-    private final ArrayList<Reference> updateColumns;
+    private final ArrayList<SimpleReference> updateColumns;
     private final CheckConstraints<Doc, CollectExpression<Doc, ?>> checks;
 
     UpdateSourceGen(TransactionContext txnCtx, NodeContext nodeCtx, DocTableInfo table, String[] updateColumns) {
@@ -87,7 +87,7 @@ final class UpdateSourceGen {
         this.updateColumns = new ArrayList<>(updateColumns.length);
         for (String updateColumn : updateColumns) {
             ColumnIdent column = ColumnIdent.fromPath(updateColumn);
-            Reference ref = table.getReference(column);
+            SimpleReference ref = table.getReference(column);
             this.updateColumns.add(
                 ref == null ? table.getDynamic(column, true, txnCtx.sessionSettings().errorOnUnknownObjectKey()) : ref);
         }
@@ -118,7 +118,7 @@ final class UpdateSourceGen {
         HashMap<String, Object> updatedSource = new HashMap<>(result.getSource());
         Doc updatedDoc = result.withUpdatedSource(updatedSource);
         for (int i = 0; i < updateColumns.size(); i++) {
-            Reference ref = updateColumns.get(i);
+            SimpleReference ref = updateColumns.get(i);
             Object value = updateAssignments[i].accept(eval, values).value();
             ColumnIdent column = ref.column();
             Maps.mergeInto(updatedSource, column.name(), column.path(), value);
@@ -131,7 +131,7 @@ final class UpdateSourceGen {
     }
 
     private void injectGeneratedColumns(HashMap<String, Object> updatedSource) {
-        for (Map.Entry<Reference, Input<?>> entry : generatedColumns.generatedToInject()) {
+        for (Map.Entry<SimpleReference, Input<?>> entry : generatedColumns.generatedToInject()) {
             ColumnIdent column = entry.getKey().column();
             Object value = entry.getValue().value();
             Maps.mergeInto(updatedSource, column.name(), column.path(), value);
@@ -166,7 +166,7 @@ final class UpdateSourceGen {
         }
 
         @Override
-        public Input<?> visitReference(Reference symbol, Values values) {
+        public Input<?> visitReference(SimpleReference symbol, Values values) {
             CollectExpression<Doc, ?> expr = refResolver.getImplementation(symbol);
             expr.setNextRow(values.getResult);
             return expr;

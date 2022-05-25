@@ -44,7 +44,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
@@ -145,7 +145,7 @@ public class DocValuesAggregates {
                 return null;
             }
 
-            var aggregationReferences = new ArrayList<Reference>(aggregation.inputs().size());
+            var aggregationReferences = new ArrayList<SimpleReference>(aggregation.inputs().size());
             var literals = new ArrayList<Literal<?>>();
             for (var input : aggregation.inputs()) {
                 if (input instanceof Literal<?> literal) {
@@ -179,13 +179,13 @@ public class DocValuesAggregates {
         return aggregator;
     }
 
-    private static class AggregationInputToReferenceResolver extends SymbolVisitor<List<Symbol>, Reference> {
+    private static class AggregationInputToReferenceResolver extends SymbolVisitor<List<Symbol>, SimpleReference> {
 
         public static final AggregationInputToReferenceResolver INSTANCE =
             new AggregationInputToReferenceResolver();
 
         @Override
-        public Reference visitFunction(io.crate.expression.symbol.Function function, List<Symbol> toCollect) {
+        public SimpleReference visitFunction(io.crate.expression.symbol.Function function, List<Symbol> toCollect) {
             if (function.name().equals(ExplicitCastFunction.NAME)) {
                 var arg = function.arguments().get(0);
                 // Currently, it is the concrete case for the ::numeric explicit cast only.
@@ -199,12 +199,12 @@ public class DocValuesAggregates {
         }
 
         @Override
-        public Reference visitReference(Reference reference, List<Symbol> context) {
+        public SimpleReference visitReference(SimpleReference reference, List<Symbol> context) {
             return reference;
         }
 
         @Override
-        public Reference visitInputColumn(InputColumn inputColumn, List<Symbol> toCollect) {
+        public SimpleReference visitInputColumn(InputColumn inputColumn, List<Symbol> toCollect) {
             Symbol collectSymbol = toCollect.get(inputColumn.index());
             if (collectSymbol == null) {
                 return null;

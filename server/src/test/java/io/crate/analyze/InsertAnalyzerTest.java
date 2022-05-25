@@ -28,7 +28,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -102,7 +102,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         for (int i = 0; i < statement.columns().size(); i++) {
             Symbol subQueryColumn = outputSymbols.get(i);
             assertThat(subQueryColumn, instanceOf(Symbol.class));
-            Reference insertColumn = statement.columns().get(i);
+            SimpleReference insertColumn = statement.columns().get(i);
             assertThat(
                 subQueryColumn.valueType().isConvertableTo(insertColumn.valueType(), false),
                 is(true)
@@ -213,7 +213,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedInsertStatement statement = e.analyze(insert);
         Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
 
-        for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
+        for (Map.Entry<SimpleReference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
             assertThat(entry.getKey(), isReference("name"));
             assertThat(entry.getValue(), isLiteral("Arthur", StringType.INSTANCE));
         }
@@ -228,7 +228,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
 
-        for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
+        for (Map.Entry<SimpleReference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
             assertThat(entry.getKey(), isReference("name"));
             assertThat(entry.getValue(), instanceOf(ParameterSymbol.class));
         }
@@ -242,7 +242,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedInsertStatement statement = e.analyze(insert);
         Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
 
-        for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
+        for (Map.Entry<SimpleReference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
             assertThat(entry.getKey(), isReference("name"));
             assertThat(entry.getValue(), isFunction(SubstrFunction.NAME));
             Function function = (Function) entry.getValue();
@@ -287,7 +287,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateOnConflictDoNothingProducesEmptyUpdateAssignments() {
         AnalyzedInsertStatement statement =
             e.analyze("insert into users (id, name) (select 1, 'Jon') on conflict DO NOTHING");
-        Map<Reference, Symbol> duplicateKeyAssignments = statement.onDuplicateKeyAssignments();
+        Map<SimpleReference, Symbol> duplicateKeyAssignments = statement.onDuplicateKeyAssignments();
         assertThat(statement.isIgnoreDuplicateKeys(), is(true));
         assertThat(duplicateKeyAssignments, is(notNullValue()));
         assertThat(duplicateKeyAssignments.size(), is(0));

@@ -36,7 +36,7 @@ import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.where.DocKeys;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -65,7 +65,7 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
             .build();
 
         DocTableInfo t1 = e.resolveTableInfo("t1");
-        Reference x = (Reference) e.asSymbol("x");
+        SimpleReference x = (SimpleReference) e.asSymbol("x");
         t1Relation = new DocTableRelation(t1);
         t1RenamedRelationName = new RelationName("doc", "t1_renamed");
         var t1Alias = new AliasedAnalyzedRelation(t1Relation, t1RenamedRelationName);
@@ -74,7 +74,7 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
         t1Rename = new Rename(List.of(t1Output), t1Alias.relationName(), t1Alias, t1Collect);
 
         DocTableInfo t2 = e.resolveTableInfo("t2");
-        Reference y = (Reference) e.asSymbol("y");
+        SimpleReference y = (SimpleReference) e.asSymbol("y");
         t2Relation = new DocTableRelation(t2);
         t2RenamedRelationName = new RelationName("doc", "t2_renamed");
         var t2Alias = new AliasedAnalyzedRelation(t2Relation, t2RenamedRelationName);

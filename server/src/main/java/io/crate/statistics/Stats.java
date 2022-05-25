@@ -21,21 +21,22 @@
 
 package io.crate.statistics;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.types.FixedWidthType;
-import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @VisibleForTesting
 public class Stats implements Writeable {
@@ -109,8 +110,8 @@ public class Stats implements Writeable {
         for (int i = 0; i < toCollect.size(); i++) {
             Symbol symbol = toCollect.get(i);
             ColumnStats<?> columnStats = null;
-            if (symbol instanceof Reference) {
-                columnStats = statsByColumn.get(((Reference) symbol).column());
+            if (symbol instanceof Reference ref) {
+                columnStats = statsByColumn.get(ref.column());
             } else if (symbol instanceof ScopedSymbol) {
                 columnStats = statsByColumn.get(((ScopedSymbol) symbol).column());
             }

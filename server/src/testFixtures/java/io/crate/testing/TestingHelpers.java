@@ -36,7 +36,7 @@ import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -189,16 +189,16 @@ public class TestingHelpers {
         return new NodeContext(modulesBuilder.createInjector().getInstance(Functions.class));
     }
 
-    public static Reference createReference(String columnName, DataType dataType) {
+    public static SimpleReference createReference(String columnName, DataType dataType) {
         return createReference("dummyTable", new ColumnIdent(columnName), dataType);
     }
 
-    public static Reference createReference(ColumnIdent columnIdent, DataType dataType) {
+    public static SimpleReference createReference(ColumnIdent columnIdent, DataType dataType) {
         return createReference("dummyTable", columnIdent, dataType);
     }
 
-    public static Reference createReference(String tableName, ColumnIdent columnIdent, DataType dataType) {
-        return new Reference(
+    public static SimpleReference createReference(String tableName, ColumnIdent columnIdent, DataType dataType) {
+        return new SimpleReference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, tableName), columnIdent),
             RowGranularity.DOC,
             dataType,
@@ -287,7 +287,7 @@ public class TestingHelpers {
         return column;
     }
 
-    public static Reference refInfo(String fqColumnName, DataType dataType, RowGranularity rowGranularity, String... nested) {
+    public static SimpleReference refInfo(String fqColumnName, DataType dataType, RowGranularity rowGranularity, String... nested) {
         String[] parts = fqColumnName.split("\\.");
         ReferenceIdent refIdent;
 
@@ -305,7 +305,7 @@ public class TestingHelpers {
             default:
                 throw new IllegalArgumentException("fqColumnName must contain <table>.<column> or <schema>.<table>.<column>");
         }
-        return new Reference(refIdent, rowGranularity, dataType, 0, null);
+        return new SimpleReference(refIdent, rowGranularity, dataType, 0, null);
     }
 
     public static <T> Matcher<T> isSQL(final String stmt) {

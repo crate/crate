@@ -21,13 +21,14 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.Reference;
-import io.crate.types.DataType;
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
+import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.Reference;
+import io.crate.types.DataType;
 
 public class FetchReference implements Symbol {
 

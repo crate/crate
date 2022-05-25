@@ -76,7 +76,7 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -93,7 +93,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
     private final static RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
     private final static String PARTITION_INDEX = new PartitionName(TABLE_IDENT, Arrays.asList("1395874800000")).asIndexName();
-    private final static Reference ID_REF = new Reference(
+    private final static SimpleReference ID_REF = new SimpleReference(
         new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT, 0, null);
 
     private final static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
@@ -157,7 +157,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         // Avoid null pointer exceptions
         DocTableInfo tableInfo = mock(DocTableInfo.class);
         Schemas schemas = mock(Schemas.class);
-        when(tableInfo.columns()).thenReturn(Collections.<Reference>emptyList());
+        when(tableInfo.columns()).thenReturn(Collections.<SimpleReference>emptyList());
         when(schemas.getTableInfo(any(RelationName.class), eq(Operation.INSERT))).thenReturn(tableInfo);
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
@@ -187,7 +187,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new Reference[]{ID_REF},
+            new SimpleReference[]{ID_REF},
             null,
             UUID.randomUUID(),
             false
@@ -209,7 +209,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             null,
-            new Reference[]{ID_REF},
+            new SimpleReference[]{ID_REF},
             null,
             UUID.randomUUID(),
             false
@@ -251,7 +251,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new Reference[]{ID_REF},
+            new SimpleReference[]{ID_REF},
             null,
             UUID.randomUUID(),
             false
@@ -273,7 +273,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new Reference[]{ID_REF},
+            new SimpleReference[]{ID_REF},
             null,
             UUID.randomUUID(),
             false

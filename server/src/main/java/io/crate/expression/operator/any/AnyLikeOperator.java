@@ -26,8 +26,8 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 
-import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.operator.LikeOperators;
+import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;

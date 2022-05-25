@@ -25,7 +25,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -58,7 +58,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final int numberOfShards;
     private final String numberOfReplicas;
     private final String index;
-    private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
+    private final LinkedHashSet<SimpleReference> columns = new LinkedHashSet<>();
     private final String blobsPath;
     private final TableParameters supportedTableParameters;
     private final Settings tableParameters;
@@ -66,7 +66,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Version versionUpgraded;
     private final boolean closed;
 
-    private final Map<ColumnIdent, Reference> infos = new LinkedHashMap<>();
+    private final Map<ColumnIdent, SimpleReference> infos = new LinkedHashMap<>();
 
     private static final List<ColumnIdent> PRIMARY_KEY = List.of(new ColumnIdent("digest"));
     private static final List<Tuple<String, DataType>> STATIC_COLUMNS = List.of(
@@ -100,12 +100,12 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     @Nullable
     @Override
-    public Reference getReference(ColumnIdent columnIdent) {
+    public SimpleReference getReference(ColumnIdent columnIdent) {
         return infos.get(columnIdent);
     }
 
     @Override
-    public Collection<Reference> columns() {
+    public Collection<SimpleReference> columns() {
         return columns;
     }
 
@@ -150,14 +150,14 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public Iterator<Reference> iterator() {
+    public Iterator<SimpleReference> iterator() {
         return columns.iterator();
     }
 
     private void registerStaticColumns() {
         int pos = 0;
         for (Tuple<String, DataType> column : STATIC_COLUMNS) {
-            Reference ref = new Reference(
+            SimpleReference ref = new SimpleReference(
                 new ReferenceIdent(ident(), column.v1(), null), RowGranularity.DOC, column.v2(), pos, null
             );
             assert ref.column().isTopLevel() : "only top-level columns should be added to columns list";

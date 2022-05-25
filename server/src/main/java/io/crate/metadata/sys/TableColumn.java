@@ -22,7 +22,7 @@
 package io.crate.metadata.sys;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 
@@ -38,22 +38,22 @@ import java.util.Map;
 public class TableColumn {
 
     private final ColumnIdent column;
-    private final Map<ColumnIdent, Reference> columns;
+    private final Map<ColumnIdent, SimpleReference> columns;
 
     /**
      * @param column  the virtual column
      * @param columns the columns this virtual column has underneath
      */
-    public TableColumn(ColumnIdent column, Map<ColumnIdent, Reference> columns) {
+    public TableColumn(ColumnIdent column, Map<ColumnIdent, SimpleReference> columns) {
         this.column = column;
         this.columns = columns;
     }
 
-    public Reference getReference(RelationName relationName, ColumnIdent columnIdent) {
+    public SimpleReference getReference(RelationName relationName, ColumnIdent columnIdent) {
         if (!columnIdent.isChildOf(column)) {
             return null;
         }
-        Reference info = columns.get(columnIdent.shiftRight());
+        SimpleReference info = columns.get(columnIdent.shiftRight());
         if (info == null) {
             return null;
         }

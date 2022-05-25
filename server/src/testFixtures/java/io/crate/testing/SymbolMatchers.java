@@ -35,7 +35,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
 import org.hamcrest.Matcher;
@@ -141,19 +141,19 @@ public class SymbolMatchers {
                                               Matcher<RelationName> relName,
                                               Matcher<DataType> type) {
         return allOf(
-            Matchers.instanceOf(Reference.class),
-            withFeature(s -> ((Reference) s).column(), "name", column),
-            withFeature(s -> ((Reference) s).ident().tableIdent(), "relationName", relName),
+            Matchers.instanceOf(SimpleReference.class),
+            withFeature(s -> ((SimpleReference) s).column(), "name", column),
+            withFeature(s -> ((SimpleReference) s).ident().tableIdent(), "relationName", relName),
             withFeature(Symbol::valueType, "valueType", type)
         );
     }
 
     public static Matcher<Symbol> isReference(final String expectedName, @Nullable final DataType dataType) {
-        Matcher<Symbol> fm = withFeature(s -> ((Reference) s).column().sqlFqn(), "name", equalTo(expectedName));
+        Matcher<Symbol> fm = withFeature(s -> ((SimpleReference) s).column().sqlFqn(), "name", equalTo(expectedName));
         if (dataType == null) {
-            return allOf(Matchers.instanceOf(Reference.class), fm);
+            return allOf(Matchers.instanceOf(SimpleReference.class), fm);
         }
-        return allOf(Matchers.instanceOf(Reference.class), hasDataType(dataType), fm);
+        return allOf(Matchers.instanceOf(SimpleReference.class), hasDataType(dataType), fm);
     }
 
     public static Matcher<Symbol> isDynamicReference(String expectedName) {

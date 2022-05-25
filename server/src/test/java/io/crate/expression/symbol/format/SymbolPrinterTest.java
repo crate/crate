@@ -31,7 +31,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -147,7 +147,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testReference() throws Exception {
-        Reference r = new Reference(
+        SimpleReference r = new SimpleReference(
             new ReferenceIdent(
             new RelationName("sys", "table"),
             new ColumnIdent("column", Arrays.asList("path", "nested"))),
@@ -161,7 +161,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDocReference() throws Exception {
-        Reference r = new Reference(
+        SimpleReference r = new SimpleReference(
             new ReferenceIdent(
             new RelationName("doc", "table"),
             new ColumnIdent("column", Arrays.asList("path", "nested"))),
@@ -175,7 +175,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDynamicReference() throws Exception {
-        Reference r = new DynamicReference(
+        SimpleReference r = new DynamicReference(
             new ReferenceIdent(new RelationName("schema", "table"), new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             0);
@@ -184,7 +184,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testVoidReference() throws Exception {
-        Reference r = new VoidReference(
+        SimpleReference r = new VoidReference(
             new ReferenceIdent(new RelationName("schema", "table"), new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             0);
@@ -193,7 +193,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testReferenceEscaped() throws Exception {
-        Reference r = new Reference(
+        SimpleReference r = new SimpleReference(
             new ReferenceIdent(new RelationName("doc", "table"),
             new ColumnIdent("colum\"n")),
             RowGranularity.DOC,
@@ -339,7 +339,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testPrintFetchRefs() throws Exception {
         Symbol field = sqlExpressions.asSymbol("bar");
         assertThat(field, isReference("bar"));
-        Reference ref = (Reference) field;
+        SimpleReference ref = (SimpleReference) field;
         FetchReference fetchRef = new FetchReference(new InputColumn(0, field.valueType()), ref);
         assertPrint(fetchRef, "FETCH(INPUT(0), doc.formatter.bar)");
     }

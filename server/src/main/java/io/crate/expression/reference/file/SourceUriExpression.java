@@ -23,7 +23,7 @@ package io.crate.expression.reference.file;
 
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -46,8 +46,8 @@ public class SourceUriExpression extends LineCollectorExpression<String> {
         return context.currentUri();
     }
 
-    public static Reference getReferenceForRelation(RelationName relationName) {
-        return new Reference(
+    public static SimpleReference getReferenceForRelation(RelationName relationName) {
+        return new SimpleReference(
             new ReferenceIdent(relationName, COLUMN_IDENT), RowGranularity.DOC, DataTypes.STRING, 0, null
         );
     }

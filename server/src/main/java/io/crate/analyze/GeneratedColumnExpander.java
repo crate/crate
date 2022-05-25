@@ -42,6 +42,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 
@@ -87,7 +88,7 @@ public final class GeneratedColumnExpander {
      */
     public static Symbol maybeExpand(Symbol symbol,
                                      List<GeneratedReference> generatedCols,
-                                     List<Reference> expansionCandidates,
+                                     List<SimpleReference> expansionCandidates,
                                      NodeContext nodeCtx) {
         return COMPARISON_REPLACE_VISITOR.addComparisons(symbol, generatedCols, expansionCandidates, nodeCtx);
     }
@@ -111,7 +112,7 @@ public final class GeneratedColumnExpander {
 
         Symbol addComparisons(Symbol symbol,
                               List<GeneratedReference> generatedCols,
-                              List<Reference> expansionCandidates,
+                              List<SimpleReference> expansionCandidates,
                               NodeContext nodeCtx) {
             HashMap<Reference, ArrayList<GeneratedReference>> referencedSingleReferences =
                 extractGeneratedReferences(generatedCols, expansionCandidates);
@@ -131,8 +132,8 @@ public final class GeneratedColumnExpander {
                 for (int i = 0; i < function.arguments().size(); i++) {
                     Symbol arg = function.arguments().get(i);
                     arg = Symbols.unwrapReferenceFromCast(arg);
-                    if (arg instanceof Reference) {
-                        reference = (Reference) arg;
+                    if (arg instanceof Reference ref) {
+                        reference = ref;
                     } else {
                         otherSide = arg;
                     }
@@ -206,7 +207,7 @@ public final class GeneratedColumnExpander {
             return null;
         }
 
-        private Symbol wrapInGenerationExpression(Symbol wrapMeLikeItsHot, Reference generatedReference) {
+        private Symbol wrapInGenerationExpression(Symbol wrapMeLikeItsHot, SimpleReference generatedReference) {
             ReplaceIfMatch replaceIfMatch = new ReplaceIfMatch(
                 wrapMeLikeItsHot,
                 ((GeneratedReference) generatedReference).referencedReferences().get(0));
@@ -219,7 +220,7 @@ public final class GeneratedColumnExpander {
 
         private static HashMap<Reference, ArrayList<GeneratedReference>> extractGeneratedReferences(
             List<GeneratedReference> generatedCols,
-            Collection<Reference> partitionCols) {
+            Collection<SimpleReference> partitionCols) {
             HashMap<Reference, ArrayList<GeneratedReference>> map = new HashMap<>();
             for (GeneratedReference generatedColumn : generatedCols) {
                 if (generatedColumn.referencedReferences().size() == 1 && partitionCols.contains(generatedColumn)) {
@@ -234,18 +235,18 @@ public final class GeneratedColumnExpander {
     }
 
 
-    static class ReplaceIfMatch implements java.util.function.Function<Reference, Symbol> {
+    static class ReplaceIfMatch implements java.util.function.Function<SimpleReference, Symbol> {
 
         private final Symbol replaceWith;
-        private final Reference toReplace;
+        private final SimpleReference toReplace;
 
-        ReplaceIfMatch(Symbol replaceWith, Reference toReplace) {
+        ReplaceIfMatch(Symbol replaceWith, SimpleReference toReplace) {
             this.replaceWith = replaceWith;
             this.toReplace = toReplace;
         }
 
         @Override
-        public Symbol apply(Reference ref) {
+        public Symbol apply(SimpleReference ref) {
             if (ref.equals(toReplace)) {
                 return replaceWith;
             }

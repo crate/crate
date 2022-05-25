@@ -42,7 +42,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
@@ -310,7 +310,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select count(*) from sys.cluster group by name");
         // just testing the dispatching here.. making sure it is not a ESSearchNode
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
+        assertThat(collectPhase.toCollect().get(0), instanceOf(SimpleReference.class));
         assertThat(collectPhase.toCollect().size(), is(1));
 
         assertThat(collectPhase.projections(), contains(
@@ -330,10 +330,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         CollectPhase collectPhase = ((Collect) reducerMerge.subPlan()).collectPhase();
 
         // collect
-        assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
+        assertThat(collectPhase.toCollect().get(0), instanceOf(SimpleReference.class));
         assertThat(collectPhase.toCollect().size(), is(2));
-        assertThat(((Reference) collectPhase.toCollect().get(0)).column().name(), is("id"));
-        assertThat(((Reference) collectPhase.toCollect().get(1)).column().name(), is("name"));
+        assertThat(((SimpleReference) collectPhase.toCollect().get(0)).column().name(), is("id"));
+        assertThat(((SimpleReference) collectPhase.toCollect().get(1)).column().name(), is("name"));
         Projection projection = collectPhase.projections().get(0);
         assertThat(projection, instanceOf(GroupProjection.class));
         GroupProjection groupProjection = (GroupProjection) projection;

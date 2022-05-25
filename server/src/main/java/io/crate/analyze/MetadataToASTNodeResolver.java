@@ -39,7 +39,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.BooleanLiteral;
@@ -118,10 +118,10 @@ public class MetadataToASTNodeResolver {
         }
 
         private List<ColumnDefinition<Expression>> extractColumnDefinitions(@Nullable ColumnIdent parent) {
-            Iterator<Reference> referenceIterator = tableInfo.iterator();
+            Iterator<SimpleReference> referenceIterator = tableInfo.iterator();
             List<ColumnDefinition<Expression>> elements = new ArrayList<>();
             while (referenceIterator.hasNext()) {
-                Reference ref = referenceIterator.next();
+                SimpleReference ref = referenceIterator.next();
                 ColumnIdent ident = ref.column();
                 if (ident.isSystemColumn()) {
                     continue;
@@ -298,9 +298,9 @@ public class MetadataToASTNodeResolver {
         }
 
 
-        private List<Expression> expressionsFromReferences(List<Reference> columns) {
+        private List<Expression> expressionsFromReferences(List<SimpleReference> columns) {
             List<Expression> expressions = new ArrayList<>(columns.size());
-            for (Reference ident : columns) {
+            for (SimpleReference ident : columns) {
                 expressions.add(expressionFromColumn(ident.column()));
             }
             return expressions;

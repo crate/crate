@@ -75,8 +75,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
 
             Stats stats = null;
             ColumnStats columnStats = null;
-            if (groupKey instanceof Reference) {
-                Reference ref = (Reference) groupKey;
+            if (groupKey instanceof Reference ref) {
                 stats = tableStats.getStats(ref.ident().tableIdent());
                 columnStats = stats.statsByColumn().get(ref.column());
                 numKeysWithStats++;

@@ -22,7 +22,7 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 
 import java.io.IOException;
@@ -58,7 +58,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         return sourceLookup.sourceAsMap();
     }
 
-    public static LuceneCollectorExpression<?> create(final Reference reference) {
+    public static LuceneCollectorExpression<?> create(final SimpleReference reference) {
         assert reference.column().name().equals(DocSysColumns.DOC.name()) :
             "column name must be " + DocSysColumns.DOC.name();
         if (reference.column().isTopLevel()) {
@@ -69,11 +69,11 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     static final class ChildDocCollectorExpression extends LuceneCollectorExpression<Object> {
 
-        private final Reference ref;
+        private final SimpleReference ref;
         private SourceLookup sourceLookup;
         private ReaderContext context;
 
-        ChildDocCollectorExpression(Reference ref) {
+        ChildDocCollectorExpression(SimpleReference ref) {
             this.ref = ref;
         }
 

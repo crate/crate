@@ -27,7 +27,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.ValueExtractors;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataType;
 
@@ -47,8 +47,8 @@ public final class GeneratedColumns<T> {
         return (GeneratedColumns<T>) EMPTY;
     }
 
-    private final Map<Reference, Input<?>> toValidate;
-    private final Map<Reference, Input<?>> generatedToInject;
+    private final Map<SimpleReference, Input<?>> toValidate;
+    private final Map<SimpleReference, Input<?>> generatedToInject;
     private final List<CollectExpression<T, ?>> expressions;
 
     private GeneratedColumns() {
@@ -61,7 +61,7 @@ public final class GeneratedColumns<T> {
                      TransactionContext txnCtx,
                      boolean validation,
                      ReferenceResolver<CollectExpression<T, ?>> refResolver,
-                     Collection<Reference> presentColumns,
+                     Collection<SimpleReference> presentColumns,
                      List<GeneratedReference> allGeneratedColumns) {
         InputFactory.Context<CollectExpression<T, ?>> ctx = inputFactory.ctxForRefs(txnCtx, refResolver);
         generatedToInject = new HashMap<>();
@@ -96,7 +96,7 @@ public final class GeneratedColumns<T> {
 
     void validateValues(Map<String, Object> source) {
         for (var entry : toValidate.entrySet()) {
-            Reference ref = entry.getKey();
+            SimpleReference ref = entry.getKey();
             Object providedValue = ValueExtractors.fromMap(source, ref.column());
             if (providedValue == null && !ref.column().isTopLevel()) {
                 // Nested columns will be present in `toValidate` even if they are *not* provided by the user but injected
@@ -125,7 +125,7 @@ public final class GeneratedColumns<T> {
         }
     }
 
-    Iterable<? extends Map.Entry<Reference, Input<?>>> generatedToInject() {
+    Iterable<? extends Map.Entry<SimpleReference, Input<?>>> generatedToInject() {
         return generatedToInject.entrySet();
     }
 }

@@ -38,7 +38,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -51,13 +51,13 @@ public class ShardUpsertRequestTest extends ESTestCase {
 
     private static final RelationName CHARACTERS_IDENTS = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
 
-    private static final Reference ID_REF = new Reference(
+    private static final SimpleReference ID_REF = new SimpleReference(
         new ReferenceIdent(CHARACTERS_IDENTS, "id"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
         1,
         null);
-    private static final Reference NAME_REF = new Reference(
+    private static final SimpleReference NAME_REF = new SimpleReference(
         new ReferenceIdent(CHARACTERS_IDENTS, "name"),
         RowGranularity.DOC,
         DataTypes.STRING,
@@ -69,7 +69,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
         ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
-        Reference[] missingAssignmentColumns = new Reference[]{ID_REF, NAME_REF};
+        SimpleReference[] missingAssignmentColumns = new SimpleReference[]{ID_REF, NAME_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),
@@ -121,7 +121,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
         ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
-        Reference[] missingAssignmentColumns = new Reference[]{ID_REF, NAME_REF};
+        SimpleReference[] missingAssignmentColumns = new SimpleReference[]{ID_REF, NAME_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),

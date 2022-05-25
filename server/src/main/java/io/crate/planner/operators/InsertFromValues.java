@@ -103,7 +103,7 @@ import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexParts;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -249,7 +249,7 @@ public class InsertFromValues implements LogicalPlan {
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             rows.size() > 1, // continueOnErrors
             onConflictColumns,
-            writerProjection.allTargetColumns().toArray(new Reference[0]),
+            writerProjection.allTargetColumns().toArray(new SimpleReference[0]),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
             plannerContext.jobId(),
             false);
@@ -365,7 +365,7 @@ public class InsertFromValues implements LogicalPlan {
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             true, // continueOnErrors
             updateColumnNames,
-            writerProjection.allTargetColumns().toArray(new Reference[0]),
+            writerProjection.allTargetColumns().toArray(new SimpleReference[0]),
             null,
             plannerContext.jobId(),
             true);
@@ -524,7 +524,7 @@ public class InsertFromValues implements LogicalPlan {
 
     private static Iterator<Row> evaluateValueTableFunction(TableFunctionImplementation<?> funcImplementation,
                                                             List<Symbol> arguments,
-                                                            List<Reference> allTargetReferences,
+                                                            List<SimpleReference> allTargetReferences,
                                                             DocTableInfo tableInfo,
                                                             Row params,
                                                             PlannerContext plannerContext,
@@ -550,13 +550,13 @@ public class InsertFromValues implements LogicalPlan {
             .iterator();
     }
 
-    private static Row cast(Row row, List<Reference> columnReferences, DocTableInfo tableInfo) {
+    private static Row cast(Row row, List<SimpleReference> columnReferences, DocTableInfo tableInfo) {
         if (row == null) {
             return null;
         }
         Object[] cells = new Object[row.numColumns()];
         for (int i = 0; i < cells.length; i++) {
-            Reference reference = columnReferences.get(i);
+            SimpleReference reference = columnReferences.get(i);
             DataType<?> targetType = reference.valueType();
             Object value = row.get(i);
             try {

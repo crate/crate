@@ -58,7 +58,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -97,7 +97,7 @@ public class IndexWriterProjectorTest extends SQLIntegrationTestCase {
             NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize()),
             internalCluster().client(),
             IndexNameResolver.forTable(bulkImportIdent),
-            new Reference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
+            new SimpleReference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
                           RowGranularity.DOC,
                           DataTypes.STRING,
                           0,

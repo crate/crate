@@ -34,7 +34,7 @@ import io.crate.sql.tree.CheckConstraint;
 /**
  * Base interface for tables ({@link io.crate.metadata.table.TableInfo}) and views ({@link io.crate.metadata.view.ViewInfo}).
  */
-public interface RelationInfo extends Iterable<Reference> {
+public interface RelationInfo extends Iterable<SimpleReference> {
 
     enum RelationType {
         BASE_TABLE("BASE TABLE"),
@@ -54,7 +54,7 @@ public interface RelationInfo extends Iterable<Reference> {
     /**
      * returns the top level columns of this table with predictable order
      */
-    Collection<Reference> columns();
+    Collection<SimpleReference> columns();
 
     RowGranularity rowGranularity();
 

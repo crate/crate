@@ -35,12 +35,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class GeneratedReference extends Reference {
+public class GeneratedReference extends SimpleReference {
 
     private final String formattedGeneratedExpression;
 
     private Symbol generatedExpression;
-    private List<Reference> referencedReferences;
+    private List<SimpleReference> referencedReferences;
 
     public GeneratedReference(StreamInput in) throws IOException {
         super(in);
@@ -49,7 +49,7 @@ public class GeneratedReference extends Reference {
         int size = in.readVInt();
         referencedReferences = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            referencedReferences.add(Reference.fromStream(in));
+            referencedReferences.add(SimpleReference.fromStream(in));
         }
     }
 
@@ -88,11 +88,11 @@ public class GeneratedReference extends Reference {
         return generatedExpression;
     }
 
-    public void referencedReferences(List<Reference> references) {
+    public void referencedReferences(List<SimpleReference> references) {
         this.referencedReferences = references;
     }
 
-    public List<Reference> referencedReferences() {
+    public List<SimpleReference> referencedReferences() {
         return referencedReferences;
     }
 
@@ -134,8 +134,8 @@ public class GeneratedReference extends Reference {
         out.writeString(formattedGeneratedExpression);
         Symbols.toStream(generatedExpression, out);
         out.writeVInt(referencedReferences.size());
-        for (Reference reference : referencedReferences) {
-            Reference.toStream(reference, out);
+        for (SimpleReference reference : referencedReferences) {
+            SimpleReference.toStream(reference, out);
         }
     }
 }

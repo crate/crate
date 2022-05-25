@@ -38,7 +38,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 
 import java.util.ArrayList;
@@ -90,7 +90,7 @@ public class TableIdentsExtractor {
         }
 
         @Override
-        public Collection<RelationName> visitReference(Reference symbol, Void context) {
+        public Collection<RelationName> visitReference(SimpleReference symbol, Void context) {
             return Collections.singletonList(symbol.ident().tableIdent());
         }
 

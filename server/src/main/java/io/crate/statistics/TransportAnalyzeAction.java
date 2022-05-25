@@ -31,7 +31,7 @@ import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -136,7 +136,7 @@ public final class TransportAnalyzeAction {
                 continue;
             }
             for (TableInfo table : schema.getTables()) {
-                List<Reference> primitiveColumns = StreamSupport.stream(table.spliterator(), false)
+                List<SimpleReference> primitiveColumns = StreamSupport.stream(table.spliterator(), false)
                     .filter(x -> !x.column().isSystemColumn())
                     .filter(x -> DataTypes.isPrimitive(x.valueType()))
                     .map(x -> table.getReadReference(x.column()))
@@ -178,12 +178,12 @@ public final class TransportAnalyzeAction {
     }
 
     @VisibleForTesting
-    static Stats createTableStats(Samples samples, List<Reference> primitiveColumns) {
+    static Stats createTableStats(Samples samples, List<SimpleReference> primitiveColumns) {
         List<Row> records = samples.records;
         List<Object> columnValues = new ArrayList<>(records.size());
         Map<ColumnIdent, ColumnStats> statsByColumn = new HashMap<>(primitiveColumns.size());
         for (int i = 0; i < primitiveColumns.size(); i++) {
-            Reference primitiveColumn = primitiveColumns.get(i);
+            SimpleReference primitiveColumn = primitiveColumns.get(i);
             columnValues.clear();
             int nullCount = 0;
             for (Row record : records) {
@@ -208,7 +208,7 @@ public final class TransportAnalyzeAction {
         return new Stats(samples.numTotalDocs, samples.numTotalSizeInBytes, statsByColumn);
     }
 
-    private CompletableFuture<Samples> fetchSamples(RelationName relationName, List<Reference> columns) {
+    private CompletableFuture<Samples> fetchSamples(RelationName relationName, List<SimpleReference> columns) {
         FutureActionListener<FetchSampleResponse, Samples> listener = new FutureActionListener<>(FetchSampleResponse::samples);
         List<DiscoveryNode> nodesOn41OrAfter = StreamSupport.stream(clusterService.state().nodes().spliterator(), false)
             .filter(x -> x.getVersion().onOrAfter(Version.V_4_1_0))

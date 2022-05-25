@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Objects;
 
-public class GeoReference extends Reference {
+public class GeoReference extends SimpleReference {
 
     private static final String DEFAULT_TREE = "geohash";
 

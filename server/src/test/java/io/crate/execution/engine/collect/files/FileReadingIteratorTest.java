@@ -31,7 +31,7 @@ import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
@@ -162,7 +162,7 @@ public class FileReadingIteratorTest extends ESTestCase {
 
     private BatchIterator<Row> createBatchIterator(Collection<String> fileUris,
                                                    FileUriCollectPhase.InputFormat format) {
-        Reference raw = createReference("_raw", DataTypes.STRING);
+        SimpleReference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
 

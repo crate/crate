@@ -28,7 +28,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 
 import java.util.ArrayList;
@@ -141,7 +141,7 @@ public final class HashJoinConditionSymbolsExtractor {
         }
 
         @Override
-        public RelationName visitReference(Reference ref, Void context) {
+        public RelationName visitReference(SimpleReference ref, Void context) {
             return ref.ident().tableIdent();
         }
     }

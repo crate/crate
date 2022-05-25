@@ -73,7 +73,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
@@ -102,7 +102,7 @@ public final class ReservoirSampler {
         this.indicesService = indicesService;
     }
 
-    public Samples getSamples(RelationName relationName, List<Reference> columns, int maxSamples) {
+    public Samples getSamples(RelationName relationName, List<SimpleReference> columns, int maxSamples) {
         TableInfo table;
         try {
             table = schemas.getTableInfo(relationName);
@@ -142,7 +142,7 @@ public final class ReservoirSampler {
         }
     }
 
-    private Samples getSamples(List<Reference> columns,
+    private Samples getSamples(List<SimpleReference> columns,
                                int maxSamples,
                                DocTableInfo docTable,
                                Random random,

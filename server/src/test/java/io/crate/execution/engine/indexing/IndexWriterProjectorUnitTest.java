@@ -55,7 +55,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -68,7 +68,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
 
     private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
     private static final RelationName BULK_IMPORT_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "bulk_import");
-    private static final Reference RAW_SOURCE_REFERENCE = new Reference(
+    private static final SimpleReference RAW_SOURCE_REFERENCE = new SimpleReference(
         new ReferenceIdent(BULK_IMPORT_IDENT, "_raw"),
         RowGranularity.DOC,
         DataTypes.STRING,

@@ -28,7 +28,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -81,7 +81,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
             XContentHelper.convertToMap(bytes, false, XContentType.JSON).v2(),
             bytes::utf8ToString
         ));
-        Map.Entry<Reference, Input<?>> generatedColumn = generatedColumns.generatedToInject().iterator().next();
+        Map.Entry<SimpleReference, Input<?>> generatedColumn = generatedColumns.generatedToInject().iterator().next();
         assertThat((List<Object>) generatedColumn.getValue().value(), contains(10, 20));
     }
 }

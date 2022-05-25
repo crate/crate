@@ -25,7 +25,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -45,10 +45,10 @@ import java.util.function.Function;
 public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
     private final List<Symbol> targetColsSymbolsExclPartition;
-    private final List<Reference> targetColsExclPartitionCols;
+    private final List<SimpleReference> targetColsExclPartitionCols;
     private final boolean ignoreDuplicateKeys;
-    private final Map<Reference, Symbol> onDuplicateKeyAssignments;
-    private final List<Reference> allTargetColumns;
+    private final Map<SimpleReference, Symbol> onDuplicateKeyAssignments;
+    private final List<SimpleReference> allTargetColumns;
     /**
      * List of columns used for the result set
      */
@@ -69,11 +69,11 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     public ColumnIndexWriterProjection(RelationName relationName,
                                        @Nullable String partitionIdent,
                                        List<ColumnIdent> primaryKeys,
-                                       List<Reference> allTargetColumns,
-                                       List<Reference> targetColsExclPartitionCols,
+                                       List<SimpleReference> allTargetColumns,
+                                       List<SimpleReference> targetColsExclPartitionCols,
                                        List<Symbol> targetColsSymbolsExclPartition,
                                        boolean ignoreDuplicateKeys,
-                                       Map<Reference, Symbol> onDuplicateKeyAssignments,
+                                       Map<SimpleReference, Symbol> onDuplicateKeyAssignments,
                                        List<Symbol> primaryKeySymbols,
                                        List<Symbol> partitionedBySymbols,
                                        @Nullable ColumnIdent clusteredByColumn,
@@ -110,7 +110,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             int length = in.readVInt();
             targetColsExclPartitionCols = new ArrayList<>(length);
             for (int i = 0; i < length; i++) {
-                targetColsExclPartitionCols.add(Reference.fromStream(in));
+                targetColsExclPartitionCols.add(SimpleReference.fromStream(in));
             }
         } else {
             targetColsExclPartitionCols = Collections.emptyList();
@@ -121,7 +121,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             int mapSize = in.readVInt();
             onDuplicateKeyAssignments = new HashMap<>(mapSize);
             for (int i = 0; i < mapSize; i++) {
-                onDuplicateKeyAssignments.put(Reference.fromStream(in), Symbols.fromStream(in));
+                onDuplicateKeyAssignments.put(SimpleReference.fromStream(in), Symbols.fromStream(in));
             }
         } else {
             onDuplicateKeyAssignments = Collections.emptyMap();
@@ -131,7 +131,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             int mapSize = in.readVInt();
             allTargetColumns = new ArrayList<>();
             for (int i = 0; i < mapSize; i++) {
-                allTargetColumns.add(Reference.fromStream(in));
+                allTargetColumns.add(SimpleReference.fromStream(in));
             }
 
             int outputSize = in.readVInt();
@@ -170,7 +170,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return returnValues;
     }
 
-    public List<Reference> allTargetColumns() {
+    public List<SimpleReference> allTargetColumns() {
         return allTargetColumns;
     }
 
@@ -178,7 +178,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return targetColsSymbolsExclPartition;
     }
 
-    public List<Reference> columnReferencesExclPartition() {
+    public List<SimpleReference> columnReferencesExclPartition() {
         return targetColsExclPartitionCols;
     }
 
@@ -186,7 +186,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return ignoreDuplicateKeys;
     }
 
-    public Map<Reference, Symbol> onDuplicateKeyAssignments() {
+    public Map<SimpleReference, Symbol> onDuplicateKeyAssignments() {
         return onDuplicateKeyAssignments;
     }
 
@@ -241,8 +241,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         } else {
             out.writeBoolean(true);
             out.writeVInt(targetColsExclPartitionCols.size());
-            for (Reference columnIdent : targetColsExclPartitionCols) {
-                Reference.toStream(columnIdent, out);
+            for (SimpleReference columnIdent : targetColsExclPartitionCols) {
+                SimpleReference.toStream(columnIdent, out);
             }
         }
 
@@ -252,8 +252,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         } else {
             out.writeBoolean(true);
             out.writeVInt(onDuplicateKeyAssignments.size());
-            for (Map.Entry<Reference, Symbol> entry : onDuplicateKeyAssignments.entrySet()) {
-                Reference.toStream(entry.getKey(), out);
+            for (Map.Entry<SimpleReference, Symbol> entry : onDuplicateKeyAssignments.entrySet()) {
+                SimpleReference.toStream(entry.getKey(), out);
                 Symbols.toStream(entry.getValue(), out);
             }
         }
@@ -279,7 +279,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     }
 
     public ColumnIndexWriterProjection bind(Function<? super Symbol, Symbol> binder) {
-        HashMap<Reference, Symbol> boundOnDuplicateKeyAssignments =
+        HashMap<SimpleReference, Symbol> boundOnDuplicateKeyAssignments =
             new HashMap<>(onDuplicateKeyAssignments.size());
         for (var assignment : onDuplicateKeyAssignments.entrySet()) {
             boundOnDuplicateKeyAssignments.put(

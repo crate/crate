@@ -42,7 +42,7 @@ import io.crate.data.RowN;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -57,7 +57,7 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t1 (x text)")
             .build();
         var t1 = e.resolveTableInfo("t1");
-        var x = (Reference) e.asSymbol("x");
+        var x = (SimpleReference) e.asSymbol("x");
         var fetchSource = new FetchSource();
         fetchSource.addFetchIdColumn(new InputColumn(0, DataTypes.LONG));
         fetchSource.addRefToFetch(x);

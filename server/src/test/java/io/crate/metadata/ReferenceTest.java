@@ -47,8 +47,8 @@ public class ReferenceTest extends ESTestCase {
         DataType<?> dataType2 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         Symbol defaultExpression1 = Literal.of(Map.of("f", 10));
         Symbol defaultExpression2 = Literal.of(Map.of("f", 10));
-        Reference reference1 = new Reference(referenceIdent, RowGranularity.DOC, dataType1, 1, defaultExpression1);
-        Reference reference2 = new Reference(referenceIdent, RowGranularity.DOC, dataType2, 1, defaultExpression2);
+        SimpleReference reference1 = new SimpleReference(referenceIdent, RowGranularity.DOC, dataType1, 1, defaultExpression1);
+        SimpleReference reference2 = new SimpleReference(referenceIdent, RowGranularity.DOC, dataType2, 1, defaultExpression2);
         assertThat(reference1, is(reference2));
     }
 
@@ -56,7 +56,7 @@ public class ReferenceTest extends ESTestCase {
     public void testStreaming() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
-        Reference reference = new Reference(
+        SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
             new ArrayType<>(DataTypes.UNTYPED_OBJECT),
@@ -70,10 +70,10 @@ public class ReferenceTest extends ESTestCase {
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(reference, out);
+        SimpleReference.toStream(reference, out);
 
         StreamInput in = out.bytes().streamInput();
-        Reference reference2 = Reference.fromStream(in);
+        SimpleReference reference2 = SimpleReference.fromStream(in);
 
         assertThat(reference2, is(reference));
     }
@@ -82,7 +82,7 @@ public class ReferenceTest extends ESTestCase {
     public void test_streaming_of_reference_position_before_4_6_0() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
-        Reference reference = new Reference(
+        SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
             new ArrayType<>(DataTypes.UNTYPED_OBJECT),
@@ -97,11 +97,11 @@ public class ReferenceTest extends ESTestCase {
 
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_4_5_0);
-        Reference.toStream(reference, out);
+        SimpleReference.toStream(reference, out);
 
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_4_5_0);
-        Reference reference2 = Reference.fromStream(in);
+        SimpleReference reference2 = SimpleReference.fromStream(in);
 
         assertThat(reference2, is(reference));
     }

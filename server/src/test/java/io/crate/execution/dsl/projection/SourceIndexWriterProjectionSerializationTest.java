@@ -27,7 +27,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -53,7 +53,7 @@ public class SourceIndexWriterProjectionSerializationTest {
     public void testSerializationFailFast() throws IOException {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
-        Reference reference = new Reference(
+        SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
             new ArrayType<>(DataTypes.UNTYPED_OBJECT),
@@ -111,7 +111,7 @@ public class SourceIndexWriterProjectionSerializationTest {
     public void testSerializationValidationFlag() throws IOException {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
-        Reference reference = new Reference(
+        SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
             new ArrayType<>(DataTypes.UNTYPED_OBJECT),

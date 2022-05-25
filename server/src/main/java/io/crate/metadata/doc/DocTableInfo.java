@@ -31,7 +31,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -114,13 +114,13 @@ import java.util.stream.Collectors;
  */
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
-    private final Collection<Reference> columns;
+    private final Collection<SimpleReference> columns;
     private final List<GeneratedReference> generatedColumns;
-    private final List<Reference> partitionedByColumns;
-    private final List<Reference> defaultExpressionColumns;
+    private final List<SimpleReference> partitionedByColumns;
+    private final List<SimpleReference> defaultExpressionColumns;
     private final Collection<ColumnIdent> notNullColumns;
     private final Map<ColumnIdent, IndexReference> indexColumns;
-    private final Map<ColumnIdent, Reference> references;
+    private final Map<ColumnIdent, SimpleReference> references;
     private final Map<ColumnIdent, String> analyzers;
     private final RelationName ident;
     private final List<ColumnIdent> primaryKeys;
@@ -147,12 +147,12 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final ColumnPolicy columnPolicy;
 
     public DocTableInfo(RelationName ident,
-                        Collection<Reference> columns,
-                        List<Reference> partitionedByColumns,
+                        Collection<SimpleReference> columns,
+                        List<SimpleReference> partitionedByColumns,
                         List<GeneratedReference> generatedColumns,
                         Collection<ColumnIdent> notNullColumns,
                         Map<ColumnIdent, IndexReference> indexColumns,
-                        Map<ColumnIdent, Reference> references,
+                        Map<ColumnIdent, SimpleReference> references,
                         Map<ColumnIdent, String> analyzers,
                         List<ColumnIdent> primaryKeys,
                         List<CheckConstraint<Symbol>> checkConstraints,
@@ -206,8 +206,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Nullable
-    public Reference getReference(ColumnIdent columnIdent) {
-        Reference reference = references.get(columnIdent);
+    public SimpleReference getReference(ColumnIdent columnIdent) {
+        SimpleReference reference = references.get(columnIdent);
         if (reference == null) {
             return docColumn.getReference(ident(), columnIdent);
         }
@@ -216,11 +216,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
 
     @Override
-    public Collection<Reference> columns() {
+    public Collection<SimpleReference> columns() {
         return columns;
     }
 
-    public List<Reference> defaultExpressionColumns() {
+    public List<SimpleReference> defaultExpressionColumns() {
         return defaultExpressionColumns;
     }
 
@@ -312,7 +312,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
      *
      * @return always a list, never null
      */
-    public List<Reference> partitionedByColumns() {
+    public List<SimpleReference> partitionedByColumns() {
         return partitionedByColumns;
     }
 
@@ -351,7 +351,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public Iterator<Reference> iterator() {
+    public Iterator<SimpleReference> iterator() {
         return references.values().iterator();
     }
 
@@ -414,7 +414,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (!ident.isTopLevel()) {
             // see if parent is strict object
             ColumnIdent parentIdent = ident.getParent();
-            Reference parentInfo = null;
+            SimpleReference parentInfo = null;
 
             while (parentIdent != null) {
                 parentInfo = getReference(parentIdent);
@@ -462,11 +462,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Nonnull
-    public Reference resolveColumn(String targetColumnName,
+    public SimpleReference resolveColumn(String targetColumnName,
                                    boolean forWrite,
                                    boolean errorOnUnknownObjectKey) throws ColumnUnknownException {
         ColumnIdent columnIdent = ColumnIdent.fromPath(targetColumnName);
-        Reference reference = getReference(columnIdent);
+        SimpleReference reference = getReference(columnIdent);
         if (reference == null) {
             reference = getDynamic(columnIdent, forWrite, errorOnUnknownObjectKey);
             if (reference == null) {

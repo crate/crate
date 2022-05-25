@@ -50,7 +50,7 @@ import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -296,7 +296,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                 fromIndexName(shard.routingEntry().getIndexName()),
                 Integer.toString(i));
             toCollectRefs.add(
-                new Reference(
+                new SimpleReference(
                     ident,
                     RowGranularity.DOC,
                     argumentTypes.get(i),
@@ -587,11 +587,11 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
     }
 
-    public static List<Reference> toReference(List<DataType<?>> dataTypes) {
-        var references = new ArrayList<Reference>(dataTypes.size());
+    public static List<SimpleReference> toReference(List<DataType<?>> dataTypes) {
+        var references = new ArrayList<SimpleReference>(dataTypes.size());
         for (int i = 0; i < dataTypes.size(); i++) {
             references.add(
-                new Reference(
+                new SimpleReference(
                     new ReferenceIdent(new RelationName(null, "dummy"), Integer.toString(i)),
                     RowGranularity.DOC,
                     dataTypes.get(i),

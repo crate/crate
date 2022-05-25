@@ -22,7 +22,7 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.analyze.OrderBy;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import org.apache.lucene.search.FieldDoc;
 
 import java.util.function.Function;
@@ -39,7 +39,7 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
 
     private Object value;
 
-    public OrderByCollectorExpression(Reference ref, OrderBy orderBy, Function<Object, Object> valueConversion) {
+    public OrderByCollectorExpression(SimpleReference ref, OrderBy orderBy, Function<Object, Object> valueConversion) {
         this.valueConversion = valueConversion;
         assert orderBy.orderBySymbols().contains(ref) : "symbol must be part of orderBy symbols";
         orderIndex = orderBy.orderBySymbols().indexOf(ref);

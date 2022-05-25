@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import io.crate.common.collections.Maps;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.ObjectType;
 
@@ -33,7 +33,7 @@ import java.util.Map;
 
 public final class ConstraintsValidator {
 
-    public static void validate(Object value, Reference targetColumn, Collection<ColumnIdent> notNullColumns) {
+    public static void validate(Object value, SimpleReference targetColumn, Collection<ColumnIdent> notNullColumns) {
         assert targetColumn != null : "targetColumn is required to be able to validate it";
         // Validate NOT NULL constraint
         if (value == null && !targetColumn.isNullable()) {
@@ -44,7 +44,7 @@ public final class ConstraintsValidator {
 
     @SuppressWarnings("unchecked")
     private static void validateNotNullOnChildren(Object value,
-                                                  Reference targetColumn,
+                                                  SimpleReference targetColumn,
                                                   Collection<ColumnIdent> notNullColumns) {
         if (targetColumn.valueType().id() == ObjectType.ID) {
             Map<String, Object> valueMap = (Map<String, Object>) value;

@@ -32,7 +32,7 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionInfos;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutineInfo;
@@ -381,7 +381,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
      */
     static class NotNullConstraintIterator implements Iterator<ConstraintInfo> {
         private final RelationInfo relationInfo;
-        private final Iterator<Reference> nullableColumns;
+        private final Iterator<SimpleReference> nullableColumns;
 
         NotNullConstraintIterator(RelationInfo relationInfo) {
             this.relationInfo = relationInfo;
@@ -443,7 +443,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     static class ColumnsIterator implements Iterator<ColumnContext> {
 
-        private final Iterator<Reference> columns;
+        private final Iterator<SimpleReference> columns;
         private final RelationInfo tableInfo;
 
         ColumnsIterator(RelationInfo tableInfo) {

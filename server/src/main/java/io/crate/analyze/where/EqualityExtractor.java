@@ -21,6 +21,20 @@
 
 package io.crate.analyze.where;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.common.collections.CartesianList;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
@@ -39,22 +53,11 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 public class EqualityExtractor {
 
@@ -295,7 +298,7 @@ public class EqualityExtractor {
             if (this == NULL_MARKER_PROXY) {
                 return "NULL";
             }
-            String s = "(" + ((Reference) origin.arguments().get(0)).column().fqn() + "=" +
+            String s = "(" + ((SimpleReference) origin.arguments().get(0)).column().fqn() + "=" +
                        ((Literal<?>) origin.arguments().get(1)).value() + ")";
             if (current != origin) {
                 s += " TRUE";
@@ -393,7 +396,7 @@ public class EqualityExtractor {
         }
 
         @Override
-        public Symbol visitReference(Reference symbol, Context context) {
+        public Symbol visitReference(SimpleReference symbol, Context context) {
             if (!context.comparisons.containsKey(symbol.column())) {
                 context.seenUnknown = true;
             }
@@ -408,9 +411,8 @@ public class EqualityExtractor {
 
             if (functionName.equals(EqOperator.NAME)) {
                 firstArg = Symbols.unwrapReferenceFromCast(firstArg);
-                if (firstArg instanceof Reference && SymbolVisitors.any(Symbols.IS_COLUMN, arguments.get(1)) == false) {
-                    Comparison comparison = context.comparisons.get(
-                        ((Reference) firstArg).column());
+                if (firstArg instanceof Reference ref && SymbolVisitors.any(Symbols.IS_COLUMN, arguments.get(1)) == false) {
+                    Comparison comparison = context.comparisons.get(ref.column());
                     if (comparison != null) {
                         context.proxyBelow = true;
                         return comparison.add(function);
@@ -419,9 +421,8 @@ public class EqualityExtractor {
             } else if (functionName.equals(AnyEqOperator.NAME) && arguments.get(1).symbolType().isValueSymbol()) {
                 // ref = any ([1,2,3])
                 firstArg = Symbols.unwrapReferenceFromCast(firstArg);
-                if (firstArg instanceof Reference) {
-                    Reference reference = (Reference) firstArg;
-                    Comparison comparison = context.comparisons.get(reference.column());
+                if (firstArg instanceof Reference ref) {
+                    Comparison comparison = context.comparisons.get(ref.column());
                     if (comparison != null) {
                         context.proxyBelow = true;
                         return comparison.add(function);

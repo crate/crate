@@ -45,6 +45,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
@@ -113,14 +114,14 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
     private final SymbolToNotNullRangeQueryArgs INNER_VISITOR = new SymbolToNotNullRangeQueryArgs();
 
     private static class SymbolToNotNullContext {
-        private final HashSet<Reference> references = new HashSet<>();
+        private final HashSet<SimpleReference> references = new HashSet<>();
         boolean hasStrictThreeValuedLogicFunction = false;
 
-        void add(Reference symbol) {
+        void add(SimpleReference symbol) {
             references.add(symbol);
         }
 
-        Set<Reference> references() {
+        Set<SimpleReference> references() {
             return references;
         }
     }
@@ -148,7 +149,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
             );
 
         @Override
-        public Void visitReference(Reference symbol, SymbolToNotNullContext context) {
+        public Void visitReference(SimpleReference symbol, SymbolToNotNullContext context) {
             context.add(symbol);
             return null;
         }
@@ -187,8 +188,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         // Optimize `NOT (<ref> IS NULL)`
         if (arg instanceof Function && ((Function) arg).name().equals(IsNullPredicate.NAME)) {
             Function innerFunction = (Function) arg;
-            if (innerFunction.arguments().size() == 1 && innerFunction.arguments().get(0) instanceof Reference) {
-                Reference ref = (Reference) innerFunction.arguments().get(0);
+            if (innerFunction.arguments().size() == 1 && innerFunction.arguments().get(0) instanceof Reference ref) {
                 // Ignored objects have no field names in the index, need function filter fallback
                 if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
                     return null;
@@ -205,7 +205,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         builder.add(notX, BooleanClause.Occur.MUST);
         SymbolToNotNullContext ctx = new SymbolToNotNullContext();
         arg.accept(INNER_VISITOR, ctx);
-        for (Reference reference : ctx.references()) {
+        for (SimpleReference reference : ctx.references()) {
             if (reference.isNullable()) {
                 builder.add(IsNullPredicate.refExistsQuery(reference, context), BooleanClause.Occur.MUST);
             }

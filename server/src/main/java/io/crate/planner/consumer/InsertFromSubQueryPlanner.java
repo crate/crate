@@ -37,7 +37,7 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.operators.Insert;
@@ -64,9 +64,9 @@ public final class InsertFromSubQueryPlanner {
             throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
         }
 
-        List<Reference> targetColsExclPartitionCols = new ArrayList<>(
+        List<SimpleReference> targetColsExclPartitionCols = new ArrayList<>(
             statement.columns().size() - statement.tableInfo().partitionedBy().size());
-        for (Reference column : statement.columns()) {
+        for (SimpleReference column : statement.columns()) {
             if (statement.tableInfo().partitionedBy().contains(column.column())) {
                 continue;
             }

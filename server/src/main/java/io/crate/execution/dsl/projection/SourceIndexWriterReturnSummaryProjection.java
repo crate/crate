@@ -25,7 +25,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -46,7 +46,7 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
 
     public SourceIndexWriterReturnSummaryProjection(RelationName relationName,
                                                     @Nullable String partitionIdent,
-                                                    Reference rawSourceReference,
+                                                    SimpleReference rawSourceReference,
                                                     InputColumn rawSourcePtr,
                                                     List<ColumnIdent> primaryKeys,
                                                     List<Symbol> partitionedBySymbols,

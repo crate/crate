@@ -28,7 +28,7 @@ import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
@@ -99,7 +99,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int)")
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("tbl");
-        Reference x = (Reference) e.asSymbol("x");
+        SimpleReference x = (SimpleReference) e.asSymbol("x");
         var relation = new DocTableRelation(tableInfo);
         var alias = new AliasedAnalyzedRelation(relation, new RelationName(null, "t1"));
         var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());

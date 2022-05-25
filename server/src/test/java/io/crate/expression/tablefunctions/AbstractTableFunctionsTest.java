@@ -29,7 +29,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -65,7 +65,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
         DocTableRelation relation = mock(DocTableRelation.class);
         RelationName relationName = new RelationName(null, "t");
         when(relation.getField(any(ColumnIdent.class), any(Operation.class), any(Boolean.class)))
-            .thenReturn(new Reference(
+            .thenReturn(new SimpleReference(
                 new ReferenceIdent(relationName, "name"),
                 RowGranularity.NODE,
                 DataTypes.STRING,

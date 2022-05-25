@@ -27,7 +27,7 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -60,17 +60,17 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
         if (view == null) {
             return null;
         }
-        List<Reference> columns;
+        List<SimpleReference> columns;
         try {
             AnalyzedRelation relation = analyzerProvider.get().analyze(
                 (Query) SqlParser.createStatement(view.stmt()),
                 CoordinatorTxnCtx.systemTransactionContext(),
                 ParamTypeHints.EMPTY);
-            final List<Reference> collectedColumns = new ArrayList<>(relation.outputs().size());
+            final List<SimpleReference> collectedColumns = new ArrayList<>(relation.outputs().size());
             int position = 1;
             for (var field : relation.outputs()) {
                 collectedColumns.add(
-                    new Reference(new ReferenceIdent(ident, Symbols.pathFromSymbol(field).sqlFqn()),
+                    new SimpleReference(new ReferenceIdent(ident, Symbols.pathFromSymbol(field).sqlFqn()),
                                   RowGranularity.DOC,
                                   field.valueType(),
                                   position++,

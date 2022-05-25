@@ -21,6 +21,11 @@
 
 package io.crate.planner.selectivity;
 
+import java.util.Arrays;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import io.crate.data.Row;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
@@ -37,10 +42,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
-
-import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Used to estimate the number of rows returned after applying a given query.
@@ -179,8 +180,8 @@ public class SelectivityFunctions {
 
     @Nullable
     private static ColumnIdent getColumn(Symbol symbol) {
-        if (symbol instanceof Reference) {
-            return ((Reference) symbol).column();
+        if (symbol instanceof Reference ref) {
+            return ref.column();
         } else if (symbol instanceof ScopedSymbol) {
             return ((ScopedSymbol) symbol).column();
         } else {

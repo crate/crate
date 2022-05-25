@@ -25,7 +25,7 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -65,14 +65,14 @@ public class ColumnIndexWriterProjectionTest {
         ColumnIdent area = new ColumnIdent("area");
         ColumnIdent isp = new ColumnIdent("isp");
         ColumnIdent h = new ColumnIdent("h");
-        Reference ymdRef = partitionRef(ymd, DataTypes.STRING);
-        Reference domainRef = ref(domain, DataTypes.STRING);
-        Reference areaRef = ref(area, DataTypes.STRING);
-        Reference ispRef = partitionRef(isp, DataTypes.STRING);
-        Reference hRef = ref(h, DataTypes.INTEGER);
+        SimpleReference ymdRef = partitionRef(ymd, DataTypes.STRING);
+        SimpleReference domainRef = ref(domain, DataTypes.STRING);
+        SimpleReference areaRef = ref(area, DataTypes.STRING);
+        SimpleReference ispRef = partitionRef(isp, DataTypes.STRING);
+        SimpleReference hRef = ref(h, DataTypes.INTEGER);
         List<ColumnIdent> primaryKeys = Arrays.asList(ymd, domain, area, isp);
-        List<Reference> targetColumns = Arrays.asList(ymdRef, domainRef, areaRef, ispRef, hRef);
-        List<Reference> targetColumnsExclPartitionColumns = Arrays.asList(domainRef, areaRef, hRef);
+        List<SimpleReference> targetColumns = Arrays.asList(ymdRef, domainRef, areaRef, ispRef, hRef);
+        List<SimpleReference> targetColumnsExclPartitionColumns = Arrays.asList(domainRef, areaRef, hRef);
         InputColumns.SourceSymbols targetColsCtx = new InputColumns.SourceSymbols(targetColumns);
         List<Symbol> primaryKeySymbols = InputColumns.create(
             Arrays.asList(ymdRef, domainRef, areaRef, ispRef), targetColsCtx);
@@ -117,7 +117,7 @@ public class ColumnIndexWriterProjectionTest {
     @Test
     public void test_streaming_with_lot_of_target_columns() throws Exception {
         int numColumns = 200;
-        ArrayList<Reference> targetColumns = new ArrayList<>(numColumns);
+        ArrayList<SimpleReference> targetColumns = new ArrayList<>(numColumns);
         for (int i = 0; i < numColumns; i++) {
             var ident = new ColumnIdent(String.valueOf(i));
             targetColumns.add(ref(ident, DataTypes.INTEGER));
@@ -154,11 +154,11 @@ public class ColumnIndexWriterProjectionTest {
         assertThat(p2, is(projection));
     }
 
-    private Reference ref(ColumnIdent column, DataType<?> type) {
-        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type, 0, null);
+    private SimpleReference ref(ColumnIdent column, DataType<?> type) {
+        return new SimpleReference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type, 0, null);
     }
 
-    private Reference partitionRef(ColumnIdent column, DataType<?> type) {
-        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.PARTITION, type, 0, null);
+    private SimpleReference partitionRef(ColumnIdent column, DataType<?> type) {
+        return new SimpleReference(new ReferenceIdent(relationName, column), RowGranularity.PARTITION, type, 0, null);
     }
 }

@@ -43,7 +43,7 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -51,12 +51,12 @@ public final class InsertSourceFromCells implements InsertSourceGen {
 
     private static final Object[] EMPTY_ARRAY = new Object[0];
 
-    private final List<Reference> targets;
+    private final List<SimpleReference> targets;
     private final BiArrayRow row = new BiArrayRow();
     private final CheckConstraints<Map<String, Object>, CollectExpression<Map<String, Object>, ?>> checks;
     private final GeneratedColumns<Row> generatedColumns;
     private final List<Input<?>> defaultValues;
-    private final List<Reference> partitionedByColumns;
+    private final List<SimpleReference> partitionedByColumns;
     private final DocTableInfo table;
 
     // This is re-used per document to hold the default values
@@ -68,7 +68,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                                  DocTableInfo table,
                                  String indexName,
                                  boolean validation,
-                                 List<Reference> targets) {
+                                 List<SimpleReference> targets) {
         Defaults allTargetColumnsAndDefaults = addDefaults(targets, table, txnCtx, nodeCtx);
         this.table = table;
         this.targets = allTargetColumnsAndDefaults.allColumns;
@@ -110,7 +110,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
 
         HashMap<String, Object> source = new HashMap<>();
         for (int i = 0; i < targets.size(); i++) {
-            Reference target = targets.get(i);
+            SimpleReference target = targets.get(i);
             Object valueForInsert = target
                 .valueType()
                 .valueForInsert(row.get(i));
@@ -155,10 +155,10 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         }
     }
 
-    record Defaults(List<Reference> allColumns, List<Input<?>> defaults) {
+    record Defaults(List<SimpleReference> allColumns, List<Input<?>> defaults) {
     }
 
-    private static Defaults addDefaults(List<Reference> targets,
+    private static Defaults addDefaults(List<SimpleReference> targets,
                                         DocTableInfo table,
                                         TransactionContext txnCtx,
                                         NodeContext nodeCtx) {
@@ -167,9 +167,9 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         }
         InputFactory inputFactory = new InputFactory(nodeCtx);
         Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
-        ArrayList<Reference> defaultColumns = new ArrayList<>(table.defaultExpressionColumns().size());
+        ArrayList<SimpleReference> defaultColumns = new ArrayList<>(table.defaultExpressionColumns().size());
         ArrayList<Input<?>> defaultValues = new ArrayList<>();
-        for (Reference ref : table.defaultExpressionColumns()) {
+        for (SimpleReference ref : table.defaultExpressionColumns()) {
             // Generated primary key values are generated up-front as they are required for sharding.
             if (table.primaryKey().contains(ref.column())) {
                 continue;
@@ -179,7 +179,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                 defaultValues.add(ctx.add(ref.defaultExpression()));
             }
         }
-        List<Reference> allColumns;
+        List<SimpleReference> allColumns;
         if (defaultColumns.isEmpty()) {
             allColumns = targets;
         } else {
@@ -189,21 +189,21 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     }
 
     private static class ReferencesFromInputRow implements ReferenceResolver<CollectExpression<Row, ?>> {
-        private final List<Reference> targets;
-        private final List<Reference> partitionedBy;
+        private final List<SimpleReference> targets;
+        private final List<SimpleReference> partitionedBy;
         private final List<ColumnIdent> columns;
         @Nullable
         private final PartitionName partitionName;
 
-        ReferencesFromInputRow(List<Reference> targets, List<Reference> partitionedBy, String indexName) {
-            this.columns = Lists2.map(targets, Reference::column);
+        ReferencesFromInputRow(List<SimpleReference> targets, List<SimpleReference> partitionedBy, String indexName) {
+            this.columns = Lists2.map(targets, SimpleReference::column);
             this.targets = targets;
             this.partitionedBy = partitionedBy;
             this.partitionName = partitionedBy.isEmpty() ? null : PartitionName.fromIndexOrTemplate(indexName);
         }
 
         @Override
-        public CollectExpression<Row, ?> getImplementation(Reference ref) {
+        public CollectExpression<Row, ?> getImplementation(SimpleReference ref) {
             int idx = targets.indexOf(ref);
             if (idx >= 0) {
                 return new InputCollectExpression(idx);

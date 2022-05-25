@@ -57,17 +57,17 @@ import java.util.stream.Collectors;
 public final class SystemTable<T> implements TableInfo {
 
     private final RelationName name;
-    private final Map<ColumnIdent, Reference> columns;
+    private final Map<ColumnIdent, SimpleReference> columns;
     private final Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions;
     private final List<ColumnIdent> primaryKeys;
-    private final List<Reference> rootColumns;
+    private final List<SimpleReference> rootColumns;
     private final GetRouting getRouting;
     private final Map<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns;
     private final Set<Operation> supportedOperations;
     private final RowGranularity rowGranularity;
 
     public SystemTable(RelationName name,
-                       Map<ColumnIdent, Reference> columns,
+                       Map<ColumnIdent, SimpleReference> columns,
                        Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions,
                        List<ColumnIdent> primaryKeys,
                        Map<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns,
@@ -91,13 +91,13 @@ public final class SystemTable<T> implements TableInfo {
 
     @Nullable
     @Override
-    public Reference getReference(ColumnIdent column) {
+    public SimpleReference getReference(ColumnIdent column) {
         return getReadReference(column);
     }
 
     @Nullable
     @Override
-    public Reference getReadReference(ColumnIdent column) {
+    public SimpleReference getReadReference(ColumnIdent column) {
         var ref = columns.get(column);
         if (ref != null) {
             return ref;
@@ -122,7 +122,7 @@ public final class SystemTable<T> implements TableInfo {
     }
 
     @Override
-    public Collection<Reference> columns() {
+    public Collection<SimpleReference> columns() {
         return rootColumns;
     }
 
@@ -158,7 +158,7 @@ public final class SystemTable<T> implements TableInfo {
 
     @Override
     @Nonnull
-    public Iterator<Reference> iterator() {
+    public Iterator<SimpleReference> iterator() {
         return columns.values().iterator();
     }
 
@@ -275,7 +275,7 @@ public final class SystemTable<T> implements TableInfo {
 
         public SystemTable<T> build() {
             HashMap<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns = new HashMap<>();
-            LinkedHashMap<ColumnIdent, Reference> refByColumns = new LinkedHashMap<>();
+            LinkedHashMap<ColumnIdent, SimpleReference> refByColumns = new LinkedHashMap<>();
             HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions = new HashMap<>();
             columns.sort(Comparator.comparing(x -> x.column));
             for (int i = 0; i < columns.size(); i++) {
@@ -283,7 +283,7 @@ public final class SystemTable<T> implements TableInfo {
                 Column<T, ?> column = columns.get(i);
                 refByColumns.put(
                     column.column,
-                    new Reference(
+                    new SimpleReference(
                         new ReferenceIdent(name, column.column),
                         RowGranularity.DOC,
                         column.type,

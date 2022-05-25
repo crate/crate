@@ -44,6 +44,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
@@ -82,7 +83,7 @@ public class Symbols {
     public static <V> V lookupValueByColumn(Map<? extends Symbol, V> valuesBySymbol, ColumnIdent column) {
         for (Map.Entry<? extends Symbol, V> entry : valuesBySymbol.entrySet()) {
             Symbol key = entry.getKey();
-            if (key instanceof Reference && ((Reference) key).column().equals(column)) {
+            if (key instanceof Reference ref && ref.column().equals(column)) {
                 return entry.getValue();
             }
             if (key instanceof ScopedSymbol && ((ScopedSymbol) key).column().equals(column)) {
@@ -164,8 +165,8 @@ public class Symbols {
             return new ColumnIdent(((AliasSymbol) symbol).alias());
         } else if (symbol instanceof ScopedSymbol) {
             return ((ScopedSymbol) symbol).column();
-        } else if (symbol instanceof Reference) {
-            return ((Reference) symbol).column();
+        } else if (symbol instanceof Reference ref) {
+            return ref.column();
         }
         return new ColumnIdent(symbol.toString(Style.UNQUALIFIED));
     }
@@ -226,7 +227,7 @@ public class Symbols {
         }
 
         @Override
-        public Boolean visitReference(Reference symbol, ColumnIdent column) {
+        public Boolean visitReference(SimpleReference symbol, ColumnIdent column) {
             return column.equals(symbol.column());
         }
     }

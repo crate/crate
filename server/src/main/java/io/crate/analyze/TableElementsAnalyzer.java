@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AddColumnDefinition;
@@ -162,7 +162,7 @@ public class TableElementsAnalyzer {
                     // Check if parent is already defined.
                     // If it is an array, set the collection type to array, or if it's an object keep the object column
                     // policy.
-                    Reference parentRef = context.tableInfo.getReference(parent.ident());
+                    SimpleReference parentRef = context.tableInfo.getReference(parent.ident());
                     int childrenCnt = 0;
                     if (parentRef != null) {
                         parent.position = parentRef.position();

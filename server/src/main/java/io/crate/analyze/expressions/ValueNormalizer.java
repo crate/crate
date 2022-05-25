@@ -29,7 +29,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -51,7 +51,7 @@ public final class ValueNormalizer {
     }
 
     /**
-     * normalize and validate given value according to the corresponding {@link io.crate.metadata.Reference}
+     * normalize and validate given value according to the corresponding {@link io.crate.metadata.SimpleReference}
      *
      * @param valueSymbol the value to normalize, might be anything from {@link Scalar} to {@link io.crate.expression.symbol.Literal}
      * @param reference   the reference to which the value has to comply in terms of type-compatibility
@@ -59,7 +59,7 @@ public final class ValueNormalizer {
      * @throws io.crate.exceptions.ColumnValidationException
      */
     public static Symbol normalizeInputForReference(Symbol valueSymbol,
-                                                    Reference reference,
+                                                    SimpleReference reference,
                                                     TableInfo tableInfo,
                                                     Function<Symbol, Symbol> normalizer) {
         assert valueSymbol != null : "valueSymbol must not be null";
@@ -108,7 +108,7 @@ public final class ValueNormalizer {
         return valueSymbol;
     }
 
-    private static DataType<?> getTargetType(Symbol valueSymbol, Reference reference) {
+    private static DataType<?> getTargetType(Symbol valueSymbol, SimpleReference reference) {
         DataType<?> targetType;
         if (reference instanceof DynamicReference) {
             targetType = valueSymbol.valueType();
@@ -120,10 +120,10 @@ public final class ValueNormalizer {
     }
 
     @SuppressWarnings("unchecked")
-    private static void normalizeObjectValue(Map<String, Object> value, Reference info, TableInfo tableInfo) {
+    private static void normalizeObjectValue(Map<String, Object> value, SimpleReference info, TableInfo tableInfo) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             ColumnIdent nestedIdent = ColumnIdent.getChildSafe(info.column(), entry.getKey());
-            Reference nestedInfo = tableInfo.getReference(nestedIdent);
+            SimpleReference nestedInfo = tableInfo.getReference(nestedIdent);
             if (nestedInfo == null) {
                 if (info.columnPolicy() == ColumnPolicy.IGNORED) {
                     continue;
@@ -161,7 +161,7 @@ public final class ValueNormalizer {
         return type.id() == ArrayType.ID && ((ArrayType) type).innerType().id() == ObjectType.ID;
     }
 
-    private static void normalizeObjectArrayValue(List<Map<String, Object>> values, Reference arrayInfo, TableInfo tableInfo) {
+    private static void normalizeObjectArrayValue(List<Map<String, Object>> values, SimpleReference arrayInfo, TableInfo tableInfo) {
         for (Object value : values) {
             // return value not used and replaced in value as arrayItem is a map that is mutated
             //noinspection unchecked
@@ -169,7 +169,7 @@ public final class ValueNormalizer {
         }
     }
 
-    private static Object normalizePrimitiveValue(Object primitiveValue, Reference info) {
+    private static Object normalizePrimitiveValue(Object primitiveValue, SimpleReference info) {
         if (info.valueType().equals(DataTypes.STRING) && primitiveValue instanceof String) {
             return primitiveValue;
         }

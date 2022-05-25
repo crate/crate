@@ -80,6 +80,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -105,13 +106,13 @@ final class DocValuesGroupByOptimizedIterator {
             return null;
         }
 
-        ArrayList<Reference> columnKeyRefs = new ArrayList<>(groupProjection.keys().size());
+        ArrayList<SimpleReference> columnKeyRefs = new ArrayList<>(groupProjection.keys().size());
         for (var key : groupProjection.keys()) {
             var docKeyRef = getKeyRef(collectPhase.toCollect(), key);
             if (docKeyRef == null) {
                 return null; // group by on non-reference
             }
-            var columnKeyRef = (Reference) DocReferences.inverseSourceLookup(docKeyRef);
+            var columnKeyRef = (SimpleReference) DocReferences.inverseSourceLookup(docKeyRef);
             var keyFieldType = fieldTypeLookup.get(columnKeyRef.column().fqn());
             if (keyFieldType == null || !keyFieldType.hasDocValues()) {
                 return null;
@@ -186,7 +187,7 @@ final class DocValuesGroupByOptimizedIterator {
         @VisibleForTesting
         static BatchIterator<Row> forSingleKey(List<DocValueAggregator> aggregators,
                                                IndexSearcher indexSearcher,
-                                               Reference keyReference,
+                                               SimpleReference keyReference,
                                                List<? extends LuceneCollectorExpression<?>> keyExpressions,
                                                RamAccounting ramAccounting,
                                                MemoryManager memoryManager,
@@ -215,7 +216,7 @@ final class DocValuesGroupByOptimizedIterator {
         @VisibleForTesting
         static <K> BatchIterator<Row> forManyKeys(List<DocValueAggregator> aggregators,
                                                   IndexSearcher indexSearcher,
-                                                  List<Reference> keyColumnRefs,
+                                                  List<SimpleReference> keyColumnRefs,
                                                   List<? extends LuceneCollectorExpression<?>> keyExpressions,
                                                   RamAccounting ramAccounting,
                                                   MemoryManager memoryManager,
@@ -232,7 +233,7 @@ final class DocValuesGroupByOptimizedIterator {
                 GroupByMaps.accountForNewEntry(
                     ramAccounting,
                     new MultiSizeEstimator(
-                        Lists2.map(keyColumnRefs, Reference::valueType)
+                        Lists2.map(keyColumnRefs, SimpleReference::valueType)
                     ),
                     null
                 ),
@@ -410,10 +411,10 @@ final class DocValuesGroupByOptimizedIterator {
 
     @Nullable
     private static Reference getKeyRef(List<Symbol> toCollect, Symbol key) {
-        if (key instanceof InputColumn) {
-            Symbol keyRef = toCollect.get(((InputColumn) key).index());
-            if (keyRef instanceof Reference) {
-                return ((Reference) keyRef);
+        if (key instanceof InputColumn inputCol) {
+            Symbol keyRef = toCollect.get(inputCol.index());
+            if (keyRef instanceof Reference ref) {
+                return ref;
             }
         }
         return null;

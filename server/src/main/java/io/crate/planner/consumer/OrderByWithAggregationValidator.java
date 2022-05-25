@@ -27,7 +27,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -106,7 +106,7 @@ public class OrderByWithAggregationValidator {
         }
 
         @Override
-        public Void visitReference(Reference ref, ValidatorContext context) {
+        public Void visitReference(SimpleReference ref, ValidatorContext context) {
             if (context.aggregateFunctionVisited == null) {
                 return ensureOutputsContainColumn(ref, context);
             } else {

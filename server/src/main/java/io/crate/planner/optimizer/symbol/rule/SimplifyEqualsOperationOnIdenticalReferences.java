@@ -22,6 +22,11 @@
 
 package io.crate.planner.optimizer.symbol.rule;
 
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+
+import java.util.List;
+import java.util.Optional;
+
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.NotPredicate;
@@ -31,15 +36,11 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
 import io.crate.planner.optimizer.symbol.Rule;
-
-import java.util.List;
-import java.util.Optional;
-
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 public class SimplifyEqualsOperationOnIdenticalReferences implements Rule<Function> {
 
@@ -64,7 +65,7 @@ public class SimplifyEqualsOperationOnIdenticalReferences implements Rule<Functi
 
     @Override
     public Symbol apply(Function operator, Captures captures, NodeContext nodeCtx, Symbol parentNode) {
-        Reference ref = (Reference) operator.arguments().get(0);
+        SimpleReference ref = (SimpleReference) operator.arguments().get(0);
         // if ref is not null or the parent node is ignore3vl
         if (ref.isNullable() == false || (parentNode != null && Ignore3vlFunction.NAME.equals(((Function) parentNode).name()))) {
             // WHERE COL = COL  =>  WHERE TRUE
