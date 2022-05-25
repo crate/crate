@@ -37,7 +37,7 @@ import java.util.Objects;
 /**
  * A symbol which represents a column of a result array
  */
-public class InputColumn extends Symbol implements Comparable<InputColumn> {
+public class InputColumn implements Symbol, Comparable<InputColumn> {
 
     private final DataType<?> dataType;
     private final int index;
@@ -93,6 +93,11 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     @Override
     public DataType<?> valueType() {
         return dataType;
+    }
+
+    @Override
+    public String toString() {
+        return "INPUT(" + index + ")";
     }
 
     @Override

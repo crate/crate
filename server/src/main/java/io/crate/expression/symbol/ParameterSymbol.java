@@ -31,7 +31,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class ParameterSymbol extends Symbol {
+public class ParameterSymbol implements Symbol {
 
     private final int index;
     private final DataType<?> boundType;
@@ -90,6 +90,11 @@ public class ParameterSymbol extends Symbol {
     @Override
     public DataType<?> valueType() {
         return internalType;
+    }
+
+    @Override
+    public String toString() {
+        return "$" + (index + 1);
     }
 
     @Override

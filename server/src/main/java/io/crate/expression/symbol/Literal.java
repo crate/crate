@@ -43,7 +43,7 @@ import java.util.Map;
 import java.util.Objects;
 
 
-public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T>> {
+public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
 
     private final T value;
     private final DataType<T> type;
@@ -135,10 +135,15 @@ public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T
     }
 
     @Override
-    public String toString(Style style) {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         LiteralValueFormatter.format(value, sb);
         return sb.toString();
+    }
+
+    @Override
+    public String toString(Style style) {
+        return toString();
     }
 
     @Override

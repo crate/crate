@@ -40,7 +40,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public class Reference extends Symbol {
+public class Reference implements Symbol {
 
     public enum IndexType {
         FULLTEXT,
@@ -155,6 +155,11 @@ public class Reference extends Symbol {
     @Override
     public DataType<?> valueType() {
         return type;
+    }
+
+    @Override
+    public String toString() {
+        return toString(Style.UNQUALIFIED);
     }
 
     @Override

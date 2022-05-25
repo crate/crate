@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
-public class MatchPredicate extends Symbol {
+public class MatchPredicate implements Symbol {
 
     private final Map<Symbol, Symbol> identBoostMap;
     private final Symbol queryTerm;
@@ -83,6 +83,11 @@ public class MatchPredicate extends Symbol {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         throw new UnsupportedOperationException("Cannot stream MatchPredicate");
+    }
+
+    @Override
+    public String toString() {
+        return toString(Style.UNQUALIFIED);
     }
 
     @Override

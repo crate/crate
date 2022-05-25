@@ -32,7 +32,7 @@ import java.util.Objects;
 
 import org.elasticsearch.common.io.stream.Writeable;
 
-public abstract class Symbol implements Writeable {
+public interface Symbol extends Writeable {
 
     public static boolean isLiteral(Symbol symbol, DataType<?> expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL && symbol.valueType().equals(expectedType);
@@ -45,11 +45,11 @@ public abstract class Symbol implements Writeable {
         return symbol instanceof Literal<?> literal && Objects.equals(literal.value(), value);
     }
 
-    public abstract SymbolType symbolType();
+    SymbolType symbolType();
 
-    public abstract <C, R> R accept(SymbolVisitor<C, R> visitor, C context);
+    <C, R> R accept(SymbolVisitor<C, R> visitor, C context);
 
-    public abstract DataType<?> valueType();
+    DataType<?> valueType();
 
     /**
      * Casts this Symbol to a new {@link DataType} by wrapping an implicit cast
@@ -61,7 +61,7 @@ public abstract class Symbol implements Writeable {
      * @param modes      One of the {@link CastMode} types.
      * @return An instance of {@link Function} which casts this symbol.
      */
-    public Symbol cast(DataType<?> targetType, CastMode... modes) {
+    default Symbol cast(DataType<?> targetType, CastMode... modes) {
         if (targetType.equals(valueType())) {
             return this;
         } else if (ArrayType.unnest(targetType).equals(DataTypes.UNTYPED_OBJECT)
@@ -75,10 +75,5 @@ public abstract class Symbol implements Writeable {
         return CastFunctionResolver.generateCastFunction(this, targetType, modes);
     }
 
-    @Override
-    public final String toString() {
-        return toString(Style.UNQUALIFIED);
-    }
-
-    public abstract String toString(Style style);
+    String toString(Style style);
 }

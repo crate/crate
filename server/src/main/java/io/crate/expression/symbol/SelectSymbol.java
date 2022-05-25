@@ -32,7 +32,7 @@ import java.io.IOException;
 /**
  * Symbol representing a sub-query
  */
-public class SelectSymbol extends Symbol {
+public class SelectSymbol implements Symbol {
 
     private final AnalyzedRelation relation;
     private final ArrayType<?> dataType;
@@ -74,6 +74,11 @@ public class SelectSymbol extends Symbol {
             return dataType.innerType();
         }
         return dataType;
+    }
+
+    @Override
+    public String toString() {
+        return "(" + relation + ")";
     }
 
     @Override

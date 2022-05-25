@@ -38,7 +38,7 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
-public class Aggregation extends Symbol {
+public class Aggregation implements Symbol {
 
     private final FunctionInfo functionInfo;
     private final Signature signature;
@@ -166,6 +166,11 @@ public class Aggregation extends Symbol {
     @Override
     public int hashCode() {
         return Objects.hash(functionInfo, inputs, valueType, filter);
+    }
+
+    @Override
+    public String toString() {
+        return toString(Style.UNQUALIFIED);
     }
 
     @Override

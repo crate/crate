@@ -35,7 +35,7 @@ import java.util.List;
  * A FetchMarker wraps a `_fetchid` and behaves mostly transparent (as if it were the _fetchId),
  * but it carries all the `fetchRefs` that can and will be fetched via the _fetchId.
  */
-public final class FetchMarker extends Symbol {
+public final class FetchMarker implements Symbol {
 
     private final RelationName relationName;
     private final List<Reference> fetchRefs;
@@ -76,6 +76,11 @@ public final class FetchMarker extends Symbol {
     @Override
     public DataType<?> valueType() {
         return fetchId.valueType();
+    }
+
+    @Override
+    public String toString() {
+        return toString(Style.UNQUALIFIED);
     }
 
     @Override
