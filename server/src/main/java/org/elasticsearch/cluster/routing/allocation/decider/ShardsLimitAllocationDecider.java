@@ -68,7 +68,8 @@ public class ShardsLimitAllocationDecider extends AllocationDecider {
             -1,
             -1,
             Property.Dynamic,
-            Property.IndexScope
+            Property.IndexScope,
+            Property.ReplicatedIndexScope
         );
 
     /**

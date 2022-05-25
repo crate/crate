@@ -65,7 +65,7 @@ public enum Operation {
     public static final EnumSet<Operation> METADATA_DISABLED_OPERATIONS = EnumSet.of(READ, UPDATE, INSERT, DELETE,
         ALTER_BLOCKS, ALTER_OPEN, ALTER_CLOSE, ALTER_REROUTE, REFRESH, SHOW_CREATE, OPTIMIZE);
     public static final EnumSet<Operation> SUBSCRIBED_IN_LOGICAL_REPLICATION = EnumSet.of(
-        READ, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE);
+        READ, ALTER, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE);
     public static final EnumSet<Operation> PUBLISHED_IN_LOGICAL_REPLICATION = EnumSet.of(
         READ, UPDATE, INSERT, DELETE, DROP, ALTER, ALTER_BLOCKS, ALTER_CLOSE, ALTER_REROUTE, REFRESH,
         SHOW_CREATE, COPY_TO, OPTIMIZE, RESTORE_SNAPSHOT, CREATE_SNAPSHOT);
@@ -92,9 +92,7 @@ public enum Operation {
         }
         Set<Operation> operations = ALL;
 
-        var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(settings);
-        var isSubscribed = subscriptionName != null && subscriptionName.isEmpty() == false;
-
+        var isSubscribed = isReplicated(settings);
         if (isSubscribed && isPublished) {
             // if the table is subscribed and published use the more restrictive operation set
             operations = SUBSCRIBED_IN_LOGICAL_REPLICATION;
@@ -111,6 +109,11 @@ public enum Operation {
             operations = Sets.intersection(entry.getValue(), operations);
         }
         return EnumSet.copyOf(operations);
+    }
+
+    public static boolean isReplicated(Settings settings) {
+        var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(settings);
+        return subscriptionName != null && subscriptionName.isEmpty() == false;
     }
 
     public static void blockedRaiseException(TableInfo tableInfo, Operation operation) {

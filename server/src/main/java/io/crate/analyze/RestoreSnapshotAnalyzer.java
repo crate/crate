@@ -109,7 +109,7 @@ class RestoreSnapshotAnalyzer {
                     txnCtx,
                     nodeCtx,
                     paramTypeHints,
-                    FieldProvider.FIELDS_AS_LITERAL,
+                    FieldProvider.TO_LITERAL_VALIDATE_NAME,
                     null
                 );
                 tables = Lists2.map(

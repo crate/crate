@@ -76,7 +76,7 @@ import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfoBuilder;
+import io.crate.metadata.doc.DocTableInfoFactory;
 
 public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<AlterTableRequest> {
 
@@ -152,8 +152,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         }
 
         // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-        var builder = new DocTableInfoBuilder(nodeContext, request.tableIdent(), currentState);
-        builder.build();
+        new DocTableInfoFactory(nodeContext).create(request.tableIdent(), currentState);
 
         return currentState;
     }

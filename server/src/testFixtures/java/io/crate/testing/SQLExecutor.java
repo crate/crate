@@ -64,7 +64,6 @@ import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.CrateSettings;
@@ -129,6 +128,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -254,7 +254,8 @@ public class SQLExecutor {
             this.clusterService = clusterService;
             addNodesToClusterState(numNodes);
             nodeCtx = createNodeContext(additionalModules);
-            udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
+            DocTableInfoFactory tableInfoFactory = new DocTableInfoFactory(nodeCtx);
+            udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeCtx);
             Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
             CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
             schemaInfoByName.put("sys", new SysSchemaInfo(clusterService, crateSettings));
@@ -268,8 +269,6 @@ public class SQLExecutor {
                         Collections.emptyMap(), createTempDir())));
 
 
-            Map<RelationName, DocTableInfo> docTables = new HashMap<>();
-            DocTableInfoFactory tableInfoFactory = new TestingDocTableInfoFactory(docTables, nodeCtx);
             ViewInfoFactory testingViewInfoFactory = (ident, state) -> null;
 
             schemas = new Schemas(
@@ -520,10 +519,14 @@ public class SQLExecutor {
             return this;
         }
 
+        public Builder addTable(String createTableStmt) throws IOException {
+            return addTable(createTableStmt, Settings.EMPTY);
+        }
+
         /**
          * Add a table to the clusterState
          */
-        public Builder addTable(String createTableStmt) throws IOException {
+        public Builder addTable(String createTableStmt, Settings settings) throws IOException {
             CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
             CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
@@ -542,11 +545,17 @@ public class SQLExecutor {
             if (analyzedStmt.isPartitioned()) {
                 throw new IllegalArgumentException("use addPartitionedTable(..) to add partitioned tables");
             }
+
+            var combinedSettings = Settings.builder()
+                .put(analyzedStmt.tableParameter().settings())
+                .put(settings)
+                .build();
+
             ClusterState prevState = clusterService.state();
             RelationName relationName = analyzedStmt.tableIdent();
             IndexMetadata indexMetadata = getIndexMetadata(
                 relationName.indexNameOrAlias(),
-                analyzedStmt.tableParameter().settings(),
+                combinedSettings,
                 analyzedStmt.mapping(),
                 prevState.nodes().getSmallestNonClientNodeVersion()
             ).build();

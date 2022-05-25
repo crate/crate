@@ -34,7 +34,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 
 public class TableReferenceResolver implements FieldProvider<Reference> {
 
@@ -47,23 +46,12 @@ public class TableReferenceResolver implements FieldProvider<Reference> {
         this.relationName = relationName;
     }
 
-    public static ColumnIdent columnIdent(QualifiedName qualifiedName, @Nullable List<String> path) {
-        List<String> qualifiedNameParts = qualifiedName.getParts();
-        if (qualifiedNameParts.size() != 1) {
-            throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH,
-                "Column reference \"%s\" has too many parts. " +
-                "A column must not have a schema or a table here.", qualifiedName));
-        }
-        return new ColumnIdent(qualifiedNameParts.get(qualifiedNameParts.size() - 1), path);
-    }
-
     @Override
     public Reference resolveField(QualifiedName qualifiedName,
                                   @Nullable List<String> path,
                                   Operation operation,
                                   boolean errorOnUnknownObjectKey) {
-        ColumnIdent columnIdent = columnIdent(qualifiedName, path);
+        ColumnIdent columnIdent = ColumnIdent.fromNameSafe(qualifiedName, path);
         for (Reference reference : tableReferences) {
             if (reference.column().equals(columnIdent)) {
                 if (reference instanceof GeneratedReference) {

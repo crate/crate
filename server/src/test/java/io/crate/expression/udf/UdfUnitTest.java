@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.Before;
@@ -42,7 +43,8 @@ public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        udfService = new UserDefinedFunctionService(clusterService, createNodeContext());
+        NodeContext nodeContext = createNodeContext();
+        udfService = new UserDefinedFunctionService(clusterService, new DocTableInfoFactory(nodeContext), nodeContext);
     }
 
     static final UDFLanguage DUMMY_LANG = new UDFLanguage() {

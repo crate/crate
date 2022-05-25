@@ -841,7 +841,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                     new TimeValue(30, TimeUnit.SECONDS),
                     new TimeValue(0, TimeUnit.MILLISECONDS),
                     Property.Dynamic,
-                    Property.IndexScope);
+                    Property.IndexScope,
+                    Property.ReplicatedIndexScope);
 
     // this setting is intentionally not registered, it is only used in tests
     public static final Setting<TimeValue> RETENTION_LEASE_SYNC_INTERVAL_SETTING =
@@ -850,7 +851,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                     new TimeValue(5, TimeUnit.MINUTES),
                     new TimeValue(0, TimeUnit.MILLISECONDS),
                     Property.Dynamic,
-                    Property.IndexScope);
+                    Property.IndexScope,
+                    Property.ReplicatedIndexScope);
 
     /**
      * Background task that syncs the global checkpoint to replicas.

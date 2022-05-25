@@ -69,7 +69,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setup() throws Exception {
         nodeCtx = createNodeContext();
-        udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
+        var docTableFactory = new DocTableInfoFactory(nodeCtx);
+        udfService = new UserDefinedFunctionService(clusterService, docTableFactory, nodeCtx);
         udfService.registerLanguage(new UDFLanguage() {
             @Override
             public Scalar createFunctionImplementation(UserDefinedFunctionMetadata metadata,
@@ -110,8 +111,14 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
                 return "burlesque";
             }
         });
-        docSchemaInfo = new DocSchemaInfo("doc", clusterService, nodeCtx, udfService,
-            (ident, state) -> null, new TestingDocTableInfoFactory(Map.of()));
+        docSchemaInfo = new DocSchemaInfo(
+            "doc",
+            clusterService,
+            nodeCtx,
+            udfService,
+            (ident, state) -> null,
+            new DocTableInfoFactory(nodeCtx)
+        );
     }
 
     @Test

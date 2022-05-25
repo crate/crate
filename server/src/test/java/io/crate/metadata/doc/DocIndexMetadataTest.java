@@ -126,7 +126,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setupUdfService() {
         nodeCtx = createNodeContext();
-        udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
+        udfService = new UserDefinedFunctionService(clusterService, new DocTableInfoFactory(nodeCtx), nodeCtx);
     }
 
     @Test
@@ -1055,7 +1055,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     private DocIndexMetadata getDocIndexMetadataFromStatement(String stmt) throws IOException {
         Statement statement = SqlParser.createStatement(stmt);
 
-        DocTableInfoFactory docTableInfoFactory = new InternalDocTableInfoFactory(nodeCtx);
+        DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
         ViewInfoFactory viewInfoFactory = (ident, state) -> null;
         DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, nodeCtx, udfService, viewInfoFactory, docTableInfoFactory );
         Path homeDir = createTempDir();

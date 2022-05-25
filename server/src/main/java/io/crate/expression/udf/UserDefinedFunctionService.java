@@ -38,7 +38,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.doc.DocTableInfoBuilder;
+import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Expression;
@@ -76,10 +76,14 @@ public class UserDefinedFunctionService {
     private final ClusterService clusterService;
     private final NodeContext nodeCtx;
     private final Map<String, UDFLanguage> languageRegistry = new HashMap<>();
+    private final DocTableInfoFactory docTableFactory;
 
     @Inject
-    public UserDefinedFunctionService(ClusterService clusterService, NodeContext nodeCtx) {
+    public UserDefinedFunctionService(ClusterService clusterService,
+                                      DocTableInfoFactory docTableFactory,
+                                      NodeContext nodeCtx) {
         this.clusterService = clusterService;
+        this.docTableFactory = docTableFactory;
         this.nodeCtx = nodeCtx;
     }
 
@@ -290,12 +294,7 @@ public class UserDefinedFunctionService {
         }
 
         for (var indexParts : indices) {
-            var tableInfo = new DocTableInfoBuilder(
-                nodeCtx,
-                indexParts.toRelationName(),
-                currentState
-            ).build();
-
+            var tableInfo = docTableFactory.create(indexParts.toRelationName(), currentState);
             TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());
             CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
             ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(

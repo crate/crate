@@ -46,7 +46,7 @@ public class ResetStatementAnalyzer {
             txnCtx,
             nodeCtx,
             typeHints,
-            FieldProvider.FIELDS_AS_LITERAL,
+            FieldProvider.TO_LITERAL_UNSAFE,
             null
         );
 
