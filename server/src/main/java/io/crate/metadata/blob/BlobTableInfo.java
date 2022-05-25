@@ -21,28 +21,6 @@
 
 package io.crate.metadata.blob;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.TableParameters;
-import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.ShardedTable;
-import io.crate.metadata.table.StoredTable;
-import io.crate.metadata.table.TableInfo;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -52,13 +30,38 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.TableParameters;
+import io.crate.analyze.WhereClause;
+import io.crate.common.collections.Tuple;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
+import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.ShardedTable;
+import io.crate.metadata.table.StoredTable;
+import io.crate.metadata.table.TableInfo;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+
 public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     private final RelationName ident;
     private final int numberOfShards;
     private final String numberOfReplicas;
     private final String index;
-    private final LinkedHashSet<SimpleReference> columns = new LinkedHashSet<>();
+    private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
     private final String blobsPath;
     private final TableParameters supportedTableParameters;
     private final Settings tableParameters;
@@ -66,7 +69,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Version versionUpgraded;
     private final boolean closed;
 
-    private final Map<ColumnIdent, SimpleReference> infos = new LinkedHashMap<>();
+    private final Map<ColumnIdent, Reference> infos = new LinkedHashMap<>();
 
     private static final List<ColumnIdent> PRIMARY_KEY = List.of(new ColumnIdent("digest"));
     private static final List<Tuple<String, DataType>> STATIC_COLUMNS = List.of(
@@ -100,12 +103,12 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     @Nullable
     @Override
-    public SimpleReference getReference(ColumnIdent columnIdent) {
+    public Reference getReference(ColumnIdent columnIdent) {
         return infos.get(columnIdent);
     }
 
     @Override
-    public Collection<SimpleReference> columns() {
+    public Collection<Reference> columns() {
         return columns;
     }
 
@@ -150,7 +153,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public Iterator<SimpleReference> iterator() {
+    public Iterator<Reference> iterator() {
         return columns.iterator();
     }
 

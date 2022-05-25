@@ -21,15 +21,16 @@
 
 package io.crate.expression.symbol;
 
+import java.io.IOException;
+import java.util.List;
+
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
-import java.util.List;
 
 /**
  * A FetchMarker wraps a `_fetchid` and behaves mostly transparent (as if it were the _fetchId),
@@ -38,20 +39,20 @@ import java.util.List;
 public final class FetchMarker implements Symbol {
 
     private final RelationName relationName;
-    private final List<SimpleReference> fetchRefs;
-    private final SimpleReference fetchId;
+    private final List<Reference> fetchRefs;
+    private final Reference fetchId;
 
-    public FetchMarker(RelationName relationName, List<SimpleReference> fetchRefs) {
+    public FetchMarker(RelationName relationName, List<Reference> fetchRefs) {
         this(relationName, fetchRefs, DocSysColumns.forTable(relationName, DocSysColumns.FETCHID));
     }
 
-    public FetchMarker(RelationName relationName, List<SimpleReference> fetchRefs, SimpleReference fetchId) {
+    public FetchMarker(RelationName relationName, List<Reference> fetchRefs, Reference fetchId) {
         this.relationName = relationName;
         this.fetchRefs = fetchRefs;
         this.fetchId = fetchId;
     }
 
-    public List<SimpleReference> fetchRefs() {
+    public List<Reference> fetchRefs() {
         return fetchRefs;
     }
 
@@ -59,7 +60,7 @@ public final class FetchMarker implements Symbol {
         return relationName;
     }
 
-    public SimpleReference fetchId() {
+    public Reference fetchId() {
         return fetchId;
     }
 

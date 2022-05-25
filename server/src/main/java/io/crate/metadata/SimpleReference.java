@@ -78,10 +78,10 @@ public class SimpleReference implements Reference {
     }
 
     public SimpleReference(ReferenceIdent ident,
-                     RowGranularity granularity,
-                     DataType<?> type,
-                     int position,
-                     @Nullable Symbol defaultExpression) {
+                           RowGranularity granularity,
+                           DataType<?> type,
+                           int position,
+                           @Nullable Symbol defaultExpression) {
         this(ident,
              granularity,
              type,
@@ -94,14 +94,14 @@ public class SimpleReference implements Reference {
     }
 
     public SimpleReference(ReferenceIdent ident,
-                     RowGranularity granularity,
-                     DataType<?> type,
-                     ColumnPolicy columnPolicy,
-                     IndexType indexType,
-                     boolean nullable,
-                     boolean hasDocValues,
-                     int position,
-                     @Nullable Symbol defaultExpression) {
+                           RowGranularity granularity,
+                           DataType<?> type,
+                           ColumnPolicy columnPolicy,
+                           IndexType indexType,
+                           boolean nullable,
+                           boolean hasDocValues,
+                           int position,
+                           @Nullable Symbol defaultExpression) {
         this.position = position;
         this.ident = ident;
         this.type = type;
@@ -116,17 +116,18 @@ public class SimpleReference implements Reference {
     /**
      * Returns a cloned Reference with the given ident
      */
-    public SimpleReference getRelocated(ReferenceIdent newIdent) {
-        return new SimpleReference(newIdent,
-                             granularity,
-                             type,
-                             columnPolicy,
-                             indexType,
-                             nullable,
-                             hasDocValues,
-                             position,
-                             defaultExpression
-                             );
+    public Reference getRelocated(ReferenceIdent newIdent) {
+        return new SimpleReference(
+            newIdent,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            defaultExpression
+        );
     }
 
     @Override
@@ -265,15 +266,5 @@ public class SimpleReference implements Reference {
         if (hasDefaultExpression) {
             Symbols.toStream(defaultExpression, out);
         }
-    }
-
-    public static void toStream(SimpleReference reference, StreamOutput out) throws IOException {
-        out.writeVInt(reference.symbolType().ordinal());
-        reference.writeTo(out);
-    }
-
-    public static <R extends SimpleReference> R fromStream(StreamInput in) throws IOException {
-        //noinspection unchecked
-        return (R) SymbolType.VALUES.get(in.readVInt()).newInstance(in);
     }
 }

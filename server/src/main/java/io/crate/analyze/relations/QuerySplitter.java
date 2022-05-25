@@ -37,7 +37,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.SimpleReference;
 import io.crate.planner.consumer.RelationNameCollector;
 
 public class QuerySplitter {
@@ -136,7 +135,7 @@ public class QuerySplitter {
         }
 
         @Override
-        public Void visitReference(SimpleReference ref, Context ctx) {
+        public Void visitReference(Reference ref, Context ctx) {
             ctx.parts.put(Set.of(ref.ident().tableIdent()), ref);
             return null;
         }

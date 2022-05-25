@@ -21,20 +21,21 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.sql.tree.Assignment;
-import io.crate.types.DataTypes;
-
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.Assignment;
+import io.crate.types.DataTypes;
 
 public class PartitionPropertiesAnalyzer {
 
@@ -82,7 +83,7 @@ public class PartitionPropertiesAnalyzer {
 
             int idx = tableInfo.partitionedBy().indexOf(entry.getKey());
             try {
-                SimpleReference reference = tableInfo.partitionedByColumns().get(idx);
+                Reference reference = tableInfo.partitionedByColumns().get(idx);
                 Object converted = reference.valueType().implicitCast(value);
                 values[idx] = DataTypes.STRING.implicitCast(converted);
             } catch (IndexOutOfBoundsException ex) {

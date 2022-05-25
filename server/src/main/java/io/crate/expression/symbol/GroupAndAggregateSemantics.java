@@ -21,11 +21,11 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.metadata.FunctionType;
-import io.crate.metadata.SimpleReference;
-import io.crate.types.DataTypes;
-
 import java.util.List;
+
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.Reference;
+import io.crate.types.DataTypes;
 
 public final class GroupAndAggregateSemantics {
 
@@ -193,7 +193,7 @@ public final class GroupAndAggregateSemantics {
         }
 
         @Override
-        public Symbol visitReference(SimpleReference ref, List<Symbol> groupBy) {
+        public Symbol visitReference(Reference ref, List<Symbol> groupBy) {
             if (containedIn(ref, groupBy)) {
                 return null;
             }

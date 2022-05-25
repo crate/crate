@@ -21,58 +21,60 @@
 
 package io.crate.metadata;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolType;
-import io.crate.expression.symbol.Symbols;
-import io.crate.expression.symbol.format.Style;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class GeneratedReference extends SimpleReference {
+import javax.annotation.Nullable;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.expression.scalar.cast.CastMode;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
+import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataType;
+
+public class GeneratedReference implements Reference {
+
+    private final Reference ref;
     private final String formattedGeneratedExpression;
-
     private Symbol generatedExpression;
-    private List<SimpleReference> referencedReferences;
+    private List<Reference> referencedReferences = List.of();
+
+    public GeneratedReference(Reference ref,
+                              String formattedGeneratedExpression,
+                              @Nullable Symbol generatedExpression) {
+        this.ref = ref;
+        this.formattedGeneratedExpression = formattedGeneratedExpression;
+        this.generatedExpression = generatedExpression;
+    }
 
     public GeneratedReference(StreamInput in) throws IOException {
-        super(in);
+        ref = new SimpleReference(in);
         formattedGeneratedExpression = in.readString();
         generatedExpression = Symbols.fromStream(in);
         int size = in.readVInt();
         referencedReferences = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            referencedReferences.add(SimpleReference.fromStream(in));
+            referencedReferences.add(Reference.fromStream(in));
         }
     }
 
-    public GeneratedReference(int position,
-                              ReferenceIdent ident,
-                              RowGranularity granularity,
-                              DataType<?> type,
-                              ColumnPolicy columnPolicy,
-                              IndexType indexType,
-                              String formattedGeneratedExpression,
-                              boolean nullable,
-                              boolean hasDocValues) {
-        super(ident, granularity, type, columnPolicy, indexType, nullable, hasDocValues, position, null);
-        this.formattedGeneratedExpression = formattedGeneratedExpression;
-    }
-
-    public GeneratedReference(int position,
-                              ReferenceIdent ident,
-                              RowGranularity granularity,
-                              DataType<?> type,
-                              String formattedGeneratedExpression) {
-        super(ident, granularity, type, position, null);
-        this.formattedGeneratedExpression = formattedGeneratedExpression;
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        ref.writeTo(out);
+        out.writeString(formattedGeneratedExpression);
+        Symbols.toStream(generatedExpression, out);
+        out.writeVInt(referencedReferences.size());
+        for (Reference reference : referencedReferences) {
+            Reference.toStream(reference, out);
+        }
     }
 
     public String formattedGeneratedExpression() {
@@ -88,11 +90,11 @@ public class GeneratedReference extends SimpleReference {
         return generatedExpression;
     }
 
-    public void referencedReferences(List<SimpleReference> references) {
+    public void referencedReferences(List<Reference> references) {
         this.referencedReferences = references;
     }
 
-    public List<SimpleReference> referencedReferences() {
+    public List<Reference> referencedReferences() {
         return referencedReferences;
     }
 
@@ -109,18 +111,21 @@ public class GeneratedReference extends SimpleReference {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (!super.equals(o)) {
-            return false;
-        }
         GeneratedReference that = (GeneratedReference) o;
         return Objects.equals(formattedGeneratedExpression, that.formattedGeneratedExpression) &&
                Objects.equals(generatedExpression, that.generatedExpression) &&
-               Objects.equals(referencedReferences, that.referencedReferences);
+               Objects.equals(referencedReferences, that.referencedReferences) &&
+               Objects.equals(ref, that.ref);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), formattedGeneratedExpression, generatedExpression, referencedReferences);
+        return Objects.hash(generatedExpression, ref, referencedReferences);
+    }
+
+    @Override
+    public String toString() {
+        return toString(Style.UNQUALIFIED);
     }
 
     @Override
@@ -128,14 +133,61 @@ public class GeneratedReference extends SimpleReference {
         return column().quotedOutputName() + " AS " + formattedGeneratedExpression;
     }
 
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitReference(this, context);
+    }
+
+    public ReferenceIdent ident() {
+        return ref.ident();
+    }
+
+    public ColumnIdent column() {
+        return ref.column();
+    }
+
+    public IndexType indexType() {
+        return ref.indexType();
+    }
+
+    public ColumnPolicy columnPolicy() {
+        return ref.columnPolicy();
+    }
+
+    public boolean isNullable() {
+        return ref.isNullable();
+    }
+
+    public RowGranularity granularity() {
+        return ref.granularity();
+    }
+
+    public int position() {
+        return ref.position();
+    }
+
+    public boolean hasDocValues() {
+        return ref.hasDocValues();
+    }
+
+    public DataType<?> valueType() {
+        return ref.valueType();
+    }
+
+    public Symbol cast(DataType<?> targetType, CastMode... modes) {
+        return ref.cast(targetType, modes);
+    }
+
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeString(formattedGeneratedExpression);
-        Symbols.toStream(generatedExpression, out);
-        out.writeVInt(referencedReferences.size());
-        for (SimpleReference reference : referencedReferences) {
-            SimpleReference.toStream(reference, out);
-        }
+    public Symbol defaultExpression() {
+        return ref.defaultExpression();
+    }
+
+    @Override
+    public Reference getRelocated(ReferenceIdent referenceIdent) {
+        return new GeneratedReference(
+            ref.getRelocated(referenceIdent),
+            formattedGeneratedExpression,
+            generatedExpression
+        );
     }
 }

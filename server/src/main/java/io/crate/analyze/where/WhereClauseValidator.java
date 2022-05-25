@@ -22,6 +22,13 @@
 package io.crate.analyze.where;
 
 
+import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
+
+import java.util.Locale;
+import java.util.Set;
+import java.util.Stack;
+import java.util.function.Supplier;
+
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GteOperator;
@@ -35,16 +42,9 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.sql.tree.ComparisonExpression;
-
-import java.util.Locale;
-import java.util.Set;
-import java.util.Stack;
-import java.util.function.Supplier;
-
-import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
 
 public final class WhereClauseValidator {
 
@@ -87,7 +87,7 @@ public final class WhereClauseValidator {
         }
 
         @Override
-        public Symbol visitReference(SimpleReference symbol, Context context) {
+        public Symbol visitReference(Reference symbol, Context context) {
             validateSysReference(context, symbol.column().name());
             return super.visitReference(symbol, context);
         }

@@ -21,7 +21,30 @@
 
 package io.crate.planner;
 
+import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES;
+import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -35,7 +58,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.consumer.UpdatePlanner;
@@ -46,27 +69,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES;
-import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
 
 public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -102,8 +104,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(UpdateProjection.class));
         assertThat(collectPhase.toCollect().size(), is(1));
-        assertThat(collectPhase.toCollect().get(0), instanceOf(SimpleReference.class));
-        assertThat(((SimpleReference) collectPhase.toCollect().get(0)).column().fqn(), is("_id"));
+        assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
+        assertThat(((Reference) collectPhase.toCollect().get(0)).column().fqn(), is("_id"));
 
         UpdateProjection updateProjection = (UpdateProjection) collectPhase.projections().get(0);
         assertThat(updateProjection.uidSymbol(), instanceOf(InputColumn.class));

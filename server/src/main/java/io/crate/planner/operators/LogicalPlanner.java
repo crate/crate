@@ -69,7 +69,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -98,8 +98,8 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
-import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
+import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
@@ -351,7 +351,7 @@ public class LogicalPlanner {
                         // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
 
                         var toCollect = new LinkedHashSet<Symbol>(splitPoints.toCollect().size());
-                        Consumer<SimpleReference> addRefIfMatch = ref -> {
+                        Consumer<Reference> addRefIfMatch = ref -> {
                             if (ref.ident().tableIdent().equals(rel.relationName())) {
                                 toCollect.add(ref);
                             }

@@ -21,8 +21,15 @@
 
 package io.crate.expression;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.AggregationContext;
@@ -37,14 +44,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Factory which can be used to create {@link Input}s from symbols.
@@ -224,7 +225,7 @@ public class InputFactory {
     private static class RefVisitor<T extends Input<?>> extends BaseImplementationSymbolVisitor<Void> {
 
         private final ReferenceResolver<T> referenceResolver;
-        private final Map<SimpleReference, T> referenceMap;
+        private final Map<Reference, T> referenceMap;
 
         RefVisitor(TransactionContext txnCtx, NodeContext nodeCtx, ReferenceResolver<T> referenceResolver) {
             super(txnCtx, nodeCtx);
@@ -233,7 +234,7 @@ public class InputFactory {
         }
 
         @Override
-        public Input<?> visitReference(SimpleReference ref, Void context) {
+        public Input<?> visitReference(Reference ref, Void context) {
             T implementation = referenceMap.get(ref);
             if (implementation != null) {
                 return implementation;

@@ -21,12 +21,12 @@
 
 package io.crate.metadata;
 
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.core.Is.is;
+
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import static org.hamcrest.core.Is.is;
 
 public class GeoReferenceTest extends ESTestCase {
 
@@ -37,17 +37,17 @@ public class GeoReferenceTest extends ESTestCase {
         GeoReference geoReferenceInfo = new GeoReference(1, referenceIdent, "some_tree", "1m", 3, 0.5d);
 
         BytesStreamOutput out = new BytesStreamOutput();
-        SimpleReference.toStream(geoReferenceInfo, out);
+        Reference.toStream(geoReferenceInfo, out);
         StreamInput in = out.bytes().streamInput();
-        GeoReference geoReferenceInfo2 = SimpleReference.fromStream(in);
+        GeoReference geoReferenceInfo2 = Reference.fromStream(in);
 
         assertThat(geoReferenceInfo2, is(geoReferenceInfo));
 
         GeoReference geoReferenceInfo3 = new GeoReference(2, referenceIdent, "some_tree", null, null, null);
         out = new BytesStreamOutput();
-        SimpleReference.toStream(geoReferenceInfo3, out);
+        Reference.toStream(geoReferenceInfo3, out);
         in = out.bytes().streamInput();
-        GeoReference geoReferenceInfo4 = SimpleReference.fromStream(in);
+        GeoReference geoReferenceInfo4 = Reference.fromStream(in);
 
         assertThat(geoReferenceInfo4, is(geoReferenceInfo3));
 

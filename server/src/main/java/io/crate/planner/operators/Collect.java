@@ -62,7 +62,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -377,7 +376,7 @@ public class Collect implements LogicalPlan {
         }
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         LinkedHashMap<Symbol, Symbol> replacedOutputs = new LinkedHashMap<>();
-        ArrayList<SimpleReference> refsToFetch = new ArrayList<>();
+        ArrayList<Reference> refsToFetch = new ArrayList<>();
         FetchMarker fetchMarker = new FetchMarker(relation.relationName(), refsToFetch);
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
@@ -392,7 +391,7 @@ public class Collect implements LogicalPlan {
                 replacedOutputs.put(output, output);
             } else {
                 Symbol outputWithFetchStub = RefReplacer.replaceRefs(output, ref -> {
-                    SimpleReference sourceLookup = DocReferences.toSourceLookup(ref);
+                    Reference sourceLookup = DocReferences.toSourceLookup(ref);
                     refsToFetch.add(sourceLookup);
                     return new FetchStub(fetchMarker, sourceLookup);
                 });

@@ -1112,7 +1112,6 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
                 " gen_col as extract(year from ts) not null" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
-
         assertThrowsMatches(() -> execute("insert into generated_column (id, gen_col) values (1, null)"),
                      isSQLError(is("\"gen_col\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }

@@ -21,6 +21,24 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.ColumnUnknownException;
@@ -34,32 +52,16 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class AnalyzedTableElements<T> {
 
@@ -337,7 +339,7 @@ public class AnalyzedTableElements<T> {
     }
 
     public TableReferenceResolver referenceResolver(RelationName relationName) {
-        List<SimpleReference> tableReferences = new ArrayList<>();
+        List<Reference> tableReferences = new ArrayList<>();
         for (AnalyzedColumnDefinition<T> columnDefinition : columns) {
             buildReference(relationName, columnDefinition, tableReferences);
         }
@@ -418,30 +420,24 @@ public class AnalyzedTableElements<T> {
 
     private static <T> void buildReference(RelationName relationName,
                                            AnalyzedColumnDefinition<T> columnDefinition,
-                                           List<SimpleReference> references) {
-        SimpleReference reference;
+                                           List<Reference> references) {
 
         DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
         DataType<?> realType = ArrayType.NAME.equals(columnDefinition.collectionType())
             ? new ArrayType<>(type)
             : type;
-        if (columnDefinition.isGenerated() == false) {
-            reference = new SimpleReference(
-                new ReferenceIdent(relationName, columnDefinition.ident()),
-                RowGranularity.DOC,
-                realType,
-                columnDefinition.position,
-                null // not required in this context
-            );
-        } else {
-            reference = new GeneratedReference(
-                columnDefinition.position,
-                new ReferenceIdent(relationName, columnDefinition.ident()),
-                RowGranularity.DOC,
-                realType,
-                "dummy expression, real one not needed here");
-        }
-        references.add(reference);
+
+        SimpleReference simpleRef = new SimpleReference(
+            new ReferenceIdent(relationName, columnDefinition.ident()),
+            RowGranularity.DOC,
+            realType,
+            columnDefinition.position,
+            null // not required in this context
+        );
+        Reference ref = columnDefinition.isGenerated()
+            ? new GeneratedReference(simpleRef, columnDefinition.formattedGeneratedExpression(), null)
+            : simpleRef;
+        references.add(ref);
         for (AnalyzedColumnDefinition<T> childDefinition : columnDefinition.children()) {
             buildReference(relationName, childDefinition, references);
         }

@@ -82,11 +82,12 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 import io.crate.expression.reference.doc.lucene.ScoreCollectorExpression;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataTypes;
 
@@ -262,7 +263,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     @Test
     public void testSearchAfterWithSystemColumn() {
-        SimpleReference sysColReference =
+        Reference sysColReference =
             new SimpleReference(
                 new ReferenceIdent(
                     new RelationName(Schemas.DOC_SCHEMA_NAME, "table"),

@@ -21,18 +21,18 @@
 
 package io.crate.expression.reference;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+
+import java.util.List;
+
 import io.crate.common.collections.Maps;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.ValueExtractors;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-
-import java.util.List;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 /**
  * ReferenceResolver implementation which can be used to retrieve {@link CollectExpression}s to extract values from {@link Doc}
@@ -47,7 +47,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
     }
 
     @Override
-    public CollectExpression<Doc, ?> getImplementation(SimpleReference ref) {
+    public CollectExpression<Doc, ?> getImplementation(Reference ref) {
         ColumnIdent columnIdent = ref.column();
         String fqn = columnIdent.fqn();
         switch (fqn) {

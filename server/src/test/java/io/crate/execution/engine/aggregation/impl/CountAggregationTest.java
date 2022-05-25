@@ -48,10 +48,11 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.sql.tree.BitString;
@@ -59,6 +60,12 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
+import io.crate.types.ObjectType;
+import io.crate.types.ObjectType;
+import io.crate.types.ObjectType;
+import io.crate.types.ObjectType;
+import io.crate.types.ObjectType;
 import io.crate.types.ObjectType;
 
 
@@ -75,7 +82,7 @@ public class CountAggregationTest extends AggregationTestCase {
         );
     }
 
-    private void assertHasDocValueAggregator(List<SimpleReference> aggregationReferences,
+    private void assertHasDocValueAggregator(List<Reference> aggregationReferences,
                                              DocTableInfo sourceTable,
                                              Class<?> expectedAggregatorClass) {
         var aggregationFunction = (AggregationFunction<?, ?>) nodeCtx.functions().get(

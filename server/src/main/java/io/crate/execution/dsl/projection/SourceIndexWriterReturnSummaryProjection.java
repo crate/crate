@@ -21,21 +21,23 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterProjection {
 
@@ -46,7 +48,7 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
 
     public SourceIndexWriterReturnSummaryProjection(RelationName relationName,
                                                     @Nullable String partitionIdent,
-                                                    SimpleReference rawSourceReference,
+                                                    Reference rawSourceReference,
                                                     InputColumn rawSourcePtr,
                                                     List<ColumnIdent> primaryKeys,
                                                     List<Symbol> partitionedBySymbols,

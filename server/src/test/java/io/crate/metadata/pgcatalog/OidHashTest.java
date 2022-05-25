@@ -21,6 +21,20 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.metadata.pgcatalog.OidHash.constraintOid;
+import static io.crate.metadata.pgcatalog.OidHash.relationOid;
+import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
+import static io.crate.testing.T3.T1;
+import static io.crate.testing.T3.T1_DEFINITION;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+
+import java.util.Collections;
+import java.util.List;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.ConstraintInfo;
@@ -29,19 +43,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
-
-import static io.crate.metadata.pgcatalog.OidHash.constraintOid;
-import static io.crate.metadata.pgcatalog.OidHash.relationOid;
-import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
-import static io.crate.testing.T3.T1_DEFINITION;
-import static io.crate.testing.T3.T1;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import io.crate.types.TypeSignature;
 
 public class OidHashTest extends CrateDummyClusterServiceUnitTest {
 

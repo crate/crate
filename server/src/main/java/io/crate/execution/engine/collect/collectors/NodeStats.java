@@ -21,6 +21,22 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.transport.ConnectTransportException;
+import org.elasticsearch.transport.ReceiveTimeoutTransportException;
+
+import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
@@ -36,25 +52,10 @@ import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.transport.ConnectTransportException;
-import org.elasticsearch.transport.ReceiveTimeoutTransportException;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 
 /**
@@ -191,7 +192,7 @@ public final class NodeStats {
 
     private static Set<ColumnIdent> getRootColumns(Iterable<? extends Symbol> symbols) {
         HashSet<ColumnIdent> columns = new HashSet<>();
-        Consumer<SimpleReference> addRootColumn = ref -> columns.add(ref.column().getRoot());
+        Consumer<Reference> addRootColumn = ref -> columns.add(ref.column().getRoot());
         for (Symbol symbol: symbols) {
             RefVisitor.visitRefs(symbol, addRootColumn);
         }

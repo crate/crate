@@ -21,15 +21,16 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.metadata.SimpleReference;
+import java.util.Locale;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.metadata.Reference;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingHelpers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Locale;
 
 public class SystemTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
@@ -53,10 +54,10 @@ public class SystemTableInfoTest extends CrateDummyClusterServiceUnitTest {
     private void assertSortedColumns(TableInfo tableInfo) {
         assertThat(String.format(Locale.ENGLISH, "columns from iterator of table %s not in alphabetical order", tableInfo.ident().fqn()),
             tableInfo,
-            TestingHelpers.isSortedBy(SimpleReference::column));
+            TestingHelpers.isSortedBy(Reference::column));
         assertThat(String.format(
             Locale.ENGLISH, "columns of table %s not in alphabetical order", tableInfo.ident().fqn()),
             tableInfo.columns(),
-            TestingHelpers.isSortedBy(SimpleReference::column));
+            TestingHelpers.isSortedBy(Reference::column));
     }
 }

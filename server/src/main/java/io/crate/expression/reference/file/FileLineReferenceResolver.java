@@ -21,12 +21,12 @@
 
 package io.crate.expression.reference.file;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.SimpleReference;
-import io.crate.execution.engine.collect.files.LineCollectorExpression;
-
 import java.util.Map;
 import java.util.function.Supplier;
+
+import io.crate.execution.engine.collect.files.LineCollectorExpression;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 
 public final class FileLineReferenceResolver {
 
@@ -44,7 +44,7 @@ public final class FileLineReferenceResolver {
     private FileLineReferenceResolver() {
     }
 
-    public static LineCollectorExpression<?> getImplementation(SimpleReference ref) {
+    public static LineCollectorExpression<?> getImplementation(Reference ref) {
         ColumnIdent columnIdent = ref.column();
         Supplier<LineCollectorExpression<?>> supplier = EXPRESSION_BUILDER.get(columnIdent.name());
         if (supplier == null) {

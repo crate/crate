@@ -21,14 +21,14 @@
 
 package io.crate.analyze.relations;
 
+import java.util.List;
+
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-
-import java.util.List;
 
 public class TableRelation extends AbstractTableRelation<TableInfo> {
 
@@ -42,7 +42,7 @@ public class TableRelation extends AbstractTableRelation<TableInfo> {
     }
 
     @Override
-    public SimpleReference getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
+    public Reference getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         switch (operation) {
             case READ:
             case UPDATE:

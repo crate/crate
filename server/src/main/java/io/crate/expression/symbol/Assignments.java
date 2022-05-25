@@ -21,6 +21,10 @@
 
 package io.crate.expression.symbol;
 
+import java.util.Map;
+
+import javax.annotation.Nonnull;
+
 import io.crate.analyze.ConstraintsValidator;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.data.Input;
@@ -28,18 +32,15 @@ import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 
-import javax.annotation.Nonnull;
-import java.util.Map;
-
 public final class Assignments {
 
     private final String[] targetNames;
-    private final SimpleReference[] targetColumns;
+    private final Reference[] targetColumns;
     private final Symbol[] sources;
     private final EvaluatingNormalizer normalizer;
 
@@ -60,13 +61,13 @@ public final class Assignments {
      *
      * @return a tuple or null if the input is null.
      */
-    public static Assignments convert(@Nonnull Map<SimpleReference, ? extends Symbol> assignments, NodeContext nodeCtx) {
+    public static Assignments convert(@Nonnull Map<Reference, ? extends Symbol> assignments, NodeContext nodeCtx) {
         String[] targetNames = new String[assignments.size()];
-        SimpleReference[] targetColumns = new SimpleReference[assignments.size()];
+        Reference[] targetColumns = new Reference[assignments.size()];
         Symbol[] assignmentSymbols = new Symbol[assignments.size()];
         int i = 0;
-        for (Map.Entry<SimpleReference, ? extends Symbol> entry : assignments.entrySet()) {
-            SimpleReference key = entry.getKey();
+        for (Map.Entry<Reference, ? extends Symbol> entry : assignments.entrySet()) {
+            Reference key = entry.getKey();
             targetNames[i] = key.column().fqn();
             assignmentSymbols[i] = entry.getValue();
             targetColumns[i] = key;
@@ -75,7 +76,7 @@ public final class Assignments {
         return new Assignments(targetNames, targetColumns, assignmentSymbols, nodeCtx);
     }
 
-    private Assignments(String[] targetNames, SimpleReference[] targetColumns, Symbol[] sources, NodeContext nodeCtx) {
+    private Assignments(String[] targetNames, Reference[] targetColumns, Symbol[] sources, NodeContext nodeCtx) {
         this.targetNames = targetNames;
         this.targetColumns = targetColumns;
         this.sources = sources;

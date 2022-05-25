@@ -21,32 +21,9 @@
 
 package io.crate.execution.engine.collect.files;
 
-import io.crate.analyze.CopyFromParserProperties;
-import io.crate.data.BatchIterator;
-import io.crate.data.Bucket;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.data.RowConsumer;
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.expression.InputFactory;
-import io.crate.expression.reference.file.FileLineReferenceResolver;
-import io.crate.expression.reference.file.SourceLineExpression;
-import io.crate.expression.reference.file.SourceUriFailureExpression;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.Functions;
-import io.crate.metadata.SimpleReference;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.TestingRowConsumer;
-import io.crate.types.DataTypes;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.is;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -64,9 +41,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
-import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import io.crate.analyze.CopyFromParserProperties;
+import io.crate.data.BatchIterator;
+import io.crate.data.Bucket;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.expression.InputFactory;
+import io.crate.expression.reference.file.FileLineReferenceResolver;
+import io.crate.expression.reference.file.SourceLineExpression;
+import io.crate.expression.reference.file.SourceUriFailureExpression;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
+import io.crate.testing.TestingRowConsumer;
+import io.crate.types.DataTypes;
 
 public class FileReadingCollectorTest extends ESTestCase {
 
@@ -227,10 +228,10 @@ public class FileReadingCollectorTest extends ESTestCase {
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
         List<Input<?>> inputs = new ArrayList<>(2);
-        SimpleReference raw = createReference(SourceLineExpression.COLUMN_NAME, DataTypes.STRING);
+        Reference raw = createReference(SourceLineExpression.COLUMN_NAME, DataTypes.STRING);
         inputs.add(ctx.add(raw));
         if (collectSourceUriFailure) {
-            SimpleReference sourceUriFailure = createReference(SourceUriFailureExpression.COLUMN_NAME, DataTypes.STRING);
+            Reference sourceUriFailure = createReference(SourceUriFailureExpression.COLUMN_NAME, DataTypes.STRING);
             //noinspection unchecked
             sourceUriFailureInput = (Input<String>) ctx.add(sourceUriFailure);
             inputs.add(sourceUriFailureInput);

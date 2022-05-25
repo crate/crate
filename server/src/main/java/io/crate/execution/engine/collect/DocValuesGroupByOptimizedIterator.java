@@ -37,8 +37,6 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.memory.MemoryManager;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
@@ -67,6 +65,7 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.GroupByMaps;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -77,10 +76,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -106,13 +105,13 @@ final class DocValuesGroupByOptimizedIterator {
             return null;
         }
 
-        ArrayList<SimpleReference> columnKeyRefs = new ArrayList<>(groupProjection.keys().size());
+        ArrayList<Reference> columnKeyRefs = new ArrayList<>(groupProjection.keys().size());
         for (var key : groupProjection.keys()) {
             var docKeyRef = getKeyRef(collectPhase.toCollect(), key);
             if (docKeyRef == null) {
                 return null; // group by on non-reference
             }
-            var columnKeyRef = (SimpleReference) DocReferences.inverseSourceLookup(docKeyRef);
+            var columnKeyRef = (Reference) DocReferences.inverseSourceLookup(docKeyRef);
             var keyFieldType = fieldTypeLookup.get(columnKeyRef.column().fqn());
             if (keyFieldType == null || !keyFieldType.hasDocValues()) {
                 return null;
@@ -187,7 +186,7 @@ final class DocValuesGroupByOptimizedIterator {
         @VisibleForTesting
         static BatchIterator<Row> forSingleKey(List<DocValueAggregator> aggregators,
                                                IndexSearcher indexSearcher,
-                                               SimpleReference keyReference,
+                                               Reference keyReference,
                                                List<? extends LuceneCollectorExpression<?>> keyExpressions,
                                                RamAccounting ramAccounting,
                                                MemoryManager memoryManager,
@@ -216,7 +215,7 @@ final class DocValuesGroupByOptimizedIterator {
         @VisibleForTesting
         static <K> BatchIterator<Row> forManyKeys(List<DocValueAggregator> aggregators,
                                                   IndexSearcher indexSearcher,
-                                                  List<SimpleReference> keyColumnRefs,
+                                                  List<Reference> keyColumnRefs,
                                                   List<? extends LuceneCollectorExpression<?>> keyExpressions,
                                                   RamAccounting ramAccounting,
                                                   MemoryManager memoryManager,
@@ -233,7 +232,7 @@ final class DocValuesGroupByOptimizedIterator {
                 GroupByMaps.accountForNewEntry(
                     ramAccounting,
                     new MultiSizeEstimator(
-                        Lists2.map(keyColumnRefs, SimpleReference::valueType)
+                        Lists2.map(keyColumnRefs, Reference::valueType)
                     ),
                     null
                 ),

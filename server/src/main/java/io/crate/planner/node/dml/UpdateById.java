@@ -21,6 +21,15 @@
 
 package io.crate.planner.node.dml;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.shard.ShardId;
+
 import io.crate.analyze.where.DocKeys;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
@@ -33,33 +42,24 @@ import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.shard.ShardId;
-
-import javax.annotation.Nullable;
-
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-
 public final class UpdateById implements Plan {
 
     private final DocTableInfo table;
-    private final Map<SimpleReference, Symbol> assignmentByTargetCol;
+    private final Map<Reference, Symbol> assignmentByTargetCol;
     private final DocKeys docKeys;
     private final Assignments assignments;
     @Nullable
     private final Symbol[] returnValues;
 
     public UpdateById(DocTableInfo table,
-                      Map<SimpleReference, Symbol> assignmentByTargetCol,
+                      Map<Reference, Symbol> assignmentByTargetCol,
                       DocKeys docKeys,
                       @Nullable List<Symbol> returnValues,
                       NodeContext nodeCtx) {
@@ -71,7 +71,7 @@ public final class UpdateById implements Plan {
     }
 
     @VisibleForTesting
-    public Map<SimpleReference, Symbol> assignmentByTargetCol() {
+    public Map<Reference, Symbol> assignmentByTargetCol() {
         return assignmentByTargetCol;
     }
 

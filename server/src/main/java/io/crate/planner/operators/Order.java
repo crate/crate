@@ -21,6 +21,18 @@
 
 package io.crate.planner.operators;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -37,17 +49,6 @@ import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class Order extends ForwardingLogicalPlan {
 

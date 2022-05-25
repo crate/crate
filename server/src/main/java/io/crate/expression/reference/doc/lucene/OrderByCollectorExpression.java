@@ -21,11 +21,12 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.analyze.OrderBy;
-import io.crate.metadata.SimpleReference;
+import java.util.function.Function;
+
 import org.apache.lucene.search.FieldDoc;
 
-import java.util.function.Function;
+import io.crate.analyze.OrderBy;
+import io.crate.metadata.Reference;
 
 /**
  * A {@link LuceneCollectorExpression} is used to collect
@@ -39,7 +40,7 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
 
     private Object value;
 
-    public OrderByCollectorExpression(SimpleReference ref, OrderBy orderBy, Function<Object, Object> valueConversion) {
+    public OrderByCollectorExpression(Reference ref, OrderBy orderBy, Function<Object, Object> valueConversion) {
         this.valueConversion = valueConversion;
         assert orderBy.orderBySymbols().contains(ref) : "symbol must be part of orderBy symbols";
         orderIndex = orderBy.orderBySymbols().indexOf(ref);

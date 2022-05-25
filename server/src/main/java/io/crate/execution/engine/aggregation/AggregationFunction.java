@@ -21,19 +21,21 @@
 
 package io.crate.execution.engine.aggregation;
 
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataType;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-
-import javax.annotation.Nullable;
-import java.util.List;
 
 /**
  * A special FunctionImplementation that compute a single result from a set of input values
@@ -116,7 +118,7 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
     }
 
     @Nullable
-    public DocValueAggregator<?> getDocValueAggregator(List<SimpleReference> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         return null;

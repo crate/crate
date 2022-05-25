@@ -21,6 +21,17 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
@@ -30,25 +41,16 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
 
 public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
@@ -57,7 +59,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
     private TableInfo userTableInfo;
     private EvaluatingNormalizer normalizer;
 
-    private Symbol normalizeInputForReference(Symbol valueSymbol, SimpleReference reference) {
+    private Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference) {
         return ValueNormalizer.normalizeInputForReference(
             valueSymbol,
             reference,
@@ -106,7 +108,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeDynamicEmptyObjectLiteral() throws Exception {
-        SimpleReference objRef = userTableInfo.getReference(new ColumnIdent("dyn_empty"));
+        Reference objRef = userTableInfo.getReference(new ColumnIdent("dyn_empty"));
         Map<String, Object> map = new HashMap<>();
         map.put("time", "2014-02-16T00:00:01");
         map.put("false", true);
@@ -118,7 +120,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test(expected = ColumnValidationException.class)
     public void testNormalizeObjectLiteralInvalidNested() throws Exception {
-        SimpleReference objRef = userTableInfo.getReference(new ColumnIdent("dyn"));
+        Reference objRef = userTableInfo.getReference(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("d", "2014-02-16T00:00:01");
         normalizeInputForReference(Literal.of(map), objRef);
@@ -126,7 +128,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNormalizeObjectLiteralConvertFromString() throws Exception {
-        SimpleReference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("d", "2.9");
 
@@ -137,7 +139,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNormalizeObjectLiteral() throws Exception {
-        SimpleReference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("d", 2.9d);
             put("inner_strict", new HashMap<String, Object>() {{
@@ -157,7 +159,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNormalizeDynamicObjectLiteralWithAdditionalColumn() throws Exception {
-        SimpleReference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("d", 2.9d);
         map.put("half", "1.45");
@@ -170,7 +172,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
     public void testNormalizeDynamicObjectWithRestrictedAdditionalColumn() throws Exception {
         expectedException.expect(InvalidColumnNameException.class);
         expectedException.expectMessage("contains a dot");
-        SimpleReference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("_invalid.column_name", 0);
         normalizeInputForReference(Literal.of(map), objInfo);
@@ -179,7 +181,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test(expected = ColumnUnknownException.class)
     public void testNormalizeStrictObjectLiteralWithAdditionalColumn() throws Exception {
-        SimpleReference objInfo = userTableInfo.getReference(new ColumnIdent("strict"));
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("strict"));
         Map<String, Object> map = new HashMap<>();
         map.put("inner_d", 2.9d);
         map.put("half", "1.45");
@@ -188,7 +190,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test(expected = ColumnUnknownException.class)
     public void testNormalizeStrictObjectLiteralWithAdditionalNestedColumn() throws Exception {
-        SimpleReference objInfo = userTableInfo.getReference(new ColumnIdent("strict"));
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("strict"));
         Map<String, Object> map = new HashMap<>();
         map.put("inner_d", 2.9d);
         map.put("inner_map", new HashMap<String, Object>() {{
@@ -199,7 +201,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test(expected = ColumnUnknownException.class)
     public void testNormalizeNestedStrictObjectLiteralWithAdditionalColumn() throws Exception {
-        SimpleReference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
 
         Map<String, Object> map = new HashMap<>();
         map.put("inner_strict", new HashMap<String, Object>() {{
@@ -212,7 +214,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNormalizeDynamicNewColumnTimestamp() throws Exception {
-        SimpleReference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("time", "1970-01-01T00:00:00");
         }};
@@ -224,7 +226,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNormalizeIgnoredNewColumnTimestamp() throws Exception {
-        SimpleReference objInfo = userTableInfo.getReference(new ColumnIdent("ignored"));
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("ignored"));
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("time", "1970-01-01T00:00:00");
         }};
@@ -236,7 +238,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNormalizeDynamicNewColumnNoTimestamp() throws Exception {
-        SimpleReference objInfo = userTableInfo.getReference(new ColumnIdent("ignored"));
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("ignored"));
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("no_time", "1970");
         }};
@@ -248,7 +250,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNormalizeStringToNumberColumn() throws Exception {
-        SimpleReference objInfo = userTableInfo.getReference(new ColumnIdent("d"));
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("d"));
         Literal<String> stringDoubleLiteral = Literal.of("298.444");
         Literal literal = (Literal) normalizeInputForReference(
             stringDoubleLiteral, objInfo);

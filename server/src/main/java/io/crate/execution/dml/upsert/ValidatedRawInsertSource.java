@@ -29,14 +29,14 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.core.JsonParseException;
+
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.common.xcontent.support.ParameterizedXContentParser;
 import org.elasticsearch.index.mapper.StrictDynamicMappingException;
-
-import com.fasterxml.jackson.core.JsonParseException;
 
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
@@ -47,7 +47,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -131,7 +131,7 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
 
     @Override
     public Object parse(String field, Object value) {
-        SimpleReference ref = refLookUpCache.get(field);
+        Reference ref = refLookUpCache.get(field);
         if (ref == null) {
             try {
                 ref = table.resolveColumn(field, true, txnCtx.sessionSettings().errorOnUnknownObjectKey());
@@ -149,7 +149,7 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
     }
 
     private void generateDefaultsAndMerge(Map<String, Object> source) {
-        for (SimpleReference ref : table.defaultExpressionColumns()) {
+        for (Reference ref : table.defaultExpressionColumns()) {
             ColumnIdent column = ref.column();
             Object val = SymbolEvaluator.evaluateWithoutParams(txnCtx, nodeCtx, ref.defaultExpression());
             Maps.mergeInto(source, column.name(), column.path(), val, Map::putIfAbsent);
@@ -165,9 +165,9 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
     static class RefLookUpCache {
 
         @VisibleForTesting
-        final Map<String, SimpleReference> lookupCache;
+        final Map<String, Reference> lookupCache;
         @VisibleForTesting
-        List<SimpleReference> presentColumns;
+        List<Reference> presentColumns;
 
         public RefLookUpCache() {
             this.lookupCache = new HashMap<>();
@@ -175,7 +175,7 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
         }
 
         @Nullable
-        public SimpleReference get(String col) {
+        public Reference get(String col) {
             var r = lookupCache.get(col);
             if (r != null) {
                 assert !presentColumns.contains(r) : "for both get() and put(), the references in context should be the first encounter";
@@ -184,14 +184,14 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
             return r;
         }
 
-        public void put(String col, SimpleReference r) {
+        public void put(String col, Reference r) {
             assert !lookupCache.containsKey(col) || !lookupCache.containsValue(r) : "the key, value pair already exists";
             assert !presentColumns.contains(r) : "for both get() and put(), the references in context should be the first encounter";
             presentColumns.add(r);
             lookupCache.put(col, r);
         }
 
-        public List<SimpleReference> getPresentColumns() {
+        public List<Reference> getPresentColumns() {
             return presentColumns;
         }
 

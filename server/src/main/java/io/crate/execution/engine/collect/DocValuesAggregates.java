@@ -21,6 +21,28 @@
 
 package io.crate.execution.engine.collect;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.Weight;
+import org.apache.lucene.util.Bits;
+import org.elasticsearch.Version;
+import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -44,30 +66,10 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.Bits;
-import org.elasticsearch.Version;
-import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class DocValuesAggregates {
 
@@ -145,7 +147,7 @@ public class DocValuesAggregates {
                 return null;
             }
 
-            var aggregationReferences = new ArrayList<SimpleReference>(aggregation.inputs().size());
+            var aggregationReferences = new ArrayList<Reference>(aggregation.inputs().size());
             var literals = new ArrayList<Literal<?>>();
             for (var input : aggregation.inputs()) {
                 if (input instanceof Literal<?> literal) {
@@ -179,13 +181,13 @@ public class DocValuesAggregates {
         return aggregator;
     }
 
-    private static class AggregationInputToReferenceResolver extends SymbolVisitor<List<Symbol>, SimpleReference> {
+    private static class AggregationInputToReferenceResolver extends SymbolVisitor<List<Symbol>, Reference> {
 
         public static final AggregationInputToReferenceResolver INSTANCE =
             new AggregationInputToReferenceResolver();
 
         @Override
-        public SimpleReference visitFunction(io.crate.expression.symbol.Function function, List<Symbol> toCollect) {
+        public Reference visitFunction(io.crate.expression.symbol.Function function, List<Symbol> toCollect) {
             if (function.name().equals(ExplicitCastFunction.NAME)) {
                 var arg = function.arguments().get(0);
                 // Currently, it is the concrete case for the ::numeric explicit cast only.
@@ -199,12 +201,12 @@ public class DocValuesAggregates {
         }
 
         @Override
-        public SimpleReference visitReference(SimpleReference reference, List<Symbol> context) {
+        public Reference visitReference(Reference reference, List<Symbol> context) {
             return reference;
         }
 
         @Override
-        public SimpleReference visitInputColumn(InputColumn inputColumn, List<Symbol> toCollect) {
+        public Reference visitInputColumn(InputColumn inputColumn, List<Symbol> toCollect) {
             Symbol collectSymbol = toCollect.get(inputColumn.index());
             if (collectSymbol == null) {
                 return null;

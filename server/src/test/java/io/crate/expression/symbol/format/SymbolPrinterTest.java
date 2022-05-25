@@ -21,6 +21,18 @@
 
 package io.crate.expression.symbol.format;
 
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.is;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Aggregation;
@@ -31,10 +43,11 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
@@ -42,17 +55,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.is;
+import io.crate.types.DataTypes;
 
 public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
@@ -175,7 +178,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDynamicReference() throws Exception {
-        SimpleReference r = new DynamicReference(
+        Reference r = new DynamicReference(
             new ReferenceIdent(new RelationName("schema", "table"), new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             0);
@@ -184,7 +187,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testVoidReference() throws Exception {
-        SimpleReference r = new VoidReference(
+        Reference r = new VoidReference(
             new ReferenceIdent(new RelationName("schema", "table"), new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             0);
@@ -339,7 +342,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testPrintFetchRefs() throws Exception {
         Symbol field = sqlExpressions.asSymbol("bar");
         assertThat(field, isReference("bar"));
-        SimpleReference ref = (SimpleReference) field;
+        Reference ref = (Reference) field;
         FetchReference fetchRef = new FetchReference(new InputColumn(0, field.valueType()), ref);
         assertPrint(fetchRef, "FETCH(INPUT(0), doc.formatter.bar)");
     }

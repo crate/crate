@@ -21,12 +21,23 @@
 
 package io.crate.analyze.where;
 
-import io.crate.common.collections.Iterables;
+import static io.crate.common.StringUtils.nullOrString;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.ScalarsAndRefsToTrue;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Tuple;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.partitioned.PartitionExpression;
 import io.crate.expression.symbol.Literal;
@@ -35,19 +46,9 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.PartitionReferenceResolver;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.common.collections.Tuple;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.common.StringUtils.nullOrString;
 
 public class WhereClauseAnalyzer {
 
@@ -78,10 +79,10 @@ public class WhereClauseAnalyzer {
         return new WhereClause(partitionResult.query, partitionResult.partitions, where.clusteredBy());
     }
 
-    private static PartitionReferenceResolver preparePartitionResolver(List<SimpleReference> partitionColumns) {
+    private static PartitionReferenceResolver preparePartitionResolver(List<Reference> partitionColumns) {
         List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
         int idx = 0;
-        for (SimpleReference partitionedByColumn : partitionColumns) {
+        for (var partitionedByColumn : partitionColumns) {
             partitionExpressions.add(new PartitionExpression(partitionedByColumn, idx));
             idx++;
         }

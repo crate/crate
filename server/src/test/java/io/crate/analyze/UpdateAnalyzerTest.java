@@ -21,6 +21,26 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.SymbolMatchers.isAlias;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.mock;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -39,7 +59,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
@@ -54,25 +74,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.ObjectType;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.SymbolMatchers.isAlias;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.mockito.Mockito.mock;
 
 public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -186,7 +187,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(update.assignmentByTargetCol().size(), is(1));
         assertThat(((DocTableRelation) update.table()).tableInfo().ident(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "users")));
 
-        SimpleReference ref = update.assignmentByTargetCol().keySet().iterator().next();
+        Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref.ident().tableIdent().name(), is("users"));
         assertThat(ref.column().name(), is("name"));
         assertTrue(update.assignmentByTargetCol().containsKey(ref));
@@ -200,7 +201,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set details['arms']=3");
         assertThat(update.assignmentByTargetCol().size(), is(1));
 
-        SimpleReference ref = update.assignmentByTargetCol().keySet().iterator().next();
+        Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref, instanceOf(DynamicReference.class));
         Assert.assertEquals(DataTypes.INTEGER, ref.valueType());
         assertThat(ref.column().isTopLevel(), is(false));
@@ -216,7 +217,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateAssignmentConvertableType() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set other_id=9.9");
-        SimpleReference ref = update.assignmentByTargetCol().keySet().iterator().next();
+        Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref, not(instanceOf(DynamicReference.class)));
         assertEquals(DataTypes.LONG, ref.valueType());
 
@@ -265,9 +266,9 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         RelationName usersRelation = new RelationName("doc", "users");
         assertThat(update.assignmentByTargetCol().size(), is(3));
         DocTableInfo tableInfo = e.schemas().getTableInfo(usersRelation);
-        SimpleReference name = tableInfo.getReference(new ColumnIdent("name"));
-        SimpleReference friendsRef = tableInfo.getReference(new ColumnIdent("friends"));
-        SimpleReference otherId = tableInfo.getReference(new ColumnIdent("other_id"));
+        Reference name = tableInfo.getReference(new ColumnIdent("name"));
+        Reference friendsRef = tableInfo.getReference(new ColumnIdent("friends"));
+        Reference otherId = tableInfo.getReference(new ColumnIdent("other_id"));
         assertThat(update.assignmentByTargetCol().get(name), instanceOf(ParameterSymbol.class));
         assertThat(update.assignmentByTargetCol().get(friendsRef), instanceOf(ParameterSymbol.class));
         assertThat(update.assignmentByTargetCol().get(otherId), instanceOf(ParameterSymbol.class));

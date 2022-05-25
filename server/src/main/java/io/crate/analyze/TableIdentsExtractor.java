@@ -21,6 +21,15 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
@@ -38,17 +47,8 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 
 public class TableIdentsExtractor {
 
@@ -90,7 +90,7 @@ public class TableIdentsExtractor {
         }
 
         @Override
-        public Collection<RelationName> visitReference(SimpleReference symbol, Void context) {
+        public Collection<RelationName> visitReference(Reference symbol, Void context) {
             return Collections.singletonList(symbol.ident().tableIdent());
         }
 

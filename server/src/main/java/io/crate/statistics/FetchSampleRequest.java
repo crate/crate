@@ -21,7 +21,7 @@
 
 package io.crate.statistics;
 
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -34,10 +34,10 @@ import java.util.List;
 public final class FetchSampleRequest extends TransportRequest {
 
     private final RelationName relationName;
-    private final List<SimpleReference> columns;
+    private final List<Reference> columns;
     private final int maxSamples;
 
-    public FetchSampleRequest(RelationName relationName, List<SimpleReference> columns, int maxSamples) {
+    public FetchSampleRequest(RelationName relationName, List<Reference> columns, int maxSamples) {
         this.relationName = relationName;
         this.columns = columns;
         this.maxSamples = maxSamples;
@@ -49,7 +49,7 @@ public final class FetchSampleRequest extends TransportRequest {
         int numColumns = in.readVInt();
         this.columns = new ArrayList<>(numColumns);
         for (int i = 0; i < numColumns; i++) {
-            columns.add(SimpleReference.fromStream(in));
+            columns.add(Reference.fromStream(in));
         }
     }
 
@@ -58,8 +58,8 @@ public final class FetchSampleRequest extends TransportRequest {
         relationName.writeTo(out);
         out.writeVInt(maxSamples);
         out.writeVInt(columns.size());
-        for (SimpleReference column : columns) {
-            SimpleReference.toStream(column, out);
+        for (Reference column : columns) {
+            Reference.toStream(column, out);
         }
     }
 
@@ -67,7 +67,7 @@ public final class FetchSampleRequest extends TransportRequest {
         return relationName;
     }
 
-    public List<SimpleReference> columns() {
+    public List<Reference> columns() {
         return columns;
     }
 

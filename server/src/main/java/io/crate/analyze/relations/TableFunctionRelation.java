@@ -21,6 +21,13 @@
 
 package io.crate.analyze.relations;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.scalar.SubscriptFunctions;
@@ -31,27 +38,22 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionName;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
-
 public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
 
     private final TableFunctionImplementation<?> functionImplementation;
     private final Function function;
-    private final List<SimpleReference> outputs;
+    private final List<Reference> outputs;
     private final RelationName relationName;
 
     public TableFunctionRelation(TableFunctionImplementation<?> functionImplementation, Function function) {

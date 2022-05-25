@@ -56,12 +56,13 @@ import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
@@ -80,7 +81,7 @@ public class JsonReaderBenchmark {
     File tempFile;
 
 
-    public static SimpleReference createReference(String columnName, DataType<?> dataType) {
+    public static Reference createReference(String columnName, DataType<?> dataType) {
         return new SimpleReference(
             new ReferenceIdent(
                 new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"),
@@ -134,7 +135,7 @@ public class JsonReaderBenchmark {
 
     @Benchmark()
     public void measureFileReadingIteratorForJson(Blackhole blackhole) {
-        SimpleReference raw = createReference("_raw", DataTypes.STRING);
+        Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx = inputFactory.ctxForRefs(
             txnCtx, FileLineReferenceResolver::getImplementation);
 

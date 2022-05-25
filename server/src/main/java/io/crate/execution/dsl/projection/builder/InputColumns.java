@@ -21,6 +21,20 @@
 
 package io.crate.execution.dsl.projection.builder;
 
+import static io.crate.common.collections.Lists2.mapTail;
+import static io.crate.expression.symbol.Symbols.lookupValueByColumn;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.inject.Singleton;
+
 import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.AliasSymbol;
@@ -40,20 +54,8 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.types.DataType;
-import org.elasticsearch.common.inject.Singleton;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Objects;
-
-import static io.crate.common.collections.Lists2.mapTail;
-import static io.crate.expression.symbol.Symbols.lookupValueByColumn;
 
 /**
  * Provides functions to create {@link InputColumn}s
@@ -241,11 +243,11 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     }
 
     @Override
-    public Symbol visitReference(SimpleReference ref, SourceSymbols sourceSymbols) {
-        if (ref instanceof GeneratedReference) {
+    public Symbol visitReference(Reference ref, SourceSymbols sourceSymbols) {
+        if (ref instanceof GeneratedReference genRef) {
             return Objects.requireNonNullElse(
                 sourceSymbols.inputs.get(ref),
-                (((GeneratedReference) ref).generatedExpression().accept(this, sourceSymbols)));
+                genRef.generatedExpression().accept(this, sourceSymbols));
         }
         InputColumn inputColumn = sourceSymbols.inputs.get(ref);
         if (inputColumn == null) {

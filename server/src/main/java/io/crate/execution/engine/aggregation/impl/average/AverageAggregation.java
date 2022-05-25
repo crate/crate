@@ -28,8 +28,6 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
-import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
@@ -42,10 +40,12 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
@@ -298,10 +298,10 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
     @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<SimpleReference> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
-        SimpleReference reference = aggregationReferences.get(0);
+        Reference reference = aggregationReferences.get(0);
         if (!reference.hasDocValues()) {
             return null;
         }

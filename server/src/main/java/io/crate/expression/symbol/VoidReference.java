@@ -22,12 +22,13 @@
 
 package io.crate.expression.symbol;
 
+import java.io.IOException;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.tree.ColumnPolicy;
-import org.elasticsearch.common.io.stream.StreamInput;
-
-import java.io.IOException;
 
 /**
  * A reference to a column which does not exist. This is primarily used for object columns where lookups like `some_column['nested_column']` are allowed if the session `error_on_unknown_object_key` setting is set to false.

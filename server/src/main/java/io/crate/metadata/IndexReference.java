@@ -21,19 +21,21 @@
 
 package io.crate.metadata;
 
-import io.crate.expression.symbol.SymbolType;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import static java.util.Objects.requireNonNull;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static java.util.Objects.requireNonNull;
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.expression.symbol.SymbolType;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataTypes;
 
 
 public class IndexReference extends SimpleReference {
@@ -41,7 +43,7 @@ public class IndexReference extends SimpleReference {
     public static class Builder {
         private final ReferenceIdent ident;
         private IndexType indexType = IndexType.FULLTEXT;
-        private List<SimpleReference> columns = new ArrayList<>();
+        private List<Reference> columns = new ArrayList<>();
         private String analyzer = null;
         private int position = 0;
 
@@ -55,7 +57,7 @@ public class IndexReference extends SimpleReference {
             return this;
         }
 
-        public Builder addColumn(SimpleReference info) {
+        public Builder addColumn(Reference info) {
             this.columns.add(info);
             return this;
         }
@@ -77,7 +79,7 @@ public class IndexReference extends SimpleReference {
 
     @Nullable
     private final String analyzer;
-    private final List<SimpleReference> columns;
+    private final List<Reference> columns;
 
     public IndexReference(StreamInput in) throws IOException {
         super(in);
@@ -85,21 +87,21 @@ public class IndexReference extends SimpleReference {
         int size = in.readVInt();
         columns = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            columns.add(SimpleReference.fromStream(in));
+            columns.add(Reference.fromStream(in));
         }
     }
 
     public IndexReference(int position,
                           ReferenceIdent ident,
                           IndexType indexType,
-                          List<SimpleReference> columns,
+                          List<Reference> columns,
                           @Nullable String analyzer) {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, true, position, null);
         this.columns = columns;
         this.analyzer = analyzer;
     }
 
-    public List<SimpleReference> columns() {
+    public List<Reference> columns() {
         return columns;
     }
 
@@ -139,8 +141,8 @@ public class IndexReference extends SimpleReference {
         super.writeTo(out);
         out.writeOptionalString(analyzer);
         out.writeVInt(columns.size());
-        for (SimpleReference reference : columns) {
-            SimpleReference.toStream(reference, out);
+        for (Reference reference : columns) {
+            Reference.toStream(reference, out);
         }
     }
 }

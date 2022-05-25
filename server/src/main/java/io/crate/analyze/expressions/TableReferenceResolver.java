@@ -21,38 +21,39 @@
 
 package io.crate.analyze.expressions;
 
-import io.crate.analyze.relations.FieldProvider;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.QualifiedName;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class TableReferenceResolver implements FieldProvider<SimpleReference> {
+import javax.annotation.Nullable;
 
-    private final Collection<SimpleReference> tableReferences;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.table.Operation;
+import io.crate.sql.tree.QualifiedName;
+
+public class TableReferenceResolver implements FieldProvider<Reference> {
+
+    private final Collection<Reference> tableReferences;
     private final RelationName relationName;
-    private final List<SimpleReference> references = new ArrayList<>();
+    private final List<Reference> references = new ArrayList<>();
 
-    public TableReferenceResolver(Collection<SimpleReference> tableReferences, RelationName relationName) {
+    public TableReferenceResolver(Collection<Reference> tableReferences, RelationName relationName) {
         this.tableReferences = tableReferences;
         this.relationName = relationName;
     }
 
     @Override
-    public SimpleReference resolveField(QualifiedName qualifiedName,
+    public Reference resolveField(QualifiedName qualifiedName,
                                   @Nullable List<String> path,
                                   Operation operation,
                                   boolean errorOnUnknownObjectKey) {
         ColumnIdent columnIdent = ColumnIdent.fromNameSafe(qualifiedName, path);
-        for (SimpleReference reference : tableReferences) {
+        for (var reference : tableReferences) {
             if (reference.column().equals(columnIdent)) {
                 if (reference instanceof GeneratedReference) {
                     throw new IllegalArgumentException("A generated column cannot be based on a generated column");
@@ -65,7 +66,7 @@ public class TableReferenceResolver implements FieldProvider<SimpleReference> {
         throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
     }
 
-    public List<SimpleReference> references() {
+    public List<Reference> references() {
         return references;
     }
 }

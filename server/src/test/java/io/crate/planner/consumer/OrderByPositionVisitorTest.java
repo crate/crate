@@ -21,16 +21,17 @@
 
 package io.crate.planner.consumer;
 
+import java.util.List;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.SimpleReference;
-import org.elasticsearch.test.ESTestCase;
+import io.crate.metadata.Reference;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import java.util.List;
 
 public class OrderByPositionVisitorTest extends ESTestCase {
 
@@ -45,7 +46,7 @@ public class OrderByPositionVisitorTest extends ESTestCase {
 
     @Test
     public void testSymbols() throws Exception {
-        SimpleReference ref = TestingHelpers.createReference("column", DataTypes.STRING);
+        Reference ref = TestingHelpers.createReference("column", DataTypes.STRING);
         int[] orderByPositions = OrderByPositionVisitor.orderByPositions(
             List.of(ref, new InputColumn(1), new InputColumn(0)),
             List.of(ref, Literal.of(1))

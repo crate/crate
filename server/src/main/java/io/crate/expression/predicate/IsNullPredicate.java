@@ -49,7 +49,6 @@ import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
@@ -146,7 +145,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                 BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                 for (var entry : objType.innerTypes().entrySet()) {
                     String childColumn = entry.getKey();
-                    SimpleReference childRef = context.getRef(ref.column().append(childColumn));
+                    Reference childRef = context.getRef(ref.column().append(childColumn));
                     Query refExistsQuery = refExistsQuery(childRef, context);
                     if (refExistsQuery == null) {
                         return null;

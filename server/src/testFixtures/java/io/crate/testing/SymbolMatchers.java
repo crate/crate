@@ -21,6 +21,21 @@
 
 package io.crate.testing;
 
+import static io.crate.testing.MoreMatchers.withFeature;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+
+import java.util.List;
+import java.util.ListIterator;
+
+import javax.annotation.Nullable;
+
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
+
 import io.crate.data.Input;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.AliasSymbol;
@@ -35,22 +50,27 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
-
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.ListIterator;
-
-import static io.crate.testing.MoreMatchers.withFeature;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
+import io.crate.metadata.RelationName;
+import io.crate.types.DataType;
+import io.crate.metadata.RelationName;
+import io.crate.types.DataType;
+import io.crate.metadata.RelationName;
+import io.crate.types.DataType;
+import io.crate.metadata.RelationName;
+import io.crate.types.DataType;
+import io.crate.metadata.RelationName;
+import io.crate.types.DataType;
+import io.crate.metadata.RelationName;
+import io.crate.types.DataType;
+import io.crate.metadata.RelationName;
+import io.crate.types.DataType;
+import io.crate.metadata.RelationName;
+import io.crate.types.DataType;
+import io.crate.metadata.RelationName;
+import io.crate.types.DataType;
 
 public class SymbolMatchers {
 
@@ -141,19 +161,19 @@ public class SymbolMatchers {
                                               Matcher<RelationName> relName,
                                               Matcher<DataType> type) {
         return allOf(
-            Matchers.instanceOf(SimpleReference.class),
-            withFeature(s -> ((SimpleReference) s).column(), "name", column),
-            withFeature(s -> ((SimpleReference) s).ident().tableIdent(), "relationName", relName),
+            Matchers.instanceOf(Reference.class),
+            withFeature(s -> ((Reference) s).column(), "name", column),
+            withFeature(s -> ((Reference) s).ident().tableIdent(), "relationName", relName),
             withFeature(Symbol::valueType, "valueType", type)
         );
     }
 
     public static Matcher<Symbol> isReference(final String expectedName, @Nullable final DataType dataType) {
-        Matcher<Symbol> fm = withFeature(s -> ((SimpleReference) s).column().sqlFqn(), "name", equalTo(expectedName));
+        Matcher<Symbol> fm = withFeature(s -> ((Reference) s).column().sqlFqn(), "name", equalTo(expectedName));
         if (dataType == null) {
-            return allOf(Matchers.instanceOf(SimpleReference.class), fm);
+            return allOf(Matchers.instanceOf(Reference.class), fm);
         }
-        return allOf(Matchers.instanceOf(SimpleReference.class), hasDataType(dataType), fm);
+        return allOf(Matchers.instanceOf(Reference.class), hasDataType(dataType), fm);
     }
 
     public static Matcher<Symbol> isDynamicReference(String expectedName) {

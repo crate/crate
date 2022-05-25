@@ -21,6 +21,9 @@
 
 package io.crate.planner.operators;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
@@ -28,12 +31,9 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.join.JoinType;
-
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Helper to detect if a join is an Equi join and could be executed with a hash join algorithm.
@@ -115,7 +115,7 @@ public class EquiJoinDetector {
         }
 
         @Override
-        public Void visitReference(SimpleReference ref, Context context) {
+        public Void visitReference(Reference ref, Context context) {
             if (context.insideEqOperator) {
                 context.usedRelationsInsideEqOperatorArgument.add(ref.ident().tableIdent());
             }

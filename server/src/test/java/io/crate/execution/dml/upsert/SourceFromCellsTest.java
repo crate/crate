@@ -21,21 +21,10 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.common.collections.Maps;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -45,20 +34,32 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.is;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.common.collections.Maps;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
     private DocTableInfo t1;
-    private SimpleReference x;
-    private SimpleReference y;
-    private SimpleReference z;
+    private Reference x;
+    private Reference y;
+    private Reference z;
     private DocTableInfo t2;
-    private SimpleReference obj;
+    private Reference obj;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
@@ -73,13 +74,13 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             .build();
         QueriedSelectRelation relation = e.analyze("select x, y, z from t1");
         t1 = ((DocTableRelation) relation.from().get(0)).tableInfo();
-        x = (SimpleReference) relation.outputs().get(0);
-        y = (SimpleReference) relation.outputs().get(1);
-        z = (SimpleReference) relation.outputs().get(2);
+        x = (Reference) relation.outputs().get(0);
+        y = (Reference) relation.outputs().get(1);
+        z = (Reference) relation.outputs().get(2);
 
         relation = e.analyze("select obj, b from t2");
         t2 = ((DocTableRelation) relation.from().get(0)).tableInfo();
-        obj = (SimpleReference) relation.outputs().get(0);
+        obj = (Reference) relation.outputs().get(0);
     }
 
     @Test
@@ -141,7 +142,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     public void testDefaultExpressionIsInjected() throws IOException {
         QueriedSelectRelation relation = e.analyze("select x from t4");
         DocTableInfo t4 = ((DocTableRelation) relation.from().get(0)).tableInfo();
-        SimpleReference x = (SimpleReference) relation.outputs().get(0);
+        Reference x = (Reference) relation.outputs().get(0);
 
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             txnCtx, e.nodeCtx, t4, "t4", true, Arrays.asList(x));
@@ -155,8 +156,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     public void testDefaultExpressionGivenValueOverridesDefaultValue() throws IOException {
         QueriedSelectRelation relation = e.analyze("select x, y from t4");
         DocTableInfo t4 = ((DocTableRelation) relation.from().get(0)).tableInfo();
-        SimpleReference x = (SimpleReference) relation.outputs().get(0);
-        SimpleReference y = (SimpleReference) relation.outputs().get(1);
+        Reference x = (Reference) relation.outputs().get(0);
+        Reference y = (Reference) relation.outputs().get(1);
 
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             txnCtx, e.nodeCtx, t4, "t4", true, Arrays.asList(x, y));
@@ -171,7 +172,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         // obj object as (a int,
         //                c as obj['a'] + 3),
         // b as obj['a'] + 1
-        List<SimpleReference> targets = List.of(obj);
+        List<Reference> targets = List.of(obj);
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             txnCtx, e.nodeCtx, t2, "t2", true, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
@@ -190,7 +191,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         // obj object as (a int,
         //                c as obj['a'] + 3),
         // b as obj['a'] + 1
-        List<SimpleReference> targets = List.of(obj);
+        List<Reference> targets = List.of(obj);
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             txnCtx, e.nodeCtx, t2, "t2", true, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
@@ -205,9 +206,9 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     public void test_nested_default_is_injected() throws Exception {
         // create table t5 (obj object as (x int default 0, y int))
         DocTableInfo t5 = e.resolveTableInfo("t5");
-        SimpleReference obj = t5.getReference(new ColumnIdent("obj"));
+        Reference obj = t5.getReference(new ColumnIdent("obj"));
         assertThat(obj, Matchers.notNullValue());
-        List<SimpleReference> targets = List.of(obj);
+        List<Reference> targets = List.of(obj);
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             txnCtx, e.nodeCtx, t5, "t4", true, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
@@ -221,9 +222,9 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     public void test_nested_default_expr_does_not_override_provided_values() throws Exception {
         // create table t5 (obj object as (x int default 0, y int))
         DocTableInfo t5 = e.resolveTableInfo("t5");
-        SimpleReference obj = t5.getReference(new ColumnIdent("obj"));
+        Reference obj = t5.getReference(new ColumnIdent("obj"));
         assertThat(obj, Matchers.notNullValue());
-        List<SimpleReference> targets = List.of(obj);
+        List<Reference> targets = List.of(obj);
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             txnCtx, e.nodeCtx, t5, "t5", true, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
@@ -387,8 +388,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table robots (name text not null, model text)")
             .build();
-        SimpleReference name = (SimpleReference) e.asSymbol("name");
-        SimpleReference model = (SimpleReference) e.asSymbol("model");
+        Reference name = (Reference) e.asSymbol("name");
+        Reference model = (Reference) e.asSymbol("model");
         DocTableInfo robotsTable = e.resolveTableInfo("robots");
         InsertSourceGen sourceGen = InsertSourceGen.of(
             txnCtx,
@@ -407,7 +408,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (id text default gen_random_text_uuid(), x int)")
             .build();
-        SimpleReference x = (SimpleReference) e.asSymbol("tbl.x");
+        Reference x = (Reference) e.asSymbol("tbl.x");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         InsertSourceGen sourceGen = InsertSourceGen.of(
             txnCtx,
@@ -436,8 +437,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
                 ) partitioned by (g_ts_month)
             """)
             .build();
-        SimpleReference ts = (SimpleReference) e.asSymbol("tbl.ts");
-        SimpleReference g_ts_month = (SimpleReference) e.asSymbol("tbl.g_ts_month");
+        Reference ts = (Reference) e.asSymbol("tbl.ts");
+        Reference g_ts_month = (Reference) e.asSymbol("tbl.g_ts_month");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         InsertSourceGen sourceGen = InsertSourceGen.of(
             txnCtx,
@@ -463,8 +464,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
                 ) partitioned by (g_ts_month)
             """)
             .build();
-        SimpleReference ts = (SimpleReference) e.asSymbol("tbl.ts");
-        SimpleReference g_ts_month = (SimpleReference) e.asSymbol("tbl.g_ts_month");
+        Reference ts = (Reference) e.asSymbol("tbl.ts");
+        Reference g_ts_month = (Reference) e.asSymbol("tbl.g_ts_month");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         InsertSourceGen sourceGen = InsertSourceGen.of(
             txnCtx,

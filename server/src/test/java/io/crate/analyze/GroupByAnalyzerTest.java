@@ -21,23 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AliasedAnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.expression.operator.LikeOperators;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
-
-import java.io.IOException;
-import java.util.List;
-
 import static io.crate.testing.SymbolMatchers.isAlias;
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
@@ -49,6 +32,24 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.operator.LikeOperators;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 @SuppressWarnings("ConstantConditions")
 public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -141,7 +142,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             analyze("select 1/age as age from foo.users group by age order by age");
         assertThat(relation.groupBy().isEmpty(), is(false));
         List<Symbol> groupBySymbols = relation.groupBy();
-        assertThat(((SimpleReference) groupBySymbols.get(0)).column().fqn(), is("age"));
+        assertThat(((Reference) groupBySymbols.get(0)).column().fqn(), is("age"));
     }
 
     @Test
@@ -160,7 +161,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select 1/age as height from foo.users group by age");
         assertThat(relation.groupBy().isEmpty(), is(false));
         List<Symbol> groupBySymbols = relation.groupBy();
-        assertThat(((SimpleReference) groupBySymbols.get(0)).column().fqn(), is("age"));
+        assertThat(((Reference) groupBySymbols.get(0)).column().fqn(), is("age"));
     }
 
     @Test
@@ -185,7 +186,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select 58 as age from foo.users group by age;");
         assertThat(relation.groupBy().isEmpty(), is(false));
         List<Symbol> groupBySymbols = relation.groupBy();
-        ReferenceIdent groupByIdent = ((SimpleReference) groupBySymbols.get(0)).ident();
+        ReferenceIdent groupByIdent = ((Reference) groupBySymbols.get(0)).ident();
         assertThat(groupByIdent.columnIdent().fqn(), is("age"));
         assertThat(groupByIdent.tableIdent().fqn(), is("foo.users"));
     }
@@ -195,7 +196,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select age age, - age age from foo.users group by age;");
         assertThat(relation.groupBy().isEmpty(), is(false));
         List<Symbol> groupBySymbols = relation.groupBy();
-        ReferenceIdent groupByIdent = ((SimpleReference) groupBySymbols.get(0)).ident();
+        ReferenceIdent groupByIdent = ((Reference) groupBySymbols.get(0)).ident();
         assertThat(groupByIdent.columnIdent().fqn(), is("age"));
         assertThat(groupByIdent.tableIdent().fqn(), is("foo.users"));
     }

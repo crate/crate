@@ -21,31 +21,33 @@
 
 package io.crate.metadata.view;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.RelationInfo;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.table.Operation;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationInfo;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.table.Operation;
+
 public class ViewInfo implements RelationInfo {
 
     private final RelationName ident;
     private final String definition;
-    private final List<SimpleReference> columns;
+    private final List<Reference> columns;
     private final String owner;
 
     @VisibleForTesting
-    public ViewInfo(RelationName ident, String definition, List<SimpleReference> columns, @Nullable String owner) {
+    public ViewInfo(RelationName ident, String definition, List<Reference> columns, @Nullable String owner) {
         this.ident = ident;
         this.definition = definition;
         this.columns = columns;
@@ -53,7 +55,7 @@ public class ViewInfo implements RelationInfo {
     }
 
     @Override
-    public Collection<SimpleReference> columns() {
+    public Collection<Reference> columns() {
         return columns;
     }
 
@@ -88,7 +90,7 @@ public class ViewInfo implements RelationInfo {
     }
 
     @Override
-    public Iterator<SimpleReference> iterator() {
+    public Iterator<Reference> iterator() {
         return columns.iterator();
     }
 

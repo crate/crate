@@ -21,16 +21,17 @@
 
 package io.crate.metadata.blob;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.RelationName;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.types.DataTypes;
+import java.util.Collections;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import java.util.Collections;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.types.DataTypes;
 
 public class BlobTableInfoTest extends ESTestCase {
 
@@ -47,7 +48,7 @@ public class BlobTableInfoTest extends ESTestCase {
 
     @Test
     public void testGetColumnInfo() throws Exception {
-        SimpleReference foobar = info.getReference(new ColumnIdent("digest"));
+        Reference foobar = info.getReference(new ColumnIdent("digest"));
         assertNotNull(foobar);
         assertEquals(DataTypes.STRING, foobar.valueType());
     }

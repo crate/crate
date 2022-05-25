@@ -21,23 +21,26 @@
 
 package io.crate.metadata.table;
 
+import static io.crate.types.ArrayType.makeArray;
+
+import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.ClusterState;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.SimpleReference;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.ClusterState;
-
-import javax.annotation.Nullable;
-import java.util.function.Predicate;
-
-import static io.crate.types.ArrayType.makeArray;
 
 public interface TableInfo extends RelationInfo {
 
@@ -49,15 +52,15 @@ public interface TableInfo extends RelationInfo {
      * returns null if this table contains no such column.
      */
     @Nullable
-    SimpleReference getReference(ColumnIdent columnIdent);
+    Reference getReference(ColumnIdent columnIdent);
 
     /**
      * This is like {@link #getReference(ColumnIdent)},
      * except that the type is adjusted via {@link #getReadType(ColumnIdent)}
      */
     @Nullable
-    default SimpleReference getReadReference(ColumnIdent columnIdent) {
-        SimpleReference ref = getReference(columnIdent);
+    default Reference getReadReference(ColumnIdent columnIdent) {
+        Reference ref = getReference(columnIdent);
         if (ref == null) {
             return null;
         }
@@ -102,11 +105,11 @@ public interface TableInfo extends RelationInfo {
      *         UNDEFINED if the column does not exist.
      */
     default DataType<?> getReadType(ColumnIdent column) {
-        SimpleReference ref = getReference(column);
+        Reference ref = getReference(column);
         if (ref == null) {
             return DataTypes.UNDEFINED;
         }
-        SimpleReference rootRef = ref;
+        Reference rootRef = ref;
         int arrayDimensions = 0;
         while (!rootRef.column().isTopLevel()) {
             rootRef = getReference(rootRef.column().getParent());

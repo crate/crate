@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -62,22 +63,16 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
     public void testStreaming() throws Exception {
         ReferenceIdent referenceIdent = new ReferenceIdent(t1Info.ident(), "generated_column");
         String formattedGeneratedExpression = "concat(a, 'bar')";
-        GeneratedReference generatedReferenceInfo = new GeneratedReference(1,
-            referenceIdent,
-            RowGranularity.DOC,
-            StringType.INSTANCE, ColumnPolicy.STRICT, IndexType.FULLTEXT,
-            formattedGeneratedExpression,
-            false,
-            true);
-
-        generatedReferenceInfo.generatedExpression(expressions.normalize(executor.asSymbol(formattedGeneratedExpression)));
+        SimpleReference simpleRef = new SimpleReference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE, 1, null);
+        Symbol generatedExpression = expressions.normalize(executor.asSymbol(formattedGeneratedExpression));
+        GeneratedReference generatedReferenceInfo = new GeneratedReference(simpleRef, formattedGeneratedExpression, generatedExpression);
         generatedReferenceInfo.referencedReferences(List.of(t1Info.getReference(new ColumnIdent("a"))));
 
         BytesStreamOutput out = new BytesStreamOutput();
-        SimpleReference.toStream(generatedReferenceInfo, out);
+        Reference.toStream(generatedReferenceInfo, out);
 
         StreamInput in = out.bytes().streamInput();
-        GeneratedReference generatedReferenceInfo2 = SimpleReference.fromStream(in);
+        GeneratedReference generatedReferenceInfo2 = Reference.fromStream(in);
 
         assertThat(generatedReferenceInfo2, is(generatedReferenceInfo));
     }

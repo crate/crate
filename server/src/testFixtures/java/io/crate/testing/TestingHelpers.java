@@ -21,42 +21,13 @@
 
 package io.crate.testing;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import io.crate.analyze.where.DocKeys;
-import io.crate.common.collections.Lists2;
-import io.crate.common.collections.Sorted;
-import io.crate.data.Row;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
-import io.crate.execution.engine.window.WindowFunctionModule;
-import io.crate.expression.operator.OperatorModule;
-import io.crate.expression.predicate.PredicateModule;
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.tablefunctions.TableFunctionModule;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.settings.session.SessionSettingModule;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.hamcrest.FeatureMatcher;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
 
-import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -77,12 +48,45 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
+import javax.annotation.Nullable;
+
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.FeatureMatcher;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
+
+import io.crate.analyze.where.DocKeys;
+import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Sorted;
+import io.crate.data.Row;
+import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
+import io.crate.execution.engine.window.WindowFunctionModule;
+import io.crate.expression.operator.OperatorModule;
+import io.crate.expression.predicate.PredicateModule;
+import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.tablefunctions.TableFunctionModule;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.SimpleReference;
+import io.crate.metadata.settings.session.SessionSettingModule;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class TestingHelpers {
 
@@ -189,15 +193,15 @@ public class TestingHelpers {
         return new NodeContext(modulesBuilder.createInjector().getInstance(Functions.class));
     }
 
-    public static SimpleReference createReference(String columnName, DataType dataType) {
+    public static Reference createReference(String columnName, DataType dataType) {
         return createReference("dummyTable", new ColumnIdent(columnName), dataType);
     }
 
-    public static SimpleReference createReference(ColumnIdent columnIdent, DataType dataType) {
+    public static Reference createReference(ColumnIdent columnIdent, DataType dataType) {
         return createReference("dummyTable", columnIdent, dataType);
     }
 
-    public static SimpleReference createReference(String tableName, ColumnIdent columnIdent, DataType dataType) {
+    public static Reference createReference(String tableName, ColumnIdent columnIdent, DataType dataType) {
         return new SimpleReference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, tableName), columnIdent),
             RowGranularity.DOC,
@@ -287,7 +291,7 @@ public class TestingHelpers {
         return column;
     }
 
-    public static SimpleReference refInfo(String fqColumnName, DataType dataType, RowGranularity rowGranularity, String... nested) {
+    public static Reference refInfo(String fqColumnName, DataType dataType, RowGranularity rowGranularity, String... nested) {
         String[] parts = fqColumnName.split("\\.");
         ReferenceIdent refIdent;
 

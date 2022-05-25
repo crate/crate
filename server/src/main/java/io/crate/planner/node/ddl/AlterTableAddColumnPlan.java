@@ -21,6 +21,18 @@
 
 package io.crate.planner.node.ddl;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.analyze.AnalyzedTableElements;
@@ -36,7 +48,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -46,18 +58,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.types.ObjectType;
-
-import org.elasticsearch.common.settings.Settings;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Function;
 
 public class AlterTableAddColumnPlan implements Plan {
 
@@ -178,7 +178,7 @@ public class AlterTableAddColumnPlan implements Plan {
             if (tableInfo.primaryKey().contains(column)) {
                 columnDef.setPrimaryKeyConstraint();
             }
-            SimpleReference reference = Objects.requireNonNull(
+            Reference reference = Objects.requireNonNull(
                 tableInfo.getReference(column),
                 "Must be able to retrieve Reference for any column that is part of `primaryKey()`");
 

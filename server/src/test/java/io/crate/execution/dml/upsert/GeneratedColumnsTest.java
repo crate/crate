@@ -21,6 +21,18 @@
 
 package io.crate.execution.dml.upsert;
 
+import static org.hamcrest.Matchers.contains;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.junit.Test;
+
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Input;
@@ -28,21 +40,10 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import static org.hamcrest.Matchers.contains;
 
 public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -81,7 +82,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
             XContentHelper.convertToMap(bytes, false, XContentType.JSON).v2(),
             bytes::utf8ToString
         ));
-        Map.Entry<SimpleReference, Input<?>> generatedColumn = generatedColumns.generatedToInject().iterator().next();
+        Map.Entry<? extends Reference, Input<?>> generatedColumn = generatedColumns.generatedToInject().iterator().next();
         assertThat((List<Object>) generatedColumn.getValue().value(), contains(10, 20));
     }
 }
