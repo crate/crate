@@ -37,6 +37,7 @@ public class RussianAnalyzerProvider extends AbstractIndexAnalyzerProvider<Russi
             Analysis.parseStopWords(env, settings, RussianAnalyzer.getDefaultStopSet()),
             Analysis.parseStemExclusion(settings, CharArraySet.EMPTY_SET)
         );
+        analyzer.setVersion(version);
     }
 
     @Override

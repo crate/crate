@@ -1092,10 +1092,6 @@ keeps working.
   or percentage of the heap size (like ``12%``). A value of ``-1`` disables
   breaking the circuit while still accounting memory usage.
 
-  .. CAUTION::
-
-      This setting is deprecated and has no effect.
-
 .. _indices.breaker.query.overhead:
 
 **indices.breaker.query.overhead**

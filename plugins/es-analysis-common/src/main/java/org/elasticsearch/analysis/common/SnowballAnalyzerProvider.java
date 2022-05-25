@@ -72,6 +72,7 @@ public class SnowballAnalyzerProvider extends AbstractIndexAnalyzerProvider<Snow
         CharArraySet stopWords = Analysis.parseStopWords(env, settings, defaultStopwords);
 
         analyzer = new SnowballAnalyzer(language, stopWords);
+        analyzer.setVersion(version);
     }
 
     @Override

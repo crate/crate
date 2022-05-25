@@ -25,7 +25,6 @@ import org.apache.lucene.index.FilteredTermsEnum;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.MultiTermQuery;
-import org.apache.lucene.search.QueryVisitor;
 import org.apache.lucene.util.AttributeSource;
 
 import java.io.IOException;
@@ -72,10 +71,6 @@ public class CrateRegexQuery extends MultiTermQuery {
         buffer.append(term.text());
         buffer.append(",flags:").append(flags);
         return buffer.toString();
-    }
-
-    @Override
-    public void visit(QueryVisitor visitor) {
     }
 
     // hasCode() and equals() are required because Lucene caches the queries

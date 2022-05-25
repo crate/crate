@@ -183,7 +183,8 @@ public class TransportServiceHandshakeTests extends ESTestCase {
     public void testIncompatibleVersions() {
         Settings settings = Settings.builder().put("cluster.name", "test").build();
         NetworkHandle handleA = startServices("TS_A", settings, Version.CURRENT);
-        NetworkHandle handleB = startServices("TS_B", settings, Version.fromString("3.2.0"));
+        NetworkHandle handleB =
+                startServices("TS_B", settings, VersionUtils.getPreviousVersion(Version.CURRENT.minimumCompatibilityVersion()));
         DiscoveryNode discoveryNode = new DiscoveryNode(
             "",
             handleB.discoveryNode.getAddress(),

@@ -64,7 +64,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Lucene {
-    public static final String LATEST_CODEC = "Lucene90";
+    public static final String LATEST_CODEC = "Lucene87";
 
     public static final String SOFT_DELETES_FIELD = "__soft_deletes";
 
@@ -151,7 +151,7 @@ public class Lucene {
                  * since checksums don's match anymore. that's why we prune the name here directly.
                  * We also want the caller to know if we were not able to remove a segments_N file.
                  */
-                if (file.startsWith(IndexFileNames.SEGMENTS)) {
+                if (file.startsWith(IndexFileNames.SEGMENTS) || file.equals(IndexFileNames.OLD_SEGMENTS_GEN)) {
                     foundSegmentFiles++;
                     if (file.equals(si.getSegmentsFileName()) == false) {
                         directory.deleteFile(file); // remove all segment_N files except of the one we wanna keep
@@ -190,7 +190,7 @@ public class Lucene {
     public static void cleanLuceneIndex(Directory directory) throws IOException {
         try (Lock writeLock = directory.obtainLock(IndexWriter.WRITE_LOCK_NAME)) {
             for (final String file : directory.listAll()) {
-                if (file.startsWith(IndexFileNames.SEGMENTS)) {
+                if (file.startsWith(IndexFileNames.SEGMENTS) || file.equals(IndexFileNames.OLD_SEGMENTS_GEN)) {
                     directory.deleteFile(file); // remove all segment_N files
                 }
             }

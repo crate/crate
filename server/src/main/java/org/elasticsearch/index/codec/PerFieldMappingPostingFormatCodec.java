@@ -23,8 +23,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.PostingsFormat;
-import org.apache.lucene.codecs.lucene90.Lucene90Codec;
-import org.apache.lucene.codecs.lucene90.Lucene90DocValuesFormat;
+import org.apache.lucene.codecs.lucene80.Lucene80DocValuesFormat;
+import org.apache.lucene.codecs.lucene87.Lucene87Codec;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
@@ -38,7 +38,7 @@ import org.elasticsearch.index.mapper.MapperService;
  * configured for a specific field the default postings format is used.
  */
 // LUCENE UPGRADE: make sure to move to a new codec depending on the lucene version
-public class PerFieldMappingPostingFormatCodec extends Lucene90Codec {
+public class PerFieldMappingPostingFormatCodec extends Lucene87Codec {
     private final Logger logger;
     private final MapperService mapperService;
 
@@ -63,7 +63,7 @@ public class PerFieldMappingPostingFormatCodec extends Lucene90Codec {
 
     @Override
     public DocValuesFormat getDocValuesFormatForField(String field) {
-        return new Lucene90DocValuesFormat();
+        return new Lucene80DocValuesFormat(Lucene80DocValuesFormat.Mode.BEST_SPEED);
     }
 
 }

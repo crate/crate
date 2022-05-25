@@ -37,6 +37,7 @@ public class BulgarianAnalyzerProvider extends AbstractIndexAnalyzerProvider<Bul
             Analysis.parseStopWords(env, settings, BulgarianAnalyzer.getDefaultStopSet()),
             Analysis.parseStemExclusion(settings, CharArraySet.EMPTY_SET)
         );
+        analyzer.setVersion(version);
     }
 
     @Override

@@ -39,8 +39,6 @@ import org.apache.lucene.analysis.cjk.CJKBigramFilter;
 import org.apache.lucene.analysis.cjk.CJKWidthFilter;
 import org.apache.lucene.analysis.ckb.SoraniAnalyzer;
 import org.apache.lucene.analysis.ckb.SoraniNormalizationFilter;
-import org.apache.lucene.analysis.classic.ClassicFilter;
-import org.apache.lucene.analysis.classic.ClassicTokenizer;
 import org.apache.lucene.analysis.commongrams.CommonGramsFilter;
 import org.apache.lucene.analysis.core.DecimalDigitFilter;
 import org.apache.lucene.analysis.core.KeywordTokenizer;
@@ -54,7 +52,6 @@ import org.apache.lucene.analysis.de.GermanAnalyzer;
 import org.apache.lucene.analysis.de.GermanNormalizationFilter;
 import org.apache.lucene.analysis.de.GermanStemFilter;
 import org.apache.lucene.analysis.el.GreekAnalyzer;
-import org.apache.lucene.analysis.email.UAX29URLEmailTokenizer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.en.KStemFilter;
 import org.apache.lucene.analysis.en.PorterStemFilter;
@@ -102,7 +99,10 @@ import org.apache.lucene.analysis.ro.RomanianAnalyzer;
 import org.apache.lucene.analysis.ru.RussianAnalyzer;
 import org.apache.lucene.analysis.shingle.ShingleFilter;
 import org.apache.lucene.analysis.snowball.SnowballFilter;
+import org.apache.lucene.analysis.standard.ClassicFilter;
+import org.apache.lucene.analysis.standard.ClassicTokenizer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.standard.UAX29URLEmailTokenizer;
 import org.apache.lucene.analysis.sv.SwedishAnalyzer;
 import org.apache.lucene.analysis.th.ThaiAnalyzer;
 import org.apache.lucene.analysis.th.ThaiTokenizer;
@@ -417,7 +417,7 @@ public class CommonAnalysisPlugin extends Plugin implements AnalysisPlugin {
         filters.add(PreConfiguredTokenFilter.singleton("snowball", false, input -> new SnowballFilter(input, "English")));
         filters.add(PreConfiguredTokenFilter.singleton("sorani_normalization", true, SoraniNormalizationFilter::new));
         filters.add(PreConfiguredTokenFilter.singleton("stemmer", false, PorterStemFilter::new));
-        // The stop filter is in lucene-core but the English stop words set is in lucene-analysis-common
+        // The stop filter is in lucene-core but the English stop words set is in lucene-analyzers-common
         filters.add(PreConfiguredTokenFilter.singleton("stop", false, input -> new StopFilter(input, EnglishAnalyzer.ENGLISH_STOP_WORDS_SET)));
         filters.add(PreConfiguredTokenFilter.singleton("trim", true, TrimFilter::new));
         filters.add(PreConfiguredTokenFilter.singleton("truncate", false, input -> new TruncateTokenFilter(input, 10)));

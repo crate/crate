@@ -32,7 +32,6 @@ import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.test.VersionUtils;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -59,7 +58,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
     @Test
     public void test__all_is_removed_from_mapping() throws Throwable {
         IndexMetadata indexMetadata = IndexMetadata.builder(new RelationName("doc", "users").indexNameOrAlias())
-            .settings(Settings.builder().put("index.version.created", VersionUtils.randomVersion(random())))
+            .settings(Settings.builder().put("index.version.created", Version.V_3_2_0))
             .numberOfShards(1)
             .numberOfReplicas(0)
             .putMapping(

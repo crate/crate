@@ -27,6 +27,7 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.IndexFormatTooNewException;
 import org.apache.lucene.index.IndexFormatTooOldException;
 import org.apache.lucene.index.IndexNotFoundException;
@@ -39,7 +40,6 @@ import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SnapshotDeletionPolicy;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.store.BaseDirectoryWrapper;
-import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FilterDirectory;
@@ -47,6 +47,7 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.NIOFSDirectory;
+import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.TestUtil;
 import org.apache.lucene.util.Version;
@@ -64,6 +65,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata;
 import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
@@ -469,7 +471,8 @@ public class StoreTests extends ESTestCase {
 
     public static void assertConsistent(Store store, Store.MetadataSnapshot metadata) throws IOException {
         for (String file : store.directory().listAll()) {
-            if (!IndexWriter.WRITE_LOCK_NAME.equals(file) && file.startsWith("extra") == false) {
+            if (!IndexWriter.WRITE_LOCK_NAME.equals(file) &&
+                    !IndexFileNames.OLD_SEGMENTS_GEN.equals(file) && file.startsWith("extra") == false) {
                 assertTrue(file + " is not in the map: " + metadata.asMap().size() + " vs. " +
                     store.directory().listAll().length, metadata.asMap().containsKey(file));
             } else {
@@ -959,7 +962,7 @@ public class StoreTests extends ESTestCase {
 
     public void testDeserializeCorruptionException() throws IOException {
         final ShardId shardId = new ShardId("index", "_na_", 1);
-        final Directory dir = new ByteBuffersDirectory();
+        final Directory dir = new RAMDirectory(); // I use ram dir to prevent that virusscanner being a PITA
         Store store = new Store(shardId, INDEX_SETTINGS, dir, new DummyShardLock(shardId));
         CorruptIndexException ex = new CorruptIndexException("foo", "bar");
         store.markStoreCorrupted(ex);
@@ -988,7 +991,7 @@ public class StoreTests extends ESTestCase {
 
     public void testCorruptionMarkerVersionCheck() throws IOException {
         final ShardId shardId = new ShardId("index", "_na_", 1);
-        final Directory dir = new ByteBuffersDirectory();
+        final Directory dir = new RAMDirectory(); // I use ram dir to prevent that virusscanner being a PITA
 
         try (Store store = new Store(shardId, INDEX_SETTINGS, dir, new DummyShardLock(shardId))) {
             final String corruptionMarkerName = Store.CORRUPTED_MARKER_NAME_PREFIX + UUIDs.randomBase64UUID();

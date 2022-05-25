@@ -26,7 +26,6 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.VerifyTestClassNamingConvention;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -35,11 +34,7 @@ import java.util.function.Consumer;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 
-/**
- * Note: the class name starts with Test to follow Lucene test class naming convention,
- * {@link VerifyTestClassNamingConvention}
- */
-public class TestShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
+public class ShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
 
     @Test
     public void testDiagnostics() throws IOException {

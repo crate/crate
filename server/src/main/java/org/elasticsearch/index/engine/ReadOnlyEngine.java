@@ -67,6 +67,7 @@ public class ReadOnlyEngine extends Engine {
     private final ElasticsearchReaderManager readerManager;
     private final IndexCommit indexCommit;
     private final Lock indexWriterLock;
+    private final RamAccountingRefreshListener refreshListener;
     private final SafeCommitInfo safeCommitInfo;
 
     protected volatile TranslogStats translogStats;
@@ -89,6 +90,7 @@ public class ReadOnlyEngine extends Engine {
                           boolean obtainLock,
                           Function<DirectoryReader, DirectoryReader> readerWrapperFunction) {
         super(config);
+        this.refreshListener = new RamAccountingRefreshListener(engineConfig.getCircuitBreakerService());
         try {
             Store store = config.getStore();
             store.incRef();
@@ -108,7 +110,7 @@ public class ReadOnlyEngine extends Engine {
                 this.seqNoStats = seqNoStats;
                 this.indexCommit = Lucene.getIndexCommit(lastCommittedSegmentInfos, directory);
                 reader = wrapReader(open(indexCommit), readerWrapperFunction);
-                readerManager = new ElasticsearchReaderManager(reader);
+                readerManager = new ElasticsearchReaderManager(reader, refreshListener);
                 assert translogStats != null || obtainLock : "mutiple translogs instances should not be opened at the same time";
                 this.translogStats = translogStats != null ? translogStats : translogStats(config, lastCommittedSegmentInfos);
                 this.indexWriterLock = indexWriterLock;
@@ -462,6 +464,10 @@ public class ReadOnlyEngine extends Engine {
     @Override
     public void updateMaxUnsafeAutoIdTimestamp(long newTimestamp) {
 
+    }
+
+    protected void processReader(ElasticsearchDirectoryReader reader) {
+        refreshListener.accept(reader, null);
     }
 
     @Override

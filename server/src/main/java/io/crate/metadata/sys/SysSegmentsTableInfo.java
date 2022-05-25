@@ -56,7 +56,7 @@ public class SysSegmentsTableInfo {
             .add("num_docs", INTEGER, r -> r.getSegment().getNumDocs())
             .add("deleted_docs", INTEGER, r -> r.getSegment().getDeletedDocs())
             .add("size", LONG, r -> r.getSegment().sizeInBytes)
-            .add("memory", LONG, r -> -1L) // since Lucene9 r.getSegment().memoryInBytes is no longer accounted
+            .add("memory", LONG, r -> r.getSegment().memoryInBytes)
             .add("committed", BOOLEAN, r -> r.getSegment().committed)
             .add("primary", BOOLEAN, ShardSegment::primary)
             .add("search", BOOLEAN, r -> r.getSegment().search)

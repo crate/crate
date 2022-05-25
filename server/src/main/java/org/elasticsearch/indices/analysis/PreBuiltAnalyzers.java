@@ -21,12 +21,12 @@ package org.elasticsearch.indices.analysis;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharArraySet;
-import org.apache.lucene.analysis.classic.ClassicAnalyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.standard.ClassicAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.elasticsearch.Version;
 import org.elasticsearch.indices.analysis.PreBuiltCacheFactory.CachingStrategy;
@@ -38,7 +38,9 @@ public enum PreBuiltAnalyzers {
     STANDARD(CachingStrategy.ELASTICSEARCH) {
         @Override
         protected Analyzer create(Version version) {
-            return new StandardAnalyzer(CharArraySet.EMPTY_SET);
+            final Analyzer a = new StandardAnalyzer(CharArraySet.EMPTY_SET);
+            a.setVersion(version.luceneVersion);
+            return a;
         }
     },
 
@@ -61,28 +63,36 @@ public enum PreBuiltAnalyzers {
     STOP {
         @Override
         protected Analyzer create(Version version) {
-            return new StopAnalyzer(EnglishAnalyzer.ENGLISH_STOP_WORDS_SET);
+            Analyzer a = new StopAnalyzer(EnglishAnalyzer.ENGLISH_STOP_WORDS_SET);
+            a.setVersion(version.luceneVersion);
+            return a;
         }
     },
 
     WHITESPACE {
         @Override
         protected Analyzer create(Version version) {
-            return new WhitespaceAnalyzer();
+            Analyzer a = new WhitespaceAnalyzer();
+            a.setVersion(version.luceneVersion);
+            return a;
         }
     },
 
     SIMPLE {
         @Override
         protected Analyzer create(Version version) {
-            return new SimpleAnalyzer();
+            Analyzer a = new SimpleAnalyzer();
+            a.setVersion(version.luceneVersion);
+            return a;
         }
     },
 
     CLASSIC {
         @Override
         protected Analyzer create(Version version) {
-            return new ClassicAnalyzer();
+            Analyzer a = new ClassicAnalyzer();
+            a.setVersion(version.luceneVersion);
+            return a;
         }
     };
 

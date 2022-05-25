@@ -70,6 +70,11 @@ final class EsTieredMergePolicy extends FilterMergePolicy {
         forcedMergePolicy.setMaxMergeAtOnce(maxMergeAtOnce);
     }
 
+    public void setMaxMergeAtOnceExplicit(int maxMergeAtOnceExplicit) {
+        regularMergePolicy.setMaxMergeAtOnceExplicit(maxMergeAtOnceExplicit);
+        forcedMergePolicy.setMaxMergeAtOnceExplicit(maxMergeAtOnceExplicit);
+    }
+
     // only setter that must NOT delegate to the forced merge policy
     public void setMaxMergedSegmentMB(double mbFrac) {
         regularMergePolicy.setMaxMergedSegmentMB(mbFrac);

@@ -184,7 +184,7 @@ public class InboundPipelineTests extends ESTestCase {
 
         try (BytesStreamOutput streamOutput = new BytesStreamOutput()) {
             String actionName = "actionName";
-            final Version invalidVersion = Version.fromString("3.2.0");
+            final Version invalidVersion = Version.V_3_2_0;
             final String value = randomAlphaOfLength(1000);
             final boolean isRequest = randomBoolean();
             final long requestId = randomNonNegativeLong();

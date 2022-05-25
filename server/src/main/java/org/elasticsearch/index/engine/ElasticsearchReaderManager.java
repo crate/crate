@@ -20,6 +20,7 @@
 package org.elasticsearch.index.engine;
 
 import java.io.IOException;
+import java.util.function.BiConsumer;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.ReferenceManager;
@@ -38,6 +39,7 @@ import io.crate.common.SuppressForbidden;
  */
 @SuppressForbidden(reason = "reference counting is required here")
 class ElasticsearchReaderManager extends ReferenceManager<ElasticsearchDirectoryReader> {
+    private final BiConsumer<ElasticsearchDirectoryReader, ElasticsearchDirectoryReader> refreshListener;
 
     /**
      * Creates and returns a new ElasticsearchReaderManager from the given
@@ -47,8 +49,11 @@ class ElasticsearchReaderManager extends ReferenceManager<ElasticsearchDirectory
      * @param reader            the directoryReader to use for future reopens
      * @param refreshListener   A consumer that is called every time a new reader is opened
      */
-    ElasticsearchReaderManager(ElasticsearchDirectoryReader reader) {
+    ElasticsearchReaderManager(ElasticsearchDirectoryReader reader,
+                               BiConsumer<ElasticsearchDirectoryReader, ElasticsearchDirectoryReader> refreshListener) {
         this.current = reader;
+        this.refreshListener = refreshListener;
+        refreshListener.accept(current, null);
     }
 
     @Override
@@ -58,7 +63,11 @@ class ElasticsearchReaderManager extends ReferenceManager<ElasticsearchDirectory
 
     @Override
     protected ElasticsearchDirectoryReader refreshIfNeeded(ElasticsearchDirectoryReader referenceToRefresh) throws IOException {
-        return (ElasticsearchDirectoryReader) DirectoryReader.openIfChanged(referenceToRefresh);
+        final ElasticsearchDirectoryReader reader = (ElasticsearchDirectoryReader) DirectoryReader.openIfChanged(referenceToRefresh);
+        if (reader != null) {
+            refreshListener.accept(reader, referenceToRefresh);
+        }
+        return reader;
     }
 
     @Override

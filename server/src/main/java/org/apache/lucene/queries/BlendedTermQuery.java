@@ -31,7 +31,6 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.DisjunctionMaxQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.QueryVisitor;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.InPlaceMergeSorter;
@@ -316,10 +315,6 @@ public abstract class BlendedTermQuery extends Query {
                                                            final float maxTermFrequency) {
         return new BlendedTermQuery(terms, boosts) {
             @Override
-            public void visit(QueryVisitor visitor) {
-            }
-
-            @Override
             protected Query topLevelQuery(Term[] terms, TermStates[] ctx, int[] docFreqs, int maxDoc) {
                 BooleanQuery.Builder highBuilder = new BooleanQuery.Builder();
                 BooleanQuery.Builder lowBuilder = new BooleanQuery.Builder();
@@ -363,10 +358,6 @@ public abstract class BlendedTermQuery extends Query {
                                                       final float[] boosts,
                                                       final float tieBreakerMultiplier) {
         return new BlendedTermQuery(terms, boosts) {
-            @Override
-            public void visit(QueryVisitor visitor) {
-            }
-
             @Override
             protected Query topLevelQuery(Term[] terms, TermStates[] ctx, int[] docFreqs, int maxDoc) {
                 List<Query> queries = new ArrayList<>(ctx.length);

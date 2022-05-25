@@ -60,7 +60,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -163,7 +162,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
             mock(ThreadPool.class),
             clusterService,
-            MockTransportService.createNewService(Settings.EMPTY, VersionUtils.randomVersion(random()), THREAD_POOL, nettyBootstrap, clusterService.getClusterSettings()),
+            MockTransportService.createNewService(Settings.EMPTY, Version.V_3_2_0, THREAD_POOL, nettyBootstrap, clusterService.getClusterSettings()),
             mock(SchemaUpdateClient.class),
             mock(TasksService.class),
             indicesService,

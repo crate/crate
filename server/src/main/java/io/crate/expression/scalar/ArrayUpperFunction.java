@@ -43,7 +43,6 @@ import org.apache.lucene.search.ConstantScoreWeight;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.QueryVisitor;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TwoPhaseIterator;
@@ -410,10 +409,6 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                         new NumTermsPerDocTwoPhaseIterator(context.reader(), numTermsPerDocFactory.apply(context), matches));
                 }
             };
-        }
-
-        @Override
-        public void visit(QueryVisitor visitor) {
         }
 
         @Override

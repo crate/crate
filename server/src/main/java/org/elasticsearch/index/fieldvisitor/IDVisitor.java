@@ -25,6 +25,8 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.elasticsearch.index.mapper.Uid;
 
+import java.nio.charset.StandardCharsets;
+
 public class IDVisitor extends StoredFieldVisitor {
 
     private boolean canStop = false;
@@ -71,10 +73,10 @@ public class IDVisitor extends StoredFieldVisitor {
     }
 
     @Override
-    public void stringField(FieldInfo fieldInfo, String value) {
+    public void stringField(FieldInfo fieldInfo, byte[] value) {
         assert columnName.equals(fieldInfo.name) : "stringField must only be called for id";
         // Indices prior to CrateDB 3.0 have id stored as string
-        id = value;
+        id = new String(value, StandardCharsets.UTF_8);
     }
 
     public void reset() {

@@ -2155,6 +2155,15 @@ public final class InternalTestCluster extends TestCluster {
         for (NodeAndClient nodeAndClient : nodes.values()) {
             final String name = nodeAndClient.name;
             final CircuitBreakerService breakerService = getInstanceFromNode(CircuitBreakerService.class, nodeAndClient.node);
+            try {
+                assertBusy(() -> {
+                    CircuitBreaker acctBreaker = breakerService.getBreaker(CircuitBreaker.ACCOUNTING);
+                    assertThat("Accounting breaker not reset to 0 on node: " + name + ", are there still Lucene indices around?",
+                        acctBreaker.getUsed(), equalTo(0L));
+                });
+            } catch (Exception e) {
+                throw new AssertionError("Exception during check for accounting breaker reset to 0", e);
+            }
             // Anything that uses transport or HTTP can increase the
             // request breaker (because they use bigarrays), because of
             // that the breaker can sometimes be incremented from ping

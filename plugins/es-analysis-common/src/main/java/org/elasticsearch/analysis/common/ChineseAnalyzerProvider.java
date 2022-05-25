@@ -36,6 +36,8 @@ public class ChineseAnalyzerProvider extends AbstractIndexAnalyzerProvider<Stand
         super(indexSettings, name, settings);
         // old index: best effort
         analyzer = new StandardAnalyzer();
+        analyzer.setVersion(version);
+
     }
 
     @Override

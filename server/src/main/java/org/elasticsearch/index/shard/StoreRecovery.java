@@ -24,7 +24,6 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.index.SegmentInfos;
-import org.apache.lucene.misc.store.HardlinkCopyDirectoryWrapper;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
@@ -171,7 +170,7 @@ final class StoreRecovery {
         assert sources.length > 0;
         final int luceneIndexCreatedVersionMajor = Lucene.readSegmentInfos(sources[0]).getIndexCreatedVersionMajor();
 
-        final Directory hardLinkOrCopyTarget = new HardlinkCopyDirectoryWrapper(target);
+        final Directory hardLinkOrCopyTarget = new org.apache.lucene.store.HardlinkCopyDirectoryWrapper(target);
 
         IndexWriterConfig iwc = new IndexWriterConfig(null)
             .setSoftDeletesField(Lucene.SOFT_DELETES_FIELD)

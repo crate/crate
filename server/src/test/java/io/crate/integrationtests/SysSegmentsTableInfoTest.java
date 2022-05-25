@@ -62,7 +62,7 @@ public class SysSegmentsTableInfoTest extends SQLIntegrationTestCase {
         assertThat(result[4], is(1));
         assertThat(result[5], is(0));
         assertThat((Long) result[6], greaterThan(2700L));
-        assertThat((Long) result[7], is(-1L));
+        assertThat((Long) result[7], greaterThan(900L));
         assertThat(result[8], anyOf(is(true), is(false)));
         assertThat(result[9], is(true));
         assertThat(result[10], is(true));

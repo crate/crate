@@ -138,6 +138,11 @@ final class PrunePostingsMergePolicy extends OneMergeWrappingMergePolicy {
                     public int size() {
                         return postingsReader.size();
                     }
+
+                    @Override
+                    public long ramBytesUsed() {
+                        return postingsReader.ramBytesUsed();
+                    }
                 };
             }
 

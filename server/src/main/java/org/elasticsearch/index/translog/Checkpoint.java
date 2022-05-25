@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index.translog;
 
-import org.apache.lucene.backward_codecs.store.EndiannessReverserUtil;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexFormatTooNewException;
@@ -29,8 +28,8 @@ import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
-import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.store.OutputStreamIndexOutput;
+import org.apache.lucene.store.SimpleFSDirectory;
 import org.elasticsearch.common.io.Channels;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 
@@ -54,12 +53,12 @@ final class Checkpoint {
 
     private static final int INITIAL_VERSION = 1; // start with 1, just to recognize there was some magic serialization logic before
     private static final int VERSION_6_0_0 = 2; // introduction of global checkpoints
-    private static final int VERSION_6_4_0 = 3; // introduction of trimmed above seq#
-    private static final int CURRENT_VERSION = 4; // Lucene 9+ switches to little endian
+    private static final int CURRENT_VERSION = 3; // introduction of trimmed above seq#
 
     private static final String CHECKPOINT_CODEC = "ckp";
 
     // size of 6.4.0 checkpoint
+
     static final int V3_FILE_SIZE = CodecUtil.headerLength(CHECKPOINT_CODEC)
         + Integer.BYTES  // ops
         + Long.BYTES // offset
@@ -88,8 +87,6 @@ final class Checkpoint {
         + Long.BYTES // offset
         + Long.BYTES // generation
         + CodecUtil.footerLength();
-
-    static final int V4_FILE_SIZE = V3_FILE_SIZE;
 
     /**
      * Create a new translog checkpoint.
@@ -150,7 +147,7 @@ final class Checkpoint {
         return new Checkpoint(offset, 0, generation, minSeqNo, maxSeqNo, globalCheckpoint, minTranslogGeneration, trimmedAboveSeqNo);
     }
 
-    static Checkpoint readCheckpointV4(final DataInput in) throws IOException {
+    static Checkpoint readCheckpointV6_4_0(final DataInput in) throws IOException {
         final long offset = in.readLong();
         final int numOps = in.readInt();
         final long generation = in.readLong();
@@ -162,39 +159,23 @@ final class Checkpoint {
         return new Checkpoint(offset, numOps, generation, minSeqNo, maxSeqNo, globalCheckpoint, minTranslogGeneration, trimmedAboveSeqNo);
     }
 
-    static Checkpoint readCheckpointV6_4_0(final DataInput in) throws IOException {
-        // CURRENT_VERSION is equivalent to V_6_4_0(V3) but with the endianness flipped.
-        final DataInput reversedIn = EndiannessReverserUtil.wrapDataInput(in);
-        final long offset = reversedIn.readLong();
-        final int numOps = reversedIn.readInt();
-        final long generation = reversedIn.readLong();
-        final long minSeqNo = reversedIn.readLong();
-        final long maxSeqNo = reversedIn.readLong();
-        final long globalCheckpoint = reversedIn.readLong();
-        final long minTranslogGeneration = reversedIn.readLong();
-        final long trimmedAboveSeqNo = reversedIn.readLong();
-        return new Checkpoint(offset, numOps, generation, minSeqNo, maxSeqNo, globalCheckpoint, minTranslogGeneration, trimmedAboveSeqNo);
-    }
-
     static Checkpoint readCheckpointV6_0_0(final DataInput in) throws IOException {
-        final DataInput reversedIn = EndiannessReverserUtil.wrapDataInput(in);
-        final long offset = reversedIn.readLong();
-        final int numOps = reversedIn.readInt();
-        final long generation = reversedIn.readLong();
-        final long minSeqNo = reversedIn.readLong();
-        final long maxSeqNo = reversedIn.readLong();
-        final long globalCheckpoint = reversedIn.readLong();
-        final long minTranslogGeneration = reversedIn.readLong();
+        final long offset = in.readLong();
+        final int numOps = in.readInt();
+        final long generation = in.readLong();
+        final long minSeqNo = in.readLong();
+        final long maxSeqNo = in.readLong();
+        final long globalCheckpoint = in.readLong();
+        final long minTranslogGeneration = in.readLong();
         final long trimmedAboveSeqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
         return new Checkpoint(offset, numOps, generation, minSeqNo, maxSeqNo, globalCheckpoint, minTranslogGeneration, trimmedAboveSeqNo);
     }
 
     // reads a checksummed checkpoint introduced in ES 5.0.0
     static Checkpoint readCheckpointV5_0_0(final DataInput in) throws IOException {
-        final DataInput reversedIn = EndiannessReverserUtil.wrapDataInput(in);
-        final long offset = reversedIn.readLong();
-        final int numOps = reversedIn.readInt();
-        final long generation = reversedIn.readLong();
+        final long offset = in.readLong();
+        final int numOps = in.readInt();
+        final long generation = in.readLong();
         final long minSeqNo = SequenceNumbers.NO_OPS_PERFORMED;
         final long maxSeqNo = SequenceNumbers.NO_OPS_PERFORMED;
         final long globalCheckpoint = SequenceNumbers.UNASSIGNED_SEQ_NO;
@@ -218,7 +199,7 @@ final class Checkpoint {
     }
 
     public static Checkpoint read(Path path) throws IOException {
-        try (Directory dir = new NIOFSDirectory(path.getParent())) {
+        try (Directory dir = new SimpleFSDirectory(path.getParent())) {
             try (IndexInput indexInput = dir.openInput(path.getFileName().toString(), IOContext.DEFAULT)) {
                 // We checksum the entire file before we even go and parse it. If it's corrupted we barf right here.
                 CodecUtil.checksumEntireFile(indexInput);
@@ -229,13 +210,10 @@ final class Checkpoint {
                 } else if (fileVersion == VERSION_6_0_0) {
                     assert indexInput.length() == V2_FILE_SIZE : indexInput.length();
                     return Checkpoint.readCheckpointV6_0_0(indexInput);
-                } else if (fileVersion == VERSION_6_4_0) {
-                    assert indexInput.length() == V3_FILE_SIZE : indexInput.length();
-                    return Checkpoint.readCheckpointV6_4_0(indexInput);
                 } else {
                     assert fileVersion == CURRENT_VERSION : fileVersion;
-                    assert indexInput.length() == V4_FILE_SIZE : indexInput.length();
-                    return Checkpoint.readCheckpointV4(indexInput);
+                    assert indexInput.length() == V3_FILE_SIZE : indexInput.length();
+                    return Checkpoint.readCheckpointV6_4_0(indexInput);
                 }
             } catch (CorruptIndexException | NoSuchFileException | IndexFormatTooOldException | IndexFormatTooNewException e) {
                 throw new TranslogCorruptedException(path.toString(), e);
@@ -249,8 +227,9 @@ final class Checkpoint {
         // now go and write to the channel, in one go.
         try (FileChannel channel = factory.open(checkpointFile, options)) {
             Channels.writeToChannel(bytes, channel);
-            // force fsync with metadata since this is used on file creation
-            channel.force(true);
+            // no need to force metadata, file size stays the same and we did the full fsync
+            // when we first created the file, so the directory entry doesn't change as well
+            channel.force(false);
         }
     }
 
@@ -263,7 +242,7 @@ final class Checkpoint {
     }
 
     private static byte[] createCheckpointBytes(Path checkpointFile, Checkpoint checkpoint) throws IOException {
-        final ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream(V4_FILE_SIZE) {
+        final ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream(V3_FILE_SIZE) {
             @Override
             public synchronized byte[] toByteArray() {
                 // don't clone
@@ -272,13 +251,13 @@ final class Checkpoint {
         };
         final String resourceDesc = "checkpoint(path=\"" + checkpointFile + "\", gen=" + checkpoint + ")";
         try (OutputStreamIndexOutput indexOutput =
-                 new OutputStreamIndexOutput(resourceDesc, checkpointFile.toString(), byteOutputStream, V4_FILE_SIZE)) {
+                 new OutputStreamIndexOutput(resourceDesc, checkpointFile.toString(), byteOutputStream, V3_FILE_SIZE)) {
             CodecUtil.writeHeader(indexOutput, CHECKPOINT_CODEC, CURRENT_VERSION);
             checkpoint.write(indexOutput);
             CodecUtil.writeFooter(indexOutput);
 
-            assert indexOutput.getFilePointer() == V4_FILE_SIZE :
-                "get you numbers straight; bytes written: " + indexOutput.getFilePointer() + ", buffer size: " + V4_FILE_SIZE;
+            assert indexOutput.getFilePointer() == V3_FILE_SIZE :
+                "get you numbers straight; bytes written: " + indexOutput.getFilePointer() + ", buffer size: " + V3_FILE_SIZE;
             assert indexOutput.getFilePointer() < 512 :
                 "checkpoint files have to be smaller than 512 bytes for atomic writes; size: " + indexOutput.getFilePointer();
         }

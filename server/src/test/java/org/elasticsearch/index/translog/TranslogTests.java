@@ -88,7 +88,6 @@ import java.util.stream.Stream;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.backward_codecs.store.EndiannessReverserUtil;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -98,7 +97,6 @@ import org.apache.lucene.mockfile.FilterFileChannel;
 import org.apache.lucene.mockfile.FilterFileSystemProvider;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.ByteArrayDataOutput;
-import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.store.MockDirectoryWrapper;
 import org.apache.lucene.util.LineFileDocs;
 import org.apache.lucene.util.LuceneTestCase;
@@ -1204,7 +1202,7 @@ public class TranslogTests extends ESTestCase {
         boolean opsHaveValidSequenceNumbers = randomBoolean();
         for (int i = 0; i < numOps; i++) {
             byte[] bytes = new byte[4];
-            DataOutput out = EndiannessReverserUtil.wrapDataOutput(new ByteArrayDataOutput(bytes));
+            ByteArrayDataOutput out = new ByteArrayDataOutput(bytes);
             out.writeInt(i);
             long seqNo;
             do {
@@ -1221,9 +1219,8 @@ public class TranslogTests extends ESTestCase {
         persistedSeqNos.remove(SequenceNumbers.UNASSIGNED_SEQ_NO);
         assertEquals(seenSeqNos, persistedSeqNos);
 
-        final BaseTranslogReader reader = randomBoolean()
-            ? writer
-            : translog.openReader(writer.path(), Checkpoint.read(translog.location().resolve(Translog.CHECKPOINT_FILE_NAME)));
+        final BaseTranslogReader reader = randomBoolean() ? writer :
+            translog.openReader(writer.path(), Checkpoint.read(translog.location().resolve(Translog.CHECKPOINT_FILE_NAME)));
         for (int i = 0; i < numOps; i++) {
             ByteBuffer buffer = ByteBuffer.allocate(4);
             reader.readBytes(buffer, reader.getFirstOperationOffset() + 4 * i);
@@ -1237,7 +1234,7 @@ public class TranslogTests extends ESTestCase {
         assertThat(reader.getCheckpoint().maxSeqNo, equalTo(maxSeqNo));
 
         byte[] bytes = new byte[4];
-        DataOutput out = EndiannessReverserUtil.wrapDataOutput(new ByteArrayDataOutput(bytes));
+        ByteArrayDataOutput out = new ByteArrayDataOutput(bytes);
         out.writeInt(2048);
         writer.add(ReleasableBytesReference.wrap(new BytesArray(bytes)), randomNonNegativeLong());
 
@@ -1444,13 +1441,13 @@ public class TranslogTests extends ESTestCase {
         }
     }
 
-    @Test
     public void testCloseIntoReader() throws IOException {
         try (TranslogWriter writer = translog.createWriter(translog.currentFileGeneration() + 1)) {
             final int numOps = randomIntBetween(8, 128);
             for (int i = 0; i < numOps; i++) {
                 final byte[] bytes = new byte[4];
-                final DataOutput out = EndiannessReverserUtil.wrapDataOutput(new ByteArrayDataOutput(bytes));
+                final ByteArrayDataOutput out = new ByteArrayDataOutput(bytes);
+                out.reset(bytes);
                 out.writeInt(i);
                 writer.add(ReleasableBytesReference.wrap(new BytesArray(bytes)), randomNonNegativeLong());
             }
@@ -3528,7 +3525,7 @@ public class TranslogTests extends ESTestCase {
     public void test_translog_index_operation_bwc_serialization() throws Throwable {
         Translog.Index index = new Translog.Index("id1", 2L, 1L, new byte[] { 1, 2, 3, 4 });
         BytesStreamOutput out = new BytesStreamOutput();
-        out.setVersion(Version.CURRENT.minimumIndexCompatibilityVersion());
+        out.setVersion(Version.V_3_2_0);
         index.write(out);
         StreamInput in = out.bytes().streamInput();
 

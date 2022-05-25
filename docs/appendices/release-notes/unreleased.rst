@@ -50,12 +50,6 @@ Breaking Changes
   :ref:`path.data <path.data>` values to run multiple CrateDB processes on the
   same machine.
 
-- Removed deprecated ``delimited_payload_filter`` built-in token filter which
-  has been renamed to ``delimited_payload`` since CrateDB 3.2.0.
-
-- Removed ``simplefs`` store type as a follow-up of its removal in Lucene
-  9.0.0. Refer to :ref:`store types <sql-create-table-store-type>` for
-  alternatives.
 
 - Renamed column names returned from ``Table Functions``. If the table function
   is aliased and is returning a base data type (scalar type), the table alias

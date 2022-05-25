@@ -31,6 +31,7 @@ public class WhitespaceAnalyzerProvider extends AbstractIndexAnalyzerProvider<Wh
     public WhitespaceAnalyzerProvider(IndexSettings indexSettings, Environment environment, String name, Settings settings) {
         super(indexSettings, name, settings);
         this.analyzer = new WhitespaceAnalyzer();
+        this.analyzer.setVersion(version);
     }
 
     @Override

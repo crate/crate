@@ -1191,7 +1191,8 @@ of shards.
       - Disk space used by the segment in bytes.
       - ``LONG``
     * - ``memory``
-      - Unavailable starting from CrateDB 5.0.  Always returns -1.
+      - Segment data stored in memory for efficient search, -1 if it is
+        unavailable.
       - ``LONG``
     * - ``committed``
       - Indicates if the segments are synced to disk. Segments that are synced

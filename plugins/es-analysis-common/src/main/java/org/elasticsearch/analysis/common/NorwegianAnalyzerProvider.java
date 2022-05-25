@@ -37,6 +37,7 @@ public class NorwegianAnalyzerProvider extends AbstractIndexAnalyzerProvider<Nor
             Analysis.parseStopWords(env, settings, NorwegianAnalyzer.getDefaultStopSet()),
             Analysis.parseStemExclusion(settings, CharArraySet.EMPTY_SET)
         );
+        analyzer.setVersion(version);
     }
 
     @Override

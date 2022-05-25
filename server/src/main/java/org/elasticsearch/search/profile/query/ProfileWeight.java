@@ -20,6 +20,7 @@
 package org.elasticsearch.search.profile.query;
 
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BulkScorer;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.Query;
@@ -29,6 +30,7 @@ import org.apache.lucene.search.Weight;
 import org.elasticsearch.search.profile.Timer;
 
 import java.io.IOException;
+import java.util.Set;
 
 /**
  * Weight wrapper that will compute how much time it takes to build the
@@ -109,6 +111,11 @@ public final class ProfileWeight extends Weight {
     @Override
     public Explanation explain(LeafReaderContext context, int doc) throws IOException {
         return subQueryWeight.explain(context, doc);
+    }
+
+    @Override
+    public void extractTerms(Set<Term> set) {
+        subQueryWeight.extractTerms(set);
     }
 
     @Override
