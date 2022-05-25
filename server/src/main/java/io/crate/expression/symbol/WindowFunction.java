@@ -119,6 +119,11 @@ public class WindowFunction extends Function {
     }
 
     @Override
+    public String toString() {
+        return toString(Style.UNQUALIFIED);
+    }
+
+    @Override
     public String toString(Style style) {
         var builder = new StringBuilder(super.toString(style));
         if (ignoreNulls != null) {

@@ -248,7 +248,7 @@ public class EqualityExtractor {
         }
     }
 
-    static class EqProxy extends Symbol {
+    static class EqProxy implements Symbol {
 
         protected Symbol current;
         protected final Function origin;
@@ -281,7 +281,7 @@ public class EqualityExtractor {
         }
 
         @Override
-        public DataType valueType() {
+        public DataType<?> valueType() {
             return current.valueType();
         }
 
@@ -296,7 +296,7 @@ public class EqualityExtractor {
                 return "NULL";
             }
             String s = "(" + ((Reference) origin.arguments().get(0)).column().fqn() + "=" +
-                       ((Literal) origin.arguments().get(1)).value() + ")";
+                       ((Literal<?>) origin.arguments().get(1)).value() + ")";
             if (current != origin) {
                 s += " TRUE";
             }

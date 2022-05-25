@@ -29,7 +29,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class FetchReference extends Symbol {
+public class FetchReference implements Symbol {
 
     private final InputColumn fetchId;
     private final Reference ref;
@@ -69,6 +69,11 @@ public class FetchReference extends Symbol {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         throw new UnsupportedOperationException("FetchReference cannot be streamed");
+    }
+
+    @Override
+    public String toString() {
+        return toString(Style.UNQUALIFIED);
     }
 
     @Override

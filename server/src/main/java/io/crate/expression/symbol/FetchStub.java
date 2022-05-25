@@ -32,7 +32,7 @@ import java.io.UnsupportedEncodingException;
 /**
  * A placeholder for a reference that the {@link io.crate.planner.operators.Fetch} operator can fetch.
  */
-public final class FetchStub extends Symbol {
+public final class FetchStub implements Symbol {
 
     private final FetchMarker fetchMarker;
     private final Reference ref;
@@ -66,6 +66,11 @@ public final class FetchStub extends Symbol {
     @Override
     public DataType<?> valueType() {
         return ref.valueType();
+    }
+
+    @Override
+    public String toString() {
+        return toString(Style.UNQUALIFIED);
     }
 
     @Override

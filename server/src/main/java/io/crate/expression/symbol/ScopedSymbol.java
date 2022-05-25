@@ -49,7 +49,7 @@ import java.io.IOException;
  * }
  * </pre>
  */
-public final class ScopedSymbol extends Symbol {
+public final class ScopedSymbol implements Symbol {
 
     private final RelationName relation;
     private final ColumnIdent column;
@@ -89,6 +89,11 @@ public final class ScopedSymbol extends Symbol {
         throw new UnsupportedOperationException(
             "ScopedSymbol `" + toString(Style.QUALIFIED) + "` is not streamable. " +
             "This error is a bug. Please create an issue in " + Constants.ISSUE_URL);
+    }
+
+    @Override
+    public String toString() {
+        return column.quotedOutputName();
     }
 
     @Override

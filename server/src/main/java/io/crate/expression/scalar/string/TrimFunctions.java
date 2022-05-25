@@ -23,7 +23,6 @@ package io.crate.expression.scalar.string;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -156,20 +155,20 @@ public final class TrimFunctions {
             assert arguments.size() == 3 : "number of args must be 3";
 
             Symbol modeSymbol = arguments.get(2);
-            if (!Literal.isLiteral(modeSymbol, DataTypes.STRING)) {
+            if (!Symbol.isLiteral(modeSymbol, DataTypes.STRING)) {
                 return this;
             }
-            TrimMode mode = TrimMode.of((String) ((Input) modeSymbol).value());
+            TrimMode mode = TrimMode.of((String) ((Input<?>) modeSymbol).value());
             if (mode != TrimMode.BOTH) {
                 return this;
             }
 
             Symbol charsToTrimSymbol = arguments.get(1);
-            if (!Literal.isLiteral(charsToTrimSymbol, DataTypes.STRING)) {
+            if (!Symbol.isLiteral(charsToTrimSymbol, DataTypes.STRING)) {
                 return this;
             }
 
-            String charsToTrim = (String) ((Input) charsToTrimSymbol).value();
+            String charsToTrim = (String) ((Input<?>) charsToTrimSymbol).value();
             if (charsToTrim.length() == 1) {
                 return new OneCharTrimFunction(signature, boundSignature, charsToTrim.charAt(0));
             }

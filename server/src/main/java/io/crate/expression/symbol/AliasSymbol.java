@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public final class AliasSymbol extends Symbol {
+public final class AliasSymbol implements Symbol {
 
     private final String alias;
     private final Symbol symbol;
@@ -70,6 +70,11 @@ public final class AliasSymbol extends Symbol {
     @Override
     public DataType<?> valueType() {
         return symbol.valueType();
+    }
+
+    @Override
+    public String toString() {
+        return symbol.toString(Style.UNQUALIFIED) + " AS " + alias;
     }
 
     @Override

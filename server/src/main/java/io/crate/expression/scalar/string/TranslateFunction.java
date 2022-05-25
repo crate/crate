@@ -23,7 +23,6 @@ package io.crate.expression.scalar.string;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -70,11 +69,11 @@ public class TranslateFunction extends Scalar<String, String> {
         assert args.size() == 3 : "translate takes exactly three arguments";
 
         Symbol from = args.get(1);
-        if (!Literal.isLiteral(from, DataTypes.STRING)) {
+        if (!Symbol.isLiteral(from, DataTypes.STRING)) {
             return this;
         }
         Symbol to = args.get(2);
-        if (!Literal.isLiteral(to, DataTypes.STRING)) {
+        if (!Symbol.isLiteral(to, DataTypes.STRING)) {
             return this;
         }
         String fromStr = ((Input<String>) from).value();

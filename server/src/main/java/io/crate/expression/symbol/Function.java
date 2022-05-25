@@ -66,7 +66,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-public class Function extends Symbol implements Cloneable {
+public class Function implements Symbol, Cloneable {
 
     private static final Map<String, String> ARITHMETIC_OPERATOR_MAPPING = Map.ofEntries(
         Map.entry(ArithmeticFunctions.Names.ADD, "+"),
@@ -208,7 +208,7 @@ public class Function extends Symbol implements Cloneable {
              */
             return castArrayElements(targetType, modes);
         } else {
-            return super.cast(targetType, modes);
+            return Symbol.super.cast(targetType, modes);
         }
     }
 
@@ -273,6 +273,11 @@ public class Function extends Symbol implements Cloneable {
     @Override
     public int hashCode() {
         return Objects.hash(arguments, info, filter);
+    }
+
+    @Override
+    public String toString() {
+        return toString(Style.UNQUALIFIED);
     }
 
     @Override
