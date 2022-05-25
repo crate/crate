@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -33,7 +33,7 @@ import java.util.function.Consumer;
 public final class AnalyzedUpdateStatement implements AnalyzedStatement {
 
     private final AbstractTableRelation<?> table;
-    private final Map<Reference, Symbol> assignmentByTargetCol;
+    private final Map<SimpleReference, Symbol> assignmentByTargetCol;
     private final Symbol query;
 
     /**
@@ -43,7 +43,7 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
     private final List<Symbol> returnValues;
 
     public AnalyzedUpdateStatement(AbstractTableRelation<?> table,
-                                   Map<Reference, Symbol> assignmentByTargetCol,
+                                   Map<SimpleReference, Symbol> assignmentByTargetCol,
                                    Symbol query,
                                    @Nullable List<Symbol> returnValues) {
         this.table = table;
@@ -56,7 +56,7 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         return table;
     }
 
-    public Map<Reference, Symbol> assignmentByTargetCol() {
+    public Map<SimpleReference, Symbol> assignmentByTargetCol() {
         return assignmentByTargetCol;
     }
 

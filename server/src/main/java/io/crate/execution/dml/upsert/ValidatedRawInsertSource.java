@@ -47,7 +47,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -131,7 +131,7 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
 
     @Override
     public Object parse(String field, Object value) {
-        Reference ref = refLookUpCache.get(field);
+        SimpleReference ref = refLookUpCache.get(field);
         if (ref == null) {
             try {
                 ref = table.resolveColumn(field, true, txnCtx.sessionSettings().errorOnUnknownObjectKey());
@@ -149,7 +149,7 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
     }
 
     private void generateDefaultsAndMerge(Map<String, Object> source) {
-        for (Reference ref : table.defaultExpressionColumns()) {
+        for (SimpleReference ref : table.defaultExpressionColumns()) {
             ColumnIdent column = ref.column();
             Object val = SymbolEvaluator.evaluateWithoutParams(txnCtx, nodeCtx, ref.defaultExpression());
             Maps.mergeInto(source, column.name(), column.path(), val, Map::putIfAbsent);
@@ -165,9 +165,9 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
     static class RefLookUpCache {
 
         @VisibleForTesting
-        final Map<String, Reference> lookupCache;
+        final Map<String, SimpleReference> lookupCache;
         @VisibleForTesting
-        List<Reference> presentColumns;
+        List<SimpleReference> presentColumns;
 
         public RefLookUpCache() {
             this.lookupCache = new HashMap<>();
@@ -175,7 +175,7 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
         }
 
         @Nullable
-        public Reference get(String col) {
+        public SimpleReference get(String col) {
             var r = lookupCache.get(col);
             if (r != null) {
                 assert !presentColumns.contains(r) : "for both get() and put(), the references in context should be the first encounter";
@@ -184,14 +184,14 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
             return r;
         }
 
-        public void put(String col, Reference r) {
+        public void put(String col, SimpleReference r) {
             assert !lookupCache.containsKey(col) || !lookupCache.containsValue(r) : "the key, value pair already exists";
             assert !presentColumns.contains(r) : "for both get() and put(), the references in context should be the first encounter";
             presentColumns.add(r);
             lookupCache.put(col, r);
         }
 
-        public List<Reference> getPresentColumns() {
+        public List<SimpleReference> getPresentColumns() {
             return presentColumns;
         }
 

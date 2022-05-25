@@ -34,14 +34,14 @@ import java.util.TreeMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 
 public class FetchPhase implements ExecutionPhase {
 
     private final TreeMap<String, Integer> bases;
     private final Map<RelationName, Collection<String>> tableIndices;
-    private final Collection<Reference> fetchRefs;
+    private final Collection<SimpleReference> fetchRefs;
 
     private final int executionPhaseId;
     private final Set<String> executionNodes;
@@ -50,7 +50,7 @@ public class FetchPhase implements ExecutionPhase {
                       Set<String> executionNodes,
                       TreeMap<String, Integer> bases,
                       Map<RelationName, Collection<String>> tableIndices,
-                      Collection<Reference> fetchRefs) {
+                      Collection<SimpleReference> fetchRefs) {
         this.executionPhaseId = executionPhaseId;
         this.executionNodes = executionNodes;
         this.bases = bases;
@@ -58,7 +58,7 @@ public class FetchPhase implements ExecutionPhase {
         this.fetchRefs = fetchRefs;
     }
 
-    public Collection<Reference> fetchRefs() {
+    public Collection<SimpleReference> fetchRefs() {
         return fetchRefs;
     }
 
@@ -105,7 +105,7 @@ public class FetchPhase implements ExecutionPhase {
         n = in.readVInt();
         fetchRefs = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
-            fetchRefs.add(Reference.fromStream(in));
+            fetchRefs.add(SimpleReference.fromStream(in));
         }
 
         n = in.readVInt();
@@ -136,8 +136,8 @@ public class FetchPhase implements ExecutionPhase {
         }
 
         out.writeVInt(fetchRefs.size());
-        for (Reference ref : fetchRefs) {
-            Reference.toStream(ref, out);
+        for (SimpleReference ref : fetchRefs) {
+            SimpleReference.toStream(ref, out);
         }
         out.writeVInt(tableIndices.size());
         for (Map.Entry<RelationName, Collection<String>> entry : tableIndices.entrySet()) {

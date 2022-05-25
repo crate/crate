@@ -37,17 +37,17 @@ public class GeoReferenceTest extends ESTestCase {
         GeoReference geoReferenceInfo = new GeoReference(1, referenceIdent, "some_tree", "1m", 3, 0.5d);
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(geoReferenceInfo, out);
+        SimpleReference.toStream(geoReferenceInfo, out);
         StreamInput in = out.bytes().streamInput();
-        GeoReference geoReferenceInfo2 = Reference.fromStream(in);
+        GeoReference geoReferenceInfo2 = SimpleReference.fromStream(in);
 
         assertThat(geoReferenceInfo2, is(geoReferenceInfo));
 
         GeoReference geoReferenceInfo3 = new GeoReference(2, referenceIdent, "some_tree", null, null, null);
         out = new BytesStreamOutput();
-        Reference.toStream(geoReferenceInfo3, out);
+        SimpleReference.toStream(geoReferenceInfo3, out);
         in = out.bytes().streamInput();
-        GeoReference geoReferenceInfo4 = Reference.fromStream(in);
+        GeoReference geoReferenceInfo4 = SimpleReference.fromStream(in);
 
         assertThat(geoReferenceInfo4, is(geoReferenceInfo3));
 

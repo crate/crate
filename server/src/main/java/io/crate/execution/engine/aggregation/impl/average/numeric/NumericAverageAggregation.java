@@ -32,7 +32,7 @@ import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
@@ -185,10 +185,10 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
 
     @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(List<SimpleReference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
-        Reference reference = aggregationReferences.get(0);
+        SimpleReference reference = aggregationReferences.get(0);
         if (!reference.hasDocValues()) {
             return null;
         }

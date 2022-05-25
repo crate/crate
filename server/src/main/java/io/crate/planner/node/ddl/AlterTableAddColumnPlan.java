@@ -36,7 +36,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -178,7 +178,7 @@ public class AlterTableAddColumnPlan implements Plan {
             if (tableInfo.primaryKey().contains(column)) {
                 columnDef.setPrimaryKeyConstraint();
             }
-            Reference reference = Objects.requireNonNull(
+            SimpleReference reference = Objects.requireNonNull(
                 tableInfo.getReference(column),
                 "Must be able to retrieve Reference for any column that is part of `primaryKey()`");
 

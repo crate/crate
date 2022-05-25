@@ -39,7 +39,7 @@ import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -97,12 +97,12 @@ public class DocIndexMetadata {
         })
         .thenComparing(Map.Entry::getKey);
 
-    private static final Comparator<Reference> SORT_REFS_BY_POSTITON_THEN_NAME = Comparator
-        .comparing(Reference::position)
+    private static final Comparator<SimpleReference> SORT_REFS_BY_POSTITON_THEN_NAME = Comparator
+        .comparing(SimpleReference::position)
         .thenComparing(o -> o.column().fqn());
 
-    private final List<Reference> columns = new ArrayList<>();
-    private final List<Reference> nestedColumns = new ArrayList<>();
+    private final List<SimpleReference> columns = new ArrayList<>();
+    private final List<SimpleReference> nestedColumns = new ArrayList<>();
     private final ArrayList<GeneratedReference> generatedColumnReferencesBuilder = new ArrayList<>();
 
     private final NodeContext nodeCtx;
@@ -114,9 +114,9 @@ public class DocIndexMetadata {
     private final List<ColumnIdent> partitionedBy;
     private final Set<Operation> supportedOperations;
     private Map<ColumnIdent, IndexReference> indices;
-    private List<Reference> partitionedByColumns;
+    private List<SimpleReference> partitionedByColumns;
     private List<GeneratedReference> generatedColumnReferences;
-    private Map<ColumnIdent, Reference> references;
+    private Map<ColumnIdent, SimpleReference> references;
     private List<ColumnIdent> primaryKey;
     private List<CheckConstraint<Symbol>> checkConstraints;
     private Collection<ColumnIdent> notNullColumns;
@@ -207,7 +207,7 @@ public class DocIndexMetadata {
                      IndexType indexType,
                      boolean isNotNull,
                      boolean hasDocValues) {
-        Reference ref;
+        SimpleReference ref;
         boolean partitionByColumn = partitionedBy.contains(column);
         String generatedExpression = generatedColumns.get(column.fqn());
         if (partitionByColumn) {
@@ -268,7 +268,7 @@ public class DocIndexMetadata {
         return RowGranularity.DOC;
     }
 
-    private Reference newInfo(Integer position,
+    private SimpleReference newInfo(Integer position,
                               ColumnIdent column,
                               DataType<?> type,
                               @Nullable String formattedDefaultExpression,
@@ -283,7 +283,7 @@ public class DocIndexMetadata {
                 expression,
                 new ExpressionAnalysisContext(CoordinatorTxnCtx.systemTransactionContext().sessionContext()));
         }
-        return new Reference(
+        return new SimpleReference(
             refIdent(column),
             granularity(column),
             type,
@@ -622,9 +622,9 @@ public class DocIndexMetadata {
         DocSysColumns.forTable(ident, references::put);
         columns.sort(SORT_REFS_BY_POSTITON_THEN_NAME);
         nestedColumns.sort(SORT_REFS_BY_POSTITON_THEN_NAME);
-        for (Reference ref : columns) {
+        for (SimpleReference ref : columns) {
             references.put(ref.column(), ref);
-            for (Reference nestedColumn : nestedColumns) {
+            for (SimpleReference nestedColumn : nestedColumns) {
                 if (nestedColumn.column().getRoot().equals(ref.column())) {
                     references.put(nestedColumn.column(), nestedColumn);
                 }
@@ -636,7 +636,7 @@ public class DocIndexMetadata {
         primaryKey = getPrimaryKey();
         routingCol = getRoutingCol();
 
-        Collection<Reference> references = this.references.values();
+        Collection<SimpleReference> references = this.references.values();
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(references, ident);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
@@ -660,7 +660,7 @@ public class DocIndexMetadata {
         }
         checkConstraints = checkConstraintsBuilder != null ? List.copyOf(checkConstraintsBuilder) : List.of();
 
-        for (Reference reference : generatedColumnReferences) {
+        for (SimpleReference reference : generatedColumnReferences) {
             GeneratedReference generatedReference = (GeneratedReference) reference;
             Expression expression = SqlParser.createExpression(generatedReference.formattedGeneratedExpression());
             generatedReference.generatedExpression(exprAnalyzer.convert(expression, analysisCtx));
@@ -670,11 +670,11 @@ public class DocIndexMetadata {
         return this;
     }
 
-    public Map<ColumnIdent, Reference> references() {
+    public Map<ColumnIdent, SimpleReference> references() {
         return references;
     }
 
-    public Collection<Reference> columns() {
+    public Collection<SimpleReference> columns() {
         return columns;
     }
 
@@ -682,7 +682,7 @@ public class DocIndexMetadata {
         return indices;
     }
 
-    public List<Reference> partitionedByColumns() {
+    public List<SimpleReference> partitionedByColumns() {
         return partitionedByColumns;
     }
 

@@ -21,29 +21,29 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 
 import java.util.function.Consumer;
 
-public final class RefVisitor extends DefaultTraversalSymbolVisitor<Consumer<? super Reference>, Void> {
+public final class RefVisitor extends DefaultTraversalSymbolVisitor<Consumer<? super SimpleReference>, Void> {
 
     private static final RefVisitor VISITOR = new RefVisitor();
 
     private RefVisitor() {
     }
 
-    public static void visitRefs(Symbol tree, Consumer<? super Reference> consumer) {
+    public static void visitRefs(Symbol tree, Consumer<? super SimpleReference> consumer) {
         tree.accept(VISITOR, consumer);
     }
 
     @Override
-    public Void visitReference(Reference ref, Consumer<? super Reference> consumer) {
+    public Void visitReference(SimpleReference ref, Consumer<? super SimpleReference> consumer) {
         consumer.accept(ref);
         return null;
     }
 
     @Override
-    public Void visitDynamicReference(DynamicReference ref, Consumer<? super Reference> consumer) {
+    public Void visitDynamicReference(DynamicReference ref, Consumer<? super SimpleReference> consumer) {
         consumer.accept(ref);
         return null;
     }

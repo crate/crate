@@ -33,7 +33,7 @@ import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -52,14 +52,14 @@ import java.util.concurrent.CompletableFuture;
 public final class UpdateById implements Plan {
 
     private final DocTableInfo table;
-    private final Map<Reference, Symbol> assignmentByTargetCol;
+    private final Map<SimpleReference, Symbol> assignmentByTargetCol;
     private final DocKeys docKeys;
     private final Assignments assignments;
     @Nullable
     private final Symbol[] returnValues;
 
     public UpdateById(DocTableInfo table,
-                      Map<Reference, Symbol> assignmentByTargetCol,
+                      Map<SimpleReference, Symbol> assignmentByTargetCol,
                       DocKeys docKeys,
                       @Nullable List<Symbol> returnValues,
                       NodeContext nodeCtx) {
@@ -71,7 +71,7 @@ public final class UpdateById implements Plan {
     }
 
     @VisibleForTesting
-    public Map<Reference, Symbol> assignmentByTargetCol() {
+    public Map<SimpleReference, Symbol> assignmentByTargetCol() {
         return assignmentByTargetCol;
     }
 

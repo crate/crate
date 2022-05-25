@@ -41,7 +41,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.crate.expression.scalar.ArraySliceFunction;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.tree.ColumnPolicy;
@@ -403,7 +403,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAnalyzeArraySliceFunctionCall() {
         ReferenceIdent arrayRefIdent = new ReferenceIdent(new RelationName("doc", "tarr"), "xs");
-        Reference arrayRef = new Reference(arrayRefIdent,
+        SimpleReference arrayRef = new SimpleReference(arrayRefIdent,
                                            RowGranularity.DOC,
                                            DataTypes.INTEGER_ARRAY,
                                            ColumnPolicy.DYNAMIC,

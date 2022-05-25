@@ -32,7 +32,7 @@ import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.TestingRowConsumer;
@@ -80,7 +80,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
     );
 
     private String columnName = "x";
-    private Reference reference = createReference(columnName, DataTypes.LONG);
+    private SimpleReference reference = createReference(columnName, DataTypes.LONG);
     private IndexSearcher searcher1;
     private IndexSearcher searcher2;
     private OrderBy orderBy;

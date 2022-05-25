@@ -51,10 +51,11 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.types.DataTypes;
 
 
@@ -62,9 +63,9 @@ import io.crate.types.DataTypes;
  * The normalizer does several things:
  *
  *  - Convert functions into a simpler form by using {@link FunctionImplementation#normalizeSymbol(Function, TransactionContext, NodeContext)}
- *  - Convert {@link ScopedSymbol} to {@link Reference} if {@link FieldResolver} is available.
+ *  - Convert {@link ScopedSymbol} to {@link SimpleReference} if {@link FieldResolver} is available.
  *  - Convert {@link MatchPredicate} to a {@link Function} if {@link FieldResolver} is available
- *  - Convert {@link Reference} into a Literal value if {@link ReferenceResolver} is available
+ *  - Convert {@link SimpleReference} into a Literal value if {@link ReferenceResolver} is available
  *    and {@link NestableInput}s can be retrieved for the Reference.
  */
 public class EvaluatingNormalizer {
@@ -139,8 +140,8 @@ public class EvaluatingNormalizer {
                 List<Symbol> columnBoostMapArgs = new ArrayList<>(fieldBoostMap.size() * 2);
                 for (Map.Entry<Symbol, Symbol> entry : fieldBoostMap.entrySet()) {
                     Symbol resolved = entry.getKey().accept(this, null);
-                    if (resolved instanceof Reference) {
-                        columnBoostMapArgs.add(Literal.of(((Reference) resolved).column().fqn()));
+                    if (resolved instanceof Reference ref) {
+                        columnBoostMapArgs.add(Literal.of(ref.column().fqn()));
                         columnBoostMapArgs.add(entry.getValue());
                     } else {
                         return matchPredicate;
@@ -207,7 +208,7 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        public Symbol visitReference(Reference symbol, TransactionContext context) {
+        public Symbol visitReference(SimpleReference symbol, TransactionContext context) {
             if (referenceResolver == null || symbol.granularity().ordinal() > granularity.ordinal()) {
                 return symbol;
             }

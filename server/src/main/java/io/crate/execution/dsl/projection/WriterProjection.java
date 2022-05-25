@@ -29,7 +29,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
@@ -55,21 +55,21 @@ public class WriterProjection extends Projection {
     // number of lines written
     private static final List<Symbol> OUTPUTS = List.of(new InputColumn(0, DataTypes.LONG));
 
-    private static final Reference SHARD_ID_REF = new Reference(
+    private static final SimpleReference SHARD_ID_REF = new SimpleReference(
         new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.ID),
         RowGranularity.SHARD,
         IntegerType.INSTANCE,
         0,
         null
     );
-    private static final Reference TABLE_NAME_REF = new Reference(
+    private static final SimpleReference TABLE_NAME_REF = new SimpleReference(
         new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.TABLE_NAME),
         RowGranularity.SHARD,
         StringType.INSTANCE,
         0,
         null
     );
-    private static final Reference PARTITION_IDENT_REF = new Reference(
+    private static final SimpleReference PARTITION_IDENT_REF = new SimpleReference(
         new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.PARTITION_IDENT),
         RowGranularity.SHARD,
         StringType.INSTANCE,

@@ -30,7 +30,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -124,7 +124,7 @@ class AlterTableAddColumnAnalyzer {
         return new AnalyzedAlterTableAddColumn(tableInfo, analyzedTableElements, analyzedTableElementsWithExpressions);
     }
 
-    private static class SelfReferenceFieldProvider implements FieldProvider<Reference> {
+    private static class SelfReferenceFieldProvider implements FieldProvider<SimpleReference> {
 
         private final RelationName relationName;
         private final TableReferenceResolver referenceResolver;
@@ -139,14 +139,14 @@ class AlterTableAddColumnAnalyzer {
         }
 
         @Override
-        public Reference resolveField(QualifiedName qualifiedName,
+        public SimpleReference resolveField(QualifiedName qualifiedName,
                                       @Nullable List<String> path,
                                       Operation operation,
                                       boolean errorOnUnknownObjectKey) {
             try {
                 // SQL Semantics: CHECK expressions cannot refer to other
                 // columns to not invalidate existing data inadvertently.
-                Reference ref = referenceResolver.resolveField(qualifiedName, path, operation, errorOnUnknownObjectKey);
+                SimpleReference ref = referenceResolver.resolveField(qualifiedName, path, operation, errorOnUnknownObjectKey);
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
                     "CHECK expressions defined in this context cannot refer to other columns: %s",
@@ -156,7 +156,7 @@ class AlterTableAddColumnAnalyzer {
                 for (int i = 0; i < columnDefinitions.size(); i++) {
                     AnalyzedColumnDefinition<Symbol> def = columnDefinitions.get(i);
                     if (def.ident().equals(colIdent)) {
-                        return new Reference(
+                        return new SimpleReference(
                             new ReferenceIdent(relationName, colIdent),
                             RowGranularity.DOC,
                             def.dataType(),

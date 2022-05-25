@@ -27,12 +27,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 import io.crate.expression.symbol.InputColumn;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 
 public class FetchSource {
 
     private final LinkedHashSet<InputColumn> fetchIdCols = new LinkedHashSet<>();
-    private final ArrayList<Reference> references = new ArrayList<>();
+    private final ArrayList<SimpleReference> references = new ArrayList<>();
 
     public FetchSource() {
     }
@@ -41,7 +41,7 @@ public class FetchSource {
         fetchIdCols.add(fetchIdColumn);
     }
 
-    public void addRefToFetch(Reference ref) {
+    public void addRefToFetch(SimpleReference ref) {
         references.add(ref);
     }
 
@@ -49,7 +49,7 @@ public class FetchSource {
         return fetchIdCols;
     }
 
-    public List<Reference> references() {
+    public List<SimpleReference> references() {
         return references;
     }
 }

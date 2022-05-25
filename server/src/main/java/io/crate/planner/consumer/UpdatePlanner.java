@@ -45,7 +45,7 @@ import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.doc.DocSysColumns;
@@ -123,7 +123,7 @@ public final class UpdatePlanner {
     }
 
     private static Plan plan(DocTableRelation docTable,
-                             Map<Reference, Symbol> assignmentByTargetCol,
+                             Map<SimpleReference, Symbol> assignmentByTargetCol,
                              Symbol query,
                              PlannerContext plannerCtx,
                              @Nullable List<Symbol> returnValues) {
@@ -203,13 +203,13 @@ public final class UpdatePlanner {
 
     private static ExecutionPlan sysUpdate(PlannerContext plannerContext,
                                            TableRelation table,
-                                           Map<Reference, Symbol> assignmentByTargetCol,
+                                           Map<SimpleReference, Symbol> assignmentByTargetCol,
                                            Symbol query,
                                            Row params,
                                            SubQueryResults subQueryResults,
                                            @Nullable List<Symbol> returnValues) {
         TableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
+        SimpleReference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
         Symbol[] outputSymbols;
         if (returnValues == null) {
             outputSymbols = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
@@ -250,13 +250,13 @@ public final class UpdatePlanner {
 
     private static ExecutionPlan updateByQuery(PlannerContext plannerCtx,
                                                DocTableRelation table,
-                                               Map<Reference, Symbol> assignmentByTargetCol,
+                                               Map<SimpleReference, Symbol> assignmentByTargetCol,
                                                WhereClauseOptimizer.DetailedQuery detailedQuery,
                                                Row params,
                                                SubQueryResults subQueryResults,
                                                @Nullable List<Symbol> returnValues) {
         DocTableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID),
+        SimpleReference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID),
                                                "Table must have a _id column");
         Assignments assignments = Assignments.convert(assignmentByTargetCol, plannerCtx.nodeContext());
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
@@ -309,7 +309,7 @@ public final class UpdatePlanner {
 
     private static ExecutionPlan createCollectAndMerge(PlannerContext plannerCtx,
                                                        TableInfo tableInfo,
-                                                       Reference idReference,
+                                                       SimpleReference idReference,
                                                        Projection updateProjection,
                                                        WhereClause where,
                                                        int numOutPuts,

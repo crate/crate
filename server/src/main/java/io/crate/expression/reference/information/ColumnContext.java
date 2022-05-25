@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.information;
 
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationInfo;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
@@ -30,9 +30,9 @@ import io.crate.types.StringType;
 public class ColumnContext {
 
     public final RelationInfo tableInfo;
-    public final Reference info;
+    public final SimpleReference info;
 
-    public ColumnContext(RelationInfo tableInfo, Reference ref) {
+    public ColumnContext(RelationInfo tableInfo, SimpleReference ref) {
         this.tableInfo = tableInfo;
         this.info = ref;
     }

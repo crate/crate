@@ -21,6 +21,21 @@
 
 package io.crate.planner.statement;
 
+import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
+import static io.crate.analyze.CopyStatementSettings.OUTPUT_FORMAT_SETTING;
+import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
+import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.BoundCopyTo;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
@@ -48,6 +63,7 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -64,20 +80,6 @@ import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
 import io.crate.sql.tree.Assignment;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Settings;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-
-import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
-import static io.crate.analyze.CopyStatementSettings.OUTPUT_FORMAT_SETTING;
-import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
-import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
 public final class CopyToPlan implements Plan {
 
@@ -221,11 +223,11 @@ public final class CopyToPlan implements Plan {
             }
             columnsDefined = true;
         } else {
-            Reference sourceRef;
+            SimpleReference sourceRef;
             if (table.isPartitioned() && partitions.isEmpty()) {
                 // table is partitioned, insert partitioned columns into the output
                 overwrites = new HashMap<>();
-                for (Reference reference : table.partitionedByColumns()) {
+                for (SimpleReference reference : table.partitionedByColumns()) {
                     if (!(reference instanceof GeneratedReference)) {
                         overwrites.put(reference.column(), reference);
                     }

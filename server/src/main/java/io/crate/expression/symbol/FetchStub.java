@@ -21,13 +21,14 @@
 
 package io.crate.expression.symbol;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 
 /**
  * A placeholder for a reference that the {@link io.crate.planner.operators.Fetch} operator can fetch.

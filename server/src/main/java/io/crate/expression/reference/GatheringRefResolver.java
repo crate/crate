@@ -22,7 +22,7 @@
 package io.crate.expression.reference;
 
 import io.crate.data.Input;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 
 import java.util.function.Consumer;
 
@@ -37,7 +37,7 @@ public class GatheringRefResolver<E extends Input<?>> implements ReferenceResolv
     }
 
     @Override
-    public E getImplementation(Reference ref) {
+    public E getImplementation(SimpleReference ref) {
         E implementation = delegate.getImplementation(ref);
         if (implementation == null) {
             return null;

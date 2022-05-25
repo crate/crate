@@ -34,7 +34,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
@@ -75,9 +75,9 @@ public class NodeStatsTest extends ESTestCase {
     private ActionExecutor<NodeStatsRequest, NodeStatsResponse> nodeStatesExecutor;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
-    private Reference idRef;
-    private Reference nameRef;
-    private Reference hostnameRef;
+    private SimpleReference idRef;
+    private SimpleReference nameRef;
+    private SimpleReference hostnameRef;
     private NodeContext nodeCtx;
 
     @Before
@@ -89,21 +89,21 @@ public class NodeStatsTest extends ESTestCase {
             return listener;
         };
 
-        idRef = new Reference(
+        idRef = new SimpleReference(
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
             RowGranularity.DOC,
             DataTypes.STRING,
             1,
             null
         );
-        nameRef = new Reference(
+        nameRef = new SimpleReference(
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
             RowGranularity.DOC,
             DataTypes.STRING,
             2,
             null
         );
-        hostnameRef = new Reference(
+        hostnameRef = new SimpleReference(
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.HOSTNAME),
             RowGranularity.DOC,
             DataTypes.STRING,

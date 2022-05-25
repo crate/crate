@@ -21,6 +21,17 @@
 
 package io.crate.protocols.postgres;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.SortedSet;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
@@ -36,15 +47,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import javax.annotation.Nullable;
-import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.SortedSet;
 
 /**
  * Regular data packet is in the following format:
@@ -400,7 +402,7 @@ public class Messages {
     }
 
     private static boolean isRefWithPosition(Symbol symbol) {
-        return symbol instanceof Reference && ((Reference) symbol).position() != 0;
+        return symbol instanceof Reference ref && ref.position() != 0;
     }
 
     /**
@@ -440,9 +442,9 @@ public class Messages {
             writeCString(buffer, nameBytes);
             buffer.writeInt(tableOid);
             // attr_num
-            if (column instanceof Reference) {
-                Integer position = ((Reference) column).position();
-                buffer.writeShort(position == null ? 0 : position);
+            if (column instanceof Reference ref) {
+                int position = ref.position();
+                buffer.writeShort(position);
             } else {
                 buffer.writeShort(0);
             }

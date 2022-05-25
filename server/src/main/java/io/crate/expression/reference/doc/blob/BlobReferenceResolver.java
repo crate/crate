@@ -22,7 +22,7 @@
 package io.crate.expression.reference.doc.blob;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.reference.ReferenceResolver;
@@ -46,7 +46,7 @@ public class BlobReferenceResolver implements ReferenceResolver<CollectExpressio
     }
 
     @Override
-    public CollectExpression<File, ?> getImplementation(Reference refInfo) {
+    public CollectExpression<File, ?> getImplementation(SimpleReference refInfo) {
         assert BlobSchemaInfo.NAME.equals(refInfo.ident().tableIdent().schema()) :
             "schema name must be 'blob";
         ExpressionBuilder builder = EXPRESSION_BUILDER.get(refInfo.column().name());

@@ -28,7 +28,7 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.Merge;
@@ -102,7 +102,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge plan = plan("copy users (name) to directory '/tmp'");
         Collect innerPlan = (Collect) plan.subPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
-        Reference nameRef = (Reference) node.toCollect().get(0);
+        SimpleReference nameRef = (SimpleReference) node.toCollect().get(0);
 
         assertThat(nameRef.column().name(), is(DocSysColumns.DOC.name()));
         assertThat(nameRef.column().path().get(0), is("name"));

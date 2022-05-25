@@ -86,7 +86,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -373,8 +373,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Symbol aggregationInput = aggregation.inputs().get(0);
         assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
 
-        assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(((Reference) collectPhase.toCollect().get(0)).column().name(), is("name"));
+        assertThat(collectPhase.toCollect().get(0), instanceOf(SimpleReference.class));
+        assertThat(((SimpleReference) collectPhase.toCollect().get(0)).column().name(), is("name"));
 
         MergePhase mergePhase = globalAggregate.mergePhase();
         assertThat(mergePhase.projections().size(), is(2));

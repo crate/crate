@@ -39,7 +39,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -386,7 +386,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         List<Symbol> toCollect = collectPhase.toCollect();
         assertThat(toCollect.size(), is(2));
         assertThat(toCollect.get(0), isReference("_doc['id']"));
-        assertThat(toCollect.get(1), equalTo(new Reference(
+        assertThat(toCollect.get(1), equalTo(new SimpleReference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_pks"), "date"),
             RowGranularity.PARTITION,
             DataTypes.TIMESTAMPZ,

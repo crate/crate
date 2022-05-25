@@ -36,12 +36,12 @@ import java.util.Objects;
 import static java.util.Objects.requireNonNull;
 
 
-public class IndexReference extends Reference {
+public class IndexReference extends SimpleReference {
 
     public static class Builder {
         private final ReferenceIdent ident;
         private IndexType indexType = IndexType.FULLTEXT;
-        private List<Reference> columns = new ArrayList<>();
+        private List<SimpleReference> columns = new ArrayList<>();
         private String analyzer = null;
         private int position = 0;
 
@@ -55,7 +55,7 @@ public class IndexReference extends Reference {
             return this;
         }
 
-        public Builder addColumn(Reference info) {
+        public Builder addColumn(SimpleReference info) {
             this.columns.add(info);
             return this;
         }
@@ -77,7 +77,7 @@ public class IndexReference extends Reference {
 
     @Nullable
     private final String analyzer;
-    private final List<Reference> columns;
+    private final List<SimpleReference> columns;
 
     public IndexReference(StreamInput in) throws IOException {
         super(in);
@@ -85,21 +85,21 @@ public class IndexReference extends Reference {
         int size = in.readVInt();
         columns = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            columns.add(Reference.fromStream(in));
+            columns.add(SimpleReference.fromStream(in));
         }
     }
 
     public IndexReference(int position,
                           ReferenceIdent ident,
                           IndexType indexType,
-                          List<Reference> columns,
+                          List<SimpleReference> columns,
                           @Nullable String analyzer) {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, true, position, null);
         this.columns = columns;
         this.analyzer = analyzer;
     }
 
-    public List<Reference> columns() {
+    public List<SimpleReference> columns() {
         return columns;
     }
 
@@ -139,8 +139,8 @@ public class IndexReference extends Reference {
         super.writeTo(out);
         out.writeOptionalString(analyzer);
         out.writeVInt(columns.size());
-        for (Reference reference : columns) {
-            Reference.toStream(reference, out);
+        for (SimpleReference reference : columns) {
+            SimpleReference.toStream(reference, out);
         }
     }
 }

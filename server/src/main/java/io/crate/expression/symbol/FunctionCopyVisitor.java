@@ -21,15 +21,16 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.metadata.Reference;
+import static java.util.Objects.requireNonNull;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Objects.requireNonNull;
+import javax.annotation.Nullable;
+
+import io.crate.metadata.Reference;
 
 /**
  * Base class which can be used to create a visitor that has to replace functions.
@@ -215,7 +216,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         }
         // Some symbol replacements want to replace references (for example, the Rename operator needs to replace References with ScopedSymbols)
         // The FetchStub `reference` part cannot and must not be turned into a ScopedSymbol, so a replacement is silently dropped here
-        Reference newRef = newRefSymbol instanceof Reference ? ((Reference) newRefSymbol) : ref;
+        Reference newRef = newRefSymbol instanceof Reference ? (Reference) newRefSymbol : ref;
         FetchMarker newMarker = newFetchMarker instanceof FetchMarker ? ((FetchMarker) newFetchMarker) : fetchMarker;
         return new FetchStub(newMarker, newRef);
     }

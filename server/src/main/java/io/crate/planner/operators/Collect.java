@@ -21,6 +21,18 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.planner.operators.Limit.limitAndOffset;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.GeneratedColumnExpander;
 import io.crate.analyze.OrderBy;
@@ -50,6 +62,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -63,17 +76,6 @@ import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.planner.selectivity.SelectivityFunctions;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static io.crate.planner.operators.Limit.limitAndOffset;
 
 /**
  * An Operator for data-collection.
@@ -214,9 +216,9 @@ public class Collect implements LogicalPlan {
     private static boolean isPartitionColOrAnalyzed(Symbol s) {
         // 1) partition columns are normalized on shard to literal, but lucene sort doesn't support literals
         // 2) no docValues or field data for analyzed columns -> can't sort on lucene level
-        return s instanceof Reference &&
-               (((Reference) s).granularity() == RowGranularity.PARTITION
-                || ((Reference) s).indexType() == IndexType.FULLTEXT);
+        return s instanceof Reference ref &&
+               (ref.granularity() == RowGranularity.PARTITION
+                || ref.indexType() == IndexType.FULLTEXT);
     }
 
     @Nullable
@@ -375,7 +377,7 @@ public class Collect implements LogicalPlan {
         }
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         LinkedHashMap<Symbol, Symbol> replacedOutputs = new LinkedHashMap<>();
-        ArrayList<Reference> refsToFetch = new ArrayList<>();
+        ArrayList<SimpleReference> refsToFetch = new ArrayList<>();
         FetchMarker fetchMarker = new FetchMarker(relation.relationName(), refsToFetch);
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
@@ -390,7 +392,7 @@ public class Collect implements LogicalPlan {
                 replacedOutputs.put(output, output);
             } else {
                 Symbol outputWithFetchStub = RefReplacer.replaceRefs(output, ref -> {
-                    Reference sourceLookup = DocReferences.toSourceLookup(ref);
+                    SimpleReference sourceLookup = DocReferences.toSourceLookup(ref);
                     refsToFetch.add(sourceLookup);
                     return new FetchStub(fetchMarker, sourceLookup);
                 });

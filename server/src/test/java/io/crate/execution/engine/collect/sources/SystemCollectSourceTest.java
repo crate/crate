@@ -28,7 +28,7 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -59,7 +59,7 @@ public class SystemCollectSourceTest extends SQLIntegrationTestCase {
     public void testOrderBySymbolsDoNotAppearTwiceInRows() throws Exception {
         SystemCollectSource systemCollectSource = internalCluster().getDataNodeInstance(SystemCollectSource.class);
 
-        Reference shardId = new Reference(
+        SimpleReference shardId = new SimpleReference(
             new ReferenceIdent(new RelationName("sys", "shards"), "id"),
             RowGranularity.SHARD,
             DataTypes.INTEGER,

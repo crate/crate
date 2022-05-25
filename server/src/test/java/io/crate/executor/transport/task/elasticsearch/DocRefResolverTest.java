@@ -24,7 +24,7 @@ package io.crate.executor.transport.task.elasticsearch;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.test.ESTestCase;
@@ -57,7 +57,7 @@ public class DocRefResolverTest extends ESTestCase {
 
     @Test
     public void testSystemColumnsCollectExpressions() throws Exception {
-        List<Reference> references = List.of(
+        List<SimpleReference> references = List.of(
             refInfo("t1._id", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.ID), RowGranularity.DOC),
             refInfo("t1._version", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.VERSION), RowGranularity.DOC),
             refInfo("t1._doc", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.DOC), RowGranularity.DOC),
@@ -68,7 +68,7 @@ public class DocRefResolverTest extends ESTestCase {
         );
 
         List<CollectExpression<Doc, ?>> collectExpressions = new ArrayList<>(4);
-        for (Reference reference : references) {
+        for (SimpleReference reference : references) {
             CollectExpression<Doc, ?> collectExpression = REF_RESOLVER.getImplementation(reference);
             collectExpression.setNextRow(GET_RESULT);
             collectExpressions.add(collectExpression);

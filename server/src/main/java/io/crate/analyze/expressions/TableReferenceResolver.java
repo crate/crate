@@ -25,7 +25,7 @@ import io.crate.analyze.relations.FieldProvider;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
@@ -35,24 +35,24 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class TableReferenceResolver implements FieldProvider<Reference> {
+public class TableReferenceResolver implements FieldProvider<SimpleReference> {
 
-    private final Collection<Reference> tableReferences;
+    private final Collection<SimpleReference> tableReferences;
     private final RelationName relationName;
-    private final List<Reference> references = new ArrayList<>();
+    private final List<SimpleReference> references = new ArrayList<>();
 
-    public TableReferenceResolver(Collection<Reference> tableReferences, RelationName relationName) {
+    public TableReferenceResolver(Collection<SimpleReference> tableReferences, RelationName relationName) {
         this.tableReferences = tableReferences;
         this.relationName = relationName;
     }
 
     @Override
-    public Reference resolveField(QualifiedName qualifiedName,
+    public SimpleReference resolveField(QualifiedName qualifiedName,
                                   @Nullable List<String> path,
                                   Operation operation,
                                   boolean errorOnUnknownObjectKey) {
         ColumnIdent columnIdent = ColumnIdent.fromNameSafe(qualifiedName, path);
-        for (Reference reference : tableReferences) {
+        for (SimpleReference reference : tableReferences) {
             if (reference.column().equals(columnIdent)) {
                 if (reference instanceof GeneratedReference) {
                     throw new IllegalArgumentException("A generated column cannot be based on a generated column");
@@ -65,7 +65,7 @@ public class TableReferenceResolver implements FieldProvider<Reference> {
         throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
     }
 
-    public List<Reference> references() {
+    public List<SimpleReference> references() {
         return references;
     }
 }

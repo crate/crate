@@ -52,7 +52,7 @@ import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.planner.ExecutionPlan;
@@ -132,14 +132,14 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         tableStats.updateTableStats(rowCountByTable);
 
         Join nl = plan(mss, tableStats);
-        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("locations"));
+        assertThat(((SimpleReference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("locations"));
 
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(10_000, 0, Map.of()));
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
 
         nl = plan(mss, tableStats);
-        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("users"));
+        assertThat(((SimpleReference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("users"));
     }
 
     @Test
@@ -161,7 +161,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         tableStats.updateTableStats(rowCountByTable);
 
         Join nl = plan(mss, tableStats);
-        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is(leftName.name()));
+        assertThat(((SimpleReference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is(leftName.name()));
         assertThat(nl.joinPhase().joinType(), is(JoinType.LEFT));
 
         rowCountByTable.put(leftName, new Stats(10_000, 0, Map.of()));
@@ -169,7 +169,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         tableStats.updateTableStats(rowCountByTable);
 
         nl = plan(mss, tableStats);
-        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is(rightName.name()));
+        assertThat(((SimpleReference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is(rightName.name()));
         assertThat(nl.joinPhase().joinType(), is(JoinType.RIGHT));  // ensure that also the join type inverted
     }
 
@@ -359,7 +359,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(join.left(), instanceOf(Collect.class));
         // no table switch should have been made
-        assertThat(((Reference) ((Collect) join.left()).collectPhase().toCollect().get(0)).ident().tableIdent(),
+        assertThat(((SimpleReference) ((Collect) join.left()).collectPhase().toCollect().get(0)).ident().tableIdent(),
             is(T3.T1));
     }
 
@@ -392,7 +392,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(join.left(), instanceOf(Collect.class));
         // right side will be flipped to the left
-        assertThat(((Reference) ((Collect) join.left()).collectPhase().toCollect().get(0)).ident().tableIdent(),
+        assertThat(((SimpleReference) ((Collect) join.left()).collectPhase().toCollect().get(0)).ident().tableIdent(),
             is(T3.T1));
     }
 

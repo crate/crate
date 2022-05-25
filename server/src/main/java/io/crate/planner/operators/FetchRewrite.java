@@ -24,7 +24,7 @@ package io.crate.planner.operators;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.fetch.FetchSource;
 
@@ -51,8 +51,8 @@ public final class FetchRewrite {
         return plan;
     }
 
-    public List<Reference> extractFetchRefs() {
-        ArrayList<Reference> allFetchReferences = new ArrayList<>();
+    public List<SimpleReference> extractFetchRefs() {
+        ArrayList<SimpleReference> allFetchReferences = new ArrayList<>();
         for (Symbol output : plan.outputs()) {
             if (output instanceof FetchMarker) {
                 allFetchReferences.addAll(((FetchMarker) output).fetchRefs());
@@ -75,7 +75,7 @@ public final class FetchRewrite {
                     fetchSources.put(tableName, fetchSource);
                 }
                 fetchSource.addFetchIdColumn(new InputColumn(i, fetchMarker.valueType()));
-                for (Reference fetchRef : fetchMarker.fetchRefs()) {
+                for (SimpleReference fetchRef : fetchMarker.fetchRefs()) {
                     fetchSource.addRefToFetch(fetchRef);
                 }
             }

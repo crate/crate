@@ -23,7 +23,7 @@ package io.crate.planner;
 
 import io.crate.analyze.OrderBy;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
@@ -56,7 +56,7 @@ public class PositionalOrderByTest {
         assertThat(newOrderBy.nullsFirst(), Matchers.is(expected.nullsFirst()));
     }
 
-    private static Reference ref(String name) {
+    private static SimpleReference ref(String name) {
         return TestingHelpers.createReference(name, DataTypes.LONG);
     }
 }

@@ -76,7 +76,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
@@ -130,7 +130,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
-        Reference[] insertColumns = request.insertColumns();
+        SimpleReference[] insertColumns = request.insertColumns();
 
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
         InsertSourceGen insertSourceGen = insertColumns == null
@@ -474,18 +474,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return doc;
     }
 
-    public static Collection<ColumnIdent> getNotUsedNonGeneratedColumns(Reference[] targetColumns,
+    public static Collection<ColumnIdent> getNotUsedNonGeneratedColumns(SimpleReference[] targetColumns,
                                                                         DocTableInfo tableInfo) {
         Set<String> targetColumnsSet = new HashSet<>();
         Collection<ColumnIdent> columnsNotUsed = new ArrayList<>();
 
         if (targetColumns != null) {
-            for (Reference targetColumn : targetColumns) {
+            for (SimpleReference targetColumn : targetColumns) {
                 targetColumnsSet.add(targetColumn.column().fqn());
             }
         }
 
-        for (Reference reference : tableInfo.columns()) {
+        for (SimpleReference reference : tableInfo.columns()) {
             if (!reference.isNullable() && !(reference instanceof GeneratedReference || reference.defaultExpression() != null)) {
                 if (!targetColumnsSet.contains(reference.column().fqn())) {
                     columnsNotUsed.add(reference.column());

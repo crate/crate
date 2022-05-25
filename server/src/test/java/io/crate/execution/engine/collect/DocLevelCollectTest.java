@@ -41,7 +41,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -83,14 +83,14 @@ import static org.mockito.Mockito.mock;
 public class DocLevelCollectTest extends SQLIntegrationTestCase {
 
     private static final String TEST_TABLE_NAME = "test_table";
-    private static final Reference testDocLevelReference = new Reference(
+    private static final SimpleReference testDocLevelReference = new SimpleReference(
         new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "doc"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
         0,
         null
     );
-    private static final Reference underscoreIdReference = new Reference(
+    private static final SimpleReference underscoreIdReference = new SimpleReference(
         new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_id"),
         RowGranularity.DOC,
         DataTypes.STRING,

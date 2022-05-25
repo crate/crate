@@ -49,6 +49,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
@@ -66,7 +67,7 @@ import io.crate.types.ObjectType;
  */
 public final class UpdateAnalyzer {
 
-    private static final Predicate<Reference> IS_OBJECT_ARRAY =
+    private static final Predicate<SimpleReference> IS_OBJECT_ARRAY =
         input -> input.valueType().id() == ArrayType.ID
                  && ((ArrayType<?>) input.valueType()).innerType().id() == ObjectType.ID;
 
@@ -117,7 +118,7 @@ public final class UpdateAnalyzer {
         );
         ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
 
-        Map<Reference, Symbol> assignmentByTargetCol = getAssignments(
+        Map<SimpleReference, Symbol> assignmentByTargetCol = getAssignments(
             update.assignments(), typeHints, txnCtx, table, normalizer, subqueryAnalyzer, sourceExprAnalyzer, exprCtx);
 
         Symbol query = Objects.requireNonNullElse(
@@ -142,7 +143,7 @@ public final class UpdateAnalyzer {
         );
     }
 
-    private HashMap<Reference, Symbol> getAssignments(List<Assignment<Expression>> assignments,
+    private HashMap<SimpleReference, Symbol> getAssignments(List<Assignment<Expression>> assignments,
                                                       ParamTypeHints typeHints,
                                                       CoordinatorTxnCtx txnCtx,
                                                       AbstractTableRelation<?> table,
@@ -150,7 +151,7 @@ public final class UpdateAnalyzer {
                                                       SubqueryAnalyzer subqueryAnalyzer,
                                                       ExpressionAnalyzer sourceExprAnalyzer,
                                                       ExpressionAnalysisContext exprCtx) {
-        HashMap<Reference, Symbol> assignmentByTargetCol = new HashMap<>();
+        HashMap<SimpleReference, Symbol> assignmentByTargetCol = new HashMap<>();
         ExpressionAnalyzer targetExprAnalyzer = new ExpressionAnalyzer(
             txnCtx,
             nodeCtx,
@@ -168,7 +169,7 @@ public final class UpdateAnalyzer {
 
             Symbol target = normalizer.normalize(targetExprAnalyzer.convert(assignment.columnName(), exprCtx), txnCtx);
             assert target instanceof Reference : "AstBuilder restricts left side of assignments to Columns/Subscripts";
-            Reference targetCol = (Reference) target;
+            SimpleReference targetCol = (SimpleReference) target;
             if (hasMatchingParent(tableInfo, targetCol, IS_OBJECT_ARRAY)) {
                 // cannot update fields of object arrays
                 throw new IllegalArgumentException("Updating fields of object arrays is not supported");
@@ -187,10 +188,10 @@ public final class UpdateAnalyzer {
         return assignmentByTargetCol;
     }
 
-    private static boolean hasMatchingParent(TableInfo tableInfo, Reference info, Predicate<Reference> parentMatchPredicate) {
+    private static boolean hasMatchingParent(TableInfo tableInfo, SimpleReference info, Predicate<SimpleReference> parentMatchPredicate) {
         ColumnIdent parent = info.column().getParent();
         while (parent != null) {
-            Reference parentInfo = tableInfo.getReference(parent);
+            SimpleReference parentInfo = tableInfo.getReference(parent);
             if (parentMatchPredicate.test(parentInfo)) {
                 return true;
             }

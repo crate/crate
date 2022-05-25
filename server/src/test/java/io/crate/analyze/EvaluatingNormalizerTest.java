@@ -36,7 +36,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -60,7 +60,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
 
     private ReferenceResolver<NestableInput<?>> referenceResolver;
     private NodeContext nodeCtx;
-    private Reference dummyLoadInfo;
+    private SimpleReference dummyLoadInfo;
 
     private final CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
 
@@ -69,7 +69,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
         Map<ColumnIdent, NestableInput> referenceImplementationMap = new HashMap<>(1, 1);
 
         ReferenceIdent dummyLoadIdent = new ReferenceIdent(new RelationName("test", "dummy"), "load");
-        dummyLoadInfo = new Reference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE, 0, null);
+        dummyLoadInfo = new SimpleReference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE, 0, null);
 
         referenceImplementationMap.put(dummyLoadIdent.columnIdent(), constant(0.08d));
         nodeCtx = createNodeContext();
@@ -86,7 +86,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
      */
     private Function prepareFunctionTree() {
 
-        Reference load_1 = dummyLoadInfo;
+        SimpleReference load_1 = dummyLoadInfo;
         Literal<Double> d01 = Literal.of(0.08);
         Function load_eq_01 = new Function(
             EqOperator.SIGNATURE,
@@ -94,7 +94,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
             EqOperator.RETURN_TYPE
         );
 
-        Symbol name_ref = new Reference(
+        Symbol name_ref = new SimpleReference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "foo"), "name"),
             RowGranularity.DOC,
             DataTypes.STRING,

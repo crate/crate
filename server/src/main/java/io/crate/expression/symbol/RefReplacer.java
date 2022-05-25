@@ -21,13 +21,13 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 
 import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
-public final class RefReplacer extends FunctionCopyVisitor<Function<? super Reference, ? extends Symbol>> {
+public final class RefReplacer extends FunctionCopyVisitor<Function<? super SimpleReference, ? extends Symbol>> {
 
     private static final RefReplacer REPLACER = new RefReplacer();
 
@@ -36,14 +36,14 @@ public final class RefReplacer extends FunctionCopyVisitor<Function<? super Refe
     }
 
     /**
-     * Applies {@code mapper} on all {@link Reference} instances within {@code tree}
+     * Applies {@code mapper} on all {@link SimpleReference} instances within {@code tree}
      */
-    public static Symbol replaceRefs(Symbol tree, Function<? super Reference, ? extends Symbol> mapper) {
+    public static Symbol replaceRefs(Symbol tree, Function<? super SimpleReference, ? extends Symbol> mapper) {
         return tree.accept(REPLACER, mapper);
     }
 
     @Override
-    public Symbol visitReference(Reference ref, Function<? super Reference, ? extends Symbol> mapper) {
+    public Symbol visitReference(SimpleReference ref, Function<? super SimpleReference, ? extends Symbol> mapper) {
         return requireNonNull(mapper.apply(ref), "mapper function used in RefReplacer must not return null values");
     }
 }

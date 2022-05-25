@@ -21,13 +21,13 @@
 
 package io.crate.planner.node.dql;
 
+import java.util.List;
+
 import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-
-import java.util.List;
 
 public class GroupByConsumer {
 
@@ -50,8 +50,7 @@ public class GroupByConsumer {
         // this also handles the case if there is only one primary key.
         // as clustered by column == pk column  in that case
         Symbol groupByKey = groupBySymbols.get(0);
-        return (groupByKey instanceof Reference
-                && ((Reference) groupByKey).column().equals(tableInfo.clusteredBy()));
+        return groupByKey instanceof Reference ref && ref.column().equals(tableInfo.clusteredBy());
     }
 
     private static boolean groupedByPrimaryKeys(List<ColumnIdent> primaryKeys, List<Symbol> groupBy) {
@@ -60,8 +59,8 @@ public class GroupByConsumer {
         }
         for (int i = 0, groupBySize = groupBy.size(); i < groupBySize; i++) {
             Symbol groupBySymbol = groupBy.get(i);
-            if (groupBySymbol instanceof Reference) {
-                ColumnIdent columnIdent = ((Reference) groupBySymbol).column();
+            if (groupBySymbol instanceof Reference ref) {
+                ColumnIdent columnIdent = ref.column();
                 ColumnIdent pkIdent = primaryKeys.get(i);
                 if (!pkIdent.equals(columnIdent)) {
                     return false;

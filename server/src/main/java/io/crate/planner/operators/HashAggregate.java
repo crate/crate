@@ -36,7 +36,7 @@ import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -226,7 +226,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         }
 
         @Override
-        public Void visitReference(Reference symbol, OutputValidatorContext context) {
+        public Void visitReference(SimpleReference symbol, OutputValidatorContext context) {
             if (context.insideAggregation) {
                 IndexType indexType = symbol.indexType();
                 if (indexType == IndexType.FULLTEXT) {

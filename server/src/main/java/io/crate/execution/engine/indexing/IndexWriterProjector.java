@@ -60,7 +60,7 @@ import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 
 public class IndexWriterProjector implements Projector {
@@ -80,7 +80,7 @@ public class IndexWriterProjector implements Projector {
                                 int targetTableNumReplicas,
                                 ElasticsearchClient elasticsearchClient,
                                 Supplier<String> indexNameResolver,
-                                Reference rawSourceReference,
+                                SimpleReference rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
                                 List<? extends Symbol> primaryKeySymbols,
                                 @Nullable Symbol routingSymbol,
@@ -112,7 +112,7 @@ public class IndexWriterProjector implements Projector {
             overwriteDuplicates ? DuplicateKeyAction.OVERWRITE : DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             null,
-            new Reference[]{rawSourceReference},
+            new SimpleReference[]{rawSourceReference},
             null,
             jobId,
             validation);

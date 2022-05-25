@@ -22,7 +22,7 @@
 package io.crate.expression.symbol;
 
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.tree.ColumnPolicy;
@@ -32,7 +32,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 
 import java.io.IOException;
 
-public class DynamicReference extends Reference {
+public class DynamicReference extends SimpleReference {
 
     public DynamicReference(StreamInput in) throws IOException {
         super(in);

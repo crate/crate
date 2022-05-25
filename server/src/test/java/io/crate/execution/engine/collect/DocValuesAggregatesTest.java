@@ -44,7 +44,7 @@ import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -154,7 +154,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_create_aggregators_for_reference_and_without_doc_value_field_returns_null() {
-        Reference xRef = (Reference) e.asSymbol("tbl.x");
+        SimpleReference xRef = (SimpleReference) e.asSymbol("tbl.x");
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
             List.of(longSumAggregation),
@@ -167,7 +167,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
         aggregators = DocValuesAggregates.createAggregators(
             functions,
             List.of(longSumAggregation),
-            List.of(new Reference(
+            List.of(new SimpleReference(
                 xRef.ident(),
                 xRef.granularity(),
                 xRef.valueType(),

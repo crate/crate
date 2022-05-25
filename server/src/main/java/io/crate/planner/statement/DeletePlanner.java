@@ -44,6 +44,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.doc.DocSysColumns;
@@ -180,7 +181,7 @@ public final class DeletePlanner {
 
     private static ExecutionPlan deleteByQuery(DocTableRelation table, PlannerContext context, WhereClause where) {
         DocTableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table has to have a _id reference");
+        SimpleReference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table has to have a _id reference");
         DeleteProjection deleteProjection = new DeleteProjection(new InputColumn(0, idReference.valueType()));
         SessionContext sessionContext = context.transactionContext().sessionContext();
         Routing routing = context.allocateRouting(

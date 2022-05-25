@@ -28,7 +28,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -75,7 +75,7 @@ public class HavingSymbolValidator {
         }
 
         @Override
-        public Void visitReference(Reference ref, HavingContext context) {
+        public Void visitReference(SimpleReference ref, HavingContext context) {
             ensurePresentInGroupBY(ref, context);
             return null;
         }

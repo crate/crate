@@ -22,6 +22,12 @@
 package io.crate.analyze.relations;
 
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -31,13 +37,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.SimpleReference;
 import io.crate.planner.consumer.RelationNameCollector;
-
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
 
 public class QuerySplitter {
 
@@ -135,7 +136,7 @@ public class QuerySplitter {
         }
 
         @Override
-        public Void visitReference(Reference ref, Context ctx) {
+        public Void visitReference(SimpleReference ref, Context ctx) {
             ctx.parts.put(Set.of(ref.ident().tableIdent()), ref);
             return null;
         }
@@ -146,8 +147,8 @@ public class QuerySplitter {
             for (Symbol field : matchPredicate.identBoostMap().keySet()) {
                 if (field instanceof ScopedSymbol) {
                     relationNames.add(((ScopedSymbol) field).relation());
-                } else if (field instanceof Reference) {
-                    relationNames.add(((Reference) field).ident().tableIdent());
+                } else if (field instanceof Reference ref) {
+                    relationNames.add(ref.ident().tableIdent());
                 }
             }
             ctx.parts.put(relationNames, matchPredicate);

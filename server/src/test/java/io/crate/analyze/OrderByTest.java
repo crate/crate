@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -39,8 +39,8 @@ public class OrderByTest extends ESTestCase {
 
     private static final RelationName TI = new RelationName("doc", "people");
 
-    private Reference ref(String name) {
-        return new Reference(new ReferenceIdent(TI, name), RowGranularity.DOC, DataTypes.STRING, 0, null);
+    private SimpleReference ref(String name) {
+        return new SimpleReference(new ReferenceIdent(TI, name), RowGranularity.DOC, DataTypes.STRING, 0, null);
     }
 
     @Test

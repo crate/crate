@@ -22,7 +22,7 @@
 package io.crate.expression.symbol;
 
 import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataType;
@@ -38,20 +38,20 @@ import java.util.List;
 public final class FetchMarker implements Symbol {
 
     private final RelationName relationName;
-    private final List<Reference> fetchRefs;
-    private final Reference fetchId;
+    private final List<SimpleReference> fetchRefs;
+    private final SimpleReference fetchId;
 
-    public FetchMarker(RelationName relationName, List<Reference> fetchRefs) {
+    public FetchMarker(RelationName relationName, List<SimpleReference> fetchRefs) {
         this(relationName, fetchRefs, DocSysColumns.forTable(relationName, DocSysColumns.FETCHID));
     }
 
-    public FetchMarker(RelationName relationName, List<Reference> fetchRefs, Reference fetchId) {
+    public FetchMarker(RelationName relationName, List<SimpleReference> fetchRefs, SimpleReference fetchId) {
         this.relationName = relationName;
         this.fetchRefs = fetchRefs;
         this.fetchId = fetchId;
     }
 
-    public List<Reference> fetchRefs() {
+    public List<SimpleReference> fetchRefs() {
         return fetchRefs;
     }
 
@@ -59,7 +59,7 @@ public final class FetchMarker implements Symbol {
         return relationName;
     }
 
-    public Reference fetchId() {
+    public SimpleReference fetchId() {
         return fetchId;
     }
 

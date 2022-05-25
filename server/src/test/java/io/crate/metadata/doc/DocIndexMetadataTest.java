@@ -39,7 +39,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.view.ViewInfoFactory;
@@ -155,7 +155,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         IndexMetadata metadata = getIndexMetadata("test1", builder);
         DocIndexMetadata md = newMeta(metadata, "test1");
 
-        Reference reference = md.references().get(new ColumnIdent("person", Arrays.asList("addresses", "city")));
+        SimpleReference reference = md.references().get(new ColumnIdent("person", Arrays.asList("addresses", "city")));
         assertNotNull(reference);
     }
 
@@ -281,48 +281,48 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.columns().size(), is(11));
         assertThat(md.references().size(), is(23));
 
-        Reference birthday = md.references().get(new ColumnIdent("person", "birthday"));
+        SimpleReference birthday = md.references().get(new ColumnIdent("person", "birthday"));
         assertThat(birthday.valueType(), is(DataTypes.TIMESTAMPZ));
         assertThat(birthday.indexType(), is(IndexType.PLAIN));
         assertThat(birthday.defaultExpression(), is(nullValue()) );
 
-        Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
+        SimpleReference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
         assertThat(integerIndexed.indexType(), is(IndexType.PLAIN));
         assertThat(integerIndexed.defaultExpression(), is(nullValue()) );
 
-        Reference integerIndexedBWC = md.references().get(new ColumnIdent("integerIndexedBWC"));
+        SimpleReference integerIndexedBWC = md.references().get(new ColumnIdent("integerIndexedBWC"));
         assertThat(integerIndexedBWC.indexType(), is(IndexType.PLAIN));
         assertThat(integerIndexedBWC.defaultExpression(), is(nullValue()) );
 
-        Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
+        SimpleReference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
         assertThat(integerNotIndexed.indexType(), is(IndexType.NONE));
         assertThat(integerNotIndexed.defaultExpression(), is(nullValue()) );
 
-        Reference integerNotIndexedBWC = md.references().get(new ColumnIdent("integerNotIndexedBWC"));
+        SimpleReference integerNotIndexedBWC = md.references().get(new ColumnIdent("integerNotIndexedBWC"));
         assertThat(integerNotIndexedBWC.indexType(), is(IndexType.NONE));
         assertThat(integerNotIndexedBWC.defaultExpression(), is(nullValue()) );
 
-        Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
+        SimpleReference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
         assertThat(stringNotIndexed.indexType(), is(IndexType.NONE));
         assertThat(stringNotIndexed.defaultExpression(), is(nullValue()) );
 
-        Reference stringNotIndexedBWC = md.references().get(new ColumnIdent("stringNotIndexedBWC"));
+        SimpleReference stringNotIndexedBWC = md.references().get(new ColumnIdent("stringNotIndexedBWC"));
         assertThat(stringNotIndexedBWC.indexType(), is(IndexType.NONE));
         assertThat(stringNotIndexedBWC.defaultExpression(), is(nullValue()) );
 
-        Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
+        SimpleReference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
         assertThat(stringNotAnalyzed.indexType(), is(IndexType.PLAIN));
         assertThat(stringNotAnalyzed.defaultExpression(), is(nullValue()) );
 
-        Reference stringNotAnalyzedBWC = md.references().get(new ColumnIdent("stringNotAnalyzedBWC"));
+        SimpleReference stringNotAnalyzedBWC = md.references().get(new ColumnIdent("stringNotAnalyzedBWC"));
         assertThat(stringNotAnalyzedBWC.indexType(), is(IndexType.PLAIN));
         assertThat(stringNotAnalyzedBWC.defaultExpression(), is(nullValue()) );
 
-        Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
+        SimpleReference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
         assertThat(stringAnalyzed.indexType(), is(IndexType.FULLTEXT));
         assertThat(stringAnalyzed.defaultExpression(), is(nullValue()) );
 
-        Reference stringAnalyzedBWC = md.references().get(new ColumnIdent("stringAnalyzedBWC"));
+        SimpleReference stringAnalyzedBWC = md.references().get(new ColumnIdent("stringAnalyzedBWC"));
         assertThat(stringAnalyzedBWC.indexType(), is(IndexType.FULLTEXT));
         assertThat(stringAnalyzedBWC.defaultExpression(), is(nullValue()) );
 
@@ -382,28 +382,28 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.columns().size(), is(6));
         assertThat(md.references().size(), is(16));
 
-        Reference birthday = md.references().get(new ColumnIdent("birthday"));
+        SimpleReference birthday = md.references().get(new ColumnIdent("birthday"));
         assertThat(birthday.valueType(), is(DataTypes.TIMESTAMPZ));
         assertThat(birthday.defaultExpression(), isFunction("current_timestamp", List.of(DataTypes.INTEGER)));
 
-        Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
+        SimpleReference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
         assertThat(integerIndexed.indexType(), is(IndexType.PLAIN));
         assertThat(integerIndexed.defaultExpression(), isLiteral(1));
 
 
-        Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
+        SimpleReference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
         assertThat(integerNotIndexed.indexType(), is(IndexType.NONE));
         assertThat(integerNotIndexed.defaultExpression(), isLiteral(1));
 
-        Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
+        SimpleReference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
         assertThat(stringNotIndexed.indexType(), is(IndexType.NONE));
         assertThat(stringNotIndexed.defaultExpression(), isLiteral("default"));
 
-        Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
+        SimpleReference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
         assertThat(stringNotAnalyzed.indexType(), is(IndexType.PLAIN));
         assertThat(stringNotAnalyzed.defaultExpression(), isLiteral("default"));
 
-        Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
+        SimpleReference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
         assertThat(stringAnalyzed.indexType(), is(IndexType.FULLTEXT));
         assertThat(stringAnalyzed.defaultExpression(), isLiteral("default"));
 
@@ -605,17 +605,17 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
 
         DocIndexMetadata metadata = newMeta(getIndexMetadata("test", builder), "test");
-        Map<ColumnIdent,Reference> references = metadata.references();
-        Reference id = references.get(new ColumnIdent("_id"));
+        Map<ColumnIdent,SimpleReference> references = metadata.references();
+        SimpleReference id = references.get(new ColumnIdent("_id"));
         assertNotNull(id);
 
-        Reference version = references.get(new ColumnIdent("_version"));
+        SimpleReference version = references.get(new ColumnIdent("_version"));
         assertNotNull(version);
 
-        Reference score = references.get(new ColumnIdent("_score"));
+        SimpleReference score = references.get(new ColumnIdent("_score"));
         assertNotNull(score);
 
-        Reference docId = references.get(new ColumnIdent("_docid"));
+        SimpleReference docId = references.get(new ColumnIdent("_docid"));
         assertNotNull(docId);
     }
 
@@ -803,7 +803,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = newMeta(metadata, "test_notnull_columns");
 
         assertThat(
-            md.columns().stream().map(Reference::isNullable).collect(Collectors.toList()),
+            md.columns().stream().map(SimpleReference::isNullable).collect(Collectors.toList()),
             contains(false, false)
         );
     }
@@ -867,7 +867,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = newMeta(metadata, "test1");
 
         assertThat(md.columns().size(), is(2));
-        Reference week = md.references().get(new ColumnIdent("week"));
+        SimpleReference week = md.references().get(new ColumnIdent("week"));
         assertThat(week, Matchers.notNullValue());
         assertThat(week.isNullable(), is(false));
         assertThat(week, instanceOf(GeneratedReference.class));
@@ -1002,7 +1002,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
                 .endObject()
             .endObject();
         DocIndexMetadata md = newMeta(getIndexMetadata("test_analyzer", builder), "test_analyzer");
-        List<Reference> columns = new ArrayList<>(md.columns());
+        List<SimpleReference> columns = new ArrayList<>(md.columns());
         assertThat(columns.size(), is(2));
         assertThat(columns.get(0).indexType(), is(IndexType.FULLTEXT));
         assertThat(columns.get(0).column().fqn(), is("content_de"));
@@ -1014,7 +1014,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     public void testGeoPointType() throws Exception {
         DocIndexMetadata md = getDocIndexMetadataFromStatement("create table foo (p geo_point)");
         assertThat(md.columns().size(), is(1));
-        Reference reference = md.columns().iterator().next();
+        SimpleReference reference = md.columns().iterator().next();
         assertThat(reference.valueType(), equalTo(DataTypes.GEO_POINT));
     }
 
@@ -1385,7 +1385,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata metadata = getDocIndexMetadataFromStatement(
             "create table t (tags array(string) index using fulltext)");
 
-        Reference reference = metadata.columns().iterator().next();
+        SimpleReference reference = metadata.columns().iterator().next();
         assertThat(reference.valueType(), equalTo(new ArrayType(DataTypes.STRING)));
     }
 
@@ -1417,7 +1417,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = newMeta(metadata, "test1");
 
         assertThat(md.columns().size(), is(2));
-        Reference week = md.references().get(new ColumnIdent("week"));
+        SimpleReference week = md.references().get(new ColumnIdent("week"));
         assertThat(week, Matchers.notNullValue());
         assertThat(week, instanceOf(GeneratedReference.class));
         assertThat(((GeneratedReference) week).formattedGeneratedExpression(), is("date_trunc('week', ts)"));
@@ -1460,7 +1460,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     public void testColumnWithDefaultExpression() throws Exception {
         DocIndexMetadata md = getDocIndexMetadataFromStatement("create table t1 (" +
                                                                " ts timestamp with time zone default current_timestamp)");
-        Reference reference = md.references().get(new ColumnIdent("ts"));
+        SimpleReference reference = md.references().get(new ColumnIdent("ts"));
         assertThat(reference.valueType(), is(DataTypes.TIMESTAMPZ));
         assertThat(reference.defaultExpression(), isFunction("current_timestamp"));
     }

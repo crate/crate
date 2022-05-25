@@ -34,7 +34,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -337,7 +337,7 @@ public class AnalyzedTableElements<T> {
     }
 
     public TableReferenceResolver referenceResolver(RelationName relationName) {
-        List<Reference> tableReferences = new ArrayList<>();
+        List<SimpleReference> tableReferences = new ArrayList<>();
         for (AnalyzedColumnDefinition<T> columnDefinition : columns) {
             buildReference(relationName, columnDefinition, tableReferences);
         }
@@ -418,15 +418,15 @@ public class AnalyzedTableElements<T> {
 
     private static <T> void buildReference(RelationName relationName,
                                            AnalyzedColumnDefinition<T> columnDefinition,
-                                           List<Reference> references) {
-        Reference reference;
+                                           List<SimpleReference> references) {
+        SimpleReference reference;
 
         DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
         DataType<?> realType = ArrayType.NAME.equals(columnDefinition.collectionType())
             ? new ArrayType<>(type)
             : type;
         if (columnDefinition.isGenerated() == false) {
-            reference = new Reference(
+            reference = new SimpleReference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
                 realType,

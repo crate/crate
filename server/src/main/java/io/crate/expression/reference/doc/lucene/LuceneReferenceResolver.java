@@ -41,7 +41,7 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
@@ -64,19 +64,19 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
     private static final Set<Integer> NO_FIELD_TYPES_IDS = Set.of(ObjectType.ID, GeoShapeType.ID);
     private final FieldTypeLookup fieldTypeLookup;
-    private final List<Reference> partitionColumns;
+    private final List<SimpleReference> partitionColumns;
     private final String indexName;
 
     public LuceneReferenceResolver(final String indexName,
                                    final FieldTypeLookup fieldTypeLookup,
-                                   final List<Reference> partitionColumns) {
+                                   final List<SimpleReference> partitionColumns) {
         this.indexName = indexName;
         this.fieldTypeLookup = fieldTypeLookup;
         this.partitionColumns = partitionColumns;
     }
 
     @Override
-    public LuceneCollectorExpression<?> getImplementation(final Reference ref) {
+    public LuceneCollectorExpression<?> getImplementation(final SimpleReference ref) {
         final ColumnIdent column = ref.column();
         switch (column.name()) {
             case DocSysColumns.Names.RAW:
@@ -136,10 +136,10 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
     private static LuceneCollectorExpression<?> maybeInjectPartitionValue(LuceneCollectorExpression<?> result,
                                                                           String indexName,
-                                                                          List<Reference> partitionColumns,
+                                                                          List<SimpleReference> partitionColumns,
                                                                           ColumnIdent column) {
         for (int i = 0; i < partitionColumns.size(); i++) {
-            final Reference partitionColumn = partitionColumns.get(i);
+            final SimpleReference partitionColumn = partitionColumns.get(i);
             final var partitionColumnIdent = partitionColumn.column();
             if (partitionColumnIdent.isChildOf(column)) {
                 return new PartitionValueInjectingExpression(
@@ -153,7 +153,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         return result;
     }
 
-    private static LuceneCollectorExpression<?> typeSpecializedExpression(final FieldTypeLookup fieldTypeLookup, final Reference ref) {
+    private static LuceneCollectorExpression<?> typeSpecializedExpression(final FieldTypeLookup fieldTypeLookup, final SimpleReference ref) {
         final String fqn = ref.column().fqn();
         final MappedFieldType fieldType = fieldTypeLookup.get(fqn);
         if (fieldType == null) {
@@ -196,7 +196,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         }
     }
 
-    private static boolean isIgnoredDynamicReference(final Reference ref) {
+    private static boolean isIgnoredDynamicReference(final SimpleReference ref) {
         return ref.symbolType() == SymbolType.DYNAMIC_REFERENCE && ref.columnPolicy() == ColumnPolicy.IGNORED;
     }
 

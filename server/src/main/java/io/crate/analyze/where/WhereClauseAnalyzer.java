@@ -35,7 +35,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.PartitionReferenceResolver;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.common.collections.Tuple;
@@ -78,10 +78,10 @@ public class WhereClauseAnalyzer {
         return new WhereClause(partitionResult.query, partitionResult.partitions, where.clusteredBy());
     }
 
-    private static PartitionReferenceResolver preparePartitionResolver(List<Reference> partitionColumns) {
+    private static PartitionReferenceResolver preparePartitionResolver(List<SimpleReference> partitionColumns) {
         List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
         int idx = 0;
-        for (Reference partitionedByColumn : partitionColumns) {
+        for (SimpleReference partitionedByColumn : partitionColumns) {
             partitionExpressions.add(new PartitionExpression(partitionedByColumn, idx));
             idx++;
         }

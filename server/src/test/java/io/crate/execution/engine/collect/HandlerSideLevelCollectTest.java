@@ -37,7 +37,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -116,7 +116,7 @@ public class HandlerSideLevelCollectTest extends SQLIntegrationTestCase {
             clusterService().state(),
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
-        Reference clusterNameRef = new Reference(
+        SimpleReference clusterNameRef = new SimpleReference(
             new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent("name")),
             RowGranularity.CLUSTER,
             DataTypes.STRING,
@@ -147,7 +147,7 @@ public class HandlerSideLevelCollectTest extends SQLIntegrationTestCase {
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
         List<Symbol> toCollect = new ArrayList<>();
-        for (Reference reference : tablesTableInfo.columns()) {
+        for (SimpleReference reference : tablesTableInfo.columns()) {
             toCollect.add(reference);
         }
         Symbol tableNameRef = toCollect.get(12);
@@ -173,7 +173,7 @@ public class HandlerSideLevelCollectTest extends SQLIntegrationTestCase {
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
         List<Symbol> toCollect = new ArrayList<>();
-        for (Reference ref : tableInfo.columns()) {
+        for (SimpleReference ref : tableInfo.columns()) {
             if (Set.of("column_name", "data_type", "table_name").contains(ref.column().name())) {
                 toCollect.add(ref);
             }

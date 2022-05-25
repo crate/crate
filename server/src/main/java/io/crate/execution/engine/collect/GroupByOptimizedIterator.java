@@ -36,7 +36,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
@@ -72,6 +71,7 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputCondition;
 import io.crate.expression.InputFactory;
@@ -433,8 +433,8 @@ final class GroupByOptimizedIterator {
     private static Reference getKeyRef(List<Symbol> toCollect, Symbol key) {
         if (key instanceof InputColumn) {
             Symbol keyRef = toCollect.get(((InputColumn) key).index());
-            if (keyRef instanceof Reference) {
-                return ((Reference) keyRef);
+            if (keyRef instanceof Reference ref) {
+                return ref;
             }
         }
         return null;

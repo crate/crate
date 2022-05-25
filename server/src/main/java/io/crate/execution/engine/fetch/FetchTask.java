@@ -57,7 +57,7 @@ import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.Task;
 import io.crate.metadata.IndexParts;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocTableInfo;
@@ -72,7 +72,7 @@ public class FetchTask implements Task {
     private final TreeMap<Integer, RelationName> tableIdents = new TreeMap<>();
     private final Metadata metadata;
     private final Iterable<? extends Routing> routingIterable;
-    private final Map<RelationName, Collection<Reference>> toFetch;
+    private final Map<RelationName, Collection<SimpleReference>> toFetch;
     private final UUID jobId;
     private final Function<RelationName, DocTableInfo> getTableInfo;
     private final CompletableFuture<Void> result = new CompletableFuture<>();
@@ -108,7 +108,7 @@ public class FetchTask implements Task {
         searchers.clear();
     }
 
-    public Map<RelationName, Collection<Reference>> toFetch() {
+    public Map<RelationName, Collection<SimpleReference>> toFetch() {
         return toFetch;
     }
 
@@ -228,7 +228,7 @@ public class FetchTask implements Task {
                 }
             }
             Set<RelationName> tablesWithFetchRefs = new HashSet<>();
-            for (Reference reference : phase.fetchRefs()) {
+            for (SimpleReference reference : phase.fetchRefs()) {
                 tablesWithFetchRefs.add(reference.ident().tableIdent());
             }
 
@@ -274,8 +274,8 @@ public class FetchTask implements Task {
                     }
                 }
             }
-            for (Reference reference : phase.fetchRefs()) {
-                Collection<Reference> references = toFetch.get(reference.ident().tableIdent());
+            for (SimpleReference reference : phase.fetchRefs()) {
+                Collection<SimpleReference> references = toFetch.get(reference.ident().tableIdent());
                 if (references != null) {
                     references.add(reference);
                 }

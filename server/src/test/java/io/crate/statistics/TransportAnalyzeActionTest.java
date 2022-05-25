@@ -23,7 +23,7 @@ package io.crate.statistics;
 
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Row1;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -52,7 +52,7 @@ public class TransportAnalyzeActionTest extends ESTestCase {
             SizeEstimatorFactory.create(DataTypes.STRING_ARRAY).estimateSize(rows)
         );
         var references = List.of(
-            new Reference(
+            new SimpleReference(
                 new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy"), "dummy"),
                 RowGranularity.DOC,
                 DataTypes.STRING_ARRAY,

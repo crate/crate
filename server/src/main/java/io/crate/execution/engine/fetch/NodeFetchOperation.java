@@ -54,7 +54,7 @@ import io.crate.execution.support.ThreadPools;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 
 public class NodeFetchOperation {
@@ -68,10 +68,10 @@ public class NodeFetchOperation {
     private static class TableFetchInfo {
 
         private final Streamer<?>[] streamers;
-        private final Collection<Reference> refs;
+        private final Collection<SimpleReference> refs;
         private final FetchTask fetchTask;
 
-        TableFetchInfo(Collection<Reference> refs, FetchTask fetchTask) {
+        TableFetchInfo(Collection<SimpleReference> refs, FetchTask fetchTask) {
             this.refs = refs;
             this.fetchTask = fetchTask;
             this.streamers = Symbols.streamerArray(refs);
@@ -86,7 +86,7 @@ public class NodeFetchOperation {
                 fetchTask.table(readerId).partitionedByColumns()
             );
             ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
-            for (Reference reference : refs) {
+            for (SimpleReference reference : refs) {
                 exprs.add(resolver.getImplementation(reference));
             }
             return new FetchCollector(
@@ -161,7 +161,7 @@ public class NodeFetchOperation {
 
     private static HashMap<RelationName, TableFetchInfo> getTableFetchInfos(FetchTask fetchTask) {
         HashMap<RelationName, TableFetchInfo> result = new HashMap<>(fetchTask.toFetch().size());
-        for (Map.Entry<RelationName, Collection<Reference>> entry : fetchTask.toFetch().entrySet()) {
+        for (Map.Entry<RelationName, Collection<SimpleReference>> entry : fetchTask.toFetch().entrySet()) {
             TableFetchInfo tableFetchInfo = new TableFetchInfo(entry.getValue(), fetchTask);
             result.put(entry.getKey(), tableFetchInfo);
         }

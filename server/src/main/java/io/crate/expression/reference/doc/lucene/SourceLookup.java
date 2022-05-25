@@ -31,7 +31,7 @@ import java.util.RandomAccess;
 import org.elasticsearch.common.bytes.BytesReference;
 
 import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 
 public final class SourceLookup {
 
@@ -122,7 +122,7 @@ public final class SourceLookup {
         return tmp;
     }
 
-    public SourceLookup registerRef(Reference ref) {
+    public SourceLookup registerRef(SimpleReference ref) {
         sourceParser.register(ref.column(), ref.valueType());
         return this;
     }

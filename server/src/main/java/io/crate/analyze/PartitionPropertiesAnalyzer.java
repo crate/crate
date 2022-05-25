@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
@@ -82,7 +82,7 @@ public class PartitionPropertiesAnalyzer {
 
             int idx = tableInfo.partitionedBy().indexOf(entry.getKey());
             try {
-                Reference reference = tableInfo.partitionedByColumns().get(idx);
+                SimpleReference reference = tableInfo.partitionedByColumns().get(idx);
                 Object converted = reference.valueType().implicitCast(value);
                 values[idx] = DataTypes.STRING.implicitCast(converted);
             } catch (IndexOutOfBoundsException ex) {

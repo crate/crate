@@ -48,7 +48,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
@@ -75,7 +75,7 @@ public class CountAggregationTest extends AggregationTestCase {
         );
     }
 
-    private void assertHasDocValueAggregator(List<Reference> aggregationReferences,
+    private void assertHasDocValueAggregator(List<SimpleReference> aggregationReferences,
                                              DocTableInfo sourceTable,
                                              Class<?> expectedAggregatorClass) {
         var aggregationFunction = (AggregationFunction<?, ?>) nodeCtx.functions().get(
@@ -123,7 +123,7 @@ public class CountAggregationTest extends AggregationTestCase {
     }
 
     private void helper_count_on_object_with_not_null_immediate_child(DataType<?> childType, Class<?> expectedAggregatorClass) {
-        Reference notNullImmediateChild = new Reference(
+        SimpleReference notNullImmediateChild = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object", "not_null_subcol")),
             RowGranularity.DOC,
             childType,
@@ -133,7 +133,7 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             0,
             null);
-        Reference countedObject = new Reference(
+        SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
             RowGranularity.DOC,
             ObjectType.builder().setInnerType(notNullImmediateChild.column().leafName(), notNullImmediateChild.valueType()).build(),
@@ -169,7 +169,7 @@ public class CountAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_count_on_object_with_deeper_not_null_subcolumn_uses_DocValueAggregator() {
-        Reference notNullGrandChild = new Reference(
+        SimpleReference notNullGrandChild = new SimpleReference(
             new ReferenceIdent(
                 null,
                 new ColumnIdent("top_level_object", List.of("second_level_object", "not_null_subcol"))),
@@ -181,7 +181,7 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             0,
             null);
-        Reference immediateChild = new Reference(
+        SimpleReference immediateChild = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object", "second_level_object")),
             RowGranularity.DOC,
             ObjectType.builder().setInnerType(notNullGrandChild.column().leafName(), notNullGrandChild.valueType()).build(),
@@ -192,7 +192,7 @@ public class CountAggregationTest extends AggregationTestCase {
             0,
             null
         );
-        Reference countedObject = new Reference(
+        SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
             RowGranularity.DOC,
             ObjectType.builder().setInnerType(immediateChild.column().leafName(), immediateChild.valueType()).build(),
@@ -214,7 +214,7 @@ public class CountAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_count_on_object_with_not_null_sibling_not_use_DocValueAggregator() {
-        Reference notNullSibling = new Reference(
+        SimpleReference notNullSibling = new SimpleReference(
             new ReferenceIdent(
                 null,
                 new ColumnIdent("top_level_Integer")),
@@ -222,7 +222,7 @@ public class CountAggregationTest extends AggregationTestCase {
             DataTypes.INTEGER,
             0,
             null);
-        Reference countedObject = new Reference(
+        SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
             RowGranularity.DOC,
             ObjectType.UNTYPED,
@@ -240,7 +240,7 @@ public class CountAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_count_on_object_with_not_null_siblings_child_not_use_DocValueAggregator() {
-        Reference notNullSibilingsChild = new Reference(
+        SimpleReference notNullSibilingsChild = new SimpleReference(
             new ReferenceIdent(
                 null,
                 new ColumnIdent("top_level_sibling", List.of("not_null_subcol"))),
@@ -248,14 +248,14 @@ public class CountAggregationTest extends AggregationTestCase {
             DataTypes.STRING,
             0,
             null);
-        Reference sibling = new Reference(  //unused
+        SimpleReference sibling = new SimpleReference(  //unused
             new ReferenceIdent(null, new ColumnIdent("top_level_sibling")),
             RowGranularity.DOC,
             ObjectType.builder().setInnerType(notNullSibilingsChild.column().leafName(), notNullSibilingsChild.valueType()).build(),
             0,
             null
         );
-        Reference countedObject = new Reference(
+        SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
             RowGranularity.DOC,
             ObjectType.UNTYPED,
@@ -273,13 +273,13 @@ public class CountAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_count_on_object_with_nullable_subcolumn_not_use_DocValueAggregator() {
-        Reference nullableChild = new Reference(
+        SimpleReference nullableChild = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object", "nullable_subcol")),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             0,
             null);
-        Reference countedObject = new Reference(
+        SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
             RowGranularity.DOC,
             ObjectType.builder().setInnerType(nullableChild.column().leafName(), nullableChild.valueType()).build(),
@@ -297,7 +297,7 @@ public class CountAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_count_on_object_with_multiple_not_null_candidates() {
-        Reference notNullGrandChild1 = new Reference(
+        SimpleReference notNullGrandChild1 = new SimpleReference(
             new ReferenceIdent(
                 null,
                 new ColumnIdent("top_level_object", List.of("second_level_object", "not_null_subcol1"))),
@@ -309,7 +309,7 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             0,
             null);
-        Reference notNullGrandChild2 = new Reference(
+        SimpleReference notNullGrandChild2 = new SimpleReference(
             new ReferenceIdent(
                 null,
                 new ColumnIdent("top_level_object", List.of("second_level_object", "not_null_subcol2"))),
@@ -321,7 +321,7 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             0,
             null);
-        Reference immediateChild = new Reference(
+        SimpleReference immediateChild = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object", "second_level_object")),
             RowGranularity.DOC,
             ObjectType.builder()
@@ -335,7 +335,7 @@ public class CountAggregationTest extends AggregationTestCase {
             0,
             null
         );
-        Reference notNullImmediateChild = new Reference(
+        SimpleReference notNullImmediateChild = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object", "not_null_subcol")),
             RowGranularity.DOC,
             DataTypes.IP,
@@ -345,7 +345,7 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             0,
             null);
-        Reference countedObject = new Reference(
+        SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
             RowGranularity.DOC,
             ObjectType.builder()

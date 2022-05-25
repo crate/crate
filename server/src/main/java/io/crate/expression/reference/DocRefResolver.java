@@ -27,7 +27,7 @@ import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.ValueExtractors;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 
 import java.util.List;
@@ -47,7 +47,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
     }
 
     @Override
-    public CollectExpression<Doc, ?> getImplementation(Reference ref) {
+    public CollectExpression<Doc, ?> getImplementation(SimpleReference ref) {
         ColumnIdent columnIdent = ref.column();
         String fqn = columnIdent.fqn();
         switch (fqn) {

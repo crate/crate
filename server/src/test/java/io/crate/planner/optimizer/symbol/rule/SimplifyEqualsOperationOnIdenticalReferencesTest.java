@@ -33,7 +33,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -70,7 +70,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
     };
     private static final SimplifyEqualsOperationOnIdenticalReferences RULE =
         new SimplifyEqualsOperationOnIdenticalReferences(FUNCTION_SYMBOL_RESOLVER);
-    private static final Symbol NULLABLE_REF = new Reference(
+    private static final Symbol NULLABLE_REF = new SimpleReference(
         new ReferenceIdent(new RelationName(null, "dummy"), "col"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
@@ -81,7 +81,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
         0,
         null
     );
-    private static final Symbol NOT_NULLABLE_REF = new Reference(
+    private static final Symbol NOT_NULLABLE_REF = new SimpleReference(
         new ReferenceIdent(new RelationName(null, "dummy"), "col"),
         RowGranularity.DOC,
         DataTypes.INTEGER,

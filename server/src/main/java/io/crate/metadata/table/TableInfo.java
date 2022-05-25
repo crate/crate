@@ -24,7 +24,7 @@ package io.crate.metadata.table;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -49,15 +49,15 @@ public interface TableInfo extends RelationInfo {
      * returns null if this table contains no such column.
      */
     @Nullable
-    Reference getReference(ColumnIdent columnIdent);
+    SimpleReference getReference(ColumnIdent columnIdent);
 
     /**
      * This is like {@link #getReference(ColumnIdent)},
      * except that the type is adjusted via {@link #getReadType(ColumnIdent)}
      */
     @Nullable
-    default Reference getReadReference(ColumnIdent columnIdent) {
-        Reference ref = getReference(columnIdent);
+    default SimpleReference getReadReference(ColumnIdent columnIdent) {
+        SimpleReference ref = getReference(columnIdent);
         if (ref == null) {
             return null;
         }
@@ -65,7 +65,7 @@ public interface TableInfo extends RelationInfo {
         if (readType.equals(ref.valueType())) {
             return ref;
         } else {
-            return new Reference(
+            return new SimpleReference(
                 ref.ident(),
                 ref.granularity(),
                 readType,
@@ -102,11 +102,11 @@ public interface TableInfo extends RelationInfo {
      *         UNDEFINED if the column does not exist.
      */
     default DataType<?> getReadType(ColumnIdent column) {
-        Reference ref = getReference(column);
+        SimpleReference ref = getReference(column);
         if (ref == null) {
             return DataTypes.UNDEFINED;
         }
-        Reference rootRef = ref;
+        SimpleReference rootRef = ref;
         int arrayDimensions = 0;
         while (!rootRef.column().isTopLevel()) {
             rootRef = getReference(rootRef.column().getParent());

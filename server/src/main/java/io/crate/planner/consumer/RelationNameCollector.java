@@ -25,7 +25,7 @@ import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.RelationName;
 
 import java.util.LinkedHashSet;
@@ -48,7 +48,7 @@ public class RelationNameCollector extends DefaultTraversalSymbolVisitor<Set<Rel
     }
 
     @Override
-    public Void visitReference(Reference symbol, Set<RelationName> context) {
+    public Void visitReference(SimpleReference symbol, Set<RelationName> context) {
         context.add(symbol.ident().tableIdent());
         return null;
     }
